@@ -463,7 +463,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 }
 
                 var meter = NoopMeter.Instance;
-                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, meter.ValueRecorder("analytics"), options)));
+                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, options)));
             }
         }
 

@@ -209,7 +209,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             // go to the same query node.
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             string txid = string.Empty;
-            Uri? originalQueryNode;
+            Uri originalQueryNode;
 
             {
                 using var span = new TestOutputSpan(_testOutputHelper);

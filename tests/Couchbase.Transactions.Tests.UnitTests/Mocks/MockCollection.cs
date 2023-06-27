@@ -2,15 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Query;
 using Moq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.Tests.UnitTests.Mocks
 {
@@ -123,7 +120,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             throw new NotImplementedException();
         }
 
-        public ICollectionQueryIndexManager QueryIndexes { get; }
+        public ICollectionQueryIndexManager QueryIndexes { get; } = null!;
 
         public uint? Cid { get; }
         public string Name { get; } = "default";
@@ -225,7 +222,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             throw new NotImplementedException();
         }
 
-        public ICollectionQueryIndexManager QueryIndexes { get; }
+        public ICollectionQueryIndexManager QueryIndexes { get; } = null!;
 
         public Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {

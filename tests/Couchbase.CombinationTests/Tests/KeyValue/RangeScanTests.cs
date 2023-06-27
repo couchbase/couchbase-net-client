@@ -25,7 +25,7 @@ public class RangeScanTests
         _outputHelper = outputHelper;
     }
 
-    public async void FlushBucket()
+    internal async void FlushBucket()
     {
         var bucket = _fixture.GetDefaultCollection().Result.Scope.Bucket;
         await bucket.Cluster.Buckets.FlushBucketAsync(bucket.Name);

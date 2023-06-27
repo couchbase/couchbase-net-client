@@ -5,12 +5,13 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
+
+#pragma warning disable CS8632
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 {
@@ -65,7 +66,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
-        public async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
+        public Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
             connection.AddTags(Span2);
 
@@ -75,6 +76,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
             using var encodingSpan = dispatchSpan.DispatchSpan(this);
             var encoding = _random.Next(200, 1000);
+            return Task.CompletedTask;
             //await Task.Delay(encoding);
         }
 

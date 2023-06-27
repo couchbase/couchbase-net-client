@@ -117,10 +117,10 @@ namespace Couchbase.UnitTests.Utils
 
         public bool CanRetry() => true;
 
-        public IOperationResult GetResult()
-        {
-            throw new NotImplementedException();
-        }
+        // public IOperationResult GetResult()
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         public IOperation Clone()
         {

@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -23,6 +19,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Xunit;
+
+#pragma warning disable CS8632
 
 namespace Couchbase.UnitTests.Management.Query
 {
@@ -141,28 +139,52 @@ namespace Couchbase.UnitTests.Management.Query
         public async Task CreatePrimaryIndexAsync_CollectionName_Null_Throw_ArgumentNullException()
         {
             var manager = CreateManager();
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.CreatePrimaryIndexAsync("default", CreatePrimaryQueryIndexOptions.Default.CollectionName("collectionName")));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                async () =>
+                {
+                    var options = CreatePrimaryQueryIndexOptions.Default;
+                    options.CollectionNameValue = "collectionName";
+                    await manager.CreatePrimaryIndexAsync("default", options);
+                });
         }
 
         [Fact]
         public async Task CreatePrimaryIndexAsync_ScopeName_Null_Throw_ArgumentNullException()
         {
             var manager = CreateManager();
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.CreateIndexAsync("default", "index1", new[] {"field1" }, CreateQueryIndexOptions.Default.ScopeName("scopeName")));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                async () =>
+                {
+                    var options = CreateQueryIndexOptions.Default;
+                    options.CollectionNameValue = "collectionName";
+                    await manager.CreateIndexAsync("default", "index1", new[] { "field1" }, options);
+                });
         }
 
         [Fact]
         public async Task CreateIndexAsync_CollectionName_Null_Throw_ArgumentNullException()
         {
             var manager = CreateManager();
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.CreateIndexAsync("default", "index1", new[] { "field1" }, CreateQueryIndexOptions.Default.CollectionName("collectionName")));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                async () =>
+                {
+                    var options = CreateQueryIndexOptions.Default;
+                    options.ScopeNameValue = "scopeName";
+                    await manager.CreateIndexAsync("default", "index1", new[] { "field1" }, options);
+                });
         }
 
         [Fact]
         public async Task CreateIndexAsync_ScopeName_Null_Throw_ArgumentNullException()
         {
             var manager = CreateManager();
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.CreatePrimaryIndexAsync("default", CreatePrimaryQueryIndexOptions.Default.ScopeName("scopeName")));
+            await Assert.ThrowsAsync<ArgumentNullException>(
+                async () =>
+                {
+                    var options = CreatePrimaryQueryIndexOptions.Default;
+                    options.CollectionNameValue = "collectionName";
+                    await manager.CreatePrimaryIndexAsync("default", options);
+                });
         }
 
         [Fact]
@@ -359,8 +381,7 @@ namespace Couchbase.UnitTests.Management.Query
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
             {
                 return _rows.ToAsyncEnumerable().GetAsyncEnumerator();
-            }new
-
+            }
             public RetryReason RetryReason { get; }
             public IAsyncEnumerable<T> Rows => this;
             public QueryMetaData MetaData { get; }

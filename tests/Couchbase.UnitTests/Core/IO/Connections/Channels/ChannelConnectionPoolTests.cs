@@ -269,11 +269,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
         #region Dispose
 
-        public async Task Disposed_Connection_Throws_ODE()
-        {
-
-        }
-
         [Fact]
         public async Task Dispose_ClosesAllConnections()
         {

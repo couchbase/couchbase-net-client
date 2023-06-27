@@ -5,6 +5,7 @@ using Couchbase.Analytics;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 
+#pragma warning disable CS8632
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 {
     public class FakeScope : IScope

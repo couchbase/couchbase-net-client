@@ -306,7 +306,7 @@ namespace Couchbase.IntegrationTests
             {
                 ops.Upsert("name", "mike", true);
                 ops.Upsert("txnid", "pretend_this_is_a_guid", createPath: true, isXattr: true);
-                ops.Decrement("xxx", 5, true);
+                ops.Decrement("xxx", (ulong)5, true);
             },
                 options => options.StoreSemantics(StoreSemantics.Upsert)).ConfigureAwait(false);
 

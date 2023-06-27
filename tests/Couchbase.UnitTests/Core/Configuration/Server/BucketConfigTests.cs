@@ -181,7 +181,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Theory]
         [InlineData(@"Documents\Configs\rev92-single-node.json", @"Documents\Configs\rev94.json")]
         [InlineData(@"Documents\Configs\rev96.json", @"Documents\Configs\rev98-single-node.json")]
-        public async Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
+        public Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
         {
             var oldConfig = ResourceHelper.ReadResource(oldConfigPath, InternalSerializationContext.Default.BucketConfig);
             var newConfig = ResourceHelper.ReadResource(newConfigPath, InternalSerializationContext.Default.BucketConfig);
@@ -235,6 +235,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             context.PruneNodes(newConfig);
 
             Assert.Equal(newConfig.NodesExt.Count, context.Nodes.Count);
+            return Task.CompletedTask;
         }
 
         [Fact]

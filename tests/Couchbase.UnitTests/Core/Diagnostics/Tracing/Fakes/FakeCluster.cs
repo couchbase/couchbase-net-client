@@ -39,7 +39,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public IServiceProvider ClusterServices { get; }
         public ValueTask<IBucket> BucketAsync(string name)
         {
-            if (_buckets.TryGetValue("default", out IBucket bucket))
+            if (_buckets.TryGetValue("default", out IBucket? bucket))
             {
                 return new ValueTask<IBucket>(bucket);
             }

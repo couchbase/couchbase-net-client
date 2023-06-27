@@ -12,6 +12,7 @@ using Xunit;
 using Xunit.Abstractions;
 using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
 
+#pragma warning disable CS8632
 namespace Couchbase.UnitTests
 {
     public class ClusterOptionsTests
@@ -323,6 +324,7 @@ namespace Couchbase.UnitTests
 
             public bool CanWrite { get; }
             public string? Id { get; }
+
             public uint? Duration { get; }
         }
 

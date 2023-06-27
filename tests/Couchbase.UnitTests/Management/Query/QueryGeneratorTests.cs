@@ -1,5 +1,4 @@
 using Couchbase.Management.Query;
-using System;
 using System.Collections.Generic;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,7 +20,11 @@ namespace Couchbase.UnitTests.Management.Query
         public void Test_CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> fields, string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new CreateQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new CreateQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var statement = QueryGenerator.CreateIndexStatement(bucketName, indexName, fields, options);
@@ -41,7 +44,11 @@ namespace Couchbase.UnitTests.Management.Query
         public void Test_CreateDeferredIndexStatement(string bucketName, string indexName, string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new BuildDeferredQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new BuildDeferredQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var statement = QueryGenerator.CreateDeferredIndexStatement(bucketName, indexName, options);
@@ -59,7 +66,11 @@ namespace Couchbase.UnitTests.Management.Query
         public void Test_CreatePrimaryIndexStatement(string bucketName, string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new CreatePrimaryQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new CreatePrimaryQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var statement = QueryGenerator.CreatePrimaryIndexStatement(bucketName, options);
@@ -76,7 +87,11 @@ namespace Couchbase.UnitTests.Management.Query
         public void Test_CreateDropIndexStatement(string bucketName, string indexName, string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new DropQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new DropQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var statement = QueryGenerator.CreateDropIndexStatement(bucketName, indexName, options);
@@ -93,7 +108,11 @@ namespace Couchbase.UnitTests.Management.Query
         public void Test_CreateDropPrimaryIndexStatement(string bucketName, string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new DropPrimaryQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new DropPrimaryQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var statement = QueryGenerator.CreateDropPrimaryIndexStatement(bucketName, options);
@@ -140,14 +159,18 @@ namespace Couchbase.UnitTests.Management.Query
         */
 
         [Theory]
-        [InlineData("travel-sample", null, null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
-        [InlineData("travel-sample", "_default", null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
-        [InlineData("travel-sample", "_default", "_default", "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) OR (bucket_id IS MISSING and keyspace_id=$bucketName)) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
-        [InlineData("travel-sample", "scope", "collection", "SELECT idx.* FROM system:indexes AS idx WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
-        public void Test_CreateGetAllIndexesStatement(string bucketName, string scopeName, string collectionName, string expected)
+        [InlineData(null, null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("_default", null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("_default", "_default", "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) OR (bucket_id IS MISSING and keyspace_id=$bucketName)) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("scope", "collection", "SELECT idx.* FROM system:indexes AS idx WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        public void Test_CreateGetAllIndexesStatement(string scopeName, string collectionName, string expected)
         {
             //arrange
-            var options = new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
+            var options = new GetAllQueryIndexOptions
+            {
+                ScopeNameValue = scopeName,
+                CollectionNameValue = collectionName
+            };
 
             //act
             var actual = QueryGenerator.CreateGetAllIndexesStatement(options);

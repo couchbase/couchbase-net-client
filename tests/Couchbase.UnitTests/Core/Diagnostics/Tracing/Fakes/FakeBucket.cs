@@ -9,7 +9,6 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
-using Moq;
 
 #nullable enable
 
@@ -65,7 +64,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         public ValueTask<IScope> DefaultScopeAsync()
         {
-            if (_scopes.TryGetValue("_default", out IScope scope))
+            if (_scopes.TryGetValue("_default", out IScope? scope))
             {
                 return new ValueTask<IScope>(scope);
             }
@@ -82,7 +81,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         public async ValueTask<ICouchbaseCollection> DefaultCollectionAsync()
         {
-            if (_scopes.TryGetValue("_default", out IScope scope))
+            if (_scopes.TryGetValue("_default", out IScope? scope))
             {
                 return await scope.CollectionAsync("_default");
             }

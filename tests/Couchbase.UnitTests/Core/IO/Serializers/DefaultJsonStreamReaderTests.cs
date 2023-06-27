@@ -202,10 +202,9 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             await reader.ReadToNextAttributeAsync();
             Assert.Equal("results", await reader.ReadToNextAttributeAsync());
 
-            string? x;
+            string x = "";
             while ((x = await reader.ReadToNextAttributeAsync()) != "results[0].updatedUnixMillis")
             {
-                int i = 0;
                 // Loop to get to the last attr in the first element
             }
 

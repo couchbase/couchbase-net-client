@@ -451,7 +451,7 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             await col.UpsertAsync(doc1, new { Counter = 1 },
                 options => options.Expiry(TimeSpan.FromSeconds(2)));
 
-            var result = await col.MutateInAsync(doc1, specs => specs.Increment("counter", 2));
+            var result = await col.MutateInAsync(doc1, specs => specs.Increment("counter", (ulong)2));
             Assert.True(result.Cas > 0);
 
             var result1 = await col.GetAsync(doc1);
@@ -468,7 +468,7 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             await col.UpsertAsync(doc1, new { Counter = 3 },
                 options => options.Expiry(TimeSpan.FromSeconds(2)));
 
-            var result = await col.MutateInAsync(doc1, specs => specs.Decrement("counter", 2));
+            var result = await col.MutateInAsync(doc1, specs => specs.Decrement("counter", (ulong)2));
             Assert.True(result.Cas > 0);
 
             var result1 = await col.GetAsync(doc1);

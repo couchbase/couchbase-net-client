@@ -25,6 +25,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
                     {
                         for (var i = 0; i < 10; i++)
                         {
+                            await Task.Delay(0);
                             yield return new ScanResult(new Couchbase.Utils.SlicedMemoryOwner<byte>(), $"key{i}",false, DateTime.UtcNow.AddHours(i), i, (ulong)i, OpCode.Get, null);
                         }
                     }

@@ -9,6 +9,7 @@ using Couchbase.Management.Collections;
 using Couchbase.Query;
 using Couchbase.Test.Common.Utils;
 using Xunit;
+using Xunit.Abstractions;
 using CollectionNotFoundException = Couchbase.Management.Collections.CollectionNotFoundException;
 
 namespace Couchbase.IntegrationTests.Management
@@ -17,10 +18,12 @@ namespace Couchbase.IntegrationTests.Management
     public class CollectionManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
 
-        public CollectionManagerTests(ClusterFixture fixture)
+        public CollectionManagerTests(ClusterFixture fixture, ITestOutputHelper testOutputHelper)
         {
             _fixture = fixture;
+            _outputHelper = testOutputHelper;
         }
 
         #region Helper methods
@@ -606,7 +609,7 @@ namespace Couchbase.IntegrationTests.Management
             }
             catch (CouchbaseException e)
             {
-
+                _outputHelper.WriteLine(e.ToString());
             }
             finally
             {

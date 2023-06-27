@@ -155,6 +155,6 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
-        public ICollectionQueryIndexManager QueryIndexes { get; }
+        public ICollectionQueryIndexManager QueryIndexes { get; } = null!;
     }
 }

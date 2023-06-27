@@ -34,8 +34,8 @@ namespace Couchbase.UnitTests.KeyValue
                 Upsert("name", "mike").
                 Replace("bar", "bar").
                 Insert("bah", 0).
-                Increment("zzz", 10, true).
-                Decrement("xxx", 5, true).Specs;
+                Increment("zzz", (ulong)10, true).
+                Decrement("xxx", (ulong)5, true).Specs;
 
             var op = new MultiMutation<byte[]>("theykey", specs)
             {
@@ -61,7 +61,7 @@ namespace Couchbase.UnitTests.KeyValue
             };
 
             var specs = new MutateInSpecBuilder().Upsert("name", "mike").Replace("bar", "bar").Insert("bah", 0)
-                .Increment("zzz", 10, true).Decrement("xxx", 5, true).Specs;
+                .Increment("zzz", (ulong)10, true).Decrement("xxx", (ulong)5, true).Specs;
 
             var op = new MultiMutation<byte[]>("thekey", specs)
             {
@@ -93,7 +93,7 @@ namespace Couchbase.UnitTests.KeyValue
             };
 
             var specs = new MutateInSpecBuilder().Upsert("name", "mike").Replace("bar", "bar").Insert("bah", 0)
-                .Increment("zzz", 10, true).Decrement("xxx", 5, true).Specs;
+                .Increment("zzz", (ulong)10, true).Decrement("xxx", (ulong)5, true).Specs;
 
             var op = new MultiMutation<byte[]>("thekey", specs)
             {

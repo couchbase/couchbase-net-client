@@ -1,22 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
-using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
@@ -26,6 +22,7 @@ using Xunit;
 using Xunit.Abstractions;
 using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
 
+#pragma warning disable CS8632
 namespace Couchbase.UnitTests.Core
 {
     public class ClusterContextTests

@@ -521,7 +521,7 @@ namespace Couchbase.IntegrationTests
                         }
                         catch (TimeoutException ex)
                         {
-                            //continue
+                            _outputHelper.WriteLine(ex.ToString());
                         }
                         catch (CouchbaseException ex)
                         {
@@ -601,7 +601,7 @@ namespace Couchbase.IntegrationTests
                         }
                         catch (TimeoutException ex)
                         {
-                            //continue
+                            _outputHelper.WriteLine(ex.ToString());
                         }
                         catch (CouchbaseException ex)
                         {
@@ -668,7 +668,7 @@ namespace Couchbase.IntegrationTests
                         }
                         catch (TimeoutException ex)
                         {
-                            //continue
+                            _outputHelper.WriteLine(ex.ToString());
                         }
                         catch (CouchbaseException ex)
                         {
@@ -872,7 +872,7 @@ namespace Couchbase.IntegrationTests
             return str;
         }
 
-        public async Task EnforceRateLimits()
+        private async Task EnforceRateLimits()
         {
             var content = new FormUrlEncodedContent(new[]
             {
@@ -883,7 +883,7 @@ namespace Couchbase.IntegrationTests
             Assert.True(response.IsSuccessStatusCode);
         }
 
-        public async Task CreateRateLimitedUser(string username, Limits limits)
+        private async Task CreateRateLimitedUser(string username, Limits limits)
         {
             var jsonLimits = new JObject();
             if (limits.KeyValueLimits != null)
@@ -944,7 +944,7 @@ namespace Couchbase.IntegrationTests
             Assert.True(response.IsSuccessStatusCode);
         }
 
-        public async Task CreateRateLimitedScope(string name, string bucket, ScopeRateLimits limits)
+        private async Task CreateRateLimitedScope(string name, string bucket, ScopeRateLimits limits)
         {
             var jsonLimits = new JObject();
             if (limits.KeyValueScopeRateLimit != null)

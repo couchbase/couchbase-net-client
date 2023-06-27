@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+#pragma warning disable CS8632
 namespace Couchbase.UnitTests.Management.Query;
 
 public class CollectionQueryIndexManagerTests
@@ -108,9 +109,8 @@ public class CollectionQueryIndexManagerTests
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
         {
             return _rows.ToAsyncEnumerable().GetAsyncEnumerator();
-        }new
-
-            public RetryReason RetryReason { get; }
+        }
+        public RetryReason RetryReason { get; }
         public IAsyncEnumerable<T> Rows => this;
         public QueryMetaData MetaData { get; }
         public List<Error> Errors { get; }
