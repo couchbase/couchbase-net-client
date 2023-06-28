@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -13,13 +14,33 @@ namespace Couchbase.Core.IO.Transcoders
 {
     public abstract class BaseTranscoder : ITypeTranscoder
     {
+        private long _mutationSentinal = 0;
+        private ITypeSerializer? _serializer;
+
+        internal void MakeImmutable()
+        {
+            Interlocked.Increment(ref _mutationSentinal);
+        }
+
         public abstract Flags GetFormat<T>(T value);
 
         public abstract void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode);
 
         public abstract T? Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
 
-        public ITypeSerializer? Serializer { get; set; }
+        public ITypeSerializer? Serializer
+        {
+            get => _serializer;
+            set
+            {
+                if (Interlocked.Read(ref _mutationSentinal) > 0)
+                {
+                    throw new NotSupportedException("Cannot mutate an immutable Transcoder");
+                }
+
+                _serializer = value;
+            }
+        }
 
         /// <summary>
         /// Deserializes as json.

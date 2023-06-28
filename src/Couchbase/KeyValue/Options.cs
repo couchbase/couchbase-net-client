@@ -2355,8 +2355,6 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeSerializer? SerializerValue { get; private set; }
-
         internal bool CreateAsDeletedValue { get; private set; }
 
         internal bool AccessDeletedValue { get; private set; }
@@ -2428,10 +2426,10 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
         /// <returns>An options instance for chaining.</returns>
+        [Obsolete("Use Transcoder instead.")]
         public MutateInOptions Serializer(ITypeSerializer? serializer)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            SerializerValue = serializer;
             return this;
         }
 
@@ -2548,7 +2546,7 @@ namespace Couchbase.KeyValue
             durabilityLevel = DurabilityLevel;
             timeout = TimeoutValue;
             token = TokenValue;
-            serializer = SerializerValue;
+            serializer = TranscoderValue?.Serializer;
             createAsDeleted = CreateAsDeletedValue;
             accessDeleted = AccessDeletedValue;
             retryStrategy = RetryStrategyValue;

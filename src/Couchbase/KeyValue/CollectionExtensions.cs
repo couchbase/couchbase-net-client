@@ -722,7 +722,7 @@ namespace Couchbase.KeyValue
             this ICouchbaseCollection collection, string id,  Action<MutateInSpecBuilder<TDocument>> configureBuilder,
             MutateInOptions? options = null)
         {
-            var serializer = options?.SerializerValue ??
+            var serializer = options?.TranscoderValue?.Serializer ??
                              collection.Scope.Bucket.Cluster.ClusterServices.GetRequiredService<ITypeSerializer>();
 
             var mutateInSpec = new MutateInSpecBuilder<TDocument>(serializer);

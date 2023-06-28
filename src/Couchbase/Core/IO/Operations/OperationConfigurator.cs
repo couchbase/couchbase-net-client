@@ -1,6 +1,4 @@
 using System;
-using System.Globalization;
-using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -25,6 +23,7 @@ namespace Couchbase.Core.IO.Operations
             ObjectPool<OperationBuilder> operationBuilderPool, IRetryStrategy retryStrategy)
         {
             _typeTranscoder = typeTranscoder ?? throw new ArgumentNullException(nameof(typeTranscoder));
+            (_typeTranscoder as BaseTranscoder)?.MakeImmutable();
             _operationCompressor = operationCompressor ?? throw new ArgumentNullException(nameof(operationCompressor));
             _operationBuilderPool = operationBuilderPool;
             _retryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -17,6 +19,8 @@ using Couchbase.Transactions.Error.External;
 using Couchbase.Transactions.Internal.Test;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Transactions
 {
@@ -29,6 +33,23 @@ namespace Couchbase.Transactions
         /// A standard delay between retried operations.
         /// </summary>
         public static readonly TimeSpan OpRetryDelay = TimeSpan.FromMilliseconds(3);
+
+        internal static readonly ITypeSerializer MetadataSerializer = new DefaultSerializer(
+            deserializationSettings: new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+
+                DateParseHandling = DateParseHandling.DateTimeOffset
+            },
+            serializerSettings: new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+
+                DateParseHandling = DateParseHandling.DateTimeOffset
+            });
+
+        internal static readonly ITypeTranscoder MetadataTranscoder = new JsonTranscoder(MetadataSerializer);
+
         private static long InstancesCreated = 0;
         private static long InstancesCreatedDoingBackgroundCleanup = 0;
         private readonly ICluster _cluster;

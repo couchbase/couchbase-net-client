@@ -14,8 +14,6 @@ namespace Couchbase.Transactions.DataAccess
 {
     internal class AtrRepository : IAtrRepository
     {
-        private static readonly Core.IO.Serializers.ITypeSerializer DefaultSerializer = new Core.IO.Serializers.DefaultSerializer();
-        private static readonly Core.IO.Transcoders.ITypeTranscoder DefaultTranscoder = new Core.IO.Transcoders.JsonTranscoder();
         private readonly string _attemptId;
         private readonly TransactionContext _overallContext;
         private readonly string _prefixedAtrFieldDocsInserted;
@@ -239,12 +237,12 @@ namespace Couchbase.Transactions.DataAccess
             return (inserts, replaces, removes);
         }
 
-        private LookupInOptions GetLookupOpts() => new LookupInOptions().Defaults(_overallContext.Config.KeyValueTimeout).Serializer(DefaultSerializer);
+        private LookupInOptions GetLookupOpts() => new LookupInOptions()
+            .Defaults(_overallContext.Config.KeyValueTimeout).Serializer(Transactions.MetadataSerializer);
 
         private MutateInOptions GetMutateOpts(StoreSemantics storeSemantics) => new MutateInOptions()
             .Defaults(_atrDurability, _overallContext.Config.KeyValueTimeout)
-            .Serializer(DefaultSerializer)
-            .Transcoder(DefaultTranscoder)
+            .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
     }
 }

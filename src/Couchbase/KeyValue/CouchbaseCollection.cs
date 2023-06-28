@@ -6,11 +6,13 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
@@ -814,17 +816,13 @@ namespace Couchbase.KeyValue
                 PreserveTtl = options.PreserveTtlValue
             };
             _operationConfigurator.Configure(mutation, options);
-            if (mutation.Transcoder != null && options.SerializerValue != null)
-            {
-                mutation.Transcoder.Serializer = options.SerializerValue!;
-            }
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, mutation);
             await _bucket.RetryAsync(mutation, ctp.TokenPair).ConfigureAwait(false);
 
 #pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
             return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
-                options.SerializerValue ?? mutation.Transcoder?.Serializer ?? Core.IO.Serializers.DefaultSerializer.Instance);
+                mutation.Transcoder.Serializer!);
 #pragma warning restore 618
         }
 
