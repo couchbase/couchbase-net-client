@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Http;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;

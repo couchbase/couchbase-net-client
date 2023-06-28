@@ -182,6 +182,13 @@ namespace Couchbase.Query
                 {
                     Content = content
                 };
+
+#if NET5_0_OR_GREATER
+                //oddly only works when set on the HttpRequestMessage - this just forwards what was set from ClusterOptions.Experiments
+                request.VersionPolicy = httpClient.DefaultVersionPolicy;
+                request.Version = httpClient.DefaultRequestVersion;
+#endif
+
                 var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, options.Token)
                     .ConfigureAwait(false);
                 dispatchSpan.Dispose();

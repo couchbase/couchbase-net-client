@@ -17,6 +17,13 @@ namespace Couchbase
         [InterfaceStability(Level.Volatile)]
         [Obsolete("ChannelConnectionPool is now the default pool since 3.3.0. To revert back to the DataFlowConnectionPool set this to false.")]
         public bool ChannelConnectionPools { get; set; } = true;
+
+        /// <summary>
+        /// If supported by the server and by the client, HTTP version 2.0 will be used for Query.
+        /// </summary>
+        /// <remarks>This only applies to the Query service.</remarks>
+        [InterfaceStability(Level.Volatile)]
+        public bool EnableHttpVersion2 { get; set; } = false;
     }
 }
 

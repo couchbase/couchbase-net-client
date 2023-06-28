@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -47,6 +48,7 @@ namespace Couchbase.Core.IO.HTTP
 
         /// <inheritdoc />
         public HttpClient Create()
+
         {
             var httpClient = new HttpClient(_sharedHandler, false)
             {
@@ -55,6 +57,15 @@ namespace Couchbase.Core.IO.HTTP
                     ExpectContinue = _context.ClusterOptions.EnableExpect100Continue
                 }
             };
+
+#if NET5_0_OR_GREATER
+            //experimental support for HTTP V.2
+            if (_context.ClusterOptions.Experiments.EnableHttpVersion2)
+            {
+                httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                httpClient.DefaultRequestVersion = HttpVersion.Version20;
+            }
+#endif
 
             ClientIdentifier.SetUserAgent(httpClient.DefaultRequestHeaders);
 
