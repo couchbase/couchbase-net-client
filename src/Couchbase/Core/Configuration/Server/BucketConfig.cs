@@ -416,11 +416,27 @@ namespace Couchbase.Core.Configuration.Server
                 return false;
             }
         }
+
+        internal bool UseReplicaEnabled
+        {
+            get
+            {
+                if (Capabilities != null)
+                {
+                    if (Capabilities.TryGetValue(ServiceType.Query.GetDescription(), out var features))
+                    {
+                        return features.Contains(ClusterCapabilityFeatures.UseReplicaFeature.GetDescription());
+                    }
+                }
+                return false;
+            }
+        }
     }
 
     internal enum ClusterCapabilityFeatures
     {
-        [Description("enhancedPreparedStatements")] EnhancedPreparedStatements
+        [Description("enhancedPreparedStatements")] EnhancedPreparedStatements,
+        [Description("readFromReplica")] UseReplicaFeature
     }
 
     internal sealed class AlternateAddressesConfig

@@ -35,6 +35,7 @@ namespace Couchbase.Query
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
         internal bool EnhancedPreparedStatementsEnabled;
+        internal bool UseReplicaEnabled;
 
         public QueryClient(
             ICouchbaseHttpClientFactory clientFactory,
@@ -64,6 +65,11 @@ namespace Couchbase.Query
             //It's possible to reuse the queryoptions which may cause odd threading behaviour
             //So we'll clone it if it has already been used
             options = options.CloneIfUsedAlready();
+
+            if (options.UseReplicaHasValue && !UseReplicaEnabled)
+            {
+                throw new FeatureNotAvailableException("The Read from Replica feature is only supported with Couchbase Server 7.6 and later");
+            }
 
             if (string.IsNullOrEmpty(options.CurrentContextId))
             {
@@ -317,6 +323,13 @@ namespace Couchbase.Query
                 EnhancedPreparedStatementsEnabled = true;
                 _logger.LogInformation("Enabling Enhanced Prepared Statements");
             }
+
+            if (!UseReplicaEnabled && clusterCapabilities.UseReplicaEnabled)
+            {
+                UseReplicaEnabled = true;
+                _logger.LogInformation("Enabling Read From Replica Feature");
+            }
+
         }
 
         private string GetErrorMessage<T>(QueryResultBase<T> queryResult, string requestId, HttpStatusCode statusCodeFallback)

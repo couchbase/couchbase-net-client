@@ -214,5 +214,38 @@ namespace Couchbase.UnitTests.Query
             client.UpdateClusterCapabilities(clusterCapabilities);
             Assert.True(client.EnhancedPreparedStatementsEnabled);
         }
+
+        [Fact]
+        public void UseReplicaEnabled_is_set_to_true_if_enabled_in_cluster_caps()
+        {
+            var httpClient = new HttpClient(new HttpClientHandler())
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
+
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
+                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+            Assert.False(client.UseReplicaEnabled);
+
+            var clusterCapabilities = new ClusterCapabilities
+            {
+                Capabilities = new Dictionary<string, IEnumerable<string>>
+                {
+                    {
+                        ServiceType.Query.GetDescription(),
+                        new List<string> {ClusterCapabilityFeatures.UseReplicaFeature.GetDescription()}
+                    }
+                }
+            };
+
+            client.UpdateClusterCapabilities(clusterCapabilities);
+            Assert.True(client.UseReplicaEnabled);
+        }
     }
 }

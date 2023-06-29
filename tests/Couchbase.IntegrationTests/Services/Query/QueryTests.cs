@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Query;
@@ -139,6 +140,53 @@ namespace Couchbase.IntegrationTests.Services.Query
             finally
             {
                 await collection.RemoveAsync(key);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.6.0")]
+        public async Task Test_Query_Use_Replica()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
+            var scope = await bucket.DefaultScopeAsync().ConfigureAwait(false);
+            var collection = await scope.CollectionAsync("_default").ConfigureAwait(false);
+
+            string id = Guid.NewGuid().ToString();
+            try
+            {
+                //Upsert document and query it with ScanConsistency
+                await collection.InsertAsync(id, new[] { "content" }).ConfigureAwait(false);
+
+                var options = new QueryOptions().ScanConsistency(QueryScanConsistency.RequestPlus).Metrics(true);
+                Assert.Equal(false, options.UseReplicaHasValue);
+
+                var resultConsistent = await cluster
+                    .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
+                    .ConfigureAwait(false);
+                await foreach (var r in resultConsistent.Rows) continue;
+                Assert.Equal(1, (int)resultConsistent.MetaData!.Metrics.ResultCount);
+
+                //Query without UseReplica
+
+                var resultNoReplica = await cluster
+                    .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
+                    .ConfigureAwait(false);
+                await foreach (var r in resultNoReplica.Rows) continue;
+                Assert.Equal(1, (int)resultNoReplica.MetaData!.Metrics.ResultCount);
+
+                //Query with UseReplica
+                options.UseReplica(true);
+                Assert.Equal(true, options.UseReplicaHasValue);
+
+                var resultWithReplica = await cluster
+                    .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
+                    .ConfigureAwait(false);
+                await foreach (var r in resultWithReplica.Rows) continue;
+                Assert.Equal(1, (int)resultWithReplica.MetaData!.Metrics.ResultCount);
+            }
+            finally
+            {
+                await collection.RemoveAsync(id).ConfigureAwait(false);
             }
         }
 

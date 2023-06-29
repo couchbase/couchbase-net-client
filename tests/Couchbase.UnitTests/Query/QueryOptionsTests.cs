@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -23,6 +24,19 @@ namespace Couchbase.UnitTests.Query
 
             //will throw a FormatException if string is not a guid
             Guid.Parse(options.CurrentContextId);
+        }
+
+        [Fact]
+        public void Test_Use_Replica_Parsed_To_String()
+        {
+            var optionsOn = new QueryOptions().UseReplica(true).Statement("SELECT * FROM default LIMIT 1");
+            var formOn = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(optionsOn.GetFormValuesAsJson());
+
+            var optionsOff = new QueryOptions().UseReplica(false).Statement("SELECT * FROM default LIMIT 1");
+            var formOff = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(optionsOff.GetFormValuesAsJson());
+
+            Assert.Equal("on", formOn.GetProperty("use_replica").ToString());
+            Assert.Equal("off", formOff.GetProperty("use_replica").ToString());
         }
 
         #region GetFormValues
@@ -351,8 +365,8 @@ namespace Couchbase.UnitTests.Query
 
             #endregion
 
-            [Fact]
-        public void Test_CloneIdUsedAlready()
+        [Fact]
+        public void Test_CloneIfUsedAlready()
         {
             var cts = new CancellationTokenSource();
             var mutationState = new MutationState();
@@ -377,7 +391,8 @@ namespace Couchbase.UnitTests.Query
                 ScanWait(TimeSpan.FromSeconds(10)).
                 Timeout(TimeSpan.FromMilliseconds(1)).
                 Statement("SELECT 1;").
-                ScanCap(1);
+                ScanCap(1).
+                UseReplica(true);
 
             var newOptions = options.CloneIfUsedAlready();
             var newValues = newOptions.GetFormValues();
@@ -402,6 +417,7 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(newValues["auto_execute"], oldValues["auto_execute"]);
             Assert.Equal(newValues["client_context_id"], oldValues["client_context_id"]);
             Assert.Equal(newValues["use_fts"], oldValues["use_fts"]);
+            Assert.Equal(newValues["use_replica"], oldValues["use_replica"]);
         }
 
         #region Helpers

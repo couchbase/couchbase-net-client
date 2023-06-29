@@ -49,7 +49,8 @@ namespace Couchbase.Query
         private TimeSpan? _timeOut;
         private bool _flexIndex;
         private volatile bool _isUsed;
-        private bool _preserveExpiry = false;
+        private bool _preserveExpiry;
+        private bool? _useReplica;
 
         internal QueryOptions CloneIfUsedAlready()
         {
@@ -126,6 +127,10 @@ namespace Couchbase.Query
                 {
                     queryOptions.ScanWait(_scanWait.Value);
                 }
+                if (_useReplica.HasValue)
+                {
+                    queryOptions.UseReplica(_useReplica);
+                }
 
                 queryOptions._scanConsistency = _scanConsistency;
                 queryOptions.Serializer = Serializer;
@@ -167,6 +172,24 @@ namespace Couchbase.Query
             _preparedPayload = plan;
             IsPrepared = true;
         }
+
+        /// <summary>
+        /// Allows querying data from replicas.
+        /// True: Allows the server to read potentially stale data from replica vBuckets.
+        /// False: The server must use up-to-date data from primaries (nodes which own the vBucket containing the data).
+        /// </summary>
+        /// <param name="useReplica"></param>
+        /// <returns></returns>
+        public QueryOptions UseReplica(bool? useReplica)
+        {
+            _useReplica = useReplica;
+            return this;
+        }
+
+        /// <summary>
+        /// For internal use to get the value of UseReplica.
+        /// </summary>
+        internal bool UseReplicaHasValue => _useReplica.HasValue;
 
         /// <summary>
         /// The bucket name for tracing.
@@ -749,8 +772,13 @@ namespace Couchbase.Query
                 ScanConsistency = _scanConsistency,
                 ScanVectors = _scanVectors,
                 ScanWait = _scanWait,
-                Timeout = _timeOut,
+                Timeout = _timeOut
             };
+
+            if (_useReplica.HasValue)
+            {
+                dto.UseReplica = _useReplica.Value ? "on" : "off";
+            }
 
             if (IsPrepared)
             {
@@ -935,7 +963,8 @@ namespace Couchbase.Query
             out bool isAdHoc,
             out string? currentContextId,
             out ITypeSerializer? serializer,
-            out string? queryContext)
+            out string? queryContext,
+            out bool? useReplica)
         {
             arguments = _arguments;
             parameters = _parameters;
@@ -968,6 +997,7 @@ namespace Couchbase.Query
             currentContextId = CurrentContextId;
             serializer = Serializer;
             queryContext = QueryContext;
+            useReplica = _useReplica;
         }
 
         public ReadOnlyRecord AsReadOnly()
@@ -1003,7 +1033,8 @@ namespace Couchbase.Query
                 out bool isAdHoc,
                 out string? currentContextId,
                 out ITypeSerializer? serializer,
-                out string? queryContext);
+                out string? queryContext,
+                out bool? useReplica);
 
             return new ReadOnlyRecord(
                 arguments,
@@ -1036,7 +1067,8 @@ namespace Couchbase.Query
                 isAdHoc,
                 currentContextId,
                 serializer,
-                queryContext);
+                queryContext,
+                useReplica);
         }
 
         public record ReadOnlyRecord(
@@ -1070,7 +1102,8 @@ namespace Couchbase.Query
             bool IsAdHoc,
             string? CurrentContextId,
             ITypeSerializer? Serializer,
-            string? QueryContext);
+            string? QueryContext,
+            bool? UseReplica);
 
         private static QueryScanConsistency ConvertScanConsistency(QueryScanConsistencyInternal? scanConsistency)
         {

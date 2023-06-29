@@ -114,6 +114,10 @@ namespace Couchbase.Query
         [JsonConverter(typeof(MillisecondsStringJsonConverter))]
         public TimeSpan? Timeout { get; set; }
 
+        [JsonPropertyName("use_replica")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? UseReplica { get; set; }
+
         #endregion
 
         #region ToDictionary
