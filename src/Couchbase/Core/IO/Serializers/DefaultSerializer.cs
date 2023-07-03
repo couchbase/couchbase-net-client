@@ -15,7 +15,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Core.IO.Serializers
 {
-     /// <summary>
+    /// <summary>
     /// The default serializer for the Couchbase.NET SDK. Uses Newtonsoft.JSON as the the serializer.
     /// </summary>
     public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer, IProjectableTypeDeserializer
@@ -161,32 +161,41 @@ namespace Couchbase.Core.IO.Serializers
         {
             var value = default(T);
             if (buffer.Length == 0) return value!;
-            using (var ms = new MemoryReaderStream(buffer))
+
+            var reader = Utf8MemoryReader.InstancePool.Get();
+            try
             {
-                using (var sr = new StreamReader(ms, Utf8NoBomEncoding))
+                // Strip any leading BOM for backward compatibility
+                reader.SetMemory(Utf8Helpers.TrimBomIfPresent(buffer));
+
+                using var jr = new JsonTextReader(reader)
                 {
-                    using (var jr = new JsonTextReader(sr)
-                    {
-                        ArrayPool = JsonArrayPool.Instance
-                    })
-                    {
-                        //use the following code block only for value types
-                        //strangely enough Nullable<T> itself is a value type so we need to filter it out
-                        if (typeof(T).GetTypeInfo().IsValueType && (!typeof(T).GetTypeInfo().IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
-                        {
-                            //we can't declare Nullable<T> because T is not restricted to struct in this method scope
-                            object? nullableVal = _deserializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
-                            //either we have a null or an instance of Nullabte<T> that can be cast directly to T
-                            value = nullableVal == null ? default(T)! : (T)nullableVal;
-                        }
-                        else
-                        {
-                            value = _deserializer.Deserialize<T>(jr);
-                        }
-                    }
+                    CloseInput = false,
+                    ArrayPool = JsonArrayPool.Instance
+                };
+
+                //use the following code block only for value types
+                //strangely enough Nullable<T> itself is a value type so we need to filter it out
+                if (typeof(T).IsValueType && (!typeof(T).IsGenericType ||
+                                              typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
+                {
+                    //we can't declare Nullable<T> because T is not restricted to struct in this method scope
+                    object? nullableVal = _deserializer.Deserialize(jr,
+                        typeof(Nullable<>).MakeGenericType(typeof(T)));
+                    //either we have a null or an instance of Nullable<T> that can be cast directly to T
+                    value = nullableVal == null ? default(T)! : (T)nullableVal;
                 }
+                else
+                {
+                    value = _deserializer.Deserialize<T>(jr);
+                }
+
+                return value;
             }
-            return value;
+            finally
+            {
+                Utf8MemoryReader.InstancePool.Return(reader);
+            }
         }
 
         /// <inheritdoc />

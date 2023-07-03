@@ -3,7 +3,9 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.UnitTests.Core.IO.Transcoders;
 using Couchbase.UnitTests.Fixtures;
+using Couchbase.UnitTests.Utils;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -84,6 +86,34 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             Assert.IsAssignableFrom<CamelCasePropertyNamesContractResolver>(serializer.DeserializationSettings.ContractResolver);
             Assert.IsAssignableFrom<CamelCasePropertyNamesContractResolver>(serializer.SerializerSettings.ContractResolver);
+        }
+
+        #endregion
+
+        #region Deserialize
+
+        [Fact]
+        public void Deserialize_FromMemory_Repeated()
+        {
+            // Arrange
+
+            var serializer = new DefaultSerializer();
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\emmy-lou.json")!;
+            var document = new byte[stream.Length];
+            _ = stream.Read(document, 0, document.Length);
+
+            // Act
+
+            var result = serializer.Deserialize<JsonTranscoderTests.Person>(document);
+            var result2 = serializer.Deserialize<JsonTranscoderTests.Person>(document);
+            var result3 = serializer.Deserialize<JsonTranscoderTests.Person>(document);
+
+            // Assert
+
+            Assert.NotNull(result);
+            Assert.NotNull(result2);
+            Assert.NotNull(result3);
         }
 
         #endregion

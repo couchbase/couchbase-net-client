@@ -1,6 +1,6 @@
 using System;
 
-namespace Couchbase.Core.IO.Serializers.SystemTextJson
+namespace Couchbase.Utils
 {
     internal static class Utf8Helpers
     {
@@ -20,6 +20,21 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         public static ReadOnlySpan<byte> TrimBomIfPresent(ReadOnlySpan<byte> data)
         {
             if (data.StartsWith(Utf8Bom))
+            {
+                return data.Slice(Utf8Bom.Length);
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// If the data begins with a UTF-8 Byte Order Mark it is trimmed.
+        /// </summary>
+        /// <param name="data">Data to test and trim.</param>
+        /// <returns>The trimmed data, or the original data if the BOM was not present.</returns>
+        public static ReadOnlyMemory<byte> TrimBomIfPresent(ReadOnlyMemory<byte> data)
+        {
+            if (data.Span.StartsWith(Utf8Bom))
             {
                 return data.Slice(Utf8Bom.Length);
             }
