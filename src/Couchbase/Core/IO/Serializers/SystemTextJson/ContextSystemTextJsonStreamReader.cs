@@ -1,3 +1,4 @@
+using Couchbase.Query;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -33,19 +34,19 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
             if (typeof(T) == typeof(Couchbase.Query.Error))
             {
-                return (JsonTypeInfo<T>)(object) InternalSerializationContext.Default.QueryError;
+                return (JsonTypeInfo<T>)(object) QuerySerializerContext.Default.QueryError;
             }
             else if (typeof(T) == typeof(Couchbase.Query.ErrorData))
             {
-                return (JsonTypeInfo<T>)(object) InternalSerializationContext.Default.QueryErrorData;
+                return (JsonTypeInfo<T>)(object) QuerySerializerContext.Default.QueryErrorData;
             }
             else if (typeof(T) == typeof(Couchbase.Query.QueryWarning))
             {
-                return (JsonTypeInfo<T>)(object) InternalSerializationContext.Default.QueryWarning;
+                return (JsonTypeInfo<T>)(object) QuerySerializerContext.Default.QueryWarning;
             }
             else if (typeof(T) == typeof(Couchbase.Query.MetricsData))
             {
-                return (JsonTypeInfo<T>)(object) InternalSerializationContext.Default.QueryMetricsData;
+                return (JsonTypeInfo<T>)(object) QuerySerializerContext.Default.QueryMetricsData;
             }
             else if (typeof(T) == typeof(Couchbase.Analytics.WarningData))
             {

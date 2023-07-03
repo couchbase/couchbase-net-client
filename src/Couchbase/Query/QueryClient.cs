@@ -28,8 +28,9 @@ namespace Couchbase.Query
 
         private static readonly string DefaultClientContextId = Guid.Empty.ToString();
 
-        private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
-        private readonly ITypeSerializer _queryPlanSerializer = new DefaultSerializer();
+        private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new();
+        private readonly SystemTextJsonSerializer _queryPlanSerializer =
+            SystemTextJsonSerializer.Create(QuerySerializerContext.Default);
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<QueryClient> _logger;
@@ -128,7 +129,7 @@ namespace Couchbase.Query
                 if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
                 {
                     var plan = new QueryPlan {Name = streamingResult.PreparedPlanName, Text = statement};
-                    _queryCache.AddOrUpdate(statement, plan, (k, p) => plan);
+                    _queryCache.AddOrUpdate(statement, plan, static (_, p) => p);
                 }
 
                 return result;

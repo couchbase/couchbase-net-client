@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Couchbase.Query
 {
@@ -11,18 +12,23 @@ namespace Couchbase.Query
         /// The name of the query plan.
         /// </value>
         [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         [JsonProperty("text")]
+        [JsonPropertyName("text")]
         public string Text { get; set; }
 
         [JsonProperty("signature")]
+        [JsonPropertyName("signature")]
         public object Signature { get; set; }
 
         [JsonProperty("encoded_plan")]
+        [JsonPropertyName("encoded_plan")]
         public string EncodedPlan { get; set; }
 
         [JsonProperty("operator")]
+        [JsonPropertyName("operator")]
         public object Operator { get; set; }
     }
 }

@@ -41,7 +41,7 @@ namespace Couchbase.Core.Exceptions.Query
         public string? Message { get; set; }
 
         public override string ToString() =>
-            InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.QueryErrorContext);
+            InternalSerializationContext.SerializeWithFallback(this, QuerySerializerContext.Default.QueryErrorContext);
 
         public List<RetryReason>? RetryReasons { get; internal set; }
 

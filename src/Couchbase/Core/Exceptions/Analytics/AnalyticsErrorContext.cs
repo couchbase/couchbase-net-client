@@ -30,7 +30,7 @@ namespace Couchbase.Core.Exceptions.Analytics
         public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
-            InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);
+            InternalSerializationContext.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);
     }
 }
 

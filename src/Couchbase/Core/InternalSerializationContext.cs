@@ -16,25 +16,18 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(ErrorMapDto))]
     [JsonSerializable(typeof(Hello.HelloKey))]
     [JsonSerializable(typeof(Manifest))]
-    [JsonSerializable(typeof(Query.QueryOptionsDto))]
-    [JsonSerializable(typeof(Query.ScanVectorComponent))]
     [JsonSerializable(typeof(TypeSerializerWrapper))]
-    [JsonSerializable(typeof(Query.Error), TypeInfoPropertyName = "QueryError")]
-    [JsonSerializable(typeof(Query.ErrorData), TypeInfoPropertyName = "QueryErrorData")]
-    [JsonSerializable(typeof(Query.QueryWarning), TypeInfoPropertyName = "QueryWarning")]
-    [JsonSerializable(typeof(Query.MetricsData), TypeInfoPropertyName = "QueryMetricsData")]
     [JsonSerializable(typeof(Analytics.WarningData), TypeInfoPropertyName = "AnalyticsWarningData")]
     [JsonSerializable(typeof(Analytics.MetricsData), TypeInfoPropertyName = "AnalyticsMetricsData")]
     [JsonSerializable(typeof(Version.ClusterVersionProvider.Pools))]
     [JsonSerializable(typeof(Exceptions.KeyValue.KeyValueErrorContext))]
-    [JsonSerializable(typeof(Exceptions.Query.QueryErrorContext))]
     [JsonSerializable(typeof(Exceptions.Analytics.AnalyticsErrorContext))]
     [JsonSerializable(typeof(Exceptions.Search.SearchErrorContext))]
     [JsonSerializable(typeof(Exceptions.View.ViewContextError))]
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
 #nullable enable
-        public string SerializeWithFallback<TValue>(TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+        public static string SerializeWithFallback<TValue>(TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
         {
             try
             {
@@ -57,7 +50,7 @@ namespace Couchbase.Core
             }
         }
 
-        public void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+        public static void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
         {
             try
             {

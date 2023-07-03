@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -158,7 +159,6 @@ namespace Couchbase.Query
         {
             _statement = statement;
             _preparedPayload = null;
-            IsPrepared = false;
         }
 
         /// <summary>
@@ -170,7 +170,6 @@ namespace Couchbase.Query
         {
             _statement = originalStatement;
             _preparedPayload = plan;
-            IsPrepared = true;
         }
 
         /// <summary>
@@ -252,7 +251,8 @@ namespace Couchbase.Query
         /// <summary>
         ///     Returns true if the request is a prepared statement
         /// </summary>
-        public bool IsPrepared { get; private set; }
+        [MemberNotNullWhen(true, nameof(_preparedPayload))]
+        public bool IsPrepared => _preparedPayload != null;
 
         /// <summary>
         ///     Gets a value indicating whether this query statement is to executed in an ad-hoc manner.
@@ -381,7 +381,6 @@ namespace Couchbase.Query
 
             _statement = originalStatement;
             _preparedPayload = preparedPlan ?? throw new ArgumentNullException(nameof(preparedPlan));
-            IsPrepared = true;
             return this;
         }
 
@@ -404,7 +403,6 @@ namespace Couchbase.Query
             if (string.IsNullOrWhiteSpace(statement)) throw new ArgumentNullException(nameof(statement));
             _statement = statement;
             _preparedPayload = null;
-            IsPrepared = false;
             return this;
         }
 
@@ -744,8 +742,7 @@ namespace Couchbase.Query
 
         internal QueryOptionsDto CreateDto(ITypeSerializer serializer)
         {
-            if (string.IsNullOrWhiteSpace(_statement) ||
-                IsPrepared && _preparedPayload == null)
+            if (string.IsNullOrWhiteSpace(_statement) && _preparedPayload == null)
             {
                 ThrowHelper.ThrowInvalidOperationException("A statement or prepared plan must be provided.");
             }
@@ -782,7 +779,7 @@ namespace Couchbase.Query
 
             if (IsPrepared)
             {
-                dto.Prepared = _preparedPayload!.Name;
+                dto.Prepared = _preparedPayload.Name;
 
                 // don't include empty plan
                 if (!string.IsNullOrEmpty(_preparedPayload.EncodedPlan))
@@ -846,7 +843,7 @@ namespace Couchbase.Query
         {
             var formValues = CreateDto(Serializer ?? DefaultSerializer.Instance);
 
-            return InternalSerializationContext.Default.SerializeWithFallback(formValues, InternalSerializationContext.Default.QueryOptionsDto);
+            return InternalSerializationContext.SerializeWithFallback(formValues, QuerySerializerContext.Default.QueryOptionsDto);
         }
 
         /// <summary>
@@ -860,7 +857,7 @@ namespace Couchbase.Query
             var stream = new MemoryStream(1024);
             try
             {
-                InternalSerializationContext.Default.SerializeWithFallback(stream, formValues, InternalSerializationContext.Default.QueryOptionsDto);
+                InternalSerializationContext.SerializeWithFallback(stream, formValues, QuerySerializerContext.Default.QueryOptionsDto);
                 stream.Position = 0;
 
                 return new StreamContent(stream)

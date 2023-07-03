@@ -8,16 +8,16 @@ namespace Couchbase.Query
     public class Reason
     {
         [JsonProperty("caller")]
-        public string Caller { get; internal set; }
+        public string Caller { get; set; }
 
         [JsonProperty("code")]
-        public int Code { get; internal set; }
+        public int Code { get; set; }
 
         [JsonProperty("key")]
-        public string Key { get; internal set; }
+        public string Key { get; set; }
 
         [JsonProperty("message")]
-        public string Message { get; internal set; }
+        public string Message { get; set; }
     }
 
     public class Error
@@ -42,7 +42,7 @@ namespace Couchbase.Query
         public Reason Reason { get; set; }
 
         [JsonProperty("retry")]
-        public bool Retry { get; internal set; }
+        public bool Retry { get; set; }
 
         [InterfaceStability(Level.Volatile)]
         [Newtonsoft.Json.JsonExtensionData]
