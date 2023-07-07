@@ -5,11 +5,19 @@ using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.UnitTests.Core.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
     public class OrphanedResponseTests
     {
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public OrphanedResponseTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
+
         [Fact]
         public void Test()
         {
@@ -24,6 +32,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
             Assert.True(finished, userMessage: "Did not find a log entry for orphaned data.");
             Assert.NotNull(report);
+
+            _testOutputHelper.WriteLine(report);
         }
 
         private OrphanSummary GetOrphanSummary(string serviceType)

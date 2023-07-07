@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 {
-    internal class OrphanReporter : IOrphanReporter
+    internal partial class OrphanReporter : IOrphanReporter
     {
         private readonly ILogger<OrphanReporter> _logger;
         private const int WorkerSleep = 100;
@@ -70,24 +72,21 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                     {
                         lock (_lock)
                         {
-                            var result = new JObject();
+                            var result = new OrphanReport();
                             AddServiceToResult(
-                                result, OuterRequestSpans.ServiceSpan.Kv.Name, _kvOrphans, ref _kvOrphanCount);
+                                ref result.KeyValue, _kvOrphans, ref _kvOrphanCount);
                             AddServiceToResult(
-                                result, OuterRequestSpans.ServiceSpan.ViewQuery, _viewOrphans, ref _viewOrphanCount);
+                                ref result.ViewQuery, _viewOrphans, ref _viewOrphanCount);
                             AddServiceToResult(
-                                result, OuterRequestSpans.ServiceSpan.N1QLQuery, _queryOrphans, ref _queryOrphanCount);
+                                ref result.N1QlQuery, _queryOrphans, ref _queryOrphanCount);
                             AddServiceToResult(
-                                result, OuterRequestSpans.ServiceSpan.SearchQuery, _searchOrphans,
-                                ref _searchOrphanCount);
+                                ref result.SearchQuery, _searchOrphans, ref _searchOrphanCount);
                             AddServiceToResult(
-                                result, OuterRequestSpans.ServiceSpan.AnalyticsQuery, _analyticsOrphans,
-                                ref _analyticsOrphanCount);
+                                ref result.AnalyticsQuery, _analyticsOrphans, ref _analyticsOrphanCount);
 
-                            if (result.HasValues)
+                            if (result.HasReports && _logger.IsEnabled(LogLevel.Warning))
                             {
-                                _logger.LogWarning("Orphaned responses observed: {0}",
-                                    result.ToString(Formatting.None));
+                                LogOrphanedResponses(JsonSerializer.Serialize(result, OrphanReportingSerializerContext.Default.OrphanReport));
                             }
 
                             _hasOrphans = false;
@@ -100,7 +99,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    _logger.LogError(exception, "Error when processing Orphaned Response summary");
+                    LogOrphanedResponseSummaryError(exception);
                 }
             }
         }
@@ -141,8 +140,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                                         SampleSize);
                                     break;
                                 default:
-                                    _logger.LogInformation(
-                                        $"Unknown service type {context.ServiceType} for operation with ID '{context.operation_id}'");
+                                    LogUnknownService(context.ServiceType, context.operation_id);
                                     break;
                             }
 
@@ -157,16 +155,9 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    _logger.LogError(exception, "Error when processing Orphaned Responses");
+                    LogOrphanedResponseError(exception);
                 }
             }
-        }
-
-        private static JProperty CreateOrphanJson(string serviceType, ICollection<OrphanSummary> set, uint totalCount)
-        {
-            return new(serviceType,
-                new JObject(new JProperty("total_count", totalCount),
-                    new JProperty("top_requests", JArray.FromObject(set))));
         }
 
         private static void AddContextToService(ICollection<OrphanSummary> orphanSummaries, OrphanSummary context, ref uint serviceCount, uint maxSampleSize)
@@ -179,11 +170,16 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             serviceCount += 1;
         }
 
-        private static void AddServiceToResult(JObject array, string serviceName, ICollection<OrphanSummary> serviceSample, ref uint serviceCount)
+        private static void AddServiceToResult(ref OrphanServiceReport? serviceReport, ICollection<OrphanSummary> serviceSample, ref uint serviceCount)
         {
             if (serviceSample.Count > 0)
             {
-                array.Add(CreateOrphanJson(serviceName, serviceSample, serviceCount));
+                serviceReport = new OrphanServiceReport
+                {
+                    TotalCount = serviceCount,
+                    TopRequests = serviceSample.ToArray() // Clone so we can clear
+                };
+
                 serviceSample.Clear();
                 serviceCount = 0;
             }
@@ -202,6 +198,18 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 _queue.Enqueue(orphanSummary);
             }
         }
+
+        [LoggerMessage(100, LogLevel.Warning, "Orphaned responses observed: {summary}")]
+        public partial void LogOrphanedResponses(string summary);
+
+        [LoggerMessage(200, LogLevel.Information, "Unknown service type {serviceType} for operation with ID '{operationId}'")]
+        public partial void LogUnknownService(string? serviceType, string? operationId);
+
+        [LoggerMessage(300, LogLevel.Error, "Error when processing Orphaned Responses")]
+        public partial void LogOrphanedResponseError(Exception ex);
+
+        [LoggerMessage(301, LogLevel.Error, "Error when processing Orphaned Response summary")]
+        public partial void LogOrphanedResponseSummaryError(Exception ex);
     }
 }
 
