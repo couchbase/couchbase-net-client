@@ -292,7 +292,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.JSON,
                 IO.Operations.ServerFeatures.SubDocReplicaRead,
                 IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief,
-                IO.Operations.ServerFeatures.Duplex
+                IO.Operations.ServerFeatures.Duplex,
+                IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion
             };
 
             if (Owner != null && Owner.SupportsCollections)

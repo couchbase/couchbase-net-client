@@ -78,6 +78,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.Duplex"/>
         public bool Duplex { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.GetClusterConfigWithKnownVersion"/>
+        public bool GetClusterConfigWithKnownVersion { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -187,6 +190,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.Duplex:
                         Duplex = true;
+                        break;
+
+                    case ServerFeatures.GetClusterConfigWithKnownVersion:
+                        GetClusterConfigWithKnownVersion = true;
                         break;
                 }
             }

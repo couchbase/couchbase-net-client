@@ -107,7 +107,14 @@ namespace Couchbase.Core.IO.Operations
         /// When running in a duplex mode the server may send commands to the client at any time. The client must
         /// reply to the command, just like a normal command being sent from the client to the server.
         /// </summary>
-        Duplex = 0x0c
+        Duplex = 0x0c,
+
+        /// <summary>
+        /// This flag does not change the behavior of the server but allows determining if the node supports epoch-revision
+        /// fields for the GetClusterConfig (0xb5) operation. If the node acknowledges GetClusterConfigWithKnownVersion,
+        /// then the SDK can use the new version of the command.
+        /// </summary>
+        GetClusterConfigWithKnownVersion = 0x1d
     }
 }
 
