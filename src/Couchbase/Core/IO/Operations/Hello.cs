@@ -49,7 +49,8 @@ namespace Couchbase.Core.IO.Operations
                 try
                 {
                     var buffer = Data.Span.Slice(Header.BodyOffset);
-                    result = new ServerFeatures[Header.BodyLength/2];
+                    var serverFeaturesLength = (Header.BodyLength - Header.FramingExtrasLength) / 2;
+                    result = new ServerFeatures[serverFeaturesLength];
 
                     // Other than some range checking, this is basically a straight memcpy, very fast
                     MemoryMarshal.Cast<byte, ServerFeatures>(buffer).CopyTo(result);
