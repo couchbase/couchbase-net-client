@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
+using Couchbase.UnitTests.Core.Diagnostics.Metrics;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Core.Utils;
 using Microsoft.Extensions.Logging;
@@ -14,10 +16,12 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
     public class ThresholdTracerTests : IDisposable
     {
+        private readonly ITestOutputHelper _testOutputHelper;
         private readonly LoggerFactory _loggerFactory;
 
         public ThresholdTracerTests(ITestOutputHelper testOutputHelper)
         {
+            _testOutputHelper = testOutputHelper;
             _loggerFactory = new LoggerFactory();
             _loggerFactory.AddProvider(new XUnitLoggerProvider(testOutputHelper));
         }
@@ -109,6 +113,32 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             parent.Start();
             var child = new Activity("c1");
             child.Start();
+        }
+
+        [Fact]
+        public void Test_Logs()
+        {
+            var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
+            using var tracer = new RequestTracer();
+            using var listener = new ThresholdTraceListener(loggerFactory, new ThresholdOptions
+            {
+                EmitInterval = TimeSpan.FromMilliseconds(10),
+                KvThreshold = TimeSpan.Zero
+            });
+            tracer.Start(listener);
+
+            using (var parentSpan = tracer.RequestSpan("get"))
+            {
+                parentSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+            }
+
+            string report = null;
+            var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
+            Assert.True(finished, userMessage: "Did not find a log entry for threshold data.");
+            Assert.NotNull(report);
+            Assert.StartsWith("{", report);
+
+            _testOutputHelper.WriteLine(report);
         }
 
         public interface ITraceable

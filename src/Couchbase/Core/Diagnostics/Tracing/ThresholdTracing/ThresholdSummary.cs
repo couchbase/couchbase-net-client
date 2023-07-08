@@ -1,11 +1,10 @@
-//#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+
+#nullable enable
 
 namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
@@ -17,70 +16,70 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         /// <summary>
         /// The duration of the outer request span.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? total_duration_us { get; set; }
 
         /// <summary>
         /// The duration of the encode span, if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? encode_duration_us { get; set; }
 
         /// <summary>
         /// The duration of the last dispatch span if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? last_dispatch_duration_us { get; set; }
 
         /// <summary>
         /// The duration of all dispatch spans, summed up.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? total_dispatch_duration_us { get; set; }
 
         /// <summary>
         /// The server duration attribute of the last dispatch span, if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? last_server_duration_us { get; set; }
 
         /// <summary>
         /// The total duration of  all server duration spans, if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? total_server_duration_us { get; set; }
 
         /// <summary>
         /// The name of the outer request span.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string operation_name { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? operation_name { get; set; }
 
         /// <summary>
         /// The local_id from the last dispatch span, if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string last_local_id { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? last_local_id { get; set; }
 
         /// <summary>
         /// The operation_id from the outer request span, if present.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string operation_id { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? operation_id { get; set; }
 
         /// <summary>
         /// The local_address from the last dispatch span, if present. Should combine the host and port into a  “host:port” format.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string last_local_socket { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? last_local_socket { get; set; }
 
         /// <summary>
         /// The remote_address from the last dispatch span, if present. Should combine the host and port into a  “host:port” format.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string last_remote_socket { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? last_remote_socket { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ulong? timeout_ms { get; set; }
 
         public static ThresholdSummary FromActivity(Activity activity)
@@ -107,7 +106,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             };
         }
 
-        private static string FormatSocket(string hostName, string port)
+        private static string? FormatSocket(string? hostName, string? port)
         {
             if (hostName != null || port != null)
             {
@@ -135,7 +134,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             return null;
         }
 
-        private static string LastValueOrNull(Activity activity, string keyName)
+        private static string? LastValueOrNull(Activity activity, string keyName)
         {
             var last = activity.Tags.LastOrDefault(tag => tag.Key == keyName);
             if ((last.Key, last.Value) == (DefaultKvp.Key, DefaultKvp.Value))

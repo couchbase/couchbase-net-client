@@ -112,7 +112,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
 
                 public bool IsEnabled(LogLevel logLevel)
                 {
-                    throw new NotImplementedException();
+                    // Test all log levels
+                    return true;
                 }
 
                 public IDisposable BeginScope<TState>(TState state)
