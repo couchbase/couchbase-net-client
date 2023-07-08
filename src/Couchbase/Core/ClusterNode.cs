@@ -295,7 +295,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.Duplex,
                 IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion,
                 IO.Operations.ServerFeatures.SnappyEverywhere,
-                IO.Operations.ServerFeatures.ClustermapChangeNotification
+                IO.Operations.ServerFeatures.ClustermapChangeNotification,
+                IO.Operations.ServerFeatures.DedupeNotMyVbucketClustermap
             };
 
             if (Owner != null && Owner.SupportsCollections)

@@ -87,6 +87,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.ClustermapChangeNotification"/>
         public bool ClustermapChangeNotification { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.DedupeNotMyVbucketClustermap"/>
+        public bool DedupeNotMyVbucketClustermap { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -208,6 +211,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.ClustermapChangeNotification:
                         ClustermapChangeNotification = true;
+                        break;
+
+                    case ServerFeatures.DedupeNotMyVbucketClustermap:
+                        DedupeNotMyVbucketClustermap = true;
                         break;
                 }
             }

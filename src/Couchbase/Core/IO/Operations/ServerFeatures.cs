@@ -127,7 +127,15 @@ namespace Couchbase.Core.IO.Operations
         /// configuration updates to the SDK without expecting any acknowledgement mechanism. While this
         /// approach proves to have better
         /// </summary>
-        ClustermapChangeNotification = 0x0d
+        ClustermapChangeNotification = 0x0d,
+
+        /// <summary>
+        /// Once this flag is negotiated, the node might send an empty body with NotMyVbucket (0x07)
+        /// status codes. The KV engine tracks the revision that has been sent to the SDK over the
+        /// socket connection, so a response with a NotMyVbucket status will only have a body if the
+        /// pushed version is older than the active configuration.
+        /// </summary>
+        DedupeNotMyVbucketClustermap = 0x1e
     }
 }
 
