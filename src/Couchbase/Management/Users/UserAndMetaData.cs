@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Users
 {
@@ -33,40 +31,33 @@ namespace Couchbase.Management.Users
             };
         }
 
-        internal static UserAndMetaData FromJson(JToken json)
+        internal static UserAndMetaData FromJson(UserAndMetadataDto userDto)
         {
             var roles = new List<Role>();
             var rolesAndOrigins = new List<RoleAndOrigins>();
 
-            if (json["roles"] != null)
+            if (userDto.Roles is not null)
             {
-                foreach (var row in json["roles"])
+                foreach (var row in userDto.Roles)
                 {
-                    var role = new Role(row["role"].Value<string>(),
-                        row["bucket_name"]?.Value<string>(),
-                        row["scope_name"]?.Value<string>(),
-                        row["collection_name"]?.Value<string>());
-
+                    var role = Role.FromJson(row);
                     roles.Add(role);
+
                     rolesAndOrigins.Add(new RoleAndOrigins
                     {
                         Role = role,
-                        Origins = row["origins"].Select(origin => new Origin
-                        {
-                            Name = origin["name"]?.Value<string>(),
-                            Type = Extensions.Value<string>(origin["type"]),
-                        })
+                        Origins = row.Origins?.ToList()
                     });
                 }
             }
 
-            return new UserAndMetaData(json["id"].Value<string>())
+            return new UserAndMetaData(userDto.Id)
             {
-                DisplayName = json["name"].Value<string>(),
-                Domain = json["domain"].Value<string>(),
-                Groups = json["groups"].Values<string>(),
-                PasswordChanged = DateTimeOffset.Parse(json["password_change_date"].Value<string>(), new DateTimeFormatInfo(), DateTimeStyles.AdjustToUniversal),
-                ExternalGroups = json["external_groups"].Values<string>(),
+                DisplayName = userDto.Name,
+                Domain = userDto.Domain,
+                Groups = userDto.Groups,
+                PasswordChanged = userDto.PasswordChangeDate.ToUniversalTime(),
+                ExternalGroups = userDto.ExternalGroups,
                 EffectiveRoles = roles,
                 EffectiveRolesAndOrigins = rolesAndOrigins
             };

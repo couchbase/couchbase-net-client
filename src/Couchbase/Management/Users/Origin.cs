@@ -1,8 +1,15 @@
+using System.Text.Json.Serialization;
+
 namespace Couchbase.Management.Users
 {
     public class Origin
     {
+        // JsonInclude allows the deserializer to use internal setters
+
+        [JsonInclude]
         public string Type { get; internal set; }
+
+        [JsonInclude]
         public string Name { get; internal set; }
     }
 }

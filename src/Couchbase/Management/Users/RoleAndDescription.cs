@@ -1,23 +1,22 @@
-using Couchbase.Utils;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Management.Users
 {
     public class RoleAndDescription
     {
-        public string Role { get; internal set; }
-        public string DisplayName { get; internal set; }
-        public string Description { get; internal set; }
+        // JsonInclude allows the deserializer to use internal setters
 
-        internal static RoleAndDescription FromJson(JToken json)
-        {
-            return new()
-            {
-                Description = json.GetTokenValue<string>("desc"),
-                DisplayName = json.GetTokenValue<string>("name"),
-                Role = json.GetTokenValue<string>("role")
-            };
-        }
+        [JsonPropertyName("role")]
+        [JsonInclude]
+        public string Role { get; internal set; }
+
+        [JsonPropertyName("name")]
+        [JsonInclude]
+        public string DisplayName { get; internal set; }
+
+        [JsonPropertyName("desc")]
+        [JsonInclude]
+        public string Description { get; internal set; }
     }
 }
 

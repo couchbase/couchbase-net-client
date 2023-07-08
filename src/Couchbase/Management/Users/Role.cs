@@ -2,6 +2,8 @@ using System;
 using System.Text;
 using Couchbase.Core.Exceptions;
 
+#nullable enable
+
 namespace Couchbase.Management.Users
 {
     public class Role
@@ -20,7 +22,7 @@ namespace Couchbase.Management.Users
         /// </summary>
         /// <param name="roleName">symbolic name of the role.</param>
         /// <param name="bucketName">bucket name for the role.</param>
-        public Role(string roleName, string bucketName)
+        public Role(string roleName, string? bucketName)
             : this(roleName, bucketName, null, null)
         {
         }
@@ -32,7 +34,7 @@ namespace Couchbase.Management.Users
         /// <param name="roleName"></param>
         /// <param name="bucketName"></param>
         /// <param name="scopeName"></param>
-        public Role(string roleName, string bucketName, string scopeName)
+        public Role(string roleName, string? bucketName, string? scopeName)
             : this(roleName, bucketName, scopeName, null)
         {
         }
@@ -45,7 +47,7 @@ namespace Couchbase.Management.Users
         /// <param name="bucketName"></param>
         /// <param name="scopeName"></param>
         /// <param name="collectionName"></param>
-        public Role(string roleName, string bucketName, string scopeName, string collectionName)
+        public Role(string roleName, string? bucketName, string? scopeName, string? collectionName)
         {
             Name = roleName;
             Bucket = bucketName;
@@ -61,21 +63,21 @@ namespace Couchbase.Management.Users
         /// <summary>
         /// Gives the Role access to a specific Bucket.
         /// </summary>
-        public string Bucket { get; }
+        public string? Bucket { get; }
 
         /// <summary>
         /// Gives the Role access to a specific Scope.
         /// <remarks>Bucket must be non-null nor a wildcard (*) for Scope to be set.</remarks>
         /// </summary>
         /// <remarks>Uncommitted: this feature may change in the future.</remarks>
-        public string Scope { get; }
+        public string? Scope { get; }
 
         /// <summary>
         /// Gives the Role access to a specific Collection.
         /// <remarks>Bucket and Scope must be non-null nor a wildcard (*)  for Scope to be set.</remarks>
         /// <remarks>Uncommitted: this feature may change in the future.</remarks>
         /// </summary>
-        public string Collection { get; }
+        public string? Collection { get; }
 
         /// <summary>
         /// Validates that the internal state of the Role.
@@ -120,6 +122,9 @@ namespace Couchbase.Management.Users
 
             return !string.IsNullOrEmpty(Bucket) ? sb.Append("]").ToString() : sb.ToString();
         }
+
+        internal static Role FromJson(RoleDto roleDto) =>
+            new(roleDto.Role, roleDto.BucketName, roleDto.ScopeName, roleDto.CollectionName);
     }
 }
 

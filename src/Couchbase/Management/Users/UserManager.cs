@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 #nullable enable
 
@@ -70,17 +70,17 @@ namespace Couchbase.Management.Users
             return builder.Uri;
         }
 
-        private static IEnumerable<KeyValuePair<string, string>> GetGroupFormValues(Group group)
+        private static IEnumerable<KeyValuePair<string, string?>> GetGroupFormValues(Group group)
         {
-            return new Dictionary<string, string>
+            return new Dictionary<string, string?>
             {
                 {"description", group.Description},
                 {"ldap_group_ref", group.LdapGroupReference},
                 {
-                    "roles", string.Join(",", group.Roles.Select(
+                    "roles", string.Join(",", group.Roles?.Select(
                         role => string.IsNullOrWhiteSpace(role.Bucket)
                             ? role.Name
-                            : $"{role.Name}[{role.Bucket}]")
+                            : $"{role.Name}[{role.Bucket}]") ?? Enumerable.Empty<string>()
                     )
                 }
             };
@@ -106,8 +106,11 @@ namespace Couchbase.Management.Users
                 result.EnsureSuccessStatusCode();
 
                 // get user from result
-                var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return UserAndMetaData.FromJson(json);
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var dto = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.UserAndMetadataDto)
+                    .ConfigureAwait(false))!;
+
+                return UserAndMetaData.FromJson(dto);
             }
             catch (Exception exception)
             {
@@ -131,8 +134,11 @@ namespace Couchbase.Management.Users
                 result.EnsureSuccessStatusCode();
 
                 // get users from result
-                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return json.Select(UserAndMetaData.FromJson);
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var dtos = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListUserAndMetadataDto)
+                    .ConfigureAwait(false))!;
+
+                return dtos.Select(UserAndMetaData.FromJson);
             }
             catch (Exception exception)
             {
@@ -236,8 +242,9 @@ namespace Couchbase.Management.Users
                 result.EnsureSuccessStatusCode();
 
                 // get roles from result
-                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return json.Select(RoleAndDescription.FromJson);
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                return (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListRoleAndDescription)
+                    .ConfigureAwait(false))!;
             }
             catch (Exception exception)
             {
@@ -266,8 +273,11 @@ namespace Couchbase.Management.Users
                 result.EnsureSuccessStatusCode();
 
                 // get group from result
-                var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return Group.FromJson(json);
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var dto = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.GroupDto)
+                    .ConfigureAwait(false))!;
+
+                return Group.FromJson(dto);
             }
             catch (Exception exception)
             {
@@ -291,8 +301,11 @@ namespace Couchbase.Management.Users
                 result.EnsureSuccessStatusCode();
 
                 // get groups from results
-                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return json.Select(Group.FromJson);
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var dtos = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListGroupDto)
+                    .ConfigureAwait(false))!;
+
+                return dtos.Select(Group.FromJson);
             }
             catch (Exception exception)
             {
