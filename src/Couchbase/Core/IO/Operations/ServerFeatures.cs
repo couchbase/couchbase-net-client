@@ -114,7 +114,13 @@ namespace Couchbase.Core.IO.Operations
         /// fields for the GetClusterConfig (0xb5) operation. If the node acknowledges GetClusterConfigWithKnownVersion,
         /// then the SDK can use the new version of the command.
         /// </summary>
-        GetClusterConfigWithKnownVersion = 0x1d
+        GetClusterConfigWithKnownVersion = 0x1d,
+
+        /// <summary>
+        /// Once this flag is negotiated, the node will always use the compressed version of the cluster configuration
+        /// and data type flags will be set to JSON | SNAPPY (0x03).
+        /// </summary>
+        SnappyEverywhere = 0x13
     }
 }
 

@@ -81,6 +81,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.GetClusterConfigWithKnownVersion"/>
         public bool GetClusterConfigWithKnownVersion { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.SnappyEverywhere"/>
+        public bool SnappyEverywhere { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -194,6 +197,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.GetClusterConfigWithKnownVersion:
                         GetClusterConfigWithKnownVersion = true;
+                        break;
+
+                    case ServerFeatures.SnappyEverywhere:
+                        SnappyEverywhere = true;
                         break;
                 }
             }

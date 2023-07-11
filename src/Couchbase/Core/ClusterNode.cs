@@ -293,7 +293,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.SubDocReplicaRead,
                 IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief,
                 IO.Operations.ServerFeatures.Duplex,
-                IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion
+                IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion,
+                IO.Operations.ServerFeatures.SnappyEverywhere
             };
 
             if (Owner != null && Owner.SupportsCollections)
