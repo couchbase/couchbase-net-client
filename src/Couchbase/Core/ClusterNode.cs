@@ -291,6 +291,7 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.PreserveTtl,
                 IO.Operations.ServerFeatures.JSON,
                 IO.Operations.ServerFeatures.SubDocReplicaRead,
+                IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief
             };
 
             if (Owner != null && Owner.SupportsCollections)

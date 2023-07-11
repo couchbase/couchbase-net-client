@@ -72,6 +72,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.SubDocReplicaRead"/>
         public bool SubDocReplicaRead { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.ClustermapChangeNotificationBrief"/>
+        public bool ClustermapChangeNotificationBrief { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -173,6 +176,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.SubDocReplicaRead:
                         SubDocReplicaRead = true;
+                        break;
+
+                    case ServerFeatures.ClustermapChangeNotificationBrief:
+                        ClustermapChangeNotificationBrief = true;
                         break;
                 }
             }

@@ -95,6 +95,13 @@ namespace Couchbase.Core.IO.Operations
         /// Enables support for SubDoc Replica Read.
         /// </summary>
         SubDocReplicaRead = 0x1c,
+
+        /// <summary>
+        /// Tells the server we want it to send a brief "ClusterMap Change Notification" Server Command
+        /// whenever the cluster/bucket config changes. The server requests is "brief" because it includes
+        /// only the config epoch and revision, and not the config JSON itself. Requires the "Duplex" feature.
+        /// </summary>
+        ClustermapChangeNotificationBrief = 0x1f
     }
 }
 
