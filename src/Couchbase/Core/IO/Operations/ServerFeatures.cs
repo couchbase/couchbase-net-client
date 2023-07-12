@@ -101,7 +101,13 @@ namespace Couchbase.Core.IO.Operations
         /// whenever the cluster/bucket config changes. The server requests is "brief" because it includes
         /// only the config epoch and revision, and not the config JSON itself. Requires the "Duplex" feature.
         /// </summary>
-        ClustermapChangeNotificationBrief = 0x1f
+        ClustermapChangeNotificationBrief = 0x1f,
+
+        /// <summary>
+        /// When running in a duplex mode the server may send commands to the client at any time. The client must
+        /// reply to the command, just like a normal command being sent from the client to the server.
+        /// </summary>
+        Duplex = 0x0c
     }
 }
 

@@ -75,6 +75,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.ClustermapChangeNotificationBrief"/>
         public bool ClustermapChangeNotificationBrief { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.Duplex"/>
+        public bool Duplex { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -180,6 +183,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.ClustermapChangeNotificationBrief:
                         ClustermapChangeNotificationBrief = true;
+                        break;
+
+                    case ServerFeatures.Duplex:
+                        Duplex = true;
                         break;
                 }
             }
