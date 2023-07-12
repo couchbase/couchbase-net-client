@@ -120,7 +120,14 @@ namespace Couchbase.Core.IO.Operations
         /// Once this flag is negotiated, the node will always use the compressed version of the cluster configuration
         /// and data type flags will be set to JSON | SNAPPY (0x03).
         /// </summary>
-        SnappyEverywhere = 0x13
+        SnappyEverywhere = 0x13,
+
+        /// <summary>
+        /// If ClustermapChangeNotification and Duplex flags are negotiated, the server will send unsolicited
+        /// configuration updates to the SDK without expecting any acknowledgement mechanism. While this
+        /// approach proves to have better
+        /// </summary>
+        ClustermapChangeNotification = 0x0d
     }
 }
 

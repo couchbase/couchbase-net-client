@@ -294,7 +294,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief,
                 IO.Operations.ServerFeatures.Duplex,
                 IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion,
-                IO.Operations.ServerFeatures.SnappyEverywhere
+                IO.Operations.ServerFeatures.SnappyEverywhere,
+                IO.Operations.ServerFeatures.ClustermapChangeNotification
             };
 
             if (Owner != null && Owner.SupportsCollections)

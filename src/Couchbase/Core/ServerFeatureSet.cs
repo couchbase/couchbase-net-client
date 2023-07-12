@@ -84,6 +84,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.SnappyEverywhere"/>
         public bool SnappyEverywhere { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.ClustermapChangeNotification"/>
+        public bool ClustermapChangeNotification { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -201,6 +204,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.SnappyEverywhere:
                         SnappyEverywhere = true;
+                        break;
+
+                    case ServerFeatures.ClustermapChangeNotification:
+                        ClustermapChangeNotification = true;
                         break;
                 }
             }
