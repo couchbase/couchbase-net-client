@@ -23,6 +23,18 @@ namespace Couchbase.KeyValue
         [InterfaceStability(Level.Volatile)]
         int IndexOf(string path);
     }
+
+    /// <summary>
+    /// Result of a sub document LookupIn operation against any/all replicas.
+    /// </summary>
+    [InterfaceStability(Level.Volatile)]
+    public interface ILookupInReplicaResult : ILookupInResult
+    {
+        /// <summary>
+        /// Gets a value indicating whether the result is from a replica node.
+        /// </summary>
+        bool? IsReplica { get; }
+    }
 }
 
 

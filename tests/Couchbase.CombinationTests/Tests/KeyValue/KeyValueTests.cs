@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -259,6 +260,67 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             Assert.True(result.Exists(0));
             Assert.Equal(1, result.ContentAs<int>(1));
             Assert.Equal(3, result.ContentAs<int>(2));
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
+        public async Task Test_LookupInAnyReplicaAsync_All()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = Guid.NewGuid().ToString();
+
+            await col.UpsertAsync(doc1, new {Name = doc1, Id = 1, Items = new[] {1, 2, 3}},
+                options => options.Expiry(TimeSpan.FromSeconds(2)));
+
+            var specs = new LookupInSpec[]
+            {
+                LookupInSpec.Exists("name"),
+                LookupInSpec.Get("id"),
+                LookupInSpec.Count("items"),
+            };
+
+            var result = await col.LookupInAnyReplicaAsync(doc1, specs);
+            Assert.True(result.Exists(0));
+            Assert.Equal(1, result.ContentAs<int>(1));
+            Assert.Equal(3, result.ContentAs<int>(2));
+            Assert.NotNull(result.IsReplica);
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
+        public async Task Test_LookupInAllReplicasAsync_All()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = Guid.NewGuid().ToString();
+
+            await col.UpsertAsync(doc1, new {Name = doc1, Id = 1, Items = new[] {1, 2, 3}},
+                options => options.Expiry(TimeSpan.FromSeconds(2)));
+
+            var specs = new LookupInSpec[]
+            {
+                LookupInSpec.Exists("name"),
+                LookupInSpec.Get("id"),
+                LookupInSpec.Count("items"),
+            };
+
+            var results = col.LookupInAllReplicasAsync(doc1, specs);
+            int resultCount = 0;
+            int isReplicaCount = 0;
+            await foreach (var result in results)
+            {
+                Assert.True(result.Exists(0));
+                Assert.Equal(1, result.ContentAs<int>(1));
+                Assert.Equal(3, result.ContentAs<int>(2));
+                Assert.NotNull(result.IsReplica);
+                resultCount++;
+                if (result.IsReplica == true)
+                {
+                    isReplicaCount++;
+                }
+            }
+
+            if (resultCount > 1)
+            {
+                Assert.NotEqual(0, isReplicaCount);
+            }
         }
 
         [Fact]

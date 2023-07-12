@@ -1,6 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using Couchbase.Core.IO.HTTP;
+using Microsoft.Extensions.Configuration;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Utils
@@ -13,6 +20,46 @@ namespace Couchbase.IntegrationTests.Utils
     /// </remarks>
     public class CouchbaseVersionDependentFact : FactAttribute
     {
+        public static Lazy<string> ServerVersion = new(() =>
+        {
+            var currentVersion = System.Environment.GetEnvironmentVariable("CB_SERVER_VERSION");
+            if (string.IsNullOrEmpty(currentVersion))
+            {
+                // try to connect and detect version.
+                // doing sync-over-async in a static is terrible practice, but doing it only once for tests shouldn't be
+                // too bad.
+                try
+                {
+                    var clusterOptions = new ConfigurationBuilder()
+                        .AddJsonFile("settings.json")
+                        .Build()
+                        .GetSection("couchbase")
+                        .Get<ClusterOptions>();
+
+                    var connectionString = clusterOptions.ConnectionString ?? $"http:localhost";
+                    var versionEndpoint = new UriBuilder(connectionString);
+                    versionEndpoint.Scheme = "http";
+                    versionEndpoint.Path = "versions";
+                    versionEndpoint.Query = string.Empty;
+                    versionEndpoint.Port = 8091;
+                    versionEndpoint.UserName = clusterOptions.UserName ?? versionEndpoint.UserName;
+                    versionEndpoint.Password = clusterOptions.Password ?? versionEndpoint.Password;
+
+                    using var httpClient = new HttpClient();
+                    var authString = $"{clusterOptions.UserName}:{clusterOptions.Password}";
+                    var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
+                    var responseJsonString = httpClient.GetStringAsync(versionEndpoint.Uri).Result;
+                    var parsedJson = JsonDocument.Parse(responseJsonString);
+                    currentVersion = parsedJson.RootElement.GetProperty("implementationVersion").GetString();
+                }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch { }
+            }
+
+            return currentVersion ?? "7.5";
+        });
+
         /// <summary>
         /// Gets or sets the minimum Version necessary to run the test.
         /// </summary>
@@ -46,8 +93,7 @@ namespace Couchbase.IntegrationTests.Utils
 
         internal static string SkipBasedOnVersion(string baseSkip, string[] explicitAllowVersions, string[] explicitSkipVersions, string minVersion, string maxVersion)
         {
-            var currentVersion = System.Environment.GetEnvironmentVariable("CB_SERVER_VERSION");
-            currentVersion ??= "7.0.0";
+            var currentVersion = ServerVersion.Value;
 
             // if version is in the a.b.c-label format (e.g. "7.0.0-stable"), ignore everything after the dash.
             if (currentVersion.Contains('-'))

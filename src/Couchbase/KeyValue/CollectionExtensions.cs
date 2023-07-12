@@ -598,6 +598,46 @@ namespace Couchbase.KeyValue
                 .ConfigureAwait(false));
         }
 
+
+        /// <summary>
+        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        public static IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(this ICouchbaseCollection collection,
+            string id, IEnumerable<LookupInSpec> specs,
+            LookupInAllReplicasOptions? options = null)
+        {
+            var couchbaseCollection = collection as CouchbaseCollection ??
+                                      throw new NotImplementedException(nameof(LookupInAllReplicasAsync));
+            return couchbaseCollection.LookupInAllReplicasInternalAsync(id, specs, options);
+        }
+
+        /// <summary>
+        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas, returning only the first result.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <remarks>As a workaround to the fact that
+        /// a) introducing a new public method to a public interface is a breaking change
+        /// b) we still support .NET versions that aren't compatible with default interface implementations
+        ///
+        /// This method is implemented as an extension method that assumes the ICouchbaseCollection is a CouchbaseCollection.
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(this ICouchbaseCollection collection,
+            string id, IEnumerable<LookupInSpec> specs,
+            LookupInAnyReplicaOptions? options = null)
+        {
+            var couchbaseCollection = collection as CouchbaseCollection ??
+                                      throw new NotImplementedException(nameof(LookupInAnyReplicaAsync));
+            return couchbaseCollection.LookupInAnyReplicaInternalAsync(id, specs, options);
+        }
         #endregion
 
         #region MutateIn

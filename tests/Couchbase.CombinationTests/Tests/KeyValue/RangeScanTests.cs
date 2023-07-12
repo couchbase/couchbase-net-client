@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Query;
@@ -31,7 +32,7 @@ public class RangeScanTests
         await bucket.Cluster.Buckets.FlushBucketAsync(bucket.Name);
     }
 
-    [Fact]
+    [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_RangeScan()
     {
         var random = new Random();
@@ -77,7 +78,7 @@ public class RangeScanTests
         }
     }
 
-    [Fact]
+    [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_MaxDocumentSize()
     {
         var coll = await _fixture.GetDefaultCollection();
@@ -101,7 +102,7 @@ public class RangeScanTests
         await coll.RemoveAsync(id).ConfigureAwait(false);
     }
 
-    [Fact]
+    [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_SamplingScan()
     {
         var random = new Random();
@@ -136,7 +137,7 @@ public class RangeScanTests
         }
     }
 
-    [Fact]
+    [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_Single_Document_SamplingScan()
     {
         var collection = await _fixture.GetDefaultCollection();
@@ -158,7 +159,7 @@ public class RangeScanTests
         await collection.RemoveAsync(id).ConfigureAwait(false);
     }
 
-    [Fact]
+    [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_Use_Minimum_And_Maximum_ScanTerms()
     {
         var collection = await _fixture.GetDefaultCollection();

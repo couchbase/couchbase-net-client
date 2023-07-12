@@ -289,7 +289,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.SubdocXAttributes,
                 IO.Operations.ServerFeatures.XError,
                 IO.Operations.ServerFeatures.PreserveTtl,
-                IO.Operations.ServerFeatures.JSON
+                IO.Operations.ServerFeatures.JSON,
+                IO.Operations.ServerFeatures.SubDocReplicaRead,
             };
 
             if (Owner != null && Owner.SupportsCollections)

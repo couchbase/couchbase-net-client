@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -262,8 +263,8 @@ namespace Couchbase.KeyValue
             var lookupInOptions = !ReferenceEquals(options, GetOptions.Default)
                 ? new LookupInOptions()
                     .Timeout(options.TimeoutValue)
-                    .Transcoder(options.TranscoderValue)
-                : LookupInOptions.Default;
+                    .Transcoder(options.TranscoderValue).AsReadOnly()
+                : LookupInOptions.Default.AsReadOnly();
 
             using var lookupOp = await ExecuteLookupIn(id,
                     specs, lookupInOptions, rootSpan)
@@ -679,6 +680,7 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -687,19 +689,100 @@ namespace Couchbase.KeyValue
                 await PopulateCidAsync().ConfigureAwait(false);
             }
 
-            options ??= LookupInOptions.Default;
-
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, options.RequestSpanValue);
-            using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
+            using var lookup = await ExecuteLookupIn(id, specs, opts, rootSpan).ConfigureAwait(false);
             var responseStatus = lookup.Header.Status;
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                             responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
             return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                options.SerializerValue ?? lookup.Transcoder.Serializer!, isDeleted);
+                opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted);
+        }
+
+        internal async Task<ILookupInReplicaResult> LookupInAnyReplicaInternalAsync(string id, IEnumerable<LookupInSpec> specs,
+            LookupInAnyReplicaOptions? options = null)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAnyReplica, opts.RequestSpan);
+            var vBucket = VBucketForReplicas(id);
+            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1);
+            var enumeratedSpecs = specs.ToList();
+            if (vBucket.HasReplicas)
+            {
+                tasks.AddRange(vBucket.Replicas.Select(replica =>
+                {
+                    var replicaOpts = opts with { ReplicaIndex = replica };
+                    return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
+                }));
+            }
+            else
+            {
+                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
+            }
+
+            var finishedTask = await Task.WhenAny(tasks).ConfigureAwait(false);
+            using var lookup = await finishedTask.ConfigureAwait(false);
+
+            var responseStatus = lookup.Header.Status;
+            var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                            responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
+            return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
+                opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted, isReplica: lookup.ReplicaIdx != null);
+        }
+
+        internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id, IEnumerable<LookupInSpec> specs,
+            LookupInAllReplicasOptions? options = null)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAllReplicas, opts.RequestSpan);
+            var vBucket = VBucketForReplicas(id);
+            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1);
+            var enumeratedSpecs = specs.ToList();
+            if (vBucket.HasReplicas)
+            {
+                tasks.AddRange(vBucket.Replicas.Select(replica =>
+                {
+                    var replicaOpts = opts with { ReplicaIndex = replica };
+                    return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
+                }));
+            }
+            else
+            {
+                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
+            }
+
+            foreach (var lookupTask in tasks)
+            {
+                var lookup = await lookupTask.ConfigureAwait(false);
+                var responseStatus = lookup.Header.Status;
+                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
+                yield return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
+                    opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted, isReplica: lookup.ReplicaIdx != null);
+            }
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs,
-            LookupInOptions options, IRequestSpan span)
+            LookupInOptions.ReadOnly options, IRequestSpan span)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -708,7 +791,7 @@ namespace Couchbase.KeyValue
             await PopulateCidAsync().ConfigureAwait(false);
 
             //add the virtual xattr attribute to get the doc expiration time
-            if (options.ExpiryValue)
+            if (options.Expiry)
             {
                 specs = specs.Concat(new [] {
                     new LookupInSpec
@@ -726,7 +809,7 @@ namespace Couchbase.KeyValue
                 Cid = Cid,
                 CName = Name,
                 SName = ScopeName,
-                DocFlags = options.AccessDeletedValue ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
+                DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
                 Span = span
             };
             try
@@ -1006,11 +1089,7 @@ namespace Couchbase.KeyValue
             options ??= GetAnyReplicaOptions.Default;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
-            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
-
-            if (!vBucket.HasReplicas)
-                Logger.LogWarning(
-                    $"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
+            var vBucket = VBucketForReplicas(id);
 
             // get primary
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
@@ -1026,6 +1105,16 @@ namespace Couchbase.KeyValue
 
             // Note: GetAwaiter().GetResult() is safe here because we know the task is already complete
             return firstCompleted.GetAwaiter().GetResult();
+        }
+
+        private VBucket VBucketForReplicas(string id, [CallerMemberName]string caller = "AnyReplica")
+        {
+            var vBucket = (VBucket)_bucket.KeyMapper!.MapKey(id);
+
+            if (!vBucket.HasReplicas)
+                Logger.LogWarning(
+                    $"Call to {caller} for key [{id}] but none are configured. Only the active document will be retrieved.");
+            return vBucket;
         }
 
         /// <inheritdoc />
@@ -1044,7 +1133,7 @@ namespace Couchbase.KeyValue
                     $"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
 
             //get a list of replica indexes
-            var replicas = vBucket.Replicas.Where(index => index > -1).ToList();
+            var replicas = GetReplicaIndexes(vBucket);
 
             // get the primary
             var tasks = new List<Task<IGetReplicaResult>>(replicas.Count + 1)
@@ -1056,6 +1145,12 @@ namespace Couchbase.KeyValue
             tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
             return tasks;
+        }
+
+        private static List<short> GetReplicaIndexes(VBucket vBucket)
+        {
+            var replicas = vBucket.Replicas.Where(index => index > -1).ToList();
+            return replicas;
         }
 
         private async Task<IGetReplicaResult> GetPrimary(string id, IRequestSpan span,

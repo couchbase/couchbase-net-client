@@ -86,6 +86,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string ReplicaRead = "get_replica";
                 public const string SetUpsert = "upsert";
                 public const string LookupIn = "lookup_in";
+                public const string LookupInAnyReplica = "lookup_in_any_replica";
+                public const string LookupInAllReplicas = "lookup_in_all_replicas";
                 public const string MutateIn = "mutate_in";
                 public const string Touch = "touch";
                 public const string Unlock = "unlock";

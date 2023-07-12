@@ -89,7 +89,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Enables JSON as a data type for KV range scans.
         /// </summary>
-        JSON = 0x0b
+        JSON = 0x0b,
+
+        /// <summary>
+        /// Enables support for SubDoc Replica Read.
+        /// </summary>
+        SubDocReplicaRead = 0x1c,
     }
 }
 

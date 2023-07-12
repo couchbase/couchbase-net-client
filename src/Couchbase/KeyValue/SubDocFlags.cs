@@ -31,10 +31,15 @@ namespace Couchbase.KeyValue
         AccessDeleted = 0x04,
 
         /// <summary>
-        /// If theserver needs to create a new document, it will create it as a tombstone.
+        /// If the server needs to create a new document, it will create it as a tombstone.
         /// Any system or user xattrs provided in the request will be stored, but a document body will not be.
         /// </summary>
-        CreateAsDeleted = 0x08
+        CreateAsDeleted = 0x08,
+
+        /// <summary>
+        /// Specifies that the request is being sent to a replica.
+        /// </summary>
+        ReplicaRead = 0x20,
     }
 }
 

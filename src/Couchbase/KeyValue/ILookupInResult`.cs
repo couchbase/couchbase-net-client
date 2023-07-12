@@ -11,6 +11,13 @@ namespace Couchbase.KeyValue
     public interface ILookupInResult<TDocument> : ILookupInResult, ITypeSerializerProvider
     {
     }
+
+    /// <inheritdoc cref="ILookupInReplicaResult"/>
+    /// <typeparam name="TDocument">Type of the document.</typeparam>
+    [InterfaceStability(Level.Volatile)]
+    public interface ILookupInReplicaResult<TDocument> : ILookupInReplicaResult, ITypeSerializerProvider
+    {
+    }
 }
 
 

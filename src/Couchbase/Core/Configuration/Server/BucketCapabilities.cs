@@ -19,6 +19,7 @@ namespace Couchbase.Core.Configuration.Server
         public const string DURABLE_WRITE = "durableWrite";
         public const string CREATE_AS_DELETED = "tombstonedUserXAttrs";
         public const string RANGE_SCAN = "rangeScan";
+        public const string SUBDOC_REPLICA_READ = "subdoc.ReplicaRead";
     }
 }
 

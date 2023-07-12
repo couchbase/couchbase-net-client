@@ -69,6 +69,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.JSON"/>
         public bool Json { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.SubDocReplicaRead"/>
+        public bool SubDocReplicaRead { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -166,6 +169,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.JSON:
                         Json = true;
+                        break;
+
+                    case ServerFeatures.SubDocReplicaRead:
+                        SubDocReplicaRead = true;
                         break;
                 }
             }

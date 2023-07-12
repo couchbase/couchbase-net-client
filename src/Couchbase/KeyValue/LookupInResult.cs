@@ -13,14 +13,14 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInResult, ITypeSerializerProvider
+    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider
     {
         private readonly IList<LookupInSpec> _specs;
 
         /// <inheritdoc />
         public ITypeSerializer Serializer { get; }
 
-        internal LookupInResult(IList<LookupInSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
+        internal LookupInResult(IList<LookupInSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false, bool? isReplica = false)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)
@@ -38,6 +38,7 @@ namespace Couchbase.KeyValue
             Expiry = expiry;
             Serializer = typeSerializer;
             IsDeleted = isDeleted;
+            IsReplica = isReplica;
         }
 
         public ulong Cas { get; }
@@ -45,6 +46,8 @@ namespace Couchbase.KeyValue
         public TimeSpan? Expiry { get; }
 
         public bool IsDeleted { get; }
+
+        public bool? IsReplica { get; } = null;
 
         public T? ContentAs<T>(int index)
         {
