@@ -58,7 +58,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <param name="kvSendQueueCapacity"></param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger, uint kvSendQueueCapacity)
-            : base(connectionInitializer, connectionFactory)
+            : base(connectionInitializer, connectionFactory, logger)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));

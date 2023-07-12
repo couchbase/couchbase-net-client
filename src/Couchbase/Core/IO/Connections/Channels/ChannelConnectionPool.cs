@@ -69,7 +69,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="channel">Channel queue.</param>
         internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, Channel<ChannelQueueItem> channel)
-            : base(connectionInitializer, connectionFactory)
+            : base(connectionInitializer, connectionFactory, logger)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));

@@ -34,7 +34,7 @@ namespace Couchbase.Core.IO.Connections.Channels
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
                 LogUsingConnectionPool("Single");
-                return new SingleConnectionPool(clusterNode, _connectionFactory);
+                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger);
             }
             else
             {

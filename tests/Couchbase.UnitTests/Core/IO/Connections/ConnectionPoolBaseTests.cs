@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -34,7 +35,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object);
 
             // Act
 
@@ -62,7 +63,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object);
 
             // Act
 
@@ -94,7 +95,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 .Setup(m => m.CreateAndConnectAsync(ipEndPoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object);
 
             // Act
 
@@ -124,7 +125,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object)
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
             {
                 BucketNamePublic = "default"
             };
@@ -159,7 +160,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var connectionFactory = new Mock<IConnectionFactory>();
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object)
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
             {
                 Connections =
                 {
@@ -205,7 +206,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var connectionFactory = new Mock<IConnectionFactory>();
 
-            pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object)
+            pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
             {
                 Connections =
                 {
@@ -247,8 +248,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             public bool IsFrozen { get; private set; }
 
-            public ConnectionPoolMock(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory)
-                : base(connectionInitializer, connectionFactory)
+            public ConnectionPoolMock(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
+                : base(connectionInitializer, connectionFactory, logger)
             {
             }
 

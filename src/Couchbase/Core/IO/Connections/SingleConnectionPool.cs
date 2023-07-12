@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -41,9 +43,10 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
+        /// <param name="logger">The logger for logging.</param>
         public SingleConnectionPool(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory)
-            : base (connectionInitializer, connectionFactory)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
+            : base (connectionInitializer, connectionFactory, logger)
         {
         }
 

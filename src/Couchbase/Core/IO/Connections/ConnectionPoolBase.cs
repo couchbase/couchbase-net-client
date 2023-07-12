@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -38,6 +39,7 @@ namespace Couchbase.Core.IO.Connections
 
         private readonly IConnectionInitializer _connectionInitializer;
         private readonly IConnectionFactory _connectionFactory;
+        private readonly ILogger<IConnectionPool> _logger;
 
         /// <inheritdoc />
         public HostEndpointWithPort EndPoint => _connectionInitializer.EndPoint;
@@ -64,11 +66,13 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
+        /// <param name="logger">The logger for logging.</param>
         protected ConnectionPoolBase(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
         {
             _connectionInitializer = connectionInitializer ?? throw new ArgumentNullException(nameof(connectionInitializer));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
+            _logger = logger;
         }
 
         /// <summary>
@@ -98,8 +102,10 @@ namespace Couchbase.Core.IO.Connections
 
                 return connection;
             }
-            catch
+            catch(Exception e)
             {
+                _logger.LogDebug(e, "Connection creation to {endpoint} failed.", EndPoint);
+
                 // Be sure to cleanup the connection if bootstrap fails.
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();

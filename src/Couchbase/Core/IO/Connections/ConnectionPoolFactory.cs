@@ -37,7 +37,7 @@ namespace Couchbase.Core.IO.Connections
             {
                 _dataFlowLogger.LogInformation("Using the SingleConnectionPool.");
 
-                return new SingleConnectionPool(clusterNode, _connectionFactory);
+                return new SingleConnectionPool(clusterNode, _connectionFactory, _dataFlowLogger);
             }
             else
             {
