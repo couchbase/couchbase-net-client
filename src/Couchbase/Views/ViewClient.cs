@@ -69,8 +69,14 @@ namespace Couchbase.Views
                 {
                     Content = content
                 };
+
+#if NET5_0_OR_GREATER
                 var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, query.Token)
                     .ConfigureAwait(false);
+#else
+                var response = await httpClient.SendAsync(request, query.Token)
+                    .ConfigureAwait(false);
+#endif
                 dispatchSpan.Dispose();
 
                 var serializer = query.Serializer ?? _serializer;

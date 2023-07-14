@@ -89,7 +89,11 @@ namespace Couchbase.Search
                     Content = content
                 };
 
+#if NET5_0_OR_GREATER
                 using var response = await httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+#else
+                using var response = await httpClient.SendAsync(httpRequestMessage, cancellationToken).ConfigureAwait(false);
+#endif
                 dispatchSpan.Dispose();
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))

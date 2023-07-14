@@ -193,10 +193,13 @@ namespace Couchbase.Query
                 //oddly only works when set on the HttpRequestMessage - this just forwards what was set from ClusterOptions.Experiments
                 request.VersionPolicy = httpClient.DefaultVersionPolicy;
                 request.Version = httpClient.DefaultRequestVersion;
-#endif
 
                 var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, options.Token)
                     .ConfigureAwait(false);
+#else
+                var response = await httpClient.SendAsync(request, options.Token)
+                    .ConfigureAwait(false);
+#endif
                 dispatchSpan.Dispose();
 
                 var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
