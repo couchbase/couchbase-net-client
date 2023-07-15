@@ -22,6 +22,14 @@ namespace Couchbase.UnitTests.Management.Eventing
 {
     public class EventingFunctionManagerTests : IDisposable
     {
+#if NET6_0_OR_GREATER
+        private const HttpStatusCode UnprocessableEntity = HttpStatusCode.UnprocessableEntity;
+        private const HttpStatusCode Locked = HttpStatusCode.Locked;
+#else
+        private const HttpStatusCode UnprocessableEntity = (HttpStatusCode)422;
+        private const HttpStatusCode Locked = (HttpStatusCode)423;
+#endif
+
         private readonly LoggerFactory _loggerFactory;
 
         public EventingFunctionManagerTests(ITestOutputHelper testOutputHelper)
@@ -125,8 +133,8 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
         [InlineData("400_err_invalid_config_upsert.json", HttpStatusCode.BadRequest, typeof(InvalidArgumentException))]
-        [InlineData("422_err_handler_compilation.json", HttpStatusCode.UnprocessableEntity, typeof(EventingFunctionCompilationFailureException))]
-        [InlineData("422_err_source_mb_same.json", HttpStatusCode.UnprocessableEntity, typeof(EventingFunctionIdenticalKeyspaceException))]
+        [InlineData("422_err_handler_compilation.json", UnprocessableEntity, typeof(EventingFunctionCompilationFailureException))]
+        [InlineData("422_err_source_mb_same.json", UnprocessableEntity, typeof(EventingFunctionIdenticalKeyspaceException))]
         [InlineData("500_err_collection_missing.json", HttpStatusCode.InternalServerError, typeof(Couchbase.Management.Collections.CollectionNotFoundException))]
         [InlineData("500_err_bucket_missing.json", HttpStatusCode.InternalServerError, typeof(BucketNotFoundException))]
         public async Task Test_UpsertAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
@@ -166,7 +174,7 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
         [InlineData("406_err_app_not_deployed.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotDeployedException))]
-        [InlineData("422_err_app_not_undeployed.json", HttpStatusCode.UnprocessableEntity, typeof(EventingFunctionDeployedException))]
+        [InlineData("422_err_app_not_undeployed.json", UnprocessableEntity, typeof(EventingFunctionDeployedException))]
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
         public async Task Test_DropFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
@@ -204,7 +212,7 @@ namespace Couchbase.UnitTests.Management.Eventing
 
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("423_err_app_not_bootstrapped.json", HttpStatusCode.Locked, typeof(EventingFunctionNotBootstrappedException))]
+        [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
         public async Task Test_PauseFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
@@ -242,7 +250,7 @@ namespace Couchbase.UnitTests.Management.Eventing
 
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("406_err_app_not_deployed.json", HttpStatusCode.Locked, typeof(EventingFunctionNotDeployedException))]
+        [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
         public async Task Test_ResumeFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
@@ -280,7 +288,7 @@ namespace Couchbase.UnitTests.Management.Eventing
 
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("423_err_app_not_bootstrapped.json", HttpStatusCode.Locked, typeof(EventingFunctionNotBootstrappedException))]
+        [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
         public async Task Test_DeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
@@ -319,7 +327,7 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Theory]
         [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
         [InlineData("404_page_not_found.json", HttpStatusCode.NotFound, typeof(CouchbaseException))]
-        [InlineData("406_err_app_not_deployed.json", HttpStatusCode.Locked, typeof(EventingFunctionNotDeployedException))]
+        [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
         public async Task Test_UndeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {

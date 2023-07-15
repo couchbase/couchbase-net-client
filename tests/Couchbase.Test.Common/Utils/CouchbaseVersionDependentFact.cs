@@ -7,7 +7,6 @@ using System.Text;
 using System.Text.Json;
 using Couchbase.Core.IO.HTTP;
 using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Utils

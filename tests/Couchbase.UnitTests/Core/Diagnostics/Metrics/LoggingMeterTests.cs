@@ -81,7 +81,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
 
             public void Dispose()
             {
+#if NET6_0_OR_GREATER
                 LoggedData.Clear();
+#endif
             }
 
             public ILogger CreateLogger(string categoryName)

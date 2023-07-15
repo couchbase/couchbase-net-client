@@ -430,7 +430,7 @@ namespace Couchbase.IntegrationTests
         public async Task MutateIn_PathTooBig()
         {
             (var documentKey, var collection) = await PrepDoc();
-            var tooLong = string.Join('.', System.Linq.Enumerable.Repeat("a", 300));
+            var tooLong = string.Join(".", System.Linq.Enumerable.Repeat("a", 300));
             var t = collection.MutateInAsync(documentKey,
                 specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
@@ -442,7 +442,7 @@ namespace Couchbase.IntegrationTests
         public async Task MutateIn_PathMismatch()
         {
             (var documentKey, var collection) = await PrepDoc();
-            var tooLong = string.Join('.', System.Linq.Enumerable.Repeat("a", 16));
+            var tooLong = string.Join(".", System.Linq.Enumerable.Repeat("a", 16));
             var t = collection.MutateInAsync(documentKey,
                 specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));

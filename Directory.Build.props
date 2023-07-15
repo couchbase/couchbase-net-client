@@ -31,6 +31,10 @@
     <!-- If you need to build with Visual Studio < 2022, remove net6.0 -->
     <NetModernTargets>net6.0</NetModernTargets>
     <NetSpecificTargets>$(NetModernTargets)</NetSpecificTargets>
+
+    <!-- For the main SDK, we should run tests on .NET 4.8 when possible -->
+    <SdkTestTargets>$(NetSpecificTargets)</SdkTestTargets>
+    <SdkTestTargets Condition="$([MSBuild]::IsOSPlatform('Windows'))">net48;$(SdkTestTargets)</SdkTestTargets>
   </PropertyGroup>
 
   <ItemGroup>

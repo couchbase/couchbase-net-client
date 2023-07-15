@@ -140,7 +140,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\emmy-lou.json");
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\emmy-lou.json");
 
             var serializer = CreateSerializer(withContext);
 
@@ -162,7 +162,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream(0);
+            using var stream = new MemoryStream(0);
 
             var serializer = CreateSerializer(withContext);
 
@@ -180,7 +180,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream(new byte[] { 0x7b, 0x7d }); // empty {}
+            using var stream = new MemoryStream(new byte[] { 0x7b, 0x7d }); // empty {}
 
             var serializer = CreateSerializer(true);
 
@@ -272,7 +272,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream();
+            using var stream = new MemoryStream();
 
             var serializer = CreateSerializer(withContext);
 
@@ -290,7 +290,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream();
+            using var stream = new MemoryStream();
 
             var serializer = CreateSerializer(true);
 
@@ -306,7 +306,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream();
+            using var stream = new MemoryStream();
 
             var serializer = CreateSerializer(withContext);
 
@@ -324,7 +324,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         {
             // Arrange
 
-            await using var stream = new MemoryStream();
+            using var stream = new MemoryStream();
 
             var serializer = CreateSerializer(true);
 

@@ -233,8 +233,10 @@ namespace Couchbase.UnitTests.KeyValue
 
                 await clusterNode.ExecuteOp(op, token).ConfigureAwait(false);
 
-                if (_statuses.TryDequeue(out ResponseStatus status))
+                ResponseStatus status;
+                if (_statuses.Count > 0)
                 {
+                    status = _statuses.Dequeue();
                     (op as OperationBase)?.HandleOperationCompleted(AsyncState.BuildErrorResponse(0, status));
                 }
                 else

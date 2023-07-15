@@ -68,7 +68,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
 #else
                 const string endCert = "-----END CERTIFICATE-----";
                 var certFileText = File.ReadAllText(_fixture.GetCertsFilePath());
-                var certStrings = certFileText.Split(endCert, StringSplitOptions.RemoveEmptyEntries);
+                var certStrings = certFileText.Split(new[] {endCert}, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var certString in certStrings)
                 {
                     if (certString.Contains("BEGIN CERTIFICATE"))

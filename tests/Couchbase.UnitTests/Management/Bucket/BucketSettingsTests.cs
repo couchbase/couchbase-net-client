@@ -49,7 +49,7 @@ namespace Couchbase.UnitTests.Management.Bucket
         {
             // Arrange
 
-            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Management\travel-sample-bucket.json");
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Management\travel-sample-bucket.json");
 
             // Act
 

@@ -276,7 +276,7 @@ namespace Couchbase.UnitTests.Query
         {
             // Arrange
 
-            var options = new QueryOptions("SELECT * FROM WHAT").Timeout(TimeSpan.FromMilliseconds(1000.5));
+            var options = new QueryOptions("SELECT * FROM WHAT").Timeout(TimeSpan.FromMilliseconds(1000.4));
 
             // Act
 
