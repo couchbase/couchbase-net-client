@@ -24,6 +24,11 @@ namespace Couchbase
         /// <remarks>This only applies to the Query service.</remarks>
         [InterfaceStability(Level.Volatile)]
         public bool EnableHttpVersion2 { get; set; } = false;
+
+        /// <summary>
+        /// Enables push config notification if supported by the server version, otherwise, polling is used as before.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = false;
     }
 }
 

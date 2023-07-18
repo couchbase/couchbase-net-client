@@ -1,13 +1,58 @@
 using System;
-using System.Net;
 using Couchbase.Core.Configuration.Server;
-using Newtonsoft.Json;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
+    /*
+     *   Byte/     0       |       1       |       2       |       3       |
+     /              |               |               |               |
+    |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+    +---------------+---------------+---------------+---------------+
+   0| 0x80          | 0xb5          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+   4| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+   8| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  12| 0xde          | 0xad          | 0xbe          | 0xef          |
+    +---------------+---------------+---------------+---------------+
+  16| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  20| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  24| 0x42          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  28| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  32| 0x00          | 0x00          | 0x00          | 0x00          |
+    +---------------+---------------+---------------+---------------+
+  36| 0x08          | 0x07          | 0x06          | 0x05          |
+    +---------------+---------------+---------------+---------------+
+  40| 0x04          | 0x03          | 0x02          | 0x01          |
+    +---------------+---------------+---------------+---------------+
+    GET_CLUSTER_CONFIG command
+    Field        (offset) (value)
+    Magic        (0)    : 0x80 (client request, SDK -> kv_engine)
+    Opcode       (1)    : 0xb5
+    Key length   (2,3)  : 0x0000
+    Extra length (4)    : 0x10 (16 bytes, two int64_t fields in extras)
+    Data type    (5)    : 0x00 (RAW)
+    Vbucket      (6,7)  : 0x0000
+    Total body   (8-11) : 0x00000010 (16 bytes)
+    Opaque       (12-15): 0xdeadbeef
+    CAS          (16-23): 0x0000000000000000
+    Epoch        (24-31): 0x0000000000000042 (66 in base-10)
+    Revision     (32-39): 0x0102030405060708 (72623859790382856 in base-10)
+    */
+
     internal sealed class Config : OperationBase<BucketConfig>
     {
         internal HostEndpointWithPort EndPoint { get; set; }
+
+        internal ulong? Epoch { get; set; }
+
+        internal ulong? Revision { get; set; }
 
         protected override void BeginSend()
         {
@@ -21,6 +66,15 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
+            //We have GetClusterConfigWithKnownVersion enabled and the epoch
+            //and revision can be sent to the server for deduping
+            if (Epoch.HasValue && Revision.HasValue)
+            {
+                Span<byte> extras = stackalloc byte[16];
+                ByteConverter.FromUInt64(Epoch.Value, extras.Slice(0));
+                ByteConverter.FromUInt64(Revision.Value, extras.Slice(8));
+                builder.Write(extras);
+            }
         }
 
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)
@@ -46,6 +100,7 @@ namespace Couchbase.Core.IO.Operations
                 {
                     var buffer = Data;
                     ReadExtras(buffer.Span);
+
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;
                     bucketConfig = Transcoder.Decode<BucketConfig>(buffer.Slice(offset, length), Flags, OpCode);

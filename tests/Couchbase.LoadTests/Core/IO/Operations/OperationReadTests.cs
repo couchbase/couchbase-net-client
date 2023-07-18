@@ -72,7 +72,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             var header = new byte[OperationHeader.Length];
             var headerSpan = header.AsSpan();
 
-            headerSpan[HeaderOffsets.Magic] = (byte) Magic.Response;
+            headerSpan[HeaderOffsets.Magic] = (byte) Magic.ClientResponse;
             ByteConverter.FromInt16((short) ResponseStatus.Success, headerSpan.Slice(HeaderOffsets.Status));
             headerSpan[HeaderOffsets.Opcode] = (byte) OpCode.Get;
             headerSpan[HeaderOffsets.ExtrasLength] = (byte) extrasLength;

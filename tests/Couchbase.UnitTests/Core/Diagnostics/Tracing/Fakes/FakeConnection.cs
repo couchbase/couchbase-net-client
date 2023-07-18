@@ -7,6 +7,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Diagnostics;
+using Couchbase.Utils;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 {
@@ -32,6 +33,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public string RemoteHost => throw new NotImplementedException();
 
         public string LocalHost => throw new NotImplementedException();
+        public Action<SlicedMemoryOwner<byte>> OnClusterMapChangeNotification { get; set; }
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, CancellationToken cancellationToken = default)
         {

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
+using System.Text.Json;
 
 #nullable enable
 
@@ -218,6 +219,15 @@ namespace Couchbase.Core
                         break;
                 }
             }
+        }
+
+        public override string? ToString()
+        {
+#if DEBUG
+            return JsonSerializer.Serialize(this);
+#else
+            return base.ToString();
+#endif
         }
     }
 }

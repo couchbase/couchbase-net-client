@@ -13,7 +13,8 @@ namespace Couchbase.Core.Configuration.Server
 
         public NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
         {
-            ConfigRevision = bucketConfig.Rev;
+            ConfigVersion = bucketConfig.ConfigVersion;
+
             var node1 = node;
 
             //Detect if we should be using alternate addresses for hostname
@@ -61,7 +62,7 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public ulong ConfigRevision { get; }
+        public ConfigVersion ConfigVersion { get; }
 
         private bool UseAlternateAddress { get; set; }
 
@@ -137,11 +138,11 @@ namespace Couchbase.Core.Configuration.Server
                     ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
 
                 var hostname = nodeExt.AlternateAddresses[networkResolution].Hostname;
-                _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using alternate mapping {nodeExt.Hostname} to {hostname} - rev {ConfigRevision}.";
+                _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using alternate mapping {nodeExt.Hostname} to {hostname} - rev {bucketConfig.ConfigVersion}.";
                 return hostname;
             }
 
-            _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using default {nodeExt?.Hostname} - rev {ConfigRevision}";
+            _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using default {nodeExt?.Hostname} - rev {bucketConfig.ConfigVersion}";
             return nodeExt?.Hostname;
         }
 

@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
@@ -15,7 +14,6 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.Utils;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
@@ -215,14 +213,27 @@ namespace Couchbase.Core.IO.Connections
                     {
                         try
                         {
-                            var opaque = ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque), false);
-                            if (_statesInFlight.TryRemove(opaque, out var state))
+                            var magic = (Magic) operationResponse.Memory.Slice(HeaderOffsets.Magic).ToArray()[0];
+                            if (magic == Magic.ServerRequest)
                             {
-                                state.Complete(in operationResponse);
+                                //This is the server sending a partial config request for CMCN
+                                //we want to publish it back to the ClusterNode to handle it
+                                OnClusterMapChangeNotification?.Invoke(operationResponse);
                             }
                             else
                             {
-                                operationResponse.Dispose();
+                                //all other operations go here and are handled via the historical way
+                                var opaque =
+                                    ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque),
+                                        false);
+                                if (_statesInFlight.TryRemove(opaque, out var state))
+                                {
+                                    state.Complete(in operationResponse);
+                                }
+                                else
+                                {
+                                    operationResponse.Dispose();
+                                }
                             }
                         }
                         catch
@@ -343,6 +354,12 @@ namespace Couchbase.Core.IO.Connections
         public string RemoteHost => _remoteHostString;
 
         public string LocalHost => _localHostString;
+
+        /// <summary>
+        /// Publishes any ClusterMapConfigNotification responses from the server to the subscriber
+        /// which in turn convert the response into a cluster map and possible publish to the ConfigHandler.
+        /// </summary>
+        public Action<SlicedMemoryOwner<byte>>? OnClusterMapChangeNotification { get; set; }
 
         private void UpdateLastActivity()
         {

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;

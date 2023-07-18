@@ -149,7 +149,6 @@ namespace Couchbase.Core.IO
 
             try
             {
-                //TODO: OperationBase error leads here
                 state.Operation.HandleOperationCompleted(in state._response);
             }
             catch

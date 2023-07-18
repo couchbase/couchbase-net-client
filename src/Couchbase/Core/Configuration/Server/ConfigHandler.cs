@@ -9,8 +9,10 @@ using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -116,6 +118,14 @@ namespace Couchbase.Core.Configuration.Server
                     foreach (var clusterNode in _context.Nodes.Where(x =>
                         x.HasKv && x.BucketType != BucketType.Memcached))
                     {
+                        //Skip the polling process on a node if Faster Fail-over is enabled
+                        //the SDK will use logic to determine if the config has changed and
+                        //directly fetch a new one from the server and enqueue it.
+                        if (clusterNode.ServerFeatures.ClustermapChangeNotificationBrief)
+                        {
+                            continue;
+                        }
+
                         _logger.LogDebug("Checking {node} in polling.", clusterNode.EndPoint);
                         try
                         {
@@ -213,6 +223,9 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Publish(BucketConfig config)
         {
+            //A null config should not make it to the processor
+            if(config == null) ThrowHelper.ThrowArgumentNullException(nameof(config));
+
             if (_logger.IsEnabled(LogLevel.Debug))
             {
                 // Only log if debug logging is enabled to avoid serialization cost

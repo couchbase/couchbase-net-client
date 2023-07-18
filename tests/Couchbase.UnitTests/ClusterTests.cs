@@ -57,7 +57,7 @@ namespace Couchbase.UnitTests
                 Status = Couchbase.Core.IO.Operations.ResponseStatus.BucketNotConnected
             };
 
-            mockNode.Setup(n => n.GetClusterMap()).Throws(() => new CouchbaseException(errorContext));
+            mockNode.Setup(n => n.GetClusterMap(null)).Throws(() => new CouchbaseException(errorContext));
             var nodeFactory = new Mock<Couchbase.Core.DI.IClusterNodeFactory>();
             nodeFactory.Setup(nf => nf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(mockNode.Object));
@@ -66,7 +66,7 @@ namespace Couchbase.UnitTests
                 .WithCredentials("Administrator", "password")
                 .WithConnectionString("couchbases://HostThatDoesNotExist.NoSuchDomain")
                 .WithDnsResolver(dnsResolver.Object)
-                .AddClusterService<Couchbase.Core.DI.IClusterNodeFactory>(nodeFactory.Object)
+                .AddClusterService(nodeFactory.Object)
                 );
             await ((Couchbase.Core.Bootstrapping.IBootstrappable)cluster).BootStrapAsync();
             await Assert.ThrowsAsync<NotSupportedException>(async () =>

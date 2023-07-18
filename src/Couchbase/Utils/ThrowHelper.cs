@@ -89,7 +89,7 @@ namespace Couchbase.Utils
         public static void ThrowTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
         {
             var message = $"The {operation.OpCode} operation {operation.Opaque}/{redactor.UserData(operation.Key)} timed out after {operation.Elapsed}. " +
-                          $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.";
+                          $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}. The KvTimeout is {operation.Timeout}.";
 
             if (operation.IsSent && !operation.IsReadOnly)
             {

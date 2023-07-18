@@ -113,7 +113,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Requests that the server cancels an existing range scan.
         /// </summary>
-        RangeScanCancel = 0xDC
+        RangeScanCancel = 0xDC,
+
+        /// <summary>
+        /// Allows for server push cluster map configurations.
+        /// </summary>
+        ClusterMapChangeNotification = 0x01
     }
 }
 

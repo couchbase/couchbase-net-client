@@ -153,7 +153,7 @@ namespace Couchbase
             await ((IBootstrappable) cluster).BootStrapAsync().ConfigureAwait(false);
             cluster.StartBootstrapper();
 
-           return cluster;
+            return cluster;
         }
 
         #endregion

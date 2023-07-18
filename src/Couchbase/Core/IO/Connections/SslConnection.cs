@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Diagnostics;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -75,6 +76,12 @@ namespace Couchbase.Core.IO.Connections
         public string RemoteHost => _multiplexingConnection.RemoteHost;
 
         public string LocalHost => _multiplexingConnection.LocalHost;
+
+        public Action<SlicedMemoryOwner<byte>>? OnClusterMapChangeNotification
+        {
+            get => _multiplexingConnection.OnClusterMapChangeNotification;
+            set => _multiplexingConnection.OnClusterMapChangeNotification = value;
+        }
 
         /// <inheritdoc />
         public ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation,

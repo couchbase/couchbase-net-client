@@ -177,6 +177,8 @@ namespace Couchbase.Core
 
         public void PublishConfig(BucketConfig bucketConfig)
         {
+            //Ignore any null configs if config deduping is enabled
+            if (bucketConfig == null) return;
             if (_logger.IsEnabled(LogLevel.Debug))
             {
                 _logger.LogDebug(LoggingEvents.ConfigEvent,
@@ -585,6 +587,7 @@ namespace Couchbase.Core
                 _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
                     _redactor.MetaData(name));
 
+                _logger.LogDebug("Bootstrapping {bucket}", name);
                 //First try CCCP to fetch the config
                 config = await node.GetClusterMap().ConfigureAwait(false);
             }

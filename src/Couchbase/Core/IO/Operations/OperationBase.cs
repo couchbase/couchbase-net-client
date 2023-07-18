@@ -645,7 +645,6 @@ namespace Couchbase.Core.IO.Operations
                 return;
             }
 
-            //TODO: Error on large Range Scan documents happens here
             var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
 
             try

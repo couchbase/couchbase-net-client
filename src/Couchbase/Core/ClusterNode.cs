@@ -20,6 +20,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Operations.Configuration;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Utils;
@@ -53,6 +54,7 @@ namespace Couchbase.Core
         private readonly string _remoteHostName;
         private string _bucketName = "CLUSTER";
         private IBucket _owner;
+        private readonly SemaphoreSlim _configLock = new(1, 1);
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -114,7 +116,7 @@ namespace Couchbase.Core
         /// <summary>
         /// The current cluster map config revision.
         /// </summary>
-        public ulong ConfigRevision => NodesAdapter?.ConfigRevision ?? 0;
+        public ConfigVersion? ConfigVersion => NodesAdapter?.ConfigVersion;
 
         public bool IsAssigned => Owner != null;
 
@@ -205,6 +207,7 @@ namespace Couchbase.Core
         public ErrorMap ErrorMap { get; set; }
         public ServerFeatureSet ServerFeatures { get; private set; }
         public IConnectionPool ConnectionPool { get; }
+
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
         public bool HasViews => NodesAdapter?.IsViewNode ?? false;
         public bool HasAnalytics => NodesAdapter?.IsAnalyticsNode ?? false;
@@ -216,6 +219,7 @@ namespace Couchbase.Core
         public DateTime? LastQueryActivity { get; private set; }
         public DateTime? LastSearchActivity { get; private set; }
         public DateTime? LastAnalyticsActivity { get; private set; }
+
         public DateTime? LastKvActivity { get; private set; }
         public DateTime? LastEventingActivity { get; private set; }
 
@@ -291,13 +295,16 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.PreserveTtl,
                 IO.Operations.ServerFeatures.JSON,
                 IO.Operations.ServerFeatures.SubDocReplicaRead,
-                IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief,
-                IO.Operations.ServerFeatures.Duplex,
-                IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion,
-                IO.Operations.ServerFeatures.SnappyEverywhere,
-                IO.Operations.ServerFeatures.ClustermapChangeNotification,
-                IO.Operations.ServerFeatures.DedupeNotMyVbucketClustermap
             };
+
+            if (_context.ClusterOptions.Experiments.EnablePushConfig)
+            {
+                features.Add(IO.Operations.ServerFeatures.ClustermapChangeNotification);
+                features.Add(IO.Operations.ServerFeatures.ClustermapChangeNotificationBrief);
+                features.Add(IO.Operations.ServerFeatures.Duplex);
+                features.Add(IO.Operations.ServerFeatures.GetClusterConfigWithKnownVersion);
+                features.Add(IO.Operations.ServerFeatures.DedupeNotMyVbucketClustermap);
+            }
 
             if (Owner != null && Owner.SupportsCollections)
             {
@@ -325,6 +332,8 @@ namespace Couchbase.Core
                 {
                     case CompressionAlgorithm.Snappy:
                         features.Add(IO.Operations.ServerFeatures.SnappyCompression);
+                        //only negotiate when snappy enabled
+                        features.Add(IO.Operations.ServerFeatures.SnappyEverywhere);
                         break;
                 }
             }
@@ -354,6 +363,7 @@ namespace Couchbase.Core
                 }
                 throw;
             }
+
             return heloOp.GetValue();
         }
 
@@ -390,7 +400,7 @@ namespace Couchbase.Core
             await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<BucketConfig> GetClusterMap()
+        public async Task<BucketConfig> GetClusterMap(ConfigVersion ?configVersion)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
             using var configOp = new Config
@@ -402,6 +412,16 @@ namespace Couchbase.Core
                 Span = rootSpan,
                 Timeout = _context.ClusterOptions.KvTimeout
             };
+
+            //When bootstrapping this may be a node that had already bootstrapped against GCCCP
+            //the server will try to dedup the config revision because the rev and epoch already
+            //exists. Since this is a bucket bootstrap we must force the config because we want
+            //a new config that shows bucket level details.
+            if (configVersion.HasValue && ServerFeatures.GetClusterConfigWithKnownVersion)
+            {
+                configOp.Epoch = configVersion.Value.Epoch;
+                configOp.Revision = configVersion.Value.Revision;
+            }
 
             using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
             try
@@ -583,8 +603,22 @@ namespace Couchbase.Core
 
                 if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                 {
-                    var config = op.ReadConfig(_context.GlobalTranscoder);
-                    _context.PublishConfig(config);
+                    if (!ServerFeatures.DedupeNotMyVbucketClustermap)
+                    {
+                        //legacy NMVB config handling w/the config in the body
+                        var config = op.ReadConfig(_context.GlobalTranscoder);
+                        _context.PublishConfig(config);
+                    }
+                    else
+                    {
+                        //This is the path of newer FF config processing w/deduplication
+                        var config = await GetClusterMap(NodesAdapter.ConfigVersion).ConfigureAwait(false);
+                        if (config != null)
+                        {
+                            //If null we don't have a later config epoch/revision available
+                            _context.PublishConfig(config);
+                        }
+                    }
                 }
 
                 var code = (short)status;
@@ -672,6 +706,10 @@ namespace Couchbase.Core
                         ? new ServerFeatureSet(serverFeatureList)
                         : ServerFeatureSet.Empty;
                     ServerFeatures = connection.ServerFeatures;
+
+                    #if DEBUG
+                    _logger.LogDebug("{Features}", ServerFeatures.ToString());
+                    #endif
                 }
 
                 using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
@@ -686,6 +724,53 @@ namespace Couchbase.Core
                     _context.ClusterOptions.Password);
 
                 await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
+
+                //Callback for the case where the server sends a CMCN to the client; this is raised in the
+                //MultiplexingConnection when it detects that the request has come from the server.
+                connection.OnClusterMapChangeNotification += async operationResponse =>
+                {
+                    BucketConfig bucketConfig = null;
+                    using (operationResponse)
+                    {
+                        var clusterMapChangeNotificationOp = new ClusterMapChangeNotification();
+                        clusterMapChangeNotificationOp.HandleOperationCompleted(operationResponse);
+
+                        if (clusterMapChangeNotificationOp.HasExtras)
+                        {
+                            var configVersion = clusterMapChangeNotificationOp.GetConfigVersion;
+                            try
+                            {
+                                using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
+                                await _configLock.WaitAsync(cts.Token).ConfigureAwait(false);
+                                if (configVersion > NodesAdapter.ConfigVersion)
+                                    try
+                                    {
+                                        bucketConfig = await GetClusterMap(configVersion).ConfigureAwait(false);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        _logger.LogWarning(LoggingEvents.ConfigEvent, e,
+                                            "Issue getting Cluster Map on server {Server}!", EndPoint);
+                                    }
+                            }
+                            finally
+                            {
+                                _configLock.Release(1);
+                            }
+                        }
+                        else
+                        {
+                            //assume the config is on the body
+                            bucketConfig = clusterMapChangeNotificationOp.GetValue();
+                        }
+                    }
+
+                    if (bucketConfig is not null)
+                    {
+                        _context.PublishConfig(bucketConfig);
+                    }
+                };
+
                 rootSpan.Dispose();
             }
         }
@@ -861,7 +946,7 @@ namespace Couchbase.Core
         {
 #if DEBUG
             //Unfortunately, we cannot cache the config revision.
-            return $"{EndPoint}-{_bucketName}-Rev#{ConfigRevision}";
+            return $"{EndPoint}-{_bucketName}-Rev#{NodesAdapter.ConfigVersion}";
 #else
             return _cachedToString;
 #endif

@@ -224,7 +224,7 @@ namespace Couchbase.Core.IO.Operations
             }
             else
             {
-                headerBytes[HeaderOffsets.Magic] = (byte) Magic.Request;
+                headerBytes[HeaderOffsets.Magic] = (byte) Magic.ClientRequest;
                 ByteConverter.FromInt16((short) _keyLength, headerBytes.Slice(HeaderOffsets.KeyLength));
             }
 

@@ -241,9 +241,11 @@ namespace Couchbase.Core.Configuration.Server
     }
 
     //Root object
-    internal class BucketConfig : IEquatable<BucketConfig>
+    internal class BucketConfig : IEquatable<BucketConfig>, IJsonOnDeserialized
     {
         private string _networkResolution = Couchbase.NetworkResolution.Auto;
+
+        public ConfigVersion ConfigVersion { get; private set; }
 
         public BucketConfig()
         {
@@ -369,6 +371,11 @@ namespace Couchbase.Core.Configuration.Server
                 hashCode = (hashCode * 397) ^ (BucketCapabilities != null ? BucketCapabilities.GetHashCode() : 0);
                 return hashCode;
             }
+        }
+
+        public void OnDeserialized()
+        {
+            ConfigVersion = new ConfigVersion(RevEpoch, Rev);
         }
 
         public static bool operator ==(BucketConfig left, BucketConfig right)

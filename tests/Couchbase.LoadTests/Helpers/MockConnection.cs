@@ -9,6 +9,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Diagnostics;
+using Couchbase.Utils;
 
 namespace Couchbase.LoadTests.Helpers
 {
@@ -43,6 +44,7 @@ namespace Couchbase.LoadTests.Helpers
         public string RemoteHost => throw new NotImplementedException();
 
         public string LocalHost => throw new NotImplementedException();
+        public Action<SlicedMemoryOwner<byte>> OnClusterMapChangeNotification { get; set; }
 
         public void Authenticate()
         {

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Diagnostics;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -108,6 +109,8 @@ namespace Couchbase.Core.IO.Connections
         string RemoteHost { get; }
 
         string LocalHost { get; }
+
+        Action<SlicedMemoryOwner<byte>>? OnClusterMapChangeNotification { get; set; }
     }
 }
 
