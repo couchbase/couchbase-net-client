@@ -210,7 +210,8 @@ namespace Couchbase.Core.Retry
 
                         //sub-doc path failures for lookups are handled when the ContentAs() method is called.
                         //so we simply return back to the caller and let it be handled later.
-                        if (status == ResponseStatus.SubDocMultiPathFailure && operation.OpCode == OpCode.MultiLookup)
+                        if ((status == ResponseStatus.SubDocMultiPathFailure  || status == ResponseStatus.SubdocMultiPathFailureDeleted)
+                            && operation.OpCode == OpCode.MultiLookup)
                         {
                             return status;
                         }
