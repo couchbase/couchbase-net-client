@@ -692,13 +692,13 @@ namespace Couchbase
         public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;
 
         /// <summary>
-        /// Port used for HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Cochbase server default ports have be changed.
+        /// Port used for HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Couchbase server default ports have be changed.
         /// </summary>
         /// <remarks>The default is 8091.</remarks>
         public int BootstrapHttpPort { get; set; } = 8091;
 
         /// <summary>
-        /// Port used for TLS HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Cochbase server default ports have be changed.
+        /// Port used for TLS HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Couchbase server default ports have be changed.
         /// </summary>
         public int BootstrapHttpPortTls { get; set; } = 18091;
 
