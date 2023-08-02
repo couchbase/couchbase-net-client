@@ -1,42 +1,45 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 
 #nullable enable
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider
+    internal class LookupInResult : ILookupInReplicaResult
     {
         private readonly IList<LookupInSpec> _specs;
+        private readonly Flags _flags;
+        private readonly ITypeTranscoder Transcoder;
+        private readonly ITypeSerializer Serializer;
 
-        /// <inheritdoc />
-        public ITypeSerializer Serializer { get; }
-
-        internal LookupInResult(IList<LookupInSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false, bool? isReplica = false)
+        internal LookupInResult(MultiLookup<byte[]> lookup, bool isDeleted = false, bool? isReplica = false, TimeSpan? expiry = null)
         {
+            var specs = lookup.GetCommandValues();
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(specs));
             }
-            if (typeSerializer == null)
+            if (lookup.Transcoder.Serializer == null)
             {
-                ThrowHelper.ThrowArgumentNullException(nameof(typeSerializer));
+                ThrowHelper.ThrowArgumentNullException(nameof(lookup.Transcoder.Serializer));
             }
             // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
+            _flags = lookup.Flags;
             _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
-            Cas = cas;
+            Cas = lookup.Cas;
             Expiry = expiry;
-            Serializer = typeSerializer;
+            Transcoder = lookup.Transcoder;
+            Serializer = Transcoder.Serializer;
             IsDeleted = isDeleted;
             IsReplica = isReplica;
         }
@@ -61,7 +64,7 @@ namespace Couchbase.KeyValue
             switch (spec.Status)
             {
                 case ResponseStatus.Success:
-                    return Serializer.Deserialize<T>(spec.Bytes);
+                    return Transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode);
                 case ResponseStatus.SubDocPathNotFound:
                     throw CreateSubDocException<PathNotFoundException>(spec, index);
                 case ResponseStatus.SubDocPathMismatch:

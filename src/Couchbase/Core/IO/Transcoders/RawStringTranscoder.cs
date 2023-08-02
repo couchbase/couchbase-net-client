@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Json;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
 
 #nullable enable
@@ -13,6 +14,14 @@ namespace Couchbase.Core.IO.Transcoders
 {
     public class RawStringTranscoder : BaseTranscoder
     {
+        public RawStringTranscoder() : this(DefaultSerializer.Instance)
+        {
+        }
+
+        public RawStringTranscoder(ITypeSerializer serializer)
+        {
+            Serializer = serializer;
+        }
         public override Flags GetFormat<T>(T value)
         {
             var typeCode = Type.GetTypeCode(typeof(T));

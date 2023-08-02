@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
@@ -19,6 +17,7 @@ public class RangeScanTests
 {
     private readonly CouchbaseFixture _fixture;
     private readonly ITestOutputHelper _outputHelper;
+    private volatile bool _isBucketFlushed = false;
 
     public RangeScanTests(CouchbaseFixture fixture, ITestOutputHelper outputHelper)
     {
@@ -26,15 +25,11 @@ public class RangeScanTests
         _outputHelper = outputHelper;
     }
 
-    internal async void FlushBucket()
-    {
-        var bucket = _fixture.GetDefaultCollection().Result.Scope.Bucket;
-        await bucket.Cluster.Buckets.FlushBucketAsync(bucket.Name);
-    }
-
     [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_RangeScan()
     {
+        _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(false);
+
         var random = new Random();
 
         var coll = await _fixture.GetDefaultCollection();

@@ -1,11 +1,12 @@
-using System;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.ObjectPool;
@@ -34,8 +35,10 @@ namespace Couchbase.UnitTests.KeyValue
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
+            op.Transcoder = new JsonTranscoder();
+            op.Transcoder.Serializer = new DefaultSerializer();
 
-            var result = new LookupInResult(op.GetCommandValues(), 0, TimeSpan.FromHours(1),  new DefaultSerializer());
+            var result = new LookupInResult(op);
 
             Assert.Throws<InvalidIndexException>(() => result.ContentAs<string>(index));
             var value = result.ContentAs<string>(0);
@@ -69,8 +72,10 @@ namespace Couchbase.UnitTests.KeyValue
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
+            op.Transcoder = new JsonTranscoder();
+            op.Transcoder.Serializer = new DefaultSerializer();
 
-            var result = new LookupInResult(op.GetCommandValues(), 0, TimeSpan.FromHours(1), new DefaultSerializer());
+            var result = new LookupInResult(op);
 
             Assert.Throws<PathNotFoundException>(() => result.ContentAs<string>(1));
         }

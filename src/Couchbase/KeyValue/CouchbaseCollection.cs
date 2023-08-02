@@ -694,8 +694,7 @@ namespace Couchbase.KeyValue
             var responseStatus = lookup.Header.Status;
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                             responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-            return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted);
+            return new LookupInResult(lookup, isDeleted); //Transcoder is set by OperationConfigurator
         }
 
         internal async Task<ILookupInReplicaResult> LookupInAnyReplicaInternalAsync(string id, IEnumerable<LookupInSpec> specs,
@@ -735,8 +734,7 @@ namespace Couchbase.KeyValue
             var responseStatus = lookup.Header.Status;
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                             responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-            return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted, isReplica: lookup.ReplicaIdx != null);
+            return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
         }
 
         internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id, IEnumerable<LookupInSpec> specs,
@@ -776,8 +774,7 @@ namespace Couchbase.KeyValue
                 var responseStatus = lookup.Header.Status;
                 var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                                 responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-                yield return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                    opts.Serializer ?? lookup.Transcoder.Serializer!, isDeleted, isReplica: lookup.ReplicaIdx != null);
+                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
             }
         }
 

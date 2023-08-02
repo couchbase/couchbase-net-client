@@ -55,6 +55,30 @@ namespace Couchbase.CombinationTests
             }
         }
 
+        public async Task<bool> FlushBucket(bool isAlreadyFlushed)
+        {
+            if (!isAlreadyFlushed)
+            {
+                await Cluster.Buckets.FlushBucketAsync("default").ConfigureAwait(false);
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<IBucket> GetDefaultBucket()
+        {
+            await BuildAsync();
+            return await Cluster.BucketAsync("default");
+        }
+
+        public async Task<IScope> GetDefaultScope()
+        {
+            await BuildAsync();
+            var bucket = await GetDefaultBucket().ConfigureAwait(false);
+            return await bucket.ScopeAsync("_default").ConfigureAwait(false);
+        }
+
         public async Task<ICouchbaseCollection> GetDefaultCollection()
         {
             await BuildAsync();
