@@ -426,7 +426,20 @@ namespace Couchbase.Core
             using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
             try
             {
-                await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
+                var status = await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
+                if (status == ResponseStatus.KeyNotFound)
+                {
+                    //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
+                    throw status.CreateException(configOp, string.Empty);
+                }
+
+                //Return back the config and swap any $HOST placeholders
+                var config = configOp.GetValue();
+                if (config != null)
+                {
+                    config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
+                }
+                return config;
             }
             catch (OperationCanceledException ex)
             {
@@ -437,14 +450,6 @@ namespace Couchbase.Core
                 }
                 throw;
             }
-            var config = configOp.GetValue();
-
-            if (config != null)
-            {
-                config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
-            }
-
-            return config;
         }
 
         private void BuildServiceUris()
