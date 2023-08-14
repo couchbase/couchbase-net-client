@@ -17,7 +17,7 @@ namespace Couchbase.KeyValue
     {
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
-        private readonly ITypeTranscoder Transcoder;
+        private readonly ITypeTranscoder _transcoder;
         public ITypeSerializer Serializer { get; }
 
         internal LookupInResult(MultiLookup<byte[]> lookup, bool isDeleted = false, bool? isReplica = false, TimeSpan? expiry = null)
@@ -38,8 +38,8 @@ namespace Couchbase.KeyValue
             _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = lookup.Cas;
             Expiry = expiry;
-            Transcoder = lookup.Transcoder;
-            Serializer = Transcoder.Serializer;
+            _transcoder = lookup.Transcoder;
+            Serializer = _transcoder.Serializer;
             IsDeleted = isDeleted;
             IsReplica = isReplica;
         }
@@ -50,7 +50,7 @@ namespace Couchbase.KeyValue
 
         public bool IsDeleted { get; }
 
-        public bool? IsReplica { get; } = null;
+        public bool? IsReplica { get; }
 
         public T? ContentAs<T>(int index)
         {
@@ -61,29 +61,17 @@ namespace Couchbase.KeyValue
 
             var spec = _specs[index];
 
-            switch (spec.Status)
+            if (spec.OpCode == OpCode.SubExist)
             {
-                case ResponseStatus.Success:
-                    return Transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode);
-                case ResponseStatus.SubDocPathNotFound:
-                    throw CreateSubDocException<PathNotFoundException>(spec, index);
-                case ResponseStatus.SubDocPathMismatch:
-                    throw CreateSubDocException<PathMismatchException>(spec, index);
-                case ResponseStatus.SubDocPathInvalid:
-                    throw CreateSubDocException<PathInvalidException>(spec, index);
-                case ResponseStatus.SubDocPathTooBig:
-                    throw CreateSubDocException<PathTooBigException>(spec, index);
-                case ResponseStatus.SubDocDocTooDeep:
-                    throw new DocumentTooDeepException();
-                case ResponseStatus.SubDocValueTooDeep:
-                    throw new ValueTooDeepException();
-                case ResponseStatus.SubDocDocNotJson:
-                    throw new DocumentNotJsonException();
-                case ResponseStatus.SubdocXattrUnknownMacro:
-                    throw new XattrUnknownMacroException();
-                default:
-                    throw CreateSubDocException<SubdocExceptionException>(spec, index);
+                var existsContent = spec.Status == ResponseStatus.Success ? CouchbaseStrings.TrueBytes : CouchbaseStrings.FalseBytes;
+                return Serializer.Deserialize<T>(existsContent.ToArray());
             }
+
+            if (spec.Status == ResponseStatus.Success)
+            {
+                return _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode);
+            }
+            throw GetSubdocError(spec, index);
         }
 
         public bool Exists(int index)
@@ -117,6 +105,31 @@ namespace Couchbase.KeyValue
             return -1;
         }
 
+        private CouchbaseException GetSubdocError(LookupInSpec spec, int index)
+        {
+            switch (spec.Status)
+            {
+                case ResponseStatus.SubDocPathNotFound:
+                    return CreateSubDocException<PathNotFoundException>(spec, index);
+                case ResponseStatus.SubDocPathMismatch:
+                    return CreateSubDocException<PathMismatchException>(spec, index);
+                case ResponseStatus.SubDocPathInvalid:
+                    return CreateSubDocException<PathInvalidException>(spec, index);
+                case ResponseStatus.SubDocPathTooBig:
+                    return CreateSubDocException<PathTooBigException>(spec, index);
+                case ResponseStatus.SubDocDocTooDeep:
+                    return new DocumentTooDeepException();
+                case ResponseStatus.SubDocValueTooDeep:
+                    return new ValueTooDeepException();
+                case ResponseStatus.SubDocDocNotJson:
+                    return new DocumentNotJsonException();
+                case ResponseStatus.SubdocXattrUnknownMacro:
+                    return new XattrUnknownMacroException();
+                default:
+                    return CreateSubDocException<SubdocExceptionException>(spec, index);
+            }
+        }
+
         private T CreateSubDocException<T>(LookupInSpec spec, int index)
             where T : SubdocExceptionException, new() =>
             new()
@@ -131,7 +144,7 @@ namespace Couchbase.KeyValue
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2023 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
