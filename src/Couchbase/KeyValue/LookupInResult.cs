@@ -13,12 +13,12 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInReplicaResult
+    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider
     {
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
         private readonly ITypeTranscoder Transcoder;
-        private readonly ITypeSerializer Serializer;
+        public ITypeSerializer Serializer { get; }
 
         internal LookupInResult(MultiLookup<byte[]> lookup, bool isDeleted = false, bool? isReplica = false, TimeSpan? expiry = null)
         {
