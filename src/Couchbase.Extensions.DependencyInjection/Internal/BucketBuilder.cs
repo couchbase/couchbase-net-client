@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -23,18 +24,35 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         /// <inheritdoc />
         public IScopeBuilder AddScope(string scopeName) => new ScopeBuilder(this, scopeName);
 
-        internal void AddCollection(Type collectionProviderType, string scopeName, string collectionName)
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        internal void AddCollection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type collectionProviderType,
+            string scopeName, string collectionName)
         {
             var proxyType =
                 NamedCollectionProxyGenerator.Instance.GetProxy(collectionProviderType, _bucketProviderType, scopeName, collectionName);
 
+            AddCollection(collectionProviderType, proxyType);
+        }
+
+        /// <inheritdoc />
+        public IBucketBuilder AddCollection<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>()
+            where TService : class, INamedCollectionProvider
+            where TImplementation : class, TService
+        {
+            AddCollection(typeof(TService), typeof(TImplementation));
+
+            return this;
+        }
+
+        internal void AddCollection(Type collectionProviderType, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type concreteType)
+        {
             if (_tryAddMode)
             {
-                _services.TryAddTransient(collectionProviderType, proxyType);
+                _services.TryAddTransient(collectionProviderType, concreteType);
             }
             else
             {
-                _services.AddTransient(collectionProviderType, proxyType);
+                _services.AddTransient(collectionProviderType, concreteType);
             }
         }
     }

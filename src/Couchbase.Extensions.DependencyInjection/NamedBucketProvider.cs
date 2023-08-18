@@ -1,13 +1,15 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Couchbase.Extensions.DependencyInjection.Internal
+namespace Couchbase.Extensions.DependencyInjection
 {
     /// <summary>
-    /// Base implementation for <see cref="INamedBucketProvider"/>, used as the base
-    /// class by <see cref="NamedBucketProxyGenerator"/>.
+    /// Base implementation for <see cref="INamedBucketProvider"/>.
     /// </summary>
-    internal abstract class NamedBucketProvider : INamedBucketProvider
+    /// <remarks>
+    /// Used to simplify creating AOT-compatible instances of <see cref="INamedBucketProvider"/>.
+    /// </remarks>
+    public abstract class NamedBucketProvider : INamedBucketProvider
     {
         private readonly IBucketProvider _bucketProvider;
 
@@ -20,7 +22,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             BucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
         }
 
-        public ValueTask<IBucket> GetBucketAsync()
+        public virtual ValueTask<IBucket> GetBucketAsync()
         {
             return _bucketProvider.GetBucketAsync(BucketName);
         }

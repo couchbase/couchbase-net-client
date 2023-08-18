@@ -1,9 +1,9 @@
-﻿namespace System.Runtime.CompilerServices
+using System.ComponentModel;
+
+namespace System.Runtime.CompilerServices
 {
-    /// <summary>
-    /// A workaround for init-only properties and older frameworks.
-    /// </summary>
-    public class IsExternalInit { }
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal static class IsExternalInit { }
 }
 
 

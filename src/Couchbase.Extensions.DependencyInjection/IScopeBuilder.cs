@@ -1,4 +1,4 @@
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Extensions.DependencyInjection
 {
@@ -14,7 +14,12 @@ namespace Couchbase.Extensions.DependencyInjection
         /// <typeparam name="T">Interface inherited from <see cref="INamedCollectionProvider"/>. Must not add any members.</typeparam>
         /// <param name="collectionName">Name of the collection.</param>
         /// <returns>The <see cref="IScopeBuilder"/> for chaining.</returns>
-        IScopeBuilder AddCollection<T>(string collectionName)
+        /// <remarks>
+        /// This method is not AOT-compatible. Use the overload that accepts a concrete implementation.
+        /// </remarks>
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        IScopeBuilder AddCollection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+            string collectionName)
             where T : class, INamedCollectionProvider;
     }
 }

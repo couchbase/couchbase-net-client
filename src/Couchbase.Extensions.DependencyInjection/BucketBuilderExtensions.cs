@@ -1,4 +1,4 @@
-using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Extensions.DependencyInjection
 {
@@ -14,7 +14,12 @@ namespace Couchbase.Extensions.DependencyInjection
         /// <typeparam name="T">Interface inherited from <see cref="INamedCollectionProvider"/>. Must not add any members.</typeparam>
         /// <param name="builder">The bucket builder.</param>
         /// <returns>The <see cref="IScopeBuilder"/> for the default scope, used for chaining.</returns>
-        public static IScopeBuilder AddDefaultCollection<T>(this IBucketBuilder builder)
+        /// <remarks>
+        /// This method is not AOT-compatible. Use the overload that accepts a concrete implementation.
+        /// </remarks>
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        public static IScopeBuilder AddDefaultCollection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+            this IBucketBuilder builder)
             where T : class, INamedCollectionProvider =>
             builder.AddDefaultScope().AddDefaultCollection<T>();
 
@@ -24,7 +29,7 @@ namespace Couchbase.Extensions.DependencyInjection
         /// <param name="builder">The bucket builder.</param>
         /// <returns>The <see cref="IScopeBuilder"/> for building the scope.</returns>
         public static IScopeBuilder AddDefaultScope(this IBucketBuilder builder) =>
-            builder.AddScope("_default");
+            builder.AddScope(NamedCollectionProvider.DefaultScopeName);
 
         /// <summary>
         /// Register an interface based on <see cref="INamedCollectionProvider"/> which will be injected
@@ -33,8 +38,13 @@ namespace Couchbase.Extensions.DependencyInjection
         /// <typeparam name="T">Interface inherited from <see cref="INamedCollectionProvider"/>. Must not add any members.</typeparam>
         /// <param name="builder">The scope builder.</param>
         /// <returns>The <see cref="IScopeBuilder"/> for chaining.</returns>
-        private static IScopeBuilder AddDefaultCollection<T>(this IScopeBuilder builder)
+        /// <remarks>
+        /// This method is not AOT-compatible. Use the overload that accepts a concrete implementation.
+        /// </remarks>
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        private static IScopeBuilder AddDefaultCollection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+            this IScopeBuilder builder)
             where T : class, INamedCollectionProvider =>
-            builder.AddCollection<T>("_default");
+            builder.AddCollection<T>(NamedCollectionProvider.DefaultCollectionName);
     }
 }

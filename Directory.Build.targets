@@ -2,8 +2,18 @@
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.1.1" />
 
   <!-- For older framework targets on non-test projects include attributes to support trimming -->
-  <ItemGroup Condition=" ('$(TargetFramework.StartsWith(`netcore`))' == 'true' Or '$(TargetFramework.StartsWith(`netstandard`))' == 'true') And '$(MSBuildProjectFile.Contains(`Test`))' != 'true'">
-    <Compile Include="$(MSBuildThisFileDirectory)src\Trimming\**\*.cs">
+  <ItemGroup Condition=" '$(MSBuildProjectFile.Contains(`Test`))' != 'true' ">
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\Trimming\**\*.cs"
+             Exclude="$(MSBuildThisFileDirectory)src\Shared\Trimming\RequiresDynamicCodeAttribute.cs"
+             Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))">
+      <Visible>false</Visible>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\Trimming\RequiresDynamicCodeAttribute.cs"
+             Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">
+      <Visible>false</Visible>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\IsExternalInit.cs"
+             Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))">
       <Visible>false</Visible>
     </Compile>
   </ItemGroup>

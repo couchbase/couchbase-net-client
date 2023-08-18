@@ -1,10 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Extensions.DependencyInjection.Internal;
 using Moq;
 using Xunit;
 
-namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
+namespace Couchbase.Extensions.DependencyInjection.UnitTests
 {
     public class NamedBucketProviderTests
     {
@@ -25,7 +24,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         {
             // Arrange
 
-            var bucketProvider = new  Mock<IBucketProvider>();
+            var bucketProvider = new Mock<IBucketProvider>();
 
             // Act/Assert
 

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
@@ -19,7 +20,9 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         }
 
         /// <inheritdoc />
-        public IScopeBuilder AddCollection<T>(string collectionName)
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        public IScopeBuilder AddCollection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+            string collectionName)
             where T : class, INamedCollectionProvider
         {
             if (string.IsNullOrEmpty(collectionName))

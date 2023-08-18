@@ -6,6 +6,8 @@
     <RootNamespace>Couchbase.Extensions.DependencyInjection</RootNamespace>
     <Description>Extensions for CouchbaseNetClient 3.x supporing .NET Core configuration and dependency injection.</Description>
     <Nullable>enable</Nullable>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">

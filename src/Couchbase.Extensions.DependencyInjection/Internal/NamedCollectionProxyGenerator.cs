@@ -16,33 +16,36 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 
         private readonly ProxyModuleBuilder _proxyModuleBuilder;
 
-        private readonly
-            ConcurrentDictionary<(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName),
-                Lazy<Type>> _proxyTypeCache = new();
+        private readonly ConcurrentDictionary<CollectionKey, Lazy<Type>> _proxyTypeCache = new();
 
         public NamedCollectionProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
             _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
         }
 
-        public Type GetProxy(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName) =>
-            _proxyTypeCache.GetOrAdd((collectionProviderType, bucketProviderType, scopeName, collectionName),
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2073",
+            Justification = "Proxy type is dynamically generated")]
+        public Type GetProxy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type collectionProviderType,
+            Type bucketProviderType, string scopeName, string collectionName) =>
+            _proxyTypeCache.GetOrAdd(new CollectionKey(collectionProviderType, bucketProviderType, scopeName, collectionName),
                 args =>
                 {
                     // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
                     // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
                     return new Lazy<Type>(
-                        () => CreateProxyType(args.collectionProviderType, args.bucketProviderType, args.scopeName,
-                            args.collectionName),
+                        () => CreateProxyType(args.CollectionInterfaceType, args.BucketInterfaceType, args.ScopeName,
+                            args.CollectionName),
                         LazyThreadSafetyMode.ExecutionAndPublication);
                 }).Value;
 
-#if NET5_0_OR_GREATER
-        // Make our use of reflection safe for trimming
         [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(NamedCollectionProvider))]
-#endif
-        private Type CreateProxyType(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName)
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+        private Type CreateProxyType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type collectionProviderType, Type bucketProviderType,
+            string scopeName, string collectionName)
         {
             var moduleBuilder = _proxyModuleBuilder.GetModuleBuilder();
 
@@ -67,6 +70,16 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             ilGenerator.Emit(OpCodes.Ret);
 
             return typeBuilder.CreateTypeInfo()!.AsType();
+        }
+
+        private readonly record struct CollectionKey(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type CollectionInterfaceType,
+            Type BucketInterfaceType,
+            string ScopeName,
+            string CollectionName)
+        {
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+            public Type CollectionInterfaceType { get; } = CollectionInterfaceType;
         }
     }
 }

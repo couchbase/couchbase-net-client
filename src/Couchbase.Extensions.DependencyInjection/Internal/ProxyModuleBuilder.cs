@@ -1,4 +1,4 @@
-using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Resources;
@@ -27,6 +27,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             new AssemblyName("Couchbase.Extensions.DependencyInjection.Dynamic");
 #endif
 
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
         public ModuleBuilder GetModuleBuilder()
         {
             if (_moduleBuilder == null)
@@ -38,8 +39,6 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
                         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(DynamicAssemblyName,
                             AssemblyBuilderAccess.Run);
                         _moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
-
-                        IgnoresAccessChecksToAttributeGenerator.Generate(assemblyBuilder, _moduleBuilder);
                     }
                 }
             }

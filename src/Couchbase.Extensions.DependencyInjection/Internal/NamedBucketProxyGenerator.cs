@@ -15,28 +15,33 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         public static NamedBucketProxyGenerator Instance { get; } = new(ProxyModuleBuilder.Instance);
 
         private readonly ProxyModuleBuilder _proxyModuleBuilder;
-        private readonly ConcurrentDictionary<(Type type, string bucketName), Lazy<Type>> _proxyTypeCache = new();
+        private readonly ConcurrentDictionary<BucketKey, Lazy<Type>> _proxyTypeCache = new();
 
         public NamedBucketProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
             _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
         }
 
-        public Type GetProxy(Type bucketProviderInterface, string bucketName) =>
-            _proxyTypeCache.GetOrAdd((bucketProviderInterface, bucketName), args =>
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2073",
+            Justification = "Proxy type is dynamically generated")]
+        public Type GetProxy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type bucketProviderInterface,
+            string bucketName) =>
+            _proxyTypeCache.GetOrAdd(new BucketKey(bucketProviderInterface, bucketName), args =>
             {
                 // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
                 // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
-                return new Lazy<Type>(() => CreateProxyType(args.type, args.bucketName),
+                return new Lazy<Type>(() => CreateProxyType(args.InterfaceType, args.Name),
                     LazyThreadSafetyMode.ExecutionAndPublication);
             }).Value;
 
-#if NET5_0_OR_GREATER
-        // Make our use of reflection safe for trimming
         [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(NamedBucketProvider))]
-#endif
-        private Type CreateProxyType(Type interfaceType, string bucketName)
+        [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+        private Type CreateProxyType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType,
+            string bucketName)
         {
             var moduleBuilder = _proxyModuleBuilder.GetModuleBuilder();
 
@@ -60,6 +65,14 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             ilGenerator.Emit(OpCodes.Ret);
 
             return typeBuilder.CreateTypeInfo()!.AsType();
+        }
+
+        private readonly record struct BucketKey(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type InterfaceType,
+            string Name)
+        {
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
+            public Type InterfaceType { get; } = InterfaceType;
         }
     }
 }
