@@ -665,8 +665,8 @@ namespace Couchbase
         /// <summary>
         /// The maximum time an HTTP connection will remain idle before being considered reusable.
         /// </summary>
-        /// <remarks>The default is 4.5s.</remarks>
-        public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromMilliseconds(4500);
+        /// <remarks>The default is 1s.</remarks>
+        public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
         /// Gets or sets how long a connection can be in the pool to be considered reusable.
