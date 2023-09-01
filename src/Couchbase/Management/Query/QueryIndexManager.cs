@@ -4,9 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
-using Couchbase.Core.Retry.Query;
 using Couchbase.Query;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -288,6 +286,11 @@ namespace Couchbase.Management.Query
                             queryOptions.CancellationToken(options.TokenValue);
                             if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                         }).ConfigureAwait(false);
+
+                    if (!indexes.Any())
+                    {
+                        throw new IndexNotFoundException("Could not retrieve any of the given indexes.");
+                    }
 
                     var pendingIndexes = indexes.Where(index => index.State != "online")
                         .Select(index => index.Name)

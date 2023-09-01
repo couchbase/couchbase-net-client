@@ -335,9 +335,14 @@ namespace Couchbase.UnitTests.Management.Query
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
                 new Redactor(new TypedRedactor(RedactionLevel.None)));
 
-            await manager.WatchIndexesAsync("travel-sample", new []{"field1"});
-
-            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
+            try
+            {
+                await manager.WatchIndexesAsync("travel-sample", new[] { "field1" });
+            }
+            catch
+            {
+                Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
+            }
         }
 
 
