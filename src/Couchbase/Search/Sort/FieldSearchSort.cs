@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Sort
 {
@@ -45,6 +46,8 @@ namespace Couchbase.Search.Sort
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             var json = base.Export();

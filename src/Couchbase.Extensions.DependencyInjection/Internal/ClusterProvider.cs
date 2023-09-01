@@ -1,9 +1,12 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
+    [RequiresUnreferencedCode(ServiceCollectionExtensions.RequiresUnreferencedCodeWarning)]
+    [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
     internal class ClusterProvider : IClusterProvider
     {
         private AsyncLazy<ICluster>? _cluster;

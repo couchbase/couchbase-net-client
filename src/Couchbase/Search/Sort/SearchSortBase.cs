@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Sort
@@ -11,6 +12,8 @@ namespace Couchbase.Search.Sort
         /// <summary>
         /// Gets a JSON object representing this search sort.
         /// </summary>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public virtual JObject Export()
         {
             var json = new JObject

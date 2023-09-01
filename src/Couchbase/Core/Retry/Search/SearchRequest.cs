@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Search;
 using Newtonsoft.Json;
@@ -12,6 +13,8 @@ namespace Couchbase.Core.Retry.Search
         public ISearchQuery Query { get; set; }
         public SearchOptions Options { get; set; } = new();
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public string ToJson()
         {
             var json = Options.ToJson(Index);

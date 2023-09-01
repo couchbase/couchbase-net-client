@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -18,6 +19,8 @@ namespace Couchbase.Search
         /// Gets a JSON object representing this instance excluding any <see cref="SearchOptions"/>
         /// </summary>
         /// <returns></returns>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         JObject Export();
     }
 

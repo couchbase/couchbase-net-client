@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries
@@ -34,6 +35,8 @@ namespace Couchbase.Search.Queries
         /// Gets a JSON object representing this query instance />
         /// </summary>
         /// <returns></returns>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public virtual JObject Export()
         {
             var json = new JObject();

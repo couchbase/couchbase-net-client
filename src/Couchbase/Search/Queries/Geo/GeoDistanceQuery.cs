@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Geo
@@ -38,6 +39,8 @@ namespace Couchbase.Search.Queries.Geo
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             if (!_longitude.HasValue)

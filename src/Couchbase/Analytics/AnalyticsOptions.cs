@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -164,6 +165,8 @@ namespace Couchbase.Analytics
         /// <remarks>For internal use only.</remarks>
         internal string? ScopeName { get; set; }
 
+        [RequiresUnreferencedCode(AnalyticsClient.AnalyticsRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(AnalyticsClient.AnalyticsRequiresDynamicCodeWarning)]
         internal string GetParametersAsJson()
         {
             if (PositionalParameters.Any())
@@ -171,6 +174,8 @@ namespace Couchbase.Analytics
             return JsonSerializer.Serialize(NamedParameters);
         }
 
+        [RequiresUnreferencedCode(AnalyticsClient.AnalyticsRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(AnalyticsClient.AnalyticsRequiresDynamicCodeWarning)]
         internal string GetFormValuesAsJson(string statement)
         {
             return JsonSerializer.Serialize(GetFormValues(statement));

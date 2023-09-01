@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Simple
 {
@@ -8,6 +9,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <seealso cref="SearchQueryBase" />
     public class MatchNoneQuery : SearchQueryBase
     {
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             var json = new JObject(

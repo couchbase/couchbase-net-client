@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.Compatibility;
@@ -17,6 +19,7 @@ namespace Couchbase.Search
     /// <summary>
     /// Represents a number of query options that can be applied to a FTS query request.
     /// </summary>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class SearchOptions
     {
         internal static SearchOptions Default { get; } = new();
@@ -247,6 +250,8 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="sort">The sort.</param>
         /// <returns></returns>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public SearchOptions Sort(ISearchSort sort)
         {
             if (sort != null)
@@ -261,6 +266,8 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="sort">The sort.</param>
         /// <returns></returns>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public SearchOptions Sort(JObject sort)
         {
             if (sort != null)
@@ -303,6 +310,8 @@ namespace Couchbase.Search
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public JObject ToJson(string? indexName = null)
         {
             var ctl = new JObject();
@@ -383,17 +392,15 @@ namespace Couchbase.Search
             return parameters;
         }
 
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
+        private string DebuggerDisplay
         {
-            return ToJson().ToString();
+            [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+            [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
+            get => ToJson().ToString();
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public string ToString(string indexName)
         {
             return ToJson(indexName).ToString();

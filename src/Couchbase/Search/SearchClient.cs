@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -28,6 +29,11 @@ namespace Couchbase.Search
     /// <seealso cref="ISearchClient" />
     internal class SearchClient : HttpServiceBase, ISearchClient
     {
+        internal const string SearchRequiresUnreferencedMembersWarning =
+            "Couchbase FTS might require types that cannot be statically analyzed. Make sure all required types are preserved.";
+        internal const string SearchRequiresDynamicCodeWarning =
+            "Couchbase FTS might require types that cannot be statically analyzed and might need runtime code generation. Do not use for native AOT applications.";
+
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
@@ -36,6 +42,8 @@ namespace Couchbase.Search
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
+        [RequiresUnreferencedCode(SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchRequiresDynamicCodeWarning)]
         public SearchClient(
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
@@ -55,6 +63,12 @@ namespace Couchbase.Search
         /// Executes a <see cref="ISearchQuery" /> request including any <see cref="SearchOptions" /> parameters asynchronously.
         /// </summary>
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
+        [RequiresUnreferencedCode(SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchRequiresDynamicCodeWarning)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3051",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.SearchQuery)

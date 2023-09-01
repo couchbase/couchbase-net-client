@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Simple
@@ -32,6 +33,8 @@ namespace Couchbase.Search.Queries.Simple
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             var json = base.Export();

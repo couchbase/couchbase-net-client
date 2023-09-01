@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Range
@@ -52,6 +53,8 @@ namespace Couchbase.Search.Queries.Range
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             if (_min == null && _max == null)

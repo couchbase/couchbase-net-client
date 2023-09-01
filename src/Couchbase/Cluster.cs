@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +28,6 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
-using Couchbase.Utils;
 
 #nullable enable
 
@@ -35,6 +35,11 @@ namespace Couchbase
 {
     public class Cluster : ICluster, IBootstrappable
     {
+        internal const string RequiresUnreferencedCodeMessage =
+            "The Couchbase SDK might require types that cannot be statically analyzed. Make sure all required types are preserved.";
+        internal const string RequiresDynamicCodeMessage =
+            "The Couchbase SDK might require types that cannot be statically analyzed and might need runtime code generation. Do not use for native AOT applications.";
+
         private readonly ILogger<Cluster> _logger;
         private readonly IRetryOrchestrator _retryOrchestrator;
         private readonly object _syncObject = new object();
@@ -110,6 +115,8 @@ namespace Couchbase
 
         #region Connect
 
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static Task<ICluster> ConnectAsync(string connectionString, Action<ClusterOptions> configureOptions)
         {
             var options = new ClusterOptions();
@@ -118,11 +125,15 @@ namespace Couchbase
             return ConnectAsync(connectionString, options);
         }
 
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
         {
             return ConnectAsync((options ?? new ClusterOptions()).WithConnectionString(connectionString));
         }
 
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static Task<ICluster> ConnectAsync(string connectionString, string username, string password)
         {
             return ConnectAsync(connectionString, new ClusterOptions
@@ -132,6 +143,8 @@ namespace Couchbase
             });
         }
 
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static async Task<ICluster> ConnectAsync(ClusterOptions options)
         {
             if (options == null)

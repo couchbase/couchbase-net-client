@@ -13,7 +13,7 @@ namespace Couchbase.Extensions.DependencyInjection
     /// </summary>
     public static class ServiceCollectionExtensions
     {
-        private const string RequiresUnreferencedCodeWarning =
+        internal const string RequiresUnreferencedCodeWarning =
             "The Couchbase SDK is not compatible with trimming.";
         internal const string RequiresDynamicCodeWarning =
             "Dynamically generated INamedBucketProvider or INamedCollectionProvider instances require dynamic code and are not compatible with AOT. Use an overload that accepts a concrete implementation type instead.";

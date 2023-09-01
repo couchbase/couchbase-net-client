@@ -26,6 +26,7 @@
          https://docs.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming#enable-library-trim-warnings -->
     <!-- trim analysis is breaking .NET 6 builds, so can't enable until we address them -->
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
@@ -58,6 +59,8 @@ namespace Couchbase.Search.Queries.Compound
             return this;
         }
 
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             if (!_shouldQueries.Any() && !_mustNotQueries.Any() && !_mustQueries.Any())

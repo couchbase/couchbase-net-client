@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -19,12 +20,19 @@ namespace Couchbase.Analytics
 {
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
+        internal const string AnalyticsRequiresUnreferencedMembersWarning =
+            "Couchbase Analytics might require types that cannot be statically analyzed. Make sure all required types are preserved.";
+        internal const string AnalyticsRequiresDynamicCodeWarning =
+            "Couchbase Analytics might require types that cannot be statically analyzed and might need runtime code generation. Do not use for native AOT applications.";
+
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
         private readonly IRequestTracer _tracer;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
+        [RequiresUnreferencedCode(AnalyticsRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(AnalyticsRequiresDynamicCodeWarning)]
         public AnalyticsClient(
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
@@ -40,6 +48,12 @@ namespace Couchbase.Analytics
         }
 
         /// <inheritdoc />
+        [RequiresUnreferencedCode(AnalyticsRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(AnalyticsRequiresDynamicCodeWarning)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3051",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, options)

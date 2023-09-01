@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Exceptions;
 using Newtonsoft.Json.Linq;
 
@@ -39,6 +40,8 @@ namespace Couchbase.Search.Queries.Geo
         /// Exports the GeoPolygonQuery as a JSON object.
         /// </summary>
         /// <returns></returns>
+        [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
+        [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
             var json = base.Export();
