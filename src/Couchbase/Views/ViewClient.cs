@@ -211,7 +211,11 @@ namespace Couchbase.Views
         protected static HttpStatusCode GetStatusCode(string message)
         {
             var httpStatusCode = HttpStatusCode.ServiceUnavailable;
+#if NET6_0_OR_GREATER
+            var codes = Enum.GetValues<HttpStatusCode>();
+#else
             var codes = (int[]) Enum.GetValues(typeof(HttpStatusCode));
+#endif
             foreach (int code in codes)
             {
                 if (message.Contains(code.ToString(CultureInfo.InvariantCulture)))

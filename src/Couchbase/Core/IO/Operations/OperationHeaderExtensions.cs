@@ -10,7 +10,11 @@ namespace Couchbase.Core.IO.Operations
     internal static class OperationHeaderExtensions
     {
         private static readonly HashSet<ResponseStatus> ValidResponseStatuses =
-            new HashSet<ResponseStatus>((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
+#if NET6_0_OR_GREATER
+            new(Enum.GetValues<ResponseStatus>());
+#else
+            new((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
+#endif
 
         internal static OperationHeader CreateHeader(this Span<byte> buffer)
         {
