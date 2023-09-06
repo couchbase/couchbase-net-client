@@ -63,14 +63,4 @@ public interface ICollectionQueryIndexManager
     /// <param name="options">Any optional parameters.</param>
     /// <returns>A <see cref="Task"/> for awaiting.</returns>
     Task BuildDeferredIndexesAsync(BuildDeferredQueryIndexOptions options);
-
-    /// <summary>
-    /// An internal collection reference for the query_context.
-    /// </summary>
-    internal ICouchbaseCollection Collection { get; set; }
-
-    /// <summary>
-    /// An internal scope reference for the query_context.
-    /// </summary>
-    internal IBucket Bucket { get; set; }
 }

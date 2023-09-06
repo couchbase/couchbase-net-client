@@ -21,22 +21,22 @@ namespace Couchbase.Core.DI
         private readonly ILogger<GetResult> _getLogger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
-        private readonly ICollectionQueryIndexManager _queryIndexManager;
+        private readonly ICollectionQueryIndexManagerFactory _queryIndexManagerFactory;
 
         public CollectionFactory(IOperationConfigurator operationConfigurator, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer, ICollectionQueryIndexManager queryIndexManager)
+            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer, ICollectionQueryIndexManagerFactory queryIndexManagerFactory)
         {
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _tracer = tracer;
-            _queryIndexManager = queryIndexManager;
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _queryIndexManagerFactory = queryIndexManagerFactory ?? throw new ArgumentNullException(nameof(queryIndexManagerFactory));
         }
 
         /// <inheritdoc />
         public ICouchbaseCollection Create(BucketBase bucket, IScope scope, string name) =>
-            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer, _queryIndexManager);
+            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer, _queryIndexManagerFactory);
     }
 }
 

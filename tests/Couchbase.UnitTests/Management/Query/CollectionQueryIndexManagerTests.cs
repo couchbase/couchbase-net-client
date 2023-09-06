@@ -67,14 +67,12 @@ public class CollectionQueryIndexManagerTests
         var queryIndexManager = new QueryIndexManager(queryClient, new Mock<ILogger<QueryIndexManager>>().Object,
             new Redactor(new TypedRedactor(RedactionLevel.None)));
 
-        var queryCollectionIndexManager = new CollectionQueryIndexManager(queryIndexManager);
         var options = new ClusterOptions();
         var bucket = new FakeBucket(bucketName, options);
         var scope = new FakeScope(scopeName, bucket, options);
         var collection = new FakeCollection(collectionName, scope, bucket, options);
-        ((ICollectionQueryIndexManager)queryCollectionIndexManager).Collection = collection;
-        ((ICollectionQueryIndexManager)queryCollectionIndexManager).Bucket = bucket;
 
+        var queryCollectionIndexManager = new CollectionQueryIndexManager(queryIndexManager, bucket, collection);
         return queryCollectionIndexManager;
     }
 

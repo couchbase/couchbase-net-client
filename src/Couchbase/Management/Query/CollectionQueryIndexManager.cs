@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
@@ -12,12 +13,14 @@ namespace Couchbase.Management.Query;
 internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
 {
     private readonly IQueryIndexManager _queryIndexManager;
-    private ICouchbaseCollection _collection;
-    private IBucket _bucket;
+    private readonly IBucket _bucket;
+    private readonly ICouchbaseCollection _collection;
 
-    public CollectionQueryIndexManager(IQueryIndexManager queryIndexManager)
+    public CollectionQueryIndexManager(IQueryIndexManager queryIndexManager, IBucket bucket, ICouchbaseCollection collection)
     {
         _queryIndexManager = queryIndexManager ?? throw new ArgumentNullException(nameof(queryIndexManager));
+        _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
+        _collection = collection ?? throw new ArgumentNullException(nameof(collection));
     }
 
     #region Methods
@@ -83,24 +86,6 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
         options.CollectionName(_collection.Name);
         options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.BuildDeferredIndexesAsync(_bucket.Name, options);
-    }
-
-    #endregion
-
-    #region Dependencies
-
-    /// <inheritdoc />
-    ICouchbaseCollection ICollectionQueryIndexManager.Collection
-    {
-        get => _collection;
-        set => _collection = value;
-    }
-
-    /// <inheritdoc />
-    IBucket ICollectionQueryIndexManager.Bucket
-    {
-        get => _bucket;
-        set => _bucket = value;
     }
 
     #endregion

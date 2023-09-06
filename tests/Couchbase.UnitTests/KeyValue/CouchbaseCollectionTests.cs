@@ -329,7 +329,7 @@ namespace Couchbase.UnitTests.KeyValue
                 CouchbaseCollection.DefaultCollectionName,
                 Mock.Of<IScope>(),
                 new NoopRequestTracer(),
-                new Mock<ICollectionQueryIndexManager>().Object);
+                new Mock<ICollectionQueryIndexManagerFactory>().Object);
         }
     }
 }

@@ -29,7 +29,7 @@ namespace Couchbase.KeyValue
     internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
-        private bool _rangeScanSupported;
+        private readonly bool _rangeScanSupported;
         private readonly BucketBase _bucket;
         private readonly ILogger<GetResult> _getLogger;
         private readonly IOperationConfigurator _operationConfigurator;
@@ -38,12 +38,12 @@ namespace Couchbase.KeyValue
         private Lazy<Task<uint?>>? GetCidLazyRetry = null;
         private Lazy<Task<uint?>>? GetCidLazyNoRetry = null;
 
-        private object _cidLock = new object();
+        private readonly object _cidLock = new();
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            string name, IScope scope, IRequestTracer tracer, ICollectionQueryIndexManager queryIndexManager)
+            string name, IScope scope, IRequestTracer tracer, ICollectionQueryIndexManagerFactory queryIndexManagerFactory)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
@@ -60,9 +60,7 @@ namespace Couchbase.KeyValue
                 if (_bucket.CurrentConfig.BucketCapabilities.Contains(BucketCapabilities.RANGE_SCAN)) _rangeScanSupported = true;
             }
 
-            queryIndexManager.Collection = this;
-            queryIndexManager.Bucket = _bucket;
-            QueryIndexes = queryIndexManager;
+            QueryIndexes = queryIndexManagerFactory.Create(_bucket, this);
         }
 
         internal IRedactor Redactor { get; }
