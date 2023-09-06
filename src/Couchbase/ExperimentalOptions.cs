@@ -28,7 +28,7 @@ namespace Couchbase
         /// <summary>
         /// Enables push config notification if supported by the server version, otherwise, polling is used as before.
         /// </summary>
-        [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = false;
+        [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = true;
     }
 }
 
