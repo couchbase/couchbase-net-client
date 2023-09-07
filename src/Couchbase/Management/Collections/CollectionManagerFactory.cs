@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -27,8 +28,8 @@ namespace Couchbase.Management.Collections
         }
 
         /// <inheritdoc />
-        public ICouchbaseCollectionManager Create(string bucketName) =>
-            new CollectionManager(bucketName,
+        public ICouchbaseCollectionManager Create(string bucketName, BucketConfig bucketConfig) =>
+            new CollectionManager(bucketName, bucketConfig,
                 _serviceProvider.GetRequiredService<IServiceUriProvider>(),
                 _serviceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                 _serviceProvider.GetRequiredService<ILogger<CollectionManager>>(),

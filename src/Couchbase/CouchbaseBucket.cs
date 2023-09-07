@@ -57,7 +57,7 @@ namespace Couchbase
         /// </summary>
         /// <remarks>Volatile</remarks>
         public override ICouchbaseCollectionManager Collections =>
-            _collectionManager ??= _collectionManagerLazy.GetValueOrThrow().Create(Name);
+            _collectionManager ??= _collectionManagerLazy.GetValueOrThrow().Create(Name, this.CurrentConfig);
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {

@@ -66,11 +66,22 @@ namespace Couchbase.Management.Collections
             return manager.GetAllScopesAsync(options);
         }
 
+        [Obsolete("Use the overload with scope and collection names instead.")]
         public static Task CreateCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec)
         {
             return manager.CreateCollectionAsync(spec, CreateCollectionOptions.Default);
         }
 
+        public static Task CreateCollectionAsync(this ICouchbaseCollectionManager manager, string scopeName,
+            string collectionName, CreateCollectionSettings settings, Action<CreateCollectionOptions> configureOptions)
+        {
+            var options = new CreateCollectionOptions();
+            configureOptions(options);
+
+            return manager.CreateCollectionAsync(scopeName, collectionName, settings, options);
+        }
+
+        [Obsolete("Use the overload with CreateCollectionSettings instead.")]
         public static Task CreateCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec, Action<CreateCollectionOptions> configureOptions)
         {
             var options = new CreateCollectionOptions();
@@ -79,11 +90,22 @@ namespace Couchbase.Management.Collections
             return manager.CreateCollectionAsync(spec, options);
         }
 
+        [Obsolete("Use the overload that uses scope and collection names instead.")]
         public static Task DropCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec)
         {
             return manager.DropCollectionAsync(spec, DropCollectionOptions.Default);
         }
 
+        public static Task DropCollectionAsync(this ICouchbaseCollectionManager manager, string scopeName,
+            string collectionName, Action<DropCollectionOptions> configureOptions)
+        {
+            var options = new DropCollectionOptions();
+            configureOptions(options);
+
+            return manager.DropCollectionAsync(scopeName, collectionName, options);
+        }
+
+        [Obsolete("Use the overload that uses scope and collection names instead.")]
         public static Task DropCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec, Action<DropCollectionOptions> configureOptions)
         {
             var options = new DropCollectionOptions();

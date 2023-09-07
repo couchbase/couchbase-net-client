@@ -29,7 +29,6 @@ public class LookupInTests
     [Fact]
     public async Task Test_LookupIn_With_RawBinaryTranscoder()
     {
-        await _fixture.BuildAsync().ConfigureAwait(false);
         _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(false);
 
         var id = "Test-" + Guid.NewGuid();

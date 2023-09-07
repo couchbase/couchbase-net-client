@@ -44,6 +44,7 @@ namespace Couchbase.Management.Buckets
 
         /// <summary>
         /// The type of conflict resolution to use.
+        /// Note: Only use this with CreateBucketAsync().
         /// </summary>
         public ConflictResolutionType? ConflictResolutionType { get; set; }
 
@@ -82,6 +83,21 @@ namespace Couchbase.Management.Buckets
         public StorageBackend? StorageBackend { get; set; }
 
         /// <summary>
+        /// Whether to enable history retention on collections by default.
+        /// </summary>
+        public bool? HistoryRetentionCollectionDefault { get; init; }
+
+        /// <summary>
+        /// The maximum size, in bytes, of the change history that is written to disk for all collections in this bucket.
+        /// </summary>
+        public ulong? HistoryRetentionBytes { get; init; }
+
+        /// <summary>
+        /// The maximum duration of history each vBucket should aim to retain on disk.
+        /// </summary>
+        public TimeSpan? HistoryRetentionDuration { get; init; }
+
+        /// <summary>
         /// Validates the settings and creates a list of name value pairs to send to the server as form values.
         /// </summary>
         /// <returns></returns>
@@ -95,6 +111,21 @@ namespace Couchbase.Management.Buckets
                 {"ramQuotaMB", settings.RamQuotaMB.ToStringInvariant()},
                 {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
             };
+
+            if (HistoryRetentionCollectionDefault.HasValue)
+            {
+                values.Add("historyRetentionCollectionDefault", HistoryRetentionCollectionDefault.Value.ToLowerString());
+            }
+
+            if (HistoryRetentionBytes is > 0)
+            {
+                values.Add("historyRetentionBytes", HistoryRetentionBytes.Value.ToString());
+            }
+
+            if (HistoryRetentionDuration.HasValue)
+            {
+                values.Add("historyRetentionSeconds", HistoryRetentionDuration.Value.TotalSeconds.ToString());
+            }
 
             if (settings.BucketType != BucketType.Memcached)
             {

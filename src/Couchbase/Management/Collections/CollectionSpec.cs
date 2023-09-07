@@ -21,6 +21,11 @@ namespace Couchbase.Management.Collections
         [InterfaceStability(Level.Volatile)]
         public TimeSpan? MaxExpiry { get; set; }
 
+        /// <summary>
+        /// Whether history retention override is enabled on this collection. If not set will default to bucket level setting.
+        /// </summary>
+        public bool? History { get; init; }
+
         public CollectionSpec(string scopeName, string name)
         {
             ScopeName = scopeName;

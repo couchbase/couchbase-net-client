@@ -15,8 +15,14 @@ namespace Couchbase.Management.Collections
 
         Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null);
 
+        Task CreateCollectionAsync(string scopeName, string collectionName, CreateCollectionSettings settings, CreateCollectionOptions? options = null);
+
+        [Obsolete("Use the overload with CreateCollectionSettings instead.")]
         Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions? options = null);
 
+        Task DropCollectionAsync(string scopeName, string collectionName, DropCollectionOptions? options = null);
+
+        [Obsolete("Use the overload that takes scope and collection names instead.")]
         Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null);
 
         [Obsolete("Use other overloaded CreateScopeAsync method that does not take a ScopeSpec instead.")]
@@ -25,6 +31,8 @@ namespace Couchbase.Management.Collections
         Task CreateScopeAsync(string scopeName, CreateScopeOptions? options = null);
 
         Task DropScopeAsync(string scopeName, DropScopeOptions? options = null);
+
+        Task UpdateCollectionAsync(string scopeName, string collectionName, UpdateCollectionSettings settings, UpdateCollectionOptions? options = null);
     }
 }
 

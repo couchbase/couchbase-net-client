@@ -1,13 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using Castle.Core.Logging;
 using Couchbase.Core;
-using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Collections;
 using Couchbase.UnitTests.Helpers;
@@ -40,8 +35,9 @@ namespace Couchbase.UnitTests.Management
             var serviceUriProviderMock = new Mock<IServiceUriProvider>();
             serviceUriProviderMock.Setup(x => x.GetRandomManagementUri()).Returns(BaseUri);
             var serviceProvider = serviceUriProviderMock.Object;
+            var bucketConfig = new Mock<BucketConfig>().Object;
 
-            _collectionManager = new CollectionManager(BucketName, serviceProvider, httpClientFactory, logger, redactor);
+            _collectionManager = new CollectionManager(BucketName, bucketConfig, serviceProvider, httpClientFactory, logger, redactor);
         }
 
         #region Uris

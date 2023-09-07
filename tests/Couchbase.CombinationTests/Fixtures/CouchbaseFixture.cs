@@ -4,10 +4,11 @@ using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Xunit;
 
 namespace Couchbase.CombinationTests
 {
-    public class CouchbaseFixture : IDisposable, IAsyncDisposable
+    public class CouchbaseFixture : IDisposable, IAsyncDisposable, IAsyncLifetime
     {
         private readonly ClusterOptions _options;
         private ICluster _cluster;
@@ -89,6 +90,19 @@ namespace Couchbase.CombinationTests
         public void Dispose()
         {
             _cluster?.Dispose();
+        }
+
+        public async Task InitializeAsync()
+        {
+            _cluster ??= await Couchbase.Cluster.ConnectAsync(_options.ConnectionString!, _options);
+        }
+
+        async Task IAsyncLifetime.DisposeAsync()
+        {
+            if (_cluster != null)
+            {
+                await _cluster.DisposeAsync();
+            }
         }
 
         public async ValueTask DisposeAsync()

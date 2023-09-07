@@ -75,8 +75,6 @@ namespace Couchbase.Management.Buckets
                 //Throw specific exception if a rate limiting exception is thrown.
                 result.ThrowIfRateLimitingError(body, ctx);
 
-
-
                 if (result.StatusCode == HttpStatusCode.BadRequest)
                 {
                     if (body.IndexOf("Bucket with given name already exists",
@@ -84,6 +82,8 @@ namespace Couchbase.Management.Buckets
                     {
                         throw new BucketExistsException(settings.Name);
                     }
+
+                    throw new InvalidArgumentException() { Context = ctx };
                 }
 
                 //Throw any other error cases

@@ -8,11 +8,12 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
-using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -25,6 +26,7 @@ namespace Couchbase.Management.Collections
     internal class CollectionManager : ICouchbaseCollectionManager
     {
         private readonly string _bucketName;
+        private volatile BucketConfig _bucketConfig;
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<CollectionManager> _logger;
@@ -33,7 +35,8 @@ namespace Couchbase.Management.Collections
         /// <summary>
         /// REST endpoint path definitions.
         /// </summary>
-        public static class RestApi
+        // ReSharper disable once MemberCanBePrivate.Global
+        internal static class RestApi
         {
             public static string GetScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
             public static string GetScopes(string bucketName) => $"pools/default/buckets/{bucketName}/scopes";
@@ -41,18 +44,22 @@ namespace Couchbase.Management.Collections
             public static string DeleteScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
             public static string CreateCollections(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections";
             public static string DeleteCollections(string bucketName, string scopeName, string collectionName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
+            public static string UpdateCollection(string bucketName, string scopeName, string collectionName) => $"/pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
+
         }
 
-        public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
+        public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<CollectionManager> logger, IRedactor redactor)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
+            _bucketConfig = bucketConfig ?? throw new ArgumentNullException(nameof(bucketConfig));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global
         internal Uri GetUri(string path)
         {
             var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
@@ -205,28 +212,33 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions? options = null)
+        public async Task CreateCollectionAsync(string scopeName, string collectionName, CreateCollectionSettings settings, CreateCollectionOptions? options)
         {
+            if (settings.History.HasValue &&
+                !_bucketConfig.BucketCapabilities.Contains(BucketCapabilities.NON_DEDUPED_HISTORY))
+            {
+                throw new FeatureNotAvailableException("CreateCollectionAsync with History parameter is only supported from Server version 7.2");
+            }
             options ??= CreateCollectionOptions.Default;
-            var uri = GetUri(RestApi.CreateCollections(_bucketName, spec.ScopeName));
-            _logger.LogInformation("Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
-                spec.Name, _redactor.SystemData(uri));
+            var uri = GetUri(RestApi.CreateCollections(_bucketName, scopeName));
+            _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {uri}", scopeName,
+                collectionName, _redactor.SystemData(uri));
 
             try
             {
                 // create collection
                 var keys = new Dictionary<string, string>
                 {
-                    {"name", spec.Name}
+                    {"name", collectionName}
                 };
 
-                if (spec.MaxExpiry.HasValue)
+                if (settings.MaxExpiry.HasValue)
                 {
-                    keys.Add("maxTTL", spec.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                    keys.Add("maxTTL", settings.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
                 }
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
-                var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
 
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -242,13 +254,13 @@ namespace Couchbase.Management.Collections
                     createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("already exists"))
-                        throw new CollectionExistsException(spec.ScopeName, spec.Name)
+                        throw new CollectionExistsException(scopeName, collectionName)
                         {
                             Context = ctx
                         };
 
                     if (contentBody.Contains("not found"))
-                        throw ScopeNotFoundException.FromScopeName(spec.ScopeName);
+                        throw ScopeNotFoundException.FromScopeName(scopeName);
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
@@ -256,12 +268,61 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
-                    spec.Name, _redactor.SystemData(uri));
+                _logger.LogError(exception, "Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}", scopeName,
+                    collectionName, _redactor.SystemData(uri));
                 throw;
             }
         }
 
+        public Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions? options = null)
+        {
+            return CreateCollectionAsync(spec.ScopeName, spec.Name,
+                new CreateCollectionSettings(spec.MaxExpiry, spec.History), options);
+        }
+
+        public async Task DropCollectionAsync(string scopeName, string collectionName, DropCollectionOptions? options = null)
+        {
+            options ??= DropCollectionOptions.Default;
+            var uri = GetUri(RestApi.DeleteCollections(_bucketName, scopeName, collectionName));
+            _logger.LogInformation("Attempting drop collection {Scope}/{Collection} - {Uri}", scopeName,
+                collectionName, _redactor.SystemData(uri));
+
+            try
+            {
+                using var httpClient = _httpClientFactory.Create();
+                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                if (createResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = createResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    createResult.ThrowIfRateLimitingError(contentBody, ctx);
+
+                    if (contentBody.Contains("not found"))
+                        throw new CollectionNotFoundException(scopeName, collectionName)
+                        {
+                            Context = ctx
+                        };
+
+                    //Throw any other error cases
+                    createResult.ThrowOnError(ctx);
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to drop collection {Scope}/{Collection} - {Uri}", scopeName,
+                    collectionName, _redactor.SystemData(uri));
+                throw;
+            }
+        }
+
+        [Obsolete("Use other overloaded DropCollectionAsync() method that does not take a CollectionSpec instead.")]
         public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null)
         {
             options ??= DropCollectionOptions.Default;
@@ -273,7 +334,7 @@ namespace Couchbase.Management.Collections
             {
                 // drop collection
                 using var httpClient = _httpClientFactory.Create();
-                var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -326,7 +387,7 @@ namespace Couchbase.Management.Collections
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -381,7 +442,7 @@ namespace Couchbase.Management.Collections
             {
                 // drop scope
                 using var httpClient = _httpClientFactory.Create();
-                var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -409,6 +470,65 @@ namespace Couchbase.Management.Collections
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Failed to drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
+                throw;
+            }
+        }
+
+        public async Task UpdateCollectionAsync(string scopeName, string collectionName, UpdateCollectionSettings settings, UpdateCollectionOptions? options = null)
+        {
+            if (settings.History.HasValue &&
+                !_bucketConfig.BucketCapabilities.Contains(BucketCapabilities.NON_DEDUPED_HISTORY))
+            {
+                throw new FeatureNotAvailableException("UpdateCollectionAsync with History parameter is only supported on Server version 7.2+");
+            }
+
+            options ??= UpdateCollectionOptions.Default;
+            var uri = GetUri(RestApi.UpdateCollection(_bucketName, scopeName, collectionName));
+            var dict = new Dictionary<string, string>();
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>());
+
+            if (settings.MaxExpiry.HasValue)
+            {
+                dict.Add("maxTTL", settings.MaxExpiry.Value.ToString());
+            }
+
+            if (settings.History.HasValue)
+            {
+                dict.Add("history", settings.History.Value.ToLowerString());
+            }
+
+            _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
+
+            try
+            {
+                using var httpClient = _httpClientFactory.Create();
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
+                request.Content = content;
+                using var updateResult = await httpClient.SendAsync(request, options.TokenValue).ConfigureAwait(false);
+                if (updateResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await updateResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = updateResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    updateResult.ThrowIfRateLimitingError(contentBody, ctx);
+
+                    if (contentBody.Contains("not found"))
+                    {
+                        var ex = new CollectionNotFoundException(collectionName);
+                        ex.Context = ctx;
+                        throw ex;
+                    }
+                    updateResult.ThrowOnError(ctx);
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
                 throw;
             }
         }

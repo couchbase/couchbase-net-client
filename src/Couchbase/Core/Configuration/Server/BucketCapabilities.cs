@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Couchbase.Core.Configuration.Server
 {
     public static class BucketCapabilities
@@ -20,6 +16,7 @@ namespace Couchbase.Core.Configuration.Server
         public const string CREATE_AS_DELETED = "tombstonedUserXAttrs";
         public const string RANGE_SCAN = "rangeScan";
         public const string SUBDOC_REPLICA_READ = "subdoc.ReplicaRead";
+        public const string NON_DEDUPED_HISTORY = "nonDedupedHistory";
     }
 }
 
