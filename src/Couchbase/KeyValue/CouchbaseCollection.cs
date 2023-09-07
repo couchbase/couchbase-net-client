@@ -711,8 +711,11 @@ namespace Couchbase.KeyValue
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAnyReplica, opts.RequestSpan);
             var vBucket = VBucketForReplicas(id);
-            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1);
             var enumeratedSpecs = specs.ToList();
+            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1)
+            {
+                ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan)
+            };
             if (vBucket.HasReplicas)
             {
                 tasks.AddRange(vBucket.Replicas.Select(replica =>
@@ -720,10 +723,6 @@ namespace Couchbase.KeyValue
                     var replicaOpts = opts with { ReplicaIndex = replica };
                     return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
                 }));
-            }
-            else
-            {
-                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
             }
 
             var finishedTask = await Task.WhenAny(tasks).ConfigureAwait(false);
@@ -751,8 +750,11 @@ namespace Couchbase.KeyValue
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAllReplicas, opts.RequestSpan);
             var vBucket = VBucketForReplicas(id);
-            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1);
             var enumeratedSpecs = specs.ToList();
+            var tasks = new List<Task<MultiLookup<byte[]>>>(vBucket.Replicas.Length + 1)
+            {
+                ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan)
+            };
             if (vBucket.HasReplicas)
             {
                 tasks.AddRange(vBucket.Replicas.Select(replica =>
@@ -761,11 +763,6 @@ namespace Couchbase.KeyValue
                     return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
                 }));
             }
-            else
-            {
-                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
-            }
-
             foreach (var lookupTask in tasks)
             {
                 var lookup = await lookupTask.ConfigureAwait(false);
