@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -10,6 +11,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -695,7 +697,8 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted); //Transcoder is set by OperationConfigurator
         }
 
-        internal async Task<ILookupInReplicaResult> LookupInAnyReplicaInternalAsync(string id, IEnumerable<LookupInSpec> specs,
+        internal async Task<ILookupInReplicaResult> LookupInAnyReplicaInternalAsync(string id,
+            IEnumerable<LookupInSpec> specs,
             LookupInAnyReplicaOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -725,13 +728,19 @@ namespace Couchbase.KeyValue
                 }));
             }
 
-            var finishedTask = await Task.WhenAny(tasks).ConfigureAwait(false);
-            using var lookup = await finishedTask.ConfigureAwait(false);
-
-            var responseStatus = lookup.Header.Status;
-            var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
-                            responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-            return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+            using var lookup = await TaskHelpers.WhenAnySuccessful(tasks).ConfigureAwait(false);
+            if (lookup != null)
+            {
+                var responseStatus = lookup.Header.Status;
+                if (responseStatus is ResponseStatus.Success
+                    or ResponseStatus.SubDocSuccessDeletedDocument
+                    or ResponseStatus.SubdocMultiPathFailureDeleted)
+                {
+                    var isDeleted = responseStatus is not ResponseStatus.Success;
+                    return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+                }
+            }
+            throw new DocumentUnretrievableException();
         }
 
         internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id,
