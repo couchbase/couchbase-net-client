@@ -107,6 +107,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IBucketManager), new SingletonServiceFactory(typeof(BucketManager)));
             yield return (typeof(ICollectionManagerFactory), new SingletonServiceFactory(typeof(CollectionManagerFactory)));
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
+            yield return (typeof(ICollectionQueryIndexManagerFactory), new SingletonServiceFactory(typeof(CollectionQueryIndexManagerFactory)));
             yield return (typeof(IViewIndexManagerFactory), new SingletonServiceFactory(typeof(ViewIndexManagerFactory)));
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
