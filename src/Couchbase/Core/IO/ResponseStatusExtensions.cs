@@ -102,11 +102,13 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.KeyNotFound:
                     return new DocumentNotFoundException {Context = ctx};
                 case ResponseStatus.KeyExists:
-                    if (ctx.OpCode != OpCode.Add && ctx.OpCode != OpCode.SubMultiMutation)
+                    var isMutateInWithoutCas = op.OpCode == OpCode.SubMultiMutation && op.Cas == 0;
+                    if (op.OpCode == OpCode.Add || isMutateInWithoutCas)
                     {
-                        return new CasMismatchException { Context = ctx };
+                        return new DocumentExistsException() { Context = ctx };
                     }
-                    return new DocumentExistsException { Context = ctx };
+
+                    return new CasMismatchException { Context = ctx };
                 case ResponseStatus.ValueTooLarge:
                     return new ValueToolargeException { Context = ctx };
                 case ResponseStatus.InvalidArguments:
