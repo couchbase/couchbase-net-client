@@ -268,11 +268,11 @@ namespace Couchbase.Transactions
                     return TransactionGetResult.Empty;
                 }
 
-                var txn = docLookupResult?.TransactionXattrs;
-                if (txn?.Id?.AttemptId == null
-                    || txn?.Id?.Transactionid == null
-                    || txn?.AtrRef?.BucketName == null
-                    || txn?.AtrRef?.CollectionName == null)
+                var blockingTxn = docLookupResult?.TransactionXattrs;
+                if (blockingTxn?.Id?.AttemptId == null
+                    || blockingTxn?.Id?.Transactionid == null
+                    || blockingTxn?.AtrRef?.BucketName == null
+                    || blockingTxn?.AtrRef?.CollectionName == null)
                 {
                     // Not in a transaction, or insufficient transaction metadata
                     return docLookupResult!.IsDeleted
@@ -280,7 +280,7 @@ namespace Couchbase.Transactions
                         : docLookupResult.GetPreTransactionResult();
                 }
 
-                if (resolveMissingAtrEntry == txn.Id?.AttemptId)
+                if (resolveMissingAtrEntry == blockingTxn.Id?.AttemptId)
                 {
                     // This is our second attempt getting the document, and it’s in the same state as before
                     return docLookupResult!.IsDeleted
@@ -288,24 +288,33 @@ namespace Couchbase.Transactions
                         : docLookupResult.GetPostTransactionResult();
                 }
 
-                resolveMissingAtrEntry = txn.Id?.AttemptId;
+                resolveMissingAtrEntry = blockingTxn.Id?.AttemptId;
 
-                // TODO: double-check if atr attemptid == this attempt id, and return post-transaction version
-                // (should have been covered by staged mutation check)
+                if (blockingTxn.Id?.AttemptId == this.AttemptId)
+                {
+                    // return post-transaction version.
+                    return docLookupResult!.GetPostTransactionResult();
+                }
 
-                var getCollectionTask = _atr?.GetAtrCollection(txn.AtrRef)
-                                        ?? AtrRepository.GetAtrCollection(txn.AtrRef, collection);
+                var getCollectionTask = _atr?.GetAtrCollection(blockingTxn.AtrRef)
+                                        ?? AtrRepository.GetAtrCollection(blockingTxn.AtrRef, collection);
                 var docAtrCollection = await getCollectionTask.CAF()
                                        ?? throw new ActiveTransactionRecordNotFoundException();
 
-                var findEntryTask = _atr?.FindEntryForTransaction(docAtrCollection, txn.AtrRef.Id!, txn.Id!.AttemptId)
-                                    ?? AtrRepository.FindEntryForTransaction(docAtrCollection, txn.AtrRef.Id!,
-                                        txn.Id!.AttemptId, _config.KeyValueTimeout);
+                var findEntryTask = _atr?.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!, blockingTxn.Id!.AttemptId)
+                                    ?? AtrRepository.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!,
+                                        blockingTxn.Id!.AttemptId, _config.KeyValueTimeout);
+
                 AtrEntry? atrEntry = null;
                 try
                 {
                     atrEntry = await findEntryTask.CAF()
                                ?? throw new ActiveTransactionRecordEntryNotFoundException();
+                }
+                catch (ActiveTransactionRecordEntryNotFoundException)
+                {
+                    // Recursively call this section from the top, passing resolvingMissingATREntry set to the attemptId of the blocking transaction.
+                    return await GetWithMav(collection, id, resolveMissingAtrEntry = blockingTxn.Id!.AttemptId, traceSpan.Item).ConfigureAwait(false);
                 }
                 catch (Exception atrLookupException)
                 {
@@ -313,9 +322,9 @@ namespace Couchbase.Transactions
                     throw _triage.AssertNotNull(atrLookupTriage, atrLookupException);
                 }
 
-                if (txn.Id!.AttemptId == AttemptId)
+                if (blockingTxn.Id!.AttemptId == AttemptId)
                 {
-                    if (txn.Operation?.Type == "remove")
+                    if (blockingTxn.Operation?.Type == "remove")
                     {
                         return TransactionGetResult.Empty;
                     }
@@ -330,7 +339,7 @@ namespace Couchbase.Transactions
 
                 if (atrEntry.State == AttemptStates.COMMITTED || atrEntry.State == AttemptStates.COMPLETED)
                 {
-                    if (txn.Operation?.Type == "remove")
+                    if (blockingTxn.Operation?.Type == "remove")
                     {
                         return TransactionGetResult.Empty;
                     }
@@ -338,7 +347,7 @@ namespace Couchbase.Transactions
                     return docLookupResult!.GetPostTransactionResult();
                 }
 
-                if (docLookupResult!.IsDeleted || txn.Operation?.Type == "insert")
+                if (docLookupResult!.IsDeleted || blockingTxn.Operation?.Type == "insert")
                 {
                     return TransactionGetResult.Empty;
                 }
