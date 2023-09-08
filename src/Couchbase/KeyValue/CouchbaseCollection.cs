@@ -734,7 +734,8 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
         }
 
-        internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id, IEnumerable<LookupInSpec> specs,
+        internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id,
+            IEnumerable<LookupInSpec> specs,
             LookupInAllReplicasOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -796,12 +797,12 @@ namespace Couchbase.KeyValue
                 });
             }
 
-            var lookup = new MultiLookup<byte[]>(id, specs)
+            var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
                 Cid = Cid,
                 CName = Name,
                 SName = ScopeName,
-                DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
+                DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
                 Span = span
             };
             try

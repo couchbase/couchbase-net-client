@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Xunit;
@@ -77,4 +78,28 @@ public class LookupInTests
 
         await collection.RemoveAsync(id).ConfigureAwait(false);
     }
+
+    [Fact]
+    public async Task Test_LookupInAllReplicas_Returns_Results_Marked_With_IsReplica()
+    {
+        var id = "Test-" + Guid.NewGuid();
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
+
+        var specs = new List<LookupInSpec>();
+        specs.Add(LookupInSpec.Get("name"));
+
+        var result = collection.LookupInAllReplicasAsync(id, specs);
+        var allResults = await result.ToListAsync();
+
+        //If this test is run on a single-node cluster, or a bucket with no replicas, ignore the validation.
+        if (allResults.Count > 1)
+        {
+            Assert.Contains(allResults, replicaResult => replicaResult.IsReplica == true);
+        }
+
+        await collection.RemoveAsync(id).ConfigureAwait(false);
+    }
+
 }

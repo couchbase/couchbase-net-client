@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         public ReadOnlyCollection<LookupInSpec> LookupCommands { get; }
         public SubdocDocFlags DocFlags { get; set; }
 
-        public MultiLookup(string key, IEnumerable<LookupInSpec> specs)
+        public MultiLookup(string key, IEnumerable<LookupInSpec> specs, short? replicaIndex = null)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (specs == null)
@@ -37,6 +37,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             commands.Sort(OperationSpec.ByXattr);
 
             LookupCommands = new ReadOnlyCollection<LookupInSpec>(commands);
+            ReplicaIdx = replicaIndex;
         }
 
         protected override void WriteExtras(OperationBuilder builder)
