@@ -230,7 +230,7 @@ namespace Couchbase.Core.Configuration.Server
             {
                 // Only log if debug logging is enabled to avoid serialization cost
                 _logger.LogDebug(LoggingEvents.ConfigEvent,
-                        InternalSerializationContext.SerializeWithFallback(config, InternalSerializationContext.Default.BucketConfig));
+                    JsonSerializer.Serialize(config, InternalSerializationContext.Default.BucketConfig));
             }
 
             if (_configQueue?.Completion.IsCompleted ?? true)

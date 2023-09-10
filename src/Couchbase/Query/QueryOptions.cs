@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
@@ -26,8 +26,14 @@ namespace Couchbase.Query
     /// <summary>
     /// Options to control execution of a N1QL query.
     /// </summary>
+    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)}:nq}}")]
     public class QueryOptions
     {
+        private const string GetFormValuesAsJsonUnreferencedCodeMessage =
+            "GetFormValuesAsJson uses Newtonsoft.Json which requires unreferenced code and is incompatible with trimming.";
+        private const string GetFormValuesAsJsonDynamicCodeMessage =
+            "GetFormValuesAsJson uses Newtonsoft.Json which may required dynamic code.";
+
         internal static QueryOptions Default { get; } = new();
         public static readonly ReadOnlyRecord DefaultReadOnly = Default.AsReadOnly();
 
@@ -839,6 +845,8 @@ namespace Couchbase.Query
         /// Gets the JSON representation of this query for execution in a POST.
         /// </summary>
         /// <returns>The form values as a JSON object.</returns>
+        [RequiresUnreferencedCode(GetFormValuesAsJsonUnreferencedCodeMessage)]
+        [RequiresDynamicCode(GetFormValuesAsJsonDynamicCodeMessage)]
         public string GetFormValuesAsJson()
         {
             var formValues = CreateDto(Serializer ?? DefaultSerializer.Instance);
@@ -909,25 +917,21 @@ namespace Couchbase.Query
             return new QueryOptions(plan, originalStatement);
         }
 
-        /// <summary>
-        ///     Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
+        private string DebuggerDisplay
         {
-            string request;
-            try
+            [RequiresUnreferencedCode(GetFormValuesAsJsonUnreferencedCodeMessage)]
+            [RequiresDynamicCode(GetFormValuesAsJsonDynamicCodeMessage)]
+            get
             {
-                request = "[" + GetFormValuesAsJson() + "]";
+                try
+                {
+                    return "[" + GetFormValuesAsJson() + "]";
+                }
+                catch
+                {
+                    return string.Empty;
+                }
             }
-            catch
-            {
-                request = string.Empty;
-            }
-
-            return request;
         }
 
         public void Deconstruct(out IReadOnlyList<object?> arguments,

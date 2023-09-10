@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.IO.Serializers;
 
 #nullable enable
 
@@ -12,6 +15,7 @@ namespace Couchbase.Core.Exceptions.Analytics
 {
     /// <remarks>Uncommitted</remarks>
     [InterfaceStability(Level.Uncommitted)]
+    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)}:nq}}")]
     public class AnalyticsErrorContext : IErrorContext
     {
         public string? Statement { get; internal set; }
@@ -29,8 +33,14 @@ namespace Couchbase.Core.Exceptions.Analytics
 
         public List<RetryReason>? RetryReasons { get; internal set; }
 
-        public override string ToString() =>
-            InternalSerializationContext.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);
+        private string DebuggerDisplay
+        {
+            // These requirements may be removed in the future if the Error object is always deserialized using System.Text.Json even when
+            // DefaultSerializer is used for the rest of the response. Then this may be changed to use JsonSerializer directly instead of SerializeWithFallback.
+            [RequiresUnreferencedCode("The Error object may contain Newtonsoft.Json.Linq.JToken objects in the AdditionalData property.")]
+            [RequiresDynamicCode("The Error object may contain Newtonsoft.Json.Linq.JToken objects in the AdditionalData property.")]
+            get => InternalSerializationContext.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);
+        }
     }
 }
 
