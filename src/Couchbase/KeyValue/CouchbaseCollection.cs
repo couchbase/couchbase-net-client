@@ -15,7 +15,6 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
@@ -45,7 +44,7 @@ namespace Couchbase.KeyValue
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            string name, IScope scope, IRequestTracer tracer, ICollectionQueryIndexManagerFactory queryIndexManagerFactory)
+            string name, IScope scope, IRequestTracer tracer, IServiceProvider serviceProvider)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
@@ -62,7 +61,7 @@ namespace Couchbase.KeyValue
                 if (_bucket.CurrentConfig.BucketCapabilities.Contains(BucketCapabilities.RANGE_SCAN)) _rangeScanSupported = true;
             }
 
-            QueryIndexes = queryIndexManagerFactory.Create(_bucket, this);
+            _lazyQueryIndexManagerFactory = new LazyService<ICollectionQueryIndexManagerFactory>(serviceProvider);
         }
 
         internal IRedactor Redactor { get; }
@@ -1409,7 +1408,14 @@ namespace Couchbase.KeyValue
 
         #region Index Management
 
-        public ICollectionQueryIndexManager QueryIndexes { get; }
+        private readonly LazyService<ICollectionQueryIndexManagerFactory> _lazyQueryIndexManagerFactory;
+
+        // It isn't imperative that race conditions accessing this field the first time must
+        // always return the same singleton. In the unlikely event two threads access it the
+        // first time simultaneously one may receive a temporary extra instance but that's okay.
+        private ICollectionQueryIndexManager? _queryIndexManager;
+
+        public ICollectionQueryIndexManager QueryIndexes => _queryIndexManager ??= _lazyQueryIndexManagerFactory.GetValueOrThrow().Create(_bucket, this);
 
         #endregion
     }
