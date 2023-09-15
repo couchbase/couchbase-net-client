@@ -148,7 +148,7 @@ namespace Couchbase.Core.Configuration.Server
             const string hostPlaceHolder = "$HOST";
             foreach (var nodesExt in config.NodesExt)
             {
-                if (nodesExt.Hostname == null) nodesExt.Hostname = host;
+                nodesExt.Hostname ??= host;
 
                 if (nodesExt.Hostname.Contains(hostPlaceHolder))
                     nodesExt.Hostname = nodesExt.Hostname.Replace(hostPlaceHolder, host);
@@ -158,7 +158,7 @@ namespace Couchbase.Core.Configuration.Server
             {
                 foreach (var node in config.Nodes)
                 {
-                    if (node.Hostname == null) node.Hostname = host;
+                    node.Hostname ??= host;
 
                     if (node.Hostname.Contains(hostPlaceHolder))
                         node.Hostname = node.Hostname.Replace(hostPlaceHolder, host);

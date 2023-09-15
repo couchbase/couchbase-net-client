@@ -438,6 +438,7 @@ namespace Couchbase.Core
                 if (config != null)
                 {
                     config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
+                    config.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
                 }
                 return config;
             }
@@ -500,7 +501,8 @@ namespace Couchbase.Core
                     }
                 }
 
-                if (!_keyEndPoints.Contains(kvEndpoint))
+                //On Capella the non-TLS port will be 0 and  can be ignored here
+                if (kvEndpoint.Port > 0 && !_keyEndPoints.Contains(kvEndpoint))
                 {
                     _keyEndPoints.Add(kvEndpoint);
                 }

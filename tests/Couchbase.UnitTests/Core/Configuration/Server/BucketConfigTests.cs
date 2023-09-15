@@ -29,6 +29,18 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 {
     public class BucketConfigTests
     {
+        [Fact]
+        public void When_NetworkResolution_Is_External_Tls_Ports_Exist()
+        {
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\private-link.json",
+                InternalSerializationContext.Default.BucketConfig);
+            config1.NetworkResolution = "external";
+
+            Assert.Contains("11209", config1.VBucketServerMap.ServerList[0]);
+            Assert.Contains("11210", config1.VBucketServerMap.ServerList[1]);
+            Assert.Contains("11208", config1.VBucketServerMap.ServerList[2]);
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(512)]

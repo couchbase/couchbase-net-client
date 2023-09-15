@@ -374,7 +374,18 @@ namespace Couchbase.Core
                         GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
                         GlobalConfig.Name = "CLUSTER";
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
-                        AddNode(node);
+
+                        //If we are using alt addresses, we likely bootstrapped with a
+                        //non-alt port, thus this node cannot be reused. We need to use
+                        //the alt-address, so we will recreate this node.
+                        if (GlobalConfig.UseAlternateAddresses)
+                        {
+                            node.Dispose()
+;                       }
+                        else
+                        {
+                            AddNode(node);
+                        }
 
                         //ignore the exceptions since at least one node bootstrapped
                         exceptions.Clear();

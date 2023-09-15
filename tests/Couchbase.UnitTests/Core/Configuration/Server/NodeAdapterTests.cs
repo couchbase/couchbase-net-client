@@ -10,6 +10,25 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
     public class NodeAdapterTests
     {
         [Fact]
+        public void When_NetworkResolution_External_Services_Are_True()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\private-link.json",
+                InternalSerializationContext.Default.BucketConfig);
+            config.NetworkResolution = "external";
+
+            var nodes = config.GetNodes();
+            Assert.True(nodes[0].IsQueryNode);
+            Assert.True(nodes[0].IsKvNode);
+            Assert.True(nodes[0].IsSearchNode);
+            Assert.True(nodes[1].IsQueryNode);
+            Assert.True(nodes[1].IsKvNode);
+            Assert.True(nodes[1].IsSearchNode);
+            Assert.True(nodes[2].IsQueryNode);
+            Assert.True(nodes[2].IsKvNode);
+            Assert.True(nodes[2].IsSearchNode);
+        }
+
+        [Fact]
         public void Test_Config_Has_Query_But_HasQuery_Is_True()
         {
             var config = ResourceHelper.ReadResource("config-no-query-for-some-reason.json",

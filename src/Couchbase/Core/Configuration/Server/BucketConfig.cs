@@ -350,14 +350,14 @@ namespace Couchbase.Core.Configuration.Server
         {
             if (obj == null) return false;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((BucketConfig) obj);
+            return Equals((BucketConfig)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                var hashCode = (int) Rev;
+                var hashCode = (int)Rev;
                 hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (Uri != null ? Uri.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (StreamingUri != null ? StreamingUri.GetHashCode() : 0);
@@ -393,12 +393,26 @@ namespace Couchbase.Core.Configuration.Server
             for (var i = 0; i < VBucketServerMap.ServerList.Length; i++)
             {
                 var nodeExt = NodesExt?.FirstOrDefault(x => x.Hostname != null && VBucketServerMap.ServerList[i].Contains(x.Hostname));
-                if (nodeExt != null && nodeExt.HasAlternateAddress && NetworkResolution == Couchbase.NetworkResolution.External)
+                if (nodeExt != null && UseAlternateAddresses)
                 {
-                    //The SSL port is resolved later
                     var alternateAddress = nodeExt.AlternateAddresses[NetworkResolution];
-                    VBucketServerMap.ServerList[i] = alternateAddress.Hostname + ":" + alternateAddress.Ports.Kv;
+                    var port = alternateAddress.Ports.Kv > 0 ? alternateAddress.Ports.Kv : alternateAddress.Ports.KvSsl;
+                    VBucketServerMap.ServerList[i] = alternateAddress.Hostname + ":" + port;
                 }
+            }
+        }
+
+        private bool? _useAlternateAddresses;
+
+        public bool UseAlternateAddresses
+        {
+            get
+            {
+                if (_useAlternateAddresses == null)
+                {
+                    _useAlternateAddresses = NodesExt?.Any(x => x.HasAlternateAddress && NetworkResolution == Couchbase.NetworkResolution.External) ?? false;
+                }
+                return _useAlternateAddresses.Value;
             }
         }
     }

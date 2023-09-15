@@ -187,7 +187,7 @@ namespace Couchbase.Core.Configuration.Server
             AnalyticsSsl = services.CbasSsl;
             Eventing = services.EventingAdminPort;
             EventingSsl = services.EventingSSL;
-            IsKvNode = KeyValue > 0;
+            IsKvNode = KeyValue > 0 || KeyValueSsl > 0;
         }
 
         public string Hostname { get; set; }
@@ -246,7 +246,7 @@ namespace Couchbase.Core.Configuration.Server
         /// <value>
         /// 	<c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsQueryNode => N1Ql > 0;
+        public bool IsQueryNode => N1Ql > 0 || N1QlSsl > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is search node.
@@ -254,7 +254,7 @@ namespace Couchbase.Core.Configuration.Server
         /// <value>
         /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSearchNode => Fts > 0;
+        public bool IsSearchNode => Fts > 0 || FtsSsl > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is an analytics node.
