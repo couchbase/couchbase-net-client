@@ -1019,6 +1019,11 @@ namespace Couchbase.Transactions
 
         internal async Task AutoCommit(IRequestSpan? parentSpan)
         {
+            if (IsDone)
+            {
+                return;
+            }
+
             switch (_state)
             {
                 case AttemptStates.NOTHING_WRITTEN:
