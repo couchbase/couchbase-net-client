@@ -264,6 +264,11 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
+            public override Task ForceConfigUpdateAsync()
+            {
+                throw new NotImplementedException();
+            }
+
             internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default)
             {
                 throw new NotImplementedException();

@@ -213,6 +213,11 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
+            public override Task ForceConfigUpdateAsync()
+            {
+                throw new NotImplementedException();
+            }
+
             internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default)
             {
                 var mockConnectionPool = new Mock<IConnectionPool>();

@@ -172,6 +172,8 @@ namespace Couchbase.Core
 
         public abstract Task ConfigUpdatedAsync(BucketConfig config);
 
+        public abstract Task ForceConfigUpdateAsync();
+
         #endregion
 
         #region Send and Retry

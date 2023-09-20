@@ -114,6 +114,13 @@ namespace Couchbase
             Logger.LogDebug(LoggingEvents.ConfigEvent,"Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.Rev);
         }
 
+        public override async Task ForceConfigUpdateAsync()
+        {
+            var configNode = Nodes.GetRandom(x => x.HasKv);
+            var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
+            Context.PublishConfig(config);
+        }
+
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
         private Uri GetViewUri()
         {

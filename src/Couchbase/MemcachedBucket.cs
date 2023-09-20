@@ -93,6 +93,11 @@ namespace Couchbase
             }
         }
 
+        public override Task ForceConfigUpdateAsync()
+        {
+            throw new InvalidOperationException("Memcached does not support EConfigOnly (0xD).");
+        }
+
         internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (KeyMapper == null)

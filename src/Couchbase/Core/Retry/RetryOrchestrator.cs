@@ -272,6 +272,12 @@ namespace Couchbase.Core.Retry
                                     continue;
                                 }
                             }
+                            else if (status == ResponseStatus.EConfigOnly)
+                            {
+                                //If EConfigOnly is returned by the server. We force a config check
+                                //to ensure that the config is not stale. See NCBC-3492/CBD-5609
+                                await bucket.ForceConfigUpdateAsync().ConfigureAwait(false);
+                            }
 
                             var reason = status.ResolveRetryReason();
                             if (reason.AlwaysRetry())
