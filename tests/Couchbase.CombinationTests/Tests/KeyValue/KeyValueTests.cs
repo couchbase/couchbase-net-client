@@ -551,6 +551,21 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             Assert.False(result.Exists(0));
         }
 
+        [Fact]
+        public async Task Test_GetAnyReplica_Throws_DocumentUnretrievable()
+        {
+            var id = "Test-" + Guid.NewGuid();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+            await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
+
+            var specs = new List<LookupInSpec>();
+            specs.Add(LookupInSpec.Get("name"));
+
+            await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.GetAnyReplicaAsync("wrongId"));
+
+            await collection.RemoveAsync(id).ConfigureAwait(false);
+        }
 
         private class Foo
         {

@@ -1103,10 +1103,17 @@ namespace Couchbase.KeyValue
             tasks.AddRange(
                 vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
-            var firstCompleted = await Task.WhenAny(tasks).ConfigureAwait(false);
+            var firstCompleted = TaskHelpers.WhenAnySuccessful(tasks);
+            try
+            {
+                await firstCompleted.ConfigureAwait(false);
+            }
+            catch (AggregateException e)
+            {
+                throw new DocumentUnretrievableException(e);
+            }
 
-            // Note: GetAwaiter().GetResult() is safe here because we know the task is already complete
-            return firstCompleted.GetAwaiter().GetResult();
+            return firstCompleted.Result;
         }
 
         private VBucket VBucketForReplicas(string id, [CallerMemberName]string caller = "AnyReplica")
