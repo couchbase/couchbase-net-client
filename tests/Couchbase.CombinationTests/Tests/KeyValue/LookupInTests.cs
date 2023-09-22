@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
@@ -113,6 +114,35 @@ public class LookupInTests
         specs.Add(LookupInSpec.Get("name"));
 
         await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.LookupInAnyReplicaAsync("wrongId", specs));
+    }
+
+    [Fact]
+    public async Task Test_All_LookupIn_Should_Throw_InvalidArgument_If_Too_Many_Specs()
+    {
+        var id = "Test-" + Guid.NewGuid();
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
+
+        var specs = new List<LookupInSpec>();
+        foreach (var _ in Enumerable.Range(0, 17))
+        {
+            specs.Add(LookupInSpec.Get("name"));
+        }
+
+        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAnyReplicaAsync(id, specs)).ConfigureAwait(false);
+        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAsync(id, specs)).ConfigureAwait(false);
+
+        var allReplicas = collection.LookupInAllReplicasAsync(id, specs);
+        await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
+        {
+            await foreach (var _ in allReplicas)
+            {
+                continue;
+            }
+        });
+
+        await collection.RemoveAsync(id).ConfigureAwait(false);
     }
 
 }
