@@ -728,19 +728,19 @@ namespace Couchbase.KeyValue
                 }));
             }
 
-            using var lookup = await TaskHelpers.WhenAnySuccessful(tasks).ConfigureAwait(false);
-            if (lookup != null)
+            var completed = TaskHelpers.WhenAnySuccessful(tasks);
+            try
             {
-                var responseStatus = lookup.Header.Status;
-                if (responseStatus is ResponseStatus.Success
-                    or ResponseStatus.SubDocSuccessDeletedDocument
-                    or ResponseStatus.SubdocMultiPathFailureDeleted)
-                {
-                    var isDeleted = responseStatus is not ResponseStatus.Success;
-                    return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
-                }
+                await completed.ConfigureAwait(false);
             }
-            throw new DocumentUnretrievableException();
+            catch (AggregateException e)
+            {
+                throw new DocumentUnretrievableException(e);
+            }
+            using var lookup = completed.Result;
+            var responseStatus = lookup.Header.Status;
+            var isDeleted = responseStatus is ResponseStatus.SubDocSuccessDeletedDocument or ResponseStatus.SubdocMultiPathFailureDeleted;
+            return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
         }
 
         internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id,

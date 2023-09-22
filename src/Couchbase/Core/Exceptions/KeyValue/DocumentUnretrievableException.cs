@@ -1,7 +1,15 @@
+using System;
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentUnretrievableException : KeyValueException
     {
+        private AggregateException _aggregateException;
+
+        public DocumentUnretrievableException(AggregateException aggregate)
+        {
+            _aggregateException = aggregate;
+        }
     }
 }
 

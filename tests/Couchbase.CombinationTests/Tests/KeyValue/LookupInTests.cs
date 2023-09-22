@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Xunit;
@@ -27,6 +28,7 @@ public class LookupInTests
     [Fact]
     public async Task Test_LookupIn_With_RawBinaryTranscoder()
     {
+        await _fixture.BuildAsync().ConfigureAwait(false);
         _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(false);
 
         var id = "Test-" + Guid.NewGuid();
@@ -100,6 +102,17 @@ public class LookupInTests
         }
 
         await collection.RemoveAsync(id).ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task Test_LookupInAnyReplica_DocumentUnretrievable_Gets_Thrown()
+    {
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        var specs = new List<LookupInSpec>();
+        specs.Add(LookupInSpec.Get("name"));
+
+        await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.LookupInAnyReplicaAsync("wrongId", specs));
     }
 
 }
