@@ -698,7 +698,7 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted); //Transcoder is set by OperationConfigurator
         }
 
-        internal async Task<ILookupInReplicaResult> LookupInAnyReplicaInternalAsync(string id,
+        public async Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id,
             IEnumerable<LookupInSpec> specs,
             LookupInAnyReplicaOptions? options = null)
         {
@@ -745,7 +745,7 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
         }
 
-        internal async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasInternalAsync(string id,
+        public async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id,
             IEnumerable<LookupInSpec> specs,
             LookupInAllReplicasOptions? options = null)
         {

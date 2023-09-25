@@ -597,46 +597,110 @@ namespace Couchbase.KeyValue
             return new LookupInResult<TDocument>(await collection.LookupInAsync(id, specBuilder.Specs, options)
                 .ConfigureAwait(false));
         }
+        #endregion
 
-
+        #region Replica LookupIn
         /// <summary>
-        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas.
+        /// Allows the chaining of option configurations into a single operation.
         /// </summary>
         /// <param name="collection">Couchbase collection.</param>
         /// <param name="id">The id of the document.</param>
         /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
-        /// <param name="options">Any optional parameters.</param>
-        [InterfaceStability(Level.Volatile)]
-        public static IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(this ICouchbaseCollection collection,
-            string id, IEnumerable<LookupInSpec> specs,
-            LookupInAllReplicasOptions? options = null)
-        {
-            var couchbaseCollection = collection as CouchbaseCollection ??
-                                      throw new NotImplementedException(nameof(LookupInAllReplicasAsync));
-            return couchbaseCollection.LookupInAllReplicasInternalAsync(id, specs, options);
-        }
-
-        /// <summary>
-        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas, returning only the first result.
-        /// </summary>
-        /// <param name="collection">Couchbase collection.</param>
-        /// <param name="id">The id of the document.</param>
-        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
-        /// <param name="options">Any optional parameters.</param>
-        /// <remarks>As a workaround to the fact that
-        /// a) introducing a new public method to a public interface is a breaking change
-        /// b) we still support .NET versions that aren't compatible with default interface implementations
-        ///
-        /// This method is implemented as an extension method that assumes the ICouchbaseCollection is a CouchbaseCollection.
-        /// </remarks>
+        /// <param name="configureOptions">Any optional parameters.</param>
         [InterfaceStability(Level.Volatile)]
         public static Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(this ICouchbaseCollection collection,
             string id, IEnumerable<LookupInSpec> specs,
-            LookupInAnyReplicaOptions? options = null)
+            Action<LookupInAnyReplicaOptions> configureOptions)
         {
-            var couchbaseCollection = collection as CouchbaseCollection ??
-                                      throw new NotImplementedException(nameof(LookupInAnyReplicaAsync));
-            return couchbaseCollection.LookupInAnyReplicaInternalAsync(id, specs, options);
+            var options = new LookupInAnyReplicaOptions();
+            configureOptions(options);
+            return collection.LookupInAnyReplicaAsync(id, specs, options);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder> configureBuilder, LookupInAnyReplicaOptions? options = null)
+        {
+            var lookupInSpec = new LookupInSpecBuilder();
+            configureBuilder(lookupInSpec);
+            return collection.LookupInAnyReplicaAsync(id, lookupInSpec.Specs, options);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch, as well as the chaining of option configurations.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder> configureBuilder, Action<LookupInAnyReplicaOptions> configureOptions)
+        {
+            var lookupInSpec = new LookupInSpecBuilder();
+            var options = new LookupInAnyReplicaOptions();
+            configureBuilder(lookupInSpec);
+            configureOptions(options);
+            return collection.LookupInAnyReplicaAsync(id, lookupInSpec.Specs, options);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        public static IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder> configureBuilder,
+            LookupInAllReplicasOptions? options = null)
+        {
+            var lookupInSpec = new LookupInSpecBuilder();
+            configureBuilder(lookupInSpec);
+            return collection.LookupInAllReplicasAsync(id, lookupInSpec.Specs, options);
+        }
+
+        /// <summary>
+        /// Allows the chaining of option configurations into a single operation.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        public static IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(this ICouchbaseCollection collection,
+            string id, IEnumerable<LookupInSpec> specs,
+            Action<LookupInAllReplicasOptions> configureOptions)
+        {
+            var options = new LookupInAllReplicasOptions();
+            configureOptions(options);
+            return collection.LookupInAllReplicasAsync(id, specs, options);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch, as well as the chaining of option configurations.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        public static IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder> configureBuilder,
+            Action<LookupInAllReplicasOptions> configureOptions)
+        {
+            var options = new LookupInAllReplicasOptions();
+            var lookupInSpec = new LookupInSpecBuilder();
+            configureOptions(options);
+            configureBuilder(lookupInSpec);
+            return collection.LookupInAllReplicasAsync(id, lookupInSpec.Specs, options);
         }
         #endregion
 

@@ -169,6 +169,24 @@ namespace Couchbase.KeyValue
         Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null);
 
         /// <summary>
+        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas, returning only the first result.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null);
+
+        /// <summary>
+        /// Gets a stream of document data from the server using LookupIn, leveraging both the active and all available replicas.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        [InterfaceStability(Level.Volatile)]
+        IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null);
+
+        /// <summary>
         /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
         /// </summary>
         /// <param name="id">The id of the document.</param>

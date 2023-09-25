@@ -89,6 +89,16 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             return Task.FromResult(new Mock<ILookupInResult>().Object);
         }
 
+        public Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
         {
             return Task.FromResult(new Mock<IMutateInResult>().Object);
@@ -198,6 +208,16 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
         }
 
         public Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null)
         {
             throw new NotImplementedException();
         }

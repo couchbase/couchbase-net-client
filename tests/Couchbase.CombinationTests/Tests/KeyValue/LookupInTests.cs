@@ -145,4 +145,69 @@ public class LookupInTests
         await collection.RemoveAsync(id).ConfigureAwait(false);
     }
 
+    [Fact]
+    public async Task Test_LookupInAnyReplica_Extensions()
+    {
+        var id = "Test-" + Guid.NewGuid();
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
+
+        var specs = new List<LookupInSpec>();
+        specs.Add(LookupInSpec.Get("name"));
+
+        var anyReplicaSpecBuilder = await collection.LookupInAnyReplicaAsync(id,
+            builder => builder.Get("name")).ConfigureAwait(false);
+
+        var anyReplicaOptionsBuilder = await collection.LookupInAnyReplicaAsync(id, specs,
+            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+
+        var anyReplicaSpecAndOptionsBuilder = await collection.LookupInAnyReplicaAsync(id,
+            builder => builder.Get("name"),
+            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+
+        Assert.Equal(id, anyReplicaSpecBuilder.ContentAs<string>(0));
+        Assert.Equal(id, anyReplicaOptionsBuilder.ContentAs<string>(0));
+        Assert.Equal(id, anyReplicaSpecAndOptionsBuilder.ContentAs<string>(0));
+
+        await collection.RemoveAsync(id).ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task Test_LookupInAllReplicas_Extensions()
+    {
+        var id = "Test-" + Guid.NewGuid();
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
+
+        var specs = new List<LookupInSpec>();
+        specs.Add(LookupInSpec.Get("name"));
+
+        var allReplicasSpecBuilder = collection.LookupInAllReplicasAsync(id,
+            builder => builder.Get("name"));
+
+        var allReplicasOptionsBuilder = collection.LookupInAllReplicasAsync(id, specs,
+            options => options.Timeout(TimeSpan.FromSeconds(10)));
+
+        var allReplicasSpecAndOptionsBuilder = collection.LookupInAllReplicasAsync(id,
+            builder => builder.Get("name"),
+            options => options.Timeout(TimeSpan.FromSeconds(10)));
+
+        await foreach (var item in allReplicasSpecBuilder.ConfigureAwait(false))
+        {
+            Assert.Equal(id, item.ContentAs<string>(0));
+        }
+        await foreach (var item in allReplicasOptionsBuilder.ConfigureAwait(false))
+        {
+            Assert.Equal(id, item.ContentAs<string>(0));
+        }
+        await foreach (var item in allReplicasSpecAndOptionsBuilder.ConfigureAwait(false))
+        {
+            Assert.Equal(id, item.ContentAs<string>(0));
+        }
+
+        await collection.RemoveAsync(id).ConfigureAwait(false);
+    }
+
 }
