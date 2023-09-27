@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -23,16 +24,19 @@ namespace Couchbase.Core.IO.Connections
         private readonly IIpEndPointService _ipEndPointService;
         private readonly ILogger<MultiplexingConnection> _multiplexLogger;
         private readonly ILogger<SslConnection> _sslLogger;
+        private readonly IRedactor _redactor;
 
         public ConnectionFactory(ClusterOptions clusterOptions,
             IIpEndPointService ipEndPointService,
             ILogger<MultiplexingConnection> multiplexLogger,
-            ILogger<SslConnection> sslLogger)
+            ILogger<SslConnection> sslLogger,
+            IRedactor redactor)
         {
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _multiplexLogger = multiplexLogger ?? throw new ArgumentNullException(nameof(multiplexLogger));
             _sslLogger = sslLogger ?? throw new ArgumentNullException(nameof(sslLogger));
+            _redactor = redactor;
         }
 
         /// <inheritdoc />
@@ -130,12 +134,14 @@ namespace Couchbase.Core.IO.Connections
                     certValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                     {
                         if (_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
-                            && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors))
+                            && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors, _sslLogger, _redactor))
                         {
                             return true;
                         }
 
-                        return CertificateFactory.ValidateWithDefaultCertificates(sender, certificate, chain, sslPolicyErrors);
+                        var callback = CertificateFactory.GetValidatorWithDefaultCertificates(_sslLogger, _redactor);
+
+                        return callback(sender, certificate, chain, sslPolicyErrors);
                     };
                 }
 
@@ -165,9 +171,9 @@ namespace Couchbase.Core.IO.Connections
 #endif
 
                 var isSecure = sslStream.IsAuthenticated && sslStream.IsSigned && sslStream.IsEncrypted;
-                _sslLogger.LogDebug("IsAuthenticated {0} on {1}", sslStream.IsAuthenticated, targetHost);
-                _sslLogger.LogDebug("IsSigned {0} on {1}", sslStream.IsSigned, targetHost);
-                _sslLogger.LogDebug("IsEncrypted {0} on {1}", sslStream.IsEncrypted, targetHost);
+                _sslLogger.LogDebug("IsAuthenticated {0} on {1}", sslStream.IsAuthenticated, _redactor.SystemData(targetHost));
+                _sslLogger.LogDebug("IsSigned {0} on {1}", sslStream.IsSigned, _redactor.SystemData(targetHost));
+                _sslLogger.LogDebug("IsEncrypted {0} on {1}", sslStream.IsEncrypted, _redactor.SystemData(targetHost));
 
                 //punt if we cannot successfully authenticate
                 if (!isSecure) throw new AuthenticationException($"The SSL/TLS connection could not be authenticated on [{targetHost}].");

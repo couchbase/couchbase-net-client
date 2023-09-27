@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -23,10 +24,11 @@ namespace Couchbase.Core.IO.HTTP
     {
         private readonly ClusterContext _context;
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;
+        private readonly IRedactor _redactor;
 
         private readonly HttpMessageHandler _sharedHandler;
 
-        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger)
+        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (context == null)
@@ -38,10 +40,16 @@ namespace Couchbase.Core.IO.HTTP
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(logger));
             }
+
+            if (redactor == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(redactor));
+            }
             // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
             _context = context;
             _logger = logger;
+            _redactor = redactor;
 
             _sharedHandler = CreateClientHandler();
         }
@@ -143,7 +151,8 @@ namespace Couchbase.Core.IO.HTTP
                         return true;
                     }
 
-                    return CertificateFactory.ValidateWithDefaultCertificates(sender, certificate, chain, sslPolicyErrors);
+                    var callback = CertificateFactory.GetValidatorWithDefaultCertificates(_logger, _redactor);
+                    return callback(sender, certificate, chain, sslPolicyErrors);
                 };
             }
 

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -90,19 +92,29 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
         };
 
         [InterfaceStability(Level.Volatile)]
-        public static bool ValidatorWithIgnoreNameMismatch(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        public static bool ValidatorWithIgnoreNameMismatch(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors, ILogger? logger = null, IRedactor? redactor = null)
         {
-            sslPolicyErrors = WithoutNameMismatch(sslPolicyErrors);
+            sslPolicyErrors = WithoutNameMismatch(sslPolicyErrors, logger);
 
-            return sslPolicyErrors == SslPolicyErrors.None;
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                logger?.LogDebug("X509 Validation passed with ignore name mismatch.");
+                return true;
+            }
+            else
+            {
+                logger?.LogWarning("X509 Validation failed: {errors}", sslPolicyErrors);
+                return false;
+            }
         }
 
         [InterfaceStability(Level.Volatile)]
-        public static SslPolicyErrors WithoutNameMismatch(SslPolicyErrors errors)
+        public static SslPolicyErrors WithoutNameMismatch(SslPolicyErrors errors, ILogger? logger = null)
         {
             if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != SslPolicyErrors.None)
             {
                 // clear the name mismatch
+                logger?.LogDebug("Clearing certificate name mismatch error.");
                 errors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
                 errors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
             }
@@ -110,17 +122,18 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
             return errors;
         }
 
-        internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(ICertificateFactory certificateFactory) => GetValidatorWithPredefinedCertificates(certificateFactory.GetCertificates());
-        internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(X509Certificate2Collection certs) =>
+        internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(X509Certificate2Collection certs, ILogger? logger, IRedactor? redactor) =>
             (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
                 {
+                    logger?.LogDebug("SSL validation passed with defaults.");
                     return true;
                 }
 
                 if (chain == null)
                 {
+                    logger?.LogWarning("No certificate chain to validate.");
                     return false;
                 }
 
@@ -138,13 +151,33 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
                 {
                     chain.Reset();
                     var built = chain.Build(cert2);
+                    if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        logger.LogDebug("X509 validation failed");
+                        foreach (var status in chain.ChainStatus)
+                        {
+                            logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
+                        }
+
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            foreach (var chainElement in chain.ChainElements)
+                            {
+                                logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
+                                foreach (var chainStatus in chainElement.ChainElementStatus)
+                                {
+                                    logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
+                                }
+                            }
+                        }
+                    }
                     return built;
                 }
                 return false;
             };
 
         private static readonly X509Certificate2Collection DefaultCertificatesCollection = new X509Certificate2Collection(DefaultCertificates.ToArray());
-        internal static readonly RemoteCertificateValidationCallback ValidateWithDefaultCertificates = GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection);
+        internal static RemoteCertificateValidationCallback GetValidatorWithDefaultCertificates(ILogger? logger, IRedactor? redactor) => GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection, logger, redactor);
     }
 }
 

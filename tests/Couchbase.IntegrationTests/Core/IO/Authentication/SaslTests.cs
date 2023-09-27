@@ -8,6 +8,7 @@ using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Utils;
@@ -38,7 +39,8 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 new DnsClientDnsResolver(new LookupClient(), new DotNetDnsClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object));
             var factory = new ConnectionFactory(options, ipEndPointService,
                 new Mock<ILogger<MultiplexingConnection>>().Object,
-                new Mock<ILogger<SslConnection>>().Object);
+                new Mock<ILogger<SslConnection>>().Object,
+                new Mock<IRedactor>().Object);
 
             var endPoint = options.ConnectionStringValue.GetBootstrapEndpoints().First();
 
