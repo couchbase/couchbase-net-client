@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
+using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.Diagnostics
 {
@@ -9,14 +12,10 @@ namespace Couchbase.Diagnostics
     public sealed class WaitUntilReadyOptions
     {
         /// <summary>
-        /// The desired state - the default is Online.
+        /// This list serves as the default, but a parameter-less call to WaitUntilReady should use the services from the
+        /// cluster config instead.
         /// </summary>
-        internal ClusterState DesiredStateValue { get; set; } = ClusterState.Online;
-
-        /// <summary>
-        /// The service types to check, if not provided all service types will be checked.
-        /// </summary>
-        internal IList<ServiceType> ServiceTypesValue { get; set; } = new List<ServiceType>
+        private static readonly IList<ServiceType> DefaultServiceTypes = new List<ServiceType>
         {
             ServiceType.Analytics,
             ServiceType.KeyValue,
@@ -24,6 +23,16 @@ namespace Couchbase.Diagnostics
             ServiceType.Search,
             ServiceType.Views
         };
+
+        /// <summary>
+        /// The desired state - the default is Online.
+        /// </summary>
+        internal ClusterState DesiredStateValue { get; set; } = ClusterState.Online;
+
+        /// <summary>
+        /// The service types to check, if not provided all service types reported by the cluster will be checked.
+        /// </summary>
+        internal IList<ServiceType> ExplicitServiceTypes { get; set; }
 
         /// <summary>
         /// A cancellation token for cooperative task cancellation.
@@ -44,7 +53,7 @@ namespace Couchbase.Diagnostics
         /// </summary>
         public WaitUntilReadyOptions ServiceTypes(params ServiceType[] serviceTypes)
         {
-            ServiceTypesValue = serviceTypes;
+            ExplicitServiceTypes = serviceTypes;
             return this;
         }
 
@@ -55,6 +64,53 @@ namespace Couchbase.Diagnostics
         {
             CancellationTokenValue = cancellationToken;
             return this;
+        }
+
+        internal IEnumerable<ServiceType> EffectiveServiceTypes(ClusterContext context)
+        {
+            // if the user specified specific service types, use those
+            if (ExplicitServiceTypes is { Count: > 0 })
+            {
+                return ExplicitServiceTypes;
+            }
+
+            // otherwise, try to discover the service types from the cluster
+            if (context?.Nodes is not null)
+            {
+                ISet<ServiceType> serviceTypes = new SortedSet<ServiceType>();
+                foreach (var clusterNode in context.Nodes)
+                {
+                    foreach (ServiceType serviceType in Enum.GetValues(typeof(ServiceType)))
+                    {
+                        bool includeService = serviceType switch
+                        {
+                            ServiceType.Analytics => clusterNode.HasAnalytics,
+                            ServiceType.Eventing => clusterNode.HasEventing,
+                            ServiceType.KeyValue => clusterNode.HasKv,
+                            ServiceType.Query => clusterNode.HasQuery,
+                            ServiceType.Search => clusterNode.HasSearch,
+                            ServiceType.Views => clusterNode.HasViews,
+                            ServiceType.Config => false,
+                            ServiceType.Management => false,
+                            _ => false,
+                        };
+
+                        if (includeService)
+                        {
+                            serviceTypes.Add(serviceType);
+                        }
+                    }
+
+                }
+
+                if (serviceTypes.Count > 0)
+                {
+                    return serviceTypes;
+                }
+            }
+
+            // if there are no service types discovered, try the default list.
+            return DefaultServiceTypes;
         }
     }
 }

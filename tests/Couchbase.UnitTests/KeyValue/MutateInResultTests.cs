@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -14,6 +15,7 @@ using Xunit;
 
 namespace Couchbase.UnitTests.KeyValue
 {
+    [Obsolete("MutateInResult will be made internal in a future release")]
     public class MutateInResultTests
     {
         [Fact]

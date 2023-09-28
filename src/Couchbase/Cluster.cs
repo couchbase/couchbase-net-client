@@ -275,7 +275,7 @@ namespace Couchbase
                         await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
                             new PingOptions
                             {
-                                ServiceTypesValue = options.ServiceTypesValue
+                                ServiceTypesValue = options.EffectiveServiceTypes(_context).ToList()
                             }).ConfigureAwait(false);
 
                     var status = new Dictionary<string, bool>();

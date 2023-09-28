@@ -3,6 +3,7 @@ using Couchbase.KeyValue;
 using Couchbase.Test.Common.Utils;
 using System;
 using System.Threading.Tasks;
+using Couchbase.IntegrationTests.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -43,6 +44,16 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             var t = cluster.BucketAsync("BUCKET_THAT_DOES_NOT_EXIST");
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t.AsTask());
             Assert.Contains("hibernat", ex.Message);
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async Task Test_WaitUntilReady_Completes()
+        {
+            using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
+            var clusterOptions = _fixture.GetOptionsFromConfig();
+            clusterOptions.WithLogging(loggerFactory);
+            var cluster = await Couchbase.Cluster.ConnectAsync(clusterOptions);
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
         }
     }
 }

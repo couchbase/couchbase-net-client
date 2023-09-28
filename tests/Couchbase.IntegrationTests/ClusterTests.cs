@@ -122,7 +122,7 @@ namespace Couchbase.IntegrationTests
             var options = new WaitUntilReadyOptions()
             {
                 CancellationTokenValue = CancellationToken.None,
-                ServiceTypesValue = serviceTypes
+                ExplicitServiceTypes = serviceTypes
             };
 
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10), options).ConfigureAwait(false);

@@ -46,7 +46,9 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
             op.Read(new FakeMemoryOwner<byte>(bytes));
             Assert.Equal(10, op.GetCommandValues().Count);
 
+#pragma warning disable CS0618
             var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
+#pragma warning restore CS0618
         }
     }
 }
