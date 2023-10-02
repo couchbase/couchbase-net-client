@@ -120,6 +120,10 @@ namespace Couchbase.Query
                 if (error.Code == 1197) return new QueryContextMissingException(context);
 
                 if (error.Code == 1080) return new UnambiguousTimeoutException("Query timed out while streaming/receiving rows.", context);
+
+                //query_context *was* included in the request, but the server doesn't support it
+                if (error.Code == 1065 && error.Message.Contains("query_context"))
+                    return new FeatureNotAvailableException("query_context not available on this server version");
             }
 
             return new CouchbaseException(context);
