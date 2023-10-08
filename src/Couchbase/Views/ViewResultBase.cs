@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Retry;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -17,6 +18,8 @@ namespace Couchbase.Views
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
     internal abstract class ViewResultBase<TKey, TValue> : IViewResult<TKey, TValue>, IServiceResultExceptionInfo
     {
+        private readonly IDisposable? _ownedForCleanup;
+
         /// <summary>
         /// Creates a new ViewResultBase.
         /// </summary>
@@ -35,12 +38,20 @@ namespace Couchbase.Views
         /// <param name="message">Message about result.</param>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="decodeSpan">Span to complete once decoding is done.</param>
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
         protected ViewResultBase(HttpStatusCode statusCode, string message, Stream responseStream,
-            IDisposable? decodeSpan = null)
+            IDisposable? decodeSpan = null, IDisposable? ownedForCleanup = null)
             : this(statusCode, message)
         {
-            ResponseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (responseStream is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(responseStream));
+            }
+
+            ResponseStream = responseStream;
             DecodeSpan = decodeSpan;
+            _ownedForCleanup = ownedForCleanup;
         }
 
         /// <inheritdoc />
@@ -135,6 +146,7 @@ namespace Couchbase.Views
         {
             ResponseStream?.Dispose();
             DecodeSpan?.Dispose();
+            _ownedForCleanup?.Dispose();
         }
     }
 }

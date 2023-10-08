@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -14,13 +15,23 @@ namespace Couchbase.Analytics
 {
     internal abstract class AnalyticsResultBase<T> : IAnalyticsResult<T>, IServiceResultExceptionInfo
     {
+        private readonly IDisposable? _ownedForCleanup;
+
         /// <summary>
         /// Creates a new AnalyticsResultBase.
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
-        protected AnalyticsResultBase(Stream responseStream)
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
+        protected AnalyticsResultBase(Stream responseStream, IDisposable? ownedForCleanup = null)
         {
-            ResponseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (responseStream is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(responseStream));
+            }
+
+            ResponseStream = responseStream;
+            _ownedForCleanup = ownedForCleanup;
         }
 
         /// <inheritdoc />
@@ -91,6 +102,7 @@ namespace Couchbase.Analytics
         public virtual void Dispose()
         {
             ResponseStream?.Dispose();
+            _ownedForCleanup?.Dispose();
         }
     }
 }

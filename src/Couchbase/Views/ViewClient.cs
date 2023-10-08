@@ -60,101 +60,113 @@ namespace Couchbase.Views
 
                 using var dispatchSpan = rootSpan.DispatchSpan(query);
 
-                using var httpClient = CreateHttpClient();
-                // set timeout to infinite so we can stream results without the connection
-                // closing part way through
-                httpClient.Timeout = Timeout.InfiniteTimeSpan;
-
-                var request = new HttpRequestMessage(HttpMethod.Post, uri)
+                var httpClient = CreateHttpClient();
+                try
                 {
-                    Content = content
-                };
+                    // set timeout to infinite so we can stream results without the connection
+                    // closing part way through
+                    httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-#if NET5_0_OR_GREATER
-                var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, query.Token)
-                    .ConfigureAwait(false);
-#else
-                var response = await httpClient.SendAsync(request, query.Token)
-                    .ConfigureAwait(false);
-#endif
-                dispatchSpan.Dispose();
-
-                var serializer = query.Serializer ?? _serializer;
-                if (response.IsSuccessStatusCode)
-                {
-                    if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    var request = new HttpRequestMessage(HttpMethod.Post, uri)
                     {
-                        viewResult = new StreamingViewResult<TKey, TValue>(
-                            response.StatusCode,
-                            Success,
-                            await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
-                            streamingTypeDeserializer
-                        );
+                        Content = content
+                    };
+
+                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, query.Token)
+                        .ConfigureAwait(false);
+                    dispatchSpan.Dispose();
+
+                    var serializer = query.Serializer ?? _serializer;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                        {
+                            viewResult = new StreamingViewResult<TKey, TValue>(
+                                response.StatusCode,
+                                Success,
+                                await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+                                streamingTypeDeserializer,
+                                ownedForCleanup: httpClient
+                            );
+                        }
+                        else
+                        {
+                            viewResult = new BlockViewResult<TKey, TValue>(
+                                response.StatusCode,
+                                Success,
+                                await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+                                serializer,
+                                ownedForCleanup: httpClient
+                            );
+                        }
+
+                        await viewResult.InitializeAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        viewResult = new BlockViewResult<TKey, TValue>(
-                            response.StatusCode,
-                            Success,
-                            await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
-                            serializer
-                        );
-                    }
+                        if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                        {
+                            viewResult = new StreamingViewResult<TKey, TValue>(
+                                response.StatusCode,
+                                await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+                                streamingTypeDeserializer
+                            );
+                        }
+                        else
+                        {
+                            viewResult = new BlockViewResult<TKey, TValue>(
+                                response.StatusCode,
+                                await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+                                serializer
+                            );
+                        }
 
-                    await viewResult.InitializeAsync().ConfigureAwait(false);
+                        // We don't need to continue reading the response, cleanup the HttpClient
+                        httpClient.Dispose();
+
+                        await viewResult.InitializeAsync().ConfigureAwait(false);
+
+                        if (viewResult.ShouldRetry())
+                        {
+                            viewResult.NoRetryException = new CouchbaseException()
+                            {
+                                Context = new ViewContextError
+                                {
+                                    DesignDocumentName = query.DesignDocName,
+                                    ViewName = query.ViewName,
+                                    ClientContextId = query.ClientContextId,
+                                    HttpStatus = response.StatusCode,
+                                    Errors = viewResult.Message
+                                }
+                            };
+                            UpdateLastActivity();
+                            return viewResult;
+                        }
+
+                        if (viewResult.ViewNotFound())
+                        {
+                            throw new ViewNotFoundException("The queried view is not found on the server.")
+                            {
+                                Context = new ViewContextError
+                                {
+                                    DesignDocumentName = query.DesignDocName,
+                                    ViewName = query.ViewName,
+                                    ClientContextId = query.ClientContextId,
+                                    HttpStatus = response.StatusCode,
+                                    Errors = viewResult.Message
+                                }
+                            };
+                        }
+                    }
                 }
-                else
+                catch
                 {
-                    if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
-                    {
-                        viewResult = new StreamingViewResult<TKey, TValue>(
-                            response.StatusCode,
-                            await response.Content.ReadAsStringAsync().ConfigureAwait(false),
-                            streamingTypeDeserializer
-                        );
-                    }
-                    else
-                    {
-                        viewResult = new BlockViewResult<TKey, TValue>(
-                            response.StatusCode,
-                            await response.Content.ReadAsStringAsync().ConfigureAwait(false),
-                            serializer
-                        );
-                    }
-
-                    await viewResult.InitializeAsync().ConfigureAwait(false);
-
-                    if (viewResult.ShouldRetry())
-                    {
-                        viewResult.NoRetryException = new CouchbaseException()
-                        {
-                            Context = new ViewContextError
-                            {
-                                DesignDocumentName = query.DesignDocName,
-                                ViewName = query.ViewName,
-                                ClientContextId = query.ClientContextId,
-                                HttpStatus = response.StatusCode,
-                                Errors = viewResult.Message
-                            }
-                        };
-                        UpdateLastActivity();
-                        return viewResult;
-                    }
-
-                    if (viewResult.ViewNotFound())
-                    {
-                        throw new ViewNotFoundException("The queried view is not found on the server.")
-                        {
-                            Context = new ViewContextError
-                            {
-                                DesignDocumentName = query.DesignDocName,
-                                ViewName = query.ViewName,
-                                ClientContextId = query.ClientContextId,
-                                HttpStatus = response.StatusCode,
-                                Errors = viewResult.Message
-                            }
-                        };
-                    }
+                    // Ensure the HttpClient is disposed on an exception. On success scenarios it is disposed when the caller
+                    // disposes of the returned IViewResult. HttpClient is not simply disposed in every case because doing so
+                    // causes exceptions in .NET 4 when using HttpCompletionOption.ResponseHeadersRead because it closes the socket
+                    // before the body is fully read.
+                    httpClient.Dispose();
+                    throw;
                 }
             }
             catch (OperationCanceledException e)

@@ -22,6 +22,11 @@ namespace Couchbase.Core.IO.HTTP
         /// It is safe to dispose this after every use. It reuses the inner HttpMessageHandler.
         /// </remarks>
         HttpClient Create();
+
+        /// <summary>
+        /// Default response streaming behavior for HTTP requests. Controlled by <see cref="TuningOptions.StreamHttpResponseBodies"/>.
+        /// </summary>
+        HttpCompletionOption DefaultCompletionOption { get; }
     }
 }
 

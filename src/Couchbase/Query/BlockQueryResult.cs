@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
@@ -17,7 +18,7 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    internal class BlockQueryResult<T> : QueryResultBase<T>
+    internal sealed class BlockQueryResult<T> : QueryResultBase<T>
     {
         private readonly ITypeSerializer _deserializer;
 
@@ -29,10 +30,17 @@ namespace Couchbase.Query
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
-        public BlockQueryResult(Stream responseStream, ITypeSerializer deserializer)
-            : base(responseStream)
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
+        public BlockQueryResult(Stream responseStream, ITypeSerializer deserializer, IDisposable? ownedForCleanup = null)
+            : base(responseStream, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />

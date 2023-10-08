@@ -21,7 +21,7 @@ namespace Couchbase.Views
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
     /// <seealso cref="IViewResult{TKey, TValue}" />
-    internal class BlockViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
+    internal sealed class BlockViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
     {
         private readonly ITypeSerializer _deserializer;
 
@@ -37,7 +37,13 @@ namespace Couchbase.Views
         public BlockViewResult(HttpStatusCode statusCode, string message, ITypeSerializer deserializer)
             : base(statusCode, message)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <summary>
@@ -48,11 +54,18 @@ namespace Couchbase.Views
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
         /// <param name="decodeSpan">Span to complete once decoding is done.</param>
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
         public BlockViewResult(HttpStatusCode statusCode, string message, Stream responseStream, ITypeSerializer deserializer,
-            IDisposable? decodeSpan = null)
-            : base(statusCode, message, responseStream, decodeSpan)
+            IDisposable? decodeSpan = null, IDisposable? ownedForCleanup = null)
+            : base(statusCode, message, responseStream, decodeSpan, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />

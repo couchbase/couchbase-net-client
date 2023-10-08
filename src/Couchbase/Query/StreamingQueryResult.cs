@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -17,7 +18,7 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    internal class StreamingQueryResult<T> : QueryResultBase<T>
+    internal sealed class StreamingQueryResult<T> : QueryResultBase<T>
     {
         private readonly IStreamingTypeDeserializer _deserializer;
         private readonly Func<QueryResultBase<T>, HttpStatusCode, QueryErrorContext> _errorContextFactory;
@@ -32,12 +33,24 @@ namespace Couchbase.Query
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
         /// <param name="errorContextFactory">Factory to create an error context if there is an error found after the results array.</param>
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
         public StreamingQueryResult(Stream responseStream, IStreamingTypeDeserializer deserializer,
-            Func<QueryResultBase<T>, HttpStatusCode, QueryErrorContext> errorContextFactory)
-            : base(responseStream)
+            Func<QueryResultBase<T>, HttpStatusCode, QueryErrorContext> errorContextFactory, IDisposable? ownedForCleanup = null)
+            : base(responseStream, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
-            _errorContextFactory = errorContextFactory ?? throw new ArgumentNullException(nameof(errorContextFactory));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+            if (errorContextFactory is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(errorContextFactory));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
+            _deserializer = deserializer;
+            _errorContextFactory = errorContextFactory;
         }
 
         /// <inheritdoc />

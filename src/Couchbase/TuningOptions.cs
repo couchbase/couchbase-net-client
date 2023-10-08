@@ -1,5 +1,7 @@
 using System;
+using Couchbase.Analytics;
 using Couchbase.Core.Compatibility;
+using Couchbase.Query;
 
 namespace Couchbase
 {
@@ -38,6 +40,25 @@ namespace Couchbase
         /// </remarks>
         [InterfaceStability(Level.Volatile)]
         public int MaximumInFlightOperationsPerConnection { get; set; } = 8;
+
+        /// <summary>
+        /// If enabled, HTTP responses such as query responses will be streamed after response headers
+        /// are received rather than waiting for the entire response body to be received. This defaults
+        /// to <c>true</c> on modern .NET runtimes and <c>false</c> on .NET 4.x.
+        /// </summary>
+        /// <remarks>
+        /// When enabled it becomes more important to call <see cref="IDisposable.Dispose"/> on result objects
+        /// such as <see cref="IQueryResult{T}"/> and <see cref="IAnalyticsResult{T}"/> to ensure the underlying
+        /// HTTP connection is released. This is especially true on .NET 4.x where failure to dispose may cause
+        /// issues with connection pool exhaustion.
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public bool StreamHttpResponseBodies { get; set; } =
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            true;
+#else
+            false;
+#endif
     }
 }
 

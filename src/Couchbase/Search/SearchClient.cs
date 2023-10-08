@@ -103,11 +103,12 @@ namespace Couchbase.Search
                     Content = content
                 };
 
-#if NET5_0_OR_GREATER
-                using var response = await httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-#else
-                using var response = await httpClient.SendAsync(httpRequestMessage, cancellationToken).ConfigureAwait(false);
-#endif
+                // Search doesn't support streaming the response objects, however we can still get a small performance gain by reading
+                // the HTTP response body as it arrives instead of waiting for the entire response to arrive. Therefore, use the
+                // HttpClientFactory.DefaultCompletionOption here. However, the more complex logic to dispose of HttpClient used in other
+                // query clients is not required as the response body will be fully read before this method returns.
+                using var response = await httpClient.SendAsync(httpRequestMessage, HttpClientFactory.DefaultCompletionOption, cancellationToken)
+                    .ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Exceptions;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -24,7 +25,7 @@ namespace Couchbase.Views
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
     /// <seealso cref="IViewResult{TKey, TValue}" />
-    internal class StreamingViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
+    internal sealed class StreamingViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
     {
         private readonly IStreamingTypeDeserializer _deserializer;
 
@@ -36,14 +37,26 @@ namespace Couchbase.Views
         public StreamingViewResult(HttpStatusCode statusCode, string message, IStreamingTypeDeserializer deserializer)
             : base(statusCode, message)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         public StreamingViewResult(HttpStatusCode statusCode, string message, Stream responseStream, IStreamingTypeDeserializer deserializer,
-            IDisposable? decodeSpan = null)
-            : base(statusCode, message, responseStream, decodeSpan)
+            IDisposable? decodeSpan = null, IDisposable? ownedForCleanup = null)
+            : base(statusCode, message, responseStream, decodeSpan, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />

@@ -51,8 +51,15 @@ namespace Couchbase.Core.IO.HTTP
             _logger = logger;
             _redactor = redactor;
 
+            DefaultCompletionOption = _context.ClusterOptions.Tuning.StreamHttpResponseBodies
+                ? HttpCompletionOption.ResponseHeadersRead
+                : HttpCompletionOption.ResponseContentRead;
+
             _sharedHandler = CreateClientHandler();
         }
+
+        /// <inheritdoc />
+        public HttpCompletionOption DefaultCompletionOption { get; }
 
         /// <inheritdoc />
         public HttpClient Create()

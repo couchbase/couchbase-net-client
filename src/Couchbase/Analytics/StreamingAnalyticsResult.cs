@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
+using Couchbase.Utils;
 
 #nullable enable
 
 namespace Couchbase.Analytics
 {
-    internal class StreamingAnalyticsResult<T> : AnalyticsResultBase<T>
+    internal sealed class StreamingAnalyticsResult<T> : AnalyticsResultBase<T>
     {
         private readonly IStreamingTypeDeserializer _deserializer;
         private IJsonStreamReader? _reader;
@@ -24,10 +25,17 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
-        public StreamingAnalyticsResult(Stream responseStream, IStreamingTypeDeserializer deserializer)
-            : base(responseStream)
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
+        public StreamingAnalyticsResult(Stream responseStream, IStreamingTypeDeserializer deserializer, IDisposable? ownedForCleanup = null)
+            : base(responseStream, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />

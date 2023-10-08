@@ -88,56 +88,62 @@ namespace Couchbase.Analytics
 
                     encodingSpan.Dispose();
                     using var dispatchSpan = rootSpan.DispatchSpan(options);
-                    using var httpClient = CreateHttpClient(options.TimeoutValue);
-
-#if NET5_0_OR_GREATER
-                    var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, options.Token)
-                        .ConfigureAwait(false);
-#else
-                    var response = await httpClient.SendAsync(request, options.Token)
-                        .ConfigureAwait(false);
-#endif
-                    dispatchSpan.Dispose();
-
-                    var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-                    if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    var httpClient = CreateHttpClient(options.TimeoutValue);
+                    try
                     {
-                        result = new StreamingAnalyticsResult<T>(stream, streamingTypeDeserializer)
-                        {
-                            HttpStatusCode = response.StatusCode
-                        };
-                    }
-                    else
-                    {
-                        result = new BlockAnalyticsResult<T>(stream, _typeSerializer)
-                        {
-                            HttpStatusCode = response.StatusCode
-                        };
-                    }
+                        var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
+                            .ConfigureAwait(false);
+                        dispatchSpan.Dispose();
 
-                    await result.InitializeAsync(options.Token).ConfigureAwait(false);
+                        var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                    if (response.StatusCode != HttpStatusCode.OK)
-                    {
-                        var context = new AnalyticsErrorContext
+                        if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)
                         {
-                            ClientContextId = options.ClientContextIdValue,
-                            HttpStatus = response.StatusCode,
-                            Statement = statement,
-                            Parameters = options.GetParametersAsJson(),
-                            Errors = result.Errors
-                        };
-
-                        if (result.ShouldRetry())
+                            result = new StreamingAnalyticsResult<T>(stream, streamingTypeDeserializer, ownedForCleanup: httpClient)
+                            {
+                                HttpStatusCode = response.StatusCode
+                            };
+                        }
+                        else
                         {
-                            result.NoRetryException = CreateExceptionForError(result, context, true);
-                            UpdateLastActivity();
-                            return result;
+                            result = new BlockAnalyticsResult<T>(stream, _typeSerializer, ownedForCleanup: httpClient)
+                            {
+                                HttpStatusCode = response.StatusCode
+                            };
                         }
 
-                        CouchbaseException? ex = CreateExceptionForError(result, context, false);
-                        if (ex != null) { throw ex; }
+                        await result.InitializeAsync(options.Token).ConfigureAwait(false);
+
+                        if (response.StatusCode != HttpStatusCode.OK)
+                        {
+                            var context = new AnalyticsErrorContext
+                            {
+                                ClientContextId = options.ClientContextIdValue,
+                                HttpStatus = response.StatusCode,
+                                Statement = statement,
+                                Parameters = options.GetParametersAsJson(),
+                                Errors = result.Errors
+                            };
+
+                            if (result.ShouldRetry())
+                            {
+                                result.NoRetryException = CreateExceptionForError(result, context, true);
+                                UpdateLastActivity();
+                                return result;
+                            }
+
+                            CouchbaseException? ex = CreateExceptionForError(result, context, false);
+                            if (ex != null) { throw ex; }
+                        }
+                    }
+                    catch
+                    {
+                        // Ensure the HttpClient is disposed on an exception. On success scenarios it is disposed when the caller
+                        // disposes of the returned IAnalyticsResult. HttpClient is not simply disposed in every case because doing so
+                        // causes exceptions in .NET 4 when using HttpCompletionOption.ResponseHeadersRead because it closes the socket
+                        // before the body is fully read.
+                        httpClient.Dispose();
+                        throw;
                     }
                 }
                 catch (OperationCanceledException e)

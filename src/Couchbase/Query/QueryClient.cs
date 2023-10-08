@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -183,88 +184,96 @@ namespace Couchbase.Query
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);
-                using var httpClient = CreateHttpClient(options.TimeoutValue);
-
-                var request = new HttpRequestMessage(HttpMethod.Post, queryUri)
+                var httpClient = CreateHttpClient(options.TimeoutValue);
+                try
                 {
-                    Content = content
-                };
-
-#if NET5_0_OR_GREATER
-                //oddly only works when set on the HttpRequestMessage - this just forwards what was set from ClusterOptions.Experiments
-                request.VersionPolicy = httpClient.DefaultVersionPolicy;
-                request.Version = httpClient.DefaultRequestVersion;
-
-                var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, options.Token)
-                    .ConfigureAwait(false);
-#else
-                var response = await httpClient.SendAsync(request, options.Token)
-                    .ConfigureAwait(false);
-#endif
-                dispatchSpan.Dispose();
-
-                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-                if (serializer is IStreamingTypeDeserializer streamingDeserializer)
-                {
-                    queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer, ErrorContextFactory);
-                }
-                else
-                {
-                    queryResult = new BlockQueryResult<T>(stream, serializer);
-                }
-
-                queryResult.HttpStatusCode = response.StatusCode;
-                queryResult.Success = response.StatusCode == HttpStatusCode.OK;
-
-                //read the header and stop when we reach the queried rows
-                await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
-
-                if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
-                {
-                    _logger.LogDebug("Request {currentContextId} has failed because {status}.",
-                        currentContextId, queryResult.MetaData?.Status);
-
-                    if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
+                    var request = new HttpRequestMessage(HttpMethod.Post, queryUri)
                     {
-                        queryResult.NoRetryException = queryResult.CreateExceptionForError(ErrorContextFactory(queryResult, response.StatusCode));
-                        if (queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
-                        {
-                            //clear the cache of stale query plan
-                            var statement = options.StatementValue ?? string.Empty;
-                            if (_queryCache.TryRemove(statement, out var queryPlan))
-                            {
-                                _logger.LogDebug("Query plan is stale for {currentContextId}. Purging plan {queryPlanName}.", currentContextId, queryPlan.Name);
-                            }
-                        }
-                        _logger.LogDebug("Request {currentContextId} is being retried.", currentContextId);
-                        return queryResult;
+                        Content = content
+                    };
+
+    #if NET5_0_OR_GREATER
+                    //oddly only works when set on the HttpRequestMessage - this just forwards what was set from ClusterOptions.Experiments
+                    request.VersionPolicy = httpClient.DefaultVersionPolicy;
+                    request.Version = httpClient.DefaultRequestVersion;
+    #endif
+
+                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
+                        .ConfigureAwait(false);
+                    dispatchSpan.Dispose();
+
+                    var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                    if (serializer is IStreamingTypeDeserializer streamingDeserializer)
+                    {
+                        queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer, ErrorContextFactory, ownedForCleanup: httpClient);
+                    }
+                    else
+                    {
+                        queryResult = new BlockQueryResult<T>(stream, serializer, ownedForCleanup: httpClient);
                     }
 
-                    var context = ErrorContextFactory(queryResult, response.StatusCode);
+                    queryResult.HttpStatusCode = response.StatusCode;
+                    queryResult.Success = response.StatusCode == HttpStatusCode.OK;
 
-                    if (queryResult.MetaData?.Status == QueryStatus.Timeout)
+                    //read the header and stop when we reach the queried rows
+                    await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
+
+                    if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                     {
-                        if (options.IsReadOnly)
+                        _logger.LogDebug("Request {currentContextId} has failed because {status}.",
+                            currentContextId, queryResult.MetaData?.Status);
+
+                        if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                         {
-                            throw new AmbiguousTimeoutException
+                            queryResult.NoRetryException = queryResult.CreateExceptionForError(ErrorContextFactory(queryResult, response.StatusCode));
+                            if (queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
+                            {
+                                //clear the cache of stale query plan
+                                var statement = options.StatementValue ?? string.Empty;
+                                if (_queryCache.TryRemove(statement, out var queryPlan))
+                                {
+                                    _logger.LogDebug("Query plan is stale for {currentContextId}. Purging plan {queryPlanName}.", currentContextId, queryPlan.Name);
+                                }
+                            }
+                            _logger.LogDebug("Request {currentContextId} is being retried.", currentContextId);
+                            return queryResult;
+                        }
+
+                        var context = ErrorContextFactory(queryResult, response.StatusCode);
+
+                        if (queryResult.MetaData?.Status == QueryStatus.Timeout)
+                        {
+                            if (options.IsReadOnly)
+                            {
+                                throw new AmbiguousTimeoutException
+                                {
+                                    Context = context
+                                };
+                            }
+
+                            throw new UnambiguousTimeoutException
                             {
                                 Context = context
                             };
                         }
-
-                        throw new UnambiguousTimeoutException
-                        {
-                            Context = context
-                        };
+                        queryResult.ThrowExceptionOnError(context);
                     }
-                    queryResult.ThrowExceptionOnError(context);
+                    else if (options.StatementValue == TransactionsBeginWork)
+                    {
+                        // Internal support for Transactions query node affinity
+                        // If the result has a "txid" row, grab the value and add it to the affinity map.
+                        queryResult.MetaData.LastDispatchedToNode = queryUri;
+                    }
                 }
-                else if (options.StatementValue == TransactionsBeginWork)
+                catch
                 {
-                    // Internal support for Transactions query node affinity
-                    // If the result has a "txid" row, grab the value and add it to the affinity map.
-                    queryResult.MetaData.LastDispatchedToNode = queryUri;
+                    // Ensure the HttpClient is disposed on an exception. On success scenarios it is disposed when the caller
+                    // disposes of the returned IQueryResult. HttpClient is not simply disposed in every case because doing so
+                    // causes exceptions in .NET 4 when using HttpCompletionOption.ResponseHeadersRead because it closes the socket
+                    // before the body is fully read.
+                    httpClient.Dispose();
+                    throw;
                 }
             }
             catch (OperationCanceledException e)

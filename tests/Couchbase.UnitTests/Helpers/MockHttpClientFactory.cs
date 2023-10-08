@@ -19,5 +19,6 @@ namespace Couchbase.UnitTests.Helpers
         }
 
         public HttpClient Create() => _httpClientFactory();
+        public HttpCompletionOption DefaultCompletionOption => HttpCompletionOption.ResponseContentRead;
     }
 }

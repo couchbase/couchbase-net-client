@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Retry;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -17,13 +18,23 @@ namespace Couchbase.Query
     /// <typeparam name="T">The Type of each row returned.</typeparam>
     internal abstract class QueryResultBase<T> : IQueryResult<T>, IServiceResultExceptionInfo
     {
+        private readonly IDisposable? _ownedForCleanup;
+
         /// <summary>
         /// Creates a new QueryResultBase.
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
-        protected QueryResultBase(Stream responseStream)
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
+        protected QueryResultBase(Stream responseStream, IDisposable? ownedForCleanup = null)
         {
-            ResponseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (responseStream is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(responseStream));
+            }
+
+            ResponseStream = responseStream;
+            _ownedForCleanup = ownedForCleanup;
         }
 
         /// <inheritdoc />
@@ -139,6 +150,7 @@ namespace Couchbase.Query
         public virtual void Dispose()
         {
             ResponseStream?.Dispose();
+            _ownedForCleanup?.Dispose();
         }
     }
 }

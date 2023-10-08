@@ -18,7 +18,7 @@ namespace Couchbase.Analytics
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
     /// <seealso cref="IAnalyticsResult{T}" />
-    internal class BlockAnalyticsResult<T> : AnalyticsResultBase<T>
+    internal sealed class BlockAnalyticsResult<T> : AnalyticsResultBase<T>
     {
         private readonly ITypeSerializer _deserializer;
 
@@ -30,10 +30,17 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
-        public BlockAnalyticsResult(Stream responseStream, ITypeSerializer deserializer)
-            : base(responseStream)
+        /// <param name="ownedForCleanup">Additional object to dispose when complete.</param>
+        public BlockAnalyticsResult(Stream responseStream, ITypeSerializer deserializer, IDisposable? ownedForCleanup = null)
+            : base(responseStream, ownedForCleanup)
         {
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (deserializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />
