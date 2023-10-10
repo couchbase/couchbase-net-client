@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.Management.Collections;
 using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
+using CollectionSpec = Couchbase.Management.Collections.CollectionSpec;
 
 namespace Couchbase.CombinationTests.Tests.KeyValue
 {
@@ -17,11 +21,13 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
     {
         private readonly CouchbaseFixture _fixture;
         private readonly ITestOutputHelper _outputHelper;
+        private TestHelper _testHelper;
 
         public KeyValueTests(CouchbaseFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
             _outputHelper = outputHelper;
+            _testHelper = new TestHelper(fixture);
         }
 
         [Fact]
@@ -565,6 +571,40 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.GetAnyReplicaAsync("wrongId"));
 
             await collection.RemoveAsync(id).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Test_KV_Operation_Properly_Records_Its_Latency()
+        {
+            var id = "Test" + Guid.NewGuid();
+            var collectionName = "TestCollection" + new Random().Next();
+
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
+            var scope = await _fixture.GetDefaultScope().ConfigureAwait(false);
+
+            // Create and get collection on default bucket/scope
+            await bucket.Collections.CreateCollectionAsync("_default", collectionName, new CreateCollectionSettings()).ConfigureAwait(false);
+            await _testHelper.WaitUntilCollectionIsPresent(collectionName).ConfigureAwait(false);
+            var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
+
+            //Upsert a doc so that the client caches the Cid
+            await collection.UpsertAsync(id, new { Content = "hello" }).ConfigureAwait(false);
+            await _testHelper.WaitUntilDocumentIsPresent(id, collectionName).ConfigureAwait(false);
+
+            // Drop collection
+            await bucket.Collections.DropCollectionAsync("_default", collectionName).ConfigureAwait(false);
+            await _testHelper.WaitUntilCollectionIsDropped(collectionName).ConfigureAwait(false);
+
+            var stopwatch = Stopwatch.StartNew();
+            var exception = await Record.ExceptionAsync(async () => await collection.GetAsync(id).ConfigureAwait(false)).ConfigureAwait(false);
+            stopwatch.Stop();
+
+            _outputHelper.WriteLine("Exception: " + exception!.Message);
+            _outputHelper.WriteLine($"Test measured Time for operation = {stopwatch.Elapsed.TotalSeconds}");
+
+            Assert.Equal(exception!.GetType(), typeof(UnambiguousTimeoutException));
+            Assert.True(exception.Message.Contains("The Get operation") || exception.Message.Contains("The GetCidByName operation"));
+            Assert.True(exception.Message.Contains("00:00:02.5"));
         }
 
         private class Foo

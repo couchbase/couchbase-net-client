@@ -305,6 +305,8 @@ namespace Couchbase.Core.IO.Operations
             _isSent = false;
             _valueTaskSource.Reset();
             _isCompleted = 0;
+            StopRecording();
+            _stopwatch.Restart();
         }
 
         #endregion
@@ -721,7 +723,7 @@ namespace Couchbase.Core.IO.Operations
             _stopwatch.Stop();
 
             //Since an operation may be retried, we want to add to the total elapsed time.
-            Elapsed =  Elapsed.Add(_stopwatch.Elapsed);
+            Elapsed = Elapsed.Add(_stopwatch.Elapsed);
             MetricTracker.KeyValue.TrackOperation(OpCode, _stopwatch.Elapsed);
         }
         #endregion

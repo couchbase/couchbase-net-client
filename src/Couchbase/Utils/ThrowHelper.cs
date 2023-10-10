@@ -7,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -103,6 +104,26 @@ namespace Couchbase.Utils
             {
                 Context = context
             };
+        }
+
+        public static void ThrowFalseTimeoutException(IOperation operation)
+        {
+            var errorContext = new KeyValueErrorContext
+            {
+                DispatchedFrom = operation.LastDispatchedFrom,
+                DispatchedTo = operation.LastDispatchedTo,
+                DocumentKey = operation.Key,
+                ClientContextId = operation.ClientContextId,
+                Cas = operation.Cas,
+                BucketName = operation.BucketName,
+                CollectionName = operation.CName,
+                ScopeName = operation.SName,
+                OpCode = operation.OpCode,
+                RetryReasons = operation.RetryReasons
+            };
+
+            errorContext.Message = $"The Operation ({operation.OpCode}) was incomplete, and its Lifetime ({operation.Elapsed.TotalSeconds}s) is inferior to its Timeout ({operation.Timeout.TotalSeconds}s) value.";
+            throw new CouchbaseException(errorContext);
         }
 
         [DoesNotReturn]

@@ -6,7 +6,6 @@ using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Utils;
@@ -210,18 +209,21 @@ namespace Couchbase.Core.Retry
 
                         //sub-doc path failures for lookups are handled when the ContentAs() method is called.
                         //so we simply return back to the caller and let it be handled later.
-                        if ((status == ResponseStatus.SubDocMultiPathFailure  || status == ResponseStatus.SubdocMultiPathFailureDeleted)
+                        if ((status == ResponseStatus.SubDocMultiPathFailure ||
+                             status == ResponseStatus.SubdocMultiPathFailureDeleted)
                             && operation.OpCode == OpCode.MultiLookup)
                         {
                             return status;
                         }
 
-                        if (status == ResponseStatus.KeyNotFound && (operation.OpCode is OpCode.RangeScanCreate or OpCode.RangeScanCancel))
+                        if (status == ResponseStatus.KeyNotFound &&
+                            (operation.OpCode is OpCode.RangeScanCreate or OpCode.RangeScanCancel))
                         {
                             return status;
                         }
 
-                        if (status == ResponseStatus.RangeScanCanceled && (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCancel))
+                        if (status == ResponseStatus.RangeScanCanceled &&
+                            (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCancel))
                         {
                             var kvc = new KeyValueErrorContext
                             {
@@ -238,7 +240,8 @@ namespace Couchbase.Core.Retry
                             status.CreateException(kvc, operation);
                         }
 
-                        if (status == ResponseStatus.UnknownCollection && (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCreate))
+                        if (status == ResponseStatus.UnknownCollection &&
+                            (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCreate))
                         {
                             var kvc = new KeyValueErrorContext
                             {
@@ -380,8 +383,8 @@ namespace Couchbase.Core.Retry
 
                 if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
                 {
-                    // not a true timeout.
-                    throw;
+                    // Not a true timeout. May execute if an operation is in flight while things are shutting down.
+                    ThrowHelper.ThrowFalseTimeoutException(operation);
                 }
 
                 MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
