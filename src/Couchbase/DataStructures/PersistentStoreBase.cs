@@ -72,7 +72,7 @@ namespace Couchbase.DataStructures
             return GetListAsync().GetAwaiter().GetResult();
         }
 
-        protected virtual async Task<IList<TValue>> GetListAsync()
+        protected async Task<IList<TValue>> GetListAsync()
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);

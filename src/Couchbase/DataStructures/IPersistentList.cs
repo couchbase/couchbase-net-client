@@ -15,27 +15,101 @@ namespace Couchbase.DataStructures
     /// <remarks>
     /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
     /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+    /// Note that a reference comparision is used by default. If you load the
+    /// list and try to use an item out of it to remove from the list, it will
+    /// return false unless Object.Equals() is overridden on the item's class as
+    /// the document is reloaded from the database and therefore cannot be used
+    /// for reference equality. Note that .NET Records override Equals implicitly.
     /// </remarks>
     public interface IPersistentList<T> : System.Collections.ICollection, IList<T>, IAsyncEnumerable<T>
     {
+        /// <summary>
+        /// Copies an items into an array starting at an index.
+        /// </summary>
+        /// <param name="array">The array of items to add to the document.</param>
+        /// <param name="index">The starting index.</param>
+        /// <returns></returns>
         Task CopyToAsync(Array array, int index);
 
+        /// <summary>
+        /// Adds an item into the document.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="item">The item to add.</param>
+        /// <returns>A <see cref="Task"/> for awaiting.</returns>
         Task AddAsync(T item);
 
+        /// <summary>
+        /// Clears the document.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> for awaiting.</returns>
         Task ClearAsync();
 
+        /// <summary>
+        /// Checks to see if the document contains an item.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="item">The item <typeparamref name="T"/> to check for its existence.</param>
+        /// <returns>A <see cref="Task{Bool}"/> for awaiting. True if the item exists, otherwise false.</returns>
         Task<bool> ContainsAsync(T item);
 
+        /// <summary>
+        /// Copies an array into the document.
+        /// </summary>
+        /// <param name="array">The array of items to add to the document.</param>
+        /// <param name="arrayIndex">The starting index.</param>
+        /// <returns>A <see cref="Task"/> for awaiting.</returns>
         Task CopyToAsync(T[] array, int arrayIndex);
 
+        /// <summary>
+        /// Attempts to remove an item from the list.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="item">An item which should have Object.Equals() overridden.</param>
+        /// <returns>True if the item is found and removed; otherwise false.</returns>
         Task<bool> RemoveAsync(T item);
 
+        /// <summary>
+        /// Counts the items in the list.
+        /// </summary>
+        /// <returns>A <see cref="Task{Int32}"/> for awaiting. The value is the number of items in the list.</returns>
         Task<int> CountAsync { get; }
 
+        /// <summary>
+        /// Returns the index of item in the list.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="item">An item which should have Object.Equals() overridden.</param>
+        /// <returns>A <see cref="Task{Int32}"/> for awaiting. The value is the index of item in the list.</returns>
         Task<int> IndexOfAsync(T item);
 
+        /// <summary>
+        /// Inserts an item into the list.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="index">The starting index.</param>
+        /// <param name="item">An item which should have Object.Equals() overridden.</param>
+        /// <returns></returns>
         Task InsertAsync(int index, T item);
 
+        /// <summary>
+        /// Removes an item item from the list.
+        /// </summary>
+        /// <remarks>
+        /// Override Object.Equals if using POCOs; .NET Records do so implicitly.
+        /// </remarks>
+        /// <param name="index">The starting index.</param>
+        /// <returns>A <see cref="Task"/> for awaiting."</returns>
         Task RemoveAtAsync(int index);
     }
 }

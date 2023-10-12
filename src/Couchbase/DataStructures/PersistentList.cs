@@ -77,6 +77,7 @@ namespace Couchbase.DataStructures
             set => SetAsync(index, value).GetAwaiter().GetResult();
         }
 
+        /// <inheritdoc />
         public async Task AddAsync(TValue item)
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
@@ -85,11 +86,13 @@ namespace Couchbase.DataStructures
                     ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
         public async Task<bool> ContainsAsync(TValue item)
         {
             return (await GetListAsync().ConfigureAwait(false)).Contains(item);
         }
 
+        /// <inheritdoc />
         public async Task<bool> RemoveAsync(TValue item)
         {
             var index = await IndexOfAsync(item).ConfigureAwait(false);
@@ -111,11 +114,13 @@ namespace Couchbase.DataStructures
             return removed;
         }
 
+        /// <inheritdoc />
         public async Task<int> IndexOfAsync(TValue item)
         {
             return (await GetListAsync().ConfigureAwait(false)).IndexOf(item);
         }
 
+        /// <inheritdoc />
         public async Task InsertAsync(int index, TValue item)
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
@@ -124,6 +129,7 @@ namespace Couchbase.DataStructures
                 ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
         public async Task SetAsync(int index, TValue item)
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
@@ -139,6 +145,7 @@ namespace Couchbase.DataStructures
             }
         }
 
+        /// <inheritdoc />
         public async Task RemoveAtAsync(int index)
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
