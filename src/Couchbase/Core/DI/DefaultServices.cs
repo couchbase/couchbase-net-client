@@ -91,7 +91,9 @@ namespace Couchbase.Core.DI
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(DefaultSerializer.Instance));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
-            yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(JsonTranscoder)));
+            yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(
+                // Using the lambda approach avoids rooting all constructors of JsonTranscoder by SingletonServiceFactory
+                serviceProvider => new JsonTranscoder(serviceProvider.GetRequiredService<ITypeSerializer>())));
 
             yield return (typeof(ICouchbaseHttpClientFactory), new SingletonServiceFactory(typeof(CouchbaseHttpClientFactory)));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));

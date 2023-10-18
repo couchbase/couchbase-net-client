@@ -8,6 +8,8 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 
+#nullable enable
+
 namespace Couchbase.Core
 {
     /// <summary>
@@ -30,8 +32,6 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(long))] // Used for expiry deserialization in GetResult
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
-#nullable enable
-
         private static SystemTextJsonSerializer? _defaultTypeSerializer;
 
         public static SystemTextJsonSerializer DefaultTypeSerializer
