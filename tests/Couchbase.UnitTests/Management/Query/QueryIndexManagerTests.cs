@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             var serializer = new DefaultSerializer();
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
                 new Redactor(new TypedRedactor(RedactionLevel.None)));
@@ -260,7 +260,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             var serializer = new DefaultSerializer();
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             return new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
                 new Redactor(new TypedRedactor(RedactionLevel.None)));

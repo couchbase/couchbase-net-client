@@ -932,14 +932,15 @@ namespace Couchbase.Query
         /// Gets the JSON representation of this query for execution in an HTTP POST.
         /// </summary>
         /// <returns>The <see cref="HttpContent"/>.</returns>
-        internal HttpContent GetRequestBody(ITypeSerializer serializer)
+        internal HttpContent GetRequestBody(ITypeSerializer serializer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider)
         {
             var formValues = CreateDto(serializer);
 
             var stream = new MemoryStream(1024);
             try
             {
-                InternalSerializationContext.SerializeWithFallback(stream, formValues, QuerySerializerContext.Default.QueryOptionsDto);
+                InternalSerializationContext.SerializeWithFallback(stream, formValues, QuerySerializerContext.Default.QueryOptionsDto,
+                    fallbackTypeSerializerProvider);
                 stream.Position = 0;
 
                 return new StreamContent(stream)

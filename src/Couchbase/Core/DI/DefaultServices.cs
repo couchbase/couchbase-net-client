@@ -8,7 +8,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
@@ -17,7 +16,6 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
-using Couchbase.Core.Sharding;
 using Couchbase.Core.Version;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -90,6 +88,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(ICompressionAlgorithm), new SingletonServiceFactory(typeof(NullCompressionAlgorithm)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(DefaultSerializer.Instance));
+            yield return (typeof(IFallbackTypeSerializerProvider), new SingletonServiceFactory(DefaultFallbackTypeSerializerProvider.Instance));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(
                 // Using the lambda approach avoids rooting all constructors of JsonTranscoder by SingletonServiceFactory

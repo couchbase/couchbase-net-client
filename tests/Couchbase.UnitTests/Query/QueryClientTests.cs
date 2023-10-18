@@ -65,7 +65,7 @@ namespace Couchbase.UnitTests.Query
 
                 var serializer = new DefaultSerializer();
                 var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                    new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                    NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
                 try
                 {
@@ -111,7 +111,7 @@ namespace Couchbase.UnitTests.Query
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(false);
 
@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Query
             var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
 
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, primarySerializer.Object,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync<object>("SELECT * FROM `default`",
                 new QueryOptions
@@ -177,7 +177,7 @@ namespace Couchbase.UnitTests.Query
                 .Returns(new Uri("http://localhost:8093"));
 
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             Assert.False(client.EnhancedPreparedStatementsEnabled);
         }
@@ -197,7 +197,7 @@ namespace Couchbase.UnitTests.Query
                 .Returns(new Uri("http://localhost:8093"));
 
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
             Assert.False(client.EnhancedPreparedStatementsEnabled);
 
             var clusterCapabilities = new ClusterCapabilities
@@ -230,7 +230,7 @@ namespace Couchbase.UnitTests.Query
                 .Returns(new Uri("http://localhost:8093"));
 
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
             Assert.False(client.UseReplicaEnabled);
 
             var clusterCapabilities = new ClusterCapabilities

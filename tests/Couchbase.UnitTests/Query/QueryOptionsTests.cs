@@ -218,7 +218,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer(systemTextJson));
+            using var content = options.GetRequestBody(GetSerializer(systemTextJson), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -249,7 +249,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer(systemTextJson));
+            using var content = options.GetRequestBody(GetSerializer(systemTextJson), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -272,7 +272,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -289,7 +289,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -306,7 +306,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -323,7 +323,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -340,7 +340,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -357,7 +357,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -386,7 +386,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            using var content = options.GetRequestBody(GetSerializer());
+            using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
 
             // Assert
 
@@ -414,7 +414,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act
 
-            var content = options.GetRequestBody(GetSerializer());
+            var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
             var values = await ExtractValuesAsync(content);
 
             // Assert

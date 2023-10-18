@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
@@ -134,7 +135,7 @@ namespace Couchbase.UnitTests.KeyValue
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
-                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object, NullFallbackTypeSerializerProvider.Instance,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -153,7 +154,7 @@ namespace Couchbase.UnitTests.KeyValue
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
-                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object, NullFallbackTypeSerializerProvider.Instance,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -172,7 +173,7 @@ namespace Couchbase.UnitTests.KeyValue
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
-                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object, NullFallbackTypeSerializerProvider.Instance,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -191,7 +192,7 @@ namespace Couchbase.UnitTests.KeyValue
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
-                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object, NullFallbackTypeSerializerProvider.Instance,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,

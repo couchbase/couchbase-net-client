@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -13,6 +12,7 @@ using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -34,6 +34,7 @@ namespace Couchbase.Query
             SystemTextJsonSerializer.Create(QuerySerializerContext.Default);
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
+        private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
         internal bool EnhancedPreparedStatementsEnabled;
@@ -43,14 +44,39 @@ namespace Couchbase.Query
             ICouchbaseHttpClientFactory clientFactory,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer serializer,
+            IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             ILogger<QueryClient> logger,
             IRequestTracer tracer)
             : base(clientFactory)
         {
-            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (serviceUriProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceUriProvider));
+            }
+            if (serializer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serializer));
+            }
+            if (fallbackTypeSerializerProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(fallbackTypeSerializerProvider));
+            }
+            if (logger is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(logger));
+            }
+            if (tracer is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(tracer));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
+            _serviceUriProvider = serviceUriProvider;
+            _serializer = serializer;
+            _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider;
+            _logger = logger;
+            _tracer = tracer;
         }
 
         /// <inheritdoc />
@@ -175,7 +201,7 @@ namespace Couchbase.Query
 
             span.WithRemoteAddress(queryUri);
             using var encodingSpan = span.EncodingSpan();
-            using var content = options.GetRequestBody(serializer);
+            using var content = options.GetRequestBody(serializer, _fallbackTypeSerializerProvider);
             encodingSpan.Dispose();
 
             _logger.LogDebug("Sending query {contextId} to node {endpoint}.", options.CurrentContextId, queryUri);

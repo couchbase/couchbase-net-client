@@ -76,7 +76,9 @@ namespace Couchbase.Core
         }
 
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
-        public static void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+        public static void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value,
+            System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo,
+            IFallbackTypeSerializerProvider fallbackTypeSerializerProvider)
         {
             try
             {
@@ -86,8 +88,12 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Couchbase.Core.IO.Serializers.DefaultSerializer.Instance.Serialize(stream, value);
-                    return;
+                    var fallbackSerializer = fallbackTypeSerializerProvider.Serializer;
+                    if (fallbackSerializer is not null)
+                    {
+                        fallbackSerializer.Serialize(stream, value);
+                        return;
+                    }
                 }
                 catch (Exception)
                 {

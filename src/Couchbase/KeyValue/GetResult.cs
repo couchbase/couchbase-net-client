@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Couchbase.Core;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -22,21 +23,22 @@ namespace Couchbase.KeyValue
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer? _serializer;
         private readonly ILogger<GetResult> _logger;
+        private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly ResponseStatus _status;
         private bool _isParsed;
         private TimeSpan? _expiry;
         private DateTime? _expiryTime;
 
         internal GetResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder,
-            ILogger<GetResult> logger,
+            ILogger<GetResult> logger, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             ResponseStatus status, List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
-            : this(contentBytes, transcoder, logger, specs, projectList)
+            : this(contentBytes, transcoder, logger, fallbackTypeSerializerProvider, specs, projectList)
         {
             _status = status;
         }
 
         internal GetResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
-            List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
+            IFallbackTypeSerializerProvider fallbackTypeSerializerProvider, List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
         {
             if (transcoder == null)
             {
@@ -46,11 +48,16 @@ namespace Couchbase.KeyValue
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(logger));
             }
+            if (fallbackTypeSerializerProvider == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(fallbackTypeSerializerProvider));
+            }
 
             _contentBytes = contentBytes;
             _transcoder = transcoder;
             _serializer = transcoder.Serializer;
             _logger = logger;
+            _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider;
             _specs = specs ?? (IList<LookupInSpec>) Array.Empty<LookupInSpec>();
             _projectList = projectList;
         }
@@ -231,10 +238,21 @@ namespace Couchbase.KeyValue
                 ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
             }
 
-            // Fallback to default if the custom deserializer doesn't implement IProjectableTypeDeserializer
-            return _serializer is IProjectableTypeDeserializer projectableTypeDeserializer
-                ? projectableTypeDeserializer.CreateProjectionBuilder(_logger)
-                : DefaultSerializer.Instance.CreateProjectionBuilder(_logger);
+            if (_serializer is IProjectableTypeDeserializer projectableTypeDeserializer)
+            {
+                return projectableTypeDeserializer.CreateProjectionBuilder(_logger);
+            }
+
+            // Fallback to default if the deserializer is a custom version that doesn't implement IProjectableTypeDeserializer.
+            // For the typical case this will be the DefaultSerializer, but it could be unsupported if the SDK is running
+            // in a slim mode to support trimming. In this case IFallbackTypeSerializerProvider.Serializer will return null.
+            if (_fallbackTypeSerializerProvider.Serializer is IProjectableTypeDeserializer projectableTypeDeserializer2)
+            {
+                return projectableTypeDeserializer2.CreateProjectionBuilder(_logger);
+            }
+
+            ThrowHelper.ThrowInvalidOperationException("The ITypeSerializer must implement IProjectableTypeDeserializer to support projection.");
+            return null!; // unreachable
         }
 
 #region Finalization and Dispose

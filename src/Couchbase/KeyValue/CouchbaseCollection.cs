@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -15,6 +14,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
@@ -36,6 +36,7 @@ namespace Couchbase.KeyValue
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
         private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder(InternalSerializationContext.DefaultTypeSerializer);
+        private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private Lazy<Task<uint?>>? GetCidLazyRetry = null;
         private Lazy<Task<uint?>>? GetCidLazyNoRetry = null;
 
@@ -44,7 +45,8 @@ namespace Couchbase.KeyValue
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            string name, IScope scope, IRequestTracer tracer, IServiceProvider serviceProvider)
+            string name, IScope scope, IRequestTracer tracer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
+            IServiceProvider serviceProvider)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
@@ -55,6 +57,8 @@ namespace Couchbase.KeyValue
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _tracer = tracer;
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider ?? throw new ArgumentNullException(nameof(fallbackTypeSerializerProvider));
+
             IsDefaultCollection = scope.IsDefaultScope && name == DefaultCollectionName;
             if (_bucket.CurrentConfig != null)
             {
@@ -220,7 +224,7 @@ namespace Couchbase.KeyValue
                 using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getOp);
                 var status = await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
 
-                var result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, status)
+                var result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider, status)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -269,7 +273,7 @@ namespace Couchbase.KeyValue
                     specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
             rootSpan.WithOperationId(lookupOp);
-            return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
+            return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider, specs, projectList)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,
@@ -571,7 +575,7 @@ namespace Couchbase.KeyValue
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndTouchOp);
             await _bucket.RetryAsync(getAndTouchOp, ctp.TokenPair).ConfigureAwait(false);
 
-            return new  GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger)
+            return new  GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
                 Id = getAndTouchOp.Key,
                 Cas = getAndTouchOp.Cas,
@@ -613,7 +617,7 @@ namespace Couchbase.KeyValue
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndLockOp);
             await _bucket.RetryAsync(getAndLockOp, ctp.TokenPair).ConfigureAwait(false);
-            return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger)
+            return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
                 Id = getAndLockOp.Key,
                 Cas = getAndLockOp.Cas,
@@ -1181,7 +1185,7 @@ namespace Couchbase.KeyValue
             using var ctp =
                 CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp);
             await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+            return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,
@@ -1216,7 +1220,7 @@ namespace Couchbase.KeyValue
             using var ctp =
                 CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp);
             await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+            return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,

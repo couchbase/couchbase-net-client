@@ -16,6 +16,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -334,6 +335,7 @@ namespace Couchbase.UnitTests.KeyValue
                 CouchbaseCollection.DefaultCollectionName,
                 Mock.Of<IScope>(),
                 new NoopRequestTracer(),
+                NullFallbackTypeSerializerProvider.Instance,
                 new Mock<IServiceProvider>().Object);
         }
     }

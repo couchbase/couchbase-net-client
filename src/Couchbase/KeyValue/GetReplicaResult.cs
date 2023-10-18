@@ -1,4 +1,5 @@
 using System.Buffers;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -12,8 +13,8 @@ namespace Couchbase.KeyValue
         public bool IsActive { get; internal set; }
 
         public GetReplicaResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder,
-            ILogger<GetResult> logger)
-            : base(in contentBytes, transcoder, logger)
+            ILogger<GetResult> logger, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider)
+            : base(in contentBytes, transcoder, logger, fallbackTypeSerializerProvider)
         { }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
@@ -19,22 +20,26 @@ namespace Couchbase.Core.DI
         private readonly ILogger<GetResult> _getLogger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
+        private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly IServiceProvider _serviceProvider;
 
         public CollectionFactory(IOperationConfigurator operationConfigurator, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer, IServiceProvider serviceProvider)
+            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
+            IServiceProvider serviceProvider)
         {
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider ?? throw new ArgumentNullException(nameof(fallbackTypeSerializerProvider));
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
         /// <inheritdoc />
         public ICouchbaseCollection Create(BucketBase bucket, IScope scope, string name) =>
-            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer, _serviceProvider);
+            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer,
+                _fallbackTypeSerializerProvider, _serviceProvider);
     }
 }
 
