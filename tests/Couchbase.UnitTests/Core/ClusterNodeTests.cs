@@ -62,7 +62,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async void External_Cancellation_Is_Not_TimeoutException()
         {
-            var clusterNode = MockClusterNode("default");
+            using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: cancelled, internalToken: CancellationToken.None));
@@ -77,7 +77,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async void Internal_Cancellation_Is_TimeoutException()
         {
-            var clusterNode = MockClusterNode("default");
+            using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: CancellationToken.None, internalToken: cancelled));
@@ -92,10 +92,10 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public void Test_ClusterNodeCollection()
         {
-            var clusterNode1 = MockClusterNode("default1", "localhost1");
-            var clusterNode2 = MockClusterNode("default2", "localhost2");
-            var clusterNode3 = MockClusterNode("default1", "localhost1");
-            var clusterNode4 = MockClusterNode("default2", "localhost2");
+            using var clusterNode1 = MockClusterNode("default1", "localhost1");
+            using var clusterNode2 = MockClusterNode("default2", "localhost2");
+            using var clusterNode3 = MockClusterNode("default1", "localhost1");
+            using var clusterNode4 = MockClusterNode("default2", "localhost2");
 
             var nodes = new ClusterNodeCollection();
             nodes.Add(clusterNode3);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -23,6 +24,7 @@ using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Configuration;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
@@ -54,7 +56,7 @@ namespace Couchbase.Core
         private readonly string _remoteHostName;
         private string _bucketName = "CLUSTER";
         private IBucket _owner;
-        private readonly SemaphoreSlim _configLock = new(1, 1);
+        private readonly ConfigPushHandler _configPushHandler;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -68,6 +70,7 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
+            _configPushHandler = new ConfigPushHandler(this, context, logger);
             EndPoint = endPoint;
 
             try
@@ -400,7 +403,7 @@ namespace Couchbase.Core
             await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<BucketConfig> GetClusterMap(ConfigVersion ?configVersion)
+        public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
             using var configOp = new Config
@@ -417,10 +420,10 @@ namespace Couchbase.Core
             //the server will try to dedup the config revision because the rev and epoch already
             //exists. Since this is a bucket bootstrap we must force the config because we want
             //a new config that shows bucket level details.
-            if (configVersion.HasValue && ServerFeatures.GetClusterConfigWithKnownVersion)
+            if (latestVersionOnClient.HasValue && ServerFeatures.GetClusterConfigWithKnownVersion)
             {
-                configOp.Epoch = configVersion.Value.Epoch;
-                configOp.Revision = configVersion.Value.Revision;
+                configOp.Epoch = latestVersionOnClient.Value.Epoch;
+                configOp.Revision = latestVersionOnClient.Value.Revision;
             }
 
             using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
@@ -734,7 +737,7 @@ namespace Couchbase.Core
 
                 //Callback for the case where the server sends a CMCN to the client; this is raised in the
                 //MultiplexingConnection when it detects that the request has come from the server.
-                connection.OnClusterMapChangeNotification += async operationResponse =>
+                connection.OnClusterMapChangeNotification += operationResponse =>
                 {
                     BucketConfig bucketConfig = null;
                     using (operationResponse)
@@ -744,26 +747,10 @@ namespace Couchbase.Core
 
                         if (clusterMapChangeNotificationOp.HasExtras)
                         {
+                            // dump the configVersion into a background, single-threaded LIFO queue
+                            // to limit the performance impact of a swarm of push notifications.
                             var configVersion = clusterMapChangeNotificationOp.GetConfigVersion;
-                            try
-                            {
-                                using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
-                                await _configLock.WaitAsync(cts.Token).ConfigureAwait(false);
-                                if (configVersion > NodesAdapter.ConfigVersion)
-                                    try
-                                    {
-                                        bucketConfig = await GetClusterMap(configVersion).ConfigureAwait(false);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        _logger.LogWarning(LoggingEvents.ConfigEvent, e,
-                                            "Issue getting Cluster Map on server {Server}!", EndPoint);
-                                    }
-                            }
-                            finally
-                            {
-                                _configLock.Release(1);
-                            }
+                            _configPushHandler.ProcessConfigPush(configVersion);
                         }
                         else
                         {
@@ -912,6 +899,7 @@ namespace Couchbase.Core
             _disposed = true;
 
             LogDispose(_redactor.SystemData(EndPoint));
+            _configPushHandler?.Dispose();
             ConnectionPool?.Dispose();
         }
 

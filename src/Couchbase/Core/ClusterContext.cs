@@ -724,6 +724,7 @@ namespace Couchbase.Core
         private readonly SemaphoreSlim _configMutex = new(1, 1);
         public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
+            _logger.LogDebug("ProcessClusterMap: {0} - {1}", bucket.Name, config.ConfigVersion);
             using var cts = new CancellationTokenSource();
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
 
