@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
+  </ItemGroup>
+
+
+  <PropertyGroup>
+    <ProtostellarRepoBase>$(RepoRoot)\submodules\protostellar</ProtostellarRepoBase>
+    <ProtoAdditionalImports>$(RepoRoot)\src\Couchbase.Stellar\deps\googleapis</ProtoAdditionalImports>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="$(RepoRoot)\src\Couchbase.Stellar\deps\googleapis\google\rpc\status.proto" ProtoRoot="$(RepoRoot)\src\Couchbase.Stellar\deps\googleapis" GrpcServices="Client" Link="$(RepoRoot)\src\Couchbase.Stellar\deps\googleapis\google\rpc\status.proto" />
+    <!-- this pulls in all the SN proto files with a wildcard, to catch any that have been added -->
+    <Protobuf Include="$(ProtostellarRepoBase)\couchbase\**\*.proto" ProtoRoot="$(ProtostellarRepoBase)" GrpcServices="Client" AdditionalImportDirs="$(ProtoAdditionalImports)" />
+
+    <!-- duplicate imports covered by the wildcard, but file-by-file, to show them nicely in the IDE -->
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\search\v1\search.proto">
+      <Link>proto\couchbase\v1\search.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\query\v1\query.proto">
+      <Link>proto\couchbase\v1\query.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\kv\v1\kv.proto">
+      <Link>proto\couchbase\v1\kv.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\view\v1\view.proto">
+      <Link>proto\couchbase\v1\view.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\transactions\v1\transactions.proto">
+      <Link>proto\couchbase\v1\transactions.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\analytics\v1\analytics.proto">
+      <Link>proto\couchbase\v1\analytics.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\routing\v1\routing.proto">
+      <Link>proto\couchbase\v1\routing.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\admin\bucket\v1\bucket.proto">
+      <Link>proto\couchbase\v1\admin\bucket.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\admin\collection\v1\collection.proto">
+      <Link>proto\couchbase\v1\admin\collection.proto</Link>
+    </Protobuf>
+    <Protobuf Update="..\..\submodules\protostellar\couchbase\internal\hooks\v1\hooks.proto">
+      <Link>proto\couchbase\v1\internal\hooks.proto</Link>
+    </Protobuf>
+    <Protobuf Remove="..\..\submodules\protostellar\couchbase\admin\query\v1\**" />
+  </ItemGroup>
+
+</Project>

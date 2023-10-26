@@ -37,6 +37,11 @@
     <SdkTestTargets Condition="$([MSBuild]::IsOSPlatform('Windows'))">net48;$(SdkTestTargets)</SdkTestTargets>
   </PropertyGroup>
 
+  <!--For Couchbase.Stellar gRPC Protos-->
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)src\Couchbase\couchbase.png" Pack="true" PackagePath="\">
       <Visible>false</Visible>

@@ -29,7 +29,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
-		src\Shared\IsExternalInit.cs = src\Shared\IsExternalInit.cs
 		Packages.props = Packages.props
 	EndProjectSection
 EndProject
@@ -50,6 +49,54 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Tests.UnitTests", "tests\Couchbase.Transactions.Tests.UnitTests\Couchbase.Transactions.Tests.UnitTests.csproj", "{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Tests.IntegrationTests", "tests\Couchbase.Transactions.Tests.IntegrationTests\Couchbase.Transactions.Tests.IntegrationTests.csproj", "{386877D9-B1C0-4E74-A969-99E4CAC9FD63}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.NetClient", "src\Couchbase.NetClient\Couchbase.NetClient.csproj", "{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "protostellar", "protostellar", "{1D3544F8-F7BD-492B-9E96-FF45AEFFE113}"
+	ProjectSection(SolutionItems) = preProject
+		src\Shared\protostellar\.DS_Store = src\Shared\protostellar\.DS_Store
+		src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.rev = src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.rev
+		src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.pack = src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.pack
+		src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.idx = src\Shared\protostellar\.git\objects\pack\pack-81d0de4969b93c05b2d601a44415cb2a041bbda3.idx
+		src\Shared\protostellar\.git\objects\e6\e405757c37f86af8725ba8ad398baba53110c4 = src\Shared\protostellar\.git\objects\e6\e405757c37f86af8725ba8ad398baba53110c4
+		src\Shared\protostellar\.git\HEAD = src\Shared\protostellar\.git\HEAD
+		src\Shared\protostellar\.git\info\exclude = src\Shared\protostellar\.git\info\exclude
+		src\Shared\protostellar\.git\logs\HEAD = src\Shared\protostellar\.git\logs\HEAD
+		src\Shared\protostellar\.git\logs\refs\heads\master = src\Shared\protostellar\.git\logs\refs\heads\master
+		src\Shared\protostellar\.git\logs\refs\remotes\origin\HEAD = src\Shared\protostellar\.git\logs\refs\remotes\origin\HEAD
+		src\Shared\protostellar\.git\logs\refs\remotes\origin\master = src\Shared\protostellar\.git\logs\refs\remotes\origin\master
+		src\Shared\protostellar\.git\hooks\pre-rebase.sample = src\Shared\protostellar\.git\hooks\pre-rebase.sample
+		src\Shared\protostellar\.git\hooks\sendemail-validate.sample = src\Shared\protostellar\.git\hooks\sendemail-validate.sample
+		src\Shared\protostellar\.git\hooks\pre-commit.sample = src\Shared\protostellar\.git\hooks\pre-commit.sample
+		src\Shared\protostellar\.git\hooks\fsmonitor-watchman.sample = src\Shared\protostellar\.git\hooks\fsmonitor-watchman.sample
+		src\Shared\protostellar\.git\hooks\pre-receive.sample = src\Shared\protostellar\.git\hooks\pre-receive.sample
+		src\Shared\protostellar\.git\hooks\prepare-commit-msg.sample = src\Shared\protostellar\.git\hooks\prepare-commit-msg.sample
+		src\Shared\protostellar\.git\hooks\post-update.sample = src\Shared\protostellar\.git\hooks\post-update.sample
+		src\Shared\protostellar\.git\hooks\pre-merge-commit.sample = src\Shared\protostellar\.git\hooks\pre-merge-commit.sample
+		src\Shared\protostellar\.git\hooks\pre-applypatch.sample = src\Shared\protostellar\.git\hooks\pre-applypatch.sample
+		src\Shared\protostellar\.git\hooks\pre-push.sample = src\Shared\protostellar\.git\hooks\pre-push.sample
+		src\Shared\protostellar\.git\hooks\update.sample = src\Shared\protostellar\.git\hooks\update.sample
+		src\Shared\protostellar\.git\hooks\push-to-checkout.sample = src\Shared\protostellar\.git\hooks\push-to-checkout.sample
+		src\Shared\protostellar\.git\refs\heads\master = src\Shared\protostellar\.git\refs\heads\master
+		src\Shared\protostellar\.git\refs\remotes\origin\HEAD = src\Shared\protostellar\.git\refs\remotes\origin\HEAD
+		src\Shared\protostellar\.git\refs\remotes\origin\master = src\Shared\protostellar\.git\refs\remotes\origin\master
+		src\Shared\protostellar\.git\index = src\Shared\protostellar\.git\index
+		src\Shared\protostellar\.git\packed-refs = src\Shared\protostellar\.git\packed-refs
+		src\Shared\protostellar\.git\FETCH_HEAD = src\Shared\protostellar\.git\FETCH_HEAD
+		src\Shared\protostellar\couchbase\kv\v1\kv.proto = src\Shared\protostellar\couchbase\kv\v1\kv.proto
+		src\Shared\protostellar\couchbase\admin\search\v1\search.proto = src\Shared\protostellar\couchbase\admin\search\v1\search.proto
+		src\Shared\protostellar\couchbase\admin\query\v1\query.proto = src\Shared\protostellar\couchbase\admin\query\v1\query.proto
+		src\Shared\protostellar\couchbase\internal\hooks\v1\hooks.proto = src\Shared\protostellar\couchbase\internal\hooks\v1\hooks.proto
+		src\Shared\protostellar\couchbase\search\v1\search.proto = src\Shared\protostellar\couchbase\search\v1\search.proto
+		src\Shared\protostellar\couchbase\transactions\v1\transactions.proto = src\Shared\protostellar\couchbase\transactions\v1\transactions.proto
+		src\Shared\protostellar\couchbase\view\v1\view.proto = src\Shared\protostellar\couchbase\view\v1\view.proto
+		src\Shared\protostellar\couchbase\routing\v1\routing.proto = src\Shared\protostellar\couchbase\routing\v1\routing.proto
+		src\Shared\protostellar\couchbase\query\v1\query.proto = src\Shared\protostellar\couchbase\query\v1\query.proto
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar", "src\Couchbase.Stellar\Couchbase.Stellar.csproj", "{7889E6BE-EBEF-417A-83EA-4C1986DDD224}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CodeGen", "src\Couchbase.Stellar.CodeGen\Couchbase.Stellar.CodeGen.csproj", "{3B222CDA-F8D9-436B-B195-8170A953344B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -117,12 +164,24 @@ Global
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B222CDA-F8D9-436B-B195-8170A953344B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{890E919A-1BC9-43D7-85D4-33272E38E3EA} = {182DB62D-2E6B-4AFB-820F-4F50FC3F2D3A}
+		{1D3544F8-F7BD-492B-9E96-FF45AEFFE113} = {182DB62D-2E6B-4AFB-820F-4F50FC3F2D3A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9420B334-74E0-4C6F-9193-55072A6B9D05}
