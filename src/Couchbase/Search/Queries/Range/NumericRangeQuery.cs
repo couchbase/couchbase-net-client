@@ -13,7 +13,7 @@ namespace Couchbase.Search.Queries.Range
         private double? _min;
         private bool _minInclusive = true;
         private double? _max;
-        private bool _maxInclusive;
+        private bool _maxInclusive = true;
         private string _field;
 
         /// <summary>
@@ -30,12 +30,12 @@ namespace Couchbase.Search.Queries.Range
         }
 
         /// <summary>
-        /// The higher end of the range, exclusive by default.
+        /// The higher end of the range, inclusive by default.
         /// </summary>
         /// <param name="max">The maximum.</param>
         /// <param name="inclusive">if set to <c>true</c> [inclusive].</param>
         /// <returns></returns>
-        public NumericRangeQuery Max(double max, bool inclusive = false)
+        public NumericRangeQuery Max(double max, bool inclusive = true)
         {
             _max = max;
             _maxInclusive = inclusive;

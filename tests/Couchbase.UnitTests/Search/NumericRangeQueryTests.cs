@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.Search
                 min = 1.0,
                 inclusive_min = true,
                 max = 10.0,
-                inclusive_max = false,
+                inclusive_max = true,
                 field = "field"
             }, Formatting.None);
 
@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.Search
                 min = 1.0,
                 inclusive_min = true,
                 max = 10.0,
-                inclusive_max = false
+                inclusive_max = true
             }, Formatting.None);
 
             Assert.Equal(expected, query.Export().ToString(Formatting.None));
