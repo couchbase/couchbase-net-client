@@ -8,6 +8,7 @@ namespace Couchbase.Management.Query
 {
     public class CreateQueryIndexOptions
     {
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal bool IgnoreIfExistsValue { get; set; }
         internal bool DeferredValue { get; set; }
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
@@ -60,6 +61,30 @@ namespace Couchbase.Management.Query
         }
 
         public static CreateQueryIndexOptions Default => new CreateQueryIndexOptions();
+
+        public void Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext)
+        {
+            ignoreIfExistsValue = IgnoreIfExistsValue;
+            deferredValue = DeferredValue;
+            tokenValue = TokenValue;
+            scopeNameValue = ScopeNameValue;
+            collectionNameValue = CollectionNameValue;
+            queryContext = QueryContext;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext);
+            return new ReadOnly(ignoreIfExistsValue, deferredValue, tokenValue, scopeNameValue, collectionNameValue, queryContext);
+        }
+
+        public record ReadOnly(
+            bool IgnoreIfExistsValue,
+            bool DeferredValue,
+            CancellationToken TokenValue,
+            string? ScopeNameValue,
+            string? CollectionNameValue,
+            string? QueryContext);
     }
 }
 

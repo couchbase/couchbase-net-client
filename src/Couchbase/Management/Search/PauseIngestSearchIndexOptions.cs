@@ -6,6 +6,7 @@ namespace Couchbase.Management.Search
 {
     public class PauseIngestSearchIndexOptions
     {
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal CancellationToken TokenValue { get; set; }
 
         public PauseIngestSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
@@ -15,6 +16,18 @@ namespace Couchbase.Management.Search
         }
 
         public static PauseIngestSearchIndexOptions Default => new PauseIngestSearchIndexOptions();
+
+        public void Deconstruct(out CancellationToken tokenValue)
+        {
+            tokenValue = TokenValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out CancellationToken tokenValue);
+            return new ReadOnly(tokenValue);
+        }
+        public record ReadOnly(CancellationToken TokenValue);
     }
 }
 

@@ -8,6 +8,7 @@ namespace Couchbase.Management.Query
 {
     public class WatchQueryIndexOptions
     {
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal bool WatchPrimaryValue { get; set; }
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
         internal string? ScopeNameValue { get; set; }
@@ -54,6 +55,28 @@ namespace Couchbase.Management.Query
         }
 
         public static WatchQueryIndexOptions Default => new WatchQueryIndexOptions();
+
+        public void Deconstruct(out bool watchPrimaryValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext)
+        {
+            watchPrimaryValue = WatchPrimaryValue;
+            tokenValue = TokenValue;
+            scopeNameValue = ScopeNameValue;
+            collectionNameValue = CollectionNameValue;
+            queryContext = QueryContext;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out bool watchPrimaryValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext);
+            return new ReadOnly(watchPrimaryValue, tokenValue, scopeNameValue, collectionNameValue, queryContext);
+        }
+
+        public record ReadOnly(
+            bool WatchPrimaryValue,
+            CancellationToken TokenValue,
+            string? ScopeNameValue,
+            string? CollectionNameValue,
+            string? QueryContext);
     }
 }
 
