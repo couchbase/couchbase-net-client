@@ -1,5 +1,3 @@
-﻿using Couchbase.Stellar.CouchbaseClient;
-
 namespace Couchbase.Stellar;
 
 public class StellarClient

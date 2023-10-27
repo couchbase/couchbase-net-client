@@ -6,18 +6,21 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Google.Protobuf" />
-    <PackageReference Include="Grpc.Net.Client" />
-    <PackageReference Include="Grpc.Net.ClientFactory" />
-    <!--<PackageReference Include="Grpc.Tools">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>-->
-  </ItemGroup>
-  
+    <ItemGroup>
+      <PackageReference Include="Google.Protobuf" />
+      <PackageReference Include="Grpc.Net.Client" />
+      <PackageReference Include="Grpc.Net.ClientFactory" />
+      <!--<PackageReference Include="Grpc.Tools">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>-->
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
     </ItemGroup>
+
+
+
 
 </Project>

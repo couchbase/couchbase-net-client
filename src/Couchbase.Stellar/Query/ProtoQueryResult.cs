@@ -2,10 +2,11 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
+using Couchbase.Stellar.Core;
 using Google.Protobuf.Collections;
 using Grpc.Core;
 
-namespace Couchbase.Stellar.CouchbaseClient;
+namespace Couchbase.Stellar.Query;
 
 internal class ProtoQueryResult<T> : IQueryResult<T>
 {

@@ -4,7 +4,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Analytics.V1;
 using Grpc.Core;
 
-namespace Couchbase.Stellar.CouchbaseClient;
+namespace Couchbase.Stellar.Analytics;
 
 public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
 {

@@ -2,6 +2,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
+using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Util;
 using DateRangeFacet = Couchbase.Search.DateRangeFacet;
 using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
@@ -9,7 +10,7 @@ using TermFacet = Couchbase.Search.TermFacet;
 
 
 #nullable enable
-namespace Couchbase.Stellar.CouchbaseClient
+namespace Couchbase.Stellar.Search
 {
     public class ProtoSearchClient
     {
@@ -95,7 +96,7 @@ namespace Couchbase.Stellar.CouchbaseClient
 
             switch (couchbaseQuery)
             {
-                case Search.Queries.Simple.BooleanFieldQuery query:
+                case Couchbase.Search.Queries.Simple.BooleanFieldQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.BooleanFieldQuery = new Couchbase.Protostellar.Search.V1.BooleanFieldQuery
@@ -106,7 +107,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Field != null) protoQuery.BooleanFieldQuery.Field = coreQuery.Field;
                 }
                     break;
-                case Search.Queries.Compound.BooleanQuery query:
+                case Couchbase.Search.Queries.Compound.BooleanQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     //--------Declare and Initialise the 3 compound queries--------
@@ -141,7 +142,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     };
                 }
                     break;
-                case Search.Queries.Compound.ConjunctionQuery query:
+                case Couchbase.Search.Queries.Compound.ConjunctionQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.ConjunctionQuery = new Couchbase.Protostellar.Search.V1.ConjunctionQuery
@@ -157,7 +158,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     }
                 }
                     break;
-                case Search.Queries.Compound.DisjunctionQuery query:
+                case Couchbase.Search.Queries.Compound.DisjunctionQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.DisjunctionQuery = new Couchbase.Protostellar.Search.V1.DisjunctionQuery
@@ -174,7 +175,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     }
                 }
                     break;
-                case Search.Queries.Range.DateRangeQuery query:
+                case Couchbase.Search.Queries.Range.DateRangeQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.DateRangeQuery = new Couchbase.Protostellar.Search.V1.DateRangeQuery
@@ -189,7 +190,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.EndTime != null) protoQuery.DateRangeQuery.EndDate = coreQuery.EndTime.ToString();
                 }
                     break;
-                case Search.Queries.Range.NumericRangeQuery query:
+                case Couchbase.Search.Queries.Range.NumericRangeQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.NumericRangeQuery = new Couchbase.Protostellar.Search.V1.NumericRangeQuery
@@ -209,7 +210,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Min != null) protoQuery.NumericRangeQuery.Max = (float)coreQuery.Min;
                 }
                     break;
-                case Search.Queries.Range.TermRangeQuery query:
+                case Couchbase.Search.Queries.Range.TermRangeQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.TermRangeQuery = new Couchbase.Protostellar.Search.V1.TermRangeQuery
@@ -223,7 +224,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Max != null) protoQuery.TermRangeQuery.Max = coreQuery.Max;
                 }
                     break;
-                case Search.Queries.Simple.TermQuery query:
+                case Couchbase.Search.Queries.Simple.TermQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.TermQuery = new Couchbase.Protostellar.Search.V1.TermQuery
@@ -236,7 +237,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Term != null) protoQuery.TermQuery.Term = coreQuery.Term;
                 }
                     break;
-                case Search.Queries.Geo.GeoDistanceQuery query:
+                case Couchbase.Search.Queries.Geo.GeoDistanceQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.GeoDistanceQuery = new Couchbase.Protostellar.Search.V1.GeoDistanceQuery
@@ -252,7 +253,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     };
                 }
                     break;
-                case Search.Queries.Geo.GeoPolygonQuery query:
+                case Couchbase.Search.Queries.Geo.GeoPolygonQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.GeoPolygonQuery = new Couchbase.Protostellar.Search.V1.GeoPolygonQuery
@@ -273,7 +274,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     }
                 }
                     break;
-                case Search.Queries.Geo.GeoBoundingBoxQuery query:
+                case Couchbase.Search.Queries.Geo.GeoBoundingBoxQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.GeoBoundingBoxQuery = new Couchbase.Protostellar.Search.V1.GeoBoundingBoxQuery
@@ -294,7 +295,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Field != null) protoQuery.GeoBoundingBoxQuery.Field = coreQuery.Field;
                 }
                     break;
-                case Search.Queries.Simple.DocIdQuery query:
+                case Couchbase.Search.Queries.Simple.DocIdQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.DocIdQuery = new Couchbase.Protostellar.Search.V1.DocIdQuery
@@ -304,7 +305,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.DocIds != null) protoQuery.DocIdQuery.Ids.AddRange(coreQuery.DocIds);
                 }
                     break;
-                case Search.Queries.Simple.WildcardQuery query:
+                case Couchbase.Search.Queries.Simple.WildcardQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.WildcardQuery = new Couchbase.Protostellar.Search.V1.WildcardQuery
@@ -315,7 +316,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.WildCard != null) protoQuery.WildcardQuery.Wildcard = coreQuery.WildCard;
                 }
                     break;
-                case Search.Queries.Simple.PhraseQuery query:
+                case Couchbase.Search.Queries.Simple.PhraseQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.PhraseQuery = new Couchbase.Protostellar.Search.V1.PhraseQuery
@@ -326,7 +327,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Terms != null) protoQuery.PhraseQuery.Terms.AddRange(coreQuery.Terms);
                 }
                     break;
-                case Search.Queries.Simple.PrefixQuery query:
+                case Couchbase.Search.Queries.Simple.PrefixQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.PrefixQuery = new Couchbase.Protostellar.Search.V1.PrefixQuery
@@ -337,7 +338,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Prefix != null) protoQuery.PrefixQuery.Prefix = coreQuery.Prefix;
                 }
                     break;
-                case Search.Queries.Simple.QueryStringQuery query:
+                case Couchbase.Search.Queries.Simple.QueryStringQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.QueryStringQuery = new Couchbase.Protostellar.Search.V1.QueryStringQuery
@@ -347,7 +348,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Query != null) protoQuery.QueryStringQuery.QueryString = coreQuery.Query;
                 }
                     break;
-                case Search.Queries.Simple.RegexpQuery query:
+                case Couchbase.Search.Queries.Simple.RegexpQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.RegexpQuery = new Couchbase.Protostellar.Search.V1.RegexpQuery
@@ -358,13 +359,13 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Regex != null) protoQuery.RegexpQuery.Regexp = coreQuery.Regex;
                 }
                     break;
-                case Search.Queries.Simple.MatchAllQuery:
+                case Couchbase.Search.Queries.Simple.MatchAllQuery:
                     protoQuery.MatchAllQuery = new Couchbase.Protostellar.Search.V1.MatchAllQuery();
                     break;
-                case Search.Queries.Simple.MatchNoneQuery:
+                case Couchbase.Search.Queries.Simple.MatchNoneQuery:
                     protoQuery.MatchNoneQuery = new Couchbase.Protostellar.Search.V1.MatchNoneQuery();
                     break;
-                case Search.Queries.Simple.MatchPhraseQuery query:
+                case Couchbase.Search.Queries.Simple.MatchPhraseQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.MatchPhraseQuery = new Couchbase.Protostellar.Search.V1.MatchPhraseQuery
@@ -376,7 +377,7 @@ namespace Couchbase.Stellar.CouchbaseClient
                     if (coreQuery.Field != null) protoQuery.MatchPhraseQuery.Field = coreQuery.Field;
                 }
                     break;
-                case Search.Queries.Simple.MatchQuery query:
+                case Couchbase.Search.Queries.Simple.MatchQuery query:
                 {
                     var coreQuery = query.AsReadOnly();
                     protoQuery.MatchQuery = new Couchbase.Protostellar.Search.V1.MatchQuery

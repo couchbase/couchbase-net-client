@@ -1,5 +1,3 @@
-using System;
-
 namespace Couchbase.Stellar.Util;
 
 internal static class DateTimeExtensions

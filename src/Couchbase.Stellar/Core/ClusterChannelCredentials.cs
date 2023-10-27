@@ -1,6 +1,6 @@
 using Grpc.Core;
 
-namespace Couchbase.Stellar.CouchbaseClient;
+namespace Couchbase.Stellar.Core;
 
 internal class ClusterChannelCredentials : ChannelCredentials
 {

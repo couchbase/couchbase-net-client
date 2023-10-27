@@ -6,7 +6,7 @@ using Grpc.Core;
 using DateRange = Couchbase.Search.DateRange;
 using NumericRange = Couchbase.Search.NumericRange;
 
-namespace Couchbase.Stellar.CouchbaseClient;
+namespace Couchbase.Stellar.Search;
 
 public class ProtoSearchDataMapper
 {

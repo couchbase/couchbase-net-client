@@ -3,17 +3,18 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.KV.V1;
-using Couchbase.Stellar.CouchbaseClient;
+using Couchbase.Stellar.Core;
+using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using LookupInRequest = Couchbase.Protostellar.KV.V1.LookupInRequest;
 using MutateInRequest = Couchbase.Protostellar.KV.V1.MutateInRequest;
 using MutationToken = Couchbase.Core.MutationToken;
 
-namespace Couchbase.Stellar.CouchbaseClient
+namespace Couchbase.Stellar.KeyValue
 {
-    internal record ExistsResult(bool Exists, ulong Cas) : KeyValue.IExistsResult;
-    internal record MutationResult(ulong Cas, TimeSpan? Expiry) : KeyValue.IMutationResult
+    internal record ExistsResult(bool Exists, ulong Cas) : Couchbase.KeyValue.IExistsResult;
+    internal record MutationResult(ulong Cas, TimeSpan? Expiry) : Couchbase.KeyValue.IMutationResult
     {
         private MutationToken _mutationToken = MutationToken.Empty;
         public MutationToken MutationToken
@@ -23,14 +24,14 @@ namespace Couchbase.Stellar.CouchbaseClient
         }
     }
 
-    internal record GetResult(DateTime? ExpiryTime, ulong Cas, GrpcContentWrapper GrpcContentWrapper) : KeyValue.IGetResult
+    internal record GetResult(DateTime? ExpiryTime, ulong Cas, GrpcContentWrapper GrpcContentWrapper) : Couchbase.KeyValue.IGetResult
     {
         public TimeSpan? Expiry => null;
         public T? ContentAs<T>() => GrpcContentWrapper.ContentAs<T>();
         public void Dispose() { }
     }
 
-    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeSerializer Serializer) : KeyValue.ILookupInResult
+    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeSerializer Serializer) : Couchbase.KeyValue.ILookupInResult
     {
         internal static readonly ReadOnlyMemory<byte> RawTrue = Encoding.ASCII.GetBytes("true");
         internal static readonly ReadOnlyMemory<byte> RawFalse = Encoding.ASCII.GetBytes("false");

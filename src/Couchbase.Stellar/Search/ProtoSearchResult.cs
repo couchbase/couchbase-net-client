@@ -1,11 +1,11 @@
 using System.Collections;
-using Newtonsoft.Json;
 using Couchbase.Core.Retry;
 using Couchbase.Search;
+using Newtonsoft.Json;
 
-namespace Couchbase.Stellar.CouchbaseClient;
+namespace Couchbase.Stellar.Search;
 
-public class ProtoSearchResult : Search.ISearchResult, IDisposable
+public class ProtoSearchResult : ISearchResult, IDisposable
 {
     internal ProtoSearchResult()
     {
