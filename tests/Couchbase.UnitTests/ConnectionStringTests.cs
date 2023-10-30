@@ -9,6 +9,9 @@ namespace Couchbase.UnitTests
         [InlineData("couchbase://,localhost")]
         [InlineData("couchbase://localhost,")]
         [InlineData("couchbase://localhost1,,localhost")]
+        [InlineData("couchbase2://localhost,")]
+        [InlineData("couchbase2://,localhost")]
+        [InlineData("couchbase2//localhost1,,localhost")]
         public void Empty_Host_Throws_ArgumentNullException(string connectionString)
         {
             Assert.Throws<ArgumentNullException>(() => ConnectionString.Parse(connectionString));
@@ -27,6 +30,13 @@ namespace Couchbase.UnitTests
         [InlineData("couchbase://localhost:10012", false)]
         [InlineData("couchbases://localhost:10012", false)]
         [InlineData("http://localhost:10012", false)]
+
+        //protostellar
+        [InlineData("couchbase2://localhost", true)]
+        // multiple hosts not allowed
+        [InlineData("couchbase2://localhost,localhost2", false)]
+        // specified port not allowed
+        [InlineData("couchbase2://localhost:10012", false)]
         public void IsValidDnsSrv_IsExpectedResult(string connStr, bool expected)
         {
             var connectionString = ConnectionString.Parse(connStr);
@@ -50,6 +60,12 @@ namespace Couchbase.UnitTests
         [InlineData("couchbases://localhost:10012")]
         [InlineData("http://localhost:10012")]
         [InlineData("couchbase://username@localhost?param=value")]
+        //Protostellar schema
+        [InlineData("couchbase2://localhost")]
+        [InlineData("couchbase2://localhost?param=value")]
+        [InlineData("couchbase2://localhost,localhost2")]
+        [InlineData("couchbase2://localhost:10012")]
+        [InlineData("couchbase2://username@localhost?param=value")]
         public void ToString_ExpectedResult(string input)
         {
             // Arrange
@@ -137,6 +153,8 @@ namespace Couchbase.UnitTests
         [InlineData("")]
         [InlineData("couchbase://")]
         [InlineData("couchbases://")]
+        //Protostellar
+        [InlineData("couchbase2://")]
         public void Test_Null_Hosts_in_Connection_String(string cstring)
         {
             Assert.Throws<ArgumentException>(() => ConnectionString.Parse(cstring));

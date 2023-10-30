@@ -80,6 +80,9 @@ namespace Couchbase
                     case "http":
                         connectionString.Scheme = Scheme.Http;
                         break;
+                    case "couchbase2":
+                        connectionString.Scheme = Scheme.Couchbase2;
+                        break;
                     default:
                         throw new ArgumentException($"Unknown scheme {match.Groups["scheme"].Value}");
                 }
@@ -150,7 +153,7 @@ namespace Couchbase
             {
                 return true;
             }
-            if (Scheme != Scheme.Couchbase && Scheme != Scheme.Couchbases)
+            if (Scheme != Scheme.Couchbase && Scheme != Scheme.Couchbases && Scheme != Scheme.Couchbase2)
             {
                 return false;
             }
@@ -243,6 +246,7 @@ namespace Couchbase
             {
                 Scheme.Couchbase => "couchbase://",
                 Scheme.Couchbases => "couchbases://",
+                Scheme.Couchbase2 => "couchbase2://",
                 _ => "http://"
             });
 
@@ -293,10 +297,26 @@ namespace Couchbase
 
     internal enum Scheme
     {
+        /// <summary>
+        /// Standard on-premise couchbase clusters.
+        /// </summary>
         Http,
+
+        /// <summary>
+        /// For on-premise clusters.
+        /// </summary>
         Couchbase,
+
+        /// <summary>
+        /// For TLS/SSL on-premise and Capella clusters.
+        /// </summary>
         // ReSharper disable once IdentifierTypo
-        Couchbases
+        Couchbases,
+
+        /// <summary>
+        /// For Cloud Native Gateway (CNG).
+        /// </summary>
+        Couchbase2
     }
 }
 
