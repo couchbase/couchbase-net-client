@@ -3,6 +3,8 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
+using Couchbase.Core;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -81,8 +83,8 @@ namespace Couchbase.KeyValue
                 var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
                 if (spec != null)
                 {
-                    // Always use our default serializer, it provides consistent behavior and is guaranteed to not be null
-                    var ms = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
+                    // Always use System.Text.Json, it provides consistent behavior and is guaranteed to not be null
+                    var ms = JsonSerializer.Deserialize(spec.Bytes.Span, InternalSerializationContext.Default.Int64);
                     _expiry = TimeSpan.FromMilliseconds(ms);
                 }
 
@@ -108,8 +110,8 @@ namespace Couchbase.KeyValue
                 var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
                 if (spec != null)
                 {
-                    // Always use our default serializer, it provides consistent behavior and is guaranteed to not be null
-                    var secondsUntilExpiry = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
+                    // Always use System.Text.Json, it provides consistent behavior and is guaranteed to not be null
+                    var secondsUntilExpiry = JsonSerializer.Deserialize(spec.Bytes.Span, InternalSerializationContext.Default.Int64);
                     if (secondsUntilExpiry == 0)
                     {
                         return DateTime.MaxValue;

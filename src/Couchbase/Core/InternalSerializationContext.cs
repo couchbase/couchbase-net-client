@@ -24,6 +24,7 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(Exceptions.Analytics.AnalyticsErrorContext))]
     [JsonSerializable(typeof(Exceptions.Search.SearchErrorContext))]
     [JsonSerializable(typeof(Exceptions.View.ViewContextError))]
+    [JsonSerializable(typeof(long))] // Used for expiry deserialization in GetResult
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
 #nullable enable
