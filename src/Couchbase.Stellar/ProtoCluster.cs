@@ -16,8 +16,8 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core;
-using Couchbase.Stellar.Management;
 using Couchbase.Stellar.Management.Buckets;
+using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Query;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
@@ -31,6 +31,7 @@ internal class ProtoCluster : ICluster
 {
     private readonly string _connectionString;
     private readonly ProtoBucketManager _bucketManager;
+    private readonly ProtoQueryIndexManager _protoQueryIndexManager;
     private readonly QueryService.QueryServiceClient _queryClient;
     private readonly ProtoAnalyticsClient _analyticsClient;
     private readonly ProtoSearchClient _searchClient;
@@ -100,6 +101,7 @@ internal class ProtoCluster : ICluster
         _metaData = new Metadata();
         _analyticsClient = new ProtoAnalyticsClient(this);
         _searchClient = new ProtoSearchClient(this);
+        _protoQueryIndexManager = new ProtoQueryIndexManager(this);
 
         if (this.ChannelCredentials.BasicAuthHeader != null)
         {
@@ -117,7 +119,7 @@ internal class ProtoCluster : ICluster
 
     public IServiceProvider ClusterServices => throw new NotImplementedException();
 
-    public IQueryIndexManager QueryIndexes => throw new NotImplementedException();
+    public IQueryIndexManager QueryIndexes => _protoQueryIndexManager;
 
     public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
 

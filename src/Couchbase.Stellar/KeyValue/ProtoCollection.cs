@@ -5,6 +5,7 @@ using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Query;
 using Couchbase.Protostellar.KV.V1;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Util;
 using Couchbase.Utils;
 using Google.Protobuf;
@@ -26,6 +27,7 @@ namespace Couchbase.Stellar.KeyValue;
 
 internal class ProtoCollection : ICouchbaseCollection
 {
+    private readonly ProtoCollectionQueryIndexManager _protoCollectionQueryIndexes;
     private readonly ProtoScope _protoScope;
     private readonly ProtoCluster _protoCluster;
     private readonly KvService.KvServiceClient _kvClient;
@@ -35,6 +37,8 @@ internal class ProtoCollection : ICouchbaseCollection
     public ProtoCollection(string collectionName, ProtoScope protoScope, ProtoCluster protoCluster)
     {
         Name = collectionName;
+        _protoCollectionQueryIndexes =
+            new ProtoCollectionQueryIndexManager(protoCluster.QueryIndexes, _bucketName, _scopeName, Name);
         _protoScope = protoScope;
         _protoCluster = protoCluster;
         _kvClient = new KvService.KvServiceClient(_protoCluster.GrpcChannel);

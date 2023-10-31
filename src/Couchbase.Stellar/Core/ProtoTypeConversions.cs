@@ -2,6 +2,7 @@
 
 using Couchbase.Analytics;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
@@ -151,6 +152,14 @@ internal static class TypeConversionExtensions
         MatchOperator.And => MatchQuery.Types.Operator.And,
         MatchOperator.Or => MatchQuery.Types.Operator.Or,
         _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a valid MatchOperator: {matchOperator}")
+    };
+
+    //TODO: Might not be needed
+    public static Couchbase.Management.Views.IndexType ToCore(this IndexType indexType) => indexType switch
+    {
+        IndexType.Gsi => Couchbase.Management.Views.IndexType.Gsi,
+        IndexType.View => Couchbase.Management.Views.IndexType.View,
+        _ => throw new ArgumentOutOfRangeException()
     };
 
     public static ProtoLookupInFlags ToProtoLookupInFlags(this CoreKv.SubdocPathFlags subdocPathFlags) =>

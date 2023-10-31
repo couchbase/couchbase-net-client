@@ -17,6 +17,7 @@ internal class ProtoQueryResult<T> : IQueryResult<T>
     {
         _streamingQueryResponse = streamingQueryResponse;
         _serializer = serializer;
+        MetaData = new QueryMetaData();
     }
     public void Dispose()
     {
@@ -28,17 +29,18 @@ internal class ProtoQueryResult<T> : IQueryResult<T>
         var responseStream = _streamingQueryResponse.ResponseStream;
         while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
         {
-            var responseMetaData = responseStream.Current.MetaData;
-
-            MetaData = new QueryMetaData();
-            if (responseMetaData.HasProfile) MetaData.Profile = responseMetaData.Profile;
-            if (responseMetaData.Metrics != null) MetaData.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
-            if (responseMetaData.Profile != null) MetaData.Profile = responseMetaData.Profile.ToStringUtf8();
-            if (responseMetaData.Signature != null) MetaData.Signature = responseMetaData.Signature.ToStringUtf8();
-            if (responseMetaData.Warnings != null) MetaData.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
-            if (responseMetaData.RequestId != null) MetaData.RequestId = responseMetaData.RequestId;
-            if (responseMetaData.ClientContextId != null) MetaData.ClientContextId = responseMetaData.ClientContextId;
-            MetaData.Status = responseMetaData.Status.ToCoreStatus();
+            if (responseStream.Current.MetaData != null)
+            {
+                var responseMetaData = responseStream.Current.MetaData;
+                if (responseMetaData.HasProfile) MetaData.Profile = responseMetaData.Profile;
+                if (responseMetaData.Metrics != null) MetaData.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
+                if (responseMetaData.Profile != null) MetaData.Profile = responseMetaData.Profile.ToStringUtf8();
+                if (responseMetaData.Signature != null) MetaData.Signature = responseMetaData.Signature.ToStringUtf8();
+                if (responseMetaData.Warnings != null) MetaData.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
+                if (responseMetaData.RequestId != null) MetaData.RequestId = responseMetaData.RequestId;
+                if (responseMetaData.ClientContextId != null) MetaData.ClientContextId = responseMetaData.ClientContextId;
+                MetaData.Status = responseMetaData.Status.ToCoreStatus();
+            }
 
             foreach (var queryResponse in responseStream.Current.Rows)
             {
