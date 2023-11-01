@@ -9,6 +9,7 @@ namespace Couchbase.Management.Buckets
 {
     public class GetBucketOptions
     {
+        public static ReadOnly DefaultReadOnly => Default.AsReadOnly();
         internal CancellationToken TokenValue { get; set; } = new CancellationTokenSource(ClusterOptions.Default.ManagementTimeout).Token;
 
         /// <summary>
@@ -36,6 +37,19 @@ namespace Couchbase.Management.Buckets
         }
 
         public static GetBucketOptions Default => new GetBucketOptions();
+
+        public void Deconstruct(out CancellationToken tokenValue)
+        {
+            tokenValue = TokenValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out CancellationToken tokenvalue);
+            return new ReadOnly(tokenvalue);
+        }
+
+        public record ReadOnly(CancellationToken CancellationToken);
     }
 }
 
