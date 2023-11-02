@@ -116,6 +116,34 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             Assert.NotNull(result3);
         }
 
+        [Fact]
+        public void Deserialize_BoundarySurrogatePair_Success()
+        {
+            // Arrange
+
+            var sb = new StringBuilder(1100);
+            sb.Append('a', 1019);
+
+            // Hex code D83E must show up in the character position 1022 in the output buffer. (Output buffer length 1024)
+            // This causes Utf8MemoryReader's _decoder.Convert to return a character read length of 1022 instead of 1023 since D83E is a high surrogate half.
+            for (var i = 0; i < 5; i++)
+            {
+                sb.Append("\ud83e\udd3a");
+            }
+
+            var str = sb.ToString();
+            var jsonStr = JsonConvert.SerializeObject(str);
+            var bytes = new UTF8Encoding(false).GetBytes(jsonStr);
+
+            // Act
+
+            var result = DefaultSerializer.Instance.Deserialize<string>(bytes);
+
+            // Assert
+
+            Assert.Equal(str, result);
+        }
+
         #endregion
 
         #region Deserialize With ICustomObjectCreator

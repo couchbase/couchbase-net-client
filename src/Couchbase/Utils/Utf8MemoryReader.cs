@@ -13,6 +13,7 @@ namespace Couchbase.Utils
 
         private readonly Decoder _decoder;
         private ReadOnlyMemory<byte> _memory;
+        private char? _holdoverCharacter;
 
         public Utf8MemoryReader()
         {
@@ -28,6 +29,7 @@ namespace Couchbase.Utils
         {
             _memory = buffer;
             _decoder.Reset();
+            _holdoverCharacter = null;
         }
 
         public override
@@ -46,26 +48,92 @@ namespace Couchbase.Utils
                 ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
             }
 
-            if (_memory.Length == 0 || count == 0)
+            if (count == 0)
             {
                 return 0;
+            }
+
+            var charsRead = 0;
+            if (_holdoverCharacter != null)
+            {
+                buffer[index] = _holdoverCharacter.Value;
+                _holdoverCharacter = null;
+                index += 1;
+                charsRead = 1;
+            }
+
+            if (_memory.Length == 0 || charsRead >= count)
+            {
+                return charsRead;
             }
 
             var span = _memory.Span;
 
 #if SPAN_SUPPORT
             var destination = buffer.AsSpan(index, count);
-            _decoder.Convert(span, destination, false, out var bytesRead, out var charsRead, out _);
+            _decoder.Convert(span, destination, false, out var bytesRead, out var converterCharsRead, out var completed);
+            charsRead += converterCharsRead;
+
+            if (charsRead < count && !completed)
+            {
+                // We have encountered a surrogate pair along the boundary. Newtonsoft.Json will just request another read with
+                // an insufficient buffer size. Instead we need to read the entire surrogate pair and give back the partial
+                // surrogate pair.
+
+                Span<char> tempBuffer = stackalloc char[2];
+
+                _decoder.Convert(span.Slice(bytesRead), tempBuffer, false, out var tempBytesRead, out converterCharsRead,
+                    out completed);
+                bytesRead += tempBytesRead;
+
+                if (converterCharsRead > 0)
+                {
+                    buffer[charsRead] = tempBuffer[0];
+                    charsRead++;
+                }
+                if (converterCharsRead == 2)
+                {
+                    _holdoverCharacter = tempBuffer[1];
+                }
+            }
 #else
             int bytesRead;
-            int charsRead;
 
             fixed (char* destinationChars = &buffer[index])
             {
                 fixed (byte* sourceBytes = &MemoryMarshal.GetReference(span))
                 {
                     _decoder.Convert(sourceBytes, span.Length, destinationChars, count, false,
-                        out bytesRead, out charsRead, out _);
+                        out bytesRead, out var converterCharsRead, out var completed);
+                    charsRead += converterCharsRead;
+
+                    if (charsRead < count && !completed)
+                    {
+                        // We have encountered a surrogate pair along the boundary. Newtonsoft.Json will just request another read with
+                        // an insufficient buffer size. Instead we need to read the entire surrogate pair and give back the partial
+                        // surrogate pair.
+
+                        // This is a rare case so we don't retain this small buffer for reuse
+                        var tempBuffer = new char[2];
+
+                        fixed (char* tempBufferChars = &tempBuffer[0])
+                        {
+                            _decoder.Convert(sourceBytes + bytesRead, span.Length - bytesRead, tempBufferChars, tempBuffer.Length, false,
+                                out var tempBytesRead, out converterCharsRead, out completed);
+                            bytesRead += tempBytesRead;
+
+                            if (converterCharsRead > 0)
+                            {
+                                buffer[charsRead] = tempBuffer[0];
+                                charsRead++;
+                            }
+
+                            if (converterCharsRead == 2)
+                            {
+                                _holdoverCharacter = tempBuffer[1];
+                            }
+                        }
+                    }
                 }
             }
 #endif
