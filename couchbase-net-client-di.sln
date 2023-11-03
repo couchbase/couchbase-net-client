@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase", "src\Couchbase\Couchbase.csproj", "{5B20865D-B88E-4AC6-B583-DEAF02248604}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Extensions.DependencyInjection", "src\Couchbase.Extensions.DependencyInjection\Couchbase.Extensions.DependencyInjection.csproj", "{DCCC2184-7291-4453-A735-8FB39C357D67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Extensions.DependencyInjection.UnitTests", "tests\Couchbase.Extensions.DependencyInjection.UnitTests\Couchbase.Extensions.DependencyInjection.UnitTests.csproj", "{F4F2A871-49B4-4F04-84FB-1E02DC64BD6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5B20865D-B88E-4AC6-B583-DEAF02248604}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B20865D-B88E-4AC6-B583-DEAF02248604}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B20865D-B88E-4AC6-B583-DEAF02248604}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B20865D-B88E-4AC6-B583-DEAF02248604}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCCC2184-7291-4453-A735-8FB39C357D67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCCC2184-7291-4453-A735-8FB39C357D67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCCC2184-7291-4453-A735-8FB39C357D67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCCC2184-7291-4453-A735-8FB39C357D67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4F2A871-49B4-4F04-84FB-1E02DC64BD6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4F2A871-49B4-4F04-84FB-1E02DC64BD6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4F2A871-49B4-4F04-84FB-1E02DC64BD6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4F2A871-49B4-4F04-84FB-1E02DC64BD6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

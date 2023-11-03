@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CodeGen", "src\Couchbase.Stellar.CodeGen\Couchbase.Stellar.CodeGen.csproj", "{174DDE1F-1DE2-45AF-AFCA-77D94B417717}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar", "src\Couchbase.Stellar\Couchbase.Stellar.csproj", "{AE540BFE-F9B2-435D-B8CB-B75FF2F7541A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase", "src\Couchbase\Couchbase.csproj", "{4F3A94A6-8896-497A-A88B-3E6AB3928767}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{174DDE1F-1DE2-45AF-AFCA-77D94B417717}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{174DDE1F-1DE2-45AF-AFCA-77D94B417717}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{174DDE1F-1DE2-45AF-AFCA-77D94B417717}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{174DDE1F-1DE2-45AF-AFCA-77D94B417717}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE540BFE-F9B2-435D-B8CB-B75FF2F7541A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE540BFE-F9B2-435D-B8CB-B75FF2F7541A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE540BFE-F9B2-435D-B8CB-B75FF2F7541A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE540BFE-F9B2-435D-B8CB-B75FF2F7541A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F3A94A6-8896-497A-A88B-3E6AB3928767}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F3A94A6-8896-497A-A88B-3E6AB3928767}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F3A94A6-8896-497A-A88B-3E6AB3928767}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F3A94A6-8896-497A-A88B-3E6AB3928767}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
