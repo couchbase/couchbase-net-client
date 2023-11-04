@@ -320,6 +320,7 @@ namespace Couchbase.Core
 
             try
             {
+                bool bootstrappedFromDnsSrv = false;
                 if (ClusterOptions.ConnectionStringValue.IsValidDnsSrv())
                 {
                     try
@@ -341,6 +342,7 @@ namespace Couchbase.Core
                                 $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
                             ClusterOptions.ConnectionStringValue =
                                 new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true, bootstrapUri);
+                            bootstrappedFromDnsSrv = true;
                         }
                         else
                         {
@@ -378,9 +380,10 @@ namespace Couchbase.Core
                         //If we are using alt addresses, we likely bootstrapped with a
                         //non-alt port, thus this node cannot be reused. We need to use
                         //the alt-address, so we will recreate this node.
-                        if (GlobalConfig.UseAlternateAddresses)
+                        if (bootstrappedFromDnsSrv)
                         {
-                            node.Dispose()
+                            node.Dispose();
+                            node = null;
 ;                       }
                         else
                         {
@@ -424,7 +427,7 @@ namespace Couchbase.Core
                             _logger.LogInformation(nodeAdapter.ToString());
 
                             var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                            if (server.Equals(hostEndpoint)) //this is the bootstrap node so update
+                            if (server.Equals(hostEndpoint) && node != null) //this is the bootstrap node so update
                             {
                                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
                                     _redactor.SystemData(hostEndpoint.ToString()));
