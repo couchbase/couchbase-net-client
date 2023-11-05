@@ -380,7 +380,7 @@ namespace Couchbase.Core
                         //If we are using alt addresses, we likely bootstrapped with a
                         //non-alt port, thus this node cannot be reused. We need to use
                         //the alt-address, so we will recreate this node.
-                        if (bootstrappedFromDnsSrv)
+                        if (bootstrappedFromDnsSrv && GlobalConfig.UseAlternateAddresses)
                         {
                             node.Dispose();
                             node = null;
