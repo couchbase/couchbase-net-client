@@ -98,7 +98,7 @@ namespace Couchbase.IntegrationTests.Fixtures
 
         public async Task InitializeAsync()
         {
-            Cluster = await Couchbase.Cluster.ConnectAsync(
+            Cluster = await NetClient.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     ClusterOptions)
                 .ConfigureAwait(false);

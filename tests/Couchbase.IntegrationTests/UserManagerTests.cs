@@ -172,14 +172,14 @@ namespace Couchbase.IntegrationTests
             try
             {
                 var disposableConnection =
-                    await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword).ConfigureAwait(false);
+                    await NetClient.Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword).ConfigureAwait(false);
                 var disposableUserManager = disposableConnection.Users;
                 await disposableUserManager.ChangeUserPasswordAsync(newPassword).ConfigureAwait(false);
 
-                var exception = await Record.ExceptionAsync(() => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, newPassword));
+                var exception = await Record.ExceptionAsync(() => NetClient.Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, newPassword));
                 Assert.Null(exception);
 
-                await Assert.ThrowsAsync<AuthenticationFailureException>( () => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword));
+                await Assert.ThrowsAsync<AuthenticationFailureException>( () => NetClient.Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword));
             }
             finally
             {

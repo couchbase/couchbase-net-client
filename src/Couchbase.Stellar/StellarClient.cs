@@ -28,7 +28,7 @@ public class StellarClient
         }
 
         clusterOptions.ConnectionString = connectionString;
-        var classicCluster = await Cluster.ConnectAsync(connectionString, clusterOptions).ConfigureAwait(false);
+        var classicCluster = await NetClient.Cluster.ConnectAsync(connectionString, clusterOptions).ConfigureAwait(false);
         return classicCluster;
 
     }

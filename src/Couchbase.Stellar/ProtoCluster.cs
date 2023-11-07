@@ -27,7 +27,7 @@ using Grpc.Net.Client;
 
 namespace Couchbase.Stellar;
 
-internal class ProtoCluster : ICluster
+public class ProtoCluster : ICluster
 {
     private readonly string _connectionString;
     private readonly ProtoBucketManager _bucketManager;
@@ -38,8 +38,7 @@ internal class ProtoCluster : ICluster
     private readonly Metadata _metaData;
     private ClusterChannelCredentials ChannelCredentials { get; }
 
-
-    internal ProtoCluster(ClusterOptions clusterOptions)
+    public ProtoCluster(ClusterOptions clusterOptions)
     {
         _connectionString = clusterOptions.ConnectionString ?? throw new ArgumentNullException(nameof(clusterOptions.ConnectionString));
         var uriBuilder = new UriBuilder(_connectionString);
@@ -107,6 +106,11 @@ internal class ProtoCluster : ICluster
         {
             _metaData.Add("Authorization", this.ChannelCredentials.BasicAuthHeader);
         }
+    }
+
+    public static async Task<ICluster> ConnectAsync(ClusterOptions options)
+    {
+        return new ProtoCluster(options);
     }
 
     internal IRequestTracer RequestTracer { get; }

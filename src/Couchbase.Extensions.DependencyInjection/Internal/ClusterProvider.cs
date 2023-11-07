@@ -37,7 +37,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         /// </summary>
         protected virtual Task<ICluster> CreateClusterAsync(ClusterOptions clusterOptions)
         {
-            return Cluster.ConnectAsync(clusterOptions);
+            return NetClient.Cluster.ConnectAsync(clusterOptions);
         }
 
         public void Dispose()

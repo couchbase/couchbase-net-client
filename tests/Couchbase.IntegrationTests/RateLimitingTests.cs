@@ -56,7 +56,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -94,7 +94,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -132,7 +132,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -172,7 +172,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -181,7 +181,7 @@ namespace Couchbase.IntegrationTests
                 var bucket = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
                 await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
 
-                var cluster2 = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster2 = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -244,7 +244,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -279,7 +279,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -309,7 +309,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -347,7 +347,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -388,7 +388,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -426,7 +426,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -502,7 +502,7 @@ namespace Couchbase.IntegrationTests
                     Params = _defaultSearchParams
                 });
 
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -567,7 +567,7 @@ namespace Couchbase.IntegrationTests
                     Params = _defaultSearchParams
                 });
 
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -649,7 +649,7 @@ namespace Couchbase.IntegrationTests
                     Params = _defaultSearchParams
                 });
 
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,
@@ -714,7 +714,7 @@ namespace Couchbase.IntegrationTests
                     Params = _defaultSearchParams
                 });
 
-                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                var cluster = await NetClient.Cluster.ConnectAsync(_connectionString, new ClusterOptions()
                 {
                     UserName = username,
                     Password = RlPassword,

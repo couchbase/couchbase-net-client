@@ -100,6 +100,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CodeGen",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CombinationTests", "tests\Couchbase.Stellar.CombinationTests\Couchbase.Stellar.CombinationTests.csproj", "{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.NetClient.CombinationTests", "tests\Couchbase.NetClient.CombinationTests\Couchbase.NetClient.CombinationTests.csproj", "{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -181,6 +183,10 @@ Global
 		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

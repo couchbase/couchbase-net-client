@@ -1,3 +1,5 @@
+using Couchbase.NetClient;
+
 namespace Couchbase.Diagnostics
 {
     /// <summary>

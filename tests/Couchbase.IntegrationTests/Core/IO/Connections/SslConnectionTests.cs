@@ -92,7 +92,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                         FindValue = findByValue
                     });;
 
-                var cluster = await Cluster.ConnectAsync(_fixture.GetClusterOptions().ConnectionString, _fixture.GetClusterOptions());
+                var cluster = await NetClient.Cluster.ConnectAsync(_fixture.GetClusterOptions().ConnectionString, _fixture.GetClusterOptions());
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
                 var bucket = await cluster.BucketAsync("default");
                 var key = Guid.NewGuid().ToString();

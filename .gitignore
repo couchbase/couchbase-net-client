@@ -20,3 +20,5 @@ local.config
 Couchbase.snk
 *.nupkg
 BenchmarkDotNet.Artifacts/
+*/.DS_Store
+.DS_Store

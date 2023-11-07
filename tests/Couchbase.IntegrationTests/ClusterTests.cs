@@ -177,7 +177,7 @@ namespace Couchbase.IntegrationTests
                 loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
                 opts.WithLogging(loggerFactory);
 
-                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var cluster = await NetClient.Cluster.ConnectAsync("couchbases://" + endpoint, opts);
 
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(49));
                 var bucket = await cluster.BucketAsync(bucketName);
