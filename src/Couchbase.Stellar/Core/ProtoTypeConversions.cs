@@ -1,5 +1,8 @@
 using Couchbase.Analytics;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Management.Buckets;
+using Couchbase.Protostellar.Admin.Bucket.V1;
+using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
@@ -7,6 +10,9 @@ using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
+using BucketType = Couchbase.Protostellar.Admin.Bucket.V1.BucketType;
+using CompressionMode = Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode;
+using ConflictResolutionType = Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType;
 using CoreKv = Couchbase.KeyValue;
 using CoreQuery = Couchbase.Query;
 using CoreOpCode = Couchbase.Core.IO.Operations.OpCode;
@@ -17,6 +23,7 @@ using ProtoLookupInOpCode = Couchbase.Protostellar.KV.V1.LookupInRequest.Types.S
 using ProtoLookupInFlags = Couchbase.Protostellar.KV.V1.LookupInRequest.Types.Spec.Types.Flags;
 using ProtoMutateInOpCode = Couchbase.Protostellar.KV.V1.MutateInRequest.Types.Spec.Types.Operation;
 using ProtoMutateInFlags = Couchbase.Protostellar.KV.V1.MutateInRequest.Types.Spec.Types.Flags;
+using StorageBackend = Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend;
 
 namespace Couchbase.Stellar.Core;
 
@@ -62,7 +69,7 @@ internal static class TypeConversionExtensions
             CoreOpCode.SubGet => ProtoLookupInOpCode.Get,
             CoreOpCode.SubGetCount => ProtoLookupInOpCode.Count,
             CoreOpCode.SubExist => ProtoLookupInOpCode.Exists,
-            _ => throw new ArgumentOutOfRangeException(paramName: nameof(opCode), message: $"Not a valid LookupIn op code: {opCode}" )
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(opCode), message: $"Not a supported LookupIn op code: {opCode}" )
         };
 
     public static ProtoMutateInOpCode ToProtoMutateInCode(this CoreOpCode opCode) =>
@@ -82,7 +89,7 @@ internal static class TypeConversionExtensions
             CoreOpCode.SubArrayInsert => ProtoMutateInOpCode.ArrayInsert,
             CoreOpCode.SubDelete => ProtoMutateInOpCode.Remove,
             _ => throw new ArgumentOutOfRangeException(paramName: nameof(opCode),
-                message: $"Not a valid MutateIn op code: {opCode}")
+                message: $"Not a supported MutateIn op code: {opCode}")
         };
 
     public static bool TryConvertScanConsistency(AnalyticsScanConsistency? analyticsScanConsistency,
@@ -108,7 +115,7 @@ internal static class TypeConversionExtensions
         {
             AnalyticsScanConsistency.NotBounded => AnalyticsQueryRequest.Types.ScanConsistency.NotBounded,
             AnalyticsScanConsistency.RequestPlus => AnalyticsQueryRequest.Types.ScanConsistency.RequestPlus,
-            _ => throw new ArgumentOutOfRangeException(paramName: nameof(scanConsistency), message: $"Not a valid ScanConsistency: {scanConsistency}" )
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(scanConsistency), message: $"Not a supported ScanConsistency: {scanConsistency}" )
         };
 
     public static CoreQuery.QueryStatus ToCoreStatus(
@@ -125,7 +132,7 @@ internal static class TypeConversionExtensions
         ProtoQuery.QueryResponse.Types.MetaData.Types.Status.Fatal => CoreQuery.QueryStatus.Fatal,
         ProtoQuery.QueryResponse.Types.MetaData.Types.Status.Unknown => CoreQuery.QueryStatus.Fatal,
         _ => throw new ArgumentOutOfRangeException(paramName: nameof(queryStatus),
-            message: $"Not a valid QueryStatus: {queryStatus}")
+            message: $"Not a supported QueryStatus: {queryStatus}")
     };
 
     public static SearchQueryRequest.Types.ScanConsistency ToProto(this SearchScanConsistency scanConsistency) =>
@@ -133,7 +140,7 @@ internal static class TypeConversionExtensions
         {
             SearchScanConsistency.NotBounded => SearchQueryRequest.Types.ScanConsistency.NotBounded,
             _ => throw new ArgumentOutOfRangeException(paramName: nameof(scanConsistency),
-                message: $"Not a valid SearchScanConsistency: {scanConsistency}")
+                message: $"Not a supported SearchScanConsistency: {scanConsistency}")
         };
 
     public static SearchQueryRequest.Types.HighlightStyle ToProto(this HighLightStyle highLightStyle) =>
@@ -143,20 +150,78 @@ internal static class TypeConversionExtensions
             HighLightStyle.Html => SearchQueryRequest.Types.HighlightStyle.Html,
             HighLightStyle.None => SearchQueryRequest.Types.HighlightStyle.Default,
             _ => throw new ArgumentOutOfRangeException(paramName: nameof(highLightStyle),
-                message: $"Not a valid HighLightStyle: {highLightStyle}")
+                message: $"Not a supported HighLightStyle: {highLightStyle}")
         };
 
     public static MatchQuery.Types.Operator ToProto(this MatchOperator matchOperator) => matchOperator switch
     {
         MatchOperator.And => MatchQuery.Types.Operator.And,
         MatchOperator.Or => MatchQuery.Types.Operator.Or,
-        _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a valid MatchOperator: {matchOperator}")
+        _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a supported MatchOperator: {matchOperator}")
     };
 
     public static Dictionary<string, dynamic> ToCore(this MapField<string, ByteString> protoParams)
     {
         return protoParams.ToDictionary(kvp => kvp.Key, kvp => (dynamic)kvp.Value.ToStringUtf8()); //TODO: Is this the best way to return this? Cast a string into "dynamic"?
     }
+
+    public static Couchbase.Management.Buckets.CompressionMode ToCore(this CompressionMode compressionMode) =>
+        compressionMode switch
+        {
+            CompressionMode.Active => Couchbase.Management.Buckets.CompressionMode.Active,
+            CompressionMode.Passive => Couchbase.Management.Buckets.CompressionMode.Passive,
+            CompressionMode.Off => Couchbase.Management.Buckets.CompressionMode.Off,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(compressionMode),
+                message: $"Not a supported CompressionMode: {compressionMode}")
+        };
+
+    public static Couchbase.Management.Buckets.EvictionPolicyType ToCore(this EvictionMode evictionMode) =>
+        evictionMode switch
+        {
+            EvictionMode.Full => EvictionPolicyType.FullEviction,
+            EvictionMode.ValueOnly => EvictionPolicyType.ValueOnly,
+            EvictionMode.NotRecentlyUsed => EvictionPolicyType.NotRecentlyUsed,
+            EvictionMode.None => EvictionPolicyType.NoEviction,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(evictionMode),
+                message: $"Not a supported EvictionMode: {evictionMode}")
+        };
+
+    public static Couchbase.Management.Buckets.StorageBackend ToCore(this StorageBackend storageBackend) =>
+        storageBackend switch
+        {
+            StorageBackend.Magma => Couchbase.Management.Buckets.StorageBackend.Magma,
+            StorageBackend.Couchstore => Couchbase.Management.Buckets.StorageBackend.Couchstore,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(storageBackend),
+                message: $"Not a supported StorageBackend: {storageBackend}")
+        };
+
+    public static Couchbase.Management.Buckets.ConflictResolutionType ToCore(this ConflictResolutionType conflictResolutionType) =>
+        conflictResolutionType switch
+        {
+            ConflictResolutionType.Custom => Couchbase.Management.Buckets.ConflictResolutionType.Custom,
+            ConflictResolutionType.Timestamp => Couchbase.Management.Buckets.ConflictResolutionType.Timestamp,
+            ConflictResolutionType.SequenceNumber => Couchbase.Management.Buckets.ConflictResolutionType.SequenceNumber,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(conflictResolutionType),
+                message: $"Not a supported ConflictResolutionType: {conflictResolutionType}")
+        };
+    public static Couchbase.Management.Buckets.BucketType ToCore(this BucketType bucketType) =>
+        bucketType switch
+        {
+            BucketType.Couchbase => Couchbase.Management.Buckets.BucketType.Couchbase,
+            BucketType.Ephemeral => Couchbase.Management.Buckets.BucketType.Ephemeral,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(bucketType),
+                message: $"Not a supported BucketType: {bucketType}")
+        };
+
+    public static Couchbase.KeyValue.DurabilityLevel ToCore(this ProtoKv.DurabilityLevel durabilityLevel) =>
+        durabilityLevel switch
+        {
+            ProtoKv.DurabilityLevel.Majority => CoreKv.DurabilityLevel.Majority,
+            ProtoKv.DurabilityLevel.PersistToMajority => CoreKv.DurabilityLevel.PersistToMajority,
+            ProtoKv.DurabilityLevel.MajorityAndPersistToActive => CoreKv.DurabilityLevel.MajorityAndPersistToActive,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(durabilityLevel),
+                message: $"Not a supported DurabilityLevel: {durabilityLevel}")
+        };
 
     public static ProtoLookupInFlags ToProtoLookupInFlags(this CoreKv.SubdocPathFlags subdocPathFlags) =>
         new ProtoLookupInFlags() { Xattr = subdocPathFlags.HasFlag(CoreKv.SubdocPathFlags.Xattr) };
