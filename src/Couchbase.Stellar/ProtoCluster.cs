@@ -17,7 +17,7 @@ using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Management.Buckets;
-using Couchbase.Stellar.Management.Query;
+using Couchbase.Stellar.Management.Search;
 using Couchbase.Stellar.Query;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
@@ -31,7 +31,7 @@ internal class ProtoCluster : ICluster
 {
     private readonly string _connectionString;
     private readonly ProtoBucketManager _bucketManager;
-    private readonly ProtoQueryIndexManager _protoQueryIndexManager;
+    private readonly ProtoSearchIndexManager _searchIndexManager;
     private readonly QueryService.QueryServiceClient _queryClient;
     private readonly ProtoAnalyticsClient _analyticsClient;
     private readonly ProtoSearchClient _searchClient;
@@ -97,11 +97,11 @@ internal class ProtoCluster : ICluster
         GrpcChannel = GrpcChannel.ForAddress(uriBuilder.Uri, grpcChannelOptions);
 
         _bucketManager = new ProtoBucketManager(this);
+        _searchIndexManager = new ProtoSearchIndexManager(this);
         _queryClient = new Protostellar.Query.V1.QueryService.QueryServiceClient(GrpcChannel);
         _metaData = new Metadata();
         _analyticsClient = new ProtoAnalyticsClient(this);
         _searchClient = new ProtoSearchClient(this);
-        _protoQueryIndexManager = new ProtoQueryIndexManager(this);
 
         if (this.ChannelCredentials.BasicAuthHeader != null)
         {
@@ -119,7 +119,7 @@ internal class ProtoCluster : ICluster
 
     public IServiceProvider ClusterServices => throw new NotImplementedException();
 
-    public IQueryIndexManager QueryIndexes => _protoQueryIndexManager;
+    public IQueryIndexManager QueryIndexes => throw new NotImplementedException();
 
     public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
 
@@ -246,6 +246,7 @@ internal class ProtoCluster : ICluster
         throw new NotImplementedException();
     }
     public Grpc.Core.CallOptions GrpcCallOptions() => new (headers: _metaData);
+    public Grpc.Core.CallOptions GrpcCallOptions(CancellationToken cancellationToken) => new (headers: _metaData, cancellationToken: cancellationToken);
     public Grpc.Core.CallOptions GrpcCallOptions(TimeSpan? timeout, CancellationToken cancellationToken) =>
         new (headers: _metaData, deadline: timeout.FromNow(), cancellationToken: cancellationToken);
 

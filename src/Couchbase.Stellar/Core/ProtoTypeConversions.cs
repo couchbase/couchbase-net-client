@@ -1,13 +1,12 @@
-// Types and methods for easing conversion between equivalent types in Couchbase.Core.* and GRPC-generated types.
-
 using Couchbase.Analytics;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
+using Google.Protobuf;
+using Google.Protobuf.Collections;
 using CoreKv = Couchbase.KeyValue;
 using CoreQuery = Couchbase.Query;
 using CoreOpCode = Couchbase.Core.IO.Operations.OpCode;
@@ -154,13 +153,10 @@ internal static class TypeConversionExtensions
         _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a valid MatchOperator: {matchOperator}")
     };
 
-    //TODO: Might not be needed
-    public static Couchbase.Management.Views.IndexType ToCore(this IndexType indexType) => indexType switch
+    public static Dictionary<string, dynamic> ToCore(this MapField<string, ByteString> protoParams)
     {
-        IndexType.Gsi => Couchbase.Management.Views.IndexType.Gsi,
-        IndexType.View => Couchbase.Management.Views.IndexType.View,
-        _ => throw new ArgumentOutOfRangeException()
-    };
+        return protoParams.ToDictionary(kvp => kvp.Key, kvp => (dynamic)kvp.Value.ToStringUtf8()); //TODO: Is this the best way to return this? Cast a string into "dynamic"?
+    }
 
     public static ProtoLookupInFlags ToProtoLookupInFlags(this CoreKv.SubdocPathFlags subdocPathFlags) =>
         new ProtoLookupInFlags() { Xattr = subdocPathFlags.HasFlag(CoreKv.SubdocPathFlags.Xattr) };
