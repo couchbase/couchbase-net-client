@@ -32,4 +32,19 @@ public class UpdateCollectionOptions
     }
 
     public static UpdateCollectionOptions Default => new UpdateCollectionOptions();
+
+    public static ReadOnly DefaultReadOnly => UpdateCollectionOptions.Default.AsReadOnly();
+
+    public void Deconstruct(out CancellationToken tokenValue)
+    {
+        tokenValue = TokenValue;
+    }
+
+    public ReadOnly AsReadOnly()
+    {
+        this.Deconstruct(out CancellationToken tokenValue);
+        return new ReadOnly(tokenValue);
+    }
+
+    public record ReadOnly(CancellationToken CancellationToken);
 }

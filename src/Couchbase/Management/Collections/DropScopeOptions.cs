@@ -34,6 +34,21 @@ namespace Couchbase.Management.Collections
         }
 
         public static DropScopeOptions Default => new DropScopeOptions();
+
+        public static ReadOnly DefaultReadOnly => DropScopeOptions.Default.AsReadOnly();
+
+        public void Deconstruct(out CancellationToken tokenValue)
+        {
+            tokenValue = TokenValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out CancellationToken tokenValue);
+            return new ReadOnly(tokenValue);
+        }
+
+        public record ReadOnly(CancellationToken CancellationToken);
     }
 }
 

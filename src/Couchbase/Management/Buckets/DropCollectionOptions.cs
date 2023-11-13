@@ -34,6 +34,21 @@ namespace Couchbase.Management.Buckets
         }
 
         public static DropCollectionOptions Default => new DropCollectionOptions();
+
+        public static ReadOnly DefaultReadOnly => DropCollectionOptions.Default.AsReadOnly();
+
+        public void Deconstruct(out CancellationToken tokenValue)
+        {
+            tokenValue = TokenValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out CancellationToken tokenValue);
+            return new ReadOnly(tokenValue);
+        }
+
+        public record ReadOnly(CancellationToken CancellationToken);
     }
 }
 
