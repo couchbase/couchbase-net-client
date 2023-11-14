@@ -30,7 +30,7 @@ namespace Couchbase.Core
 
         /// <inheritdoc />
         public Uri GetRandomManagementUri() =>
-            _clusterContext.GetRandomNode().ManagementUri;
+            _clusterContext.GetRandomNodeForService(ServiceType.Management).ManagementUri;
 
         /// <inheritdoc />
         public Uri GetRandomViewsUri(string bucketName) =>

@@ -109,6 +109,12 @@ namespace Couchbase.Utils
 
         internal static Uri GetManagementUri(this NodeAdapter nodesAdapter, ClusterOptions clusterOptions)
         {
+            var port = clusterOptions.EffectiveEnableTls ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi;
+            if (port == 0)
+            {
+                return null;
+            }
+
             return new UriBuilder
             {
                 Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,

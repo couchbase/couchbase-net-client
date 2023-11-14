@@ -326,6 +326,39 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.Equal(n1qlSslPort, query.N1QlSsl);
         }
 
+        [Fact]
+        public void Test_MissingManagementNode()
+        {
+            var clusterOptions = new ClusterOptions().WithConnectionString("couchbase://UNIT_TEST_NO_SUCH_HOST");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\missing-management.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var clusterContext = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            clusterContext.GlobalConfig = config;
+            Assert.Contains(config.NodesExt, n => n.Services.Mgmt == 0
+                                                  && n.Services.MgmtSsl == 0);
+
+            foreach (var nodeExt in config.NodesExt)
+            {
+                var nodeAdapter = new NodeAdapter(null, nodeExt, config);
+                var mockClusterNode = new Mock<IClusterNode>(MockBehavior.Strict);
+                mockClusterNode.SetupGet(x => x.NodesAdapter).Returns(nodeAdapter);
+                mockClusterNode.SetupGet(x => x.ManagementUri).Returns(nodeAdapter.GetManagementUri(clusterOptions));
+                clusterContext.Nodes.Add(mockClusterNode.Object);
+            }
+
+            Assert.Contains(clusterContext.Nodes, n => n.ManagementUri is null);
+
+            var serviceUriProvider = new ServiceUriProvider(clusterContext);
+            var managementNode = clusterContext.GetRandomNodeForService(ServiceType.Management);
+            Assert.NotNull(managementNode);
+
+            // Call GetRandomManagementUri() many times to ensure that the node with missing management Uri is not hit.
+            for (int i = 0; i < 1_000; i++)
+            {
+                Assert.NotNull(serviceUriProvider.GetRandomManagementUri());
+            }
+        }
+
         [Theory]
         [InlineData(NetworkResolution.Auto, NetworkResolution.External, @"Documents\Configs\missing-query.json")]
         [InlineData(NetworkResolution.External, NetworkResolution.External, @"Documents\Configs\missing-query.json")]
