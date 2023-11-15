@@ -1,18 +1,19 @@
 using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Management.Query;
+using Couchbase.Stellar.Util;
 using Google.Protobuf.Collections;
 using IndexType = Couchbase.Management.Views.IndexType;
 
 namespace Couchbase.Stellar.Management.Query;
 
-internal class ProtoQueryIndexManager : IQueryIndexManager
+internal class StellarQueryIndexManager : IQueryIndexManager
 {
-    private readonly ProtoCluster _protoCluster;
-    private readonly QueryAdminService.QueryAdminServiceClient _queryAdminServiceClient;
-    public ProtoQueryIndexManager(ProtoCluster protoCluster)
+    private readonly StellarCluster _stellarCluster;
+    private readonly QueryAdminService.QueryAdminServiceClient _stellarQueryAdminClient;
+    public StellarQueryIndexManager(StellarCluster stellarCluster)
     {
-        _queryAdminServiceClient = new QueryAdminService.QueryAdminServiceClient(protoCluster.GrpcChannel);
-        _protoCluster = protoCluster;
+        _stellarQueryAdminClient = new QueryAdminService.QueryAdminServiceClient(stellarCluster.GrpcChannel);
+        _stellarCluster = stellarCluster;
     }
     public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions? options = null)
     {
@@ -25,7 +26,7 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        var response = await _queryAdminServiceClient.GetAllIndexesAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        var response = await _stellarQueryAdminClient.GetAllIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
 
         //TODO: Should be ok using the null-coalescing since we're parsing Proto -> Core
         var coreIndexes = response.Indexes.Select(i => new QueryIndex
@@ -59,7 +60,7 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         protoRequest.Fields.AddRange(indexKeys);
 
-        await _queryAdminServiceClient.CreateIndexAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        await _stellarQueryAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
     public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions? options = null)
@@ -75,7 +76,7 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         if (opts.IndexNameValue != null) protoRequest.Name = opts.IndexNameValue;
 
-        await _queryAdminServiceClient.CreatePrimaryIndexAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        await _stellarQueryAdminClient.CreatePrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
     public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions? options = null)
@@ -90,7 +91,7 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        await _queryAdminServiceClient.DropIndexAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        await _stellarQueryAdminClient.DropIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
     public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions? options = null)
@@ -105,7 +106,7 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        await _queryAdminServiceClient.DropPrimaryIndexAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        await _stellarQueryAdminClient.DropPrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
     public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions? options = null)
@@ -118,11 +119,11 @@ internal class ProtoQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        await _queryAdminServiceClient.BuildDeferredIndexesAsync(protoRequest, _protoCluster.GrpcCallOptions()).ConfigureAwait(false);
+        await _stellarQueryAdminClient.BuildDeferredIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
     public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions? options = null)
     {
-        throw new NotSupportedException("WatchIndexesAsync is not supported for couchbase2 connection strings.");
+        throw new UnsupportedInProtostellarException(nameof(WatchIndexesAsync));
     }
 }

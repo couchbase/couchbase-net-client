@@ -5,15 +5,15 @@ using Google.Protobuf;
 
 namespace Couchbase.Stellar.Management.Search;
 
-internal class ProtoSearchIndexManager : ISearchIndexManager
+internal class StellarSearchIndexManager : ISearchIndexManager
 {
-    private readonly ProtoCluster _protoCluster;
-    private readonly SearchAdminService.SearchAdminServiceClient _protoSearchAdminClient;
+    private readonly StellarCluster _stellarCluster;
+    private readonly SearchAdminService.SearchAdminServiceClient _stellarSearchAdminClient;
 
-    public ProtoSearchIndexManager(ProtoCluster protoCluster)
+    public StellarSearchIndexManager(StellarCluster stellarCluster)
     {
-        _protoCluster = protoCluster;
-        _protoSearchAdminClient = new SearchAdminService.SearchAdminServiceClient(_protoCluster.GrpcChannel);
+        _stellarCluster = stellarCluster;
+        _stellarSearchAdminClient = new SearchAdminService.SearchAdminServiceClient(_stellarCluster.GrpcChannel);
     }
 
     public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null)
@@ -25,7 +25,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        var response = await _protoSearchAdminClient.GetIndexAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        var response = await _stellarSearchAdminClient.GetIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
         return new SearchIndex
         {
             Type = response.Index.Type,
@@ -45,7 +45,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         var opts = options?.AsReadOnly() ?? GetAllSearchIndexesOptions.DefaultReadOnly;
         var protoRequest = new ListIndexesRequest();
 
-        var response = await _protoSearchAdminClient.ListIndexesAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        var response = await _stellarSearchAdminClient.ListIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
         return response.Indexes.Select(protoIndex => new SearchIndex
         {
             Type = protoIndex.Type,
@@ -85,7 +85,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
                 protoRequest.Index.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
-            await _protoSearchAdminClient.UpdateIndexAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+            await _stellarSearchAdminClient.UpdateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
         }
         else
         {
@@ -108,7 +108,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
                 protoRequest.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
-            await _protoSearchAdminClient.CreateIndexAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+            await _stellarSearchAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
         }
     }
 
@@ -119,7 +119,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.DeleteIndexAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.DeleteIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null)
@@ -129,8 +129,8 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        var response = await _protoSearchAdminClient
-            .GetIndexedDocumentsCountAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue))
+        var response = await _stellarSearchAdminClient
+            .GetIndexedDocumentsCountAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue))
             .ConfigureAwait(false);
 
         return (int)response.Count;
@@ -143,8 +143,8 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient
-            .PauseIndexIngestAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient
+            .PauseIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null)
@@ -154,7 +154,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.ResumeIndexIngestAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.ResumeIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null)
@@ -164,7 +164,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.AllowIndexQueryingAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.AllowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null)
@@ -174,7 +174,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.DisallowIndexQueryingAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.DisallowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null)
@@ -184,7 +184,7 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.FreezeIndexPlanAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.FreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
     public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null)
@@ -194,6 +194,6 @@ internal class ProtoSearchIndexManager : ISearchIndexManager
         {
             Name = indexName
         };
-        await _protoSearchAdminClient.UnfreezeIndexPlanAsync(protoRequest, _protoCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
+        await _stellarSearchAdminClient.UnfreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 }

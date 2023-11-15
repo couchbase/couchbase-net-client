@@ -17,6 +17,7 @@ using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Management.Buckets;
+using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Management.Search;
 using Couchbase.Stellar.Query;
 using Couchbase.Stellar.Search;
@@ -27,18 +28,20 @@ using Grpc.Net.Client;
 
 namespace Couchbase.Stellar;
 
-public class ProtoCluster : ICluster
+public class StellarCluster : ICluster //TODO: To change back to internal later
 {
     private readonly string _connectionString;
-    private readonly ProtoBucketManager _bucketManager;
-    private readonly ProtoSearchIndexManager _searchIndexManager;
+    private readonly StellarBucketManager _bucketManager;
+    private readonly StellarSearchIndexManager _searchIndexManager;
+    private readonly StellarQueryIndexManager _queryIndexManager;
     private readonly QueryService.QueryServiceClient _queryClient;
     private readonly ProtoAnalyticsClient _analyticsClient;
-    private readonly ProtoSearchClient _searchClient;
+    private readonly StellarSearchClient _searchClient;
     private readonly Metadata _metaData;
     private ClusterChannelCredentials ChannelCredentials { get; }
 
-    public ProtoCluster(ClusterOptions clusterOptions)
+
+    internal StellarCluster(ClusterOptions clusterOptions)
     {
         _connectionString = clusterOptions.ConnectionString ?? throw new ArgumentNullException(nameof(clusterOptions.ConnectionString));
         var uriBuilder = new UriBuilder(_connectionString);
@@ -95,12 +98,13 @@ public class ProtoCluster : ICluster
 
         GrpcChannel = GrpcChannel.ForAddress(uriBuilder.Uri, grpcChannelOptions);
 
-        _bucketManager = new ProtoBucketManager(this);
-        _searchIndexManager = new ProtoSearchIndexManager(this);
+        _bucketManager = new StellarBucketManager(this);
+        _searchIndexManager = new StellarSearchIndexManager(this);
+        _queryIndexManager = new StellarQueryIndexManager(this);
         _queryClient = new Protostellar.Query.V1.QueryService.QueryServiceClient(GrpcChannel);
         _metaData = new Metadata();
         _analyticsClient = new ProtoAnalyticsClient(this);
-        _searchClient = new ProtoSearchClient(this);
+        _searchClient = new StellarSearchClient(this);
 
         if (this.ChannelCredentials.BasicAuthHeader != null)
         {
@@ -108,9 +112,28 @@ public class ProtoCluster : ICluster
         }
     }
 
-    public static async Task<ICluster> ConnectAsync(ClusterOptions options)
+    public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? clusterOptions = null)
     {
-        return new ProtoCluster(options);
+        clusterOptions ??= new ClusterOptions();
+        var opts = clusterOptions.WithConnectionString(connectionString);
+        return await ConnectAsync(opts).ConfigureAwait(false);
+    }
+
+    public static async Task<ICluster> ConnectAsync(ClusterOptions? clusterOptions = null)
+    {
+        if (!Uri.TryCreate(clusterOptions.ConnectionString, UriKind.Absolute, out var parsedUri))
+        {
+            throw new ArgumentOutOfRangeException(nameof(clusterOptions.ConnectionString));
+        }
+
+        var scheme = parsedUri.Scheme.ToLowerInvariant();
+        // hack to get around pre-existing validation of Uri scheme.
+        var modifiedUri = new UriBuilder(parsedUri);
+        modifiedUri.Scheme = scheme.EndsWith("s") ? "couchbases" : "couchbase"; //TODO: Not the case anymore now that the connection string is couchbase2. Should Protostellar always use TLS verification?
+        clusterOptions.ConnectionString = modifiedUri.Uri.ToString().TrimEnd('/');
+        var clusterWrapper = new StellarCluster(clusterOptions);
+        await clusterWrapper.ConnectGrpcAsync(CancellationToken.None).ConfigureAwait(false);
+        return clusterWrapper;
     }
 
     internal IRequestTracer RequestTracer { get; }
@@ -121,41 +144,41 @@ public class ProtoCluster : ICluster
     internal ITypeSerializer TypeSerializer { get; }
 
 
-    public IServiceProvider ClusterServices => throw new NotImplementedException();
+    public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
 
-    public IQueryIndexManager QueryIndexes => throw new NotImplementedException();
+    public IQueryIndexManager QueryIndexes => _queryIndexManager;
 
-    public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
+    public IAnalyticsIndexManager AnalyticsIndexes => throw new UnsupportedInProtostellarException("Analytics Index Management");
 
-    public ISearchIndexManager SearchIndexes => throw new NotImplementedException();
+    public ISearchIndexManager SearchIndexes => _searchIndexManager;
 
     public IBucketManager Buckets => _bucketManager;
 
-    public IUserManager Users => throw new NotImplementedException();
+    public IUserManager Users => throw new UnsupportedInProtostellarException("User Management");
 
-    public IEventingFunctionManager EventingFunctions => throw new NotImplementedException();
+    public IEventingFunctionManager EventingFunctions => throw new UnsupportedInProtostellarException("Eventing Functions");
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
 
-        var analyticsRequest = new AnalyticsQueryRequest
+        var request = new AnalyticsQueryRequest
         {
             Statement = statement,
             ReadOnly = opts.Readonly,
             Priority = opts.Priority == -1
         };
-        if (opts.BucketName != null) analyticsRequest.BucketName = opts.BucketName;
-        if (opts.ScopeName != null) analyticsRequest.ScopeName = opts.ScopeName;
-        if (opts.ClientContextId != null) analyticsRequest.ReadOnly = opts.Readonly;
+        if (opts.BucketName != null) request.BucketName = opts.BucketName;
+        if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
+        if (opts.ClientContextId != null) request.ReadOnly = opts.Readonly;
 
-        return await _analyticsClient.QueryAsync<T>(analyticsRequest, options).ConfigureAwait(false);
+        return await _analyticsClient.QueryAsync<T>(request, options).ConfigureAwait(false);
     }
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, string bucketName, string scopeName, AnalyticsOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
 
-        var analyticsRequest = new AnalyticsQueryRequest
+        var request = new AnalyticsQueryRequest
         {
             BucketName = bucketName,
             ScopeName = scopeName,
@@ -163,31 +186,31 @@ public class ProtoCluster : ICluster
             ReadOnly = opts.Readonly,
             Priority = opts.Priority == -1
         };
-        if (opts.ClientContextId != null) analyticsRequest.ReadOnly = opts.Readonly;
+        if (opts.ClientContextId != null) request.ReadOnly = opts.Readonly;
 
-        return await _analyticsClient.QueryAsync<T>(analyticsRequest, options).ConfigureAwait(false);
+        return await _analyticsClient.QueryAsync<T>(request, options).ConfigureAwait(false);
     }
 
-    public ValueTask<IBucket> BucketAsync(string name) => new ValueTask<IBucket>(new ProtoBucket(name, this, _queryClient));
+    public ValueTask<IBucket> BucketAsync(string name) => new ValueTask<IBucket>(new StellarBucket(name, this, _queryClient));
 
     public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException("Diagnostics");
     }
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        GrpcChannel.Dispose();
     }
 
     public ValueTask DisposeAsync()
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException("Async Dispose");
     }
 
     public Task<IPingReport> PingAsync(PingOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException("Ping");
     }
 
     public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
@@ -223,20 +246,12 @@ public class ProtoCluster : ICluster
         if (opts.ScanCapacity.HasValue) tuningOptions.ScanCap = (uint)opts.ScanCapacity.Value;
         if (opts.IncludeMetrics == false) tuningOptions.DisableMetrics = true;
         request.TuningOptions = tuningOptions;
-
-        // in protostellar, this is a one-of enum, not a Flags.
-        var profile = opts.Profile;
-        if (profile.HasFlag(QueryProfile.Off))
-            request.ProfileMode = QueryRequest.Types.ProfileMode.Off;
-        else if (profile.HasFlag(QueryProfile.Phases))
-            request.ProfileMode = QueryRequest.Types.ProfileMode.Phases;
-        else if (profile.HasFlag(QueryProfile.Timings))
-            request.ProfileMode = QueryRequest.Types.ProfileMode.Timings;
+        request.ProfileMode = opts.Profile.ToProto();
 
         var callOptions = GrpcCallOptions(opts.TimeOut, opts.Token);
         var asyncResponse = _queryClient.Query(request, callOptions);
         var headers = await asyncResponse.ResponseHeadersAsync.ConfigureAwait(false);
-        var streamingResult = new ProtoQueryResult<T>(asyncResponse, TypeSerializer);
+        var streamingResult = new StellarQueryResult<T>(asyncResponse, TypeSerializer);
         return streamingResult;
     }
 
@@ -247,7 +262,7 @@ public class ProtoCluster : ICluster
 
     public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException("Wait Until Ready");
     }
     public Grpc.Core.CallOptions GrpcCallOptions() => new (headers: _metaData);
     public Grpc.Core.CallOptions GrpcCallOptions(CancellationToken cancellationToken) => new (headers: _metaData, cancellationToken: cancellationToken);

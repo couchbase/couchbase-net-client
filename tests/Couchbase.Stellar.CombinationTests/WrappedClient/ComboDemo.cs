@@ -26,7 +26,7 @@ public class ComboDemo
             Password = "password"
         };
 
-        var cluster = await StellarClient.ConnectAsync(connectionString, clusterOptions);
+        var cluster = await StellarCluster.ConnectAsync(connectionString, clusterOptions);
         var bucket = await cluster.BucketAsync("default");
         var scope = bucket.Scope("_default");
         var collection = scope.Collection("_default");

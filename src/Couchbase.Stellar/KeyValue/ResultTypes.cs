@@ -24,6 +24,15 @@ namespace Couchbase.Stellar.KeyValue
         }
     }
 
+    internal record GetReplicaResult(ulong Cas, bool IsActive, GrpcContentWrapper GrpcContentWrapper) : Couchbase.KeyValue.IGetReplicaResult
+    {
+        public void Dispose() { }
+
+        public T? ContentAs<T>() => GrpcContentWrapper.ContentAs<T>();
+        public TimeSpan? Expiry => null;
+        public DateTime? ExpiryTime => null;
+    }
+
     internal record GetResult(DateTime? ExpiryTime, ulong Cas, GrpcContentWrapper GrpcContentWrapper) : Couchbase.KeyValue.IGetResult
     {
         public TimeSpan? Expiry => null;
@@ -156,6 +165,14 @@ namespace Couchbase.Stellar.KeyValue
         uint ContentFlags { get; }
         ulong Cas { get; }
     }
+
+    internal interface IReplicaContentResult
+    {
+        ByteString Content { get; }
+        uint ContentFlags { get; }
+        ulong Cas { get; }
+        bool IsActive { get; }
+    }
 }
 
 namespace Couchbase.Protostellar.KV.V1
@@ -163,6 +180,11 @@ namespace Couchbase.Protostellar.KV.V1
     public partial class GetResponse : IContentResult { }
     public partial class GetAndLockResponse : IContentResult { }
     public partial class GetAndTouchResponse : IContentResult { }
+
+    public partial class GetAllReplicasResponse : IReplicaContentResult
+    {
+        public bool IsActive { get; set; }
+    }
 
     partial class MutationToken
     {

@@ -8,11 +8,11 @@ using NumericRange = Couchbase.Search.NumericRange;
 
 namespace Couchbase.Stellar.Search;
 
-public class ProtoSearchDataMapper
+public class StellarSearchDataMapper
 {
     public async ValueTask<ISearchResult> MapAsync(IAsyncStreamReader<SearchQueryResponse> stream, CancellationToken cancellationToken = default)
     {
-        var response = new ProtoSearchResult();
+        var response = new StellarSearchResult();
         response.Hits = new List<ISearchQueryRow>();
 
         while (await stream.MoveNext(cancellationToken).ConfigureAwait(false))
@@ -23,8 +23,6 @@ public class ProtoSearchDataMapper
             foreach (var searchHit in stream.Current.Hits)
             {
                 if (cancellationToken.IsCancellationRequested || searchHit == null) break;
-
-                //NOT streaming. Return 1 SearchResult object, containing multiple rows (hits).
                 response.Hits.Add(ParseSearchQueryRow(searchHit));
             }
         }
@@ -142,14 +140,14 @@ public class ProtoSearchDataMapper
 
     private static ISearchQueryRow ParseSearchQueryRow(SearchQueryResponse.Types.SearchQueryRow protoSearchRow)
     {
-        var coreRow = new ProtoSearchQueryRow();
+        var coreRow = new StellarSearchQueryRow();
         coreRow.Score = protoSearchRow.Score;
         if (protoSearchRow.Explanation != null) coreRow.Explanation = protoSearchRow.Explanation.ToStringUtf8();
         if (protoSearchRow.Id != null) coreRow.Id = protoSearchRow.Id;
         if (protoSearchRow.Index != null) coreRow.Index = protoSearchRow.Index;
         if (protoSearchRow.Fields != null) coreRow.Fields = protoSearchRow.Fields.ToDictionary(kvp => kvp.Key, kvp => (dynamic)kvp.Value.ToStringUtf8()); //TODO: Verify this cast
         if (protoSearchRow.Fragments != null) coreRow.Fragments = protoSearchRow.Fragments.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Content.ToList());
-        if (protoSearchRow.Locations != null) coreRow.Locations = protoSearchRow.Locations.ToList(); //SDK does not have a "Location" object, should we return the grpc class?
+        if (protoSearchRow.Locations != null) coreRow.Locations = protoSearchRow.Locations.ToList().Select(x => x.ToString()); //SDK does not have a "Location" object, should we return the grpc class?
         return coreRow;
     }
 }

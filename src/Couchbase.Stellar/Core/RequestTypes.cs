@@ -41,3 +41,4 @@ public partial class UnlockRequest : IKeySpec { }
 public partial class UpsertRequest : IKeySpec, IContentRequest { }
 public partial class LookupInRequest : IKeySpec { }
 public partial class MutateInRequest : IKeySpec { }
+public partial class GetAllReplicasRequest : IKeySpec { }

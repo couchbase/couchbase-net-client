@@ -36,7 +36,7 @@ public static class Cluster
         {
             Scheme.Couchbase => NetClient.Cluster.ConnectAsync(options),
             Scheme.Couchbases => NetClient.Cluster.ConnectAsync(options),
-            Scheme.Couchbase2 => ProtoCluster.ConnectAsync(options),
+            Scheme.Couchbase2 => StellarCluster.ConnectAsync(options),
             _ => throw new NotImplementedException()
         };
     }

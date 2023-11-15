@@ -8,16 +8,15 @@ using Grpc.Core;
 
 namespace Couchbase.Stellar.Query;
 
-internal class ProtoQueryResult<T> : IQueryResult<T>
+internal class StellarQueryResult<T> : IQueryResult<T>
 {
     private readonly AsyncServerStreamingCall<QueryResponse> _streamingQueryResponse;
     private readonly ITypeSerializer _serializer;
 
-    public ProtoQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer)
+    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer)
     {
         _streamingQueryResponse = streamingQueryResponse;
         _serializer = serializer;
-        MetaData = new QueryMetaData();
     }
     public void Dispose()
     {
@@ -32,14 +31,14 @@ internal class ProtoQueryResult<T> : IQueryResult<T>
             if (responseStream.Current.MetaData != null)
             {
                 var responseMetaData = responseStream.Current.MetaData;
-                if (responseMetaData.HasProfile) MetaData.Profile = responseMetaData.Profile;
-                if (responseMetaData.Metrics != null) MetaData.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
-                if (responseMetaData.Profile != null) MetaData.Profile = responseMetaData.Profile.ToStringUtf8();
-                if (responseMetaData.Signature != null) MetaData.Signature = responseMetaData.Signature.ToStringUtf8();
-                if (responseMetaData.Warnings != null) MetaData.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
-                if (responseMetaData.RequestId != null) MetaData.RequestId = responseMetaData.RequestId;
-                if (responseMetaData.ClientContextId != null) MetaData.ClientContextId = responseMetaData.ClientContextId;
-                MetaData.Status = responseMetaData.Status.ToCoreStatus();
+                if (responseMetaData.HasProfile) MetaData!.Profile = responseMetaData.Profile;
+                if (responseMetaData.Metrics != null) MetaData!.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
+                if (responseMetaData.Profile != null) MetaData!.Profile = responseMetaData.Profile.ToStringUtf8();
+                if (responseMetaData.Signature != null) MetaData!.Signature = responseMetaData.Signature.ToStringUtf8();
+                if (responseMetaData.Warnings != null) MetaData!.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
+                if (responseMetaData.RequestId != null) MetaData!.RequestId = responseMetaData.RequestId;
+                if (responseMetaData.ClientContextId != null) MetaData!.ClientContextId = responseMetaData.ClientContextId;
+                MetaData!.Status = responseMetaData.Status.ToCoreStatus();
             }
 
             foreach (var queryResponse in responseStream.Current.Rows)
@@ -82,6 +81,6 @@ internal class ProtoQueryResult<T> : IQueryResult<T>
 
     public RetryReason RetryReason { get; } = RetryReason.NoRetry; // FIXME
     public IAsyncEnumerable<T> Rows => this;
-    public QueryMetaData? MetaData { get; private set; } = null;
+    public QueryMetaData? MetaData { get; init; } = new QueryMetaData();
     public List<Error> Errors { get; } = new();
 }

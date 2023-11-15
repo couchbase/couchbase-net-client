@@ -25,7 +25,7 @@ public class StellarAnalytics
             KvIgnoreRemoteCertificateNameMismatch = true
         };
 
-        var cluster = await StellarClient.ConnectAsync("protostellar://localhost", clusterOptions);
+        var cluster = await StellarCluster.ConnectAsync("protostellar://localhost", clusterOptions);
         var bucket = await cluster.BucketAsync("default");
         var scope = await bucket.ScopeAsync("_default");
 

@@ -10,6 +10,7 @@ using Couchbase.Stellar.Util;
 using Couchbase.Utils;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using ExistsRequest = Couchbase.Protostellar.KV.V1.ExistsRequest;
 using GetAndLockRequest = Couchbase.Protostellar.KV.V1.GetAndLockRequest;
 using GetAndTouchRequest = Couchbase.Protostellar.KV.V1.GetAndTouchRequest;
@@ -25,38 +26,40 @@ using UpsertRequest = Couchbase.Protostellar.KV.V1.UpsertRequest;
 
 namespace Couchbase.Stellar.KeyValue;
 
-internal class ProtoCollection : ICouchbaseCollection
+internal class StellarCollection : ICouchbaseCollection
 {
-    private readonly ProtoCollectionQueryIndexManager _protoCollectionQueryIndexes;
-    private readonly ProtoScope _protoScope;
-    private readonly ProtoCluster _protoCluster;
+    private readonly StellarCollectionQueryIndexManager _stellarCollectionQueryIndexes;
+    private readonly StellarScope _stellarScope;
+    private readonly StellarCluster _stellarCluster;
     private readonly KvService.KvServiceClient _kvClient;
     private readonly string _scopeName;
     private readonly string _bucketName;
 
-    public ProtoCollection(string collectionName, ProtoScope protoScope, ProtoCluster protoCluster)
+    public const string DefaultCollectionName = "_default";
+
+    public StellarCollection(string collectionName, StellarScope stellarScope, StellarCluster stellarCluster)
     {
         Name = collectionName;
-        _protoCollectionQueryIndexes =
-            new ProtoCollectionQueryIndexManager(protoCluster.QueryIndexes, _bucketName, _scopeName, Name);
-        _protoScope = protoScope;
-        _protoCluster = protoCluster;
-        _kvClient = new KvService.KvServiceClient(_protoCluster.GrpcChannel);
-        _bucketName = _protoScope.Bucket.Name;
-        _scopeName = _protoScope.Name;
+        IsDefaultCollection = Name == DefaultCollectionName;
+        _stellarScope = stellarScope;
+        _stellarCluster = stellarCluster;
+        _kvClient = new KvService.KvServiceClient(_stellarCluster.GrpcChannel);
+        _bucketName = _stellarScope.Bucket.Name;
+        _scopeName = _stellarScope.Name;
+        _stellarCollectionQueryIndexes = new StellarCollectionQueryIndexManager(stellarCluster.QueryIndexes, _bucketName, _scopeName, Name);
     }
 
-    public uint? Cid => throw new NotImplementedException();
+    public uint? Cid => throw new UnsupportedInProtostellarException("Cid (Collection ID)");
 
     public string Name { get; }
 
-    public IScope Scope => _protoScope;
+    public IScope Scope => _stellarScope;
 
-    public IBinaryCollection Binary => throw new NotImplementedException();
+    public IBinaryCollection Binary => throw new UnsupportedInProtostellarException("Binary Operations");
 
-    public bool IsDefaultCollection => throw new NotImplementedException();
+    public bool IsDefaultCollection { get; }
 
-    public ICollectionQueryIndexManager QueryIndexes => throw new NotImplementedException();
+    public ICollectionQueryIndexManager QueryIndexes => _stellarCollectionQueryIndexes;
 
     public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
     {
@@ -64,27 +67,38 @@ internal class ProtoCollection : ICouchbaseCollection
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, opts.RequestSpan);
         var request = KeyedRequest<ExistsRequest>(id);
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.ExistsAsync(request, callOptions).ConfigureAwait(false);
         return new ExistsResult(Exists: response.Result, Cas: response.Cas);
     }
 
     public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
     {
-        // TODO: Protostellar get-from-replica support is currently incomplete.
-        throw new NotImplementedException();
+        var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
+        var request = KeyedRequest<GetAllReplicasRequest>(id);
+
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Token);
+        var response = _kvClient.GetAllReplicas(request, callOptions);
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+
+        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
+            .ReadAllAsync()
+            .Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(serializer))).ToEnumerable();
+
+        return results;
     }
 
     public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? GetAndLockOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock, opts.RequestSpan);
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
 
         var request = KeyedRequest<GetAndLockRequest>(id);
         request.LockTime = expiry.ToTtl();
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.GetAndLockAsync(request, callOptions).ConfigureAwait(false);
         return response.AsGetResult(serializer);
     }
@@ -92,32 +106,31 @@ internal class ProtoCollection : ICouchbaseCollection
     public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? GetAndTouchOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, opts.RequestSpan);
 
         var request = KeyedRequest<GetAndTouchRequest>(id);
         request.ExpiryTime = Timestamp.FromDateTime(expiry.FromNow());
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.GetAndTouchAsync(request, callOptions).ConfigureAwait(false);
         return response.AsGetResult(serializer);
     }
 
     public Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)
     {
-        // TODO: Protostellar get-from-replica support is currently incomplete.
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(GetAnyReplicaAsync));
     }
 
     public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? GetOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Get, opts.RequestSpan);
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
 
         var request = KeyedRequest<GetRequest>(id);
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.GetAsync(request, callOptions).ConfigureAwait(false);
         return response.AsGetResult(serializer);
     }
@@ -125,7 +138,7 @@ internal class ProtoCollection : ICouchbaseCollection
     public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? InsertOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, opts.RequestSpan);
 
         var request = await ContentRequest<InsertRequest, T>(
@@ -138,7 +151,7 @@ internal class ProtoCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.InsertAsync(request, callOptions).ConfigureAwait(false);
         return new MutationResult(response.Cas, Expiry: null)
         {
@@ -162,19 +175,19 @@ internal class ProtoCollection : ICouchbaseCollection
             });
         }
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.LookupInAsync(request, callOptions).ConfigureAwait(false);
-        return new LookupInResult(response, request, _protoCluster.TypeSerializer);
+        return new LookupInResult(response, request, _stellarCluster.TypeSerializer);
     }
 
     public Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(LookupInAnyReplicaAsync));
     }
 
     public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(LookupInAllReplicasAsync));
     }
 
     public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
@@ -212,15 +225,15 @@ internal class ProtoCollection : ICouchbaseCollection
 
             if (spec.Value is not null)
             {
-                newSpec.Content = await SerializeToByteString(spec.Value, _protoCluster.TypeSerializer, opts.Token).ConfigureAwait(false);
+                newSpec.Content = await SerializeToByteString(spec.Value, _stellarCluster.TypeSerializer, opts.Token).ConfigureAwait(false);
             }
 
             request.Specs.Add(newSpec);
         }
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var response = await _kvClient.MutateInAsync(request, callOptions).ConfigureAwait(false);
-        return new MutateInResult(response, request, _protoCluster.TypeSerializer);
+        return new MutateInResult(response, request, _stellarCluster.TypeSerializer);
     }
 
     public async Task RemoveAsync(string id, RemoveOptions? options = null)
@@ -231,14 +244,14 @@ internal class ProtoCollection : ICouchbaseCollection
         var request = KeyedRequest<RemoveRequest>(id);
         request.Cas = opts.Cas;
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         _ = await _kvClient.RemoveAsync(request, callOptions);
     }
 
     public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? ReplaceOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, opts.RequestSpan);
         var request = await ContentRequest<ReplaceRequest, T>(
             key: id,
@@ -252,7 +265,7 @@ internal class ProtoCollection : ICouchbaseCollection
 
         request.Cas = opts.Cas;
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);;
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);;
         var response = await _kvClient.ReplaceAsync(request, callOptions);
         return new MutationResult(response.Cas, null)
         {
@@ -263,7 +276,7 @@ internal class ProtoCollection : ICouchbaseCollection
 
     public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(ScanAsync));
     }
 
     public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
@@ -274,7 +287,7 @@ internal class ProtoCollection : ICouchbaseCollection
         var request = KeyedRequest<TouchRequest>(id);
         request.ExpirySecs = (uint)expiry.TotalSeconds;
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         _ = await _kvClient.TouchAsync(request, callOptions);
     }
 
@@ -289,14 +302,14 @@ internal class ProtoCollection : ICouchbaseCollection
         var request = KeyedRequest<UnlockRequest>(id);
         request.Cas = cas;
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         _ = await _kvClient.UnlockAsync(request, callOptions);
     }
 
     public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? UpsertOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _protoCluster.TypeSerializer;
+        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert, opts.RequestSpan);
 
         var request = await ContentRequest<UpsertRequest, T>(
@@ -309,7 +322,7 @@ internal class ProtoCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        var callOptions = _protoCluster.GrpcCallOptions(opts.Timeout, opts.Token);
+        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         var upsertResponse = await _kvClient.UpsertAsync(request, callOptions);
         return new MutationResult(upsertResponse.Cas, null)
         {
@@ -397,5 +410,5 @@ internal class ProtoCollection : ICouchbaseCollection
     }
 
     private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>
-        _protoCluster.RequestTracer.RequestSpan(attr, parentSpan);
+        _stellarCluster.RequestTracer.RequestSpan(attr, parentSpan);
 }

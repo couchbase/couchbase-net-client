@@ -28,7 +28,7 @@ public class StellarUtils
             opts.HttpIgnoreRemoteCertificateMismatch = true;
         }
 
-        return await StellarClient.ConnectAsync(connectionString, opts);
+        return await StellarCluster.ConnectAsync(connectionString, opts);
     }
 
     public static async Task<IBucket> GetDefaultBucket(string protocol)

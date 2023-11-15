@@ -256,7 +256,7 @@ namespace Couchbase.Stellar.CombinationTests.WrappedClient
                 opts.HttpIgnoreRemoteCertificateMismatch = true;
             }
 
-            var cluster = await StellarClient.ConnectAsync(connectionString, opts);
+            var cluster = await StellarCluster.ConnectAsync(connectionString, opts);
             var bucket = await cluster.BucketAsync("default");
             var scope = bucket.Scope("_default");
             var collection = scope.Collection("_default");

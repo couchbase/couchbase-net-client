@@ -42,7 +42,7 @@ public class StellarQuery
             HttpIgnoreRemoteCertificateMismatch = true,
         };
 
-        var cluster = await StellarClient.ConnectAsync("protostellar://localhost", clusterOptions);
+        var cluster = await StellarCluster.ConnectAsync("protostellar://localhost", clusterOptions);
         var bucket1 = await cluster.BucketAsync("default");
         var scope = bucket1.DefaultScope();
         var queryResult = await scope.QueryAsync<object>("SELECT * FROM `_default`");

@@ -1,16 +1,14 @@
-using Couchbase.KeyValue;
 using Couchbase.Management.Query;
-
+#pragma warning disable CS0618
 namespace Couchbase.Stellar.Management.Query;
-
-internal class ProtoCollectionQueryIndexManager : ICollectionQueryIndexManager
+internal class StellarCollectionQueryIndexManager : ICollectionQueryIndexManager
 {
     private readonly IQueryIndexManager _queryIndexManager;
     private readonly string _collectionName;
     private readonly string _scopeName;
     private readonly string _bucketName;
 
-    public ProtoCollectionQueryIndexManager(IQueryIndexManager queryIndexManager, string bucketName, string scopeName, string collectionName)
+    public StellarCollectionQueryIndexManager(IQueryIndexManager queryIndexManager, string bucketName, string scopeName, string collectionName)
     {
         _queryIndexManager = queryIndexManager;
         _bucketName = bucketName;
@@ -66,3 +64,4 @@ internal class ProtoCollectionQueryIndexManager : ICollectionQueryIndexManager
         await _queryIndexManager.BuildDeferredIndexesAsync(_bucketName, options).ConfigureAwait(false);
     }
 }
+#pragma warning restore CS0618

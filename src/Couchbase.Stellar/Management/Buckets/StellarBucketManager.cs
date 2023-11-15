@@ -1,23 +1,18 @@
-using System.Text.Json;
-using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Protostellar.Admin.Bucket.V1;
 using Couchbase.Stellar.Core;
-using BucketType = Couchbase.Management.Buckets.BucketType;
-using CompressionMode = Couchbase.Management.Buckets.CompressionMode;
-using ConflictResolutionType = Couchbase.Management.Buckets.ConflictResolutionType;
-using StorageBackend = Couchbase.Management.Buckets.StorageBackend;
+using Couchbase.Stellar.Util;
 
 namespace Couchbase.Stellar.Management.Buckets;
 
-internal class ProtoBucketManager : IBucketManager
+internal class StellarBucketManager : IBucketManager
 {
     private readonly BucketAdminService.BucketAdminServiceClient _bucketAdminClient;
-    private readonly ProtoCluster _protoCluster;
-    public ProtoBucketManager(ProtoCluster protoCluster)
+    private readonly StellarCluster _stellarCluster;
+    public StellarBucketManager(StellarCluster stellarCluster)
     {
-        _protoCluster = protoCluster;
-        _bucketAdminClient = new BucketAdminService.BucketAdminServiceClient(protoCluster.GrpcChannel);
+        _stellarCluster = stellarCluster;
+        _bucketAdminClient = new BucketAdminService.BucketAdminServiceClient(stellarCluster.GrpcChannel);
     }
 
     public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions? options = null)
@@ -27,7 +22,7 @@ internal class ProtoBucketManager : IBucketManager
         {
             BucketName = settings.Name
         };
-        await _bucketAdminClient.CreateBucketAsync(createBucketRequest, _protoCluster.GrpcCallOptions(opts.CancellationToken))
+        await _bucketAdminClient.CreateBucketAsync(createBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -39,7 +34,7 @@ internal class ProtoBucketManager : IBucketManager
             BucketName = settings.Name
         };
 
-        await _bucketAdminClient.UpdateBucketAsync(updateBucketRequest, _protoCluster.GrpcCallOptions(opts.CancellationToken))
+        await _bucketAdminClient.UpdateBucketAsync(updateBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken))
             .ConfigureAwait(false);
 
     }
@@ -52,7 +47,7 @@ internal class ProtoBucketManager : IBucketManager
             BucketName = bucketName
         };
 
-        await _bucketAdminClient.DeleteBucketAsync(dropBucketRequest, _protoCluster.GrpcCallOptions(opts.CancellationToken))
+        await _bucketAdminClient.DeleteBucketAsync(dropBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -60,7 +55,7 @@ internal class ProtoBucketManager : IBucketManager
     {
         var opts = options?.AsReadOnly() ?? GetAllBucketsOptions.DefaultReadOnly;
         var listBucketsRequest = new ListBucketsRequest();
-        var response = await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _protoCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
+        var response = await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
 
         var buckets = response.Buckets.ToDictionary(bucket => bucket.BucketName, bucket => new BucketSettings
         {
@@ -82,11 +77,11 @@ internal class ProtoBucketManager : IBucketManager
 
     public Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(GetBucketAsync));
     }
 
     public Task FlushBucketAsync(string bucketName, FlushBucketOptions? options = null)
     {
-        throw new NotImplementedException();
+        throw new UnsupportedInProtostellarException(nameof(FlushBucketAsync));
     }
 }

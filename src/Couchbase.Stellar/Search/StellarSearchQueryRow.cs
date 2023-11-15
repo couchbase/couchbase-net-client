@@ -2,7 +2,7 @@ using Couchbase.Search;
 
 namespace Couchbase.Stellar.Search;
 
-public class ProtoSearchQueryRow : ISearchQueryRow
+public class StellarSearchQueryRow : ISearchQueryRow
 {
     public string? Id { get; internal set; }
     public double Score { get; internal set; }

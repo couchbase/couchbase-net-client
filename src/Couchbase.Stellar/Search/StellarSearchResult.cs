@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Stellar.Search;
 
-public class ProtoSearchResult : ISearchResult, IDisposable
+public class StellarSearchResult : ISearchResult, IDisposable
 {
-    internal ProtoSearchResult()
+    internal StellarSearchResult()
     {
         Hits = new List<ISearchQueryRow>();
         Facets = new Dictionary<string, IFacetResult>();

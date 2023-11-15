@@ -3,7 +3,6 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
 using Couchbase.Stellar.Core;
-using Couchbase.Stellar.Util;
 using DateRangeFacet = Couchbase.Search.DateRangeFacet;
 using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
 using TermFacet = Couchbase.Search.TermFacet;
@@ -12,19 +11,19 @@ using TermFacet = Couchbase.Search.TermFacet;
 #nullable enable
 namespace Couchbase.Stellar.Search
 {
-    public class ProtoSearchClient
+    public class StellarSearchClient
     {
         private readonly SearchService.SearchServiceClient _searchClient;
-        private readonly ProtoCluster _protoCluster;
+        private readonly StellarCluster _stellarCluster;
         private readonly ITypeSerializer _serializer;
-        private readonly ProtoSearchDataMapper _dataMapper;
+        private readonly StellarSearchDataMapper _dataMapper;
 
-        internal ProtoSearchClient(ProtoCluster protoCluster)
+        internal StellarSearchClient(StellarCluster stellarCluster)
         {
-            _protoCluster = protoCluster;
-            _serializer = protoCluster.TypeSerializer;
-            _searchClient = new SearchService.SearchServiceClient(_protoCluster.GrpcChannel);
-            _dataMapper = new ProtoSearchDataMapper();
+            _stellarCluster = stellarCluster;
+            _serializer = stellarCluster.TypeSerializer;
+            _searchClient = new SearchService.SearchServiceClient(_stellarCluster.GrpcChannel);
+            _dataMapper = new StellarSearchDataMapper();
         }
 
         public async Task<ISearchResult> QueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null, CancellationToken cancellationToken = default)
@@ -51,7 +50,7 @@ namespace Couchbase.Stellar.Search
             if (opts.CollectionNames != null) searchQueryRequest.Collections.AddRange(opts.CollectionNames);
             opts.Facets?.ToList().ForEach(facet => searchQueryRequest.Facets.Add(facet.Name, ParseFacet(facet)));
 
-            var response = _searchClient.SearchQuery(searchQueryRequest, _protoCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
+            var response = _searchClient.SearchQuery(searchQueryRequest, _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
 
             var searchResult = await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
 
@@ -397,8 +396,5 @@ namespace Couchbase.Stellar.Search
 
             return protoQuery;
         }
-
-        private Grpc.Core.CallOptions GrpcCallOptions(TimeSpan? timeout, CancellationToken cancellationToken) =>
-            new (deadline: timeout.FromNow(), cancellationToken: cancellationToken);
     }
 }

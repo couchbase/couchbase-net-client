@@ -160,6 +160,16 @@ internal static class TypeConversionExtensions
         _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a supported MatchOperator: {matchOperator}")
     };
 
+    public static ProtoQuery.QueryRequest.Types.ProfileMode ToProto(this Couchbase.Query.QueryProfile coreProfile) =>
+        coreProfile switch
+        {
+            CoreQuery.QueryProfile.Off => ProtoQuery.QueryRequest.Types.ProfileMode.Off,
+            CoreQuery.QueryProfile.Phases => ProtoQuery.QueryRequest.Types.ProfileMode.Phases,
+            CoreQuery.QueryProfile.Timings => ProtoQuery.QueryRequest.Types.ProfileMode.Timings,
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(coreProfile),
+                message: $"Not a supported QueryProfile: {coreProfile}")
+        };
+
     public static Dictionary<string, dynamic> ToCore(this MapField<string, ByteString> protoParams)
     {
         return protoParams.ToDictionary(kvp => kvp.Key, kvp => (dynamic)kvp.Value.ToStringUtf8()); //TODO: Is this the best way to return this? Cast a string into "dynamic"?
@@ -240,4 +250,9 @@ internal static class TypeConversionExtensions
         Cas: contentResult.Cas,
         GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, serializer)
     );
+
+    public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeSerializer serializer) => new GetReplicaResult(
+        Cas: contentResult.Cas,
+        IsActive: contentResult.IsActive,
+        GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, serializer));
 }
