@@ -53,6 +53,9 @@ namespace Couchbase.Core.IO.Authentication.X509
         /// <summary>
         /// The certificate (in PEM format) to use by default for connecting to *.cloud.couchbase.com.
         /// </summary>
+        /// <remarks>
+        /// This in-memory certificate does not work on .NET Framework (legacy) clients.
+        /// </remarks>
         internal static readonly string CapellaCaCertPem =
 @"-----BEGIN CERTIFICATE-----
 MIIDFTCCAf2gAwIBAgIRANLVkgOvtaXiQJi0V6qeNtswDQYJKoZIhvcNAQELBQAw
@@ -77,6 +80,9 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
         /// <summary>
         /// The certificate to use by default for connecting to *.cloud.couchbase.com.
         /// </summary>
+        /// <remarks>
+        /// This in-memory certificate does not work on .NET Framework (legacy) clients.
+        /// </remarks>
         [Compatibility.InterfaceStability(Compatibility.Level.Volatile)]
         internal static readonly X509Certificate2 CapellaCaCert = new X509Certificate2(
             rawData: System.Text.Encoding.ASCII.GetBytes(CapellaCaCertPem),

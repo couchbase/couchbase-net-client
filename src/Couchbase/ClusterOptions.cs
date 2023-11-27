@@ -594,6 +594,8 @@ namespace Couchbase
         /// disabling TLS.
         /// </summary>
         ///<remarks>Disabled default.</remarks>
+        /// <seealso cref="KvCertificateCallbackValidation"/>
+        /// <seealso cref="HttpCertificateCallbackValidation"/>
         public bool? EnableTls { get; set; }
 
         /// <summary>
@@ -804,29 +806,49 @@ namespace Couchbase
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch for Key/Value operations, since they happen together.
         /// </summary>
-        /// <remarks>Intended for development purposes only. Has no effect if KvCertificateCallbackValidation is set.</remarks>
+        /// <remarks>
+        /// Intended for development purposes only.
+        /// Does <b>NOT</b> affect anything other than the name mismatch,
+        /// such as an untrusted root or an expired certificate.
+        /// </remarks>
+        /// <seealso cref="KvCertificateCallbackValidation"/>
+        /// <seealso cref="HttpIgnoreRemoteCertificateMismatch"/>
         public bool KvIgnoreRemoteCertificateNameMismatch { get; set; }
 
         /// <summary>
-        /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
-        /// Key/Value operations. To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors errors caused when the
-        /// subject and subject alternative name do not match the requesting DNS name, set ClusterOptions.KvIgnoreRemoteCertificateNameMismatch
-        /// to true.
+        /// The default <see cref="RemoteCertificateValidationCallback"/> called by .NET to validate the TLS/SSL certificates being used for
+        /// Key/Value operations. If this method returns <code>true</code>, then the certificate will be accepted.
         /// </summary>
+        /// <remarks>
+        /// Proper SSL/TLS certificate validation is a complex subject.
+        /// While it can be handy to simply <code>return true</code> for development against self-signed certificates,
+        /// such a shortcut should never be used against a public-facing or production system.
+        /// </remarks>
         public RemoteCertificateValidationCallback? KvCertificateCallbackValidation { get; set; } = null;
 
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch for HTTP services (Query, FTS, Analytics, etc), since they happen together.
         /// </summary>
-        /// <remarks>Intended for development purposes only.  Has no effect if HttpCertificateCallbackValidation is set.</remarks>
+        /// <remarks>
+        /// Intended for development purposes only.
+        /// Does <b>NOT</b> affect anything other than the name mismatch,
+        /// such as an untrusted root or an expired certificate.
+        /// </remarks>
+        /// <seealso cref="KvIgnoreRemoteCertificateNameMismatch"/>
+        /// <seealso cref="HttpCertificateCallbackValidation"/>
         public bool HttpIgnoreRemoteCertificateMismatch { get; set; }
 
         /// <summary>
         /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
-        /// HTTP services (Query, FTS, Analytics, etc). To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors
-        /// errors caused when the subject and subject alternative name do not match the requesting DNS name, set
-        /// ClusterOptions.HttpIgnoreRemoteCertificateMismatch to true.
+        /// HTTP services (Query, FTS, Analytics, etc).
+        ///  If this method returns <code>true</code>, then the certificate will be accepted.
         /// </summary>
+        /// <remarks>
+        /// Proper SSL/TLS certificate validation is a complex subject.
+        /// While it can be handy to simply <code>return true</code> for development against self-signed certificates,
+        /// such a shortcut should never be used against a public-facing or production system.
+        /// </remarks>
+        /// <seealso cref="KvCertificateCallbackValidation"/>
         public RemoteCertificateValidationCallback? HttpCertificateCallbackValidation { get; set; } = null;
 
         /// <summary>
