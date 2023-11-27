@@ -54,7 +54,7 @@ namespace Couchbase.Core
         private volatile bool _disposed;
         private readonly string _localHostName;
         private readonly string _remoteHostName;
-        private string _bucketName = "CLUSTER";
+        private string _bucketName = BucketConfig.GlobalBucketName;
         private IBucket _owner;
         private readonly ConfigPushHandler _configPushHandler;
 

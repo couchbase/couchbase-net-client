@@ -245,7 +245,7 @@ namespace Couchbase.Core
         public IEnumerable<IClusterNode> GetNodes(string bucketName)
         {
             //global nodes
-            if (bucketName == null)
+            if (bucketName is null or BucketConfig.GlobalBucketName)
             {
                 return Nodes;
             }
@@ -377,7 +377,7 @@ namespace Couchbase.Core
                             .ConfigureAwait(false);
 
                         GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
-                        GlobalConfig.Name = "CLUSTER";
+                        GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
 
                         //If we are using alt addresses, we likely bootstrapped with a
@@ -938,7 +938,7 @@ namespace Couchbase.Core
             }
         }
 
-        public string Name => "CLUSTER";
+        public string Name => BucketConfig.GlobalBucketName;
         public IEnumerable<IClusterNode> ClusterNodes => Nodes;
 
         public void Dispose()

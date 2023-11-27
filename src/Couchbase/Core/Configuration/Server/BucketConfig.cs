@@ -243,6 +243,7 @@ namespace Couchbase.Core.Configuration.Server
     //Root object
     internal class BucketConfig : IEquatable<BucketConfig>, IJsonOnDeserialized
     {
+        internal const string GlobalBucketName = "CLUSTER";
         private string _networkResolution = Couchbase.NetworkResolution.Auto;
 
         public ConfigVersion ConfigVersion { get; private set; }
@@ -312,7 +313,7 @@ namespace Couchbase.Core.Configuration.Server
         /// Set to true if a GCCCP config
         /// </summary>
         [JsonIgnore]
-        public bool IsGlobal => Name == "CLUSTER";
+        public bool IsGlobal => Name == GlobalBucketName;
 
         /// <summary>
         ///When true, we want to ignore the config revision and just accept the
@@ -323,7 +324,7 @@ namespace Couchbase.Core.Configuration.Server
 
         [JsonPropertyName("rev")] public ulong Rev { get; set; }
         [JsonPropertyName("revEpoch")] public ulong RevEpoch { get; set; }
-        [JsonPropertyName("name")] public string Name { get; set; } = "CLUSTER";
+        [JsonPropertyName("name")] public string Name { get; set; } = GlobalBucketName;
         [JsonPropertyName("uri")] public string Uri { get; set; }
         [JsonPropertyName("streamingUri")] public string StreamingUri { get; set; }
         [JsonPropertyName("nodes")] public List<Node> Nodes { get; set; }

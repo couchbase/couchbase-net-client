@@ -2,7 +2,9 @@ using Couchbase;
 using Couchbase.KeyValue;
 using Couchbase.Test.Common.Utils;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,11 +51,21 @@ namespace Couchbase.CombinationTests.Tests.Cluster
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_WaitUntilReady_Completes()
         {
-            using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
+            long pingCount = 0;
+            var logInterceptor = new DelegatingTestOutputHelper(_outputHelper,
+                beforeWrite: m =>
+                {
+                    if (m.Contains("Executing op NoOp on"))
+                    {
+                        Interlocked.Increment(ref pingCount);
+                    }
+                });
+            using var loggerFactory = new TestOutputLoggerFactory(logInterceptor);
             var clusterOptions = _fixture.GetOptionsFromConfig();
             clusterOptions.WithLogging(loggerFactory);
             var cluster = await NetClient.Cluster.ConnectAsync(clusterOptions);
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
+            Assert.NotEqual(0, Interlocked.Read(ref pingCount));
         }
     }
 }

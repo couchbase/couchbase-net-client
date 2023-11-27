@@ -133,7 +133,7 @@ namespace Couchbase.Core.Configuration.Server
                             if (config != null)
                             {
                                 connected = true;
-                                config.Name ??= "CLUSTER";
+                                config.Name ??= BucketConfig.GlobalBucketName;
                                 Publish(config);
                             }
                             else
