@@ -8,23 +8,26 @@ using Couchbase.Management.Query;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient;
+namespace Couchbase.Stellar.CombinationTests.WrappedClient.Management;
 
+[Collection(StellarTestCollection.Name)]
 public class StellarCollectionQueryIndexManagement
 {
     private readonly ITestOutputHelper _outputHelper;
-    public StellarCollectionQueryIndexManagement(ITestOutputHelper outputHelper)
+    private StellarFixture _fixture;
+    private ConsistencyUtils _utils;
+    public StellarCollectionQueryIndexManagement(StellarFixture fixture, ITestOutputHelper outputHelper)
     {
+        _fixture = fixture;
         _outputHelper = outputHelper;
+        _utils = new ConsistencyUtils(_fixture);
     }
 
-    [Theory]
-    [InlineData("couchbase")]
-    [InlineData("protostellar")]
-    public async Task CreateAndDropCollectionIndex(string protocol)
+    [Fact]
+    public async Task CreateAndDropCollectionIndex()
     {
-        var bucket = await StellarUtils.GetDefaultBucket(protocol).ConfigureAwait(false);
-        var collectionManager = StellarUtils.GetDefaultBucket(protocol).Result.Collections;
+        var bucket = await _fixture.DefaultBucket().ConfigureAwait(false);
+        var collectionManager = _fixture.DefaultBucket().Result.Collections;
 
         var scopeName = Guid.NewGuid().ToString();
         var collectionName = Guid.NewGuid().ToString();
@@ -33,7 +36,9 @@ public class StellarCollectionQueryIndexManagement
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
+            await _utils.WaitUntilScopeIsPresent(scopeName).ConfigureAwait(false);
             await collectionManager.CreateCollectionAsync(collectionSpec);
+            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName).ConfigureAwait(false);
 
             var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(false);
             var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
@@ -56,10 +61,6 @@ public class StellarCollectionQueryIndexManagement
                     .ConfigureAwait(false);
 
                 using var cts = new CancellationTokenSource(10000);
-
-                await collection.QueryIndexes.WatchIndexesAsync(new[] { indexName }, TimeSpan.FromMinutes(1),
-                        new WatchQueryIndexOptions().CancellationToken(cts.Token))
-                    .ConfigureAwait(false);
 
                 var getIndexes = await collection.QueryIndexes.GetAllIndexesAsync(new GetAllQueryIndexOptions())
                     .ConfigureAwait(false);

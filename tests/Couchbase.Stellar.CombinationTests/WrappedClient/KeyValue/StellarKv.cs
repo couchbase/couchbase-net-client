@@ -1,119 +1,107 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.KeyValue;
-using Couchbase.Test.Common.Utils;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient
+namespace Couchbase.Stellar.CombinationTests.WrappedClient.KeyValue
 {
+    [Collection(StellarTestCollection.Name)]
     public class StellarKv
     {
+        private readonly StellarFixture _fixture;
         private readonly ITestOutputHelper _outputHelper;
 
-        public StellarKv(ITestOutputHelper outputHelper)
+        public StellarKv(StellarFixture fixture, ITestOutputHelper outputHelper)
         {
+            _fixture = fixture;
             _outputHelper = outputHelper;
         }
 
-        [Theory]
-        [InlineData("protostellar")]
-        [InlineData("couchbase")]
-        [InlineData("couchbases")]
-        public async Task Exists(string protocol)
+        [Fact]
+        public async Task Exists()
         {
-            var col = await DefaultCollection(protocol);
+            var collection = await _fixture.DefaultCollection();
             var doc1 = Guid.NewGuid().ToString();
 
-            await col.UpsertAsync(doc1, new { Name = doc1 }, options => options.Expiry(TimeSpan.FromSeconds(10)));
-            var result = await col.ExistsAsync(doc1);
+            await collection.UpsertAsync(doc1, new { Name = doc1 }, options => options.Expiry(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+            var result = await collection.ExistsAsync(doc1).ConfigureAwait(false);
             Assert.True(result.Exists);
 
-            await col.RemoveAsync(doc1);
-            var result1 = await col.ExistsAsync(doc1);
+            await collection.RemoveAsync(doc1);
+            var result1 = await collection.ExistsAsync(doc1).ConfigureAwait(false);
             Assert.False(result1.Exists);
         }
 
-        private record UpsertSampleDoc(string id, string updated);
+        private record UpsertSampleDoc(string Id, string Updated);
 
-        [Theory]
-        [InlineData("protostellar")]
-        [InlineData("couchbase")]
-        public async Task Upsert(string protocol)
+        [Fact]
+        public async Task Upsert()
         {
-            var collection = await DefaultCollection(protocol);
+            var collection = await _fixture.DefaultCollection();
             var dt = DateTimeOffset.Now.ToString("R");
             var id = "UnitTestUpsert01";
             var contentObj = new UpsertSampleDoc(id, dt);
-            var upsertResponse = await collection.UpsertAsync(id, contentObj);
+            var upsertResponse = await collection.UpsertAsync(id, contentObj).ConfigureAwait(false);
             Assert.NotNull(upsertResponse);
             Assert.NotEqual(0u, upsertResponse.Cas);
 
-            var getResponse = await collection.GetAsync(id);
+            var getResponse = await collection.GetAsync(id).ConfigureAwait(false);
             Assert.NotNull(getResponse);
             Assert.NotEqual(0u, getResponse.Cas);
             var deserializedDoc = getResponse.ContentAs<UpsertSampleDoc>();
-            Assert.Equal(dt, deserializedDoc?.updated);
+            Assert.Equal(dt, deserializedDoc?.Updated);
+
+            await collection.RemoveAsync(id).ConfigureAwait(false);
         }
 
-        [Theory]
-        [InlineData("protostellar")]
-        [InlineData("couchbase")]
-        [InlineData("couchbases")]
-        public async Task Insert(string protocol)
+        [Fact]
+        public async Task Insert()
         {
-            var collection = await DefaultCollection(protocol);
+            var collection = await _fixture.DefaultCollection();
             var dt = DateTimeOffset.Now.ToString("R");
-            var id = "UnitTestInsert01" + Guid.NewGuid().ToString();
+            var id = "UnitTestInsert01" + Guid.NewGuid();
             var contentObj = new UpsertSampleDoc(id, dt);
             var insertOptions = new InsertOptions().Expiry(TimeSpan.FromSeconds(120));
-            var mutationResult = await collection.InsertAsync(id, contentObj, insertOptions);
+            var mutationResult = await collection.InsertAsync(id, contentObj, insertOptions).ConfigureAwait(false);
             Assert.NotNull(mutationResult);
             Assert.NotEqual(0u, mutationResult.Cas);
 
-            var getResponse = await collection.GetAsync(id);
+            var getResponse = await collection.GetAsync(id).ConfigureAwait(false);
             Assert.NotNull(getResponse);
             Assert.NotEqual(0u, getResponse.Cas);
             var deserializedDoc = getResponse.ContentAs<UpsertSampleDoc>();
-            Assert.Equal(dt, deserializedDoc?.updated);
+            Assert.Equal(dt, deserializedDoc?.Updated);
 
             await collection.RemoveAsync(id);
-
-            // TODO: use Exists to check document was removed.
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private record Hobby(string name, double average_annual_expenditures);
+        private record Hobby(string Name, double average_annual_expenditures);
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private record Hobbyist(string name, IEnumerable<Hobby> hobbies);
+        private record Hobbyist(string Name, IEnumerable<Hobby> Hobbies);
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
-        private record HobbyCustomers(string id, string group, IEnumerable<Hobbyist> customers,
-            string? placeholder = null)
+        private record HobbyCustomers(string Id, string Group, IEnumerable<Hobbyist> Customers,
+            string? Placeholder = null)
         {
             [JsonExtensionData] public Dictionary<string, JsonElement> Data { get; set; } = null;
         };
 
-        [Theory]
-        [InlineData("protostellar")]
-        [InlineData("couchbase")]
-        [InlineData("couchbases")]
-        public async Task LookupIn(string protocol)
+        [Fact]
+        public async Task LookupIn()
         {
-            var collection = await DefaultCollection(protocol);
+            var collection = await _fixture.DefaultCollection();
             var id = "LookupIn_Test001" + Guid.NewGuid();
             var customers = GetExampleHobbyCustomers(id);
 
-            await collection.InsertAsync(id, customers, opts => opts.Expiry(TimeSpan.FromMinutes(5)));
+            await collection.InsertAsync(id, customers, opts => opts.Expiry(TimeSpan.FromMinutes(5))).ConfigureAwait(false);
 
             try
             {
@@ -140,29 +128,27 @@ namespace Couchbase.Stellar.CombinationTests.WrappedClient
                 throw;
             }
 
+            await collection.RemoveAsync(id).ConfigureAwait(false);
         }
 
 
-        [Theory]
-        [InlineData("protostellar")]
-        [InlineData("couchbase")]
-        [InlineData("couchbases")]
-        public async Task MutateIn(string protocol)
+        [Fact]
+        public async Task MutateIn()
         {
             var id = "MutateIn_Test001" + Guid.NewGuid();
             _outputHelper.WriteLine("DocID = {0}", id);
-            var collection = await DefaultCollection(protocol);
-            var customers = GetExampleHobbyCustomers(id) with { placeholder = "removeme" };
+            var collection = await _fixture.DefaultCollection();
+            var customers = GetExampleHobbyCustomers(id) with { Placeholder = "removeme" };
 
             var insertResult = await collection.InsertAsync(id, customers, opts => opts.Expiry(TimeSpan.FromMinutes(5)));
 
             try
             {
-                var primo = new Hobbyist(name: "Primo", hobbies: Enumerable.Empty<Hobby>());
-                var sigurd = new Hobbyist(name: "Sigurd", hobbies: Enumerable.Empty<Hobby>());
-                var bob = new Hobbyist(name: "Bob", hobbies: Enumerable.Empty<Hobby>());
-                var sam = new Hobbyist(name: "Sam",
-                    hobbies: new Hobby[]
+                var primo = new Hobbyist(Name: "Primo", Hobbies: Enumerable.Empty<Hobby>());
+                var sigurd = new Hobbyist(Name: "Sigurd", Hobbies: Enumerable.Empty<Hobby>());
+                var bob = new Hobbyist(Name: "Bob", Hobbies: Enumerable.Empty<Hobby>());
+                var sam = new Hobbyist(Name: "Sam",
+                    Hobbies: new Hobby[]
                     {
                         new Hobby("cheese", 2_032.00)
                     }
@@ -190,14 +176,14 @@ namespace Couchbase.Stellar.CombinationTests.WrappedClient
                 Assert.NotNull(getResponse);
                 Assert.Equal(mutateResponse.Cas, getResponse.Cas);
                 var finalData = getResponse.ContentAs<HobbyCustomers>();
-                Assert.Collection(finalData.customers,
-                    h => Assert.Equal(primo.name, h.name),
-                    h => Assert.Equal(sigurd.name, h.name),
-                    h => Assert.Equal(customers.customers.First().name, h.name),
-                    h => Assert.Equal(customers.customers.Last().name, h.name),
-                    h => Assert.Equal(sam.name, h.name)
+                Assert.Collection(finalData.Customers,
+                    h => Assert.Equal(primo.Name, h.Name),
+                    h => Assert.Equal(sigurd.Name, h.Name),
+                    h => Assert.Equal(customers.Customers.First().Name, h.Name),
+                    h => Assert.Equal(customers.Customers.Last().Name, h.Name),
+                    h => Assert.Equal(sam.Name, h.Name)
                     );
-                Assert.Null(finalData.placeholder);
+                Assert.Null(finalData.Placeholder);
                 if (finalData.Data is not null)
                 {
                     Assert.Equal(8, finalData.Data["review_count"].GetInt32());
@@ -215,6 +201,41 @@ namespace Couchbase.Stellar.CombinationTests.WrappedClient
                 throw;
             }
 
+            await collection.RemoveAsync(id).ConfigureAwait(false);
+
+        }
+
+        [Fact]
+        public async Task GetAllReplicas()
+        {
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+            var person = new {Name = "Lambda", Age = 100};
+
+            try
+            {
+                await collection.InsertAsync(key, person).ConfigureAwait(false);
+
+                var results = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(false);
+                foreach (var result in results)
+                {
+                    Assert.True(result.IsActive is true or false);
+                }
+
+                foreach (var p in results)
+                {
+                    Assert.NotEqual(ulong.MinValue, p.Cas);
+                    Assert.Null(p.ExpiryTime);
+
+                    var retrievedPerson = p.ContentAs<dynamic>();
+                    Assert.Contains(person.Name, retrievedPerson.ToString());
+                    Assert.Contains(person.Age.ToString(), retrievedPerson.ToString());
+                }
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
         }
 
         private static HobbyCustomers GetExampleHobbyCustomers(string id)
@@ -235,32 +256,6 @@ namespace Couchbase.Stellar.CombinationTests.WrappedClient
                 }
             );
             return customers;
-        }
-
-        private async Task<ICouchbaseCollection> DefaultCollection(string protocol)
-        {
-            var opts = new ClusterOptions()
-            {
-                UserName = "Administrator",
-                Password = "password"
-            };
-
-            var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
-            opts.WithLogging(loggerFactory);
-
-            var connectionString = $"{protocol}://localhost";
-            // var connectionString = "protostellar://sdksng.couchbase6.com:443";
-            if (connectionString.Contains("//localhost"))
-            {
-                opts.KvIgnoreRemoteCertificateNameMismatch = true;
-                opts.HttpIgnoreRemoteCertificateMismatch = true;
-            }
-
-            var cluster = await StellarCluster.ConnectAsync(connectionString, opts);
-            var bucket = await cluster.BucketAsync("default");
-            var scope = bucket.Scope("_default");
-            var collection = scope.Collection("_default");
-            return collection;
         }
     }
 }

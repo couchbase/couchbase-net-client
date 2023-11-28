@@ -11,6 +11,7 @@
 	<ItemGroup>
 		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
 		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Moq" />
@@ -27,7 +28,14 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\Couchbase.Stellar\Couchbase.Stellar.csproj" />
 	  <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
+    <ProjectReference Include="..\..\src\Couchbase.NetClient\Couchbase.NetClient.csproj" />
 	  <ProjectReference Include="..\..\tests\Couchbase.Test.Common\Couchbase.Test.Common.csproj" />
 	</ItemGroup>
+
+  <ItemGroup>
+    <None Update="settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>

@@ -2,12 +2,12 @@ using Couchbase.Analytics;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Management.Buckets;
 using Couchbase.Protostellar.Admin.Bucket.V1;
-using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
+using Couchbase.Stellar.Util;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using BucketType = Couchbase.Protostellar.Admin.Bucket.V1.BucketType;
@@ -16,7 +16,9 @@ using ConflictResolutionType = Couchbase.Protostellar.Admin.Bucket.V1.ConflictRe
 using CoreKv = Couchbase.KeyValue;
 using CoreQuery = Couchbase.Query;
 using CoreOpCode = Couchbase.Core.IO.Operations.OpCode;
+using DateRangeFacet = Couchbase.Search.DateRangeFacet;
 using MatchQuery = Couchbase.Protostellar.Search.V1.MatchQuery;
+using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
 using ProtoKv = Couchbase.Protostellar.KV.V1;
 using ProtoQuery = Couchbase.Protostellar.Query.V1;
 using ProtoLookupInOpCode = Couchbase.Protostellar.KV.V1.LookupInRequest.Types.Spec.Types.Operation;
@@ -24,6 +26,8 @@ using ProtoLookupInFlags = Couchbase.Protostellar.KV.V1.LookupInRequest.Types.Sp
 using ProtoMutateInOpCode = Couchbase.Protostellar.KV.V1.MutateInRequest.Types.Spec.Types.Operation;
 using ProtoMutateInFlags = Couchbase.Protostellar.KV.V1.MutateInRequest.Types.Spec.Types.Flags;
 using StorageBackend = Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend;
+using ProtoFacet = Couchbase.Protostellar.Search.V1.Facet;
+using TermFacet = Couchbase.Search.TermFacet;
 
 namespace Couchbase.Stellar.Core;
 
@@ -169,6 +173,15 @@ internal static class TypeConversionExtensions
             _ => throw new ArgumentOutOfRangeException(paramName: nameof(coreProfile),
                 message: $"Not a supported QueryProfile: {coreProfile}")
         };
+
+    public static ProtoFacet ToProto(this ISearchFacet coreFacet) => coreFacet switch
+    {
+        TermFacet => new Facet { TermFacet = new Couchbase.Protostellar.Search.V1.TermFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
+        DateRangeFacet => new Facet { DateRangeFacet = new Couchbase.Protostellar.Search.V1.DateRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
+        NumericRangeFacet => new Facet { NumericRangeFacet = new Couchbase.Protostellar.Search.V1.NumericRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
+        SearchFacet => throw new UnsupportedInProtostellarException(nameof(SearchFacet)),
+        _ => throw new ArgumentOutOfRangeException(paramName: nameof(coreFacet), message: $"Not a supported ISearchFacet: {coreFacet}")
+    };
 
     public static Dictionary<string, dynamic> ToCore(this MapField<string, ByteString> protoParams)
     {

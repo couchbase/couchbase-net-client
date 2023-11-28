@@ -8,24 +8,26 @@ using Couchbase.Management.Query;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient;
+namespace Couchbase.Stellar.CombinationTests.WrappedClient.Management;
 
+[Collection(StellarTestCollection.Name)]
 public class StellarQueryIndexManagement
 {
     private readonly ITestOutputHelper _outputHelper;
-
-    public StellarQueryIndexManagement(ITestOutputHelper outputHelper)
+    private StellarFixture _fixture;
+    private ConsistencyUtils _utils;
+    public StellarQueryIndexManagement(StellarFixture fixture, ITestOutputHelper outputHelper)
     {
+        _fixture = fixture;
         _outputHelper = outputHelper;
+        _utils = new ConsistencyUtils(fixture);
     }
 
-    [Theory]
-    [InlineData("protostellar")]
-    [InlineData("couchbase")]
-    public async Task CreateAndDropIndex(string protocol)
+    [Fact]
+    public async Task CreateAndDropIndex()
     {
-        var cluster = await StellarUtils.GetCluster(protocol).ConfigureAwait(false);
-        var bucketName = StellarUtils.GetDefaultBucket(protocol).Result.Name;
+        var cluster = _fixture.StellarCluster;
+        var bucketName = _fixture.DefaultBucket().Result.Name;
 
         const string indexName = "indexmgr_test";
         try
@@ -44,8 +46,6 @@ public class StellarQueryIndexManagement
             await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName).ConfigureAwait(false);
 
             using var cts = new CancellationTokenSource(10000);
-
-            if (protocol != "protostellar") await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] { indexName }, new WatchQueryIndexOptions()).ConfigureAwait(false);
 
             var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName);
             Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
@@ -66,14 +66,12 @@ public class StellarQueryIndexManagement
         Assert.False(failedCleanup);
     }
 
-    [Theory]
-    [InlineData("protostellar")]
-    [InlineData("couchbase")]
-    public async Task CreateAndDropCollectionIndex(string protocol)
+    [Fact]
+    public async Task CreateAndDropCollectionIndex()
     {
-        var cluster = await StellarUtils.GetCluster(protocol).ConfigureAwait(false);
-        var bucketName = StellarUtils.GetDefaultBucket(protocol).Result.Name;
-        var collectionManager = StellarUtils.GetDefaultBucket(protocol).Result.Collections;
+        var cluster = _fixture.StellarCluster;
+        var bucketName = _fixture.DefaultBucket().Result.Name;
+        var collectionManager = _fixture.DefaultBucket().Result.Collections;
 
         var scopeName = Guid.NewGuid().ToString();
         var collectionName = Guid.NewGuid().ToString();
@@ -82,7 +80,10 @@ public class StellarQueryIndexManagement
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
+            await _utils.WaitUntilScopeIsPresent(scopeName).ConfigureAwait(false);
             await collectionManager.CreateCollectionAsync(collectionSpec);
+            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName).ConfigureAwait(false);
+
 
             const string indexName = "indexmgr_test_collection";
             try
@@ -100,11 +101,6 @@ public class StellarQueryIndexManagement
                 await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName, new BuildDeferredQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(false);
 
                 using var cts = new CancellationTokenSource(10000);
-
-                if (protocol != "protostellar")
-                {
-                    await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] { indexName }, new WatchQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(false);
-                }
 
                 var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName, new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName));
                 Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
@@ -130,13 +126,11 @@ public class StellarQueryIndexManagement
         }
     }
 
-    [Theory]
-    [InlineData("protostellar")]
-    [InlineData("couchbase")]
-    public async Task GetAllIndexesReturnsIndexesOnDefaultCollection(string protocol)
+    [Fact]
+    public async Task GetAllIndexesReturnsIndexesOnDefaultCollection()
     {
-        var cluster = await StellarUtils.GetCluster(protocol).ConfigureAwait(false);
-        var bucketName = StellarUtils.GetDefaultBucket(protocol).Result.Name;
+        var cluster = _fixture.StellarCluster;
+        var bucketName = _fixture.DefaultBucket().Result.Name;
 
         var indexManager = cluster.QueryIndexes;
 
@@ -167,13 +161,11 @@ public class StellarQueryIndexManagement
         await indexManager.DropPrimaryIndexAsync(bucketName).ConfigureAwait(false);
     }
 
-    [Theory]
-    [InlineData("protostellar")]
-    [InlineData("couchbase")]
-    public async Task CreateIndexWithMissingField(string protocol)
+    [Fact]
+    public async Task CreateIndexWithMissingField()
     {
-        var cluster = await StellarUtils.GetCluster(protocol).ConfigureAwait(false);
-        var bucket = await StellarUtils.GetDefaultBucket(protocol);
+        var cluster = _fixture.StellarCluster;
+        var bucket = await _fixture.DefaultBucket();
         var indexManager = cluster.QueryIndexes;
 
         const string indexName = "idxCreateIndexWithMissingField_test";
@@ -194,11 +186,6 @@ public class StellarQueryIndexManagement
             await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name).ConfigureAwait(false);
 
             using var cts = new CancellationTokenSource(10000);
-
-            if (protocol != "protostellar")
-            {
-                await cluster.QueryIndexes.WatchIndexesAsync(bucket.Name, new[] { indexName }, options => { options.CancellationToken(cts.Token); }).ConfigureAwait(false);
-            }
 
             var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucket.Name);
             Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));

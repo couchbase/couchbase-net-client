@@ -48,40 +48,13 @@ namespace Couchbase.Stellar.Search
             if (opts.Explain.HasValue) searchQueryRequest.IncludeExplanation = opts.Explain.Value;
             if (opts.ScopeName != null) searchQueryRequest.ScopeName = opts.ScopeName;
             if (opts.CollectionNames != null) searchQueryRequest.Collections.AddRange(opts.CollectionNames);
-            opts.Facets?.ToList().ForEach(facet => searchQueryRequest.Facets.Add(facet.Name, ParseFacet(facet)));
+            opts.Facets?.ToList().ForEach(facet => searchQueryRequest.Facets.Add(facet.Name, facet.ToProto()));
 
             var response = _searchClient.SearchQuery(searchQueryRequest, _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
 
             var searchResult = await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
 
             return searchResult;
-        }
-
-        private static Couchbase.Protostellar.Search.V1.Facet ParseFacet(ISearchFacet coreFacet)
-        {
-            if (coreFacet is TermFacet)
-            {
-                return new Couchbase.Protostellar.Search.V1.Facet
-                {
-                    TermFacet = new Couchbase.Protostellar.Search.V1.TermFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size }
-                };
-            }
-            if (coreFacet is DateRangeFacet)
-            {
-                return new Couchbase.Protostellar.Search.V1.Facet
-                {
-                    DateRangeFacet = new Couchbase.Protostellar.Search.V1.DateRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size }
-                };
-            }
-            if (coreFacet is NumericRangeFacet)
-            {
-                return new Couchbase.Protostellar.Search.V1.Facet
-                {
-                    NumericRangeFacet = new Couchbase.Protostellar.Search.V1.NumericRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size }
-                };
-            }
-
-            throw new ArgumentOutOfRangeException($"Could not parse Facet {coreFacet} to a Proto object.");
         }
 
         private Couchbase.Protostellar.Search.V1.Query QueryConverter(ISearchQuery searchRequest,

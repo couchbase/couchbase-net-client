@@ -1,18 +1,15 @@
 using System;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Threading;
 using Grpc.Net.Client;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Couchbase.Protostellar;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.RawGrpc
+namespace Couchbase.Stellar.CombinationTests.RawGrpcClient
 {
     public class KvTests
     {
