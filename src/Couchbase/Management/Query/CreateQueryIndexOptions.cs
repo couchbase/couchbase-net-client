@@ -11,7 +11,8 @@ namespace Couchbase.Management.Query
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal bool IgnoreIfExistsValue { get; set; }
         internal bool DeferredValue { get; set; }
-        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
+        internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
+        internal TimeSpan? TimeoutValue { get; set; }
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
         internal string? QueryContext { get; set; }
@@ -60,9 +61,15 @@ namespace Couchbase.Management.Query
             return this;
         }
 
+        public CreateQueryIndexOptions Timeout(TimeSpan timeout)
+        {
+            TimeoutValue = timeout;
+            return this;
+        }
+
         public static CreateQueryIndexOptions Default => new CreateQueryIndexOptions();
 
-        public void Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext)
+        public void Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue)
         {
             ignoreIfExistsValue = IgnoreIfExistsValue;
             deferredValue = DeferredValue;
@@ -70,12 +77,13 @@ namespace Couchbase.Management.Query
             scopeNameValue = ScopeNameValue;
             collectionNameValue = CollectionNameValue;
             queryContext = QueryContext;
+            timeoutValue = TimeoutValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext);
-            return new ReadOnly(ignoreIfExistsValue, deferredValue, tokenValue, scopeNameValue, collectionNameValue, queryContext);
+            this.Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue);
+            return new ReadOnly(ignoreIfExistsValue, deferredValue, tokenValue, scopeNameValue, collectionNameValue, queryContext, timeoutValue);
         }
 
         public record ReadOnly(
@@ -84,7 +92,8 @@ namespace Couchbase.Management.Query
             CancellationToken TokenValue,
             string? ScopeNameValue,
             string? CollectionNameValue,
-            string? QueryContext);
+            string? QueryContext,
+            TimeSpan? TimeoutValue);
     }
 }
 

@@ -9,7 +9,8 @@ namespace Couchbase.Management.Query
     public class GetAllQueryIndexOptions
     {
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
-        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
+        internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
+        internal TimeSpan? TimeoutValue { get; set; }
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
 
@@ -47,27 +48,35 @@ namespace Couchbase.Management.Query
             return this;
         }
 
+        public GetAllQueryIndexOptions Timeout(TimeSpan timeout)
+        {
+            TimeoutValue = timeout;
+            return this;
+        }
+
         public static GetAllQueryIndexOptions Default => new GetAllQueryIndexOptions();
 
-        public void Deconstruct(out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext)
+        public void Deconstruct(out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue)
         {
             tokenValue = TokenValue;
             scopeNameValue = ScopeNameValue;
             collectionNameValue = CollectionNameValue;
             queryContext = QueryContext;
+            timeoutValue = TimeoutValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext);
-            return new ReadOnly(tokenValue, scopeNameValue, collectionNameValue, queryContext);
+            this.Deconstruct(out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue);
+            return new ReadOnly(tokenValue, scopeNameValue, collectionNameValue, queryContext, timeoutValue);
         }
 
         public record ReadOnly(
             CancellationToken TokenValue,
             string? ScopeNameValue,
             string? CollectionNameValue,
-            string? QueryContext);
+            string? QueryContext,
+            TimeSpan? TimeoutValue);
     }
 }
 

@@ -1,4 +1,6 @@
+using System;
 using System.Threading;
+using CancellationTokenCls = System.Threading.CancellationToken;
 
 #nullable enable
 
@@ -7,7 +9,8 @@ namespace Couchbase.Management.Search
     public class DisallowQueryingSearchIndexOptions
     {
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
+        internal TimeSpan? TimeoutValue { get; set; }
 
         public DisallowQueryingSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
@@ -15,19 +18,26 @@ namespace Couchbase.Management.Search
             return this;
         }
 
+        public DisallowQueryingSearchIndexOptions Timeout(TimeSpan timeout)
+        {
+            TokenValue = new CancellationTokenSource(timeout).Token;
+            return this;
+        }
+
         public static DisallowQueryingSearchIndexOptions Default => new DisallowQueryingSearchIndexOptions();
 
-        public void Deconstruct(out CancellationToken tokenValue)
+        public void Deconstruct(out CancellationToken tokenValue, out TimeSpan? timeoutValue)
         {
             tokenValue = TokenValue;
+            timeoutValue = TimeoutValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken tokenValue);
-            return new ReadOnly(tokenValue);
+            this.Deconstruct(out CancellationToken tokenValue, out TimeSpan? timeoutValue);
+            return new ReadOnly(tokenValue, timeoutValue);
         }
-        public record ReadOnly(CancellationToken TokenValue);
+        public record ReadOnly(CancellationToken TokenValue, TimeSpan? TimeoutValue);
     }
 }
 
