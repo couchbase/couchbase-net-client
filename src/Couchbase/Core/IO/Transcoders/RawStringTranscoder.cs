@@ -13,6 +13,7 @@ namespace Couchbase.Core.IO.Transcoders
     public class RawStringTranscoder : BaseTranscoder
     {
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         public RawStringTranscoder() : this(DefaultSerializer.Instance)
         {
         }

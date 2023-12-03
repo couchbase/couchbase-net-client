@@ -30,6 +30,9 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(Exceptions.Search.SearchErrorContext))]
     [JsonSerializable(typeof(Exceptions.View.ViewContextError))]
     [JsonSerializable(typeof(long))] // Used for expiry deserialization in GetResult
+#if DEBUG
+    [JsonSerializable(typeof(ServerFeatureSet))] // Only required for debug ToString implementation
+#endif
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
         private static SystemTextJsonSerializer? _defaultTypeSerializer;
@@ -52,6 +55,7 @@ namespace Couchbase.Core
         }
 
 		[RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         public static string SerializeWithFallback<TValue>(TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
         {
             try
@@ -75,7 +79,6 @@ namespace Couchbase.Core
             }
         }
 
-        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public static void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value,
             System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo,
             IFallbackTypeSerializerProvider fallbackTypeSerializerProvider)

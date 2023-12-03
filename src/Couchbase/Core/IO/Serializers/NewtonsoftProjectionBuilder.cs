@@ -13,6 +13,7 @@ namespace Couchbase.Core.IO.Serializers
     /// Implementation of <see cref="IProjectionBuilder"/> for <see cref="DefaultSerializer"/>.
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
     internal class NewtonsoftProjectionBuilder : IProjectionBuilder
     {
         private readonly DefaultSerializer _serializer;

@@ -58,6 +58,12 @@ namespace Couchbase.Core.DI
             {
                 ThrowHelper.ThrowArgumentException("Not a generic type definition.", nameof(genericType));
             }
+            if (!genericType.IsClass)
+            {
+                // Must be a class to be NativeAOT compatible with MakeGenericType in the Factory below. Value types
+                // require unique compilation whereas classes share the same compilation.
+                ThrowHelper.ThrowArgumentException("Not a class.", nameof(genericType));
+            }
 
             _genericType = genericType;
         }
@@ -88,6 +94,8 @@ namespace Couchbase.Core.DI
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2055",
             Justification = "The generic interface type arguments should have matching DynamicallyAccessedMembers to the implementation's type arguments.")]
+        [UnconditionalSuppressMessage("Aot", "IL3050",
+            Justification = "The _genericType is always a class and is therefore NativeAOT compatible.")]
         private object Factory(Type requestedType)
         {
             if (_serviceProvider == null)

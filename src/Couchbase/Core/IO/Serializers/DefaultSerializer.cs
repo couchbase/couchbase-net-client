@@ -23,11 +23,14 @@ namespace Couchbase.Core.IO.Serializers
     {
         public const string UnreferencedCodeMessage =
             "The DefaultSerializer uses Newtonsoft.Json which requires unreferenced code and is incompatible with trimming.";
+        public const string RequiresDynamicCodeMessage =
+            "The DefaultSerializer uses Newtonsoft.Json which requires dynamic code and is incompatible with AOT.";
 
         private static DefaultSerializer? _instance;
         internal static DefaultSerializer Instance
         {
             [RequiresUnreferencedCode(UnreferencedCodeMessage)]
+            [RequiresDynamicCode(RequiresDynamicCodeMessage)]
             get
             {
                 // First do a lock (and interlock) free check to see if the default serializer has been set.
@@ -44,7 +47,8 @@ namespace Couchbase.Core.IO.Serializers
 
         #region Constructors
 
-        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresUnreferencedCode(UnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public DefaultSerializer() : this(
             new JsonSerializerSettings
             {
@@ -60,7 +64,8 @@ namespace Couchbase.Core.IO.Serializers
         {
         }
 
-        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresUnreferencedCode(UnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public DefaultSerializer(JsonSerializerSettings deserializationSettings, JsonSerializerSettings serializerSettings)
         {
             if (deserializationSettings == null)
@@ -80,7 +85,8 @@ namespace Couchbase.Core.IO.Serializers
             SerializerSettings = serializerSettings;
         }
 
-        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresUnreferencedCode(UnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         private static IContractResolver GetDefaultContractResolver()
         {
             var defaultResolver = JsonConvert.DefaultSettings?.Invoke()?.ContractResolver;
@@ -184,6 +190,8 @@ namespace Couchbase.Core.IO.Serializers
         #region Methods
 
         /// <inheritdoc />
+        [UnconditionalSuppressMessage("Aot", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public T? Deserialize<T>(ReadOnlyMemory<byte> buffer)
         {
             var value = default(T);
@@ -302,6 +310,8 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("Aot", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public IJsonStreamReader CreateJsonStreamReader(Stream stream)
         {
             return new DefaultJsonStreamReader(stream, _deserializer);
@@ -309,6 +319,8 @@ namespace Couchbase.Core.IO.Serializers
 
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("Aot", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public IProjectionBuilder CreateProjectionBuilder(ILogger logger) => new NewtonsoftProjectionBuilder(this, logger);
 

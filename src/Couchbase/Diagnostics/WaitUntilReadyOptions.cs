@@ -80,7 +80,11 @@ namespace Couchbase.Diagnostics
                 ISet<ServiceType> serviceTypes = new SortedSet<ServiceType>();
                 foreach (var clusterNode in context.Nodes)
                 {
+#if NET6_0_OR_GREATER
+                    foreach (ServiceType serviceType in Enum.GetValues<ServiceType>())
+#else
                     foreach (ServiceType serviceType in Enum.GetValues(typeof(ServiceType)))
+#endif
                     {
                         bool includeService = serviceType switch
                         {

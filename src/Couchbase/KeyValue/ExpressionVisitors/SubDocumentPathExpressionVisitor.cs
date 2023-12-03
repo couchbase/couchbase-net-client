@@ -453,6 +453,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
         /// For unit testing of WriteEscapedString only.
         /// </summary>
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         internal static string GetEscapedString(string str)
         {
             var visitor = new SubDocumentPathExpressionVisitor(DefaultSerializer.Instance);

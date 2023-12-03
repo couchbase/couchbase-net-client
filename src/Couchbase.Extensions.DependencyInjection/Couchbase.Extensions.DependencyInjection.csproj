@@ -6,8 +6,8 @@
     <RootNamespace>Couchbase.Extensions.DependencyInjection</RootNamespace>
     <Description>Extensions for CouchbaseNetClient 3.x supporing .NET Core configuration and dependency injection.</Description>
     <Nullable>enable</Nullable>
-    <IsTrimmable>true</IsTrimmable>
-    <EnableAOTAnalyzer>$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
+    <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">true</IsTrimmable>
+    <EnableAOTAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">

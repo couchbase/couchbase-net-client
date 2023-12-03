@@ -224,7 +224,7 @@ namespace Couchbase.Core
         public override string? ToString()
         {
 #if DEBUG
-            return JsonSerializer.Serialize(this);
+            return JsonSerializer.Serialize(this, InternalSerializationContext.Default.ServerFeatureSet);
 #else
             return base.ToString();
 #endif

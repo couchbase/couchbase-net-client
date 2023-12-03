@@ -18,6 +18,7 @@ namespace Couchbase.Core.IO.Transcoders
     public class LegacyTranscoder : BaseTranscoder
     {
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         public LegacyTranscoder()
             : this(DefaultSerializer.Instance)
         {

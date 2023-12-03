@@ -1,10 +1,14 @@
 #nullable enable
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Couchbase.Core.IO.Serializers
 {
     /// <summary>
     /// Implementation of <see cref="IFallbackTypeSerializerProvider"/> which provides a <see cref="DefaultSerializer"/>.
     /// </summary>
+    [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
     internal class DefaultFallbackTypeSerializerProvider : IFallbackTypeSerializerProvider
     {
         private static DefaultFallbackTypeSerializerProvider? _instance;

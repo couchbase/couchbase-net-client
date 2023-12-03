@@ -13,6 +13,7 @@ namespace Couchbase.Core.IO.Transcoders
     public class JsonTranscoder : BaseTranscoder
     {
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+        [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         public JsonTranscoder()
             : this(DefaultSerializer.Instance)
         {

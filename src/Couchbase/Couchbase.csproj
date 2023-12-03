@@ -19,14 +19,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- suppress warnings for missing XML comments on public members -->
 
-    <!-- This will cause .NET 5+ targets to fail to build (with .NET 6 SDK) if we violate trimming principles
-         around RequiresUnreferencedCode attributes unless we suppress using UnconditionalSuppressMessage.
-         We can leave this in place until we fully support trimming, after which we switch to
-         IsTrimmable which marks the output assembly as trimmable.
-         https://docs.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming#enable-library-trim-warnings -->
-    <!-- trim analysis is breaking .NET 6 builds, so can't enable until we address them -->
-    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
-    <EnableAOTAnalyzer>$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
+    <EnableTrimAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">$(DefaultEnableAotAnalyzer)</EnableTrimAnalyzer>
+    <EnableAOTAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

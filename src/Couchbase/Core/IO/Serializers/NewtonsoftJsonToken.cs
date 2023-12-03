@@ -13,6 +13,7 @@ namespace Couchbase.Core.IO.Serializers
     /// which wraps a <seealso cref="JToken"/>.
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
     internal class NewtonsoftJsonToken : IJsonToken
     {
         private readonly JToken _token;

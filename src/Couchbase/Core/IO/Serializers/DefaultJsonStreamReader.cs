@@ -16,6 +16,7 @@ namespace Couchbase.Core.IO.Serializers
     /// Newtonsoft.Json based implementation of <see cref="IJsonStreamReader"/>.
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
+    [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
     public class DefaultJsonStreamReader : IJsonStreamReader
     {
         private readonly JsonTextReader _reader;

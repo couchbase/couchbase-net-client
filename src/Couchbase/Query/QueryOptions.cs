@@ -913,6 +913,8 @@ namespace Couchbase.Query
         ///     Since values will be POSTed as JSON, here we deal with unencoded typed values
         ///     (like ints, Lists, etc...) rather than only strings.
         /// </remarks>
+        [RequiresUnreferencedCode(GetFormValuesAsJsonUnreferencedCodeMessage)]
+        [RequiresDynamicCode(GetFormValuesAsJsonDynamicCodeMessage)]
         public IDictionary<string, object?> GetFormValues() => CreateDto(Serializer ?? DefaultSerializer.Instance).ToDictionary();
 
         /// <summary>

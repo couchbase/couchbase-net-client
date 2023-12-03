@@ -13,12 +13,16 @@ namespace Couchbase.Management.Eventing.Internal
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = SuppressMessageJustification)]
+        [UnconditionalSuppressMessage("Aot", "IL3050",
+            Justification = SuppressMessageJustification)]
         public override EventingFunction Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             return (EventingFunction)JsonSerializer.Deserialize<EventingFunctionResponseDto>(ref reader, options);
         }
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = SuppressMessageJustification)]
+        [UnconditionalSuppressMessage("Aot", "IL3050",
             Justification = SuppressMessageJustification)]
         public override void Write(Utf8JsonWriter writer, EventingFunction value, JsonSerializerOptions options)
         {
