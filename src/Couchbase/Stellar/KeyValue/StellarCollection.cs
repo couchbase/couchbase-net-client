@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP3_1_OR_GREATER
+#if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,11 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Query;
 using Couchbase.Protostellar.KV.V1;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Util;
 using Couchbase.Utils;
@@ -43,6 +45,7 @@ internal class StellarCollection : ICouchbaseCollection
     private readonly KvService.KvServiceClient _kvClient;
     private readonly string _scopeName;
     private readonly string _bucketName;
+    private readonly IRetryOrchestrator _retryHandler;
 
     public const string DefaultCollectionName = "_default";
 
@@ -56,6 +59,7 @@ internal class StellarCollection : ICouchbaseCollection
         _bucketName = _stellarScope.Bucket.Name;
         _scopeName = _stellarScope.Name;
         _stellarCollectionQueryIndexes = new StellarCollectionQueryIndexManager(stellarCluster.QueryIndexes, _bucketName, _scopeName, Name);
+        _retryHandler = stellarCluster.RetryHandler;
     }
 
     public uint? Cid => throw new UnsupportedInProtostellarException("Cid (Collection ID)");
@@ -78,26 +82,32 @@ internal class StellarCollection : ICouchbaseCollection
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, opts.RequestSpan);
         var request = KeyedRequest<ExistsRequest>(id);
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.ExistsAsync(request, callOptions).ConfigureAwait(false);
+        async Task<ExistsResponse> GrpcCall()
+        {
+            return await _kvClient.ExistsAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new ExistsResult(Exists: response.Result, Cas: response.Cas);
     }
 
     public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
     {
+        //Does not retry (NCBC-3626)
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
-
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Token);
-        var response = _kvClient.GetAllReplicas(request, callOptions);
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
 
-        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
-            .ReadAllAsync()
-            .Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(serializer))).ToEnumerable();
+        var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
+
+        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream.ReadAllAsync().Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(serializer))).ToEnumerable();
 
         return results;
     }
@@ -113,8 +123,17 @@ internal class StellarCollection : ICouchbaseCollection
         var request = KeyedRequest<GetAndLockRequest>(id);
         request.LockTime = expiry.ToTtl();
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.GetAndLockAsync(request, callOptions).ConfigureAwait(false);
+        async Task<GetAndLockResponse> grpcCall()
+        {
+            return await _kvClient.GetAndLockAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
         return response.AsGetResult(serializer);
     }
 
@@ -129,8 +148,16 @@ internal class StellarCollection : ICouchbaseCollection
         var request = KeyedRequest<GetAndTouchRequest>(id);
         request.ExpiryTime = Timestamp.FromDateTime(expiry.FromNow());
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.GetAndTouchAsync(request, callOptions).ConfigureAwait(false);
+        async Task<GetAndTouchResponse> grpcCall()
+        {
+            return await _kvClient.GetAndTouchAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
         return response.AsGetResult(serializer);
     }
 
@@ -149,8 +176,17 @@ internal class StellarCollection : ICouchbaseCollection
 
         var request = KeyedRequest<GetRequest>(id);
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.GetAsync(request, callOptions).ConfigureAwait(false);
+        async Task<GetResponse> grpcCall()
+        {
+            return await _kvClient.GetAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
+
         return response.AsGetResult(serializer);
     }
 
@@ -172,8 +208,16 @@ internal class StellarCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.InsertAsync(request, callOptions).ConfigureAwait(false);
+        async Task<InsertResponse> grpcCall()
+        {
+            return await _kvClient.InsertAsync(request,  _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
         return new MutationResult(response.Cas, Expiry: null)
         {
             MutationToken = response.MutationToken
@@ -186,7 +230,6 @@ internal class StellarCollection : ICouchbaseCollection
 
         var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
-
         var request = KeyedRequest<LookupInRequest>(id);
         foreach (var spec in specs)
         {
@@ -198,8 +241,16 @@ internal class StellarCollection : ICouchbaseCollection
             });
         }
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.LookupInAsync(request, callOptions).ConfigureAwait(false);
+        async Task<LookupInResponse> grpcCall()
+        {
+            return await _kvClient.LookupInAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
         return new LookupInResult(response, request, _stellarCluster.TypeSerializer);
     }
 
@@ -260,8 +311,16 @@ internal class StellarCollection : ICouchbaseCollection
             request.Specs.Add(newSpec);
         }
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = await _kvClient.MutateInAsync(request, callOptions).ConfigureAwait(false);
+        async Task<MutateInResponse> grpcCall()
+        {
+            return await _kvClient.MutateInAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
         return new MutateInResult(response, request, _stellarCluster.TypeSerializer);
     }
 
@@ -271,15 +330,22 @@ internal class StellarCollection : ICouchbaseCollection
 
         var opts = options?.AsReadOnly() ?? RemoveOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, opts.RequestSpan);
-
         var request = KeyedRequest<RemoveRequest>(id);
         if (opts.Cas > 0)
         {
             request.Cas = opts.Cas;
         }
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        _ = await _kvClient.RemoveAsync(request, callOptions);
+        async Task<RemoveResponse> grpcCall()
+        {
+            return await _kvClient.RemoveAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
 
     public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
@@ -304,8 +370,17 @@ internal class StellarCollection : ICouchbaseCollection
             request.Cas = opts.Cas;
         }
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);;
-        var response = await _kvClient.ReplaceAsync(request, callOptions);
+        async Task<ReplaceResponse> grpcCall()
+        {
+            return await _kvClient.ReplaceAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
+
         return new MutationResult(response.Cas, null)
         {
             MutationToken = response.MutationToken
@@ -327,8 +402,16 @@ internal class StellarCollection : ICouchbaseCollection
         var request = KeyedRequest<TouchRequest>(id);
         request.ExpirySecs = (uint)expiry.TotalSeconds;
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        _ = await _kvClient.TouchAsync(request, callOptions);
+        async Task<TouchResponse> grpcCall()
+        {
+            return await _kvClient.TouchAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
 
     public Task UnlockAsync<T>(string id, ulong cas, UnlockOptions? options = null) =>
@@ -344,8 +427,16 @@ internal class StellarCollection : ICouchbaseCollection
         var request = KeyedRequest<UnlockRequest>(id);
         request.Cas = cas;
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        _ = await _kvClient.UnlockAsync(request, callOptions);
+        async Task<UnlockResponse> grpcCall()
+        {
+            return await _kvClient.UnlockAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
 
     public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
@@ -366,11 +457,19 @@ internal class StellarCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var upsertResponse = await _kvClient.UpsertAsync(request, callOptions);
-        return new MutationResult(upsertResponse.Cas, null)
+        async Task<UpsertResponse> grpcCall()
         {
-            MutationToken = upsertResponse.MutationToken
+            return await _kvClient.UpsertAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
+        return new MutationResult(response.Cas, null)
+        {
+            MutationToken = response.MutationToken
         };
     }
 

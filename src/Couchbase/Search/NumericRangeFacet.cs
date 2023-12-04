@@ -9,7 +9,7 @@ namespace Couchbase.Search
     /// </summary>
     public sealed class NumericRangeFacet : SearchFacet
     {
-        private readonly List<Range<float>> _ranges = new List<Range<float>>();
+        internal readonly List<Range<float>> NumericRanges = new List<Range<float>>();
 
         public NumericRangeFacet() { }
 
@@ -29,9 +29,22 @@ namespace Couchbase.Search
         /// <summary>
         /// Adds a numeric range to the <see cref="ISearchFacet"/>.
         /// </summary>
+        /// /// <param name="name">The name of the numeric range."/></param>
         /// <param name="start">The start of the numeric range."/></param>
         /// <param name="end">The end of the numeric range.</param>
         /// <returns></returns>
+        public NumericRangeFacet AddRange(string name, float start, float end)
+        {
+            AddRange(new Range<float>
+            {
+                Name = name,
+                Start = start,
+                End = end
+            });
+            return this;
+        }
+
+        [Obsolete("Use the overload which takes a string and two floats instead.")]
         public NumericRangeFacet AddRange(float start, float end)
         {
             AddRange(new Range<float>
@@ -49,7 +62,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public NumericRangeFacet AddRange(Range<float> range)
         {
-            _ranges.Add(range);
+            NumericRanges.Add(range);
             return this;
         }
 
@@ -60,7 +73,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public NumericRangeFacet AddRanges(params Range<float>[] ranges)
         {
-            _ranges.AddRange(ranges);
+            NumericRanges.AddRange(ranges);
             return this;
         }
 
@@ -81,7 +94,7 @@ namespace Couchbase.Search
             }
 
             var ranges = new JArray();
-            foreach (var r in _ranges)
+            foreach (var r in NumericRanges)
             {
                 var range = new JObject();
                 range.Add(new JProperty("name", r.Name));

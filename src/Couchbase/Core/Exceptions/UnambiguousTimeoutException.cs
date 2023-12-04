@@ -14,6 +14,7 @@ namespace Couchbase.Core.Exceptions
         public UnambiguousTimeoutException() { }
 
         public UnambiguousTimeoutException(string message) : base(message) { }
+        public UnambiguousTimeoutException(string message, IErrorContext context) : base(message, context) { }
 
         public UnambiguousTimeoutException(string message, Exception innerException) : base(message, innerException) { }
         public UnambiguousTimeoutException(string message, QueryErrorContext errorContext) : base(message, errorContext){ }

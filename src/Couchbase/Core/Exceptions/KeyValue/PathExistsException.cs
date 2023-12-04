@@ -2,6 +2,12 @@ namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class PathExistsException : SubdocExceptionException
     {
+        public PathExistsException()
+        {
+        }
+        public PathExistsException(IErrorContext context) : base(context)
+        {
+        }
     }
 }
 

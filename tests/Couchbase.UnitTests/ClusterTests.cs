@@ -7,6 +7,7 @@ using Couchbase.Analytics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
+using Couchbase.Stellar;
 using Couchbase.Test.Common.Utils;
 using Moq;
 using Xunit;

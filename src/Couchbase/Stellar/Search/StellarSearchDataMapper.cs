@@ -26,7 +26,7 @@ public class StellarSearchDataMapper
         while (await stream.MoveNext(cancellationToken).ConfigureAwait(false))
         {
             if (stream.Current.MetaData != null && stream.Current.MetaData.Metrics != null) response.MetaData = ParseMetaData(stream.Current.MetaData);
-            if (stream.Current.Facets != null) response.Facets = stream.Current.Facets.ToDictionary(kvp => kvp.Key, kvp => ParseFacetResult(kvp.Value));
+            if (stream.Current.Facets != null) response.Facets = stream.Current.Facets.ToDictionary(kvp => kvp.Key, kvp => ParseFacetResult(kvp.Value, kvp.Key));
 
             foreach (var searchHit in stream.Current.Hits)
             {
@@ -37,7 +37,7 @@ public class StellarSearchDataMapper
         return response;
     }
 
-    public static IFacetResult ParseFacetResult(SearchQueryResponse.Types.FacetResult protoFacet)
+    public static IFacetResult ParseFacetResult(SearchQueryResponse.Types.FacetResult protoFacet, string facetName)
     {
         switch (protoFacet.SearchFacetCase)
         {
@@ -45,7 +45,7 @@ public class StellarSearchDataMapper
             {
                 return new TermFacetResult
                 {
-                    // Name = ??, protoFacet doesn't have a Name field
+                    Name = facetName,
                     Field = protoFacet.TermFacet.Field,
                     Total = protoFacet.TermFacet.Total,
                     Missing = protoFacet.TermFacet.Missing,
@@ -57,7 +57,7 @@ public class StellarSearchDataMapper
             {
                 return new DateRangeFacetResult
                 {
-                    // Name = ??,
+                    Name = facetName,
                     Field = protoFacet.TermFacet.Field,
                     Total = protoFacet.TermFacet.Total,
                     Missing = protoFacet.TermFacet.Missing,
@@ -69,7 +69,7 @@ public class StellarSearchDataMapper
             {
                 return new NumericRangeFacetResult
                 {
-                    // Name = ??,
+                    Name = facetName,
                     Field = protoFacet.TermFacet.Field,
                     Total = protoFacet.TermFacet.Total,
                     Missing = protoFacet.TermFacet.Missing,
@@ -88,7 +88,6 @@ public class StellarSearchDataMapper
         IList<Term> coreTerms = new List<Term>();
         foreach (var protoTerm in protoTerms)
         {
-            // protoTerm.Field - what is this?
             coreTerms.Add(new Term
             {
                 Name = protoTerm.Name,

@@ -5,9 +5,10 @@
 
   <!-- General dependencies -->
   <ItemGroup>
-    <PackageVersion Include="Google.Protobuf" Version="3.21.11" />
+    <PackageVersion Include="Google.Protobuf" Version="3.25.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.50.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.50.0" />
+    <PackageVersion Include="Google.Api.CommonProtos" Version="2.13.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.51.0" />
     <PackageVersion Include="App.Metrics" Version="4.3.0" />
     <PackageVersion Include="App.Metrics.Abstractions" Version="4.3.0" />

@@ -4,6 +4,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentLockedException : KeyValueException, IRetryable
     {
+        public DocumentLockedException(){}
+        public DocumentLockedException(IErrorContext context) : base(context){}
     }
 }
 

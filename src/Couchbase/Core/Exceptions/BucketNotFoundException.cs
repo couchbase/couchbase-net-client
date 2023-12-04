@@ -6,6 +6,7 @@ namespace Couchbase.Core.Exceptions
     {
         public BucketNotFoundException() { }
 
+        public BucketNotFoundException(IErrorContext context) : base(context) { }
         public BucketNotFoundException(string message) : base(message) { }
 
         public BucketNotFoundException(string message, Exception innerException) : base(message, innerException) { }

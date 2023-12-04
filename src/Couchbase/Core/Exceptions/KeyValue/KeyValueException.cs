@@ -8,6 +8,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
     {
         protected KeyValueException() {}
 
+        protected KeyValueException(IErrorContext context) : base(context) {}
+
         protected KeyValueException(IKeyValueErrorContext context) : base(context) {}
 
         protected KeyValueException(string message) : base(message) {}

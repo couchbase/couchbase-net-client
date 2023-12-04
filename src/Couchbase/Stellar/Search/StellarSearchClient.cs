@@ -6,12 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
 using Couchbase.Stellar.Core;
-using DateRangeFacet = Couchbase.Search.DateRangeFacet;
-using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
-using TermFacet = Couchbase.Search.TermFacet;
+using Couchbase.Stellar.Core.Retry;
 
 #nullable enable
 
@@ -23,6 +22,7 @@ namespace Couchbase.Stellar.Search
         private readonly StellarCluster _stellarCluster;
         private readonly ITypeSerializer _serializer;
         private readonly StellarSearchDataMapper _dataMapper;
+        private readonly IRetryOrchestrator _retryHandler;
 
         internal StellarSearchClient(StellarCluster stellarCluster)
         {
@@ -30,6 +30,7 @@ namespace Couchbase.Stellar.Search
             _serializer = stellarCluster.TypeSerializer;
             _searchClient = new SearchService.SearchServiceClient(_stellarCluster.GrpcChannel);
             _dataMapper = new StellarSearchDataMapper();
+            _retryHandler = stellarCluster.RetryHandler;
         }
 
         public async Task<ISearchResult> QueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null, CancellationToken cancellationToken = default)
@@ -56,11 +57,21 @@ namespace Couchbase.Stellar.Search
             if (opts.CollectionNames != null) searchQueryRequest.Collections.AddRange(opts.CollectionNames);
             opts.Facets?.ToList().ForEach(facet => searchQueryRequest.Facets.Add(facet.Name, facet.ToProto()));
 
-            var response = _searchClient.SearchQuery(searchQueryRequest, _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
+            var grpcCall = async () =>
+            {
 
-            var searchResult = await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
+                var response = _searchClient.SearchQuery(searchQueryRequest,
+                    _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
+                return await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
+            };
+            var stellarRequest = new StellarRequest
+            {
+                Idempotent = true,
+                Token = opts.Token
+            };
+            var response = _retryHandler.RetryAsync(grpcCall, stellarRequest);
 
-            return searchResult;
+            return await response.ConfigureAwait(false);
         }
 
         private Couchbase.Protostellar.Search.V1.Query QueryConverter(ISearchQuery searchRequest,

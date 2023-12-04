@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
 using Couchbase.Stellar.CombinationTests.Fixtures;
 using Xunit;
@@ -37,6 +38,26 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             await collection.RemoveAsync(doc1);
             var result1 = await collection.ExistsAsync(doc1).ConfigureAwait(false);
             Assert.False(result1.Exists);
+        }
+
+        [Fact]
+        public async Task Get()
+        {
+            var collection = await _fixture.DefaultCollection();
+            var id = Guid.NewGuid().ToString();
+            await collection.UpsertAsync(id, new { Content = "Test" }).ConfigureAwait(false);
+            var result = await collection.GetAsync(id).ConfigureAwait(false);
+            Assert.Equal(result.ContentAs<dynamic>().ToString(), "{\"content\":\"Test\"}");
+            await collection.RemoveAsync(id).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Get_Throws_Document_Not_Found()
+        {
+            var collection = await _fixture.DefaultCollection();
+
+            var exception = await Record.ExceptionAsync( () => collection.GetAsync("fake_doc")).ConfigureAwait(false);
+            Assert.IsType<DocumentNotFoundException>(exception);
         }
 
         private record UpsertSampleDoc(string Id, string Updated);

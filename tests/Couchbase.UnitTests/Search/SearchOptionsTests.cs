@@ -35,10 +35,14 @@ namespace Couchbase.UnitTests.Search
         {
             var searchOptions = new SearchOptions().Facets(
                 new TermFacet("termfacet", "thefield", 10),
-                new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
-                new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f));
+                new DateRangeFacet("daterangefacet", "thefield", 10).AddRange("testName", new DateTime(2030, 1, 1), new DateTime(2040, 1, 1)),
+                new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange("testName", 2.2f, 3.5f));
 
-            Console.WriteLine(searchOptions.ToJson());
+            var expected =
+                "{\"ctl\":{},\"facets\":{\"termfacet\":{\"field\":\"thefield\",\"size\":10},\"daterangefacet\":{\"field\":\"thefield\",\"size\":10,\"date_ranges\":[{\"name\":\"testName\",\"start\":\"2030-01-01T00:00:00\",\"end\":\"2040-01-01T00:00:00\"}]},\"numericrangefacet\":{\"field\":\"thefield\",\"size\":2,\"numeric_ranges\":[{\"name\":\"testName\",\"min\":2.2,\"max\":3.5}]}}}";
+            var actual = searchOptions.ToJson().ToString(Formatting.None);
+
+            Assert.Equal(expected, actual);
         }
 
         [Fact]

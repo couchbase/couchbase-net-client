@@ -2,6 +2,8 @@ namespace Couchbase.Core.Exceptions
 {
     public class DecodingFailureException : CouchbaseException
     {
+        public DecodingFailureException(){}
+        public DecodingFailureException(string message) : base(message){}
     }
 }
 

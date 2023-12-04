@@ -1,8 +1,6 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions;
 using Couchbase.Stellar.Util;
 using Xunit;
 

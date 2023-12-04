@@ -51,6 +51,7 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Google.Api.CommonProtos" />
     <PackageReference Include="App.Metrics" />
     <PackageReference Include="App.Metrics.Abstractions" />
     <PackageReference Include="DnsClient" />

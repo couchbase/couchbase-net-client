@@ -1,7 +1,15 @@
+using System;
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class PathNotFoundException : SubdocExceptionException
     {
+        public PathNotFoundException()
+        {
+        }
+        public PathNotFoundException(IErrorContext context) : base(context)
+        {
+        }
     }
 }
 

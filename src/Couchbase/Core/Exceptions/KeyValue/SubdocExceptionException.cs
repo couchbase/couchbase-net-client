@@ -6,6 +6,14 @@ namespace Couchbase.Core.Exceptions.KeyValue
     {
         public int? SubDocumentErrorIndex { get; internal set; }
         public virtual ResponseStatus SubDocumentStatus { get; internal set; } = ResponseStatus.SubDocMultiPathFailure;
+
+        public SubdocExceptionException()
+        {
+        }
+
+        public SubdocExceptionException(IErrorContext context) : base(context)
+        {
+        }
     }
 }
 

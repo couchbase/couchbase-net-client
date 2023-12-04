@@ -2,6 +2,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class PathMismatchException : SubdocExceptionException
     {
+        public PathMismatchException(){}
+        public PathMismatchException(IErrorContext context) : base(context) {}
     }
 }
 

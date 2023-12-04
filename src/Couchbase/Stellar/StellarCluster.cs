@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP3_1_OR_GREATER
+#if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,6 +14,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -27,6 +28,7 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Management.Buckets;
 using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Management.Search;
@@ -101,6 +103,7 @@ internal class StellarCluster : ICluster, IBootstrappable
         };
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
+        RetryHandler = new StellarRetryHandler();
 
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
@@ -170,11 +173,13 @@ internal class StellarCluster : ICluster, IBootstrappable
             stopwatch.Stop();
         }
     }
+    internal IRetryOrchestrator RetryHandler { get; }
 
     internal GrpcChannel GrpcChannel { get; }
 
 
     internal ITypeSerializer TypeSerializer { get; }
+
     public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
 
     public IQueryIndexManager QueryIndexes => _queryIndexManager;
@@ -262,6 +267,7 @@ internal class StellarCluster : ICluster, IBootstrappable
         ThrowIfBootStrapFailed();
 
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
+
         var request = new QueryRequest
         {
             Statement = statement,

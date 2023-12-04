@@ -2,6 +2,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentTooDeepException : KeyValueException
     {
+        public DocumentTooDeepException(){}
+        public DocumentTooDeepException(IErrorContext context) : base(context) {}
     }
 }
 

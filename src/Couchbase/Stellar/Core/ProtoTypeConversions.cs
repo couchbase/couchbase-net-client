@@ -11,7 +11,6 @@ using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
-using Couchbase.Stellar.Util;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using BucketType = Couchbase.Protostellar.Admin.Bucket.V1.BucketType;
@@ -20,6 +19,7 @@ using ConflictResolutionType = Couchbase.Protostellar.Admin.Bucket.V1.ConflictRe
 using CoreKv = Couchbase.KeyValue;
 using CoreQuery = Couchbase.Query;
 using CoreOpCode = Couchbase.Core.IO.Operations.OpCode;
+using DateRange = Couchbase.Protostellar.Search.V1.DateRange;
 using DateRangeFacet = Couchbase.Search.DateRangeFacet;
 using MatchQuery = Couchbase.Protostellar.Search.V1.MatchQuery;
 using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
@@ -32,6 +32,7 @@ using ProtoMutateInFlags = Couchbase.Protostellar.KV.V1.MutateInRequest.Types.Sp
 using StorageBackend = Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend;
 using ProtoFacet = Couchbase.Protostellar.Search.V1.Facet;
 using TermFacet = Couchbase.Search.TermFacet;
+using NumericRange = Couchbase.Protostellar.Search.V1.NumericRange;
 
 namespace Couchbase.Stellar.Core;
 
@@ -46,7 +47,8 @@ internal static class TypeConversionExtensions
             CoreKv.DurabilityLevel.Majority => ProtoKv.DurabilityLevel.Majority,
             CoreKv.DurabilityLevel.PersistToMajority => ProtoKv.DurabilityLevel.PersistToMajority,
             CoreKv.DurabilityLevel.MajorityAndPersistToActive => ProtoKv.DurabilityLevel.MajorityAndPersistToActive,
-            _ => throw new ArgumentOutOfRangeException($"{nameof(CoreKv.DurabilityLevel)} '{durabilityLevel}' is not supported using Protostellar")
+            _ => throw new ArgumentOutOfRangeException(
+                $"{nameof(CoreKv.DurabilityLevel)} '{durabilityLevel}' is not supported using Protostellar")
         };
 
     public static ProtoKv.MutateInRequest.Types.StoreSemantic ToProto(this CoreKv.StoreSemantics storeSemantics) =>
@@ -55,9 +57,11 @@ internal static class TypeConversionExtensions
             CoreKv.StoreSemantics.Insert => ProtoKv.MutateInRequest.Types.StoreSemantic.Insert,
             CoreKv.StoreSemantics.Replace => ProtoKv.MutateInRequest.Types.StoreSemantic.Replace,
             CoreKv.StoreSemantics.Upsert => ProtoKv.MutateInRequest.Types.StoreSemantic.Upsert,
-            _ => Enum.TryParse<ProtoKv.MutateInRequest.Types.StoreSemantic>(storeSemantics.ToString(), out var stringParsed)
+            _ => System.Enum.TryParse<ProtoKv.MutateInRequest.Types.StoreSemantic>(storeSemantics.ToString(),
+                out var stringParsed)
                 ? stringParsed
-                : throw new ArgumentOutOfRangeException($"{nameof(CoreKv.StoreSemantics)} '{storeSemantics}' is not supported using Protostellar")
+                : throw new ArgumentOutOfRangeException(
+                    $"{nameof(CoreKv.StoreSemantics)} '{storeSemantics}' is not supported using Protostellar")
         };
 
     public static ProtoQuery.QueryRequest.Types.ScanConsistency ToProto(
@@ -66,7 +70,8 @@ internal static class TypeConversionExtensions
         {
             CoreQuery.QueryScanConsistency.NotBounded => ProtoQuery.QueryRequest.Types.ScanConsistency.NotBounded,
             CoreQuery.QueryScanConsistency.RequestPlus => ProtoQuery.QueryRequest.Types.ScanConsistency.RequestPlus,
-            _ => Enum.TryParse<ProtoQuery.QueryRequest.Types.ScanConsistency>(scanConsistency.ToString(), out var stringParsed)
+            _ => System.Enum.TryParse<ProtoQuery.QueryRequest.Types.ScanConsistency>(scanConsistency.ToString(),
+                out var stringParsed)
                 ? stringParsed
                 : throw new ArgumentOutOfRangeException(
                     $"{nameof(CoreQuery.QueryScanConsistency)} '{scanConsistency}' is not supported using Protostellar")
@@ -79,7 +84,8 @@ internal static class TypeConversionExtensions
             CoreOpCode.SubGet => ProtoLookupInOpCode.Get,
             CoreOpCode.SubGetCount => ProtoLookupInOpCode.Count,
             CoreOpCode.SubExist => ProtoLookupInOpCode.Exists,
-            _ => throw new ArgumentOutOfRangeException(paramName: nameof(opCode), message: $"Not a supported LookupIn op code: {opCode}" )
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(opCode),
+                message: $"Not a supported LookupIn op code: {opCode}")
         };
 
     public static ProtoMutateInOpCode ToProtoMutateInCode(this CoreOpCode opCode) =>
@@ -120,12 +126,14 @@ internal static class TypeConversionExtensions
         }
     }
 
-    public static AnalyticsQueryRequest.Types.ScanConsistency ToProtoScanConsistency(this AnalyticsScanConsistency scanConsistency) =>
+    public static AnalyticsQueryRequest.Types.ScanConsistency ToProtoScanConsistency(
+        this AnalyticsScanConsistency scanConsistency) =>
         scanConsistency switch
         {
             AnalyticsScanConsistency.NotBounded => AnalyticsQueryRequest.Types.ScanConsistency.NotBounded,
             AnalyticsScanConsistency.RequestPlus => AnalyticsQueryRequest.Types.ScanConsistency.RequestPlus,
-            _ => throw new ArgumentOutOfRangeException(paramName: nameof(scanConsistency), message: $"Not a supported ScanConsistency: {scanConsistency}" )
+            _ => throw new ArgumentOutOfRangeException(paramName: nameof(scanConsistency),
+                message: $"Not a supported ScanConsistency: {scanConsistency}")
         };
 
     public static CoreQuery.QueryStatus ToCoreStatus(
@@ -167,7 +175,8 @@ internal static class TypeConversionExtensions
     {
         MatchOperator.And => MatchQuery.Types.Operator.And,
         MatchOperator.Or => MatchQuery.Types.Operator.Or,
-        _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator), message: $"Not a supported MatchOperator: {matchOperator}")
+        _ => throw new ArgumentOutOfRangeException(paramName: nameof(matchOperator),
+            message: $"Not a supported MatchOperator: {matchOperator}")
     };
 
     public static ProtoQuery.QueryRequest.Types.ProfileMode ToProto(this Couchbase.Query.QueryProfile coreProfile) =>
@@ -180,14 +189,65 @@ internal static class TypeConversionExtensions
                 message: $"Not a supported QueryProfile: {coreProfile}")
         };
 
-    public static ProtoFacet ToProto(this ISearchFacet coreFacet) => coreFacet switch
+    public static ProtoFacet ToProto(this ISearchFacet coreFacet)
     {
-        TermFacet => new Facet { TermFacet = new Couchbase.Protostellar.Search.V1.TermFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
-        DateRangeFacet => new Facet { DateRangeFacet = new Couchbase.Protostellar.Search.V1.DateRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
-        NumericRangeFacet => new Facet { NumericRangeFacet = new Couchbase.Protostellar.Search.V1.NumericRangeFacet { Field = coreFacet.Field, Size = (uint)coreFacet.Size } },
-        SearchFacet => throw new UnsupportedInProtostellarException(nameof(SearchFacet)),
-        _ => throw new ArgumentOutOfRangeException(paramName: nameof(coreFacet), message: $"Not a supported ISearchFacet: {coreFacet}")
-    };
+        switch (coreFacet)
+        {
+            case DateRangeFacet facet:
+            {
+                var protoFacet = new Facet
+                {
+                    DateRangeFacet = new Couchbase.Protostellar.Search.V1.DateRangeFacet
+                    {
+                        Field = coreFacet.Field,
+                        Size = (uint)coreFacet.Size
+                    }
+                };
+                protoFacet.DateRangeFacet.DateRanges.AddRange(
+                    facet.DateRanges.Select(range => new DateRange
+                    {
+                        End = range.End.ToUniversalTime().ToString(),
+                        Name = range.Name,
+                        Start = range.Start.ToUniversalTime().ToString()
+                    }));
+                return protoFacet;
+            }
+            case NumericRangeFacet facet:
+            {
+                var protoFacet = new Facet
+                {
+                    NumericRangeFacet = new Couchbase.Protostellar.Search.V1.NumericRangeFacet()
+                    {
+                        Field = coreFacet.Field,
+                        Size = (uint)coreFacet.Size
+                    }
+                };
+                protoFacet.NumericRangeFacet.NumericRanges.AddRange(
+                    facet.NumericRanges.Select(range => new NumericRange()
+                    {
+                        Min = range.Start,
+                        Max = range.End,
+                        Name = range.Name
+                    }));
+                return protoFacet;
+            }
+            case TermFacet facet:
+            {
+                var protoFacet = new Facet
+                {
+                    TermFacet = new Couchbase.Protostellar.Search.V1.TermFacet
+                    {
+                        Field = coreFacet.Field,
+                        Size = (uint)coreFacet.Size
+                    }
+                };
+                return protoFacet;
+            }
+            default:
+                throw new ArgumentOutOfRangeException(paramName: nameof(coreFacet),
+                    message: $"Not a supported ISearchFacet: {coreFacet}");
+        }
+    }
 
     public static Dictionary<string, dynamic> ToCore(this MapField<string, ByteString> protoParams)
     {

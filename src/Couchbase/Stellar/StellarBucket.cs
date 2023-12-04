@@ -35,7 +35,7 @@ internal class StellarBucket : IBucket
 
     public ICluster Cluster => _stellarCluster;
 
-    public IViewIndexManager ViewIndexes => throw new UnsupportedInProtostellarException("View Indexes");
+    public IViewIndexManager ViewIndexes => throw new UnsupportedInProtostellarException(nameof(ViewIndexes));
 
     public ICouchbaseCollectionManager Collections => _collectionManager;
 

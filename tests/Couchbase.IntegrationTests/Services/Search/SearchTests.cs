@@ -69,8 +69,8 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new MatchQuery("inn"),
                 new SearchOptions().Facets(
                     new TermFacet("termfacet", "name", 1),
-                    new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
-                    new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)
+                    new DateRangeFacet("daterangefacet", "thefield", 10).AddRange("testName", DateTime.Now, DateTime.Now.AddDays(1)),
+                    new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange("testName", 2.2f, 3.5f)
                 )
             ).ConfigureAwait(false);
             Assert.Equal(3, results.Facets.Count);

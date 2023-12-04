@@ -16,7 +16,7 @@ public class StellarSearch
 {
     private static ITestOutputHelper _outputHelper;
     private StellarFixture _fixture;
-    private const string IndexName = "idx-travel";
+    private const string IndexName = "travel-sample._default.idx-travel";
 
     //Needs to be run on a cluster with travel-sample loaded, and a generic search index created
     public StellarSearch(StellarFixture fixture, ITestOutputHelper outputHelper)
@@ -73,8 +73,8 @@ public class StellarSearch
             new MatchQuery("inn"),
             new SearchOptions().Facets(
                 new TermFacet("termfacet", "name", 1),
-                new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
-                new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)
+                new DateRangeFacet("daterangefacet", "thefield", 10).AddRange("testName", DateTime.Now, DateTime.Now.AddDays(1)),
+                new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange("testName", 2.2f, 3.5f)
             )
         ).ConfigureAwait(false);
         foreach (var item in results.Facets)

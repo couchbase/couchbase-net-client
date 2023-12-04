@@ -13,6 +13,8 @@ namespace Couchbase
     {
         protected CouchbaseException() {}
 
+        protected CouchbaseException(IErrorContext context) : base(context) {}
+
         protected CouchbaseException(TContext context) : base(context) {}
 
         protected CouchbaseException(string message) : base(message) {}

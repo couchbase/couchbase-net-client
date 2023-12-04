@@ -2,6 +2,10 @@ namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentNotJsonException : KeyValueException
     {
+        public DocumentNotJsonException()
+        {
+        }
+        public DocumentNotJsonException(IErrorContext context) : base(context){}
     }
 }
 

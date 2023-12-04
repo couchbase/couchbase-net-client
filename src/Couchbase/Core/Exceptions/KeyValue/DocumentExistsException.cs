@@ -8,6 +8,10 @@ namespace Couchbase.Core.Exceptions.KeyValue
         {
         }
 
+        public DocumentExistsException(IErrorContext context) : base(context)
+        {
+        }
+
         public DocumentExistsException(IKeyValueErrorContext context) : base(context)
         {
         }

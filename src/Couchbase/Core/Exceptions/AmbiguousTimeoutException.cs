@@ -19,6 +19,8 @@ namespace Couchbase.Core.Exceptions
 
         public AmbiguousTimeoutException(string message) : base(message) { }
 
+        public AmbiguousTimeoutException(string message, IErrorContext context) : base(message, context) { }
+
         public AmbiguousTimeoutException(string message, Exception innerException) : base(message, innerException) { }
 
         public List<RetryReason> RetryReasons { get; } = new List<RetryReason>();

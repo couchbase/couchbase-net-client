@@ -4,6 +4,8 @@ namespace Couchbase.Management.Collections
 {
     public class CollectionExistsException : CouchbaseException
     {
+        public CollectionExistsException(string message) : base(message)
+        { }
         public CollectionExistsException(string scopeName, string collectionName)
             : base($"Collection with name {collectionName} already exists in scope {scopeName}")
         { }

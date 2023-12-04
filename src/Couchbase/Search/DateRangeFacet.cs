@@ -9,7 +9,7 @@ namespace Couchbase.Search
     /// </summary>
     public sealed class DateRangeFacet : SearchFacet
     {
-        private readonly List<Range<DateTime>> _ranges = new List<Range<DateTime>>();
+        internal readonly List<Range<DateTime>> DateRanges = new List<Range<DateTime>>();
 
         public DateRangeFacet()  {  }
 
@@ -29,9 +29,23 @@ namespace Couchbase.Search
         /// <summary>
         /// Adds a <see cref="Range{DateTime}"/> to the <see cref="ISearchFacet"/>.
         /// </summary>
+        /// /// <param name="name">The name of the range.</param>
         /// <param name="startDate">The start date of the range.</param>
         /// <param name="endDate">The end date of the range.</param>
         /// <returns></returns>
+        public DateRangeFacet AddRange(string name, DateTime startDate, DateTime endDate)
+        {
+            AddRange(new Range<DateTime>
+            {
+                Name = name,
+                Start = startDate,
+                End = endDate
+            });
+            return this;
+        }
+
+
+        [Obsolete("Use the overload which takes a string and two DateTimes instead.")]
         public DateRangeFacet AddRange(DateTime startDate, DateTime endDate)
         {
             AddRange(new Range<DateTime>
@@ -49,7 +63,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public DateRangeFacet AddRange(Range<DateTime> range)
         {
-            _ranges.Add(range);
+            DateRanges.Add(range);
             return this;
         }
 
@@ -60,7 +74,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public DateRangeFacet AddRanges(params Range<DateTime>[] ranges)
         {
-            _ranges.AddRange(ranges);
+            DateRanges.AddRange(ranges);
             return this;
         }
 
@@ -81,7 +95,7 @@ namespace Couchbase.Search
             }
 
             var ranges = new JArray();
-            foreach (var r in _ranges)
+            foreach (var r in DateRanges)
             {
                 var range = new JObject(new JProperty("name", r.Name));
                 if (r.Start > DateTime.MinValue)

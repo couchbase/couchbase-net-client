@@ -26,6 +26,26 @@ public class StellarQueryIndexManagementTests
     }
 
     [Fact]
+    public async Task PrimaryIndexAlreadyExists()
+    {
+        var cluster = _fixture.StellarCluster;
+        var bucketName = _fixture.DefaultBucket().Result.Name;
+
+        try
+        {
+            await cluster.QueryIndexes.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
+            var exception = await Record.ExceptionAsync(() => cluster.QueryIndexes.CreatePrimaryIndexAsync("default"))
+                .ConfigureAwait(false);
+            Assert.IsType<CollectionExistsException>(exception);
+        }
+        catch (IndexExistsException)
+        {
+            await cluster.QueryIndexes.DropPrimaryIndexAsync("default").ConfigureAwait(false);
+            Assert.True(true);
+        }
+    }
+
+    [Fact]
     public async Task CreateAndDropIndex()
     {
         var cluster = _fixture.StellarCluster;
