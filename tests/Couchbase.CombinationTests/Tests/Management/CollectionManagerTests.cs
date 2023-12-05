@@ -31,7 +31,7 @@ public class CollectionManagerTests
         var id = "TestCollection" + Guid.NewGuid();
 
         var collectionManager = bucket.Collections;
-        var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10), true);
+        var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10));
 
         var exception = await Record.ExceptionAsync(async () => await collectionManager.CreateCollectionAsync("_default", id, settings).ConfigureAwait(false)).ConfigureAwait(false);
 
@@ -48,7 +48,7 @@ public class CollectionManagerTests
         var id = "TestCollection" + Guid.NewGuid();
 
         var collectionManager = bucket.Collections;
-        var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10), true);
+        var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10));
 
         await collectionManager.CreateCollectionAsync("_default", id, settings).ConfigureAwait(false);
 

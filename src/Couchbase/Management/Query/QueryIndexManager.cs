@@ -40,6 +40,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
 
@@ -51,6 +52,7 @@ namespace Couchbase.Management.Query
                         queryOptions =>
                         {
                             queryOptions.CancellationToken(options.TokenValue);
+                            queryOptions.Timeout(options.TimeoutValue);
                             if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                         }));
                 }
@@ -95,6 +97,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
@@ -129,6 +132,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
@@ -169,6 +173,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
@@ -204,6 +209,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
@@ -234,7 +240,8 @@ namespace Couchbase.Management.Query
             {
                 var queryOptions = new QueryOptions()
                     .Parameter("bucketName", bucketName)
-                    .CancellationToken(options.TokenValue);
+                    .CancellationToken(options.TokenValue)
+                    .Timeout(options.TimeoutValue);
 
                 if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
 
@@ -284,6 +291,7 @@ namespace Couchbase.Management.Query
                         queryOptions =>
                         {
                             queryOptions.CancellationToken(options.TokenValue);
+                            queryOptions.Timeout(options.TimeoutValue);
                             if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                         }).ConfigureAwait(false);
 

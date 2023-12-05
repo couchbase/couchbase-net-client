@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
 
 #nullable enable
@@ -12,7 +13,7 @@ namespace Couchbase.Management.Query
         internal bool IgnoreIfExistsValue { get; set; }
         internal bool DeferredValue { get; set; }
         internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
         internal string? QueryContext { get; set; }
@@ -55,12 +56,24 @@ namespace Couchbase.Management.Query
             return this;
         }
 
+        /// <summary>
+        /// Allows to pass in a custom CancellationToken from a CancellationTokenSource.
+        /// Note that CancellationToken() takes precedence over Timeout(). If both CancellationToken and Timeout are set, the former will be used in the operation.
+        /// </summary>
+        /// <param name="cancellationToken">The Token to cancel the operation.</param>
+        /// <returns>This class for method chaining.</returns>
         public CreateQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
             TokenValue = cancellationToken;
             return this;
         }
 
+        /// <summary>
+        /// Allows to set a Timeout for the operation.
+        /// Note that CancellationToken() takes precedence over Timeout(). If both CancellationToken and Timeout are set, the former will be used in the operation.
+        /// </summary>
+        /// <param name="timeout">The duration of the Timeout. Set to 75s by default.</param>
+        /// <returns>This class for method chaining.</returns>
         public CreateQueryIndexOptions Timeout(TimeSpan timeout)
         {
             TimeoutValue = timeout;
@@ -69,7 +82,7 @@ namespace Couchbase.Management.Query
 
         public static CreateQueryIndexOptions Default => new CreateQueryIndexOptions();
 
-        public void Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue)
+        public void Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan timeoutValue)
         {
             ignoreIfExistsValue = IgnoreIfExistsValue;
             deferredValue = DeferredValue;
@@ -82,7 +95,7 @@ namespace Couchbase.Management.Query
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan? timeoutValue);
+            this.Deconstruct(out bool ignoreIfExistsValue, out bool deferredValue, out CancellationToken tokenValue, out string? scopeNameValue, out string? collectionNameValue, out string? queryContext, out TimeSpan timeoutValue);
             return new ReadOnly(ignoreIfExistsValue, deferredValue, tokenValue, scopeNameValue, collectionNameValue, queryContext, timeoutValue);
         }
 
@@ -93,7 +106,7 @@ namespace Couchbase.Management.Query
             string? ScopeNameValue,
             string? CollectionNameValue,
             string? QueryContext,
-            TimeSpan? TimeoutValue);
+            TimeSpan TimeoutValue);
     }
 }
 

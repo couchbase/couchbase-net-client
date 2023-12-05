@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -10,6 +11,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -109,10 +111,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to allow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -132,10 +136,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to disallow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -155,10 +161,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to drop index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(baseUri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.DeleteAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -178,10 +186,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to freeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -200,10 +210,12 @@ namespace Couchbase.Management.Search
             var baseUri = GetIndexUri(scope);
             _logger.LogInformation("Trying to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);
@@ -225,10 +237,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to get index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -251,10 +265,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to get index document count with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -278,10 +294,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to pause ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -301,10 +319,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to resume ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -324,10 +344,12 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to unfreeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(baseUri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
@@ -347,12 +369,14 @@ namespace Couchbase.Management.Search
             _logger.LogInformation("Trying to upsert index with name {indexDefinition.Name} - {baseUri}",
                 _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 var json = JsonConvert.SerializeObject(indexDefinition, Formatting.None);
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PutAsync(baseUri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PutAsync(baseUri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);

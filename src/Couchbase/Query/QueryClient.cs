@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -10,6 +11,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -90,7 +92,7 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
-            //It's possible to reuse the queryoptions which may cause odd threading behaviour
+            //It's possible to reuse the QueryOptions which may cause odd threading behaviour
             //So we'll clone it if it has already been used
             options = options.CloneIfUsedAlready();
 
@@ -178,6 +180,8 @@ namespace Couchbase.Query
 
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span)
         {
+            using var cts = options.Token.FallbackToTimeout(options.TimeoutValue ?? ClusterOptions.Default.ManagementTimeout);
+
             var currentContextId = options.CurrentContextId ?? DefaultClientContextId;
 
             QueryErrorContext ErrorContextFactory(QueryResultBase<T> failedQueryResult, HttpStatusCode statusCode)
@@ -210,7 +214,7 @@ namespace Couchbase.Query
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);
-                var httpClient = CreateHttpClient(options.TimeoutValue);
+                var httpClient = CreateHttpClient();
                 try
                 {
                     var request = new HttpRequestMessage(HttpMethod.Post, queryUri)
@@ -224,7 +228,7 @@ namespace Couchbase.Query
                     request.Version = httpClient.DefaultRequestVersion;
     #endif
 
-                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
+                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, cts.FallbackToToken(options.Token))
                         .ConfigureAwait(false);
                     dispatchSpan.Dispose();
 
@@ -243,7 +247,7 @@ namespace Couchbase.Query
                     queryResult.Success = response.StatusCode == HttpStatusCode.OK;
 
                     //read the header and stop when we reach the queried rows
-                    await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
+                    await queryResult.InitializeAsync(cts?.Token ?? options.Token).ConfigureAwait(false);
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                     {

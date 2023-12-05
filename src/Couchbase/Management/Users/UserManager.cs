@@ -4,10 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -93,11 +95,13 @@ namespace Couchbase.Management.Users
             _logger.LogInformation("Attempting to get user with username {username} - {uri}",
                 _redactor.UserData(username), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // check user exists before trying to read content
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -126,11 +130,13 @@ namespace Couchbase.Management.Users
             var uri = GetUsersUri(options.DomainNameValue);
             _logger.LogInformation("Attempting to get all users - {uri}", _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // get all users
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get users from result
@@ -154,12 +160,14 @@ namespace Couchbase.Management.Users
             _logger.LogInformation("Attempting to create user with username {user.Username} - {uri}",
                 _redactor.UserData(user.Username), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // upsert user
                 var content = new FormUrlEncodedContent(user.GetUserFormValues());
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -176,11 +184,13 @@ namespace Couchbase.Management.Users
             _logger.LogInformation("Attempting to drop user with username {username} - {uri}",
                 _redactor.UserData(username), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // drop user
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -211,10 +221,12 @@ namespace Couchbase.Management.Users
 
             var content = new FormUrlEncodedContent(FormatPassword(newPassword)!);
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(builder.Uri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(builder.Uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -234,11 +246,13 @@ namespace Couchbase.Management.Users
             var uri = GetRolesUri();
             _logger.LogInformation("Attempting to get all available roles - {uri}", _redactor.MetaData(uri));
 
+        using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // get roles
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get roles from result
@@ -260,11 +274,13 @@ namespace Couchbase.Management.Users
             _logger.LogInformation("Attempting to get group with name {groupName} - {uri}", _redactor.UserData(groupName),
                 _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // get group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);
@@ -293,11 +309,13 @@ namespace Couchbase.Management.Users
             var uri = GetGroupsUri();
             _logger.LogInformation("Attempting to get all groups - {uri}", _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // get group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get groups from results
@@ -321,12 +339,14 @@ namespace Couchbase.Management.Users
             _logger.LogInformation("Attempting to upsert group with name {group.Name} - {uri}",
                 _redactor.UserData(group.Name), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // upsert group
                 var content = new FormUrlEncodedContent(GetGroupFormValues(group)!);
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -344,11 +364,13 @@ namespace Couchbase.Management.Users
             _logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}",
                 _redactor.UserData(groupName), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // drop group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);

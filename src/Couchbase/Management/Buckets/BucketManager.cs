@@ -5,11 +5,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -55,12 +57,14 @@ namespace Couchbase.Management.Buckets
             _logger.LogInformation("Attempting to create bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // create bucket
                 var content = new FormUrlEncodedContent(settings!.ToFormValues());
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (result.IsSuccessStatusCode) return;
 
@@ -110,12 +114,14 @@ namespace Couchbase.Management.Buckets
             _logger.LogInformation("Attempting to upsert bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // upsert bucket
                 var content = new FormUrlEncodedContent(settings!.ToFormValues());
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (result.IsSuccessStatusCode) return;
 
@@ -149,11 +155,13 @@ namespace Couchbase.Management.Buckets
             _logger.LogInformation("Attempting to drop bucket with name {bucketName} - {uri}",
                     _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // perform drop
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (result.IsSuccessStatusCode) return;
 
@@ -200,11 +208,13 @@ namespace Couchbase.Management.Buckets
             _logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}",
                 _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // try do flush
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(uri, null!, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(uri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var ctx = new ManagementErrorContext
@@ -263,10 +273,12 @@ namespace Couchbase.Management.Buckets
             var uri = GetUri();
             _logger.LogInformation("Attempting to get all buckets - {uri}", _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (!result.IsSuccessStatusCode)
                 {
@@ -309,10 +321,12 @@ namespace Couchbase.Management.Buckets
             _logger.LogInformation("Attempting to get bucket with name {bucketName} - {uri}",
                 _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (!result.IsSuccessStatusCode)
                 {

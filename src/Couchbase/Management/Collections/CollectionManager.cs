@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -104,7 +105,6 @@ namespace Couchbase.Management.Collections
             var uri = GetUri(RestApi.GetScope(_bucketName, scopeName));
             _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
                 _redactor.SystemData(uri));
-
             try
             {
                 // get all scopes
@@ -162,11 +162,13 @@ namespace Couchbase.Management.Collections
             var uri = GetUri(RestApi.GetScopes(_bucketName));
             _logger.LogInformation("Attempting to get all scopes - {uri}", _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // get manifest
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -190,7 +192,7 @@ namespace Couchbase.Management.Collections
                 using var jsonReader = new JsonTextReader(new StreamReader(stream, Encoding.UTF8));
 
                 // check scope & collection exists in manifest
-                var json = await JToken.ReadFromAsync(jsonReader, options.TokenValue).ConfigureAwait(false);
+                var json = await JToken.ReadFromAsync(jsonReader, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 var scopes = json.SelectToken("scopes")!;
 
                 return scopes.Select(scope => new ScopeSpec(scope["name"]?.Value<string>())
@@ -225,6 +227,8 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // create collection
@@ -244,7 +248,7 @@ namespace Couchbase.Management.Collections
 
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -298,10 +302,12 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting drop collection {Scope}/{Collection} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -341,11 +347,13 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // drop collection
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -395,10 +403,12 @@ namespace Couchbase.Management.Collections
                 {"name", scopeName}
             }!);
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -449,11 +459,13 @@ namespace Couchbase.Management.Collections
             var uri = GetUri(RestApi.DeleteScope(_bucketName, scopeName));
             _logger.LogInformation("Attempting drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 // drop scope
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -508,12 +520,14 @@ namespace Couchbase.Management.Collections
             }
             _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
 
+using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
             try
             {
                 using var httpClient = _httpClientFactory.Create();
                 var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
                 request.Content = new FormUrlEncodedContent(dict);
-                using var updateResult = await httpClient.SendAsync(request, options.TokenValue).ConfigureAwait(false);
+                using var updateResult = await httpClient.SendAsync(request, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
                 if (updateResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await updateResult.Content.ReadAsStringAsync().ConfigureAwait(false);
