@@ -122,7 +122,7 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         await _stellarQueryAdminClient.BuildDeferredIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
     }
 
-    public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions? options = null)
+    public Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions? options = null)
     {
         throw new UnsupportedInProtostellarException(nameof(WatchIndexesAsync));
     }

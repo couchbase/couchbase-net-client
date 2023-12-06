@@ -121,7 +121,7 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
 
     public static async Task<ICluster> ConnectAsync(ClusterOptions? clusterOptions = null)
     {
-        if (!Uri.TryCreate(clusterOptions.ConnectionString, UriKind.Absolute, out var parsedUri))
+        if (!Uri.TryCreate(clusterOptions?.ConnectionString, UriKind.Absolute, out var parsedUri))
         {
             throw new ArgumentOutOfRangeException(nameof(clusterOptions.ConnectionString));
         }
