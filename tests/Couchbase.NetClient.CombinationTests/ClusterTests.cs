@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using Couchbase.Core.Exceptions;
+using Xunit;
 
 namespace Couchbase.NetClient.CombinationTests;
 
@@ -16,5 +17,17 @@ public class ClusterTests
         var cluster = await Couchbase.Cluster.ConnectAsync(connectionString,
             new ClusterOptions().WithCredentials("Administrator", "password"));
         Assert.IsType(type, cluster);
+    }
+
+    [Fact]
+    public async Task Test_Stellar_Wrong_Connection_String_Throws_ConnectionException()
+    {
+        var connectionString = "couchbase2://wrongHostname";
+        var exception = await Record.ExceptionAsync(
+            () => Couchbase.Cluster.ConnectAsync(connectionString,
+                new ClusterOptions()
+                    .WithCredentials("Administrator", "password")))
+            .ConfigureAwait(false);
+        Assert.IsType<ConnectException>(exception);
     }
 }

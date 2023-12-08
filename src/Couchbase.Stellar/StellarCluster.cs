@@ -1,6 +1,7 @@
 ﻿using System.Net.Security;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Diagnostics;
@@ -132,7 +133,17 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
         modifiedUri.Scheme = scheme.EndsWith("s") ? "couchbases" : "couchbase"; //TODO: Not the case anymore now that the connection string is couchbase2. Should Protostellar always use TLS verification?
         clusterOptions.ConnectionString = modifiedUri.Uri.ToString().TrimEnd('/');
         var clusterWrapper = new StellarCluster(clusterOptions);
-        await clusterWrapper.ConnectGrpcAsync(CancellationToken.None).ConfigureAwait(false);
+
+        using var cts = new CancellationTokenSource(clusterOptions.KvConnectTimeout);
+        try
+        {
+            await clusterWrapper.ConnectGrpcAsync(cts.Token).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            throw new ConnectException($"Could not connect to {parsedUri} after 10 seconds.");
+        }
+
         return clusterWrapper;
     }
 
