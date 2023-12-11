@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -875,14 +876,27 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">Couchbase collection.</param>
         /// <param name="docId">Document ID which backs the queue.</param>
+        /// <param name="options">Behavior options for the queue implementation.</param>
         /// <returns>The persistent queue.</returns>
         /// <remarks>
         /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
         /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
         /// </remarks>
-        public static IPersistentQueue<T> Queue<T>(this ICouchbaseCollection collection, string docId)
+        public static IPersistentQueue<T> Queue<T>(this ICouchbaseCollection collection, string docId, QueueOptions? options = null)
         {
-            return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
+            options ??= new QueueOptions();
+            var col = collection as CouchbaseCollection;
+            if (options.Timeout is null)
+            {
+                var bkt = col?.Scope?.Bucket as BucketBase;
+                var context = bkt?.Context;
+                options = options with
+                {
+                    Timeout = context?.ClusterOptions?.KvTimeout ?? ClusterOptions.Default.KvTimeout
+                };
+            }
+
+            return new PersistentQueue<T>(collection, docId, options, col?.Logger, col?.Redactor);
         }
 
         /// <summary>
