@@ -391,7 +391,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Command can't be executed in a config-only bucket.
         /// </summary>
-        EConfigOnly = 0xD
+        EConfigOnly = 0xD,
+
+        /// <summary>
+        /// Raised when a document is not locked.
+        /// </summary>
+        DocumentNotLocked =  0x0e
     }
 }
 

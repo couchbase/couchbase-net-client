@@ -130,6 +130,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 yield return new object[] {new Touch {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new GetT<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
+                yield return new object[] {new Unlock { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException()};
             }
 
             IEnumerator IEnumerable.GetEnumerator()

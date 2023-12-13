@@ -99,6 +99,8 @@ namespace Couchbase.Core.IO
         {
             switch (status)
             {
+                case ResponseStatus.DocumentNotLocked:
+                    return new DocumentNotLockedException { Context = ctx };
                 case ResponseStatus.KeyNotFound:
                     return new DocumentNotFoundException {Context = ctx};
                 case ResponseStatus.KeyExists:
