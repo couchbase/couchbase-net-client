@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- update this after a release-->
-    <CouchbaseNetClientReleasedVersion>3.4.3</CouchbaseNetClientReleasedVersion>
+    <CouchbaseNetClientReleasedVersion>3.4.14</CouchbaseNetClientReleasedVersion>
   </PropertyGroup>
   <PropertyGroup>
     <!-- libraries typically include NetStandardTargets for widest use cases -->
@@ -29,7 +29,7 @@
     <NetStandardTargets>netstandard2.0;netstandard2.1</NetStandardTargets>
 
     <!-- If you need to build with Visual Studio < 2022, remove net6.0 -->
-    <NetModernTargets>net6.0</NetModernTargets>
+    <NetModernTargets>net6.0;net8.0</NetModernTargets>
     <NetSpecificTargets>$(NetModernTargets)</NetSpecificTargets>
 
     <!-- For the main SDK, we should run tests on .NET 4.8 when possible -->
@@ -47,4 +47,11 @@
       <Visible>false</Visible>
     </None>
   </ItemGroup>
-</Project>
+
+  <!-- AOT analysis -->
+  <PropertyGroup>
+    <!-- We're not quite ready to do AOT yet, so default to false.
+         Change this to true to enable AOT warnings-as-errors. -->
+    <DefaultEnableAotAnalyzer>false</DefaultEnableAotAnalyzer>
+  </PropertyGroup>
+  </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-      <TargetFramework>net6.0</TargetFramework>
+      <TargetFrameworks>$(NetSpecificTargets)</TargetFrameworks>
       <VersionPrefix>$(CouchbaseNetClientReleasedVersion)</VersionPrefix>
       <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
       <ImplicitUsings>enable</ImplicitUsings>
@@ -10,7 +10,6 @@
       <LangVersion>10</LangVersion>
       <PackageId>CouchbaseNetClient</PackageId>
       <AssemblyName>Couchbase.NetClient</AssemblyName>
-
       <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
       <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>

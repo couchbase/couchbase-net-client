@@ -4,7 +4,7 @@ using Couchbase.Core.IO.Serializers.SystemTextJson;
 
 namespace Couchbase.Diagnostics
 {
-    [JsonConverter(typeof(CamelCaseStringEnumConverter))]
+    [JsonConverter(typeof(CamelCaseStringEnumConverter<ServiceState>))]
     public enum ServiceState
     {
         /// <summary>

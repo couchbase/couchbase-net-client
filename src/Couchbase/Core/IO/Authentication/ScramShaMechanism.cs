@@ -110,7 +110,13 @@ namespace Couchbase.Core.IO.Authentication
             //.NET only officially supports SHA1 of PBKDF2 - a later commit could allow
             //support using the PBKDF2 class included in this patchset which supports SHA256
             //and SHA512 - given caveat emptor!
+            // TODO: Update to investigate modernizing this to SHA256
+            #if NET8_0_OR_GREATER
+            using var bytes =
+                new Rfc2898DeriveBytes(password, salt, iterationCount, hashAlgorithm: HashAlgorithmName.SHA1);
+            #else
             using var bytes = new Rfc2898DeriveBytes(password, salt, iterationCount);
+            #endif
             return bytes.GetBytes(ShaByteLength);
         }
 

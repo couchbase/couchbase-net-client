@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Security;
+using System.Runtime.Versioning;
 using System.Security.Authentication;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
@@ -887,14 +888,15 @@ namespace Couchbase
         /// <summary>
         /// Enabled SSL Protocols
         /// </summary>
-        /// <remarks>The defaults are TLS, TLS1.1, TLS1.2 and TLS1.3</remarks>
-        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13;
+        /// <remarks>The defaults TLS1.2 and TLS1.3.  Earlier versions are considered insecure.</remarks>
+        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls12 | SslProtocols.Tls13;
 #else
         /// <summary>
         /// Enabled SSL Protocols
         /// </summary>
-        /// <remarks>The defaults are TlS, TLS1.1 and TLS1.2</remarks>
-        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+        /// <remarks>The defaults is TLS1.2, since earlier protocols are considered insecure.</remarks>
+        /// <remarks>If you are using .NET Framework 4.8 or later on Windows, you can add TLS 1.3.</remarks>
+        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls12;
 
 #endif
 
@@ -902,7 +904,11 @@ namespace Couchbase
         /// <summary>
         /// List of enabled TLS Cipher Suites.  If not set, will use default .NET Cipher Suites
         /// </summary>
+        [UnsupportedOSPlatform("windows")]
         public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new();
+
+        [UnsupportedOSPlatformGuard("windows")]
+        internal readonly bool PlatformSupportsCipherSuite = !OperatingSystem.IsWindows();
 #endif
 
         internal bool IsCapella => ConnectionStringValue?.Hosts?.Any(h => h.Host.ToLowerInvariant().EndsWith(".cloud.couchbase.com")) == true;

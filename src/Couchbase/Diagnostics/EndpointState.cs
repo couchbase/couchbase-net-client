@@ -7,7 +7,7 @@ namespace Couchbase.Diagnostics
     /// <summary>
     /// State of the connection to the endpoint.
     /// </summary>
-    [JsonConverter(typeof(CamelCaseStringEnumConverter))]
+    [JsonConverter(typeof(CamelCaseStringEnumConverter<EndpointState>))]
     public enum EndpointState
     {
         /// <summary>

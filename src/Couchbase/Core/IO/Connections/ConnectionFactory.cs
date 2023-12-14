@@ -161,7 +161,9 @@ namespace Couchbase.Core.IO.Connections
                     EnabledSslProtocols = _clusterOptions.EnabledSslProtocols,
                     CertificateRevocationCheckMode = _clusterOptions.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
                 };
-                if (_clusterOptions.EnabledTlsCipherSuites != null && _clusterOptions.EnabledTlsCipherSuites.Count > 0)
+                if (_clusterOptions.PlatformSupportsCipherSuite
+                    && _clusterOptions.EnabledTlsCipherSuites != null
+                    && _clusterOptions.EnabledTlsCipherSuites.Count > 0)
                 {
                     sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_clusterOptions.EnabledTlsCipherSuites);
                 }

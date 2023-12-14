@@ -17,7 +17,7 @@ namespace Couchbase.Core.Exceptions
         public string? Statement { get; set; }
         public string? ClientContextId { get; set; }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<HttpStatusCode>))]
         public HttpStatusCode HttpStatus { get; set; }
 
         public List<RetryReason>? RetryReasons { get; internal set; }

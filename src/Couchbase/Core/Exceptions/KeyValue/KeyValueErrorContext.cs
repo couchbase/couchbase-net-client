@@ -24,7 +24,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public ulong Cas { get; set; } //op.Cas
 
-        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
+        [JsonConverter(typeof(CamelCaseStringEnumConverter<ResponseStatus>))]
         public ResponseStatus Status { get; set; } //state.Status
 
         public string? BucketName { get; set; } //collection.Bucket.BucketName
@@ -35,7 +35,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public string? Message { get; set; } //errorcode
 
-        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
+        [JsonConverter(typeof(CamelCaseStringEnumConverter<OpCode>))]
         public OpCode OpCode { get; set; }
 
         public List<RetryReason>? RetryReasons { get; internal set; }

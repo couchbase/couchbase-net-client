@@ -165,7 +165,8 @@ namespace Couchbase.Core.IO.HTTP
 
             handler.SslOptions.RemoteCertificateValidationCallback = certValidationCallback;
 
-            if (_context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
+            if (_context.ClusterOptions.PlatformSupportsCipherSuite
+                && _context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
             {
                 handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_context.ClusterOptions.EnabledTlsCipherSuites);
             }

@@ -19,7 +19,7 @@ namespace Couchbase.Core.Exceptions.View
 
         public string? ViewName { get; set; }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<HttpStatusCode>))]
         public HttpStatusCode HttpStatus { get; set; }
 
         public string? ClientContextId { get; set; }

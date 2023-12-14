@@ -30,11 +30,11 @@ namespace Couchbase.Core.Exceptions.Query
         public string? Parameters { get; set; }
 
         [JsonInclude]
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<HttpStatusCode>))]
         public HttpStatusCode HttpStatus { get; set; }
 
         [JsonInclude]
-        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
+        [JsonConverter(typeof(CamelCaseStringEnumConverter<QueryStatus>))]
         public QueryStatus QueryStatus { get; set; }
 
         [JsonInclude]

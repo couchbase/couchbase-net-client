@@ -2,12 +2,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Core.Compatibility;
-using Couchbase.Core.IO.Serializers;
 
 #nullable enable
 
@@ -20,7 +18,7 @@ namespace Couchbase.Core.Exceptions.Analytics
     {
         public string? Statement { get; internal set; }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<HttpStatusCode>))]
         public HttpStatusCode HttpStatus { get; internal set; }
 
         public string? ClientContextId { get; internal set; }
