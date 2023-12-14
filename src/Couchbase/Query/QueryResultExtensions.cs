@@ -72,8 +72,9 @@ namespace Couchbase.Query
                 if (error.Code >= 4000 && error.Code < 5000) return new PlanningFailureException(context);
 
                 if (error.Code == 12004 || error.Code == 12016 ||
-                    error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
-                    error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                    (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)) ||
+                    (error.Code == 5000 && error.Message.Contains("does not exist")))
                     return new IndexNotFoundException(context);
 
                 if (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&

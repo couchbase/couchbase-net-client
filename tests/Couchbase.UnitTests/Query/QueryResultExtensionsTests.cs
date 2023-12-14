@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Query;
 
-public class QueryResultExtenionsTests
+public class QueryResultExtensionsTests
 {
     [Fact]
     public void Test_QueryContext_UnknownParameter()
@@ -52,5 +52,25 @@ public class QueryResultExtenionsTests
         mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
         var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, errorContext);
         Assert.IsAssignableFrom<FeatureNotAvailableException>(ex);
+    }
+
+    [Fact]
+    public void Test_Index_Does_Not_Exist()
+    {
+        List<Error> errors = new()
+        {
+            new Error
+            {
+                Code = 5000,
+                Message = "GSI Drop() - cause: Index does not exist.",
+                Severity = 0,
+                Retry = false
+            }
+        };
+
+        var mockQueryResult = new Mock<IQueryResult<object>>(MockBehavior.Strict);
+        mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
+        var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, new QueryErrorContext());
+        Assert.IsAssignableFrom<IndexNotFoundException>(ex);
     }
 }
