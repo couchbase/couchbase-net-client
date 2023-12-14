@@ -1,8 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
+using Couchbase.Stellar.CombinationTests.Fixtures;
 
-namespace Couchbase.Stellar.CombinationTests;
+namespace Couchbase.Stellar.CombinationTests.Utils;
 
 public class ConsistencyUtils
 {

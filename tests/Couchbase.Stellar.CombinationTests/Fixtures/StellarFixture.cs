@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace Couchbase.Stellar.CombinationTests
+namespace Couchbase.Stellar.CombinationTests.Fixtures
 {
     public class FixtureSettings
     {

@@ -6,19 +6,19 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Newtonsoft.Json.Linq;
+using Couchbase.Stellar.CombinationTests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient.KeyValue
+namespace Couchbase.Stellar.CombinationTests.KeyValue
 {
     [Collection(StellarTestCollection.Name)]
-    public class StellarKv
+    public class StellarKvTests
     {
         private readonly StellarFixture _fixture;
         private readonly ITestOutputHelper _outputHelper;
 
-        public StellarKv(StellarFixture fixture, ITestOutputHelper outputHelper)
+        public StellarKvTests(StellarFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
             _outputHelper = outputHelper;

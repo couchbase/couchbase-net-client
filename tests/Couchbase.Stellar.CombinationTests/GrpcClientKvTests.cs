@@ -2,20 +2,20 @@ using System;
 using System.Net.Http;
 using System.Net.Security;
 using System.Threading;
-using Grpc.Net.Client;
 using System.Threading.Tasks;
-using Grpc.Core;
 using Couchbase.Test.Common.Utils;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.RawGrpcClient
+namespace Couchbase.Stellar.CombinationTests
 {
-    public class KvTests
+    public class GrpcClientKvTests
     {
         private readonly ITestOutputHelper _outputHelper;
 
-        public KvTests(ITestOutputHelper outputHelper)
+        public GrpcClientKvTests(ITestOutputHelper outputHelper)
         {
             _outputHelper = outputHelper;
         }

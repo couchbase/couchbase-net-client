@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace Couchbase.Stellar.CombinationTests
+namespace Couchbase.Stellar.CombinationTests.Fixtures
 {
     [CollectionDefinition(Name)]
     public class StellarTestCollection : ICollectionFixture<StellarFixture>

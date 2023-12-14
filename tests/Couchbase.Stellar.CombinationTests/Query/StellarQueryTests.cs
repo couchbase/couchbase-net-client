@@ -1,17 +1,18 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Stellar.CombinationTests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient.Query;
+namespace Couchbase.Stellar.CombinationTests.Query;
 
 [Collection(StellarTestCollection.Name)]
-public class StellarQuery
+public class StellarQueryTests
 {
     private readonly ITestOutputHelper _outputHelper;
     private StellarFixture _fixture;
 
-    public StellarQuery(StellarFixture fixture, ITestOutputHelper outputHelper)
+    public StellarQueryTests(StellarFixture fixture, ITestOutputHelper outputHelper)
     {
         _fixture = fixture;
         _outputHelper = outputHelper;

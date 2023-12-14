@@ -5,11 +5,11 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
-using Couchbase.Test.Common.Utils;
+using Couchbase.Stellar.CombinationTests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient.Search;
+namespace Couchbase.Stellar.CombinationTests.Search;
 
 [Collection(StellarTestCollection.Name)]
 public class StellarSearch

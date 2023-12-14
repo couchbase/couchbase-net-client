@@ -5,18 +5,20 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Query;
+using Couchbase.Stellar.CombinationTests.Fixtures;
+using Couchbase.Stellar.CombinationTests.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.Stellar.CombinationTests.WrappedClient.Management;
+namespace Couchbase.Stellar.CombinationTests.Management;
 
 [Collection(StellarTestCollection.Name)]
-public class StellarQueryIndexManagement
+public class StellarQueryIndexManagementTests
 {
     private readonly ITestOutputHelper _outputHelper;
     private StellarFixture _fixture;
     private ConsistencyUtils _utils;
-    public StellarQueryIndexManagement(StellarFixture fixture, ITestOutputHelper outputHelper)
+    public StellarQueryIndexManagementTests(StellarFixture fixture, ITestOutputHelper outputHelper)
     {
         _fixture = fixture;
         _outputHelper = outputHelper;
