@@ -85,11 +85,14 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
                 circuitBreaker.MarkFailure();
                 if (i == 20)
                 {
-                    Thread.Sleep(config.RollingWindow);
+                    // depending on what else is going on in the system, the asserts may fire
+                    // before the rolling window is updated.
+                    var fudgeFactor = TimeSpan.FromMilliseconds(100);
+                    Thread.Sleep(config.RollingWindow + fudgeFactor);
                 }
             }
             circuitBreaker.MarkSuccess();
-            Assert.True(circuitBreaker.AllowsRequest());
+            Assert.True(circuitBreaker.AllowsRequest(), userMessage: "Expected to allow requests, but not allowing requests");
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
         }
 

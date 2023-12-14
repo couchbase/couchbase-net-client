@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -259,15 +260,16 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Assert
 
             await Task.Delay(10).ConfigureAwait(false);
-            Assert.False(task.IsCompleted);
+            Assert.False(task.IsCompleted, userMessage: "Task should not be complete before any states are complete.");
 
             state1.Complete(SlicedMemoryOwner<byte>.Empty);
             await Task.Delay(10).ConfigureAwait(false);
-            Assert.False(task.IsCompleted);
+            Assert.False(task.IsCompleted, userMessage: "Task should not be complete before all states are complete");
 
             state2.Complete(SlicedMemoryOwner<byte>.Empty);
-            await Task.Delay(10).ConfigureAwait(false);
-            Assert.True(task.IsCompleted);
+
+            await Task.WhenAny(task.AsTask(), Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(task.IsCompleted, userMessage: "Task should have been complete within a reasonable amount of time after all states were complete.");
         }
 
         [Fact]
