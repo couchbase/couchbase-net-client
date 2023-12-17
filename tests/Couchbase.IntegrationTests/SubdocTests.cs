@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
@@ -511,6 +512,34 @@ namespace Couchbase.IntegrationTests
                 specs.Insert<string>("newKey", null, true);
                 specs.Upsert<string>("title", null, true);
             });
+        }
+
+        [Fact]
+        public async Task MutateIn_SetDoc_UsesTranscoder()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_SetDoc_UsesTranscoder);
+            byte[] o = [1, 2, 3, 4];
+            var transcoder = new LegacyTranscoder(DefaultSerializer.Instance);
+
+            await collection.MutateInAsync(documentKey,
+                builder =>
+                {
+                    builder.SetDoc(o);
+                    builder.Upsert("test_attr", "foo", isXattr: true);
+                },
+                options => options.Transcoder(transcoder).StoreSemantics(StoreSemantics.Upsert));
+
+            var result = await collection.LookupInAsync(documentKey,
+                builder =>
+                {
+                    builder.GetFull();
+                    builder.Get("test_attr", isXattr: true);
+                },
+                options => options.Transcoder(transcoder));
+
+            Assert.Equal(o, result.ContentAs<byte[]>(0));
+            //Assert.Equal("foo", result.ContentAs<string>(1));
         }
 
         #region Helpers

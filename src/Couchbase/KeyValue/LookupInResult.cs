@@ -69,7 +69,10 @@ namespace Couchbase.KeyValue
 
             if (spec.Status == ResponseStatus.Success)
             {
-                return _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode);
+                // Only use the transcoder when reading entire documents, otherwise the content should be JSON
+                return spec is { OpCode: OpCode.Get, Path.Length: 0}
+                    ? _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode)
+                    : _transcoder.Serializer!.Deserialize<T>(spec.Bytes);
             }
             throw GetSubdocError(spec, index);
         }

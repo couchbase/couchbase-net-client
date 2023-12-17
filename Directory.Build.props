@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <LangVersion>10</LangVersion>
+    <LangVersion>12</LangVersion>
     <CheckEolTargetFramework>false</CheckEolTargetFramework> <!-- Don't warn about EOL target frameworks like netcoreapp2.1 -->
 
     <Authors>Couchbase, Inc.</Authors>

@@ -112,7 +112,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                     if (mutate.OpCode != OpCode.SubDelete)
                     {
                         builder.AdvanceToSegment(OperationSegment.OperationSpecFragment);
-                        WriteSpecValue(builder, mutate);
+                        mutate.WriteSpecValue(builder, Transcoder);
                     }
 
                     builder.CompleteOperationSpec(mutate);
@@ -121,27 +121,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);
-            }
-        }
-
-        private void WriteSpecValue(OperationBuilder builder, OperationSpec spec)
-        {
-            if (!spec.RemoveBrackets)
-            {
-                // We can serialize directly
-                Transcoder.Serializer!.Serialize(builder, spec.Value!);
-            }
-            else
-            {
-                using (var stream = MemoryStreamFactory.GetMemoryStream())
-                {
-                    Transcoder.Serializer!.Serialize(stream, spec.Value!);
-
-                    ReadOnlyMemory<byte> bytes = stream.GetBuffer().AsMemory(0, (int) stream.Length);
-                    bytes = bytes.StripBrackets();
-
-                    builder.Write(bytes);
-                }
             }
         }
 

@@ -1,6 +1,8 @@
 using System;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -8,15 +10,26 @@ namespace Couchbase.KeyValue
 {
     public class MutateInSpec : OperationSpec
     {
-        private static MutateInSpec CreateSpec(OpCode opCode, string path, object? value, bool createPath, bool isXattr, bool removeBrackets)
+        [Obsolete("Use MutateInSpec static factory methods.")]
+        public MutateInSpec()
+        {
+        }
+
+        internal MutateInSpec(OpCode opCode, string path)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (path is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(path));
+            }
+
+            OpCode = opCode;
+            Path = path;
+        }
+
+        private static MutateInSpec CreateSpec(OpCode opCode, string path, bool createPath, bool isXattr, bool removeBrackets)
         {
             var pathFlags = SubdocPathFlags.None;
-            if (value is IMutationMacro)
-            {
-                pathFlags |= SubdocPathFlags.ExpandMacroValues;
-                pathFlags |= SubdocPathFlags.Xattr;
-                value = value.ToString();
-            }
             if (createPath)
             {
                 pathFlags |= SubdocPathFlags.CreatePath;
@@ -26,11 +39,36 @@ namespace Couchbase.KeyValue
                 pathFlags |= SubdocPathFlags.Xattr;
             }
 
-            return new MutateInSpec
+            return new MutateInSpec(opCode, path)
             {
-                Path = path,
-                Value = value,
-                OpCode = opCode,
+                PathFlags = pathFlags,
+                RemoveBrackets = removeBrackets
+            };
+        }
+
+        private static MutateInSpec CreateSpec<T>(OpCode opCode, string path, T value, bool createPath, bool isXattr, bool removeBrackets)
+        {
+            var pathFlags = SubdocPathFlags.None;
+            if (createPath)
+            {
+                pathFlags |= SubdocPathFlags.CreatePath;
+            }
+            if (isXattr)
+            {
+                pathFlags |= SubdocPathFlags.Xattr;
+            }
+
+            if (value is IMutationMacro)
+            {
+                return new MutateInSpec<string>(opCode, path, value.ToString()!)
+                {
+                    PathFlags = pathFlags | SubdocPathFlags.ExpandMacroValues | SubdocPathFlags.Xattr,
+                    RemoveBrackets = removeBrackets
+                };
+            }
+
+            return new MutateInSpec<T>(opCode, path, value)
+            {
                 PathFlags = pathFlags,
                 RemoveBrackets = removeBrackets
             };
@@ -58,7 +96,7 @@ namespace Couchbase.KeyValue
 
         public static MutateInSpec Remove(string path, bool isXattr = false, bool removeBrackets = false)
         {
-            return CreateSpec(OpCode.SubDelete, path, null, false, isXattr, removeBrackets);
+            return CreateSpec(OpCode.SubDelete, path, false, isXattr, removeBrackets);
         }
 
         public static MutateInSpec ArrayAppend<T>(string path, T[] values, bool createPath = false, bool isXattr = false, bool removeBrackets = true)
@@ -119,21 +157,49 @@ namespace Couchbase.KeyValue
         }
 
         /// <summary>
+        /// Serializes the <see cref="OperationSpec.Value" /> to the <see cref="OperationBuilder"/> using the <see cref="ITypeTranscoder"/>.
+        /// </summary>
+        /// <param name="builder">Builder to serialize to.</param>
+        /// <param name="transcoder">Transcoder to use.</param>
+        internal virtual void WriteSpecValue(OperationBuilder builder, ITypeTranscoder transcoder)
+        {
+            // This is legacy backward-compatibility behavior. If the MutateInSpec is constructed using the static
+            // methods above a MutateInSpec<T> will be created, or it is a SubDelete which doesn't have a body,
+            // in both cases this method is will not be called. However, it is possible that consumers
+            // are creating MutateInSpec objects directly and passing them to MutateInAsync, in which case this method
+            // will be called, so we retain the legacy behavior.
+
+            if (!RemoveBrackets)
+            {
+                // We can serialize directly
+                transcoder.Serializer!.Serialize(builder, Value!);
+            }
+            else
+            {
+                using var stream = MemoryStreamFactory.GetMemoryStream();
+                transcoder.Serializer!.Serialize(stream, Value!);
+
+                ReadOnlyMemory<byte> bytes = stream.GetBuffer().AsMemory(0, (int) stream.Length);
+                bytes = bytes.StripBrackets();
+
+                builder.Write(bytes);
+            }
+        }
+
+        /// <summary>
         /// Creates a new object that is a copy of the current instance excluding the Byte and Status fields.
         /// </summary>
         /// <returns>
         /// A new object that is a copy of this instance.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        internal OperationSpec Clone()
+        internal virtual OperationSpec Clone()
         {
-            return new MutateInSpec
+            return new MutateInSpec(OpCode, Path)
             {
                 Bytes = ReadOnlyMemory<byte>.Empty,
                 PathFlags = PathFlags,
                 DocFlags = DocFlags,
-                OpCode = OpCode,
-                Path = Path,
                 RemoveBrackets = RemoveBrackets,
                 Status = ResponseStatus.None,
                 Value = Value,
