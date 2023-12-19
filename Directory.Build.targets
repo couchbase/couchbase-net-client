@@ -1,6 +1,4 @@
 <Project>
-  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.1.1" />
-
   <!-- For older framework targets on non-test projects include attributes to support trimming -->
   <ItemGroup Condition=" '$(MSBuildProjectFile.Contains(`Test`))' != 'true' ">
     <Compile Include="$(MSBuildThisFileDirectory)src\Shared\Trimming\**\*.cs"
