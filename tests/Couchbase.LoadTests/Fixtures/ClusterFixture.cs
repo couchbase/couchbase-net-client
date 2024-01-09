@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Couchbase.NetClient;
 
 namespace Couchbase.LoadTests.Fixtures
 {

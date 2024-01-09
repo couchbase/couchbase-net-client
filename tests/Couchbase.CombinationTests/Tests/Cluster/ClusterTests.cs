@@ -31,7 +31,7 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             var clusterOptions = _fixture.GetOptionsFromConfig();
             clusterOptions.Password = "WRONG_PASSWORD_ON_PURPOSE";
             clusterOptions.WithLogging(loggerFactory);
-            var t = Couchbase.NetClient.Cluster.ConnectAsync(clusterOptions);
+            var t = Couchbase.Cluster.ConnectAsync(clusterOptions);
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t);
             // ServiceNotAvailableException would be raised later, when a Query was attempted and no endpoints were bootstrapped.
         }
@@ -42,7 +42,7 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
             var clusterOptions = _fixture.GetOptionsFromConfig();
             clusterOptions.WithLogging(loggerFactory);
-            var cluster = await NetClient.Cluster.ConnectAsync(clusterOptions);
+            var cluster = await Couchbase.Cluster.ConnectAsync(clusterOptions);
             var t = cluster.BucketAsync("BUCKET_THAT_DOES_NOT_EXIST");
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t.AsTask());
             Assert.Contains("hibernat", ex.Message);
@@ -63,7 +63,7 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             using var loggerFactory = new TestOutputLoggerFactory(logInterceptor);
             var clusterOptions = _fixture.GetOptionsFromConfig();
             clusterOptions.WithLogging(loggerFactory);
-            var cluster = await NetClient.Cluster.ConnectAsync(clusterOptions);
+            var cluster = await Couchbase.Cluster.ConnectAsync(clusterOptions);
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
             Assert.NotEqual(0, Interlocked.Read(ref pingCount));
         }

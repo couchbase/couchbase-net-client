@@ -50,8 +50,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Tests.IntegrationTests", "tests\Couchbase.Transactions.Tests.IntegrationTests\Couchbase.Transactions.Tests.IntegrationTests.csproj", "{386877D9-B1C0-4E74-A969-99E4CAC9FD63}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.NetClient", "src\Couchbase.NetClient\Couchbase.NetClient.csproj", "{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "protostellar", "protostellar", "{1D3544F8-F7BD-492B-9E96-FF45AEFFE113}"
 	ProjectSection(SolutionItems) = preProject
 		src\Shared\protostellar\.DS_Store = src\Shared\protostellar\.DS_Store
@@ -94,13 +92,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "protostellar", "protostella
 		src\Shared\protostellar\couchbase\query\v1\query.proto = src\Shared\protostellar\couchbase\query\v1\query.proto
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar", "src\Couchbase.Stellar\Couchbase.Stellar.csproj", "{7889E6BE-EBEF-417A-83EA-4C1986DDD224}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CodeGen", "src\Couchbase.Stellar.CodeGen\Couchbase.Stellar.CodeGen.csproj", "{3B222CDA-F8D9-436B-B195-8170A953344B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CombinationTests", "tests\Couchbase.Stellar.CombinationTests\Couchbase.Stellar.CombinationTests.csproj", "{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.NetClient.CombinationTests", "tests\Couchbase.NetClient.CombinationTests\Couchbase.NetClient.CombinationTests.csproj", "{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -168,25 +160,9 @@ Global
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.Build.0 = Release|Any CPU
-		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{20AA652A-AD90-486D-B4C3-4A5ACC484BFE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7889E6BE-EBEF-417A-83EA-4C1986DDD224}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FFB499AE-C47F-4D4E-8113-C8F284D10EE3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F1BC68D1-D0BA-48F1-A22A-1C415432F7E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

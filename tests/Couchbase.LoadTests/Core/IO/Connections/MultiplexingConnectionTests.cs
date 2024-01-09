@@ -22,7 +22,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
                 .WithConnectionString("couchbase://localhost")
                 .WithCredentials("Administrator", "password");
 
-            _cluster = await NetClient.Cluster.ConnectAsync(options);
+            _cluster = await Cluster.ConnectAsync(options);
 
             var bucket = await _cluster.BucketAsync("default");
             _collection = bucket.DefaultCollection();

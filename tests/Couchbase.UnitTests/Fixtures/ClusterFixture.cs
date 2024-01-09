@@ -10,7 +10,7 @@ namespace Couchbase.UnitTests.Fixtures
 
         public ClusterFixture()
         {
-            var cluster = new NetClient.Cluster(new ClusterOptions()
+            var cluster = new Cluster(new ClusterOptions()
                 .WithConnectionString("couchbase://localhost")
                 .WithBuckets("default")
                 .WithCredentials("Administrator", "password")

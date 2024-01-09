@@ -4,9 +4,10 @@
     <TargetFrameworks>$(NetStandardTargets);$(NetSpecificTargets)</TargetFrameworks>
     <VersionPrefix>$(CouchbaseNetClientReleasedVersion)</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
-    <PackageId>Couchbase</PackageId>
-    <Product>Couchbase</Product>
-    <Description>The Official On-Premise Couchbase .NET SDK.</Description>
+    <AssemblyName>Couchbase.NetClient</AssemblyName>
+    <PackageId>CouchbaseNetClient</PackageId>
+    <Product>CouchbaseNetClient</Product>
+    <Description>The Official Couchbase .NET SDK.</Description>
 
     <PackageReleaseNotes>https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html</PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

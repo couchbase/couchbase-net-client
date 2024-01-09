@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void ctor_Throws_InvalidConfigurationException_When_Credentials_Not_Provided()
         {
-            Assert.Throws<InvalidConfigurationException>(() => new NetClient.Cluster(new ClusterOptions().WithConnectionString("couchbase://localhost")));
+            Assert.Throws<InvalidConfigurationException>(() => new Cluster(new ClusterOptions().WithConnectionString("couchbase://localhost")));
         }
 
         #endregion
@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests
             nodeFactory.Setup(nf => nf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(mockNode.Object));
 
-            var cluster = new NetClient.Cluster(ClusterOptions.Default
+            var cluster = new Cluster(ClusterOptions.Default
                 .WithCredentials("Administrator", "password")
                 .WithConnectionString("couchbases://HostThatDoesNotExist.NoSuchDomain")
                 .WithDnsResolver(dnsResolver.Object)
@@ -102,7 +102,7 @@ namespace Couchbase.UnitTests
             var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
 
-            var cluster = new Mock<NetClient.Cluster>(options)
+            var cluster = new Mock<Cluster>(options)
             {
                 CallBase = true
             };
@@ -148,7 +148,7 @@ namespace Couchbase.UnitTests
             var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
 
-            var cluster = new Mock<NetClient.Cluster>(options)
+            var cluster = new Mock<Cluster>(options)
             {
                 CallBase = true
             };

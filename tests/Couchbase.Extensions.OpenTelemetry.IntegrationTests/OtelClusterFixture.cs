@@ -105,7 +105,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
 
         public async Task InitializeAsync()
         {
-            Cluster = await NetClient.Cluster.ConnectAsync(
+            Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     GetClusterOptions())
                 .ConfigureAwait(false);

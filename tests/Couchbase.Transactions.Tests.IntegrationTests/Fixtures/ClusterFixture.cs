@@ -85,7 +85,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
         public async Task<ICluster> OpenClusterAsync(ITestOutputHelper outputHelper)
         {
             var opts = GetClusterOptions().WithLogging(new TestOutputLoggerFactory(outputHelper));
-            var cluster = await NetClient.Cluster.ConnectAsync(
+            var cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     opts)
                 .ConfigureAwait(false);
@@ -112,7 +112,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
         public async Task InitializeAsync()
         {
             var opts = GetClusterOptions();
-            Cluster = await NetClient.Cluster.ConnectAsync(
+            Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     opts)
                 .ConfigureAwait(false);

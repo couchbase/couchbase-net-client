@@ -31,8 +31,7 @@ using Couchbase.Core.RateLimiting;
 
 #nullable enable
 
-// ReSharper disable once CheckNamespace
-namespace Couchbase.NetClient
+namespace Couchbase
 {
     public class Cluster : ICluster, IBootstrappable
     {

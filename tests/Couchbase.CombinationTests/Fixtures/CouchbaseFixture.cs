@@ -36,7 +36,7 @@ namespace Couchbase.CombinationTests
 
         public async Task BuildAsync()
         {
-            _cluster ??= await Couchbase.NetClient.Cluster.ConnectAsync(_options.ConnectionString!, _options);
+            _cluster ??= await Couchbase.Cluster.ConnectAsync(_options.ConnectionString!, _options);
         }
 
         public ICluster Cluster
@@ -94,7 +94,7 @@ namespace Couchbase.CombinationTests
 
         public async Task InitializeAsync()
         {
-            _cluster ??= await Couchbase.NetClient.Cluster.ConnectAsync(_options.ConnectionString!, _options);
+            _cluster ??= await Couchbase.Cluster.ConnectAsync(_options.ConnectionString!, _options);
         }
 
         async Task IAsyncLifetime.DisposeAsync()

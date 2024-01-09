@@ -1,4 +1,4 @@
-using Couchbase.NetClient;
+using Couchbase;
 
 namespace Couchbase.Diagnostics
 {
