@@ -94,6 +94,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "protostellar", "protostella
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CodeGen", "src\Couchbase.Stellar.CodeGen\Couchbase.Stellar.CodeGen.csproj", "{3B222CDA-F8D9-436B-B195-8170A953344B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Stellar.CombinationTests", "tests\Couchbase.Stellar.CombinationTests\Couchbase.Stellar.CombinationTests.csproj", "{5C52DFFF-873C-435C-AF91-6C406D632DC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -163,6 +165,10 @@ Global
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B222CDA-F8D9-436B-B195-8170A953344B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C52DFFF-873C-435C-AF91-6C406D632DC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C52DFFF-873C-435C-AF91-6C406D632DC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C52DFFF-873C-435C-AF91-6C406D632DC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C52DFFF-873C-435C-AF91-6C406D632DC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

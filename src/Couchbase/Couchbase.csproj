@@ -50,9 +50,13 @@
 
   <ItemGroup>
     <Folder Include="Core\Retry\Analytics\" />
+    <Folder Include="Stellar\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="App.Metrics" />
     <PackageReference Include="App.Metrics.Abstractions" />
     <PackageReference Include="DnsClient" />
