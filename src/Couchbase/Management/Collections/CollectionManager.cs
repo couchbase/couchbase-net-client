@@ -235,7 +235,7 @@ namespace Couchbase.Management.Collections
 
                 if (settings.MaxExpiry.HasValue)
                 {
-                    keys.Add("maxTTL", settings.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                    keys.Add("maxTTL", ((int)settings.MaxExpiry.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture));
                 }
                 if (settings.History.HasValue)
                 {
@@ -499,7 +499,7 @@ namespace Couchbase.Management.Collections
 
             if (settings.MaxExpiry.HasValue)
             {
-                dict.Add("maxTTL", settings.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                dict.Add("maxTTL", ((int)settings.MaxExpiry.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture));
             }
 
             if (settings.History.HasValue)

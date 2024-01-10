@@ -4,8 +4,12 @@ namespace Couchbase.Management.Collections;
 
 public class CreateCollectionSettings
 {
+    public static readonly TimeSpan NoExpiry = TimeSpan.FromSeconds(-1);
+
     /// <summary>
-    /// The maximum Time-To-Live (TTL) for new documents in the collection. If left unset, it defaults to no expiry.
+    /// The maximum Time-To-Live (TTL) for new documents in the collection.
+    /// Unset or 0 : Uses the Bucket's MaxExpiry
+    /// -1 (TimeSpan.FromSeconds(-1)) : Documents do not expire. You can use the static constant NoExpiry for this.
     /// </summary>
     public TimeSpan? MaxExpiry { get; set; }
 

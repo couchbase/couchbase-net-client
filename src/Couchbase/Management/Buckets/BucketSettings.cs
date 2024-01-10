@@ -61,7 +61,8 @@ namespace Couchbase.Management.Buckets
         }
 
         /// <summary>
-        /// The max time-to-live for documents in the bucket.
+        /// The maximum Time-To-Live (TTL) for new documents in the Bucket.
+        /// 0 : Documents do not expire.
         /// </summary>
         public int MaxTtl { get; set; }
 
