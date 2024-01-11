@@ -16,7 +16,7 @@ using Couchbase.Search;
 
 namespace Couchbase
 {
-    public interface ICluster : IDisposable, IAsyncDisposable
+    public interface ICluster : ISearchRequester, IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// An <see cref="IServiceProvider"/> which provides access to cluster services, such as <see cref="ITypeSerializer"/>.

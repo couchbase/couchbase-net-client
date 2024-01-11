@@ -2,13 +2,14 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Query;
+using Couchbase.Search;
 
 #nullable enable
 
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    public interface IScope
+    public interface IScope : ISearchRequester
     {
         string Name { get; }
 

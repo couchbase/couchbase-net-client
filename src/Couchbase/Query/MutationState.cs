@@ -99,10 +99,11 @@ namespace Couchbase.Query
         {
             indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
 
-            var vectors = new Dictionary<string, long>();
+            var vectors = new Dictionary<string, long>(_tokens.Count);
             foreach (var token in _tokens)
             {
-                vectors.Add($"{token.VBucketId}/{token.VBucketUuid}", token.SequenceNumber);
+                var vectorKey = $"{token.VBucketId}/{token.VBucketUuid}";
+                vectors[vectorKey] = token.SequenceNumber;
             }
             return new Dictionary<string, Dictionary<string, long>>() { { indexName, vectors } };
         }

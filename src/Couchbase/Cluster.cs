@@ -28,6 +28,8 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Search.Queries.Simple;
+using Couchbase.Search.Queries.Vector;
 
 #nullable enable
 
@@ -402,15 +404,24 @@ namespace Couchbase
 
         public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = default)
         {
+            var searchRequest = SearchRequest.Create(query);
+            return await SearchAsync(indexName, searchRequest, options).ConfigureAwait(false);
+        }
+
+        public async Task<ISearchResult> SearchAsync(
+            string indexName,
+            SearchRequest searchRequest,
+            SearchOptions? options = default)
+        {
             options ??= new SearchOptions();
             options.TimeoutValue ??= _context.ClusterOptions.SearchTimeout;
 
             ThrowIfNotBootstrapped();
 
-            var searchRequest = new SearchRequest
+            FtsSearchRequest ftsSearchRequest = new()
             {
                 Index = indexName,
-                Query = query,
+                Query = searchRequest.SearchQuery,
                 Options = options,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.Value,
@@ -420,13 +431,11 @@ namespace Couchbase
             async Task<ISearchResult> Func()
             {
                 var client1 = LazySearchClient.GetValueOrThrow();
-                var request1 = searchRequest;
-                return await client1.QueryAsync(request1, request1.Token).ConfigureAwait(false);
+                return await client1.QueryAsync(indexName, ftsSearchRequest, searchRequest.VectorSearch, options.Token).ConfigureAwait(false);
             }
 
-            return await _retryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, ftsSearchRequest).ConfigureAwait(false);
         }
-
         #endregion
 
         #region Management

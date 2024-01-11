@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Diagnostics;
@@ -79,11 +80,18 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
         public IQueryIndexManager QueryIndexes { get; }
         public IAnalyticsIndexManager AnalyticsIndexes { get; }
         public ISearchIndexManager SearchIndexes { get; }
         public IBucketManager Buckets { get; }
         public IUserManager Users { get; }
         public IEventingFunctionManager EventingFunctions { get; }
+        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

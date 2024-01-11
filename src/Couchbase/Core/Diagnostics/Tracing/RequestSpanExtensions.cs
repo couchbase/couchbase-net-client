@@ -136,7 +136,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return childSpan;
         }
 
-        internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, SearchRequest request)
+        internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, FtsSearchRequest request)
         {
             var childSpan = DispatchSpan(parentSpan);
             if (childSpan.CanWrite)

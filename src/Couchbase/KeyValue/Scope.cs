@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.Utils;
 using Couchbase.Query;
+using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -90,6 +92,10 @@ namespace Couchbase.KeyValue
 
             return _bucket.Cluster.QueryAsync<T>(statement, options);
         }
+
+        /// <inheritdoc />
+        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options = default) =>
+            throw new NotImplementedException();
 
         /// <summary>
         /// Collection analytics querying

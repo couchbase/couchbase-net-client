@@ -3,10 +3,11 @@ using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Search;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core.Retry.Search
 {
-    internal class SearchRequest : RequestBase
+    internal class FtsSearchRequest : RequestBase
     {
         public override bool Idempotent => true;
         public string Index { get; set; }
@@ -17,13 +18,20 @@ namespace Couchbase.Core.Retry.Search
         [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public string ToJson()
         {
+            var json = ToJObject();
+
+            return json.ToString(Formatting.None);
+        }
+
+        internal JObject ToJObject()
+        {
             var json = Options.ToJson(Index);
             if (Query != null)
             {
                 json.Add("query", Query.Export());
             }
 
-            return json.ToString(Formatting.None);
+            return json;
         }
 
         public sealed override void StopRecording()

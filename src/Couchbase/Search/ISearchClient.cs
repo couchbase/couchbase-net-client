@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Retry.Search;
+using Couchbase.Search.Queries.Vector;
 
 #nullable enable
 
@@ -21,7 +22,7 @@ namespace Couchbase.Search
         /// Executes a <see cref="ISearchQuery"/> request including any <see cref="SearchOptions"/> parameters asynchronously.
         /// </summary>
         /// <returns></returns>
-        Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default);
+        Task<ISearchResult> QueryAsync(string indexName, FtsSearchRequest ftsSearchRequest, VectorSearch? vectorSearchRequest, CancellationToken cancellationToken);
     }
 }
 

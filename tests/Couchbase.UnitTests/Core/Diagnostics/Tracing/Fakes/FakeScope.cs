@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.KeyValue;
 using Couchbase.Query;
+using Couchbase.Search;
 
 #pragma warning disable CS8632
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
@@ -52,6 +54,14 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         }
 
         public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, CancellationToken cancellationToken) =>
+            throw new NotImplementedException();
+
+        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions options)
         {
             throw new NotImplementedException();
         }

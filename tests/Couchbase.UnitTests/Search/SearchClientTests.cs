@@ -46,7 +46,7 @@ namespace Couchbase.UnitTests.Search
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
-            await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(new SearchRequest {Index = indexName}));
+            await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(indexName, new FtsSearchRequest {Index = indexName}, null, CancellationToken.None));
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace Couchbase.UnitTests.Search
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
-            var response =  await client.QueryAsync(new SearchRequest { Index = indexName });
+            var response =  await client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, CancellationToken.None);
             Assert.Equal(6, response.MetaData.ErrorCount);
             Assert.Equal(6, response.MetaData.TotalCount);
             Assert.Equal(0, response.MetaData.SuccessCount);
@@ -472,7 +472,7 @@ namespace Couchbase.UnitTests.Search
 
     //        var content = new
     //        {
-    //            error = "rest_index: Query, indexName: beer, err: bleve: QueryBleve parsing searchRequest, err: unknown query type",
+    //            error = "rest_index: Query, indexName: beer, err: bleve: QueryBleve parsing ftsSearchRequest, err: unknown query type",
     //            request = new
     //            {
     //                query = new {what = "ever"}

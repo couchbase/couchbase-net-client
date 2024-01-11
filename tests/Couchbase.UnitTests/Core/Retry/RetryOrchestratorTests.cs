@@ -373,7 +373,7 @@ namespace Couchbase.UnitTests.Core.Retry
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(1000);
 
-            var searchRequest = new SearchRequest
+            var searchRequest = new FtsSearchRequest
             {
                 Token = cts.Token,
                 Timeout = TimeSpan.FromMilliseconds(1000),
@@ -386,7 +386,11 @@ namespace Couchbase.UnitTests.Core.Retry
             async Task<ISearchResult> Func()
             {
                 var client1 = client;
-                return await client1.QueryAsync(searchRequest, cts.Token);
+                return await client1.QueryAsync(
+                    indexName: searchRequest.Index,
+                    ftsSearchRequest: searchRequest,
+                    vectorSearchRequest: null,
+                    cancellationToken: cts.Token);
             }
 
             await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, searchRequest));

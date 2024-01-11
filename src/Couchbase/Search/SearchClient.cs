@@ -15,6 +15,8 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
+using Couchbase.Search.Queries.Simple;
+using Couchbase.Search.Queries.Vector;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -69,10 +71,16 @@ namespace Couchbase.Search
             Justification = "This type may not be constructed without encountering a warning.")]
         [UnconditionalSuppressMessage("AOT", "IL3051",
             Justification = "This type may not be constructed without encountering a warning.")]
-        public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
+        public async Task<ISearchResult> QueryAsync(
+            string indexName,
+            FtsSearchRequest ftsSearchRequest,
+            VectorSearch? vectorSearch,
+            CancellationToken cancellationToken)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.SearchQuery)
                 .WithLocalAddress();
+
+            ftsSearchRequest.Query ??= new MatchNoneQuery();
 
             using var encodingSpan = rootSpan.EncodingSpan();
 
@@ -82,21 +90,39 @@ namespace Couchbase.Search
 
             var uriBuilder = new UriBuilder(searchUri)
             {
-                Path = $"api/index/{searchRequest.Index}/query"
+                Path = $"api/index/{indexName}/query"
             };
 
             _logger.LogDebug("Sending FTS query with a context id {contextId} to server {searchUri}",
-                searchRequest.ClientContextId, searchUri);
+                ftsSearchRequest.ClientContextId, searchUri);
 
             var searchResult = new SearchResult();
-            var searchBody = searchRequest.ToJson();
+
+            // still reliant on Newtonsoft.Json, for legacy reasons
+            // if the user specified only a VectorSearch,
+            // then ftsSearchRequest will have been replaced with a MatchNoneQuery
+            JObject requestJson = ftsSearchRequest.ToJObject();
+            if (vectorSearch is not null)
+            {
+                var vectorJson = JObject.FromObject(vectorSearch);
+                requestJson.Add(VectorSearch.PropVectorQueries, vectorJson[VectorSearch.PropVectorQueries]);
+                if (vectorSearch.VectorQueryCombination is not null)
+                {
+                    requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
+                }
+            }
+            var searchBody = requestJson.ToString(Formatting.None);
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace(searchBody);
+            }
 
             string? errors = null;
             try
             {
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
                 encodingSpan.Dispose();
-                using var dispatchSpan = rootSpan.DispatchSpan(searchRequest);
+                using var dispatchSpan = rootSpan.DispatchSpan(ftsSearchRequest!);
                 using var httpClient = CreateHttpClient();
                 var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uriBuilder.Uri)
                 {
@@ -133,11 +159,11 @@ namespace Couchbase.Search
                         var ctx = new SearchErrorContext
                         {
                             HttpStatus = response.StatusCode,
-                            IndexName = searchRequest.Index,
-                            ClientContextId = searchRequest.ClientContextId,
-                            Statement = searchRequest.Statement,
+                            IndexName = ftsSearchRequest!.Index,
+                            ClientContextId = ftsSearchRequest.ClientContextId,
+                            Statement = ftsSearchRequest.Statement,
                             Errors = errors,
-                            Query = searchRequest.ToJson(),
+                            Query = ftsSearchRequest.ToJson(),
                             Message = errors
                         };
 
@@ -209,11 +235,11 @@ namespace Couchbase.Search
                             Context = new SearchErrorContext
                             {
                                 HttpStatus = response.StatusCode,
-                                IndexName = searchRequest.Index,
-                                ClientContextId = searchRequest.ClientContextId,
-                                Statement = searchRequest.Statement,
+                                IndexName = ftsSearchRequest!.Index,
+                                ClientContextId = ftsSearchRequest.ClientContextId,
+                                Statement = ftsSearchRequest.Statement,
                                 Errors = errors,
-                                Query = searchRequest.ToJson()
+                                Query = ftsSearchRequest.ToJson()
                             }
                         };
                     }
@@ -232,11 +258,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = searchRequest.Index,
-                        ClientContextId = searchRequest.ClientContextId,
-                        Statement = searchRequest.Statement,
+                        IndexName = ftsSearchRequest!.Index,
+                        ClientContextId = ftsSearchRequest.ClientContextId,
+                        Statement = ftsSearchRequest.Statement,
                         Errors = errors,
-                        Query = searchRequest.ToJson()
+                        Query = ftsSearchRequest.ToJson()
                     }
                 };
             }
@@ -251,11 +277,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = searchRequest.Index,
-                        ClientContextId = searchRequest.ClientContextId,
-                        Statement = searchRequest.Statement,
+                        IndexName = ftsSearchRequest!.Index,
+                        ClientContextId = ftsSearchRequest.ClientContextId,
+                        Statement = ftsSearchRequest.Statement,
                         Errors = errors,
-                        Query = searchRequest.ToJson()
+                        Query = ftsSearchRequest.ToJson()
                     }
                 };
             }

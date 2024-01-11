@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Search
         [Fact]
         public void Test_HighLightStyle_Html_And_Fields_Returns_LowerCase()
         {
-            var request = new SearchRequest
+            var request = new FtsSearchRequest
             {
                 Index = "idx_travel",
                 Query = new MatchQuery("inn"),
@@ -277,7 +277,7 @@ namespace Couchbase.UnitTests.Search
         [InlineData(MatchOperator.And)]
         public void Test_MatchQuery_MatchOperator(MatchOperator matchOperator)
         {
-            var request = new SearchRequest
+            var request = new FtsSearchRequest
             {
                 Index = "idx_travel",
                 Query = new MatchQuery("inn").MatchOperator(matchOperator)
