@@ -200,7 +200,8 @@ namespace Couchbase.Management.Collections
                         {
                             MaxExpiry = collection["maxTTL"] == null
                                 ? (TimeSpan?) null
-                                : TimeSpan.FromSeconds(collection["maxTTL"]!.Value<long>())
+                                : TimeSpan.FromSeconds(collection["maxTTL"]!.Value<long>()),
+                            History = collection["history"] == null ? null : collection["history"]!.Value<bool>()
                         }
                     ).ToList()
                 }).ToList();
@@ -236,6 +237,11 @@ namespace Couchbase.Management.Collections
                 {
                     keys.Add("maxTTL", settings.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
                 }
+                if (settings.History.HasValue)
+                {
+                    keys.Add("history", settings.History.Value.ToLowerString());
+                }
+
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
                 using var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
@@ -261,6 +267,11 @@ namespace Couchbase.Management.Collections
 
                     if (contentBody.Contains("not found"))
                         throw ScopeNotFoundException.FromScopeName(scopeName);
+
+                    if (contentBody.Contains("The value must be in range from -1 to 2147483647"))
+                    {
+                        throw new InvalidArgumentException(contentBody) { Context = ctx};
+                    }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
@@ -485,25 +496,23 @@ namespace Couchbase.Management.Collections
             options ??= UpdateCollectionOptions.Default;
             var uri = GetUri(RestApi.UpdateCollection(_bucketName, scopeName, collectionName));
             var dict = new Dictionary<string, string>();
-            var content = new FormUrlEncodedContent(new Dictionary<string, string>());
 
             if (settings.MaxExpiry.HasValue)
             {
-                dict.Add("maxTTL", settings.MaxExpiry.Value.ToString());
+                dict.Add("maxTTL", settings.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
             }
 
             if (settings.History.HasValue)
             {
                 dict.Add("history", settings.History.Value.ToLowerString());
             }
-
             _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
                 var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
-                request.Content = content;
+                request.Content = new FormUrlEncodedContent(dict);
                 using var updateResult = await httpClient.SendAsync(request, options.TokenValue).ConfigureAwait(false);
                 if (updateResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -523,6 +532,12 @@ namespace Couchbase.Management.Collections
                         ex.Context = ctx;
                         throw ex;
                     }
+
+                    if (contentBody.Contains("The value must be in range from -1 to 2147483647"))
+                    {
+                        throw new InvalidArgumentException(contentBody) { Context = ctx};
+                    }
+
                     updateResult.ThrowOnError(ctx);
                 }
             }

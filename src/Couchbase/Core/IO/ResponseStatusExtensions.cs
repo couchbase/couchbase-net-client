@@ -109,7 +109,6 @@ namespace Couchbase.Core.IO
                     {
                         return new DocumentExistsException() { Context = ctx };
                     }
-
                     return new CasMismatchException { Context = ctx };
                 case ResponseStatus.ValueTooLarge:
                     return new ValueToolargeException { Context = ctx };
@@ -183,7 +182,8 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.DocumentMutationDetected: //maps to nothing
                 case ResponseStatus.NoReplicasFound: //maps to nothing
                 case ResponseStatus.InvalidRange: //maps to nothing
-                case ResponseStatus.ItemNotStored: //maps to nothing
+                case ResponseStatus.ItemNotStored:
+                    return new DocumentNotFoundException { Context = ctx };
                 case ResponseStatus.IncrDecrOnNonNumericValue: //maps to nothing
                 case ResponseStatus.Rollback: //maps to nothing
                 case ResponseStatus.InternalError: //maps to nothing

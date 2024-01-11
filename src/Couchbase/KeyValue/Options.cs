@@ -1330,7 +1330,7 @@ namespace Couchbase.KeyValue
         internal static IncrementOptions Default { get; } = new();
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
-        internal ulong InitialValue { get; private set; } = 1;
+        internal ulong? InitialValue { get; private set; }
 
         internal ulong DeltaValue { get; private set; } = 1;
 
@@ -1480,7 +1480,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry)
+        public void Deconstruct(out ulong? initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry)
         {
             initial = InitialValue;
             delta = DeltaValue;
@@ -1496,12 +1496,12 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry);
+            this.Deconstruct(out ulong? initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry);
             return new ReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, retryStrategy, requestSpan, timeout, token, expiry);
         }
 
         public record ReadOnly(
-            ulong Initial,
+            ulong? Initial,
             ulong Delta,
             ReplicateTo ReplicateTo,
             PersistTo PersistTo,
@@ -1522,7 +1522,7 @@ namespace Couchbase.KeyValue
         internal static DecrementOptions Default { get; } = new();
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
-        internal ulong InitialValue { get; private set; } = 1;
+        internal ulong? InitialValue { get; private set; }
 
         internal ulong DeltaValue { get; private set; } = 1;
 
@@ -1660,7 +1660,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry, out IRequestSpan? requestSpan, out IRetryStrategy? retryStrategy)
+        public void Deconstruct(out ulong? initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry, out IRequestSpan? requestSpan, out IRetryStrategy? retryStrategy)
         {
             initial = InitialValue;
             delta = DeltaValue;
@@ -1676,12 +1676,12 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry, out IRequestSpan? requestSpan, out IRetryStrategy? retryStrategy);
+            this.Deconstruct(out ulong? initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry, out IRequestSpan? requestSpan, out IRetryStrategy? retryStrategy);
             return new ReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, timeout, token, expiry, requestSpan, retryStrategy);
         }
 
         public record ReadOnly(
-            ulong Initial,
+            ulong? Initial,
             ulong Delta,
             ReplicateTo ReplicateTo,
             PersistTo PersistTo,

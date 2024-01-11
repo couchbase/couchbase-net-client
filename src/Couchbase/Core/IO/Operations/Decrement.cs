@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations
 
         public ulong Delta { get; set; } = 1;
 
-        public ulong Initial { get; set; } = 1;
+        public ulong? Initial { get; set; }
 
         public override OpCode OpCode => OpCode.Decrement;
 
@@ -18,7 +18,7 @@ namespace Couchbase.Core.IO.Operations
         {
             Span<byte> extras = stackalloc byte[20];
             ByteConverter.FromUInt64(Delta, extras);
-            ByteConverter.FromUInt64(Initial, extras.Slice(8));
+            if (Initial.HasValue) ByteConverter.FromUInt64(Initial.Value, extras.Slice(8));
             ByteConverter.FromUInt32(Expires, extras.Slice(16));
             builder.Write(extras);
         }
@@ -28,7 +28,6 @@ namespace Couchbase.Core.IO.Operations
         }
     }
 }
-
 #region [ License information ]
 
 /* ************************************************************
