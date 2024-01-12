@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -171,7 +172,20 @@ namespace Couchbase.UnitTests
 
         #region Stellar
 
-       // [Fact] TODO will fix in NCBC-3564
+        [Theory(Skip="Will fix in NCBC-3564")]
+        [InlineData("couchbase://localhost", typeof(Cluster))]
+        [InlineData("couchbases://localhost", typeof(Cluster))]
+#if NETCOREAPP3_1_OR_GREATER
+        [InlineData("couchbase2://localhost", typeof(Stellar.StellarCluster))]
+#endif
+        public async Task Test_Schema_Delivers_The_Correct_ICluster_Impl(string connectionString, Type type)
+        {
+            var cluster = await Cluster.ConnectAsync(connectionString,
+                new ClusterOptions().WithCredentials("Administrator", "password"));
+            Assert.IsType(type, cluster);
+        }
+
+        [Fact(Skip ="Will fix in NCBC-3564" )]
         public async Task Test_Stellar_Wrong_Connection_String_Throws_ConnectionException()
         {
             var connectionString = "couchbase2://wrongHostname";

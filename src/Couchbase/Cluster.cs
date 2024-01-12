@@ -154,20 +154,24 @@ namespace Couchbase
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (options.ConnectionString == null)
-            {
-                throw new ArgumentException($"{nameof(options)} must have a connection string.",
-                    nameof(options));
-            }
+            var connectionString = options.ConnectionStringValue ?? throw new ArgumentException(
+                $"{nameof(options)} must have a connection string.", nameof(options));
+            var schema = connectionString.Scheme;
 
+#if NETCOREAPP3_1_OR_GREATER
+            if (schema is Scheme.Couchbase2)
+            {
+                //Couchbase CNG clusters
+                return await Stellar.StellarCluster.ConnectAsync(options).ConfigureAwait(false);
+            }
+#endif
+            //Couchbase on-premise and cappella clusters
             //try to bootstrap for GC3P; if pre-6.6 this will fail and bootstrapping will
             //happen at the bucket level. In this case the caller can open a bucket and
             //resubmit the cluster level request.
             var cluster = new Cluster(options);
-
-            await ((IBootstrappable) cluster).BootStrapAsync().ConfigureAwait(false);
+            await ((IBootstrappable)cluster).BootStrapAsync().ConfigureAwait(false);
             cluster.StartBootstrapper();
-
             return cluster;
         }
 
