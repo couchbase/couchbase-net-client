@@ -20,24 +20,33 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 
         public NamedCollectionProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
-            _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (proxyModuleBuilder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(proxyModuleBuilder));
+            }
+
+            _proxyModuleBuilder = proxyModuleBuilder;
         }
+
+        // Note that the named collection proxy type is not keyed based on a cluster serviceKey. This is because it depends on
+        // INamedBucketProvider, which is already a keyed to a particular cluster.
 
         [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2073",
             Justification = "Proxy type is dynamically generated")]
         public Type GetProxy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type collectionProviderType,
-            Type bucketProviderType, string scopeName, string collectionName) =>
-            _proxyTypeCache.GetOrAdd(new CollectionKey(collectionProviderType, bucketProviderType, scopeName, collectionName),
+            Type bucketProviderType, string? serviceKey, string scopeName, string collectionName) =>
+            _proxyTypeCache.GetOrAdd(new CollectionKey(collectionProviderType, bucketProviderType, serviceKey, scopeName, collectionName),
                 args =>
                 {
                     // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
                     // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
                     return new Lazy<Type>(
-                        () => CreateProxyType(args.CollectionInterfaceType, args.BucketInterfaceType, args.ScopeName,
-                            args.CollectionName),
+                        () => CreateProxyType(args.CollectionInterfaceType, args.BucketInterfaceType,
+                            args.ServiceKey, args.ScopeName, args.CollectionName),
                         LazyThreadSafetyMode.ExecutionAndPublication);
                 }).Value;
 
@@ -45,21 +54,30 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
         private Type CreateProxyType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type collectionProviderType, Type bucketProviderType,
-            string scopeName, string collectionName)
+            string? serviceKey, string scopeName, string collectionName)
         {
             var moduleBuilder = _proxyModuleBuilder.GetModuleBuilder();
 
-            var typeBuilder = moduleBuilder.DefineType($"{collectionProviderType.Name}+{scopeName}+{collectionName}", TypeAttributes.Class | TypeAttributes.Public,
+            var typeName = serviceKey is null
+                ? $"{collectionProviderType.Name}+{scopeName}+{collectionName}"
+                : $"{serviceKey}+{collectionProviderType.Name}+{scopeName}+{collectionName}";
+            var typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Class | TypeAttributes.Public,
                 typeof(NamedCollectionProvider));
 
             typeBuilder.AddInterfaceImplementation(collectionProviderType);
 
             var baseConstructor = typeof(NamedCollectionProvider).GetConstructor(
-                new[] { typeof(INamedBucketProvider), typeof(string), typeof(string) });
+                [typeof(INamedBucketProvider), typeof(string), typeof(string)]);
 
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
                 CallingConventions.Standard | CallingConventions.HasThis,
-                new[] { bucketProviderType });
+                [bucketProviderType]);
+
+            var parameterBuilder = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "bucketProvider");
+            if (serviceKey is not null)
+            {
+                parameterBuilder.SetCustomAttribute(ProxyHelpers.CreateFromKeyedServicesAttribute(serviceKey));
+            }
 
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0); // push "this"
@@ -75,6 +93,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         private readonly record struct CollectionKey(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type CollectionInterfaceType,
             Type BucketInterfaceType,
+            string? ServiceKey,
             string ScopeName,
             string CollectionName)
         {

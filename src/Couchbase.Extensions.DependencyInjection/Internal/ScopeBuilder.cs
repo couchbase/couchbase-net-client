@@ -10,12 +10,17 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 
         public ScopeBuilder(BucketBuilder bucketBuilder, string scopeName)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (bucketBuilder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketBuilder));
+            }
             if (string.IsNullOrEmpty(scopeName))
             {
-                throw new ArgumentException("Value cannot be null or empty.", nameof(scopeName));
+                ThrowHelper.ThrowArgumentException("Value cannot be null or empty.", nameof(scopeName));
             }
 
-            _bucketBuilder = bucketBuilder ?? throw new ArgumentNullException(nameof(bucketBuilder));
+            _bucketBuilder = bucketBuilder;
             _scopeName = scopeName;
         }
 
@@ -27,7 +32,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         {
             if (string.IsNullOrEmpty(collectionName))
             {
-                throw new ArgumentException("Value cannot be null or empty.", nameof(collectionName));
+                ThrowHelper.ThrowArgumentException("Value cannot be null or empty.", nameof(collectionName));
             }
 
             _bucketBuilder.AddCollection(typeof(T), _scopeName, collectionName);

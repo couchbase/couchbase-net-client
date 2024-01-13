@@ -34,4 +34,8 @@
     <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../Couchbase/NullableAttributes.cs" />
+  </ItemGroup>
+
 </Project>

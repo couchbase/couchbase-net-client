@@ -1,33 +1,41 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
     [RequiresUnreferencedCode(ServiceCollectionExtensions.RequiresUnreferencedCodeWarning)]
     [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
-    internal class ClusterProvider : IClusterProvider
+    internal class ClusterProvider : IClusterProvider, IBucketProvider
     {
         private AsyncLazy<ICluster>? _cluster;
-        private bool _disposed = false;
+        private readonly ConcurrentDictionary<string, Task<IBucket>> _buckets = new();
 
-        public ClusterProvider(IOptions<ClusterOptions> options)
+        public ClusterProvider(IOptionsMonitor<ClusterOptions> options)
+            : this(options, serviceKey: null)
         {
+        }
+
+        public ClusterProvider(IOptionsMonitor<ClusterOptions> options, [ServiceKey] string? serviceKey)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (options == null)
             {
-                throw new ArgumentNullException(nameof(options));
+                ThrowHelper.ThrowArgumentNullException(nameof(options));
             }
 
-            _cluster = new AsyncLazy<ICluster>(() => CreateClusterAsync(options.Value));
+            _cluster = new AsyncLazy<ICluster>(() => CreateClusterAsync(options.Get(serviceKey ?? Options.DefaultName)));
         }
 
         public virtual ValueTask<ICluster> GetClusterAsync()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(ClusterProvider));
-            }
+            EnsureNotDisposed();
 
             return new ValueTask<ICluster>(_cluster!.Value);
         }
@@ -40,43 +48,98 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             return Cluster.ConnectAsync(clusterOptions);
         }
 
+        /// <inheritdoc />
+        public ValueTask<IBucket> GetBucketAsync(string bucketName)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (bucketName == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketName));
+            }
+            EnsureNotDisposed();
+
+            // Note: The implementation below may call GetBucketFromClusterAsync more than
+            // once simultaneously. This is okay because the local cache is purely a performance
+            // optimization, the backing implementation from the SDK is already thread-safe.
+
+            Task<IBucket> task = _buckets.GetOrAdd(bucketName, GetBucketFromClusterAsync);
+
+            if (task.IsFaulted)
+            {
+                // If the previous attempt is already complete and it failed with an exception,
+                // go back to the cluster and try to get the bucket again. This should be a cold path
+                // once we're successfully bootstrapped. Note that multiple simultaneous requests
+                // to this method will still return the same task and then they will all fail if bootstrap
+                // fails, this path is only starts up a new bootstrap on the next request.
+
+                task = _buckets[bucketName] = GetBucketFromClusterAsync(bucketName);
+            }
+
+            // We're wrapping the Task in a ValueTask here for future-proofing, this will allow us to change the
+            // implementation in the future to one with fewer allocations.
+            return new ValueTask<IBucket>(task);
+        }
+
+        private async Task<IBucket> GetBucketFromClusterAsync(string bucketName)
+        {
+            var cluster = await GetClusterAsync().ConfigureAwait(false);
+
+            return await cluster.BucketAsync(bucketName).ConfigureAwait(false);
+        }
+
         public void Dispose()
         {
-            if (!_disposed)
+            var lazyCluster = Interlocked.Exchange(ref _cluster, null);
+            if (lazyCluster is not null && lazyCluster.IsValueCreated)
             {
-                _disposed = true;
-
-                if (_cluster?.IsValueCreated ?? false)
+                foreach (var bucket in GetAndClearBuckets())
                 {
-                    try
-                    {
-                        _cluster?.GetAwaiter().GetResult().Dispose();
-                    }
-                    catch
-                    {
-                        // Eat any exception that was thrown during cluster creation
-                    }
+                    bucket.Dispose();
+                }
 
-                    _cluster = null;
+                try
+                {
+                    lazyCluster.Value.GetAwaiter().GetResult().Dispose();
+                }
+                catch
+                {
+                    // Eat any exception that was thrown during cluster creation
                 }
             }
         }
 
         public async ValueTask DisposeAsync()
         {
-            if (!_disposed)
+            var lazyCluster = Interlocked.Exchange(ref _cluster, null);
+            if (lazyCluster is not null && lazyCluster.IsValueCreated)
             {
-                _disposed = true;
-
-                if (_cluster?.IsValueCreated ?? false)
+                foreach (var bucket in GetAndClearBuckets())
                 {
-                    var cluster = await _cluster.Value.ConfigureAwait(false);
-
-                    await cluster.DisposeAsync().ConfigureAwait(false);
-
-                    _cluster = null;
+                    await bucket.DisposeAsync().ConfigureAwait(false);
                 }
+
+                var cluster = await lazyCluster.Value.ConfigureAwait(false);
+
+                await cluster.DisposeAsync().ConfigureAwait(false);
             }
+        }
+
+        [MemberNotNull(nameof(_cluster))]
+        private void EnsureNotDisposed()
+        {
+            if (_cluster is null)
+            {
+                ThrowHelper.ThrowObjectDisposedException(nameof(ClusterProvider));
+            }
+        }
+
+        private IEnumerable<IBucket> GetAndClearBuckets()
+        {
+            var bucketCache = _buckets.Values.ToList();
+            _buckets.Clear();
+
+            return bucketCache.Where(p => p is { IsCompleted: true, IsFaulted: false, IsCanceled: false })
+                .Select(p => p.Result);
         }
     }
 }

@@ -2,18 +2,39 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
-    internal class BucketProvider : IBucketProvider
+    /// <summary>
+    /// Legacy implementation of <see cref="IBucketProvider"/> that supports a custom <see cref="IClusterProvider"/> which
+    /// is configured before calling <see cref="ServiceCollectionExtensions.AddCouchbase(IServiceCollection, Action{ClusterOptions})"/>.
+    /// This implementation is not typically used.
+    /// </summary>
+    internal class LegacyBucketProvider : IBucketProvider
     {
         private readonly IClusterProvider _clusterProvider;
-        private readonly ConcurrentDictionary<string, Task<IBucket>> _buckets = new ConcurrentDictionary<string, Task<IBucket>>();
+        private readonly ConcurrentDictionary<string, Task<IBucket>> _buckets = new();
         private bool _disposed;
 
-        public BucketProvider(IClusterProvider clusterProvider)
+        public LegacyBucketProvider(IServiceProvider serviceProvider) : this(serviceProvider, null)
         {
-            _clusterProvider = clusterProvider ?? throw new ArgumentNullException(nameof(clusterProvider));
+        }
+
+        public LegacyBucketProvider(IServiceProvider serviceProvider, [ServiceKey] string? serviceKey) : this(
+            serviceProvider.GetRequiredKeyedService<IClusterProvider>(serviceKey))
+        {
+        }
+
+        internal LegacyBucketProvider(IClusterProvider clusterProvider)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (clusterProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(clusterProvider));
+            }
+
+            _clusterProvider = clusterProvider;
         }
 
         /// <inheritdoc />
@@ -21,11 +42,13 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(BucketProvider));
+                ThrowHelper.ThrowObjectDisposedException(nameof(LegacyBucketProvider));
             }
+
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (bucketName == null)
             {
-                throw new ArgumentNullException(nameof(bucketName));
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketName));
             }
 
             // Note: The implementation below may call GetBucketFromClusterAsync more than

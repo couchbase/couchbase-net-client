@@ -12,12 +12,28 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
     {
         private readonly IServiceCollection _services;
         private readonly Type _bucketProviderType;
+        private readonly string? _serviceKey;
         private readonly bool _tryAddMode;
 
-        public BucketBuilder(IServiceCollection services, Type bucketProviderType, bool tryAddMode)
+        public BucketBuilder(IServiceCollection services,
+            Type bucketProviderType,
+            string? serviceKey,
+            bool tryAddMode)
         {
-            _services = services ?? throw new ArgumentNullException(nameof(services));
-            _bucketProviderType = bucketProviderType ?? throw new ArgumentNullException(nameof(bucketProviderType));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (services == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(services));
+            }
+            if (bucketProviderType == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketProviderType));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
+            _services = services;
+            _bucketProviderType = bucketProviderType;
+            _serviceKey = serviceKey;
             _tryAddMode = tryAddMode;
         }
 
@@ -29,7 +45,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             string scopeName, string collectionName)
         {
             var proxyType =
-                NamedCollectionProxyGenerator.Instance.GetProxy(collectionProviderType, _bucketProviderType, scopeName, collectionName);
+                NamedCollectionProxyGenerator.Instance.GetProxy(collectionProviderType, _bucketProviderType, _serviceKey, scopeName, collectionName);
 
             AddCollection(collectionProviderType, proxyType);
         }
@@ -48,11 +64,11 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         {
             if (_tryAddMode)
             {
-                _services.TryAddTransient(collectionProviderType, concreteType);
+                _services.TryAddKeyedTransient(collectionProviderType, _serviceKey, concreteType);
             }
             else
             {
-                _services.AddTransient(collectionProviderType, concreteType);
+                _services.AddKeyedTransient(collectionProviderType, _serviceKey, concreteType);
             }
         }
     }

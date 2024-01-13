@@ -19,7 +19,13 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 
         public NamedBucketProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
-            _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (proxyModuleBuilder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(proxyModuleBuilder));
+            }
+
+            _proxyModuleBuilder = proxyModuleBuilder;
         }
 
         [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
@@ -27,13 +33,13 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2073",
             Justification = "Proxy type is dynamically generated")]
         public Type GetProxy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type bucketProviderInterface,
-            string bucketName) =>
-            _proxyTypeCache.GetOrAdd(new BucketKey(bucketProviderInterface, bucketName), args =>
+            string? serviceKey, string bucketName) =>
+            _proxyTypeCache.GetOrAdd(new BucketKey(bucketProviderInterface, serviceKey, bucketName), args =>
             {
                 // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
                 // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
-                return new Lazy<Type>(() => CreateProxyType(args.InterfaceType, args.Name),
+                return new Lazy<Type>(() => CreateProxyType(args.InterfaceType, args.ServiceKey, args.Name),
                     LazyThreadSafetyMode.ExecutionAndPublication);
             }).Value;
 
@@ -41,21 +47,30 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         [RequiresDynamicCode(ServiceCollectionExtensions.RequiresDynamicCodeWarning)]
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
         private Type CreateProxyType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType,
-            string bucketName)
+            string? serviceKey, string bucketName)
         {
             var moduleBuilder = _proxyModuleBuilder.GetModuleBuilder();
 
-            var typeBuilder = moduleBuilder.DefineType($"{interfaceType.Name}+{bucketName}", TypeAttributes.Class | TypeAttributes.Public,
+            var typeName = serviceKey is null
+                ? $"{interfaceType.Name}+{bucketName}"
+                : $"{serviceKey}+{interfaceType.Name}+{bucketName}";
+            var typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Class | TypeAttributes.Public,
                 typeof(NamedBucketProvider));
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
             var baseConstructor = typeof(NamedBucketProvider).GetConstructor(
-                new[] { typeof(IBucketProvider), typeof(string) });
+                [typeof(IBucketProvider), typeof(string)]);
 
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
                 CallingConventions.Standard | CallingConventions.HasThis,
-                new[] { typeof(IBucketProvider) });
+                [typeof(IBucketProvider)]);
+
+            var parameterBuilder = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "bucketProvider");
+            if (serviceKey is not null)
+            {
+                parameterBuilder.SetCustomAttribute(ProxyHelpers.CreateFromKeyedServicesAttribute(serviceKey));
+            }
 
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0); // push "this"
@@ -69,6 +84,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 
         private readonly record struct BucketKey(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type InterfaceType,
+            string? ServiceKey,
             string Name)
         {
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]

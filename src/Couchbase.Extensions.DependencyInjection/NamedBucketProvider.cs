@@ -1,5 +1,5 @@
-using System;
 using System.Threading.Tasks;
+using Couchbase.Extensions.DependencyInjection.Internal;
 
 namespace Couchbase.Extensions.DependencyInjection
 {
@@ -18,8 +18,19 @@ namespace Couchbase.Extensions.DependencyInjection
         // ReSharper disable once PublicConstructorInAbstractClass
         public NamedBucketProvider(IBucketProvider bucketProvider, string bucketName)
         {
-            _bucketProvider = bucketProvider ?? throw new ArgumentNullException(nameof(bucketProvider));
-            BucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (bucketProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketProvider));
+            }
+            if (bucketName is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketName));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
+            _bucketProvider = bucketProvider;
+            BucketName = bucketName;
         }
 
         public virtual ValueTask<IBucket> GetBucketAsync()

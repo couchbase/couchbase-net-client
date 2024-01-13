@@ -16,7 +16,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         {
             // Act/Assert
 
-            var ex = Assert.Throws<ArgumentNullException>(() => new BucketProvider(null));
+            var ex = Assert.Throws<ArgumentNullException>(() => new LegacyBucketProvider(((IClusterProvider) null)!));
 
             Assert.Equal("clusterProvider", ex.ParamName);
         }
@@ -32,14 +32,14 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
             var clusterProvider = new Mock<IClusterProvider>();
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
             provider.Dispose();
 
             // Act/Assert
 
             var ex = await Assert.ThrowsAsync<ObjectDisposedException>(() => provider.GetBucketAsync("bucket1").AsTask());
 
-            Assert.Equal(nameof(BucketProvider), ex.ObjectName);
+            Assert.Equal(nameof(LegacyBucketProvider), ex.ObjectName);
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
             var clusterProvider = new Mock<IClusterProvider>();
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
 
             // Act/Assert
 
@@ -75,7 +75,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
                 .Setup(m => m.GetClusterAsync())
                 .ReturnsAsync(cluster.Object);
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
 
             // Act
 
@@ -103,7 +103,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
                 .Setup(m => m.GetClusterAsync())
                 .ReturnsAsync(cluster.Object);
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
 
             // Act
 
@@ -139,7 +139,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
                 .Setup(m => m.GetClusterAsync())
                 .ReturnsAsync(cluster.Object);
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
 
             var firstEx = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             {
@@ -185,7 +185,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
                 .Setup(m => m.GetClusterAsync())
                 .ReturnsAsync(cluster.Object);
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
             await provider.GetBucketAsync("bucket1");
             await provider.GetBucketAsync("bucket2");
 
@@ -227,7 +227,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
                 .Setup(m => m.GetClusterAsync())
                 .ReturnsAsync(cluster.Object);
 
-            var provider = new BucketProvider(clusterProvider.Object);
+            var provider = new LegacyBucketProvider(clusterProvider.Object);
             await provider.GetBucketAsync("bucket1");
             await provider.GetBucketAsync("bucket2");
 

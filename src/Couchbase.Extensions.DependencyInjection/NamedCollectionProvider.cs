@@ -1,5 +1,5 @@
-using System;
 using System.Threading.Tasks;
+using Couchbase.Extensions.DependencyInjection.Internal;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Extensions.DependencyInjection
@@ -27,9 +27,24 @@ namespace Couchbase.Extensions.DependencyInjection
         // ReSharper disable once PublicConstructorInAbstractClass
         public NamedCollectionProvider(INamedBucketProvider bucketProvider, string scopeName, string collectionName)
         {
-            _bucketProvider = bucketProvider ?? throw new ArgumentNullException(nameof(bucketProvider));
-            ScopeName = scopeName ?? throw new ArgumentNullException(nameof(scopeName));
-            CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (bucketProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucketProvider));
+            }
+            if (scopeName is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(scopeName));
+            }
+            if (collectionName is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(collectionName));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
+            _bucketProvider = bucketProvider;
+            ScopeName = scopeName;
+            CollectionName = collectionName;
         }
 
         public virtual ValueTask<ICouchbaseCollection> GetCollectionAsync()
