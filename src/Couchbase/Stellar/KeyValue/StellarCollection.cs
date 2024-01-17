@@ -205,7 +205,11 @@ internal class StellarCollection : ICouchbaseCollection
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
 
         var request = KeyedRequest<MutateInRequest>(id);
-        request.Cas = opts.Cas;
+        if (opts.Cas > 0)
+        {
+            request.Cas = opts.Cas;
+        }
+
         var (expirySecs, expiryTimestamp) = CalculateExpiry(opts.Expiry, opts.PreserveTtl);
         if (expirySecs.HasValue)
         {
@@ -251,7 +255,10 @@ internal class StellarCollection : ICouchbaseCollection
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, opts.RequestSpan);
 
         var request = KeyedRequest<RemoveRequest>(id);
-        request.Cas = opts.Cas;
+        if (opts.Cas > 0)
+        {
+            request.Cas = opts.Cas;
+        }
 
         var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
         _ = await _kvClient.RemoveAsync(request, callOptions);
@@ -272,7 +279,10 @@ internal class StellarCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        request.Cas = opts.Cas;
+        if (request.Cas > 0)
+        {
+            request.Cas = opts.Cas;
+        }
 
         var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);;
         var response = await _kvClient.ReplaceAsync(request, callOptions);
@@ -280,7 +290,6 @@ internal class StellarCollection : ICouchbaseCollection
         {
             MutationToken = response.MutationToken
         };
-
     }
 
     public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
