@@ -10,14 +10,13 @@ namespace Couchbase.UnitTests.Search
         [Fact]
         public void Export_ReturnsValidJson()
         {
-            var query = new TermRangeQuery("test")
+            var query = new TermRangeQuery()
                 .Min("lower", true)
                 .Max("higher", true)
                 .Field("bar");
 
             var expected = JsonConvert.SerializeObject(new
             {
-                term = "test",
                 min = "lower",
                 inclusive_min = true,
                 max = "higher",
@@ -31,13 +30,12 @@ namespace Couchbase.UnitTests.Search
         [Fact]
         public void Export_Omits_Min_If_Not_Provided()
         {
-            var query = new TermRangeQuery("test")
+            var query = new TermRangeQuery()
                 .Max("higher", true)
                 .Field("bar");
 
             var expected = JsonConvert.SerializeObject(new
             {
-                term = "test",
                 max = "higher",
                 inclusive_max = true,
                 field = "bar"
@@ -49,13 +47,12 @@ namespace Couchbase.UnitTests.Search
         [Fact]
         public void Export_Omits_Max_If_Not_Provided()
         {
-            var query = new TermRangeQuery("test")
+            var query = new TermRangeQuery()
                 .Min("lower", true)
                 .Field("bar");
 
             var expected = JsonConvert.SerializeObject(new
             {
-                term = "test",
                 min = "lower",
                 inclusive_min = true,
                 field = "bar"
@@ -67,13 +64,12 @@ namespace Couchbase.UnitTests.Search
         [Fact]
         public void Export_Omits_Field_If_Not_Provided()
         {
-            var query = new TermRangeQuery("test")
+            var query = new TermRangeQuery()
                 .Min("lower", true)
                 .Max("higher", true);
 
             var expected = JsonConvert.SerializeObject(new
             {
-                term = "test",
                 min = "lower",
                 inclusive_min = true,
                 max = "higher",
@@ -83,18 +79,11 @@ namespace Couchbase.UnitTests.Search
             Assert.Equal(expected, query.Export().ToString(Formatting.None));
         }
 
-        [Theory]
-        [InlineData("")]
-        [InlineData(null)]
-        public void Throws_InvalidOperatinException_When_Term_Is_Null_Or_Empty(string term)
-        {
-            Assert.Throws<ArgumentException>(() => new TermRangeQuery(term));
-        }
 
         [Fact]
         public void Throws_InvalidOperatinException_When_Min_And_Max_Are_Not_Provided()
         {
-            var query = new TermRangeQuery("test");
+            var query = new TermRangeQuery();
             Assert.Throws<InvalidOperationException>(() => query.Export());
         }
     }

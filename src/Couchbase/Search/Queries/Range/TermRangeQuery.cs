@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Couchbase.Core.Exceptions;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Range
@@ -17,11 +18,16 @@ namespace Couchbase.Search.Queries.Range
         private bool _maxInclusive = false;
         private string _field;
 
+        public TermRangeQuery()
+        {
+        }
+
+        [Obsolete("Use the overload which doesn't take any parameters.")]
         public TermRangeQuery(string term)
         {
             if (string.IsNullOrWhiteSpace(term))
             {
-                throw new ArgumentException("term cannot be null or empty");
+                throw new InvalidArgumentException("Term cannot be empty");
             }
 
             _term = term;
@@ -57,7 +63,6 @@ namespace Couchbase.Search.Queries.Range
             }
 
             var json = base.Export();
-            json.Add("term", _term);
             if (!string.IsNullOrWhiteSpace(_min))
             {
                 json.Add("min", _min);
@@ -76,9 +81,8 @@ namespace Couchbase.Search.Queries.Range
             return json;
         }
 
-        public void Deconstruct(out string term, out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field)
+        public void Deconstruct(out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field)
         {
-            term = _term;
             min = _min;
             minInclusive = _minInclusive;
             max = _max;
@@ -88,11 +92,11 @@ namespace Couchbase.Search.Queries.Range
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out string term, out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field);
-            return new ReadOnly(term, min, minInclusive, max, maxInclusive, field);
+            this.Deconstruct(out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field);
+            return new ReadOnly(min, minInclusive, max, maxInclusive, field);
         }
 
-        public record ReadOnly(string Term, string Min, bool MinInclusive, string Max, bool MaxInclusive, string Field);
+        public record ReadOnly(string Min, bool MinInclusive, string Max, bool MaxInclusive, string Field);
     }
 }
 
