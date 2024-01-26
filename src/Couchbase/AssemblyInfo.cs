@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Sdkd")]
 [assembly: InternalsVisibleTo("SdkdConsole")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
+[assembly: InternalsVisibleTo("Couchbase.Stellar.CombinationTests")]
 #endif
 
 /* ************************************************************

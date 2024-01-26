@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.KeyValue;

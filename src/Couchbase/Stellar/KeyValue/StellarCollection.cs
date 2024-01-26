@@ -72,6 +72,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? ExistsOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, opts.RequestSpan);
         var request = KeyedRequest<ExistsRequest>(id);
@@ -83,6 +85,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
@@ -100,6 +104,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? GetAndLockOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock, opts.RequestSpan);
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
@@ -114,6 +120,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? GetAndTouchOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, opts.RequestSpan);
@@ -133,6 +141,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? GetOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Get, opts.RequestSpan);
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
@@ -146,6 +156,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? InsertOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, opts.RequestSpan);
@@ -170,6 +182,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
 
@@ -201,6 +215,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? MutateInOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
 
@@ -251,6 +267,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task RemoveAsync(string id, RemoveOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? RemoveOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, opts.RequestSpan);
 
@@ -266,6 +284,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? ReplaceOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, opts.RequestSpan);
@@ -299,6 +319,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? TouchOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Touch, opts.RequestSpan);
 
@@ -314,6 +336,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task UnlockAsync(string id, ulong cas, UnlockOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? UnlockOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock, opts.RequestSpan);
 
@@ -326,6 +350,8 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? UpsertOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert, opts.RequestSpan);

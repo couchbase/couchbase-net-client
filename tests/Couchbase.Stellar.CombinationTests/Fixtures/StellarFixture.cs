@@ -25,6 +25,9 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
 
         [JsonPropertyName("EnableDnsSrvResolution")]
         public bool EnableDnsSrvResolution { get; init; }
+
+        [JsonPropertyName("Bucket")]
+        public string Bucket { get; init; } = "default";
     }
     public class StellarFixture : IDisposable, IAsyncDisposable, IAsyncLifetime
     {
@@ -107,7 +110,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         {
             if (!isAlreadyFlushed)
             {
-                await CouchbaseCluster.Buckets.FlushBucketAsync("default").ConfigureAwait(false);
+                await CouchbaseCluster.Buckets.FlushBucketAsync(_settings.Bucket).ConfigureAwait(false);
                 return true;
             }
 
@@ -117,7 +120,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         public async Task<IBucket> DefaultBucket()
         {
             await BuildAsync();
-            return await StellarCluster.BucketAsync("default");
+            return await StellarCluster.BucketAsync(_settings.Bucket);
         }
 
         public async Task<IScope> GetDefaultScope()
@@ -130,7 +133,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         public async Task<ICouchbaseCollection> DefaultCollection()
         {
             await BuildAsync();
-            var bucket = await StellarCluster.BucketAsync("default");
+            var bucket = await DefaultBucket();
             return bucket.DefaultCollection();
         }
 

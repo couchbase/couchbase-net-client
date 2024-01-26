@@ -7,5 +7,9 @@ namespace Couchbase.Core.Exceptions
         public ConnectException(string message) : base(message)
         {
         }
+
+        public ConnectException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }

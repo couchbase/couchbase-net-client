@@ -13,13 +13,14 @@ namespace Couchbase.Stellar.KeyValue;
 internal class StellarScope : IScope
 {
     public const string DefaultScopeName = "_default";
+    private readonly StellarBucket _stellarBucket;
+    private readonly StellarCluster _stellarCluster;
 
-    public StellarScope(string name, StellarBucket stellarBucket, StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient)
+    public StellarScope(string name, StellarBucket stellarBucket, StellarCluster stellarCluster)
     {
         Name = name;
         _stellarBucket = stellarBucket;
         _stellarCluster = stellarCluster;
-        _queryClient = queryClient;
         IsDefaultScope = Name == DefaultScopeName;
     }
 
@@ -27,16 +28,14 @@ internal class StellarScope : IScope
 
     public string Name { get; }
 
-    private readonly StellarBucket _stellarBucket;
-    private readonly StellarCluster _stellarCluster;
-    private readonly QueryService.QueryServiceClient _queryClient;
-
     public IBucket Bucket => _stellarBucket;
 
     public bool IsDefaultScope { get; }
 
     public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         return _stellarCluster.AnalyticsQueryAsync<T>(statement, _stellarBucket.Name, Name, options);
     }
 
@@ -46,6 +45,8 @@ internal class StellarScope : IScope
 
     public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
     {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
         opts = opts with
         {

@@ -1,10 +1,16 @@
 using System;
 using System.Net;
+using System.Runtime.InteropServices;
 
 namespace Couchbase.Utils
 {
     internal static class ExceptionUtil
     {
+        public static string ConnectException = "Could not connect to {0}. See inner exception for details.";
+
+        public static string ConnectTimeoutExceptionMsg =
+            "Could not connect to {0} after {1} seconds. The KvConnectTimeout is set to {2} seconds.";
+
         public static string ServiceNotSupportedMsg =
             "A request has been made for a service that is not configured or supported by the cluster. " +
             "Please check the cluster and enable or add a new node with the requested service: {0}.";

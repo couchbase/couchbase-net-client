@@ -1,10 +1,15 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
@@ -28,6 +33,7 @@ using Couchbase.Stellar.Management.Search;
 using Couchbase.Stellar.Query;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
+using Couchbase.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -36,9 +42,10 @@ namespace Couchbase.Stellar;
 
 #nullable enable
 
-public class StellarCluster : ICluster //TODO: To change back to internal later
+internal class StellarCluster : ICluster, IBootstrappable
 {
     private readonly ClusterOptions _clusterOptions;
+    private readonly List<Exception> _deferredExceptions = new();
     private readonly StellarBucketManager _bucketManager;
     private readonly StellarSearchIndexManager _searchIndexManager;
     private readonly StellarQueryIndexManager _queryIndexManager;
@@ -48,12 +55,10 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
     private readonly Metadata _metaData;
     private ClusterChannelCredentials ChannelCredentials { get; }
 
-
-    internal StellarCluster(ClusterOptions clusterOptions)
+    private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
-
         TypeSerializer = clusterOptions.Serializer ?? SystemTextJsonSerializer.Create();
         ChannelCredentials = new ClusterChannelCredentials(clusterOptions);
         var socketsHandler = new SocketsHttpHandler();
@@ -105,9 +110,9 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
         _analyticsClient = new ProtoAnalyticsClient(this);
         _searchClient = new StellarSearchClient(this);
 
-        if (this.ChannelCredentials.BasicAuthHeader != null)
+        if (ChannelCredentials.BasicAuthHeader != null)
         {
-            _metaData.Add("Authorization", this.ChannelCredentials.BasicAuthHeader);
+            _metaData.Add("Authorization", ChannelCredentials.BasicAuthHeader);
         }
     }
 
@@ -118,35 +123,58 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
         return await ConnectAsync(opts).ConfigureAwait(false);
     }
 
-    public static async Task<ICluster> ConnectAsync(ClusterOptions? clusterOptions = null)
+    public static async Task<ICluster> ConnectAsync(ClusterOptions clusterOptions)
     {
-        if (!Uri.TryCreate(clusterOptions?.ConnectionString, UriKind.Absolute, out var parsedUri))
-        {
-            throw new ArgumentOutOfRangeException(nameof(clusterOptions.ConnectionString));
-        }
-
         var clusterWrapper = new StellarCluster(clusterOptions);
-        using var cts = new CancellationTokenSource(clusterOptions.KvConnectTimeout);
-        try
-        {
-            await clusterWrapper.ConnectGrpcAsync(cts.Token).ConfigureAwait(false);
-        }
-        catch (TaskCanceledException)
-        {
-            throw new ConnectException($"Could not connect to {parsedUri} after 10 seconds.");
-        }
-
+        await clusterWrapper.ConnectGrpcAsync(clusterOptions.KvConnectTimeout).ConfigureAwait(false);
         return clusterWrapper;
     }
 
     internal IRequestTracer RequestTracer { get; }
 
-    internal Task ConnectGrpcAsync(CancellationToken cancellationToken) => GrpcChannel.ConnectAsync(cancellationToken);
+    private async Task ConnectGrpcAsync(TimeSpan kvConnectTimeout)
+    {
+        var stopwatch = new Stopwatch();
+        using var cts = new CancellationTokenSource(kvConnectTimeout);
+        try
+        {
+            _deferredExceptions.Clear();
+            stopwatch.Start();
+            await GrpcChannel.ConnectAsync(cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException e)
+        {
+            stopwatch.Stop();
+            if (cts.IsCancellationRequested)
+            {
+                var ex = new Couchbase.Core.Exceptions.TimeoutException(
+                    ExceptionUtil.GetMessage(ExceptionUtil.ConnectTimeoutExceptionMsg,
+                        _clusterOptions.ConnectionString, stopwatch.Elapsed.TotalSeconds, kvConnectTimeout),
+                    e);
+                _deferredExceptions.Add(ex);
+            }
+            else
+            {
+                _deferredExceptions.Add(new ConnectException(
+                    ExceptionUtil.GetMessage(ExceptionUtil.ConnectException, _clusterOptions.ConnectionString), e));
+            }
+        }
+        catch (Exception e)
+        {
+            stopwatch.Stop();
+            _deferredExceptions.Add(new ConnectException(
+                ExceptionUtil.GetMessage(ExceptionUtil.ConnectException, _clusterOptions.ConnectionString), e));
+        }
+        finally
+        {
+            stopwatch.Stop();
+        }
+    }
 
     internal GrpcChannel GrpcChannel { get; }
 
+
     internal ITypeSerializer TypeSerializer { get; }
-    
     public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
 
     public IQueryIndexManager QueryIndexes => _queryIndexManager;
@@ -163,8 +191,9 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {
-        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
+        ThrowIfBootStrapFailed();
 
+        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
         var request = new AnalyticsQueryRequest
         {
             Statement = statement,
@@ -179,8 +208,9 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
     }
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, string bucketName, string scopeName, AnalyticsOptions? options = null)
     {
-        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
+        ThrowIfBootStrapFailed();
 
+        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
         var request = new AnalyticsQueryRequest
         {
             BucketName = bucketName,
@@ -194,7 +224,10 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
         return await _analyticsClient.QueryAsync<T>(request, options).ConfigureAwait(false);
     }
 
-    public ValueTask<IBucket> BucketAsync(string name) => new ValueTask<IBucket>(new StellarBucket(name, this, _queryClient));
+    public ValueTask<IBucket> BucketAsync(string name)
+    {
+        return new ValueTask<IBucket>(new StellarBucket(name, this, _queryClient));
+    }
 
     public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
     {
@@ -218,12 +251,16 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
 
     public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
     {
+        ThrowIfBootStrapFailed();
+
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
         return QueryAsync<T>(statement, opts);
     }
 
     public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts)
     {
+        ThrowIfBootStrapFailed();
+
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
         var request = new QueryRequest
         {
@@ -255,11 +292,14 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
         var asyncResponse = _queryClient.Query(request, callOptions);
         var headers = await asyncResponse.ResponseHeadersAsync.ConfigureAwait(false);
         var streamingResult = new StellarQueryResult<T>(asyncResponse, TypeSerializer);
+
         return streamingResult;
     }
 
     public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null)
     {
+        ThrowIfBootStrapFailed();
+
         return await _searchClient.QueryAsync(indexName, query, options).ConfigureAwait(false);
     }
 
@@ -274,5 +314,42 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
 
     private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>
         this.RequestTracer.RequestSpan(attr, parentSpan);
+
+    #region Bootstrapping/start up error propagation
+
+    public Task BootStrapAsync()
+    {
+        throw new UnsupportedInProtostellarException("Boot Strap");
+    }
+
+    public bool IsBootstrapped => _deferredExceptions.Count == 0;
+
+    public List<Exception> DeferredExceptions => _deferredExceptions;
+
+
+    /// <summary>
+    /// Throw an exception if the bucket is not bootstrapped successfully.
+    /// </summary>
+    internal void ThrowIfBootStrapFailed()
+    {
+        if (!IsBootstrapped)
+        {
+            ThrowBootStrapFailed();
+        }
+    }
+
+    /// <summary>
+    /// Throw am AggregateException with deferred bootstrap exceptions.
+    /// </summary>
+    /// <remarks>
+    /// This is a separate method from <see cref="ThrowIfBootStrapFailed"/> to allow that method to
+    /// be inlined for the fast, common path where there the bucket is bootstrapped.
+    /// </remarks>
+    private void ThrowBootStrapFailed()
+    {
+        throw new AggregateException($"Bootstrapping for the cluster as failed.", DeferredExceptions);
+    }
+
+    #endregion
 }
 #endif

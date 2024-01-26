@@ -170,35 +170,6 @@ namespace Couchbase.UnitTests
 
         #endregion
 
-        #region Stellar
-
-        [Theory(Skip="Will fix in NCBC-3564")]
-        [InlineData("couchbase://localhost", typeof(Cluster))]
-        [InlineData("couchbases://localhost", typeof(Cluster))]
-#if NETCOREAPP3_1_OR_GREATER
-        [InlineData("couchbase2://localhost", typeof(Stellar.StellarCluster))]
-#endif
-        public async Task Test_Schema_Delivers_The_Correct_ICluster_Impl(string connectionString, Type type)
-        {
-            var cluster = await Cluster.ConnectAsync(connectionString,
-                new ClusterOptions().WithCredentials("Administrator", "password"));
-            Assert.IsType(type, cluster);
-        }
-
-        [Fact(Skip ="Will fix in NCBC-3564" )]
-        public async Task Test_Stellar_Wrong_Connection_String_Throws_ConnectionException()
-        {
-            var connectionString = "couchbase2://wrongHostname";
-            var exception = await Record.ExceptionAsync(
-                    () => Cluster.ConnectAsync(connectionString,
-                        new ClusterOptions()
-                            .WithCredentials("Administrator", "password")))
-                .ConfigureAwait(false);
-            Assert.IsType<ConnectException>(exception);
-        }
-
-        #endregion
-
         #region Helpers
 
         public class TestClass

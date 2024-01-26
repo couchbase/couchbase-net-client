@@ -1,6 +1,8 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -18,21 +20,18 @@ namespace Couchbase.Stellar;
 internal class StellarBucket : IBucket
 {
     private readonly StellarCluster _stellarCluster;
-    private readonly QueryService.QueryServiceClient _queryClient;
     private readonly StellarCollectionManager _collectionManager;
 
     internal StellarBucket(string name, StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient)
     {
         Name = name;
         _stellarCluster = stellarCluster;
-        _queryClient = queryClient;
         _collectionManager = new StellarCollectionManager(_stellarCluster, name);
     }
 
     public bool SupportsCollections => true;
 
     public string Name { get; }
-
 
     public ICluster Cluster => _stellarCluster;
 
@@ -67,7 +66,7 @@ internal class StellarBucket : IBucket
         throw new UnsupportedInProtostellarException("Ping Bucket");
     }
 
-    public IScope Scope(string scopeName) => new StellarScope(scopeName, this, _stellarCluster, _queryClient);
+    public IScope Scope(string scopeName) => new StellarScope(scopeName, this, _stellarCluster);
 
     public ValueTask<IScope> ScopeAsync(string scopeName) => ValueTask.FromResult(Scope(scopeName));
 

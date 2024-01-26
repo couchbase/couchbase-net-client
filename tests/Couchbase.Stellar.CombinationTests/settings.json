@@ -4,6 +4,7 @@
     "Hostname": "localhost",
     "Username": "Administrator",
     "Password": "password",
-    "EnableDnsSrvResolution":  false
+    "EnableDnsSrvResolution":  false,
+    "Bucket": "default"
   }
 }
