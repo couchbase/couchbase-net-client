@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Test.Common.Utils;
@@ -164,6 +165,22 @@ namespace Couchbase.UnitTests
             // Assert
 
             Assert.Equal(analyticsResult.Object, result);
+        }
+
+        #endregion
+
+        #region Stellar
+
+       // [Fact] TODO will fix in NCBC-3564
+        public async Task Test_Stellar_Wrong_Connection_String_Throws_ConnectionException()
+        {
+            var connectionString = "couchbase2://wrongHostname";
+            var exception = await Record.ExceptionAsync(
+                    () => Cluster.ConnectAsync(connectionString,
+                        new ClusterOptions()
+                            .WithCredentials("Administrator", "password")))
+                .ConfigureAwait(false);
+            Assert.IsType<ConnectException>(exception);
         }
 
         #endregion

@@ -38,7 +38,7 @@ namespace Couchbase.Stellar;
 
 public class StellarCluster : ICluster //TODO: To change back to internal later
 {
-    private readonly string _connectionString;
+    private readonly ClusterOptions _clusterOptions;
     private readonly StellarBucketManager _bucketManager;
     private readonly StellarSearchIndexManager _searchIndexManager;
     private readonly StellarQueryIndexManager _queryIndexManager;
@@ -51,16 +51,7 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
 
     internal StellarCluster(ClusterOptions clusterOptions)
     {
-        _connectionString = clusterOptions.ConnectionString ?? throw new ArgumentNullException(nameof(clusterOptions.ConnectionString));
-        var uriBuilder = new UriBuilder(_connectionString);
-        var enableTls = clusterOptions.EnableTls != false;
-        uriBuilder.Scheme = enableTls == true ? "https" : "http";
-        if (uriBuilder.Port <= 0)
-        {
-            // FIXME: Is this only for the dev gateway?
-            uriBuilder.Port = 18098;
-        }
-
+        _clusterOptions = clusterOptions;
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
 
         TypeSerializer = clusterOptions.Serializer ?? SystemTextJsonSerializer.Create();
@@ -104,7 +95,7 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
             HttpHandler = socketsHandler,
         };
 
-        GrpcChannel = GrpcChannel.ForAddress(uriBuilder.Uri, grpcChannelOptions);
+        GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
 
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
@@ -134,13 +125,7 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
             throw new ArgumentOutOfRangeException(nameof(clusterOptions.ConnectionString));
         }
 
-        var scheme = parsedUri.Scheme.ToLowerInvariant();
-        // hack to get around pre-existing validation of Uri scheme.
-        var modifiedUri = new UriBuilder(parsedUri);
-        modifiedUri.Scheme = scheme.EndsWith("s") ? "couchbases" : "couchbase"; //TODO: Not the case anymore now that the connection string is couchbase2. Should Protostellar always use TLS verification?
-        clusterOptions.ConnectionString = modifiedUri.Uri.ToString().TrimEnd('/');
         var clusterWrapper = new StellarCluster(clusterOptions);
-
         using var cts = new CancellationTokenSource(clusterOptions.KvConnectTimeout);
         try
         {
@@ -159,9 +144,9 @@ public class StellarCluster : ICluster //TODO: To change back to internal later
     internal Task ConnectGrpcAsync(CancellationToken cancellationToken) => GrpcChannel.ConnectAsync(cancellationToken);
 
     internal GrpcChannel GrpcChannel { get; }
+
     internal ITypeSerializer TypeSerializer { get; }
-
-
+    
     public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
 
     public IQueryIndexManager QueryIndexes => _queryIndexManager;

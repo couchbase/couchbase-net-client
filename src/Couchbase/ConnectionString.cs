@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Couchbase.Core.Exceptions;
 
 #nullable enable
 
@@ -12,6 +13,7 @@ namespace Couchbase
     {
         private const int KeyValuePort = 11210;
         private const int SecureKeyValuePort = 11207;
+        private const int StellarPort = 18098;
 
         private static readonly Regex ConnectionStringRegex = new Regex(
             "^((?<scheme>[^://]+)://)?((?<username>[^\n@]+)@)?(?<hosts>[^\n?]+)?(\\?(?<params>(.+)))?",
@@ -131,6 +133,18 @@ namespace Couchbase
                         overrideTls.GetValueOrDefault(Scheme == Scheme.Couchbases) ? SecureKeyValuePort : KeyValuePort);
                 }
             }
+        }
+
+        internal Uri GetStellarBootstrapUri()
+        {
+            return new UriBuilder
+            {
+                Scheme = Scheme == Scheme.Couchbase2
+                    ? "https"
+                    : throw new InvalidArgumentException("Only Couchbase2 schema supported by this method."),
+                Host = Hosts.First().Host,
+                Port = StellarPort
+            }.Uri;
         }
 
         internal Uri GetDnsBootStrapUri()

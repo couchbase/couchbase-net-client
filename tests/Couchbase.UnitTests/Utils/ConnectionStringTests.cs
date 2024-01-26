@@ -7,6 +7,14 @@ namespace Couchbase.UnitTests.Utils
     public class ConnectionStringTests
     {
         [Fact]
+        public void Test_GetStellarUri()
+        {
+            var connectionString = ConnectionString.Parse("couchbase2://localhost");
+            var bootstrapUri = connectionString.GetStellarBootstrapUri();
+            Assert.Equal(new Uri("https://localhost:18098/"), bootstrapUri);
+        }
+
+        [Fact]
         public void Can_parse_valid_schemes()
         {
             var parsed = ConnectionString.Parse("http://localhost:1234");
