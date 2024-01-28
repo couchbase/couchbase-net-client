@@ -21,6 +21,7 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageVersion Include="OpenTelemetry" Version="1.2.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.2.0" />
+    <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="System.IO.Pipelines" Version="5.0.1" />
     <PackageVersion Include="System.Linq.Async" Version="4.1.1" />
     <PackageVersion Include="System.Memory" Version="4.5.5" />
@@ -38,8 +39,8 @@
 
   <!-- Dependencies only allowed for test projects -->
   <ItemGroup Condition=" '$(MSBuildProjectFile.Contains(`Test`))' == 'true' ">
-    <PackageVersion Include="BenchmarkDotNet" Version="0.13.1" />
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.1" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
     <PackageVersion Include="CommandLineParser" Version="2.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="3.1.21" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />

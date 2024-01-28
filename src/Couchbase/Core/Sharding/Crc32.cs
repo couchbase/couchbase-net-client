@@ -4,6 +4,24 @@ namespace Couchbase.Core.Sharding
 {
     internal static class Crc32
     {
+#if NET8_0_OR_GREATER
+        // For .NET 6 the implementation of CRC32 in System.IO.Hashing is more performant on ARM
+        // due to the use of hardware intrinsics. For .NET 7 and later it also vectorizes on most
+        // ARM and Intel hardware. The minimum length for vectorization on Intel is currently 16 bytes,
+        // on ARM the minimum length is 128 bytes.
+        //
+        // However, The fallback algorithm is marginally less efficient in System.IO.Hashing because it processes
+        // one byte at a time rather than 16 byte chunks like the algorithm below. Therefore, to avoid a
+        // minor performance regression older runtimes stick with the existing implementation.
+
+        public static uint ComputeHash(ReadOnlySpan<byte> bytes)
+        {
+            var result = System.IO.Hashing.Crc32.HashToUInt32(bytes);
+
+            // Apply our standard mask and shift for sharding
+            return (result >> 16) & 0x7fff;
+        }
+#else
         private const uint Polynomial = 0xedb88320u;
         private static readonly uint[] Table = new uint[16  * 256];
 
@@ -68,6 +86,7 @@ namespace Couchbase.Core.Sharding
 
             return (~hash >> 16) & 0x7fff;
         }
+#endif
     }
 }
 

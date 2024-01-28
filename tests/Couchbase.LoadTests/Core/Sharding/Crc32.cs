@@ -4,14 +4,13 @@ using BenchmarkDotNet.Jobs;
 
 namespace Couchbase.LoadTests.Core.Sharding
 {
-    [SimpleJob(RuntimeMoniker.NetCoreApp21)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp30)]
-    [MemoryDiagnoser]
+    [SimpleJob(RuntimeMoniker.Net60, baseline: true)]
+    [SimpleJob(RuntimeMoniker.Net80)]
     public class Crc32
     {
         private byte[] _buffer;
 
-        [Params(10, 40, 100)]
+        [Params(10, 40, 100, 200)]
         public int KeySize { get; set; }
 
         [GlobalSetup]
@@ -20,7 +19,7 @@ namespace Couchbase.LoadTests.Core.Sharding
             _buffer = Encoding.UTF8.GetBytes(new string('0', KeySize));
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public uint Span()
         {
             return Couchbase.Core.Sharding.Crc32.ComputeHash(_buffer);
