@@ -634,6 +634,8 @@ namespace Couchbase.KeyValue
         /// <inheritdoc />
         public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
         {
+            if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
+
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
