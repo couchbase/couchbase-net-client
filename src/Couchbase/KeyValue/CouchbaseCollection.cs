@@ -332,6 +332,8 @@ namespace Couchbase.KeyValue
         /// <inheritdoc />
         public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
         {
+            if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
+
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
@@ -368,6 +370,8 @@ namespace Couchbase.KeyValue
         /// <inheritdoc />
         public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
         {
+            if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
+
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
