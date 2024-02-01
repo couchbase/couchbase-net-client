@@ -2,6 +2,7 @@
 using System;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
+using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Vector;
 
 namespace Couchbase.Search;
@@ -37,4 +38,6 @@ public sealed record SearchRequest(ISearchQuery? SearchQuery = null, VectorSearc
 
         return this with { VectorSearch = vectorSearch };
     }
+
+    public IScope? Scope { get; init; } = null;
 }

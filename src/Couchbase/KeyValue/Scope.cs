@@ -94,8 +94,13 @@ namespace Couchbase.KeyValue
         }
 
         /// <inheritdoc />
-        public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options = default) =>
-            throw new NotImplementedException();
+        public async Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options = default)
+        {
+            options ??= new();
+            options.Scope(this.Name);
+            searchRequest = searchRequest with { Scope = this };
+            return await this.Bucket.Cluster.SearchAsync(searchIndexName, searchRequest, options).ConfigureAwait(false);
+        }
 
         /// <summary>
         /// Collection analytics querying

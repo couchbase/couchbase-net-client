@@ -435,7 +435,7 @@ namespace Couchbase
             async Task<ISearchResult> Func()
             {
                 var client1 = LazySearchClient.GetValueOrThrow();
-                return await client1.QueryAsync(indexName, ftsSearchRequest, searchRequest.VectorSearch, options.Token).ConfigureAwait(false);
+                return await client1.QueryAsync(indexName, ftsSearchRequest, searchRequest.VectorSearch, searchRequest.Scope, options.Token).ConfigureAwait(false);
             }
 
             return await _retryOrchestrator.RetryAsync(Func, ftsSearchRequest).ConfigureAwait(false);

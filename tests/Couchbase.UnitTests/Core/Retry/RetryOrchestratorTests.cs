@@ -380,7 +380,8 @@ namespace Couchbase.UnitTests.Core.Retry
                 Options = new SearchOptions
                 {
                     Token = cts.Token
-                }
+                },
+                Index = nameof(Test_Search)
             };
 
             async Task<ISearchResult> Func()
@@ -390,6 +391,7 @@ namespace Couchbase.UnitTests.Core.Retry
                     indexName: searchRequest.Index,
                     ftsSearchRequest: searchRequest,
                     vectorSearchRequest: null,
+                    scope: null,
                     cancellationToken: cts.Token);
             }
 

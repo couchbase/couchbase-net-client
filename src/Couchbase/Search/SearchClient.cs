@@ -15,6 +15,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
+using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,7 @@ namespace Couchbase.Search
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
         private readonly IDataMapper _dataMapper;
+        private string Escape(string pathValue) => Uri.EscapeDataString(pathValue);
 
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
@@ -75,6 +77,7 @@ namespace Couchbase.Search
             string indexName,
             FtsSearchRequest ftsSearchRequest,
             VectorSearch? vectorSearch,
+            IScope? scope,
             CancellationToken cancellationToken)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.SearchQuery)
@@ -88,13 +91,16 @@ namespace Couchbase.Search
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
             rootSpan.WithRemoteAddress(searchUri);
 
+            var path = scope?.Bucket?.Name is not null
+                ? $"api/bucket/{Escape(scope.Bucket.Name)}/scope/{Escape(scope.Name)}/index/{Escape(indexName)}/query"
+                : $"api/index/{Escape(indexName)}/query";
             var uriBuilder = new UriBuilder(searchUri)
             {
-                Path = $"api/index/{indexName}/query"
+                Path = path
             };
 
             _logger.LogDebug("Sending FTS query with a context id {contextId} to server {searchUri}",
-                ftsSearchRequest.ClientContextId, searchUri);
+                ftsSearchRequest.ClientContextId, uriBuilder.ToString());
 
             var searchResult = new SearchResult();
 
