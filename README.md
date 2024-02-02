@@ -2,7 +2,7 @@ The Official Couchbase .NET SDK
 
 [Chat with us on Discord](https://discord.com/invite/sQ5qbPZuTh) | [Couchbase Forums](https://forums.couchbase.com/c/net-sdk/6)
 
-* master is 3.0 development branch
+* master is 3.4 development branch
 * release27 is 2.7.X development branch
 * release13 is 1.3.X development branch
 
@@ -40,6 +40,10 @@ Couchbase Server 5.0+ - In addition to the steps above:
 3. A user called `authenticated` with a password of `secret`
 
 NOTE: Couchbase Server 5.0+ uses Role-Based Access Control (RBAC) for authentication. This supersedes configuring bucket passwords with discrete users with their own passwords and offers much more granular control.
+
+## Generating gRPC proxies and stubs
+
+Please checkout this [README](https://github.com/couchbase/couchbase-net-client/blob/master/src/Couchbase.Stellar.CodeGen/README.md) for how to generate the gRPC proxies and stubs for Protostellar.
 
 ## Pull Requests and Submissions ##
 Being an Open Source project, the Couchbase SDK depends upon feedback and submissions from the community. If you feel as if you want to submit a bug fix or a feature, please post a Pull Request. The Pull Request will go through a formal code review process and merged after being +2'd by a Couchbase Engineer. In order to accept a submission, Couchbase requires that all contributors sign the Contributor License Agreement (CLA). You can do this by creating an account in [Gerrit](http://review.couchbase.org), our official Code Review system. After you have created your account, login and check the CLA checkbox.
