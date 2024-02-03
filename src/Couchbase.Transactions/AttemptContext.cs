@@ -374,7 +374,7 @@ namespace Couchbase.Transactions
 
                 return await GetWithMav(collection, id, resolveMissingAtrEntry).CAF();
             }
-            catch (SubdocExceptionException sdEx)
+            catch (SubDocException sdEx)
             {
                 var ec = sdEx.Classify();
                 switch (ec)

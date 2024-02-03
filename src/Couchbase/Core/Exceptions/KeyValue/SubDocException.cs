@@ -1,6 +1,17 @@
-namespace Couchbase.Core.Exceptions.KeyValue
+namespace Couchbase.Core.Exceptions.KeyValue;
+
+/// <summary>
+/// This exception handles unrecoverable Sub-Doc API errors. It resolves the naming issue with <see cref="SubdocExceptionException"/>.
+/// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
+public class SubDocException : SubdocExceptionException
+#pragma warning restore CS0618 // Type or member is obsolete
 {
-    public class PathTooBigException : SubDocException
+    public SubDocException()
+    {
+    }
+
+    public SubDocException(IErrorContext context) : base(context)
     {
     }
 }

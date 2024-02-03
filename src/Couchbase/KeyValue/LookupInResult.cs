@@ -134,12 +134,12 @@ namespace Couchbase.KeyValue
                 case ResponseStatus.SubdocXattrUnknownMacro:
                     return new XattrUnknownMacroException();
                 default:
-                    return CreateSubDocException<SubdocExceptionException>(spec, index);
+                    return CreateSubDocException<SubDocException>(spec, index);
             }
         }
 
         private T CreateSubDocException<T>(LookupInSpec spec, int index)
-            where T : SubdocExceptionException, new() =>
+            where T : SubDocException, new() =>
             new()
             {
                 SubDocumentErrorIndex = index,

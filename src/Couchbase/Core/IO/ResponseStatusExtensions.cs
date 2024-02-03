@@ -160,7 +160,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.SubDocPathNotFound:
                 case ResponseStatus.SubDocPathMismatch:
                 case ResponseStatus.SubDocPathInvalid:
-                    return new SubdocExceptionException() { Context = ctx, SubDocumentErrorIndex = null, SubDocumentStatus = status };
+                    return new SubDocException() { Context = ctx, SubDocumentErrorIndex = null, SubDocumentStatus = status };
                 case ResponseStatus.SubDocPathTooBig:
                     return new PathTooDeepException { Context = ctx };
                 case ResponseStatus.SubDocDocTooDeep:
@@ -215,7 +215,7 @@ namespace Couchbase.Core.IO
             }
         }
 
-        private static SubdocExceptionException SubDocPathException(KeyValueErrorContext ctx, IOperation op)
+        private static SubDocException SubDocPathException(KeyValueErrorContext ctx, IOperation op)
         {
             byte index;
             ResponseStatus subdocErrorStatus;
@@ -225,14 +225,14 @@ namespace Couchbase.Core.IO
                 subdocErrorStatus = (ResponseStatus)ByteConverter.ToUInt16(subdocStatusBody.Memory.Span.Slice(1));
             }
 
-            SubdocExceptionException ex = subdocErrorStatus switch
+            SubDocException ex = subdocErrorStatus switch
             {
                 ResponseStatus.SubDocPathExists => new PathExistsException(),
                 ResponseStatus.SubDocPathInvalid => new PathInvalidException(),
                 ResponseStatus.SubDocPathMismatch => new PathMismatchException(),
                 ResponseStatus.SubDocPathNotFound => new PathNotFoundException(),
                 ResponseStatus.SubDocPathTooBig => new PathTooBigException(),
-                _ => new SubdocExceptionException() { Context = ctx, SubDocumentStatus = subdocErrorStatus, SubDocumentErrorIndex = index }
+                _ => new SubDocException() { Context = ctx, SubDocumentStatus = subdocErrorStatus, SubDocumentErrorIndex = index }
             };
 
             ex.Context = ctx;

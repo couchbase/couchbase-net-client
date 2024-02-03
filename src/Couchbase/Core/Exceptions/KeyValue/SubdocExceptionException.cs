@@ -1,19 +1,20 @@
+using System;
 using Couchbase.Core.IO.Operations;
 
-namespace Couchbase.Core.Exceptions.KeyValue
+namespace Couchbase.Core.Exceptions.KeyValue;
+
+[Obsolete("This class has been made obsolete and will be removed in a later version.")]
+public class SubdocExceptionException : KeyValueException
 {
-    public class SubdocExceptionException : KeyValueException
+    public int? SubDocumentErrorIndex { get; internal set; }
+    public virtual ResponseStatus SubDocumentStatus { get; internal set; } = ResponseStatus.SubDocMultiPathFailure;
+
+    public SubdocExceptionException()
     {
-        public int? SubDocumentErrorIndex { get; internal set; }
-        public virtual ResponseStatus SubDocumentStatus { get; internal set; } = ResponseStatus.SubDocMultiPathFailure;
+    }
 
-        public SubdocExceptionException()
-        {
-        }
-
-        public SubdocExceptionException(IErrorContext context) : base(context)
-        {
-        }
+    public SubdocExceptionException(IErrorContext context) : base(context)
+    {
     }
 }
 
@@ -21,7 +22,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

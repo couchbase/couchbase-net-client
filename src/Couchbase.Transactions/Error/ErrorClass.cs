@@ -55,7 +55,7 @@ namespace Couchbase.Transactions.Error
                 return ErrorClass.FailDocAlreadyExists;
             }
 
-            if (ex is SubdocExceptionException pathInvalid)
+            if (ex is SubDocException pathInvalid)
             {
                 switch (pathInvalid.SubDocumentStatus)
                 {

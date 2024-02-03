@@ -2,7 +2,7 @@ using System;
 
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class PathNotFoundException : SubdocExceptionException
+    public class PathNotFoundException : SubDocException
     {
         public PathNotFoundException()
         {
