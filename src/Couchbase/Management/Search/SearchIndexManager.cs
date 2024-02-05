@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -32,12 +33,15 @@ namespace Couchbase.Management.Search
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
-        private Uri GetIndexUri(string? indexName = null)
+        private Uri GetIndexUri(IScope?  scope, string? indexName = null)
         {
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
+            var path = scope is null
+                ? "api/index"
+                : $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}";
             var builder = new UriBuilder(searchUri)
             {
-                Path = "api/index"
+                Path = path
             };
 
             if (!string.IsNullOrWhiteSpace(indexName))
@@ -48,9 +52,9 @@ namespace Couchbase.Management.Search
             return builder.Uri;
         }
 
-        private Uri GetQueryControlUri(string indexName, bool allow)
+        private Uri GetQueryControlUri(string indexName, bool allow, IScope? scope)
         {
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             var control = allow ? "allow" : "disallow";
 
             return new UriBuilder(baseUri)
@@ -59,9 +63,9 @@ namespace Couchbase.Management.Search
             }.Uri;
         }
 
-        private Uri GetFreezeControlUri(string indexName, bool freeze)
+        private Uri GetFreezeControlUri(string indexName, bool freeze, IScope? scope)
         {
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             var control = freeze ? "freeze" : "unfreeze";
 
             return new UriBuilder(baseUri)
@@ -70,9 +74,9 @@ namespace Couchbase.Management.Search
             }.Uri;
         }
 
-        private Uri GetIngestControlUri(string indexName, bool pause)
+        private Uri GetIngestControlUri(string indexName, bool pause, IScope? scope)
         {
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             var control = pause ? "pause" : "resume";
 
             return new UriBuilder(baseUri)
@@ -81,19 +85,19 @@ namespace Couchbase.Management.Search
             }.Uri;
         }
 
-        private Uri GetIndexedDocumentCountUri(string indexName)
+        private Uri GetIndexedDocumentCountUri(string indexName, IScope? scope = null)
         {
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             return new UriBuilder(baseUri)
             {
                 Path = $"{baseUri.PathAndQuery}/count"
             }.Uri;
         }
 
-        public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null)
+        public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= AllowQueryingSearchIndexOptions.Default;
-            var baseUri = GetQueryControlUri(indexName, true);
+            var baseUri = GetQueryControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to allow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -113,10 +117,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null)
+        public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= DisallowQueryingSearchIndexOptions.Default;
-            var baseUri = GetQueryControlUri(indexName, false);
+            var baseUri = GetQueryControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to disallow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -136,10 +140,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null)
+        public async Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= DropSearchIndexOptions.Default;
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             _logger.LogInformation("Trying to drop index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -159,10 +163,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null)
+        public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= FreezePlanSearchIndexOptions.Default;
-            var baseUri = GetFreezeControlUri(indexName, true);
+            var baseUri = GetFreezeControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to freeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -182,10 +186,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null)
+        public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null, IScope? scope = null)
         {
             options ??= GetAllSearchIndexesOptions.Default;
-            var baseUri = GetIndexUri();
+            var baseUri = GetIndexUri(scope);
             _logger.LogInformation("Trying to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 
             try
@@ -206,10 +210,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null)
+        public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= GetSearchIndexOptions.Default;
-            var baseUri = GetIndexUri(indexName);
+            var baseUri = GetIndexUri(scope, indexName);
             _logger.LogInformation("Trying to get index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -232,7 +236,7 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null)
+        public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null, IScope? scope = null)
         {
             options ??= GetSearchIndexDocumentCountOptions.Default;
             var baseUri = GetIndexedDocumentCountUri(indexName);
@@ -259,10 +263,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null)
+        public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= PauseIngestSearchIndexOptions.Default;
-            var baseUri = GetIngestControlUri(indexName, true);
+            var baseUri = GetIngestControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to pause ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -282,10 +286,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null)
+        public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= ResumeIngestSearchIndexOptions.Default;
-            var baseUri = GetIngestControlUri(indexName, false);
+            var baseUri = GetIngestControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to resume ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -305,10 +309,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null)
+        public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= UnfreezePlanSearchIndexOptions.Default;
-            var baseUri = GetFreezeControlUri(indexName, false);
+            var baseUri = GetFreezeControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to unfreeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
@@ -328,10 +332,10 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null)
+        public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= UpsertSearchIndexOptions.Default;
-            var baseUri = GetIndexUri(indexDefinition.Name);
+            var baseUri = GetIndexUri(scope, indexDefinition.Name);
             _logger.LogInformation("Trying to upsert index with name {indexDefinition.Name} - {baseUri}",
                 _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
 

@@ -1,7 +1,9 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
+using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.KeyValue;
+using Couchbase.Management.Search;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Stellar.Util;
@@ -38,6 +40,8 @@ internal class StellarScope : IScope
 
         return _stellarCluster.AnalyticsQueryAsync<T>(statement, _stellarBucket.Name, Name, options);
     }
+
+    public ISearchIndexManager SearchIndexes => throw new NotImplementedException();
 
     public ICouchbaseCollection Collection(string collectionName) => new StellarCollection(collectionName, this, _stellarCluster);
 

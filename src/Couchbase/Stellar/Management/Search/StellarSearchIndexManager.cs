@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.Management.Search;
 using Couchbase.Protostellar.Admin.Search.V1;
 using Couchbase.Stellar.Core;
@@ -22,7 +23,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         _stellarSearchAdminClient = new SearchAdminService.SearchAdminServiceClient(_stellarCluster.GrpcChannel);
     }
 
-    public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null)
+    public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? GetSearchIndexOptions.DefaultReadOnly;
 
@@ -46,7 +47,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         };
     }
 
-    public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null)
+    public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? GetAllSearchIndexesOptions.DefaultReadOnly;
         var protoRequest = new ListIndexesRequest();
@@ -66,7 +67,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         });
     }
 
-    public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null)
+    public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? UpsertSearchIndexOptions.DefaultReadOnly;
         if (indexDefinition.Uuid != null)
@@ -118,7 +119,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         }
     }
 
-    public async Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null)
+    public async Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? DropSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new DeleteIndexRequest
@@ -128,7 +129,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         await _stellarSearchAdminClient.DeleteIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null)
+    public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? GetSearchIndexDocumentCountOptions.DefaultReadOnly;
         var protoRequest = new GetIndexedDocumentsCountRequest
@@ -142,7 +143,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         return (int)response.Count;
     }
 
-    public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null)
+    public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? PauseIngestSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new PauseIndexIngestRequest
@@ -153,7 +154,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             .PauseIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null)
+    public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? ResumeIngestSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new ResumeIndexIngestRequest()
@@ -163,7 +164,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         await _stellarSearchAdminClient.ResumeIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null)
+    public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? AllowQueryingSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new AllowIndexQueryingRequest()
@@ -173,7 +174,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         await _stellarSearchAdminClient.AllowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null)
+    public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? DisallowQueryingSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new DisallowIndexQueryingRequest()
@@ -183,7 +184,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         await _stellarSearchAdminClient.DisallowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null)
+    public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? FreezePlanSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new FreezeIndexPlanRequest()
@@ -193,7 +194,7 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         await _stellarSearchAdminClient.FreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
     }
 
-    public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null)
+    public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null, IScope? scope = null)
     {
         var opts = options?.AsReadOnly() ?? UnfreezePlanSearchIndexOptions.DefaultReadOnly;
         var protoRequest = new UnfreezeIndexPlanRequest()

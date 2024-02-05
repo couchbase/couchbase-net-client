@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.KeyValue;
+using Couchbase.Management.Search;
 using Couchbase.Query;
 using Couchbase.Search;
 
@@ -57,6 +58,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         {
             throw new NotImplementedException();
         }
+
+        public ISearchIndexManager SearchIndexes => throw new NotImplementedException();
 
         public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, CancellationToken cancellationToken) =>
             throw new NotImplementedException();

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Management.Search;
 using Couchbase.Query;
 using Couchbase.Search;
 
@@ -46,6 +47,11 @@ namespace Couchbase.KeyValue
         /// <param name="options">Any optional parameters to pass with the query.</param>
         /// <returns></returns>
         Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default);
+
+        /// <summary>
+        /// Gets a management interface for scope level FTS and Vector Search indexes.
+        /// </summary>
+        ISearchIndexManager SearchIndexes { get; }
     }
 }
 

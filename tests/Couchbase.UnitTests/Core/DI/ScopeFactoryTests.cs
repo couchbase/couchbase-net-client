@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
@@ -78,9 +79,10 @@ namespace Couchbase.UnitTests.Core.DI
 
         private static BucketBase CreateBucketMock(IScopeFactory factory)
         {
+            var mockCluster = new Mock<ICluster>();
             var mock = new Mock<BucketBase>(
                 "default",
-                new ClusterContext(),
+                new ClusterContext(mockCluster.Object, new CancellationTokenSource(), new()),
                 factory,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger>().Object,
@@ -92,7 +94,6 @@ namespace Couchbase.UnitTests.Core.DI
                 new BucketConfig());
 
             mock.SetupGet(it => it.Name).Returns("default");
-
             return mock.Object;
         }
 

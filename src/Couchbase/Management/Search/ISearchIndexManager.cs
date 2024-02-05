@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 
 #nullable enable
 
@@ -7,27 +8,27 @@ namespace Couchbase.Management.Search
 {
     public interface ISearchIndexManager
     {
-        Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null);
+        Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null);
+        Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null, IScope? scope = null);
 
-        Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null);
+        Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null);
+        Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null);
+        Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null, IScope? scope = null);
 
-        Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null);
+        Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null);
+        Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null);
+        Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null);
+        Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null);
+        Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null, IScope? scope = null);
 
-        Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null);
+        Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null, IScope? scope = null);
 
         //Task<IEnumerable<JSONObject>> AnalyzeDocumentAsync(string indexName, JSONObject document, AnalyzeDocOptions options);
     }

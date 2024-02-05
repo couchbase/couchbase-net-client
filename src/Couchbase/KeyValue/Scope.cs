@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.Utils;
+using Couchbase.Management.Search;
 using Couchbase.Query;
 using Couchbase.Search;
 using Microsoft.Extensions.Logging;
@@ -34,6 +36,7 @@ namespace Couchbase.KeyValue
             _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
             _queryContext = Utils.QueryContext.Create(_bucket.Name.EscapeIfRequired(), name.EscapeIfRequired());
             IsDefaultScope = name == DefaultScopeName;
+            SearchIndexes = new ScopedSearchIndexManagerWrapper(this);
         }
 
         /// <summary>
@@ -119,6 +122,66 @@ namespace Couchbase.KeyValue
             options.ScopeName = Name;
 
             return _bucket.Cluster.AnalyticsQueryAsync<T>(statement, options);
+        }
+
+        /// <inheritdoc />
+        public ISearchIndexManager SearchIndexes { get; }
+
+        private class ScopedSearchIndexManagerWrapper : ISearchIndexManager
+        {
+            private readonly IScope _scope;
+            private readonly ISearchIndexManager _manager;
+
+            public ScopedSearchIndexManagerWrapper(IScope scope)
+            {
+                _scope = scope;
+                var cluster = scope.Bucket.Cluster;
+                _manager = cluster.SearchIndexes;
+            }
+
+            public Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.GetIndexAsync(indexName, options, scope ?? _scope);
+
+            public Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null,
+                IScope? scope = null)
+                => _manager.GetAllIndexesAsync(options, scope ?? _scope);
+
+            public Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.UpsertIndexAsync(indexDefinition, options, scope ?? _scope);
+
+            public Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null, IScope? scope = null)
+                => _manager.DropIndexAsync(indexName, options, scope ?? _scope);
+
+            public Task<int> GetIndexedDocumentsCountAsync(string indexName,
+                GetSearchIndexDocumentCountOptions? options = null,
+                IScope? scope = null)
+                => _manager.GetIndexedDocumentsCountAsync(indexName, options, scope ?? _scope);
+
+            public Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.PauseIngestAsync(indexName, options, scope ?? _scope);
+
+            public Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.ResumeIngestAsync(indexName, options, scope ?? _scope);
+
+            public Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.AllowQueryingAsync(indexName, options, scope ?? _scope);
+
+            public Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.DisallowQueryingAsync(indexName, options, scope ?? _scope);
+
+            public Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.FreezePlanAsync(indexName, options, scope ?? _scope);
+
+            public Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null,
+                IScope? scope = null)
+                => _manager.UnfreezePlanAsync(indexName, options, scope ?? _scope);
         }
     }
 }

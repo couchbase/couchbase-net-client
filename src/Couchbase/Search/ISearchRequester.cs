@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
+using Couchbase.Management.Search;
 
 namespace Couchbase.Search;
 
