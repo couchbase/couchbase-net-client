@@ -112,7 +112,21 @@ public class LookupInTests
         var specs = new List<LookupInSpec>();
         specs.Add(LookupInSpec.Get("name"));
 
-        await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.LookupInAnyReplicaAsync("wrongId", specs));
+        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs)).ConfigureAwait(false);
+        Assert.IsType<DocumentUnretrievableException>(error);
+        Assert.True(((DocumentUnretrievableException)error).InnerExceptions.Count >= 1);
+    }
+
+    [Fact]
+    public async Task Test_LookupInAnyReplica_Timeout_Gets_Thrown()
+    {
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+        var specs = new List<LookupInSpec>();
+        specs.Add(LookupInSpec.Get("name"));
+
+        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs, options => options.Timeout(TimeSpan.FromMilliseconds(1)))).ConfigureAwait(false);
+        Assert.IsType<UnambiguousTimeoutException>(error);
     }
 
     [Fact]

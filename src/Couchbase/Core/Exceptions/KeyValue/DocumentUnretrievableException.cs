@@ -1,14 +1,15 @@
 using System;
+using System.Collections.ObjectModel;
 
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentUnretrievableException : KeyValueException
     {
-        private AggregateException _aggregateException;
+        public ReadOnlyCollection<Exception> InnerExceptions { get; }
 
         public DocumentUnretrievableException(AggregateException aggregate)
         {
-            _aggregateException = aggregate;
+            InnerExceptions = aggregate.InnerExceptions;
         }
     }
 }
