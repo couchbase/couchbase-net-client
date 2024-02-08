@@ -48,15 +48,35 @@ internal class StellarCluster : ICluster, IBootstrappable
 {
     private readonly ClusterOptions _clusterOptions;
     private readonly List<Exception> _deferredExceptions = new();
-    private readonly StellarBucketManager _bucketManager;
-    private readonly StellarSearchIndexManager _searchIndexManager;
-    private readonly StellarQueryIndexManager _queryIndexManager;
+    private readonly IBucketManager _bucketManager;
+    private readonly ISearchIndexManager _searchIndexManager;
+    private readonly IQueryIndexManager _queryIndexManager;
     private readonly QueryService.QueryServiceClient _queryClient;
-    private readonly ProtoAnalyticsClient _analyticsClient;
-    private readonly StellarSearchClient _searchClient;
+    private readonly IAnalyticsClient _analyticsClient;
+    private readonly IStellarSearchClient _searchClient;
     private readonly Metadata _metaData;
     private ClusterChannelCredentials ChannelCredentials { get; }
 
+    internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
+        IQueryIndexManager queryIndexManager, QueryService.QueryServiceClient queryClient,
+        IAnalyticsClient analyticsClient, IStellarSearchClient searchClient,
+        Metadata metaData, ClusterChannelCredentials channelCredentials, IRequestTracer requestTracer, GrpcChannel grpcChannel,
+        ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions)
+    {
+        _bucketManager = bucketManager;
+        _searchIndexManager = searchIndexManager;
+        _queryClient = queryClient;
+        _analyticsClient = analyticsClient;
+        _searchClient = searchClient;
+        _clusterOptions = clusterOptions;
+        _queryIndexManager = queryIndexManager;
+        _metaData = metaData;
+        ChannelCredentials = channelCredentials;
+        RequestTracer = requestTracer;
+        GrpcChannel = grpcChannel;
+        TypeSerializer = typeSerializer;
+        RetryHandler = retryHandler;
+    }
     private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
@@ -110,7 +130,7 @@ internal class StellarCluster : ICluster, IBootstrappable
         _queryIndexManager = new StellarQueryIndexManager(this);
         _queryClient = new Protostellar.Query.V1.QueryService.QueryServiceClient(GrpcChannel);
         _metaData = new Metadata();
-        _analyticsClient = new ProtoAnalyticsClient(this);
+        _analyticsClient = new StellarAnalyticsClient(this);
         _searchClient = new StellarSearchClient(this);
 
         if (ChannelCredentials.BasicAuthHeader != null)
@@ -198,35 +218,8 @@ internal class StellarCluster : ICluster, IBootstrappable
     {
         ThrowIfBootStrapFailed();
 
-        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
-        var request = new AnalyticsQueryRequest
-        {
-            Statement = statement,
-            ReadOnly = opts.Readonly,
-            Priority = opts.Priority == -1
-        };
-        if (opts.BucketName != null) request.BucketName = opts.BucketName;
-        if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
-        if (opts.ClientContextId != null) request.ReadOnly = opts.Readonly;
-
-        return await _analyticsClient.QueryAsync<T>(request, options).ConfigureAwait(false);
-    }
-    public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, string bucketName, string scopeName, AnalyticsOptions? options = null)
-    {
-        ThrowIfBootStrapFailed();
-
-        var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
-        var request = new AnalyticsQueryRequest
-        {
-            BucketName = bucketName,
-            ScopeName = scopeName,
-            Statement = statement,
-            ReadOnly = opts.Readonly,
-            Priority = opts.Priority == -1
-        };
-        if (opts.ClientContextId != null) request.ReadOnly = opts.Readonly;
-
-        return await _analyticsClient.QueryAsync<T>(request, options).ConfigureAwait(false);
+        options ??= new AnalyticsOptions();
+        return await _analyticsClient.QueryAsync<T>(statement, options).ConfigureAwait(false);
     }
 
     public ValueTask<IBucket> BucketAsync(string name)

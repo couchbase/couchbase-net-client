@@ -38,7 +38,9 @@ internal class StellarScope : IScope
     {
         _stellarCluster.ThrowIfBootStrapFailed();
 
-        return _stellarCluster.AnalyticsQueryAsync<T>(statement, _stellarBucket.Name, Name, options);
+        options ??= new AnalyticsOptions();
+        options.BucketName = Name;
+        return _stellarCluster.AnalyticsQueryAsync<T>(statement, options);
     }
 
     public ISearchIndexManager SearchIndexes => throw new NotImplementedException();

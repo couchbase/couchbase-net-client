@@ -4,11 +4,15 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
+using Couchbase.Core.Retry.Search;
+using Couchbase.KeyValue;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
+using Couchbase.Search.Queries.Vector;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
 
@@ -16,7 +20,7 @@ using Couchbase.Stellar.Core.Retry;
 
 namespace Couchbase.Stellar.Search
 {
-    public class StellarSearchClient
+    internal class StellarSearchClient : IStellarSearchClient
     {
         private readonly SearchService.SearchServiceClient _searchClient;
         private readonly StellarCluster _stellarCluster;
@@ -31,6 +35,14 @@ namespace Couchbase.Stellar.Search
             _searchClient = new SearchService.SearchServiceClient(_stellarCluster.GrpcChannel);
             _dataMapper = new StellarSearchDataMapper();
             _retryHandler = stellarCluster.RetryHandler;
+        }
+
+        public DateTime? LastActivity { get; }
+
+        public Task<ISearchResult> QueryAsync(string indexName, FtsSearchRequest ftsSearchRequest, VectorSearch? vectorSearchRequest, IScope? scope,
+            CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
         }
 
         public async Task<ISearchResult> QueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null, CancellationToken cancellationToken = default)
