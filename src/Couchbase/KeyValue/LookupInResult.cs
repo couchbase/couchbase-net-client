@@ -61,7 +61,7 @@ namespace Couchbase.KeyValue
 
             var spec = _specs[index];
 
-            if (spec.OpCode == OpCode.SubExist)
+            if (spec.OpCode == OpCode.SubExist && spec.Status is not ResponseStatus.SubDocPathInvalid)
             {
                 var existsContent = spec.Status == ResponseStatus.Success ? CouchbaseStrings.TrueBytes : CouchbaseStrings.FalseBytes;
                 return Serializer.Deserialize<T>(existsContent.ToArray());
