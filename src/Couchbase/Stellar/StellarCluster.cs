@@ -44,7 +44,7 @@ namespace Couchbase.Stellar;
 
 #nullable enable
 
-internal class StellarCluster : ICluster, IBootstrappable
+internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 {
     private readonly ClusterOptions _clusterOptions;
     private readonly List<Exception> _deferredExceptions = new();
@@ -55,6 +55,7 @@ internal class StellarCluster : ICluster, IBootstrappable
     private readonly IAnalyticsClient _analyticsClient;
     private readonly IStellarSearchClient _searchClient;
     private readonly Metadata _metaData;
+    private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private ClusterChannelCredentials ChannelCredentials { get; }
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
@@ -77,6 +78,7 @@ internal class StellarCluster : ICluster, IBootstrappable
         TypeSerializer = typeSerializer;
         RetryHandler = retryHandler;
     }
+
     private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
@@ -224,7 +226,7 @@ internal class StellarCluster : ICluster, IBootstrappable
 
     public ValueTask<IBucket> BucketAsync(string name)
     {
-        return new ValueTask<IBucket>(new StellarBucket(name, this, _queryClient));
+        return new ValueTask<IBucket>(_buckets.GetOrAdd(name, new StellarBucket(name, this, _queryClient)));
     }
 
     public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
@@ -234,12 +236,17 @@ internal class StellarCluster : ICluster, IBootstrappable
 
     public void Dispose()
     {
+        foreach (var bucket in _buckets.Values)
+        {
+            bucket.Dispose();
+        }
         GrpcChannel.Dispose();
     }
 
     public ValueTask DisposeAsync()
     {
-        throw new UnsupportedInProtostellarException("Async Dispose");
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     public Task<IPingReport> PingAsync(PingOptions? options = null)
@@ -350,5 +357,17 @@ internal class StellarCluster : ICluster, IBootstrappable
     }
 
     #endregion
+
+    /// <inheritdoc />
+    void IClusterExtended.RemoveBucket(string bucketName)
+    {
+        _buckets.TryRemove(bucketName, out _);
+    }
+
+    /// <inheritdoc />
+    bool IClusterExtended.BucketExists(string bucketName)
+    {
+        return _buckets.TryGetValue(bucketName, out _);
+    }
 }
 #endif

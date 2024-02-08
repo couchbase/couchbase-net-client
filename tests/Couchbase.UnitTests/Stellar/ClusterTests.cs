@@ -3,25 +3,18 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
-using Couchbase.Protostellar.Admin.Bucket.V1;
 using Couchbase.Protostellar.Query.V1;
-using Couchbase.Search;
 using Couchbase.Stellar;
-using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core;
-using Couchbase.Stellar.Management.Buckets;
-using Couchbase.Stellar.Management.Query;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Microsoft.VisualBasic;
 using Moq;
 using Xunit;
 
@@ -30,13 +23,6 @@ namespace Couchbase.UnitTests.Stellar;
 public class ClusterTests
 {
       #region Stellar
-
-      [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_DisposeAsync()
-      {
-          var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await cluster.DisposeAsync());
-      }
 
       [Fact]
       public async Task Throw_UnsupportedInProtostellarException_Diagnostics()
@@ -131,12 +117,49 @@ public class ClusterTests
       #endregion
 
       [Fact]
-      public async Task Cluster_Can_Be_Mocked()
+      public async Task Buckets_Are_Cached()
+      {
+          var cluster = CreateClusterFromMocks();
+          var bucket1 = await cluster.BucketAsync("default");
+          var bucket2 = await cluster.BucketAsync("default");
+
+          Assert.Equal(bucket1.GetHashCode(), bucket2.GetHashCode());
+      }
+
+      [Fact]
+      public async Task Disposed_Buckets_Are_Removed_From_Cache()
+      {
+          var cluster = CreateClusterFromMocks();
+          var bucket1 = await cluster.BucketAsync("default");
+
+          bucket1.Dispose();
+
+          var clusterExt = (IClusterExtended)cluster;
+          Assert.False(clusterExt.BucketExists("default"));
+      }
+
+      [Fact]
+      public async Task Dispose_Removes_All_Buckets()
+      {
+          var cluster = CreateClusterFromMocks();
+          var bucket1 = await cluster.BucketAsync("default");
+          var bucket2 = await cluster.BucketAsync("default1");
+
+          cluster.Dispose();
+
+          var clusterExt = (IClusterExtended)cluster;
+          Assert.False(clusterExt.BucketExists("default"));
+          Assert.False(clusterExt.BucketExists("default1"));
+      }
+
+      [Fact]
+      public void Cluster_Can_Be_Mocked()
       {
           var cluster = CreateClusterFromMocks();
 
           Assert.NotNull(cluster);
       }
+
       internal StellarCluster CreateClusterFromMocks()
       {
           var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));

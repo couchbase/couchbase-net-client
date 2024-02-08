@@ -10,6 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Search\error-with-errors.json" />
+    <EmbeddedResource Include="Search\search-response-success.json" />
+    <EmbeddedResource Include="Search\search-response-with-facets.json" />
     <None Remove="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
     <None Remove="Data\multi-getresponse-packet.txt" />
     <None Remove="Management\Eventing\eventing-function.json" />
@@ -33,12 +36,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Search\error-with-errors.json" />
-    <EmbeddedResource Include="Search\search-response-success.json" />
-    <EmbeddedResource Include="Search\search-response-with-facets.json" />
   </ItemGroup>
 
   <ItemGroup>

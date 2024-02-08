@@ -1,5 +1,6 @@
 ﻿#if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
@@ -21,6 +22,7 @@ internal class StellarBucket : IBucket
 {
     private readonly StellarCluster _stellarCluster;
     private readonly StellarCollectionManager _collectionManager;
+    private readonly ConcurrentDictionary<string, IScope> _scopes = new();
 
     internal StellarBucket(string name, StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient)
     {
@@ -53,12 +55,15 @@ internal class StellarBucket : IBucket
 
     public void Dispose()
     {
-        throw new UnsupportedInProtostellarException("Bucket Dispose");
+        var cluster = _stellarCluster as IClusterExtended;
+        cluster.RemoveBucket(Name);
+        _scopes.Clear();
     }
 
     public ValueTask DisposeAsync()
     {
-        throw new UnsupportedInProtostellarException("Bucket Async Dispose");
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     public Task<IPingReport> PingAsync(PingOptions? options = null)
@@ -66,7 +71,7 @@ internal class StellarBucket : IBucket
         throw new UnsupportedInProtostellarException("Ping Bucket");
     }
 
-    public IScope Scope(string scopeName) => new StellarScope(scopeName, this, _stellarCluster);
+    public IScope Scope(string scopeName) => _scopes.GetOrAdd(scopeName, new StellarScope(scopeName, this, _stellarCluster));
 
     public ValueTask<IScope> ScopeAsync(string scopeName) => ValueTask.FromResult(Scope(scopeName));
 
