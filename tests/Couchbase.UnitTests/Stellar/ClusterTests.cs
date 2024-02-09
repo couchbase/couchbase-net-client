@@ -9,6 +9,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Protostellar.Query.V1;
+using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Search;
@@ -158,6 +159,84 @@ public class ClusterTests
           var cluster = CreateClusterFromMocks();
 
           Assert.NotNull(cluster);
+      }
+
+      [Fact]
+      public void Dispose_Is_Idempotent()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+          cluster.Dispose();//no side effect
+      }
+
+      [Fact]
+      public async Task Throw_ODE_When_BucketAsync_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+         await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await cluster.BucketAsync("default"));
+      }
+
+      [Fact]
+      public async Task Throw_ODE_When_QueryAsync_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+          await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await cluster.QueryAsync<dynamic>("SELECT 1;"));
+      }
+
+      [Fact]
+      public async Task Throw_ODE_When_SearchQueryAsync_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+          cluster.Dispose();
+
+          await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await cluster.SearchQueryAsync("indexname", new TermQuery("term")));
+      }
+
+      [Fact]
+      public async Task Throw_ODE_When_AnalyticsQueryAsync_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+          await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;"));
+      }
+
+      [Fact]
+      public void Throw_ODE_When_SearchIndexes_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+          Assert.Throws<ObjectDisposedException>(()=> cluster.SearchIndexes);
+      }
+
+      [Fact]
+      public void Throw_ODE_When_QueryIndexes_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+          Assert.Throws<ObjectDisposedException>(()=> cluster.QueryIndexes);
+      }
+
+      [Fact]
+      public void Throw_ODE_When_Buckets_Called_After_Being_Disposed()
+      {
+          var cluster = CreateClusterFromMocks();
+
+          cluster.Dispose();
+
+          Assert.Throws<ObjectDisposedException>(()=> cluster.Buckets);
       }
 
       internal StellarCluster CreateClusterFromMocks()

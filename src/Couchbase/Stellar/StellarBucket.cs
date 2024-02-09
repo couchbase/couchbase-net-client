@@ -12,6 +12,7 @@ using Couchbase.Protostellar.Query.V1;
 using Couchbase.Stellar.KeyValue;
 using Couchbase.Stellar.Management.Collections;
 using Couchbase.Stellar.Util;
+using Couchbase.Utils;
 using Couchbase.Views;
 
 namespace Couchbase.Stellar;
@@ -23,6 +24,7 @@ internal class StellarBucket : IBucket
     private readonly StellarCluster _stellarCluster;
     private readonly StellarCollectionManager _collectionManager;
     private readonly ConcurrentDictionary<string, IScope> _scopes = new();
+    private volatile bool _disposed;
 
     internal StellarBucket(string name, StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient)
     {
@@ -35,26 +37,70 @@ internal class StellarBucket : IBucket
 
     public string Name { get; }
 
-    public ICluster Cluster => _stellarCluster;
+    public ICluster Cluster
+    {
+        get
+        {
+            CheckIfDisposed();
+            return _stellarCluster;
+        }
+    }
 
     public IViewIndexManager ViewIndexes => throw new UnsupportedInProtostellarException(nameof(ViewIndexes));
 
-    public ICouchbaseCollectionManager Collections => _collectionManager;
+    public ICouchbaseCollectionManager Collections
+    {
+        get
+        {
+            CheckIfDisposed();
+            return _collectionManager;
+        }
+    }
 
-    public ICouchbaseCollection Collection(string collectionName) => DefaultScope().Collection(collectionName);
+    public ICouchbaseCollection Collection(string collectionName)
+    {
+        CheckIfDisposed();
+        return DefaultScope().Collection(collectionName);
+    }
 
-    public ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName) => ValueTask.FromResult(Collection(collectionName));
+    public ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName)
+    {
+        CheckIfDisposed();
+        return ValueTask.FromResult(Collection(collectionName));
+    }
 
-    public ICouchbaseCollection DefaultCollection() => DefaultScope().Collection("_default");
+    public ICouchbaseCollection DefaultCollection()
+    {
+        CheckIfDisposed();
+        return DefaultScope().Collection("_default");
+    }
 
-    public ValueTask<ICouchbaseCollection> DefaultCollectionAsync() => ValueTask.FromResult(DefaultCollection());
+    public ValueTask<ICouchbaseCollection> DefaultCollectionAsync()
+    {
+        CheckIfDisposed();
+        return ValueTask.FromResult(DefaultCollection());
+    }
 
-    public IScope DefaultScope() => Scope("_default");
+    public IScope DefaultScope()
+    {
+        CheckIfDisposed();
+        return Scope("_default");
+    }
 
-    public ValueTask<IScope> DefaultScopeAsync() => ValueTask.FromResult(DefaultScope());
+    public ValueTask<IScope> DefaultScopeAsync()
+    {
+        CheckIfDisposed();
+        return ValueTask.FromResult(DefaultScope());
+    }
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         var cluster = _stellarCluster as IClusterExtended;
         cluster.RemoveBucket(Name);
         _scopes.Clear();
@@ -71,9 +117,17 @@ internal class StellarBucket : IBucket
         throw new UnsupportedInProtostellarException("Ping Bucket");
     }
 
-    public IScope Scope(string scopeName) => _scopes.GetOrAdd(scopeName, new StellarScope(scopeName, this, _stellarCluster));
+    public IScope Scope(string scopeName)
+    {
+        CheckIfDisposed();
+        return _scopes.GetOrAdd(scopeName, new StellarScope(scopeName, this, _stellarCluster));
+    }
 
-    public ValueTask<IScope> ScopeAsync(string scopeName) => ValueTask.FromResult(Scope(scopeName));
+    public ValueTask<IScope> ScopeAsync(string scopeName)
+    {
+        CheckIfDisposed();
+        return ValueTask.FromResult(Scope(scopeName));
+    }
 
     public Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null)
     {
@@ -83,6 +137,14 @@ internal class StellarBucket : IBucket
     public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
     {
         throw new UnsupportedInProtostellarException("Bucket WaitUntilReady");
+    }
+
+    private void CheckIfDisposed()
+    {
+        if (_disposed)
+        {
+            ThrowHelper.ThrowObjectDisposedException(nameof(StellarBucket));
+        }
     }
 }
 #endif

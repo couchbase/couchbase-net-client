@@ -76,6 +76,105 @@ public class BucketTests
         Assert.Equal(collection.GetHashCode(), collection1.GetHashCode());
     }
 
+
+    [Fact]
+    public async Task Dispose_Is_Idempotent()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+        bucket.Dispose();//no side effect
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_DefaultCollectionAsync_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await bucket.DefaultCollectionAsync());
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_ScopeAsync_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await bucket.ScopeAsync("name"));
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_Scope_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(()=> bucket.Scope("name"));
+    }
+
+    [Fact]
+    public async Task  Throw_ODE_When_DefaultCollection_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(()=> bucket.DefaultCollection());
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_Collection_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(()=> bucket.Collection("name"));
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_Collections_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(()=> bucket.Collections);
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_DefaultScope_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(()=> bucket.DefaultScope());
+    }
+
+    [Fact]
+    public async Task Throw_ODE_When_DefaultScopeAsync_Called_After_Being_Disposed()
+    {
+        var cluster = CreateClusterFromMocks();
+        var bucket = await cluster.BucketAsync("default");
+
+        bucket.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async ()=> await bucket.DefaultScopeAsync());
+    }
+
     internal StellarCluster CreateClusterFromMocks()
     {
         var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));

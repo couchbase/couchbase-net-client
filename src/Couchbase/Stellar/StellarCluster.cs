@@ -56,6 +56,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly IStellarSearchClient _searchClient;
     private readonly Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
+    private volatile bool _disposed;
+
     private ClusterChannelCredentials ChannelCredentials { get; }
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
@@ -150,15 +152,25 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public static async Task<ICluster> ConnectAsync(ClusterOptions clusterOptions)
     {
-        var clusterWrapper = new StellarCluster(clusterOptions);
-        await clusterWrapper.ConnectGrpcAsync(clusterOptions.KvConnectTimeout).ConfigureAwait(false);
-        return clusterWrapper;
+        var cluster = new StellarCluster(clusterOptions);
+        await cluster.ConnectGrpcAsync(clusterOptions.KvConnectTimeout).ConfigureAwait(false);
+        return cluster;
     }
 
     internal IRequestTracer RequestTracer { get; }
 
+    private void CheckIfDisposed()
+    {
+        if (_disposed)
+        {
+            ThrowHelper.ThrowObjectDisposedException(nameof(StellarCluster));
+        }
+    }
+
     private async Task ConnectGrpcAsync(TimeSpan kvConnectTimeout)
     {
+        CheckIfDisposed();
+
         var stopwatch = new Stopwatch();
         using var cts = new CancellationTokenSource(kvConnectTimeout);
         try
@@ -204,13 +216,34 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
 
-    public IQueryIndexManager QueryIndexes => _queryIndexManager;
+    public IQueryIndexManager QueryIndexes
+    {
+        get
+        {
+            CheckIfDisposed();
+            return _queryIndexManager;
+        }
+    }
 
     public IAnalyticsIndexManager AnalyticsIndexes => throw new UnsupportedInProtostellarException("Analytics Index Management");
 
-    public ISearchIndexManager SearchIndexes => _searchIndexManager;
+    public ISearchIndexManager SearchIndexes
+    {
+        get
+        {
+            CheckIfDisposed();
+            return _searchIndexManager;
+        }
+    }
 
-    public IBucketManager Buckets => _bucketManager;
+    public IBucketManager Buckets
+    {
+        get
+        {
+            CheckIfDisposed();
+            return _bucketManager;
+        }
+    }
 
     public IUserManager Users => throw new UnsupportedInProtostellarException("User Management");
 
@@ -218,6 +251,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {
+        CheckIfDisposed();
         ThrowIfBootStrapFailed();
 
         options ??= new AnalyticsOptions();
@@ -226,6 +260,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public ValueTask<IBucket> BucketAsync(string name)
     {
+        CheckIfDisposed();
         return new ValueTask<IBucket>(_buckets.GetOrAdd(name, new StellarBucket(name, this, _queryClient)));
     }
 
@@ -236,6 +271,12 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         foreach (var bucket in _buckets.Values)
         {
             bucket.Dispose();
@@ -256,6 +297,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
     {
+        CheckIfDisposed();
         ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
@@ -264,6 +306,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts)
     {
+        CheckIfDisposed();
         ThrowIfBootStrapFailed();
 
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
@@ -304,6 +347,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null)
     {
+        CheckIfDisposed();
         ThrowIfBootStrapFailed();
 
         return await _searchClient.QueryAsync(indexName, query, options).ConfigureAwait(false);
