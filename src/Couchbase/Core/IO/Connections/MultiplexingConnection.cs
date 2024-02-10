@@ -216,7 +216,7 @@ namespace Couchbase.Core.IO.Connections
                     {
                         try
                         {
-                            var magic = (Magic) operationResponse.Memory.Slice(HeaderOffsets.Magic).ToArray()[0];
+                            var magic = (Magic) operationResponse.Memory.Span[HeaderOffsets.Magic];
                             if (magic == Magic.ServerRequest)
                             {
                                 //This is the server sending a partial config request for CMCN
