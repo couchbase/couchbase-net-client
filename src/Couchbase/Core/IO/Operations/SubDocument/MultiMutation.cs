@@ -131,55 +131,73 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             TryReadServerDuration(buffer);
         }
 
-        public IList<MutateInSpec> GetCommandValues()
+        /// <summary>
+        /// Parses the response data into <see cref="MutateCommands"/>.
+        /// </summary>
+        /// <returns>An <see cref="IDisposable"/> to cleanup any data buffers.</returns>
+        /// <remarks>
+        /// The parsed <see cref="OperationSpec.Bytes"/> is a reference to the memory in the response data.
+        /// It is no longer valid once the response data is disposed via the returned <see cref="IDisposable"/>.
+        /// </remarks>
+        public IDisposable ParseCommandValues()
         {
-            var responseSpan = Data.Span;
-            ReadExtras(responseSpan);
+            var headerSpan = Data.Span;
+            ReadExtras(headerSpan);
 
             //all mutations successful
-            if (responseSpan.Length == OperationHeader.Length + Header.FramingExtrasLength)
+            if (headerSpan.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
-                return MutateCommands.OrderBy(spec => spec.OriginalIndex).ToList();
+                return NullDisposable.Instance;
             }
 
-            if (Header.BodyOffset > responseSpan.Length)
+            if (Header.BodyOffset > headerSpan.Length)
             {
                 throw new DecodingFailureException();
             }
 
-            responseSpan = responseSpan.Slice(Header.BodyOffset);
-
-            //some commands return nothing - so return back an empty list
-            if (responseSpan.Length == 0) return new List<MutateInSpec>();
-
-            for (;;)
+            var data = ExtractBody();
+            try
             {
-                var index = responseSpan[0];
-                var command = MutateCommands[index];
-                command.Status = (ResponseStatus) ByteConverter.ToUInt16(responseSpan.Slice(1));
-
-                //if success read value and loop to next result - otherwise terminate loop here
-                if (command.Status == ResponseStatus.Success)
+                //some commands return nothing - so return back an empty list
+                if (data.Memory.Length == 0)
                 {
-                    var valueLength = ByteConverter.ToInt32(responseSpan.Slice(3));
-                    if (valueLength > 0)
+                    data.Dispose();
+                    return NullDisposable.Instance;
+                }
+
+                var responseSegment = data.Memory;
+                for (;;)
+                {
+                    var index = responseSegment.Span[0];
+                    var command = MutateCommands[index];
+                    command.Status = (ResponseStatus) ByteConverter.ToUInt16(responseSegment.Span.Slice(1));
+
+                    //if success read value and loop to next result - otherwise terminate loop here
+                    if (command.Status == ResponseStatus.Success)
                     {
-                        var payLoad = new byte[valueLength];
-                        responseSpan.Slice(7, valueLength).CopyTo(payLoad);
-                        command.Bytes = payLoad;
+                        var valueLength = ByteConverter.ToInt32(responseSegment.Span.Slice(3));
+                        command.Bytes = valueLength > 0
+                            ? responseSegment.Slice(7, valueLength)
+                            : default;
+
+                        responseSegment = responseSegment.Slice(7 + valueLength);
+                    }
+                    else
+                    {
+                        break;
                     }
 
-                    responseSpan = responseSpan.Slice(7 + valueLength);
-                }
-                else
-                {
-                    break;
+                    if (responseSegment.Length <= 0) break;
                 }
 
-                if (responseSpan.Length <= 0) break;
+                return data;
             }
-
-            return MutateCommands.OrderBy(spec => spec.OriginalIndex).ToList();
+            catch
+            {
+                // Dispose the data buffer if an exception is thrown
+                data.Dispose();
+                throw;
+            }
         }
 
         public override OpCode OpCode => OpCode.SubMultiMutation;

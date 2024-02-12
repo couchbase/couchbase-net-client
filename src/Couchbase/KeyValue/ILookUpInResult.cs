@@ -1,3 +1,4 @@
+using System;
 using Couchbase.Core.Compatibility;
 
 #nullable enable
@@ -7,7 +8,7 @@ namespace Couchbase.KeyValue
     /// <summary>
     /// Result of a sub document LookupIn operation.
     /// </summary>
-    public interface ILookupInResult : IResult
+    public interface ILookupInResult : IResult, IDisposable
     {
         bool Exists(int index);
 

@@ -40,14 +40,19 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
 
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
-            Assert.Equal(10, op.GetCommandValues().Count);
+
+            using (op.ParseCommandValues())
+            {
+                Assert.Equal(10, op.MutateCommands.Count);
+            }
+
             op.Reset();
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
-            Assert.Equal(10, op.GetCommandValues().Count);
+            Assert.Equal(10, op.MutateCommands.Count);
 
 #pragma warning disable CS0618
-            var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
+            var result = new MutateInResult(op);
 #pragma warning restore CS0618
         }
     }

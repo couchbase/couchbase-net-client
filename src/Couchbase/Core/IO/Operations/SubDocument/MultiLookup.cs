@@ -97,32 +97,50 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public override OpCode OpCode => OpCode.MultiLookup;
 
-        public IList<LookupInSpec> GetCommandValues()
+        /// <summary>
+        /// Parses the response data into <see cref="LookupCommands"/>.
+        /// </summary>
+        /// <returns>An <see cref="IDisposable"/> to cleanup any data buffers.</returns>
+        /// <remarks>
+        /// The parsed <see cref="OperationSpec.Bytes"/> is a reference to the memory in the response data.
+        /// It is no longer valid once the response data is disposed via the returned <see cref="IDisposable"/>.
+        /// </remarks>
+        public IDisposable ParseCommandValues()
         {
             if (Data.IsEmpty)
             {
-                return LookupCommands;
+                return NullDisposable.Instance;
             }
 
-            var responseSpan = Data.Span.Slice(Header.BodyOffset);
-            var commandIndex = 0;
-
-            for (; ;)
+            var data = ExtractBody();
+            try
             {
-                var bodyLength = ByteConverter.ToInt32(responseSpan.Slice(2));
-                var payLoad = new byte[bodyLength];
-                responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
+                var responseSegment = data.Memory;
+                foreach (var command in LookupCommands)
+                {
+                    var bodyLength = ByteConverter.ToInt32(responseSegment.Span.Slice(2));
 
-                var command = LookupCommands[commandIndex++];
-                command.Status = (ResponseStatus)ByteConverter.ToUInt16(responseSpan);
-                command.ValueIsJson = payLoad.AsSpan().IsJson();
-                command.Bytes = payLoad;
+                    command.Status = (ResponseStatus)ByteConverter.ToUInt16(responseSegment.Span);
 
-                responseSpan = responseSpan.Slice(6 + bodyLength);
-                if (responseSpan.Length <= 0) break;
+                    var payload = responseSegment.Slice(6, bodyLength);
+                    command.ValueIsJson = payload.Span.IsJson();
+                    command.Bytes = payload;
+
+                    responseSegment = responseSegment.Slice(6 + bodyLength);
+                    if (responseSegment.Length <= 0)
+                    {
+                        break;
+                    }
+                }
+
+                return data;
             }
-
-            return LookupCommands;
+            catch
+            {
+                // Dispose the data buffer if an exception is thrown
+                data.Dispose();
+                throw;
+            }
         }
 
         /// <summary>

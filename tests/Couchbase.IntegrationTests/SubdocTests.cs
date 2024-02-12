@@ -31,7 +31,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
-            var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.Expiry()).ConfigureAwait(false);
+            using var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.Expiry()).ConfigureAwait(false);
             Assert.NotNull(result.ExpiryTime);
         }
 
@@ -41,7 +41,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync("LookupIn_Can_Return_FullDoc()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
-            var result = await collection.LookupInAsync("LookupIn_Can_Return_FullDoc()", builder=>builder.GetFull());
+            using var result = await collection.LookupInAsync("LookupIn_Can_Return_FullDoc()", builder=>builder.GetFull());
             var doc = result.ContentAs<dynamic>(0);
             Assert.NotNull(doc);
         }
@@ -51,7 +51,7 @@ namespace Couchbase.IntegrationTests
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(nameof(LookupIn_Xattr_In_Any_Order), new { foo = "bar", bar = "foo" }, options => options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
-            var result = await collection.LookupInAsync(nameof(LookupIn_Xattr_In_Any_Order), specs =>
+            using var result = await collection.LookupInAsync(nameof(LookupIn_Xattr_In_Any_Order), specs =>
                 specs.Get("$document", true)
                     .Get("foo", false)
                     .Get("$document.exptime", true)
@@ -70,7 +70,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            var result = await collection.LookupInAsync(DocumentKey, ops =>
+            using var result = await collection.LookupInAsync(DocumentKey, ops =>
             {
                 ops.Get("foo");
                 ops.Get("bar");
@@ -90,7 +90,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var result = await collection.LookupInAsync<TestDoc>(key, ops =>
+                using var result = await collection.LookupInAsync<TestDoc>(key, ops =>
                 {
                     ops.Get(p => p.Foo);
                     ops.Get(p => p.Bar);
@@ -111,7 +111,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new { foo = "bar", bar = "foo" }).ConfigureAwait(false);
 
-            var result = await collection.LookupInAsync(DocumentKey, ops =>
+            using var result = await collection.LookupInAsync(DocumentKey, ops =>
             {
                 ops.Get("foo");
                 ops.Exists("bwar");
@@ -128,7 +128,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            var result = await collection.LookupInAsync(DocumentKey, new[]
+            using var result = await collection.LookupInAsync(DocumentKey, new[]
             {
                 LookupInSpec.Get("foo"),
                 LookupInSpec.Get("bar")
@@ -145,7 +145,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            await collection.MutateInAsync(DocumentKey, ops =>
+            using var _ = await collection.MutateInAsync(DocumentKey, ops =>
             {
                 ops.Upsert("name", "mike");
                 ops.Replace("bar", "bar");
@@ -181,7 +181,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            await collection.MutateInAsync(DocumentKey, ops =>
+            using var _ = await collection.MutateInAsync(DocumentKey, ops =>
             {
                 ops.Upsert("name", "mike");
                 ops.Replace("bar", "bar");
@@ -218,7 +218,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var res = await collection.MutateInAsync<TestDoc>(key, ops =>
+                using var res = await collection.MutateInAsync<TestDoc>(key, ops =>
                 {
                     ops.Upsert(p => p.Name, "mike");
                     ops.Replace(p => p.Bar, "bar");
@@ -264,7 +264,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var res = await collection.MutateInAsync<TestDoc>(key, ops =>
+                using var res = await collection.MutateInAsync<TestDoc>(key, ops =>
                 {
                     ops.Upsert(p => p.Name, "mike");
                     ops.Replace(p => p.Bar, "bar");
@@ -303,7 +303,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(docId, new { foo = "bar", bar = "foo", xxx = 0 }).ConfigureAwait(false);
 
-            var mutateResult = await collection.MutateInAsync(docId, ops =>
+            using var mutateResult = await collection.MutateInAsync(docId, ops =>
             {
                 ops.Upsert("name", "mike", true);
                 ops.Upsert("txnid", "pretend_this_is_a_guid", createPath: true, isXattr: true);
@@ -337,7 +337,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            var result = await collection.MutateInAsync(DocumentKey, new[]
+            using var result = await collection.MutateInAsync(DocumentKey, new[]
             {
                 MutateInSpec.Upsert("name", "mike"),
                 MutateInSpec.Replace("bar", "bar")
@@ -362,7 +362,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.LookupInAsync("docId", builder =>
+                using var _ = await collection.LookupInAsync("docId", builder =>
                 {
                     builder.Get("doc.path", isXattr: true);
                     builder.Count("path", isXattr: true); //will fail and cause server to close connection
@@ -383,7 +383,7 @@ namespace Couchbase.IntegrationTests
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
 
-            var result = await collection.MutateInAsync("foo", specs =>
+            using var result = await collection.MutateInAsync("foo", specs =>
                 {
                     specs.Upsert("key", "value", true, true);
                     specs.Upsert("name", "mikeSmith");
@@ -400,7 +400,7 @@ namespace Couchbase.IntegrationTests
             (var documentKey, var collection) = await PrepDoc();
 
             // LookupIn should not throw if one path is bad.
-            var lookupInResult = await collection.LookupInAsync(documentKey, specs => specs.Get("foo").Get("doesNotExist"));
+            using var lookupInResult = await collection.LookupInAsync(documentKey, specs => specs.Get("foo").Get("doesNotExist"));
             var fooValue = lookupInResult.ContentAs<string>(0);
             Assert.Equal("bar", fooValue);
             Assert.False(lookupInResult.Exists(1));
@@ -419,7 +419,7 @@ namespace Couchbase.IntegrationTests
         public async Task MutateIn_PathInvalid()
         {
             (var documentKey, var collection) = await PrepDoc();
-            var t = collection.MutateInAsync(documentKey,
+            using var t = collection.MutateInAsync(documentKey,
                 specs => specs.Upsert("foo", "bar_updated").Replace("baz\\$$-foo", "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
 
@@ -432,7 +432,7 @@ namespace Couchbase.IntegrationTests
         {
             (var documentKey, var collection) = await PrepDoc();
             var tooLong = string.Join(".", System.Linq.Enumerable.Repeat("a", 300));
-            var t = collection.MutateInAsync(documentKey,
+            using var t = collection.MutateInAsync(documentKey,
                 specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
 
@@ -444,7 +444,7 @@ namespace Couchbase.IntegrationTests
         {
             (var documentKey, var collection) = await PrepDoc();
             var tooLong = string.Join(".", System.Linq.Enumerable.Repeat("a", 16));
-            var t = collection.MutateInAsync(documentKey,
+            using var t = collection.MutateInAsync(documentKey,
                 specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
 
@@ -455,7 +455,7 @@ namespace Couchbase.IntegrationTests
         public async Task MutateIn_PathNotFound()
         {
             (var documentKey, var collection) = await PrepDoc();
-            var t = collection.MutateInAsync(documentKey,
+            using var t = collection.MutateInAsync(documentKey,
                 specs => specs.Replace("doesNotExist", "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
 
@@ -467,7 +467,7 @@ namespace Couchbase.IntegrationTests
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var documentKey = nameof(MutateIn_CreateAsDeleted_Creates_Tombstone) + Guid.NewGuid().ToString();
-            var result = await collection.MutateInAsync(documentKey, specs =>
+            using var result = await collection.MutateInAsync(documentKey, specs =>
                 {
                     specs.Upsert("key", "value", true, true);
                  },
@@ -478,14 +478,14 @@ namespace Couchbase.IntegrationTests
 
             _ = await Assert.ThrowsAnyAsync<DocumentNotFoundException>(() => collection.GetAsync(documentKey));
 
-            var lookupResult = await collection.LookupInAsync(documentKey,
+            using var lookupResult = await collection.LookupInAsync(documentKey,
                 specs => specs.Get("key", true),
                 opts => opts.AccessDeleted(true));
             Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
 
             Assert.True(lookupResult.IsDeleted);
 
-            var lookupWithMissingXattr = await collection.LookupInAsync(documentKey,
+            using var lookupWithMissingXattr = await collection.LookupInAsync(documentKey,
                 specs => specs.Get("txn.id", isXattr: true).Get("txn.stgd", isXattr: true).Get("$document", isXattr: true),
                 opts => opts.AccessDeleted(true));
             Assert.True(lookupWithMissingXattr.IsDeleted);
@@ -506,7 +506,7 @@ namespace Couchbase.IntegrationTests
             });
 
             await collection.UpsertAsync(documentKey, o);
-            var result = await collection.MutateInAsync(documentKey, specs =>
+            using var result = await collection.MutateInAsync(documentKey, specs =>
             {
                 specs.Remove("title").Insert<string>("title", null);
                 specs.Insert<string>("newKey", null, true);
@@ -522,7 +522,7 @@ namespace Couchbase.IntegrationTests
             byte[] o = [1, 2, 3, 4];
             var transcoder = new LegacyTranscoder(DefaultSerializer.Instance);
 
-            await collection.MutateInAsync(documentKey,
+            using var _ = await collection.MutateInAsync(documentKey,
                 builder =>
                 {
                     builder.SetDoc(o);
@@ -530,7 +530,7 @@ namespace Couchbase.IntegrationTests
                 },
                 options => options.Transcoder(transcoder).StoreSemantics(StoreSemantics.Upsert));
 
-            var result = await collection.LookupInAsync(documentKey,
+            using var result = await collection.LookupInAsync(documentKey,
                 builder =>
                 {
                     builder.GetFull();

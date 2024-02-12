@@ -43,6 +43,9 @@ namespace Couchbase.KeyValue
         public int IndexOf(string path) => _inner.IndexOf(path);
 
         public ITypeSerializer Serializer => ((ITypeSerializerProvider) _inner).Serializer;
+
+        /// <inheritdoc />
+        public void Dispose() => _inner.Dispose();
     }
 }
 

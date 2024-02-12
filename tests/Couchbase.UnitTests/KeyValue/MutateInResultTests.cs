@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.KeyValue
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(responsePacket));
 
-            var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
+            var result = new MutateInResult(op);
             Assert.Equal(10, result.ContentAs<int>(3));
             Assert.Equal(-5, result.ContentAs<int>(4));
         }
@@ -73,7 +73,7 @@ namespace Couchbase.UnitTests.KeyValue
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
 
-            var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
+            var result = new MutateInResult(op);
 
             Assert.Equal(0, result.ContentAs<int>(0));
             Assert.Equal(0, result.ContentAs<int>(1));
@@ -105,7 +105,7 @@ namespace Couchbase.UnitTests.KeyValue
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
 
-            var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
+            var result = new MutateInResult(op);
 
             Assert.Throws<InvalidIndexException>(() => result.ContentAs<string>(index));
         }

@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP3_1_OR_GREATER
+#if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Text;
 using Couchbase;
@@ -116,6 +116,11 @@ namespace Couchbase.Stellar.KeyValue
             var spec = specs[index];
             return spec;
         }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+        }
     }
 
     internal record MutateInResult(MutateInResponse GrpcResponse, MutateInRequest OriginalRequest, ITypeSerializer Serializer) : IMutateInResult
@@ -162,6 +167,11 @@ namespace Couchbase.Stellar.KeyValue
 
             var spec = specs[index];
             return spec;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
         }
     }
 

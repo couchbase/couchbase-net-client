@@ -918,8 +918,7 @@ namespace Couchbase.KeyValue
             await _bucket.RetryAsync(mutation, ctp.TokenPair).ConfigureAwait(false);
 
 #pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
-            return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
-                mutation.Transcoder.Serializer!);
+            return new MutateInResult(mutation);
 #pragma warning restore 618
         }
 

@@ -18,24 +18,26 @@ namespace Couchbase.KeyValue
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
         private readonly ITypeTranscoder _transcoder;
+        private IDisposable? _bufferCleanup;
         public ITypeSerializer Serializer { get; }
 
         internal LookupInResult(MultiLookup<byte[]> lookup, bool isDeleted = false, bool? isReplica = false, TimeSpan? expiry = null)
         {
-            var specs = lookup.GetCommandValues();
-            // ReSharper disable ConditionIsAlwaysTrueOrFalse
-            if (specs == null)
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (lookup == null)
             {
-                ThrowHelper.ThrowArgumentNullException(nameof(specs));
+                ThrowHelper.ThrowArgumentNullException(nameof(lookup));
             }
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (lookup.Transcoder.Serializer == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(lookup.Transcoder.Serializer));
             }
-            // ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+            _bufferCleanup = lookup.ParseCommandValues();
 
             _flags = lookup.Flags;
-            _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
+            _specs = lookup.LookupCommands.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = lookup.Cas;
             Expiry = expiry;
             _transcoder = lookup.Transcoder;
@@ -58,6 +60,7 @@ namespace Couchbase.KeyValue
             {
                 throw new InvalidIndexException($"The index provided is out of range: {index}.");
             }
+            EnsureNotDisposed();
 
             var spec = _specs[index];
 
@@ -83,6 +86,7 @@ namespace Couchbase.KeyValue
             {
                 throw new InvalidIndexException($"The index provided is out of range: {index}.");
             }
+            EnsureNotDisposed();
 
             var spec = _specs[index];
             return spec.Status == ResponseStatus.Success;
@@ -96,6 +100,7 @@ namespace Couchbase.KeyValue
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(path));
             }
+            EnsureNotDisposed();
 
             for (var i = 0; i < _specs.Count; i++)
             {
@@ -140,6 +145,21 @@ namespace Couchbase.KeyValue
                 SubDocumentErrorIndex = index,
                 SubDocumentStatus = spec.Status
             };
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            _bufferCleanup?.Dispose();
+            _bufferCleanup = null;
+        }
+
+        private void EnsureNotDisposed()
+        {
+            if (_bufferCleanup is null)
+            {
+                ThrowHelper.ThrowObjectDisposedException(nameof(LookupInResult));
+            }
+        }
     }
 }
 

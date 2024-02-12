@@ -46,6 +46,9 @@ namespace Couchbase.KeyValue
 
         /// <inheritdoc />
         public int IndexOf(string path) => _inner.IndexOf(path);
+
+        /// <inheritdoc />
+        public void Dispose() => _inner.Dispose();
     }
 }
 
