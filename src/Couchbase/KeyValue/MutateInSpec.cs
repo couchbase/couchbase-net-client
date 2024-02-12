@@ -86,7 +86,7 @@ namespace Couchbase.KeyValue
 
         public static MutateInSpec Replace<T>(string path, T value, bool isXattr = false, bool removeBrackets = false)
         {
-            return CreateSpec(OpCode.SubReplace, path, value, false, isXattr, removeBrackets);
+            return path == "" ? SetDoc(value) : CreateSpec(OpCode.SubReplace, path, value, false, isXattr, removeBrackets);
         }
 
         public static MutateInSpec SetDoc<T>(T value)
@@ -96,7 +96,7 @@ namespace Couchbase.KeyValue
 
         public static MutateInSpec Remove(string path, bool isXattr = false, bool removeBrackets = false)
         {
-            return CreateSpec(OpCode.SubDelete, path, false, isXattr, removeBrackets);
+            return path == "" ? CreateSpec(OpCode.Delete, path, false, isXattr, false) : CreateSpec(OpCode.SubDelete, path, false, isXattr, removeBrackets);
         }
 
         public static MutateInSpec ArrayAppend<T>(string path, T[] values, bool createPath = false, bool isXattr = false, bool removeBrackets = true)
