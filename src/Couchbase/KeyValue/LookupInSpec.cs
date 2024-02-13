@@ -26,7 +26,7 @@ namespace Couchbase.KeyValue
 
         public static LookupInSpec Get(string path, bool isXattr = false)
         {
-            return CreateSpec(OpCode.SubGet, path, isXattr);
+            return path == "" ? GetFull() : CreateSpec(OpCode.SubGet, path, isXattr);
         }
 
         public static LookupInSpec Exists(string path, bool isXattr = false)
