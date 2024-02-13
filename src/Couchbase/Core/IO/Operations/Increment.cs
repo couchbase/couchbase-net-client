@@ -19,6 +19,7 @@ namespace Couchbase.Core.IO.Operations
             Span<byte> extras = stackalloc byte[20];
             ByteConverter.FromUInt64(Delta, extras);
             if (Initial.HasValue) ByteConverter.FromUInt64(Initial.Value, extras.Slice(8));
+            else Expires = 0xFFFFFFFF; //From KV RFC: When the Counter does not exist and no Initial value is provided, the Expiry needs to be all 1 bits for the operation to fail.
             ByteConverter.FromUInt32(Expires, extras.Slice(16));
             builder.Write(extras);
         }
