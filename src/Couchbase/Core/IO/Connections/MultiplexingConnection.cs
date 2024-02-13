@@ -325,7 +325,11 @@ namespace Couchbase.Core.IO.Connections
 
             // Copy the response to a separate, contiguous memory buffer
 
+#if NET6_0_OR_GREATER
             operationResponse = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
+#else
+            operationResponse = OperationResponseMemoryPool.Instance.RentAndSlice(responseSize);
+#endif
             try
             {
                 operationBuffer.CopyTo(operationResponse.Memory.Span);

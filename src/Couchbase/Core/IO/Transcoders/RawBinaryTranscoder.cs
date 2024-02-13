@@ -70,7 +70,11 @@ namespace Couchbase.Core.IO.Transcoders
                 // with IMemoryOwner<T> conventions. Failure to properly dispose this object will result in the memory
                 // not being returned to the pool, which will increase GC impact across various parts of the framework.
 
+#if NET6_0_OR_GREATER
                 var memoryOwner = MemoryPool<byte>.Shared.RentAndSlice(buffer.Length);
+#else
+                var memoryOwner = OperationResponseMemoryPool.Instance.RentAndSlice(buffer.Length);
+#endif
                 try
                 {
                     buffer.CopyTo(memoryOwner.Memory);
