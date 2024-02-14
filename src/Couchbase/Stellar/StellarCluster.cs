@@ -3,7 +3,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Threading;
@@ -22,7 +21,6 @@ using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
-using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -132,7 +130,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
         _queryIndexManager = new StellarQueryIndexManager(this);
-        _queryClient = new Protostellar.Query.V1.QueryService.QueryServiceClient(GrpcChannel);
+        _queryClient = new QueryService.QueryServiceClient(GrpcChannel);
         _metaData = new Metadata();
         _analyticsClient = new StellarAnalyticsClient(this);
         _searchClient = new StellarSearchClient(this);
@@ -210,7 +208,6 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     internal IRetryOrchestrator RetryHandler { get; }
 
     internal GrpcChannel GrpcChannel { get; }
-
 
     internal ITypeSerializer TypeSerializer { get; }
 
@@ -304,7 +301,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return QueryAsync<T>(statement, opts);
     }
 
-    public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts)
+    public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts)
     {
         CheckIfDisposed();
         ThrowIfBootStrapFailed();
@@ -339,10 +336,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
         var callOptions = GrpcCallOptions(opts.TimeOut, opts.Token);
         var asyncResponse = _queryClient.Query(request, callOptions);
-        var headers = await asyncResponse.ResponseHeadersAsync.ConfigureAwait(false);
         var streamingResult = new StellarQueryResult<T>(asyncResponse, TypeSerializer);
 
-        return streamingResult;
+        return Task.FromResult<IQueryResult<T>>(streamingResult);
     }
 
     public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null)
@@ -357,9 +353,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     {
         throw new UnsupportedInProtostellarException("Wait Until Ready");
     }
-    public Grpc.Core.CallOptions GrpcCallOptions() => new (headers: _metaData);
-    public Grpc.Core.CallOptions GrpcCallOptions(CancellationToken cancellationToken) => new (headers: _metaData, cancellationToken: cancellationToken);
-    public Grpc.Core.CallOptions GrpcCallOptions(TimeSpan? timeout, CancellationToken cancellationToken) =>
+    public CallOptions GrpcCallOptions() => new (headers: _metaData);
+    public CallOptions GrpcCallOptions(CancellationToken cancellationToken) => new (headers: _metaData, cancellationToken: cancellationToken);
+    public CallOptions GrpcCallOptions(TimeSpan? timeout, CancellationToken cancellationToken) =>
         new (headers: _metaData, deadline: timeout.FromNow(), cancellationToken: cancellationToken);
 
     private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>

@@ -5,9 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.KeyValue;
 using Couchbase.Management.Search;
-using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
-using Couchbase.Stellar.Util;
 
 namespace Couchbase.Stellar.KeyValue;
 
@@ -15,7 +13,7 @@ namespace Couchbase.Stellar.KeyValue;
 
 internal class StellarScope : IScope
 {
-    public const string DefaultScopeName = "_default";
+    private const string DefaultScopeName = "_default";
     private readonly StellarBucket _stellarBucket;
     private readonly StellarCluster _stellarCluster;
     private readonly ConcurrentDictionary<string, ICouchbaseCollection> _collections = new();
