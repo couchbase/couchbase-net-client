@@ -3,8 +3,10 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 using Couchbase.KeyValue;
+using Couchbase.Query.Couchbase.N1QL;
 using Couchbase.Utils;
 
 #nullable enable
@@ -64,7 +66,24 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
                 foreach (var lookup in LookupCommands)
                 {
-                    var pathLength = ByteConverter.FromString(lookup.Path, bufferSpan);
+                    if (lookup.Path.Length > OperationSpec.MaxPathLength)
+                    {
+                        throw new InvalidArgumentException(
+                            $"Path length of {lookup.Path.Length} exceeds maximum ({OperationSpec.MaxPathLength}");
+                    }
+
+                    var pathLength = 0;
+                    try
+                    {
+                        pathLength = ByteConverter.FromString(lookup.Path, bufferSpan);
+                    }
+                    catch (ArgumentException e)
+                    {
+                        // the preceding length check will catch most situations, but the "Length" of a UTF8 string does
+                        // not necessarily correspond to its byte encoding length.
+                        throw new InvalidArgumentException("Path is invalid.", e);
+                    }
+
                     builder.BeginOperationSpec(false);
                     builder.Write(buffer, 0, pathLength);
                     builder.CompleteOperationSpec(lookup);
