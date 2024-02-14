@@ -79,7 +79,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                 {
                     try
                     {
-                        var nodes = _configSubscriber?.ClusterNodes.ToList().Shuffle();
+                        var nodes = _configSubscriber?.ClusterNodes.Where(x=>x.HasManagement).ToList().Shuffle();
                         while (nodes != null && nodes.Any())
                         {
                             try

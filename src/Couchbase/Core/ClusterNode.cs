@@ -218,6 +218,7 @@ namespace Couchbase.Core
         public bool HasSearch => NodesAdapter?.IsSearchNode ?? false;
         public bool HasKv => NodesAdapter?.IsKvNode ?? false;
         public bool HasEventing => NodesAdapter?.IsEventingNode ?? false;
+        public bool HasManagement => NodesAdapter?.IsManagementNode ?? false;
         public DateTime? LastViewActivity { get; private set; }
         public DateTime? LastQueryActivity { get; private set; }
         public DateTime? LastSearchActivity { get; private set; }

@@ -30,6 +30,13 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var clusterNodeCollection = new ClusterNodeCollection();
             var clusterNode = new Mock<IClusterNode>();
+            clusterNode.Setup(x => x.NodesAdapter).Returns(new NodeAdapter
+            {
+                MgmtApi = 8091,
+                MgmtApiSsl = 18091
+            });
+
+            clusterNode.Setup(x => x.HasManagement).Returns(true);
             clusterNode.Setup(x => x.KeyEndPoints).Returns(new ReadOnlyObservableCollection<HostEndpointWithPort>(new ObservableCollection<HostEndpointWithPort>()));
             clusterNode.Setup(x => x.ManagementUri).Returns(new Uri($"http://NOSUCHHOST{nameof(Should_Continue_After_Failures)}:8091"));
             clusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort($"NOSUCHHOST{nameof(Should_Continue_After_Failures)}", 11210));

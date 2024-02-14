@@ -47,6 +47,7 @@ namespace Couchbase.Core
         bool HasSearch { get; }
         bool HasKv { get; }
         bool HasEventing { get; }
+        bool HasManagement { get; }
         DateTime? LastViewActivity { get; }
         DateTime? LastQueryActivity { get; }
         DateTime? LastSearchActivity { get; }

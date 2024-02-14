@@ -124,7 +124,10 @@ namespace Couchbase.UnitTests.Diagnostics
             public bool HasKv { get; internal set; } = false;
 
             #region unused by these tests
-            public bool HasEventing { get; internal set; } = false;           public void Dispose()
+            public bool HasEventing { get; internal set; } = false;
+            public bool HasManagement { get; internal set; } = false;
+
+            public void Dispose()
             {
                 throw new NotImplementedException();
             }

@@ -267,10 +267,18 @@ namespace Couchbase.Core.Configuration.Server
         /// <summary>
         /// Gets a value indicating if this instance is an Eventing Service node.
         /// </summary>
-        ///  /// <value>
+        /// <value>
         /// <c>true</c> if this instance is eventing node; otherwise, <c>false</c>.
         /// </value>
         public bool IsEventingNode => Eventing > 0 || EventingSsl > 0;
+
+        /// <summary>
+        /// Gets a value indicating if this instance is a Management service node.
+        /// </summary>
+        /// /// <value>
+        /// <c>true</c> if this instance is management node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsManagementNode => MgmtApi > 0 || MgmtApiSsl > 0;
 
         public override string ToString()
         {
