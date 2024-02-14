@@ -118,7 +118,7 @@ namespace Couchbase.KeyValue
                     var secondsUntilExpiry = JsonSerializer.Deserialize(spec.Bytes.Span, InternalSerializationContext.Default.Int64);
                     if (secondsUntilExpiry == 0)
                     {
-                        return DateTime.MaxValue;
+                        return null;
                     }
 #if NETSTANDARD2_1
                     _expiryTime = DateTime.UnixEpoch.AddSeconds(secondsUntilExpiry).ToLocalTime();
