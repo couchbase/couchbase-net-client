@@ -32,10 +32,10 @@ namespace Couchbase.Core
         private ClusterState _clusterState;
         protected readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
+        private readonly ConcurrentDictionary<string, bool> _testedClusterCaps = new();
         public readonly ClusterNodeCollection Nodes = new();
         private readonly ILogger _logger;
         private volatile int _disposed;
-        private bool? _supportsCollections;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
@@ -295,20 +295,16 @@ namespace Couchbase.Core
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
 
-        public bool SupportsCollections
+        public bool SupportsCollections => HasClusterCap(BucketCapabilities.COLLECTIONS);
+
+        internal bool HasClusterCap(string clusterCap) => _testedClusterCaps.GetOrAdd(clusterCap,
+            cap => CurrentConfig?.BucketCapabilities?.Contains(cap) == true);
+
+        internal void AssertClusterCap(string clusterCap)
         {
-            get
+            if (!HasClusterCap(clusterCap))
             {
-                if (_supportsCollections.HasValue)
-                {
-                    return _supportsCollections.Value;
-                }
-                else
-                {
-                    _supportsCollections = CurrentConfig != null &&
-                        CurrentConfig.BucketCapabilities.Contains("collections");
-                }
-                return _supportsCollections.Value;
+                throw new FeatureNotAvailableException(clusterCap);
             }
         }
 
