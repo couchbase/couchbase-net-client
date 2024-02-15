@@ -75,22 +75,6 @@ namespace Couchbase.Core.IO.Operations
             return status;
         }
 
-        internal static long? GetServerDuration(this OperationHeader header, MemoryStream stream)
-        {
-            if (header.FramingExtrasLength <= 0)
-            {
-                return null;
-            }
-
-            // copy framing extra bytes then reset steam position
-            var bytes = new byte[header.FramingExtrasLength];
-            stream.Position = OperationHeader.Length;
-            stream.Read(bytes, 0, header.FramingExtrasLength);
-            stream.Position = 0;
-
-            return GetServerDuration(bytes);
-        }
-
         internal static long? GetServerDuration(this OperationHeader header, ReadOnlySpan<byte> buffer)
         {
             if (header.FramingExtrasLength <= 0)
@@ -98,11 +82,7 @@ namespace Couchbase.Core.IO.Operations
                 return null;
             }
 
-            // copy framing extra bytes
-            Span<byte> bytes = new byte[header.FramingExtrasLength];
-            buffer.Slice(OperationHeader.Length, header.FramingExtrasLength).CopyTo(bytes);
-
-            return GetServerDuration(bytes);
+            return GetServerDuration(buffer.Slice(OperationHeader.Length, header.FramingExtrasLength));
         }
 
         internal static long? GetServerDuration(ReadOnlySpan<byte> buffer)
