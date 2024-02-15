@@ -26,7 +26,7 @@ internal class StellarBucket : IBucket
     private readonly ConcurrentDictionary<string, IScope> _scopes = new();
     private volatile bool _disposed;
 
-    internal StellarBucket(string name, StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient)
+    internal StellarBucket(string name, StellarCluster stellarCluster)
     {
         Name = name;
         _stellarCluster = stellarCluster;

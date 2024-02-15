@@ -56,14 +56,11 @@ internal class StellarScope : IScope
     {
         _stellarCluster.ThrowIfBootStrapFailed();
 
-        var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
-        opts = opts with
-        {
-            ScopeName = Name,
-            BucketName = Bucket.Name,
-        };
+        options ??= QueryOptions.Default;
+        options.BucketName = Bucket.Name;
+        options.ScopeName = Name;
 
-        return await _stellarCluster.QueryAsync<T>(statement, opts).ConfigureAwait(false);
+        return await _stellarCluster.QueryAsync<T>(statement, options).ConfigureAwait(false);
     }
 }
 #endif

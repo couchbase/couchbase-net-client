@@ -21,7 +21,6 @@ internal class StellarRetryHandler : IRetryOrchestrator
 {
     public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
     {
-
         var backoff = ControlledBackoff.Create();
         var context = new GenericErrorContext();
 

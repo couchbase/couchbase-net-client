@@ -49,9 +49,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly IBucketManager _bucketManager;
     private readonly ISearchIndexManager _searchIndexManager;
     private readonly IQueryIndexManager _queryIndexManager;
-    private readonly QueryService.QueryServiceClient _queryClient;
     private readonly IAnalyticsClient _analyticsClient;
     private readonly IStellarSearchClient _searchClient;
+    private readonly IQueryClient _queryClient;
     private readonly Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private volatile bool _disposed;
@@ -59,7 +59,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private ClusterChannelCredentials ChannelCredentials { get; }
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
-        IQueryIndexManager queryIndexManager, QueryService.QueryServiceClient queryClient,
+        IQueryIndexManager queryIndexManager, IQueryClient queryClient,
         IAnalyticsClient analyticsClient, IStellarSearchClient searchClient,
         Metadata metaData, ClusterChannelCredentials channelCredentials, IRequestTracer requestTracer, GrpcChannel grpcChannel,
         ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions)
@@ -130,7 +130,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
         _queryIndexManager = new StellarQueryIndexManager(this);
-        _queryClient = new QueryService.QueryServiceClient(GrpcChannel);
+        _queryClient = new StellarQueryClient(this, new QueryService.QueryServiceClient(GrpcChannel), TypeSerializer,
+            RetryHandler);
         _metaData = new Metadata();
         _analyticsClient = new StellarAnalyticsClient(this);
         _searchClient = new StellarSearchClient(this);
@@ -258,7 +259,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     public ValueTask<IBucket> BucketAsync(string name)
     {
         CheckIfDisposed();
-        return new ValueTask<IBucket>(_buckets.GetOrAdd(name, new StellarBucket(name, this, _queryClient)));
+        return new ValueTask<IBucket>(_buckets.GetOrAdd(name, new StellarBucket(name, this)));
     }
 
     public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
@@ -297,48 +298,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         CheckIfDisposed();
         ThrowIfBootStrapFailed();
 
-        var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
-        return QueryAsync<T>(statement, opts);
-    }
-
-    public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts)
-    {
-        CheckIfDisposed();
-        ThrowIfBootStrapFailed();
-
-        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
-
-        var request = new QueryRequest
-        {
-            Statement = statement,
-            ReadOnly = opts.ReadOnly ?? false,
-            Prepared = opts.IsPrepared,
-            ScanConsistency = opts.ScanConsistency.ToProto(),
-            FlexIndex = opts.FlexIndex,
-            PreserveExpiry = opts.PreserveExpiry,
-        };
-
-        // because of the way the GRPC library handles Optional, we have to use if statements rather than the '??=' operator
-        // setting the non-nullable SomeProperty sets the associated HasSomeProperty bool.
-        if (opts.BucketName != null) request.BucketName = opts.BucketName;
-        if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
-        if (opts.CurrentContextId != null) request.ClientContextId = opts.CurrentContextId;
-
-        var tuningOptions = new QueryRequest.Types.TuningOptions();
-        if (opts.MaxServerParallelism.HasValue) tuningOptions.MaxParallelism = (uint)opts.MaxServerParallelism.Value;
-        if (opts.PipelineBatch.HasValue) tuningOptions.PipelineBatch = (uint)opts.PipelineBatch.Value;
-        if (opts.PipelineCapacity.HasValue) tuningOptions.PipelineCap = (uint)opts.PipelineCapacity.Value;
-        if (opts.ScanWait.HasValue) tuningOptions.ScanWait = Duration.FromTimeSpan(opts.ScanWait.Value);
-        if (opts.ScanCapacity.HasValue) tuningOptions.ScanCap = (uint)opts.ScanCapacity.Value;
-        if (opts.IncludeMetrics == false) tuningOptions.DisableMetrics = true;
-        request.TuningOptions = tuningOptions;
-        request.ProfileMode = opts.Profile.ToProto();
-
-        var callOptions = GrpcCallOptions(opts.TimeOut, opts.Token);
-        var asyncResponse = _queryClient.Query(request, callOptions);
-        var streamingResult = new StellarQueryResult<T>(asyncResponse, TypeSerializer);
-
-        return Task.FromResult<IQueryResult<T>>(streamingResult);
+        return _queryClient.QueryAsync<T>(statement, options!);
     }
 
     public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = null)

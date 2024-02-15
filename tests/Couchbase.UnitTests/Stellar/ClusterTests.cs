@@ -9,6 +9,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Protostellar.Query.V1;
+using Couchbase.Query;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar;
 using Couchbase.Stellar.Core;
@@ -244,7 +245,7 @@ public class ClusterTests
           var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));
           var bucketManager = new Mock<IBucketManager>();
           var searchIndexManager = new Mock<ISearchIndexManager>();
-          var queryServiceClient = new Mock<QueryService.QueryServiceClient>();
+          var queryServiceClient = new Mock<IQueryClient>();
           var analyticsClient = new Mock<IAnalyticsClient>();
           var searchClient = new Mock<IStellarSearchClient>();
           var queryIndexManager = new Mock<IQueryIndexManager>();
