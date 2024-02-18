@@ -1,25 +1,29 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.Sharding
 {
      /// <summary>
     /// Provides a means of consistent hashing for keys used by Memcached Buckets.
     /// </summary>
-    internal class KetamaKeyMapper : IKeyMapper
+    internal sealed class KetamaKeyMapper : IKeyMapper
     {
-        private readonly ICollection<HostEndpointWithPort> _servers;
-        private readonly int _totalWeight;
-        internal readonly SortedDictionary<long, HostEndpointWithPort> Hashes = new();
+        private readonly SortedDictionary<long, KetamaNode> _hashes = [];
+        private long[] _sortedKeys;
 
         public KetamaKeyMapper(IEnumerable<HostEndpointWithPort> servers)
         {
-            _servers = servers.ToList();
-            _totalWeight = _servers.Count;
-            Initialize();
+            Initialize(servers.Select(static p => new KetamaNode(p)));
         }
 
         /// <summary>
@@ -31,8 +35,8 @@ namespace Couchbase.Core.Sharding
         {
             var hash = GetHash(key);
             var index = FindIndex(hash);
-            var server = Hashes[Hashes.Keys.ToList()[index]];
-            return new KetamaNode(server);
+
+            return _hashes[_sortedKeys[index]];
         }
 
         /// <summary>
@@ -43,7 +47,8 @@ namespace Couchbase.Core.Sharding
         /// <returns></returns>
         public IMappedNode MapKey(string key, bool notMyVBucket)
         {
-            throw new NotSupportedException("This overload is only supported by Couchbase buckets.");
+            ThrowHelper.ThrowNotSupportedException("This overload is only supported by Couchbase buckets.");
+            return null!; // unreachable
         }
 
         /// <summary>
@@ -53,22 +58,22 @@ namespace Couchbase.Core.Sharding
         /// <returns>The index of key - which is the location of the node that the key maps to.</returns>
         public int FindIndex(long key)
         {
-            var index = Array.BinarySearch(Hashes.Keys.ToArray(), key);
+            var index = Array.BinarySearch(_sortedKeys, key);
             if (index < 0)
             {
                 index = ~index;
                 if (index == 0)
                 {
-                    index = Hashes.Keys.Count() - 1;
+                    index = _hashes.Count - 1;
                 }
-                else if (index >= Hashes.Count())
+                else if (index >= _hashes.Count)
                 {
                     index = 0;
                 }
             }
-            if (index < 0 || index > Hashes.Count())
+            if (index < 0 || index >= _hashes.Count)
             {
-                throw new InvalidOperationException();
+                ThrowHelper.ThrowInvalidOperationException("Invalid index");
             }
             return index;
         }
@@ -80,43 +85,64 @@ namespace Couchbase.Core.Sharding
         /// <returns>A hash of the Key.</returns>
         public long GetHash(string key)
         {
+#if !NET6_0_OR_GREATER
             var bytes = Encoding.UTF8.GetBytes(key);
+
+            Span<byte> hash;
             using (var md5 = MD5.Create())
             {
-                var hash = md5.ComputeHash(bytes);
-                var result = ((long) (hash[3] & 0xFF) << 24)
-                             | ((long) (hash[2] & 0xFF) << 16)
-                             | ((long) (hash[1] & 0xFF) << 8)
-                             | (uint) hash[0] & 0xFF;
-                return result;
+                hash = md5.ComputeHash(bytes).AsSpan();
             }
+#else
+            Span<byte> bytes = stackalloc byte[OperationHeader.MaxKeyLength];
+            var byteCount = Encoding.UTF8.GetBytes(key, bytes);
+            bytes = bytes.Slice(0, byteCount);
+
+            Span<byte> hash = stackalloc byte[16]; // MD5 is a 16 byte hash
+            if (!MD5.TryHashData(bytes, hash, out _))
+            {
+                Debug.Fail("Insufficient buffer");
+            }
+#endif
+
+            return BinaryPrimitives.ReadUInt32LittleEndian(hash);
         }
 
         /// <summary>
         /// Initializes the mapping of hashes to nodes.
         /// </summary>
-        public void Initialize()
+        [MemberNotNull(nameof(_sortedKeys))]
+        public void Initialize(IEnumerable<KetamaNode> nodes)
         {
-            using (var md5 = MD5.Create())
-            {
-                foreach (var server in _servers)
-                {
-                    for (var rep = 0; rep < 40; rep++)
-                    {
-                        var bytes = Encoding.UTF8.GetBytes($"{server}-{rep}");
-                        var hash = md5.ComputeHash(bytes);
-                        for (var j = 0; j < 4; j++)
-                        {
-                            var key = ((long) (hash[3 + j * 4] & 0xFF) << 24)
-                                      | ((long) (hash[2 + j * 4] & 0xFF) << 16)
-                                      | ((long) (hash[1 + j * 4] & 0xFF) << 8)
-                                      | (uint) (hash[0 + j * 4] & 0xFF);
+#if !NET6_0_OR_GREATER
+            using var md5 = MD5.Create();
+#else
+            Span<byte> hash = stackalloc byte[16]; // MD5 is a 16 byte hash
+#endif
 
-                            Hashes[key] = server;
-                        }
+            foreach (var node in nodes)
+            {
+                for (var rep = 0; rep < 40; rep++)
+                {
+                    var bytes = Encoding.UTF8.GetBytes($"{node.Server}-{rep}");
+
+#if !NET6_0_OR_GREATER
+                    var hash = md5.ComputeHash(bytes).AsSpan();
+#else
+                    if (!MD5.TryHashData(bytes, hash, out _))
+                    {
+                        Debug.Fail("Insufficient buffer");
+                    }
+#endif
+                    for (var j = 0; j < 4; j++)
+                    {
+                        var key = BinaryPrimitives.ReadUInt32LittleEndian(hash.Slice(j * 4));
+                        _hashes[key] = node;
                     }
                 }
             }
+
+            _sortedKeys = [.. _hashes.Keys];
         }
 
         public ulong Rev { get; set; }
