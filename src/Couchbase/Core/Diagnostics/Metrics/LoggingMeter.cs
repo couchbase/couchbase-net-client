@@ -1,12 +1,10 @@
 #nullable enable
 using System;
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using App.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -15,15 +13,20 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// <summary>
     /// An <see cref="IMeter"/> implementation for measuring latencies of the various Couchbase Services.
     /// </summary>
-    public class LoggingMeter : IMeter
+    public class LoggingMeter : IMeter, IEnumerable<HistogramCollectorSet>
     {
         private volatile Timer? _timer;
         private readonly LoggingMeterOptions _options;
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<string, Tuple<LoggingMeterValueRecorder, IMetricsRoot>> _histograms = new();
+
+        private LoggingMeterValueRecorder? _kvHistograms;
+        private LoggingMeterValueRecorder? _n1QlQueryHistograms;
+        private LoggingMeterValueRecorder? _searchQueryHistograms;
+        private LoggingMeterValueRecorder? _analyticsQueryHistograms;
+        private LoggingMeterValueRecorder? _viewQueryHistograms;
+
         private readonly uint _intervalMilliseconds;
 
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         public LoggingMeter(ILoggerFactory loggerFactory, LoggingMeterOptions options)
         {
             _logger = loggerFactory.CreateLogger<LoggingMeter>();
@@ -33,7 +36,6 @@ namespace Couchbase.Core.Diagnostics.Metrics
             _timer = TimerFactory.CreateWithFlowSuppressed(GenerateReport, null, options.EmitIntervalValue, options.EmitIntervalValue);
         }
 
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         private void GenerateReport(object? state)
         {
             // Note: The use of Interlocked/volatile here to synchronize against Dispose is imperfect,
@@ -50,11 +52,16 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
             try
             {
-                var histograms =
-                    new ReadOnlyDictionary<string, IMetricsRoot?>(_histograms.ToDictionary(x => x.Key, y => y.Value?.Item2));
-
                 var intervalInSeconds = _intervalMilliseconds / 1000u;
-                _logger.LogInformation(LoggingMeterReport.Generate(histograms, intervalInSeconds).ToString());
+
+                // Always generate the report so that histograms are reset to zero
+                var report = LoggingMeterReport.Generate(this, intervalInSeconds);
+
+                // But don't spend cycles serializing to JSON if logging is disabled
+                if (_options.ReportingEnabledValue && _logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation(report.ToString());
+                }
             }
             catch(Exception e)
             {
@@ -68,29 +75,80 @@ namespace Couchbase.Core.Diagnostics.Metrics
         }
 
         /// <inheritdoc />
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
-            Justification = "This type may not be constructed without encountering a warning.")]
         public IValueRecorder ValueRecorder(string name, IDictionary<string, string>? tags = default)
         {
-            var recorder = _histograms.GetOrAdd(name, _ =>
+            // The LoggingMeter only cares about the operation tag, which is sent on the individual RecordValue calls,
+            // so the tags parameter here is ignored.
+
+            // We use a switch statement to cover well-known histograms which the LoggingMeterReport
+            // will include. All other histograms are discarded before aggregating as their values would
+            // be unused.
+
+            switch (name)
             {
-                var meter = new MetricsBuilder().Configuration.Configure(options =>
-                {
-                    options.DefaultContextLabel = name;
-                    options.Enabled = _options.EnabledValue;
-                    options.ReportingEnabled = options.ReportingEnabled;
+                case OuterRequestSpans.ServiceSpan.Kv.Name:
+                    return GetOrCreateValueRecorder(ref _kvHistograms, OuterRequestSpans.ServiceSpan.Kv.Name);
 
-                    if (tags == null) return;
-                    foreach (var tag in tags) options.ContextualTags.Add(tag.Key, () => tag.Value);
-                }).Build();
+                case OuterRequestSpans.ServiceSpan.N1QLQuery:
+                    return GetOrCreateValueRecorder(ref _n1QlQueryHistograms, OuterRequestSpans.ServiceSpan.N1QLQuery);
 
-                return new Tuple<LoggingMeterValueRecorder, IMetricsRoot>(
-                    new LoggingMeterValueRecorder(meter), meter);
-            }).Item1;
+                case OuterRequestSpans.ServiceSpan.SearchQuery:
+                    return GetOrCreateValueRecorder(ref _searchQueryHistograms, OuterRequestSpans.ServiceSpan.SearchQuery);
 
-            return recorder;
+                case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
+                    return GetOrCreateValueRecorder(ref _analyticsQueryHistograms, OuterRequestSpans.ServiceSpan.AnalyticsQuery);
+
+                case OuterRequestSpans.ServiceSpan.ViewQuery:
+                    return GetOrCreateValueRecorder(ref _viewQueryHistograms, OuterRequestSpans.ServiceSpan.ViewQuery);
+
+                default:
+                    return NoopValueRecorder.Instance;
+            }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static LoggingMeterValueRecorder GetOrCreateValueRecorder(ref LoggingMeterValueRecorder? valueRecorder,
+            string name)
+        {
+            if (valueRecorder is not null)
+            {
+                return valueRecorder;
+            }
+
+            var newRecorder = new LoggingMeterValueRecorder(name);
+            return Interlocked.CompareExchange(ref valueRecorder, newRecorder, null)
+                   ?? newRecorder;
+        }
+
+        IEnumerator<HistogramCollectorSet> IEnumerable<HistogramCollectorSet>.GetEnumerator()
+        {
+            if (_kvHistograms is not null)
+            {
+                yield return _kvHistograms.Histograms;
+            }
+
+            if (_n1QlQueryHistograms is not null)
+            {
+                yield return _n1QlQueryHistograms.Histograms;
+            }
+
+            if (_searchQueryHistograms is not null)
+            {
+                yield return _searchQueryHistograms.Histograms;
+            }
+
+            if (_analyticsQueryHistograms is not null)
+            {
+                yield return _analyticsQueryHistograms.Histograms;
+            }
+
+            if (_viewQueryHistograms is not null)
+            {
+                yield return _viewQueryHistograms.Histograms;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<HistogramCollectorSet>)this).GetEnumerator();
 
         public void Dispose()
         {

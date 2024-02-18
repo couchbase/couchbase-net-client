@@ -1,7 +1,5 @@
 #nullable enable
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using App.Metrics;
 
 namespace Couchbase.Core.Diagnostics.Metrics
 {
@@ -9,29 +7,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// A <see cref="IValueRecorder"/> implementation for collecting latency metrics for a
     /// Couchbase service and conjunction with <see cref="LoggingMeter"/>.
     /// </summary>
-    internal class LoggingMeterValueRecorder : IValueRecorder
+    internal class LoggingMeterValueRecorder(string name) : IValueRecorder
     {
-        private readonly IMetricsRoot? _metrics;
-
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        public LoggingMeterValueRecorder(IMetricsRoot? metrics)
-        {
-            _metrics = metrics;
-        }
+        public HistogramCollectorSet Histograms { get; } = new(name);
 
         /// <inheritdoc />
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
-            Justification = "This type may not be constructed without encountering a warning.")]
         public void RecordValue(uint value, KeyValuePair<string, string>? tag = null)
         {
-#pragma warning disable CS0618
-            if (tag == null)
-                _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, value);
-            else
-                _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, new MetricTags(tag?.Key, tag?.Value),
-                    value);
-#pragma warning restore CS0618
+            Histograms.GetOrAdd(tag).AddMeasurement(value);
         }
     }
 }

@@ -1,142 +1,142 @@
-#nullable enable
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
-using App.Metrics;
-using App.Metrics.Histogram;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Diagnostics.Tracing;
-using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Core.Diagnostics.Metrics
 {
     internal class LoggingMeterReport
     {
-        public Meta? meta { get; set; }
-        public Operations? operations { get; set; }
+        [JsonPropertyName("meta")]
+        public Meta? Meta { get; set; }
 
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        public LoggingMeterReport()
-        {
-        }
+        [JsonPropertyName("operations")]
+        public Operations? Operations { get; set; }
 
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        public static LoggingMeterReport Generate(ReadOnlyDictionary<string, IMetricsRoot?> histograms, uint interval)
+        public static LoggingMeterReport Generate(IEnumerable<HistogramCollectorSet> histogramCollectorSets, uint interval)
         {
             var report = new LoggingMeterReport
             {
-                meta = new Meta
+                Meta = new Meta
                 {
-                    emit_interval_s = interval
+                    EmitIntervalSeconds = interval
                 },
-                operations = new Operations()
+                Operations = new Operations()
             };
 
-            foreach (var metric in histograms)
+            foreach (var collectorSet in histogramCollectorSets)
             {
-                var histogram = metric.Value;
-                var snapshot = histogram?.Snapshot.Get();
-                foreach (var metricsContextValueSource in snapshot!.Contexts)
+                foreach (var histogramCollector in collectorSet)
                 {
-                    foreach (var meterValueSource in metricsContextValueSource.Timers)
+                    var histogram = histogramCollector.CollectMeasurements();
+
+                    switch (collectorSet.Name)
                     {
-                        var histogramValue = meterValueSource.Value.Histogram;
-                        switch (metric.Key)
-                        {
-                            case OuterRequestSpans.ServiceSpan.N1QLQuery:
-                                report.operations.query ??= new();
+                        case OuterRequestSpans.ServiceSpan.N1QLQuery:
+                            report.Operations.Query ??= new();
+                            if (!report.Operations.Query.ContainsKey(collectorSet.Name))
+                            {
+                                report.Operations.Query.Add(collectorSet.Name, new Operation(histogram));
+                            }
+                            break;
 
-                                if(!report.operations.query.ContainsKey(metric.Key))
-                                    report.operations.query.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
-                                break;
-                            case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
-                                report.operations.analytics ??= new();
-                                if (!report.operations.analytics.ContainsKey(metric.Key))
-                                    report.operations.analytics.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
-                                break;
-                            case OuterRequestSpans.ServiceSpan.ViewQuery:
-                                report.operations.views ??= new();
-                                if (!report.operations.views.ContainsKey(metric.Key))
-                                    report.operations.views.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
-                                break;
-                            case OuterRequestSpans.ServiceSpan.SearchQuery:
-                                report.operations.search ??= new();
-                                if (!report.operations.search.ContainsKey(metric.Key))
-                                    report.operations.search.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
-                                break;
-                            default:
-                                if (meterValueSource.Tags.Count > 0)
+                        case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
+                            report.Operations.Analytics ??= new();
+                            if (!report.Operations.Analytics.ContainsKey(collectorSet.Name))
+                            {
+                                report.Operations.Analytics.Add(collectorSet.Name, new Operation(histogram));
+                            }
+                            break;
+
+                        case OuterRequestSpans.ServiceSpan.ViewQuery:
+                            report.Operations.Views ??= new();
+                            if (!report.Operations.Views.ContainsKey(collectorSet.Name))
+                            {
+                                report.Operations.Views.Add(collectorSet.Name, new Operation(histogram));
+                            }
+                            break;
+
+                        case OuterRequestSpans.ServiceSpan.SearchQuery:
+                            report.Operations.Search ??= new();
+                            if (!report.Operations.Search.ContainsKey(collectorSet.Name))
+                            {
+                                report.Operations.Search.Add(collectorSet.Name, new Operation(histogram));
+                            }
+                            break;
+
+                        case OuterRequestSpans.ServiceSpan.Kv.Name:
+                            if (histogramCollector.Tag != null)
+                            {
+                                var opcode = histogramCollector.Tag.Value.Value;
+                                report.Operations.Kv ??= new();
+                                if (!report.Operations.Kv.ContainsKey(opcode))
                                 {
-                                    var opcode = meterValueSource.Tags.Values[0];
-                                    report.operations.kv ??= new();
-                                    if (!report.operations.kv.ContainsKey(opcode))
-                                        report.operations.kv.Add(opcode,
-                                        new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                    report.Operations.Kv.Add(opcode, new Operation(histogram));
                                 }
-
-                                break;
-                        }
+                            }
+                            break;
                     }
                 }
-                histogram?.Manage.Reset();
             }
 
             return report;
         }
 
-        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
-            Justification = "This type may not be constructed without encountering a warning.")]
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(this, Formatting.None,
-                new JsonSerializerSettings
-                {
-                    NullValueHandling = NullValueHandling.Ignore
-                });
-        }
+        public override string ToString() =>
+            JsonSerializer.Serialize(this, LoggingMeterSerializerContext.Default.LoggingMeterReport);
     }
 
     internal class Meta
     {
-        public uint emit_interval_s { get; set; }
+        [JsonPropertyName("emit_interval_s")]
+        public uint EmitIntervalSeconds { get; set; }
     }
 
     internal class PercentilesUs
     {
-        public PercentilesUs(HistogramValue valueSource)
-        {
-            _10000 = valueSource.Max;
-            _999 = valueSource.Percentile999;
-            _980 = valueSource.Percentile98;
-            _950 = valueSource.Percentile95;
-            _750 = valueSource.Percentile75;
-        }
-
-        [JsonProperty("75.0")]
+        [JsonPropertyName("75.0")]
         public double _750 { get; set; }
 
-        [JsonProperty("95.0")]
+        [JsonPropertyName("95.0")]
         public double _950 { get; set; }
 
-        [JsonProperty("98.0")]
+        [JsonPropertyName("98.0")]
         public double _980 { get; set; }
 
-        [JsonProperty("99.9")]
+        [JsonPropertyName("99.9")]
         public double _999 { get; set; }
 
-        [JsonProperty("100.00")]
+        [JsonPropertyName("100.00")]
         public double _10000 { get; set; }
     }
 
-    internal record Operation(long total_count, PercentilesUs? percentiles_us);
+    internal struct Operation(HistogramData histogramData)
+    {
+        [JsonPropertyName("total_count")]
+        public long TotalCount { get; set; } = histogramData.TotalCount;
+
+        [JsonPropertyName("percentiles_us")]
+        public PercentilesUs Percentiles { get; set; } = histogramData.Percentiles;
+    }
 
     internal class Operations
     {
-        public Dictionary<string, Operation>? query;
-        public Dictionary<string, Operation>? search;
-        public Dictionary<string, Operation>? kv;
-        public Dictionary<string, Operation>? analytics;
-        public Dictionary<string, Operation>? views;
+        [JsonPropertyName("query")]
+        public Dictionary<string, Operation>? Query { get; set; }
+
+        [JsonPropertyName("search")]
+        public Dictionary<string, Operation>? Search { get; set; }
+
+        [JsonPropertyName("kv")]
+        public Dictionary<string, Operation>? Kv { get; set; }
+
+        [JsonPropertyName("analytics")]
+        public Dictionary<string, Operation>? Analytics { get; set; }
+
+        [JsonPropertyName("views")]
+        public Dictionary<string, Operation>? Views { get; set; }
     }
 }
 

@@ -10,8 +10,6 @@
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.50.0" />
     <PackageVersion Include="Google.Api.CommonProtos" Version="2.13.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.51.0" />
-    <PackageVersion Include="App.Metrics" Version="4.3.0" />
-    <PackageVersion Include="App.Metrics.Abstractions" Version="4.3.0" />
     <PackageVersion Include="DnsClient" Version="1.3.2" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="3.1.21" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.21" />
@@ -35,6 +33,7 @@
 
   <!-- Dependencies only allowed for .NET Standard 2.0 -->
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <PackageVersion Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
   </ItemGroup>
 

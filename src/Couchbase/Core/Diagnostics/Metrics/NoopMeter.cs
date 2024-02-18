@@ -5,9 +5,13 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// <summary>
     /// A NOOP meter that does nothing.
     /// </summary>
-    internal class NoopMeter : IMeter
+    internal sealed class NoopMeter : IMeter
     {
         public static IMeter Instance { get; } = new NoopMeter();
+
+        private NoopMeter()
+        {
+        }
 
         public IValueRecorder ValueRecorder(string name, IDictionary<string, string> tags) =>
             NoopValueRecorder.Instance;

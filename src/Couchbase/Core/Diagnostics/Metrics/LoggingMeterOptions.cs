@@ -7,9 +7,6 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     public class LoggingMeterOptions
     {
-        internal const string LoggingMeterRequiresUnreferencedCodeMessage =
-            "LoggingMeter requires unreferenced code and is not compatible with trimming.";
-
         internal TimeSpan EmitIntervalValue { get; set; } = TimeSpan.FromSeconds(600);
 
         /// <summary>

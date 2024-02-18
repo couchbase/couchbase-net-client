@@ -40,37 +40,37 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
         private static readonly Histogram<long> Operations =
             KeyValueMeter.CreateHistogram<long>(name: Names.Operations,
-                unit: "Microseconds",
+                unit: "us",
                 description: "Duration of operations, excluding retries");
 
         private static readonly Counter<long> OperationCounts =
             KeyValueMeter.CreateCounter<long>(name: Names.OperationCounts,
-                unit: "Operations",
+                unit: "{operations}",
                 description: "Number of operations executed");
 
         private static readonly Counter<long> ResponseStatus =
             KeyValueMeter.CreateCounter<long>(name: Names.OperationStatus,
-                unit: "Operation",
+                unit: "{operations}",
                 description: "KVResponse");
 
         private static readonly Counter<long> Orphans =
             KeyValueMeter.CreateCounter<long>(name: Names.Orphans,
-                unit: "Operations",
+                unit: "{operations}",
                 description: "Number of operations sent which did not receive a response");
 
         private static readonly Counter<long> Retries =
             KeyValueMeter.CreateCounter<long>(name: Names.Retries,
-                unit: "Operations",
+                unit: "{operations}",
                 description: "Number of operations retried");
 
         private static readonly Counter<long> SendQueueFullErrors =
             KeyValueMeter.CreateCounter<long>(name: Names.SendQueueFullErrors,
-                unit: "Operations",
+                unit: "{operations}",
                 description: "Number operations rejected due to a full send queue");
 
         private static readonly Counter<long> Timeouts =
             KeyValueMeter.CreateCounter<long>(name: Names.Timeouts,
-                unit: "Operations",
+                unit: "{operations}",
                 description: "Number of operations timed out");
 
         static MetricTracker()
@@ -78,13 +78,13 @@ namespace Couchbase.Core.Diagnostics.Metrics
             // Due to lazy initialization, we should initialize Observable metrics here rather than static fields
 
             KeyValueMeter.CreateObservableGauge(name: Names.Connections,
-                unit: "Connections",
+                unit: "{connections}",
                 observeValue: () => new Measurement<int>(MultiplexingConnection.GetConnectionCount(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name)),
                 description: "Number of active connections");
 
             KeyValueMeter.CreateObservableGauge(name: Names.SendQueueLength,
-                unit: "Operations",
+                unit: "{operations}",
                 observeValue: () => new Measurement<int>(ConnectionPoolBase.GetSendQueueLength(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name)),
                 description: "Number of operations queued to be sent");

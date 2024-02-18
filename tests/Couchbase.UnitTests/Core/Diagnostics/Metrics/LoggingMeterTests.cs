@@ -58,19 +58,21 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
                 recorder5.RecordValue(23);
             }
 
-            string actual;
             var attempts = 0;
             var count = 5;
             var maxRetries = 20;
-            while ((actual = loggerFactory.LoggedData.FirstOrDefault()) == null && count < maxRetries)
+            while ((loggerFactory.LoggedData.FirstOrDefault()) == null && count < maxRetries)
             {
                 var sleepTime = TimeSpan.FromMilliseconds(Math.Pow(2, count++));
                 _testOutputHelper.WriteLine($"Attempt {attempts++} sleeping for {sleepTime.TotalMilliseconds}ms");
                 await Task.Delay(sleepTime);
             }
 
-            Assert.NotNull(actual);
-            _testOutputHelper.WriteLine(actual);
+            Assert.NotEmpty(loggerFactory.LoggedData);
+            foreach (var actual in loggerFactory.LoggedData)
+            {
+                _testOutputHelper.WriteLine(actual);
+            }
         }
 
         #region Test Logger
