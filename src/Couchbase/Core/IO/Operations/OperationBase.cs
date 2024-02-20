@@ -11,6 +11,7 @@ using System.Threading.Tasks.Sources;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
@@ -41,6 +42,7 @@ namespace Couchbase.Core.IO.Operations
         private bool _isOrphaned;
         private volatile string? _lastDispatchedFrom;
         private volatile string? _lastDispatchedTo;
+        private string? _key;
 
         protected OperationBase()
         {
@@ -71,8 +73,28 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public uint? Cid { get; set; }
 
+        public byte[]? EncodedKey { get; set; }
+
         /// <inheritdoc />
-        public string Key { get; set; }
+        public string Key
+        {
+            get => _key!;
+            set
+            {
+                _key = value;
+
+                try
+                {
+                    var encoded = Encoding.UTF8.GetBytes(value);
+                    if (encoded.Length > 250) throw new InvalidArgumentException($"The Key is too long (Key: {value})");
+                    EncodedKey = encoded;
+                }
+                catch (ArgumentException)
+                {
+                    throw new InvalidArgumentException($"The Key is invalid. (Key: {value})");
+                }
+            }
+        }
 
         /// <inheritdoc />
         public uint Opaque { get; set; }

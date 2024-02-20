@@ -58,6 +58,11 @@ namespace Couchbase.Core.IO.Operations
         string Key { get; }
 
         /// <summary>
+        /// Encoded document Key, if applicable, or an empty string
+        /// </summary>
+        byte[]? EncodedKey { get; }
+
+        /// <summary>
         /// True if the operation requires a VBucketId, otherwise false.
         /// </summary>
         bool RequiresVBucketId { get; }

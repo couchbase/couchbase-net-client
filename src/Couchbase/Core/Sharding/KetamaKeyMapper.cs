@@ -40,12 +40,37 @@ namespace Couchbase.Core.Sharding
         }
 
         /// <summary>
+        /// Maps a Key to a node in the cluster.
+        /// </summary>
+        /// <param name="key">The key to map.</param>
+        /// <returns>An object representing the node that the key was mapped to, which implements <see cref="IMappedNode"/></returns>
+        public IMappedNode MapKey(byte[] key)
+        {
+            var hash = GetHash(key);
+            var index = FindIndex(hash);
+
+            return _hashes[_sortedKeys[index]];
+        }
+
+        /// <summary>
         /// Not Supported: This overload is only supported by Couchbase buckets.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="notMyVBucket"></param>
         /// <returns></returns>
         public IMappedNode MapKey(string key, bool notMyVBucket)
+        {
+            ThrowHelper.ThrowNotSupportedException("This overload is only supported by Couchbase buckets.");
+            return null!; // unreachable
+        }
+
+        /// <summary>
+        /// Not Supported: This overload is only supported by Couchbase buckets.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="notMyVBucket"></param>
+        /// <returns></returns>
+        public IMappedNode MapKey(byte[] key, bool notMyVBucket)
         {
             ThrowHelper.ThrowNotSupportedException("This overload is only supported by Couchbase buckets.");
             return null!; // unreachable
@@ -97,6 +122,33 @@ namespace Couchbase.Core.Sharding
             Span<byte> bytes = stackalloc byte[OperationHeader.MaxKeyLength];
             var byteCount = Encoding.UTF8.GetBytes(key, bytes);
             bytes = bytes.Slice(0, byteCount);
+
+            Span<byte> hash = stackalloc byte[16]; // MD5 is a 16 byte hash
+            if (!MD5.TryHashData(bytes, hash, out _))
+            {
+                Debug.Fail("Insufficient buffer");
+            }
+#endif
+
+            return BinaryPrimitives.ReadUInt32LittleEndian(hash);
+        }
+
+        /// <summary>
+        /// Creates a hash for a given Key.
+        /// </summary>
+        /// <param name="key">The Key to hash.</param>
+        /// <returns>A hash of the Key.</returns>
+        public long GetHash(byte[] key)
+        {
+#if !NET6_0_OR_GREATER
+            Span<byte> hash;
+            using (var md5 = MD5.Create())
+            {
+                hash = md5.ComputeHash(key).AsSpan();
+            }
+#else
+            Span<byte> bytes = stackalloc byte[OperationHeader.MaxKeyLength];
+            bytes = bytes.Slice(0, key.Length);
 
             Span<byte> hash = stackalloc byte[16]; // MD5 is a 16 byte hash
             if (!MD5.TryHashData(bytes, hash, out _))

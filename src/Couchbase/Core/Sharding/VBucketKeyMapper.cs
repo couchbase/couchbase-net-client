@@ -88,12 +88,37 @@ namespace Couchbase.Core.Sharding
             return MapKey(key);
         }
 
+        /// <summary>
+        /// Maps a given Key to it's node in a Couchbase Cluster.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public IMappedNode MapKey(byte[] key)
+        {
+            return _vBuckets[GetIndex(key)];
+        }
+
+        public IMappedNode MapKey(byte[] key, bool notMyVBucket)
+        {
+            //its a retry
+            if (notMyVBucket && HasForwardMap())
+            {
+                //use the fast-forward map
+                var index = GetIndex(key);
+                return _vForwardBuckets[index];
+            }
+
+            //use the vbucket map
+            return MapKey(key);
+        }
+
         bool HasForwardMap()
         {
             return _vForwardBuckets.Count > 0;
         }
 
         public short GetIndex(string key) => VBucketMapper.GetVBucketId(key, _mask);
+        public short GetIndex(byte[] key) => VBucketMapper.GetVBucketId(key, _mask);
 
         /// <summary>
         /// Creates a mapping of VBuckets to nodes.

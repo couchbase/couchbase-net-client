@@ -7,6 +7,10 @@ namespace Couchbase.Core.Sharding
 
         IMappedNode MapKey(string key, bool notMyVBucket);
 
+        IMappedNode MapKey(byte[] key);
+
+        IMappedNode MapKey(byte[] key, bool notMyVBucket);
+
         ulong Rev { get; set; }
     }
 }

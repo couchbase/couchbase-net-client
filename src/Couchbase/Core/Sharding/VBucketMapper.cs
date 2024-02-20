@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
@@ -33,27 +34,18 @@ namespace Couchbase.Core.Sharding
         /// Get the vBucketID for a given key.
         /// </summary>
         /// <param name="key">The key.</param>
-        /// <param name="vBucketCount">The number of vBuckets in the cluster.</param>
-        /// <returns>The vBucketID for the key.</returns>
-        public static short GetVBucketId(string key, int vBucketCount) => GetVBucketId(key, GetMask(vBucketCount));
-
-        /// <summary>
-        /// Get the vBucketID for a given key.
-        /// </summary>
-        /// <param name="key">The key.</param>
         /// <param name="mask">The previously calculated mask from a call to <see cref="GetMask"/>.</param>
         /// <returns>The vBucketID for the key.</returns>
         [SkipLocalsInit] // Avoid unnecessary cost of zero-filling keyBytes in Span scenario
         public static short GetVBucketId(string key, short mask)
         {
 #if !SPAN_SUPPORT
-            var keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
 #else
             Span<byte> keyBytes = stackalloc byte[OperationHeader.MaxKeyLength];
             var bytes = Encoding.UTF8.GetBytes(key.AsSpan(), keyBytes);
             keyBytes = keyBytes.Slice(0, bytes);
 #endif
-
             return GetVBucketId(keyBytes, mask);
         }
 

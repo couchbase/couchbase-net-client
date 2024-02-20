@@ -69,6 +69,7 @@ namespace Couchbase.UnitTests.Utils
         public bool PreserveTtl { get; }
         public OpCode OpCode { get; }
         public string Key { get; }
+        public byte[] EncodedKey { get; }
         public uint Opaque { get; }
         public ulong Cas { get; set; }
         public short? ReplicaIdx { get; set; }

@@ -50,6 +50,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public string? CName { get; }
         public uint? Cid { get; set; }
         public string Key { get; }
+        public byte[] EncodedKey { get; }
         public bool RequiresVBucketId { get; }
         public short? VBucketId { get; set; }
         public short? ReplicaIdx { get; }

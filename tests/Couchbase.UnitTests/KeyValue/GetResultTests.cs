@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
@@ -202,6 +206,40 @@ namespace Couchbase.UnitTests.KeyValue
 
             var expiryTime = readResult.ExpiryTime;
             Assert.Null(expiryTime);
+        }
+
+        [Fact]
+        public void Test_OperationBase_Throws_InvalidArgumentException_When_Key_Is_Too_Big()
+        {
+            var bytes = Enumerable.Repeat((byte)0, 251).ToArray();
+            var key = Encoding.UTF8.GetString(bytes);
+            try
+            {
+                var getOp = new Get<byte[]>
+                {
+                    Key = key
+                };
+            }
+            catch (Exception e)
+            {
+                Assert.IsType<InvalidArgumentException>(e);
+            }
+        }
+
+        [Fact]
+        public void Test_OperationBase_Throws_InvalidArgumentException_When_Key_Is_Null()
+        {
+            try
+            {
+                var getOp = new Get<byte[]>
+                {
+                    Key = null
+                };
+            }
+            catch (Exception e)
+            {
+                Assert.IsType<InvalidArgumentException>(e);
+            }
         }
     }
 }
