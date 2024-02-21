@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -23,22 +24,29 @@ namespace Couchbase.Management.Search
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<SearchIndexManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly ClusterContext _context;
 
+        // TODO:  need to be able to reference global config to AssertCap(ScopedSearchIndexes)
         public SearchIndexManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<SearchIndexManager> logger, IRedactor redactor)
+            ILogger<SearchIndexManager> logger, IRedactor redactor, ClusterContext context)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _context = context;
         }
 
         private Uri GetIndexUri(IScope?  scope, string? indexName = null)
         {
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
-            var path = scope is null
-                ? "api/index"
-                : $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}";
+            var path = "api/index";
+            if (scope is not null)
+            {
+                _context.GlobalConfig?.AssertCap(BucketCapabilities.SCOPED_SEARCH_INDEX);
+                path = $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}";
+            }
+
             var builder = new UriBuilder(searchUri)
             {
                 Path = path

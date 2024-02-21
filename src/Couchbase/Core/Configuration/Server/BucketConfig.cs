@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
@@ -245,6 +246,7 @@ namespace Couchbase.Core.Configuration.Server
     {
         internal const string GlobalBucketName = "CLUSTER";
         private string _networkResolution = Couchbase.NetworkResolution.Auto;
+        private List<string> _bucketCaps = new();
 
         public ConfigVersion ConfigVersion { get; private set; }
 
@@ -334,9 +336,36 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("ddocs")] public Ddocs Ddocs { get; set; }
         [JsonPropertyName("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
         [JsonPropertyName("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
-        [JsonPropertyName("bucketCapabilities")] public List<string> BucketCapabilities { get; set; }
+
+        [JsonPropertyName("bucketCapabilities")]
+        public List<string> BucketCapabilities
+        {
+            get => _bucketCaps;
+            set
+            {
+                _bucketCaps = value;
+                if (value is not null)
+                {
+                    _bucketCapsSet = new HashSet<string>(value);
+                }
+                else
+                {
+                    _bucketCapsSet = new();
+                }
+            }
+        }
         [JsonPropertyName("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }
         [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
+
+        public bool HasCap(string capability) => _bucketCapsSet?.Contains(capability) == true;
+        internal void AssertCap(string clusterCap, string message = null)
+        {
+            if (!HasCap(clusterCap))
+            {
+                var errorMsg = message is null ? clusterCap : $"{clusterCap}: {message}";
+                throw new FeatureNotAvailableException(message);
+            }
+        }
 
         public bool Equals(BucketConfig other)
         {
@@ -404,6 +433,7 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         private bool? _useAlternateAddresses;
+        private HashSet<string> _bucketCapsSet;
 
         public bool UseAlternateAddresses
         {

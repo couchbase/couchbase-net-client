@@ -295,18 +295,12 @@ namespace Couchbase.Core
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
 
-        public bool SupportsCollections => HasClusterCap(BucketCapabilities.COLLECTIONS);
+        public bool SupportsCollections => HasCap(BucketCapabilities.COLLECTIONS);
 
-        internal bool HasClusterCap(string clusterCap) => _testedClusterCaps.GetOrAdd(clusterCap,
-            cap => CurrentConfig?.BucketCapabilities?.Contains(cap) == true);
+        internal bool HasCap(string capability) => CurrentConfig?.HasCap(capability) == true;
 
-        internal void AssertClusterCap(string clusterCap)
-        {
-            if (!HasClusterCap(clusterCap))
-            {
-                throw new FeatureNotAvailableException(clusterCap);
-            }
-        }
+        internal void AssertCap(string capability, string? message = null) =>
+            CurrentConfig?.AssertCap(capability, message);
 
         /// <summary>
         /// Throw an exception if the bucket is not bootstrapped successfully.
