@@ -117,6 +117,10 @@ namespace Couchbase.Search
                     requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
                 }
             }
+            //Prevents the server from returning the original request in the response.
+            //Should only be sent for the new {Cluster, Scope}.SearchAsync() (not for the old {Cluster, Scope}.SearchQueryAsync())
+            //but we do not differentiate between those in the SDK. The parameter is ignored by older server versions.
+            requestJson.Add("showrequest", false);
             var searchBody = requestJson.ToString(Formatting.None);
             if (_logger.IsEnabled(LogLevel.Trace))
             {
