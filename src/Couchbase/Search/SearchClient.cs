@@ -116,6 +116,10 @@ namespace Couchbase.Search
                 {
                     requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
                 }
+                else
+                {
+                    throw new InvalidArgumentException("The Vector Search query must contain at least 1 element.");
+                }
             }
             //Prevents the server from returning the original request in the response.
             //Should only be sent for the new {Cluster, Scope}.SearchAsync() (not for the old {Cluster, Scope}.SearchQueryAsync())
