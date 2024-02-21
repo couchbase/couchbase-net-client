@@ -58,118 +58,120 @@ internal class StellarRetryHandler : IRetryOrchestrator
         var detailBlock = StatusDeserializer(protoException);
         var typeUrl = detailBlock?.TypeUrl;
 
-        if (detailBlock is null)
+        if (detailBlock is not null)
         {
-            throw new DecodingFailureException("Failed to decode gRPC error response.");
-        }
-
-        switch (typeUrl)
-        {
-            case StellarRetryStrings.TypeUrlResourceInfo:
+            switch (typeUrl)
             {
-                ResourceInfo info = ResourceInfo.Parser.ParseFrom(detailBlock?.Value);
-                var resourceName = info.ResourceName;
-                var resourceType = info.ResourceType;
-
-                context.Fields.Add("Detail", detail);
-                context.Fields.Add("ResourceName", resourceName);
-                context.Fields.Add("ResourceType", resourceType);
-
-                switch (status)
+                case StellarRetryStrings.TypeUrlResourceInfo:
                 {
-                    case StatusCode.NotFound:
+                    ResourceInfo info = ResourceInfo.Parser.ParseFrom(detailBlock?.Value);
+                    var resourceName = info.ResourceName;
+                    var resourceType = info.ResourceType;
+
+                    context.Fields.Add("Detail", detail);
+                    context.Fields.Add("ResourceName", resourceName);
+                    context.Fields.Add("ResourceType", resourceType);
+
+                    switch (status)
                     {
-                        switch (resourceType)
+                        case StatusCode.NotFound:
                         {
-                            case StellarRetryStrings.ResourceTypeDocument:
-                                throw new DocumentNotFoundException(context);
-                            case StellarRetryStrings.ResourceTypeBucket:
-                                throw new BucketNotFoundException(context);
-                            case StellarRetryStrings.ResourceTypeScope:
-                                throw new ScopeNotFoundException(context);
-                            case StellarRetryStrings.ResourceTypeCollection:
-                                throw new CollectionNotFoundException(context);
-                            case StellarRetryStrings.ResourceTypePath:
-                                throw new PathNotFoundException(context);
-                            case StellarRetryStrings.ResourceTypeAnalyticsIndex:
-                            case StellarRetryStrings.ResourceTypeQueryIndex:
-                            case StellarRetryStrings.ResourceTypeSearchIndex:
-                                throw new IndexNotFoundException(context);
+                            switch (resourceType)
+                            {
+                                case StellarRetryStrings.ResourceTypeDocument:
+                                    throw new DocumentNotFoundException(context);
+                                case StellarRetryStrings.ResourceTypeBucket:
+                                    throw new BucketNotFoundException(context);
+                                case StellarRetryStrings.ResourceTypeScope:
+                                    throw new ScopeNotFoundException(context);
+                                case StellarRetryStrings.ResourceTypeCollection:
+                                    throw new CollectionNotFoundException(context);
+                                case StellarRetryStrings.ResourceTypePath:
+                                    throw new PathNotFoundException(context);
+                                case StellarRetryStrings.ResourceTypeAnalyticsIndex:
+                                case StellarRetryStrings.ResourceTypeQueryIndex:
+                                case StellarRetryStrings.ResourceTypeSearchIndex:
+                                    throw new IndexNotFoundException(context);
+                            }
+
+                            break;
                         }
-                        break;
-                    }
-                    case StatusCode.AlreadyExists:
-                    {
-                        switch (resourceType)
+                        case StatusCode.AlreadyExists:
                         {
-                            case StellarRetryStrings.ResourceTypeDocument:
-                                throw new DocumentExistsException(context);
-                            case StellarRetryStrings.ResourceTypeBucket:
-                                throw new BucketExistsException(resourceName);
-                            case StellarRetryStrings.ResourceTypeScope:
-                                throw new ScopeExistsException(resourceName);
-                            case StellarRetryStrings.ResourceTypeCollection:
-                                throw new CollectionExistsException($"The collection at {resourceName} already exists.");
-                            case StellarRetryStrings.ResourceTypePath:
-                                throw new PathExistsException(context);
-                            case StellarRetryStrings.ResourceTypeAnalyticsIndex:
-                            case StellarRetryStrings.ResourceTypeQueryIndex:
-                            case StellarRetryStrings.ResourceTypeSearchIndex:
-                                throw new IndexExistsException(context);
+                            switch (resourceType)
+                            {
+                                case StellarRetryStrings.ResourceTypeDocument:
+                                    throw new DocumentExistsException(context);
+                                case StellarRetryStrings.ResourceTypeBucket:
+                                    throw new BucketExistsException(resourceName);
+                                case StellarRetryStrings.ResourceTypeScope:
+                                    throw new ScopeExistsException(resourceName);
+                                case StellarRetryStrings.ResourceTypeCollection:
+                                    throw new CollectionExistsException(
+                                        $"The collection at {resourceName} already exists.");
+                                case StellarRetryStrings.ResourceTypePath:
+                                    throw new PathExistsException(context);
+                                case StellarRetryStrings.ResourceTypeAnalyticsIndex:
+                                case StellarRetryStrings.ResourceTypeQueryIndex:
+                                case StellarRetryStrings.ResourceTypeSearchIndex:
+                                    throw new IndexExistsException(context);
+                            }
+
+                            break;
                         }
-                        break;
                     }
                 }
-            }
-                break;
-            case StellarRetryStrings.TypeUrlErrorInfo:
-            {
-                var errorInfo = ErrorInfo.Parser.ParseFrom(detailBlock.Value);
-                var reason = errorInfo.Reason;
-                context.Fields.Add("ErrorReason", reason);
-
-                if (status == StatusCode.Aborted)
+                    break;
+                case StellarRetryStrings.TypeUrlErrorInfo:
                 {
-                    if (reason.Equals(StellarRetryStrings.ReasonCasMismatch))
-                    {
-                        throw new CasMismatchException(context);
-                    }
-                }
-            }
-                break;
-            case StellarRetryStrings.TypeUrlPreconditionFailure:
-            {
-                var info = PreconditionFailure.Parser.ParseFrom(detailBlock.Value);
-                if (info.Violations.Count > 0)
-                {
-                    var violation = info.Violations[0];
-                    var type = violation.Type;
+                    var errorInfo = ErrorInfo.Parser.ParseFrom(detailBlock.Value);
+                    var reason = errorInfo.Reason;
+                    context.Fields.Add("ErrorReason", reason);
 
-                    switch (type)
+                    if (status == StatusCode.Aborted)
                     {
-                        case StellarRetryStrings.PreconditionCas:
+                        if (reason.Equals(StellarRetryStrings.ReasonCasMismatch))
+                        {
                             throw new CasMismatchException(context);
-                        case StellarRetryStrings.PreconditionLocked:
-                        {
-                            context.RetryReasons.Add(RetryReason.KvLocked);
-                            throw new DocumentLockedException(context);
                         }
-                        case StellarRetryStrings.PreconditionPathMismatch:
-                            throw new PathMismatchException(context);
-                        case StellarRetryStrings.PreconditionDocNotJson:
-                            throw new DocumentNotJsonException(context);
-                        case StellarRetryStrings.PreconditionDocTooDeep:
-                            throw new DocumentTooDeepException(context);
-                        case StellarRetryStrings.PreconditionValueTooLarge:
-                            throw new ValueToolargeException();
-                        case StellarRetryStrings.PreconditionValueOutOfRange:
-                            throw new ValueInvalidException(); //Prone to change as it's unclear what this Precondition failure maps to.
                     }
                 }
+                    break;
+                case StellarRetryStrings.TypeUrlPreconditionFailure:
+                {
+                    var info = PreconditionFailure.Parser.ParseFrom(detailBlock.Value);
+                    if (info.Violations.Count > 0)
+                    {
+                        var violation = info.Violations[0];
+                        var type = violation.Type;
+
+                        switch (type)
+                        {
+                            case StellarRetryStrings.PreconditionCas:
+                                throw new CasMismatchException(context);
+                            case StellarRetryStrings.PreconditionLocked:
+                            {
+                                context.RetryReasons.Add(RetryReason.KvLocked);
+                                throw new DocumentLockedException(context);
+                            }
+                            case StellarRetryStrings.PreconditionPathMismatch:
+                                throw new PathMismatchException(context);
+                            case StellarRetryStrings.PreconditionDocNotJson:
+                                throw new DocumentNotJsonException(context);
+                            case StellarRetryStrings.PreconditionDocTooDeep:
+                                throw new DocumentTooDeepException(context);
+                            case StellarRetryStrings.PreconditionValueTooLarge:
+                                throw new ValueToolargeException();
+                            case StellarRetryStrings.PreconditionValueOutOfRange:
+                                throw
+                                    new ValueInvalidException(); //Prone to change as it's unclear what this Precondition failure maps to.
+                        }
+                    }
+                }
+                    break;
+                case StellarRetryStrings.TypeUrlBadRequest:
+                    break;
             }
-                break;
-            case StellarRetryStrings.TypeUrlBadRequest:
-                break;
         }
 
         switch (status)
@@ -207,7 +209,10 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 request.Attempts++;
                 break;
             default:
-                throw new CouchbaseException();
+            {
+                context.Fields.Add("status", status);
+                throw new CouchbaseException(context, protoException.Status.Detail);
+            }
         }
     }
 

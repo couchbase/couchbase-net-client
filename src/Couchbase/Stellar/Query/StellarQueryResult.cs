@@ -1,7 +1,9 @@
 #if NETCOREAPP3_1_OR_GREATER
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
@@ -18,35 +20,101 @@ internal class StellarQueryResult<T> : IQueryResult<T>
 {
     private readonly AsyncServerStreamingCall<QueryResponse> _streamingQueryResponse;
     private readonly ITypeSerializer _serializer;
+    private readonly IAsyncStreamReader<QueryResponse> _streamReader;
+    private readonly List<T> _tempResults = new();
+    private bool _hasReadHeader;
+    private volatile bool _disposed;
 
     public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer)
     {
         _streamingQueryResponse = streamingQueryResponse;
+        _streamReader = _streamingQueryResponse.ResponseStream;
         _serializer = serializer;
     }
     public void Dispose()
     {
-        _streamingQueryResponse.Dispose();
+        if (!_disposed)
+        {
+            _disposed = true;
+            _streamingQueryResponse.Dispose();
+        }
     }
 
-    public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
+    internal async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var responseStream = _streamingQueryResponse.ResponseStream;
-        while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
+        if (!_hasReadHeader)
         {
-            if (responseStream.Current.MetaData != null)
+            _hasReadHeader = true;
+            await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false);
+            if (_streamReader.Current.MetaData != null)
             {
-                var responseMetaData = responseStream.Current.MetaData;
+                var responseMetaData = _streamReader.Current.MetaData;
                 if (responseMetaData.HasProfile) MetaData!.Profile = responseMetaData.Profile;
                 if (responseMetaData.Metrics != null) MetaData!.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
                 if (responseMetaData.Profile != null) MetaData!.Profile = responseMetaData.Profile.ToStringUtf8();
                 if (responseMetaData.Signature != null) MetaData!.Signature = responseMetaData.Signature.ToStringUtf8();
-                if (responseMetaData.Warnings != null) MetaData!.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
+                if (responseMetaData.Warnings != null)
+                    MetaData!.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
                 if (responseMetaData.RequestId != null) MetaData!.RequestId = responseMetaData.RequestId;
-                if (responseMetaData.ClientContextId != null) MetaData!.ClientContextId = responseMetaData.ClientContextId;
+                if (responseMetaData.ClientContextId != null)
+                    MetaData!.ClientContextId = responseMetaData.ClientContextId;
                 MetaData!.Status = responseMetaData.Status.ToCoreStatus();
             }
 
+            foreach (var queryResponse in _streamReader.Current.Rows)
+            {
+                if (queryResponse == null) continue;
+                var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
+                if (deserializedObj == null)
+                {
+                    Errors.Add(new Error { Message = "Failed to deserialize item." });
+                }
+                else
+                {
+                    _tempResults.Add(deserializedObj);
+                }
+            }
+        }
+    }
+
+    public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
+    {
+        if (_hasReadHeader)
+        {
+            await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        //enumerate the first response
+        foreach (var result in _tempResults)
+        {
+            yield return result;
+        }
+        _tempResults.Clear();
+
+        //enumerate the rest of te responses
+        while (await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var queryResponse in _streamReader.Current.Rows)
+            {
+                if (queryResponse == null) continue;
+                var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
+                if (deserializedObj == null)
+                {
+                    Errors.Add(new Error { Message = "Failed to deserialize item." });
+                }
+                else
+                {
+                    yield return deserializedObj;
+                }
+            }
+        }
+    }
+
+    public async IAsyncEnumerator<T> GetAsyncEnumerator2(CancellationToken cancellationToken = new())
+    {
+        var responseStream = _streamingQueryResponse.ResponseStream;
+        while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
+        {
             foreach (var queryResponse in responseStream.Current.Rows)
             {
                 if (queryResponse == null) continue;

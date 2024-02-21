@@ -61,12 +61,13 @@ internal class StellarQueryClient : IQueryClient
         request.TuningOptions = tuningOptions;
         request.ProfileMode = opts.Profile.ToProto();
 
-        Task<IQueryResult<T>> GrpcCall()
+        async Task<IQueryResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(opts!.TimeOut, opts.Token);
             var asyncResponse = _queryClient.Query(request, callOptions);
             var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer);
-            return Task.FromResult((IQueryResult<T>) streamingResult);
+            await streamingResult.InitializeAsync(opts.Token).ConfigureAwait(false);
+            return streamingResult;
         }
 
         var stellarRequest = new StellarRequest
