@@ -1,12 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.RateLimiting;
-using Couchbase.Management.Buckets;
 
 namespace Couchbase.Management
 {
@@ -54,6 +50,10 @@ namespace Couchbase.Management
 
         public static void ThrowOnError(this HttpResponseMessage msg, ManagementErrorContext ctx)
         {
+            if (msg.StatusCode == HttpStatusCode.BadRequest && ctx.Message.Contains("index not found"))
+            {
+                throw new IndexNotFoundException(ctx);
+            }
             throw new CouchbaseException
             {
                 Context = ctx
