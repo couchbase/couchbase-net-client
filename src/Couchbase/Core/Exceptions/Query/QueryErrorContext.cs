@@ -17,7 +17,7 @@ namespace Couchbase.Core.Exceptions.Query
 {
     /// <remarks>Uncommitted</remarks>
     [InterfaceStability(Level.Uncommitted)]
-    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)}:nq}}")]
+    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
     public class QueryErrorContext : IQueryErrorContext, IKeyValueErrorContext
     {
         [JsonInclude]
