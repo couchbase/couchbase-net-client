@@ -16,10 +16,31 @@ namespace Couchbase.KeyValue
 {
     public static class CollectionExtensions
     {
-        private static readonly GetOptions GetOptionsPreferReturn = new GetOptions
+        private static readonly GetOptions GetOptionsPreferReturn = new()
         {
             PreferReturn = true
         };
+
+        private static readonly GetAndLockOptions GetAndLockOptionsPreferReturns = new()
+        {
+            PreferReturn = true
+        };
+
+        private static readonly GetAndTouchOptions GetAndTouchOptionsPreferReturns = new GetAndTouchOptions
+        {
+            PreferReturn = true
+        };
+
+        private static readonly ReplaceOptions ReplaceOptionsPreferReturns = new ReplaceOptions
+        {
+            PreferReturn = true
+        };
+
+        private static readonly TouchOptions TouchOptionsPreferReturns = new TouchOptions
+        {
+            PreferReturn = true
+        };
+
 
         /// <summary>
         /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
@@ -55,6 +76,278 @@ namespace Couchbase.KeyValue
 
             return new TryGetResult(getResult);
         }
+
+        /// <summary>
+        /// Given an id, gets a document from the database and places a pessimistic lock on it for mutations. If the key is not found, a <see cref="ITryGetResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="expires"></param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        public static async Task<ITryGetResult> TryGetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expires)
+        {
+            var getResult = await collection.GetAndLockAsync(id,expires, GetAndLockOptionsPreferReturns).ConfigureAwait(false);
+            return new TryGetResult(getResult);
+        }
+
+        /// <summary>
+        /// Given an id, gets a document from the database and places a pessimistic lock on it for mutations. If the key is not found, a <see cref="ITryGetResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
+        /// <param name="expires"></param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        public static async Task<ITryGetResult> TryGetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, Action<GetAndLockOptions> configureOptions)
+        {
+            var options = new GetAndLockOptions();
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            var getResult = await collection.GetAndLockAsync(id,expires, GetAndLockOptionsPreferReturns).ConfigureAwait(false);
+            return new TryGetResult(getResult);
+        }
+
+        /// <summary>
+        /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        /// <param name="expires"></param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires)
+        {
+            var getResult = await collection.GetAndTouchAsync(id,expires, GetAndTouchOptionsPreferReturns).ConfigureAwait(false);
+            return new TryGetResult(getResult);
+        }
+
+        /// <summary>
+        /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        /// <param name="expires"></param>
+        /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, GetAndTouchOptions? configureOptions = null)
+        {
+            configureOptions ??= GetAndTouchOptionsPreferReturns;
+            configureOptions.PreferReturn = true;
+
+            var getResult = await collection.GetAndTouchAsync(id,expires, configureOptions).ConfigureAwait(false);
+            return new TryGetResult(getResult);
+        }
+
+        /// <summary>
+        /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        /// <param name="expires"></param>
+        /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
+        public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, Action<GetAndTouchOptions> configureOptions)
+        {
+            var options = new GetAndTouchOptions();
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            var getResult = await collection.GetAndTouchAsync(id,expires, GetAndTouchOptionsPreferReturns).ConfigureAwait(false);
+            return new TryGetResult(getResult);
+        }
+
+
+        /// <summary>
+        /// Given an id, updates a documents expiry in the database. If the key is not found, a <see cref="ITryTouchResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="expiry">A <see cref="TimeSpan"/> with the duration of the expiry.</param>
+        /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryTouchResult"/> with its Exists property set to true if the server returns success
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryTouchResult> TryTouchAsync(this ICouchbaseCollection collection, string id,
+            TimeSpan expiry, Action<TouchOptions> configureOptions)
+        {
+            var options = TouchOptionsPreferReturns;
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            await collection.TouchAsync(id, expiry, options).ConfigureAwait(false);
+            return new TryTouchResult(options.Status);
+        }
+
+        /// <summary>
+        /// Given an id, updates a documents expiry in the database. If the key is not found, a <see cref="ITryTouchResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="expiry">A <see cref="TimeSpan"/> with the duration of the expiry.</param>
+        /// <returns>A <see cref="ITryTouchResult"/> with its Exists property set to true if the server returns success
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryTouchResult> TryTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
+        {
+            var options = new TouchOptions
+            {
+                PreferReturn = true
+            };
+            await collection.TouchAsync(id, expiry, options).ConfigureAwait(false);
+            return new TryTouchResult(options.Status);
+        }
+
+          /// <summary>
+        /// Given an id, replaces a document from the database. If the key is not found, a <see cref="ITryMutationResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="content">The document or content to store in the database.</param>
+        /// <returns>A <see cref="ITryMutationResult"/> with its Exists property set to true if the server replaces the document
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryMutationResult> TryReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content)
+        {
+            var result = await collection.ReplaceAsync(id, content, ReplaceOptionsPreferReturns).ConfigureAwait(false);
+            return new TryMutationResult(result);
+        }
+
+        /// <summary>
+        /// Given an id, replaces a document from the database. If the key is not found, a <see cref="ITryMutationResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="content">The document or content to store in the database.</param>
+        /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryMutationResult"/> with its Exists property set to true if the server replaces the document
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryMutationResult> TryReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content, Action<ReplaceOptions> configureOptions)
+        {
+            var options = ReplaceOptionsPreferReturns;
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            var result = await collection.ReplaceAsync(id, content, ReplaceOptionsPreferReturns).ConfigureAwait(false);
+            return new TryMutationResult(result);
+        }
+
+           /// <summary>
+        /// Given an id, removes a document from the database. If the key is not found, a <see cref="ITryRemoveResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <returns>A <see cref="ITryRemoveResult"/> with its Exists property set to true if the document was removed
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryRemoveResult> TryRemoveAsync(this ICouchbaseCollection collection, string id)
+        {
+            //allocation is required in this case
+            var options = new RemoveOptions
+            {
+                PreferReturn = true
+            };
+
+            //since RemoveAsync doesn't have a return type, we store the status and pass it to TryRemoveResult
+            await collection.RemoveAsync(id, options).ConfigureAwait(false);
+
+            return new TryRemoveResult(options.Status);
+        }
+
+        /// <summary>
+        /// Given an id, removes a document from the database. If the key is not found, a <see cref="ITryRemoveResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryRemoveResult"/> with its Exists property set to true if the document was removed
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryRemoveResult> TryRemoveAsync(this ICouchbaseCollection collection, string id, Action<RemoveOptions> configureOptions )
+        {
+            var options = new RemoveOptions();
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            await collection.RemoveAsync(id, options).ConfigureAwait(false);
+
+            return new TryRemoveResult(options.Status);
+        }
+
+                /// <summary>
+        /// Given an id, unlocks a document from the database. If the key is not found, a <see cref="ITryUnlockResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="cas">The Compare And Swap (CAS) of the document.</param>
+        /// <returns>A <see cref="ITryUnlockResult"/> with its Exists property set to true if the server returns success
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryUnlockResult> TryUnlockAsync(this ICouchbaseCollection collection, string id, ulong cas)
+        {
+            //Required in this case as its used to pass the status up from the bowels of retry handling
+            var options = new UnlockOptions
+            {
+                PreferReturn = true
+            };
+
+           await collection.UnlockAsync(id, cas, options).ConfigureAwait(false);
+           return new TryUnlockResult(options.Status);
+        }
+
+        /// <summary>
+        /// Given an id, unlocks a document from the database. If the key is not found, a <see cref="ITryUnlockResult"/>
+        /// will be returned with the Exists property set to false; otherwise true. Any other failure will result in a
+        /// thrown exception.
+        /// </summary>
+        /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
+        /// <param name="id">The identifier for the document.</param>
+        /// <param name="cas">The Compare And Swap (CAS) of the document.</param>
+        /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
+        /// <returns>A <see cref="ITryUnlockResult"/> with its Exists property set to true if the server returns success
+        /// and false if the server returns KeyNotFound.</returns>
+        public static async Task<ITryUnlockResult> TryUnlockAsync(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
+        {
+            var options = new UnlockOptions();
+            configureOptions?.Invoke(options);
+            options.PreferReturn = true;
+
+            await collection.UnlockAsync(id, cas, options).ConfigureAwait(false);
+            return new TryUnlockResult(options.Status);
+        }
+
 
         #region Get
 

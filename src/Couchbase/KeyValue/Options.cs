@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -844,6 +845,12 @@ namespace Couchbase.KeyValue
         internal bool PreserveTtlValue { get; private set; }
 
         /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
+        /// <summary>
         /// Specifies whether an existing document's expiry should be preserved.
         /// If true, and the document exists, its expiry will not be modified.Otherwise
         /// the document's expiry is determined by <see cref="Expiry"/>.
@@ -1031,6 +1038,14 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
+        internal ResponseStatus Status { get; set; }
+
+        /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
@@ -1165,6 +1180,14 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
+        internal ResponseStatus Status { get; set; }
+
+        /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
@@ -1251,6 +1274,14 @@ namespace Couchbase.KeyValue
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
+        internal ResponseStatus Status { get; set; }
 
         /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).
@@ -1997,6 +2028,12 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
+        /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
@@ -2100,6 +2137,12 @@ namespace Couchbase.KeyValue
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
 
         /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).

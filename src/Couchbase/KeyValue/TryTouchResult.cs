@@ -1,25 +1,25 @@
 using System;
-using Couchbase.Core;
-
-#nullable enable
+using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.KeyValue;
 
-internal class CounterResult : MutationResult, ICounterResult
+/// <summary>
+/// Provides an interface for 'touching' a document, but instead of throwing
+/// <see cref="DocumentNotFoundException"/> exception if the document key is
+/// not found, allows for the existence to be checked via <see cref="ITryTouchResult.Exists"/>.
+/// </summary>
+internal class TryTouchResult : TryResultBase, ITryTouchResult
 {
-    internal CounterResult(ulong value, ulong cas, TimeSpan? expiry, MutationToken? token)
-        : base(cas, expiry, token)
+    internal TryTouchResult(ResponseStatus status)
     {
-        Content = value;
+        Status = status;
     }
-
-    public ulong Content { get; }
 }
-
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,5 +32,4 @@ internal class CounterResult : MutationResult, ICounterResult
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- *
- * ************************************************************/
+ */

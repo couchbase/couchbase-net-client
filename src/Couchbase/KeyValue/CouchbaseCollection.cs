@@ -407,8 +407,8 @@ namespace Couchbase.KeyValue
             _operationConfigurator.Configure(replaceOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, replaceOp);
-            await _bucket.RetryAsync(replaceOp, ctp.TokenPair).ConfigureAwait(false);
-            return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
+            var status = await _bucket.RetryAsync(replaceOp, ctp.TokenPair).ConfigureAwait(false);
+            return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken, status);
         }
 
         #endregion
@@ -439,12 +439,14 @@ namespace Couchbase.KeyValue
                 SName = ScopeName,
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
-                Span = rootSpan
+                Span = rootSpan,
+                PreferReturns = options.PreferReturn
             };
             _operationConfigurator.Configure(removeOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, removeOp);
-            await _bucket.RetryAsync(removeOp, ctp.TokenPair).ConfigureAwait(false);
+            var status = await _bucket.RetryAsync(removeOp, ctp.TokenPair).ConfigureAwait(false);
+            options.Status = status;
         }
 
         #endregion
@@ -474,7 +476,8 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
-                Span = rootSpan
+                Span = rootSpan,
+                PreferReturns = options.PreferReturn
             };
             _operationConfigurator.Configure(unlockOp, options);
 
@@ -504,12 +507,14 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
-                Span = rootSpan
+                Span = rootSpan,
+                PreferReturns = options.PreferReturn
             };
             _operationConfigurator.Configure(unlockOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, unlockOp);
-            await _bucket.RetryAsync(unlockOp, ctp.TokenPair).ConfigureAwait(false);
+            var status = await _bucket.RetryAsync(unlockOp, ctp.TokenPair).ConfigureAwait(false);
+            options.Status = status;
         }
 
         #endregion
@@ -544,7 +549,8 @@ namespace Couchbase.KeyValue
             _operationConfigurator.Configure(touchOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, touchOp);
-            await _bucket.RetryAsync(touchOp, ctp.TokenPair).ConfigureAwait(false);
+            var status = await _bucket.RetryAsync(touchOp, ctp.TokenPair).ConfigureAwait(false);
+            options.Status = status;
         }
 
         #endregion
@@ -615,13 +621,14 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 SName = ScopeName,
                 Expiry = lockTime.ToTtl(),
-                Span = rootSpan
+                Span = rootSpan,
+                PreferReturns = options.PreferReturn
             };
             _operationConfigurator.Configure(getAndLockOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndLockOp);
-            await _bucket.RetryAsync(getAndLockOp, ctp.TokenPair).ConfigureAwait(false);
-            return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
+            var status = await _bucket.RetryAsync(getAndLockOp, ctp.TokenPair).ConfigureAwait(false);
+            return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider, status)
             {
                 Id = getAndLockOp.Key,
                 Cas = getAndLockOp.Cas,

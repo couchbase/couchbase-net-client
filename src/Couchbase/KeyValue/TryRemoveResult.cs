@@ -1,40 +1,26 @@
 using System;
-using Couchbase.Core;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 
-#nullable enable
+namespace Couchbase.KeyValue;
 
-namespace Couchbase.KeyValue
+/// <summary>
+/// Provides an interface for removing a document, but instead of throwing
+/// <see cref="DocumentNotFoundException"/> exception if the document key is
+/// not found, allows for the existence to be checked via <see cref="ITryRemoveResult.Exists"/>.
+/// </summary>
+internal class TryRemoveResult : TryResultBase, ITryRemoveResult
 {
-    internal class MutationResult : IMutationResult, IResponseStatus
+    public TryRemoveResult(ResponseStatus status)
     {
-        private readonly ResponseStatus _status;
-
-        internal MutationResult(ulong cas, TimeSpan? expiry, MutationToken? token, ResponseStatus status) : this(cas, expiry, token)
-        {
-            _status = status;
-        }
-
-        internal MutationResult(ulong cas, TimeSpan? expiry, MutationToken? token)
-        {
-            Cas = cas;
-            Expiry = expiry;
-            MutationToken = token ?? MutationToken.Empty;
-        }
-
-        public ulong Cas { get; }
-        public TimeSpan? Expiry { get; }
-        public MutationToken MutationToken { get; set; }
-
-        ResponseStatus IResponseStatus.Status => _status;
+        Status = status;
     }
 }
-
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2023 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

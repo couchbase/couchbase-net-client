@@ -1,6 +1,7 @@
 using System;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Protostellar.Query.V1;
 
 namespace Couchbase.KeyValue;
 
@@ -9,27 +10,15 @@ namespace Couchbase.KeyValue;
 /// returns a KeyNotFound status, as opposed to throwing a <see cref="DocumentNotFoundException"/>
 /// like in the regular GetAsync methods.
 /// </summary>
-internal class TryGetResult: ITryGetResult
+internal class TryGetResult: TryResultBase, ITryGetResult
 {
     private readonly IGetResult _getResult;
 
     internal TryGetResult(IGetResult getGetResult)
     {
         _getResult = getGetResult;
-    }
-
-    /// <inheritdoc />
-    public bool Exists
-    {
-        get
-        {
-            if (_getResult is not IResponseStatus responseStatus)
-            {
-                return true;
-            }
-
-            return responseStatus.Status != ResponseStatus.KeyNotFound;
-        }
+        var responseStatus = _getResult as IResponseStatus;
+        Status = responseStatus!.Status;
     }
 
     /// <inheritdoc />
@@ -53,6 +42,4 @@ internal class TryGetResult: ITryGetResult
 
     /// <inheritdoc />
     public DateTime? ExpiryTime => _getResult.ExpiryTime;
-
-    public ResponseStatus Status { get; }
 }

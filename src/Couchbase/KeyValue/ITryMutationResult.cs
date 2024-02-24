@@ -1,25 +1,24 @@
-using System;
-using Couchbase.Core;
-
-#nullable enable
+using Couchbase.Core.Exceptions.KeyValue;
 
 namespace Couchbase.KeyValue;
 
-internal class CounterResult : MutationResult, ICounterResult
+/// <summary>
+/// Provides an interface for mutating a document, but instead of throwing
+/// <see cref="DocumentNotFoundException"/> exception if the document key is
+/// not found, allows for the existence to be checked via <see cref="Exists"/>.
+/// </summary>
+public interface ITryMutationResult : IMutationResult
 {
-    internal CounterResult(ulong value, ulong cas, TimeSpan? expiry, MutationToken? token)
-        : base(cas, expiry, token)
-    {
-        Content = value;
-    }
-
-    public ulong Content { get; }
+    /// <summary>
+    /// If false, the document does not exist on the server for a given key.
+    /// </summary>
+    bool Exists { get; }
 }
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
