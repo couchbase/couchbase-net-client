@@ -85,7 +85,7 @@ namespace Couchbase.Core.IO
                 Cas = op.Cas,
                 CollectionName = op.CName,
                 ScopeName = op.SName,
-                Message = op.LastErrorMessage,
+                Message = op.LastErrorCode?.ToString(),
                 Status = status,
                 OpCode = op.OpCode,
                 DispatchedFrom = op.LastDispatchedFrom,

@@ -6,6 +6,7 @@ using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
@@ -16,8 +17,6 @@ namespace Couchbase.Core.IO.Operations
 {
     internal interface IOperation : IDisposable, IRequest
     {
-        public string? LastErrorMessage { get; set; }
-
         /// <summary>
         /// If true and the server returns KeyNotFound the DocumentNotFoundException will
         /// not be thrown; instead the ResponseStatus will be returned for an Exists check.
@@ -193,6 +192,13 @@ namespace Couchbase.Core.IO.Operations
         string? LastDispatchedTo { get; }
 
         bool IsCompleted { get; }
+
+        /// <summary>
+        /// Represents the last <see cref="ErrorCode"/> if it exists for an operation.
+        /// </summary>
+        ErrorCode? LastErrorCode { get; set; }
+
+        bool RetryNow();
     }
 }
 

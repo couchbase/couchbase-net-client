@@ -7,6 +7,7 @@ using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
@@ -116,6 +117,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         public string LastDispatchedTo => throw new NotImplementedException();
         public bool IsCompleted { get; }
+        public ErrorCode LastErrorCode { get; set; }
+        public bool RetryNow()
+        {
+            throw new NotImplementedException();
+        }
 
         public string LastErrorMessage { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 

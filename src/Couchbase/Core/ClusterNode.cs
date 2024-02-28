@@ -640,7 +640,7 @@ namespace Couchbase.Core
                     {
                         LogKvStatusNotFound(code);
                     }
-                    op.LastErrorMessage = errorCode?.ToString();//need for the ctx creation in retryorchestrator
+                    op.LastErrorCode = errorCode;
                 }
 
                 //Likely an "orphaned operation"

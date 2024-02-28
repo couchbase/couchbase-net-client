@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.IO.Operations.Errors
@@ -26,6 +27,15 @@ namespace Couchbase.Core.IO.Operations.Errors
         /// </summary>
         [JsonPropertyName("errors")]
         public Dictionary<string, ErrorCode> Errors { get; set; }
+
+        public override string ToString()
+        {
+#if DEBUG
+            return JsonSerializer.Serialize(this);
+#else
+            return base.ToString();
+#endif
+        }
     }
 }
 

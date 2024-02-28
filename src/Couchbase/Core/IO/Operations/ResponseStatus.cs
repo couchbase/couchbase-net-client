@@ -396,7 +396,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Raised when a document is not locked.
         /// </summary>
-        DocumentNotLocked =  0x0e
+        DocumentNotLocked =  0x0e,
+
+        /// <summary>
+        /// The request was cancelled, no state changed.
+        /// </summary>
+        Cancelled = 0x51
     }
 }
 

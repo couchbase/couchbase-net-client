@@ -234,7 +234,7 @@ namespace Couchbase.Core.Retry
                                 DispatchedFrom = operation.LastDispatchedFrom,
                                 DispatchedTo = operation.LastDispatchedTo,
                                 DocumentKey = operation.Key,
-                                Message = operation.LastErrorMessage,
+                                Message = operation.LastErrorCode?.ToString(),
                                 OpCode = operation.OpCode
                             };
                             status.CreateException(kvc, operation);
@@ -252,13 +252,13 @@ namespace Couchbase.Core.Retry
                                 DispatchedFrom = operation.LastDispatchedFrom,
                                 DispatchedTo = operation.LastDispatchedTo,
                                 DocumentKey = operation.Key,
-                                Message = operation.LastErrorMessage,
+                                Message = operation.LastErrorCode?.ToString(),
                                 OpCode = operation.OpCode
                             };
                             status.CreateException(kvc, operation);
                         }
 
-                        if (status.IsRetriable(operation))
+                        if (status.IsRetriable(operation) || operation.RetryNow())
                         {
                             if (status == ResponseStatus.UnknownScope || status == ResponseStatus.UnknownCollection)
                             {
@@ -302,7 +302,7 @@ namespace Couchbase.Core.Retry
                             var strategy = operation.RetryStrategy;
                             var action = strategy.RetryAfter(operation, reason);
 
-                            if (action.Retry)
+                            if (action.Retry || operation.RetryNow())
                             {
                                 LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
 

@@ -1,0 +1,1176 @@
+{
+  "version": 2,
+  "revision": 4,
+  "errors": {
+    "0": {
+      "name": "SUCCESS",
+      "desc": "Success",
+      "attrs": [
+        "success"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "1": {
+      "name": "KEY_ENOENT",
+      "desc": "Not Found",
+      "attrs": [
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "1f": {
+      "name": "AUTH_STALE",
+      "desc": "Reauthentication required",
+      "attrs": [
+        "conn-state-invalidated",
+        "auth"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "2": {
+      "name": "KEY_EEXISTS",
+      "desc": "key already exists, or CAS mismatch",
+      "attrs": [
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "20": {
+      "name": "AUTH_ERROR",
+      "desc": "Authentication failed",
+      "attrs": [
+        "conn-state-invalidated",
+        "auth"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "21": {
+      "name": "AUTH_CONTINUE",
+      "desc": "Continue authentication processs",
+      "attrs": [
+        "special-handling"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "22": {
+      "name": "ERANGE",
+      "desc": "Invalid range requested",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "23": {
+      "name": "ROLLBACK",
+      "desc": "Rollback",
+      "attrs": [
+        "dcp",
+        "special-handling"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "24": {
+      "name": "EACCESS",
+      "desc": "Not authorized for command",
+      "attrs": [
+        "support"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "25": {
+      "name": "NOT_INITIALIZED",
+      "desc": "Server not initialized",
+      "attrs": [
+        "conn-state-invalidated"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "3": {
+      "name": "E2BIG",
+      "desc": "Value is too big",
+      "attrs": [
+        "item-only",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "30": {
+      "name": "RATE_LIMITED_NETWORK_INGRESS",
+      "desc": "Rate limited: Network Ingress",
+      "attrs": [
+        "temp",
+        "retry-later",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "31": {
+      "name": "RATE_LIMITED_NETWORK_EGRESS",
+      "desc": "Rate limited: Network Egress",
+      "attrs": [
+        "temp",
+        "retry-later",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "32": {
+      "name": "RATE_LIMITED_MAX_CONNECTIONS",
+      "desc": "Rate limited: Max Connections",
+      "attrs": [
+        "conn-state-invalidated",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "33": {
+      "name": "RATE_LIMITED_MAX_COMMANDS",
+      "desc": "Rate limited: Max Commands",
+      "attrs": [
+        "temp",
+        "retry-later",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "34": {
+      "name": "SCOPE_SIZE_LIMIT_EXCEEDED",
+      "desc": "The scope contains too much data",
+      "attrs": [
+        "item-only",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "35": {
+      "name": "BUCKET_SIZE_LIMIT_EXCEEDED",
+      "desc": "The bucket contains too much data",
+      "attrs": [
+        "item-only",
+        "system-constraint",
+        "no-retry"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "36": {
+      "name": "BUCKET_RESIDENT_RATIO_TOO_LOW",
+      "desc": "Bucket resident ratio too low, write to this bucket is rejected",
+      "attrs": [
+        "item-only",
+        "system-constraint",
+        "no-retry"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "37": {
+      "name": "BUCKET_DATA_SIZE_TOO_BIG",
+      "desc": "Bucket Data Size exceeds maximum allowed size, writes to this bucket is rejected",
+      "attrs": [
+        "item-only",
+        "system-constraint",
+        "no-retry"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "38": {
+      "name": "BUCKET_DISK_SPACE_TOO_LOW",
+      "desc": "Disk space where the bucket is deployed is above the configured threshold, writes to this bucket is rejected",
+      "attrs": [
+        "item-only",
+        "system-constraint",
+        "no-retry"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "4": {
+      "name": "EINVAL",
+      "desc": "Invalid packet",
+      "attrs": [
+        "internal",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "5": {
+      "name": "NOT_STORED",
+      "desc": "Not Stored",
+      "attrs": [
+        "internal",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "50": {
+      "name": "BUCKET_PAUSED",
+      "desc": "The request is not possible because the bucket is paused",
+      "attrs": [
+        "support"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "51": {
+      "name": "CANCELLED",
+      "desc": "The request was cancelled, no state changed",
+      "attrs": [
+        "item-only",
+        "retry-now"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "6": {
+      "name": "DELTA_BADVAL",
+      "desc": "Existing document not a number",
+      "attrs": [
+        "item-only",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "7": {
+      "name": "NOT_MY_VBUCKET",
+      "desc": "Server does not know about this vBucket",
+      "attrs": [
+        "fetch-config",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "8": {
+      "name": "NO_BUCKET",
+      "desc": "Not connected to any bucket",
+      "attrs": [
+        "conn-state-invalidated"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "80": {
+      "name": "UNKNOWN_FRAME_INFO",
+      "desc": "Unknown frame info identifier encountered. Maybe a newer server version knows about it",
+      "attrs": [
+        "support"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "81": {
+      "name": "UNKNOWN_COMMAND",
+      "desc": "Unknown command. Maybe a newer server version knows about it",
+      "attrs": [
+        "support"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "82": {
+      "name": "ENOMEM",
+      "desc": "No memory available to store item. Add memory or remove some items and try later",
+      "attrs": [
+        "temp",
+        "retry-later"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "83": {
+      "name": "NOT_SUPPORTED",
+      "desc": "Command not supported with current bucket type/configuration",
+      "attrs": [
+        "support"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "84": {
+      "name": "EINTERNAL",
+      "desc": "Internal error. Reconnect recommended",
+      "attrs": [
+        "internal",
+        "conn-state-invalidated"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "85": {
+      "name": "EBUSY",
+      "desc": "Busy, try again",
+      "attrs": [
+        "temp",
+        "retry-now"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "86": {
+      "name": "ETMPFAIL",
+      "desc": "Temporary failure. Try again",
+      "attrs": [
+        "temp",
+        "retry-now"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "87": {
+      "name": "XATTR_EINVAL",
+      "desc": "Invalid extended attribute",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "88": {
+      "name": "UNKNOWN_COLLECTION",
+      "desc": "Operation specified an unknown collection.",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "89": {
+      "name": "NO_COLLECTIONS_MANIFEST",
+      "desc": "No collections manifest has been set.",
+      "attrs": [
+        "retry-later"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "8a": {
+      "name": "CANNOT_APPLY_COLLECTIONS_MANIFEST",
+      "desc": "The manifest cannot applied to the bucket\u0027s vbuckets.",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "8c": {
+      "name": "UNKNOWN_SCOPE",
+      "desc": "Operation specified an unknown scope.",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "8d": {
+      "name": "DCP stream-ID invalid",
+      "desc": "Operations stream-ID usage is incorrect.",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "9": {
+      "name": "LOCKED",
+      "desc": "Requested resource is locked",
+      "attrs": [
+        "item-locked",
+        "item-only",
+        "retry-now"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a": {
+      "name": "STREAM_NOT_FOUND",
+      "desc": "Stream not found",
+      "attrs": [
+        "conn-state-invalidated"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a0": {
+      "name": "DurabilityInvalidLevel",
+      "desc": "Durability level is invalid",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a1": {
+      "name": "DurabilityImpossible",
+      "desc": "Durability requirements are impossible to achieve",
+      "attrs": [
+        "item-only",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a2": {
+      "name": "SyncWriteInProgress",
+      "desc": "The requested key has a pending synchronous write",
+      "attrs": [
+        "item-only",
+        "retry-later"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a3": {
+      "name": "SyncWriteAmbiguous",
+      "desc": "The SyncWrite request has not completed in the specified time and has ambiguous result - it may Succeed or Fail; but the final value is not yet known",
+      "attrs": [
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a4": {
+      "name": "SyncWriteReCommitInProgress",
+      "desc": "The requested key has a SyncWrite which is being re-committed.",
+      "attrs": [
+        "item-only",
+        "retry-later"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a5": {
+      "name": "RangeScanCancelled",
+      "desc": "The requested range-scan has been cancelled.",
+      "attrs": [
+        "success"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a6": {
+      "name": "RangeScanMore",
+      "desc": "The range scan has more data available.",
+      "attrs": [
+        "success"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a7": {
+      "name": "RangeScanComplete",
+      "desc": "The range scan has completed",
+      "attrs": [
+        "success"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "a8": {
+      "name": "VbUuidNotEqual",
+      "desc": "The provided vbucket uuid does not equal the server\u0027s vbucket uuid",
+      "attrs": [
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "b": {
+      "name": "OPAQUE_NO_MATCH",
+      "desc": "Opaque does not match",
+      "attrs": [
+        "conn-state-invalidated"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c": {
+      "name": "EWOULD_THROTTLE",
+      "desc": "Command would have been throttled",
+      "attrs": [
+        "temp",
+        "retry-later",
+        "rate-limit"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c0": {
+      "name": "SUBDOC_PATH_ENOENT",
+      "desc": "Subdoc: Path not found in document",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c1": {
+      "name": "SUBDOC_PATH_MISMATCH",
+      "desc": "Subdoc: Path and document disagree on structure",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c2": {
+      "name": "SUBDOC_PATH_EINVAL",
+      "desc": "Subdoc: Invalid path (bad syntax or unacceptable semantics for command",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c3": {
+      "name": "SUBDOC_PATH_E2BIG",
+      "desc": "Subdoc: Path size exceeds limit",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c4": {
+      "name": "SUBDOC_PATH_E2DEEP",
+      "desc": "Subdoc: Path is too deep to be parsed",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c5": {
+      "name": "SUBDOC_VALUE_CANTINSERT",
+      "desc": "Subdoc: Value invalid for insertion",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c6": {
+      "name": "SUBDOC_DOC_NOTJSON",
+      "desc": "Subdoc: Document not JSON",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c7": {
+      "name": "SUBDOC_NUM_ERANGE",
+      "desc": "Subdoc: Existing numeric value is not within range",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c8": {
+      "name": "SUBDOC_DELTA_EINVAL",
+      "desc": "Subdoc: Invalid value passed for delta (out of range, or not an integer",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "c9": {
+      "name": "SUBDOC_PATH_EEXISTS",
+      "desc": "Subdoc: Path already exists",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "ca": {
+      "name": "SUBDOC_VALUE_ETOODEEP",
+      "desc": "Subdoc: Value is too deep, or would make the document too deep",
+      "attrs": [
+        "subdoc",
+        "invalid-input",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "cb": {
+      "name": "SUBDOC_INVALID_COMBO",
+      "desc": "Subdoc: Lookup and mutation commands found within single packet",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "cc": {
+      "name": "SUBDOC_MULTI_PATH_FAILURE",
+      "desc": "Subdoc: Some (or all) commands failed. Inspect payload for details",
+      "attrs": [
+        "subdoc",
+        "special-handling"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "cd": {
+      "name": "SUBDOC_SUCCESS_DELETED",
+      "desc": "Subdoc: Success, but the affected document was (and still is) deleted",
+      "attrs": [
+        "item-deleted",
+        "success",
+        "subdoc"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "ce": {
+      "name": "SUBDOC_XATTR_INVALID_FLAG_COMBO",
+      "desc": "Subdoc: The flag combination doesn\u0027t make any sense",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "cf": {
+      "name": "SUBDOC_XATTR_INVALID_KEY_COMBO",
+      "desc": "Subdoc: The key combination of the xattrs is not allowed",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d": {
+      "name": "ECONFIG_ONLY",
+      "desc": "Command can\u0027t be executed in a config-only bucket",
+      "attrs": [
+        "fetch-config",
+        "retry-now"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d0": {
+      "name": "SUBDOC_XATTR_UNKNOWN_MACRO",
+      "desc": "Subdoc: The server don\u0027t know about the specified macro",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d1": {
+      "name": "SUBDOC_XATTR_UNKNOWN_VATTR",
+      "desc": "Subdoc: The server don\u0027t know about the specified virtual attribute",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d2": {
+      "name": "SUBDOC_XATTR_CANT_MODIFY_VATTR",
+      "desc": "Subdoc: Can\u0027t modify virtual attributes",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d3": {
+      "name": "SUBDOC_MULTI_PATH_FAILURE_DELETED",
+      "desc": "Subdoc: One or more paths in a multi-path command failed on a deleted document",
+      "attrs": [
+        "item-deleted",
+        "subdoc",
+        "special-handling"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d4": {
+      "name": "SUBDOC_INVALID_XATTR_ORDER",
+      "desc": "Subdoc: Invalid XATTR order (xattrs should come first)",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d5": {
+      "name": "SUBDOC_XATTR_UNKNOWN_VATTR_MACRO",
+      "desc": "Subdoc: The server don\u0027t know about (or support) the specified virtual macro",
+      "attrs": [
+        "subdoc",
+        "invalid-input"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d6": {
+      "name": "SUBDOC_CAN_ONLY_REVIVE_DELETED_DOCUMENTS",
+      "desc": "Subdoc: Only deleted documents can be revived",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "d7": {
+      "name": "SUBDOC_DELETED_DOCUMENT_CANT_HAVE_VALUE",
+      "desc": "Subdoc: A deleted document can\u0027t have a value",
+      "attrs": [
+        "subdoc",
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    },
+    "e": {
+      "name": "NOT_LOCKED",
+      "desc": "Requested resource is not locked",
+      "attrs": [
+        "item-only"
+      ],
+      "retry": {
+        "strategy": 0,
+        "interval": 0,
+        "ceil": null,
+        "after": null,
+        "max-duration": null
+      }
+    }
+  }
+}

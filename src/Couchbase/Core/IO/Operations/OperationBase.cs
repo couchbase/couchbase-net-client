@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -13,6 +14,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
@@ -712,6 +714,13 @@ namespace Couchbase.Core.IO.Operations
         public virtual bool CanStream => false;
 
         public bool IsCompleted => _isCompleted == 1;
+
+        public ErrorCode? LastErrorCode { get; set; }
+
+        public bool RetryNow()
+        {
+            return LastErrorCode != null && LastErrorCode.Attrs.Contains("retry-now");
+        }
 
         #endregion
 
