@@ -721,7 +721,6 @@ namespace Couchbase.KeyValue
             _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-            if (specs.Count() > 16) throw new InvalidArgumentException("Too many specs in Lookup operation (Limited to 16)");
             var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
