@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>
+    internal class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
         //To hold the intermediate responses
         private List<SlicedMemoryOwner<byte>> _responses = new();
@@ -18,6 +18,14 @@ namespace Couchbase.Core.IO.Operations.RangeScan
         /// Maximum key/document count to return (when 0 there is no limit)
         /// </summary>
         public uint ItemLimit { get; set; } = 0;
+
+        /// <summary>
+        /// Indicates whether this is a sampling scan or a full range scan.
+        /// </summary>
+        /// <remarks>
+        /// Not serialized in the request.  Affects error handling.
+        /// </remarks>
+        public bool IsSampling { get; set; } = false;
 
         /// <summary>
         /// Maximum time (ms) for the scan to keep returning key/documents (when 0 there is no time limit)
@@ -33,7 +41,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public override OpCode OpCode => OpCode.RangeScanContinue;
 
-        public override bool RequiresVBucketId => false;
+        public override bool RequiresVBucketId => true;
 
         public override bool CanStream => true;
 

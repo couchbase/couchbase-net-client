@@ -1,13 +1,13 @@
+using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
-using System;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanCreate : OperationBase<IScanTypeExt>
+    internal class RangeScanCreate : OperationBase<IScanTypeExt>, IPreMappedVBucketOperation
     {
         //https://github.com/couchbase/kv_engine/blob/master/docs/range_scans/range_scan_create.md
 
-        public override bool RequiresVBucketId => false;
+        public override bool RequiresVBucketId => true;
 
         public override OpCode OpCode => OpCode.RangeScanCreate;
 

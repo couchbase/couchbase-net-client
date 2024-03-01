@@ -27,6 +27,7 @@ namespace Couchbase.Core.IO
         public AsyncStateBase(IOperation operation)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (operation == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(operation));

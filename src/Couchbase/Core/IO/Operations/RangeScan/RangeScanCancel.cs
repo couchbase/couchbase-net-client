@@ -1,13 +1,14 @@
 using System;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanCancel : OperationBase<SlicedMemoryOwner<byte>>
+    internal class RangeScanCancel : OperationBase<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
         public override OpCode OpCode => OpCode.RangeScanCancel;
 
-        public override bool RequiresVBucketId => false;
+        public override bool RequiresVBucketId => true;
 
         protected override void WriteBody(OperationBuilder builder)
         {

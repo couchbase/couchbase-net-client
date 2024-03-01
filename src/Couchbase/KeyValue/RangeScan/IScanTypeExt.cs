@@ -20,5 +20,10 @@ namespace Couchbase.KeyValue.RangeScan
         /// </summary>
         /// <returns>A JSON <see cref="byte"/> that represents the <see cref="IScanType"/>.</returns>
         byte[] Serialize(bool keyOnly, TimeSpan timeout, MutationToken? token);
+
+        /// <summary>
+        /// Gets a value indicating whether the operation is a sampling scan.  Affects error handling.
+        /// </summary>
+        bool IsSampling { get; }
     }
 }

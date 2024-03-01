@@ -79,7 +79,8 @@ internal class PartitionScan
                         Logger = _getLogger,
                         TimeLimit = _options.BatchTimeLimit,
                         ItemLimit = _options.BatchItemLimit,
-                        ByteLimit = _options.BatchByteLimit
+                        ByteLimit = _options.BatchByteLimit,
+                        IsSampling = scanCreateOp.Content?.IsSampling == true,
                     };
                     _operationConfigurator.Configure(scanContinueOp, _options);
 
@@ -88,6 +89,9 @@ internal class PartitionScan
                     Results = scanContinueOp.Content;
                     break;
                 }
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                    Status = await _bucket.RetryAsync(scanCreateOp, ctp.TokenPair).ConfigureAwait(false);
+                    break;
             }
         }
         else

@@ -6,12 +6,15 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.KeyValue;
+using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Utils;
@@ -211,13 +214,13 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
+        internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair)
         {
             if (KeyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
 
             if (op.RequiresVBucketId)
             {
-                var vBucket = (VBucket) KeyMapper.MapKey(op.EncodedKey, op.WasNmvb());
+                VBucket vBucket = MapVBucket(op);
 
                 var endPoint = op.ReplicaIdx != null && op.ReplicaIdx > -1
                     ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
@@ -263,6 +266,24 @@ namespace Couchbase
 
             await node.SelectBucketAsync(Name, tokenPair).ConfigureAwait(false);
             return await node.SendAsync(op, tokenPair).ConfigureAwait(false);
+        }
+
+        private VBucket MapVBucket(IOperation op)
+        {
+            if (!(op is IPreMappedVBucketOperation preMappedOp))
+            {
+                // for normal, non-management ops, use the Key to lookup the VBucketId.
+                return (VBucket)KeyMapper!.MapKey(op.EncodedKey, op.WasNmvb());
+            }
+
+            if (preMappedOp.VBucketId.HasValue)
+            {
+                // RangeScan ops do not have the Key set, so look up the vBucket directly from the ID
+                var vkm = (VBucketKeyMapper)KeyMapper!;
+                return (VBucket)vkm[preMappedOp.VBucketId.Value];
+            }
+
+            throw new InvalidOperationException("Could not map VBucket using Key or VBucketId");
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

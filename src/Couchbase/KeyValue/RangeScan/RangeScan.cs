@@ -41,6 +41,7 @@ namespace Couchbase.KeyValue.RangeScan
 
         private string _collectionName;
         string IScanTypeExt.CollectionName { get => _collectionName; set => _collectionName = value; }
+        bool IScanTypeExt.IsSampling => false;
         byte[] IScanTypeExt.Serialize(bool keyOnly, TimeSpan timeout, MutationToken token)
         {
             using var ms = new MemoryStream();

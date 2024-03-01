@@ -399,11 +399,16 @@ namespace Couchbase.Core.IO.Connections
 
                 EndpointState = EndpointState.Disconnected;
             }
+            else
+            {
+                _logger.LogInformation("Close called on already closed connection {cid}", ConnectionId);
+            }
         }
 
         /// <inheritdoc />
         public async ValueTask CloseAsync(TimeSpan timeout)
         {
+            _logger.LogDebug("CloseAsync");
             if (Volatile.Read(ref _disposed) > 0)
             {
                 return;
