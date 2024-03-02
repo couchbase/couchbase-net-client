@@ -297,10 +297,10 @@ namespace Couchbase.Core
 
         public bool SupportsCollections => HasCap(BucketCapabilities.COLLECTIONS);
 
-        internal bool HasCap(string capability) => CurrentConfig?.HasCap(capability) == true;
+        internal bool HasCap(string capability) => CurrentConfig?.HasBucketCap(capability) == true;
 
         internal void AssertCap(string capability, string? message = null) =>
-            CurrentConfig?.AssertCap(capability, message);
+            CurrentConfig?.AssertBucketCap(capability, message);
 
         /// <summary>
         /// Throw an exception if the bucket is not bootstrapped successfully.

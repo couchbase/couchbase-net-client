@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -110,15 +111,16 @@ namespace Couchbase.Search
             JObject requestJson = ftsSearchRequest.ToJObject();
             if (vectorSearch is not null)
             {
+                if (vectorSearch.VectorQueries.Count < 1)
+                {
+                    throw new InvalidArgumentException("The Vector Search query must contain at least 1 element.");
+                }
                 var vectorJson = JObject.FromObject(vectorSearch);
-                requestJson.Add(VectorSearch.PropVectorQueries, vectorJson[VectorSearch.PropVectorQueries]);
+                var vectorQueries = vectorJson[VectorSearch.PropVectorQueries];
+                requestJson.Add(VectorSearch.PropVectorQueries, vectorQueries);
                 if (vectorSearch.VectorQueryCombination is not null)
                 {
                     requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
-                }
-                else
-                {
-                    throw new InvalidArgumentException("The Vector Search query must contain at least 1 element.");
                 }
             }
             //Prevents the server from returning the original request in the response.

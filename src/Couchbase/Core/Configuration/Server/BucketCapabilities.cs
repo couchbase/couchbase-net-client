@@ -17,8 +17,6 @@ namespace Couchbase.Core.Configuration.Server
         public const string RANGE_SCAN = "rangeScan";
         public const string SUBDOC_REPLICA_READ = "subdoc.ReplicaRead";
         public const string NON_DEDUPED_HISTORY = "nonDedupedHistory";
-        public const string SCOPED_SEARCH_INDEX = "scopedSearchIndex";
-        public const string VECTOR_SEARCH = "vectorSearch";
     }
 }
 

@@ -247,6 +247,7 @@ namespace Couchbase.Core.Configuration.Server
         internal const string GlobalBucketName = "CLUSTER";
         private string _networkResolution = Couchbase.NetworkResolution.Auto;
         private List<string> _bucketCaps = new();
+        private Dictionary<string, IEnumerable<string>> _clusterCaps = new();
 
         public ConfigVersion ConfigVersion { get; private set; }
 
@@ -344,6 +345,8 @@ namespace Couchbase.Core.Configuration.Server
             set
             {
                 _bucketCaps = value;
+
+                // because checking caps may be on a hot path, we copy them into a set for O(1) lookup
                 if (value is not null)
                 {
                     _bucketCapsSet = new HashSet<string>(value);
@@ -355,15 +358,53 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
         [JsonPropertyName("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }
-        [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
 
-        public bool HasCap(string capability) => _bucketCapsSet?.Contains(capability) == true;
-        internal void AssertCap(string clusterCap, string message = null)
+        [JsonPropertyName("clusterCapabilities")]
+        public Dictionary<string, IEnumerable<string>> ClusterCapabilities
         {
-            if (!HasCap(clusterCap))
+            get => _clusterCaps;
+            set
+            {
+                _clusterCaps = value;
+                if (value is not null)
+                {
+                    _clusterCapsSet = new();
+
+                    // because checking the cluster caps is now on a semi-hot path,
+                    // we copy the caps into a set for O(1) lookup
+                    // The list of capabilities is small enough that we could optimize it into an enum flag check,
+                    // if needed, but we would then not be able to support checking for caps by string
+                    foreach (var kvp in value)
+                    {
+                        var section = kvp.Key;
+                        var caps = kvp.Value;
+                        foreach (var cap in caps)
+                        {
+                            _clusterCapsSet.Add($"{section}.{cap}");
+                        }
+                    }
+                }
+            }
+        }
+
+
+        public bool HasBucketCap(string capability) => _bucketCapsSet?.Contains(capability) == true;
+        internal void AssertBucketCap(string bucketCap, string message = null)
+        {
+            if (!HasBucketCap(bucketCap))
+            {
+                var errorMsg = message is null ? bucketCap : $"{bucketCap}: {message}";
+                throw new FeatureNotAvailableException(errorMsg);
+            }
+        }
+
+        public bool HasClusterCap(string sectionDotCapability) => _clusterCapsSet.Contains(sectionDotCapability);
+        internal void AssertClusterCap(string clusterCap, string message = null)
+        {
+            if (!HasClusterCap(clusterCap))
             {
                 var errorMsg = message is null ? clusterCap : $"{clusterCap}: {message}";
-                throw new FeatureNotAvailableException(message);
+                throw new FeatureNotAvailableException(errorMsg);
             }
         }
 
@@ -434,6 +475,7 @@ namespace Couchbase.Core.Configuration.Server
 
         private bool? _useAlternateAddresses;
         private HashSet<string> _bucketCapsSet;
+        private HashSet<string> _clusterCapsSet;
 
         public bool UseAlternateAddresses
         {
@@ -450,6 +492,10 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class ClusterCapabilities
     {
+        // flattened section.capabilityName constants for set-based lookup.
+        public const string SCOPED_SEARCH_INDEX = "search.scopedSearchIndex";
+        public const string VECTOR_SEARCH = "search.vectorSearch";
+
         [JsonPropertyName("clusterCapabilitiesVer")] public IEnumerable<int> Version { get; set; }
         [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
 

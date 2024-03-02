@@ -424,13 +424,13 @@ namespace Couchbase
             // The RFC asks to wait until the GlobalConfig is ready.  That should be handled by ThrowIfNotBootstrapped.
             if (searchRequest.Scope is not null)
             {
-                _context.GlobalConfig?.AssertCap(BucketCapabilities.SCOPED_SEARCH_INDEX,
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX,
                     "This API is for use with scoped indexes, which require Couchbase Server 7.6.0 or above, with at least one search node");
             }
 
             if (searchRequest.VectorSearch is not null)
             {
-                _context.GlobalConfig?.AssertCap(BucketCapabilities.VECTOR_SEARCH,
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
                     "Vector queries are available from Couchbase Server 7.6.0 and above, with at least one search node");
             }
 

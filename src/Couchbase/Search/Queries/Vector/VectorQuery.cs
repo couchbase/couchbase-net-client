@@ -38,8 +38,23 @@ public sealed record VectorQuery(
 }
 
 [InterfaceStability(Level.Volatile)]
-public sealed record VectorQueryOptions(uint? NumCandidates = null, float? Boost = null)
+public sealed record VectorQueryOptions(float? Boost = null)
 {
+    private readonly uint? _numCandidates = null;
+
+    public uint? NumCandidates
+    {
+        get => _numCandidates;
+        init
+        {
+            if (value is < 1)
+            {
+                throw new Core.Exceptions.InvalidArgumentException($"{nameof(NumCandidates)} must be >= 1");
+            }
+
+            _numCandidates = value;
+        }
+    }
     VectorQueryOptions WithNumCandidates(uint numCandidates) => this with { NumCandidates = numCandidates };
     VectorQueryOptions WithBoost(float boost) => this with { Boost = boost };
 }

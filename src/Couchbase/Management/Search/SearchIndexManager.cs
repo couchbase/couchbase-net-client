@@ -26,7 +26,7 @@ namespace Couchbase.Management.Search
         private readonly IRedactor _redactor;
         private readonly ClusterContext _context;
 
-        // TODO:  need to be able to reference global config to AssertCap(ScopedSearchIndexes)
+        // TODO:  need to be able to reference global config to AssertBucketCap(ScopedSearchIndexes)
         public SearchIndexManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<SearchIndexManager> logger, IRedactor redactor, ClusterContext context)
         {
@@ -43,7 +43,7 @@ namespace Couchbase.Management.Search
             var path = "api/index";
             if (scope is not null)
             {
-                _context.GlobalConfig?.AssertCap(BucketCapabilities.SCOPED_SEARCH_INDEX);
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX);
                 path = $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}";
             }
 

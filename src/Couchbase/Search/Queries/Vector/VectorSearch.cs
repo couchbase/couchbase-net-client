@@ -11,7 +11,7 @@ namespace Couchbase.Search.Queries.Vector;
 public sealed record VectorSearch(
     [property: Stj.JsonPropertyName(VectorSearch.PropVectorQueries)]
     [property: NSft.JsonProperty(VectorSearch.PropVectorQueries)]
-    IEnumerable<VectorQuery> VectorQueries,
+    ICollection<VectorQuery> VectorQueries,
     VectorSearchOptions? Options)
 {
     /// <summary>
