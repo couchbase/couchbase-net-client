@@ -44,7 +44,7 @@ namespace Couchbase.Management.Search
             if (scope is not null)
             {
                 _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX);
-                path = $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}";
+                path = $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}/index";
             }
 
             var builder = new UriBuilder(searchUri)
