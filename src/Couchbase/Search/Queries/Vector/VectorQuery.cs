@@ -34,7 +34,7 @@ public sealed record VectorQuery(
     [NSft.JsonProperty(PropBoost, NullValueHandling = NSft.NullValueHandling.Ignore)]
     public float? Boost => Options?.Boost;
 
-    VectorQuery WithOptions(VectorQueryOptions options) => this with { Options = options };
+    public VectorQuery WithOptions(VectorQueryOptions options) => this with { Options = options };
 }
 
 [InterfaceStability(Level.Volatile)]
@@ -55,6 +55,6 @@ public sealed record VectorQueryOptions(float? Boost = null)
             _numCandidates = value;
         }
     }
-    VectorQueryOptions WithNumCandidates(uint numCandidates) => this with { NumCandidates = numCandidates };
-    VectorQueryOptions WithBoost(float boost) => this with { Boost = boost };
+    public VectorQueryOptions WithNumCandidates(uint numCandidates) => this with { NumCandidates = numCandidates };
+    public VectorQueryOptions WithBoost(float boost) => this with { Boost = boost };
 }

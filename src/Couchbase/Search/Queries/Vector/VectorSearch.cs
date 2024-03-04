@@ -27,6 +27,9 @@ public sealed record VectorSearch(
     public string? VectorQueryCombination => Options?.VectoryQueryCombination?.ToString()?.ToLowerInvariant();
     public static VectorSearch Create(VectorQuery vectorQuery, VectorSearchOptions? options = null) =>
         new VectorSearch(new[] { vectorQuery }, options);
+
+    public static VectorSearch Create(ICollection<VectorQuery> vectorQueries, VectorSearchOptions? options = null) =>
+        new VectorSearch(vectorQueries, options);
 }
 
 [InterfaceStability(Level.Volatile)]
