@@ -27,9 +27,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
         // Note: Percentiles must be listed in ascending order and satisfy 0 < p <= 1
         private static readonly (double Percentile, Action<PercentilesUs, double> Setter)[] Percentiles =
         [
-            (0.75, (p, v) => p._750 = v),
-            (0.95, (p, v) => p._950 = v),
-            (0.98, (p, v) => p._980 = v),
+            (0.50, (p, v) => p._500 = v),
+            (0.90, (p, v) => p._900 = v),
+            (0.99, (p, v) => p._990 = v),
             (0.999, (p, v) => p._999 = v),
             (1.0, (p, v) => p._10000 = v)
         ];

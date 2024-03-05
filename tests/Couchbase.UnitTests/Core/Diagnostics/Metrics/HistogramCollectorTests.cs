@@ -21,9 +21,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(0, result.TotalCount);
-            Assert.Equal(0, result.Percentiles._750);
-            Assert.Equal(0, result.Percentiles._950);
-            Assert.Equal(0, result.Percentiles._980);
+            Assert.Equal(0, result.Percentiles._500);
+            Assert.Equal(0, result.Percentiles._900);
+            Assert.Equal(0, result.Percentiles._990);
             Assert.Equal(0, result.Percentiles._999);
             Assert.Equal(0, result.Percentiles._10000);
         }
@@ -56,9 +56,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(4000, result.TotalCount);
-            Assert.Equal(value, result.Percentiles._750);
-            Assert.Equal(value, result.Percentiles._950);
-            Assert.Equal(value, result.Percentiles._980);
+            Assert.Equal(value, result.Percentiles._500);
+            Assert.Equal(value, result.Percentiles._900);
+            Assert.Equal(value, result.Percentiles._990);
             Assert.Equal(value, result.Percentiles._999);
             Assert.Equal(value, result.Percentiles._10000);
         }
@@ -82,9 +82,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(100, result.TotalCount);
-            Assert.Equal(75, result.Percentiles._750);
-            Assert.Equal(95, result.Percentiles._950);
-            Assert.Equal(98, result.Percentiles._980);
+            Assert.Equal(50, result.Percentiles._500);
+            Assert.Equal(90, result.Percentiles._900);
+            Assert.Equal(99, result.Percentiles._990);
             Assert.Equal(99, result.Percentiles._999);
             Assert.Equal(100, result.Percentiles._10000);
         }
@@ -108,9 +108,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(100, result.TotalCount);
-            Assert.Equal(25, result.Percentiles._750);
-            Assert.Equal(45, result.Percentiles._950);
-            Assert.Equal(48, result.Percentiles._980);
+            Assert.Equal(0, result.Percentiles._500);
+            Assert.Equal(40, result.Percentiles._900);
+            Assert.Equal(49, result.Percentiles._990);
             Assert.Equal(49, result.Percentiles._999);
             Assert.Equal(50, result.Percentiles._10000);
         }
@@ -137,9 +137,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(1000, result.TotalCount);
-            Assert.Equal(75, result.Percentiles._750);
-            Assert.Equal(95, result.Percentiles._950);
-            Assert.Equal(98, result.Percentiles._980);
+            Assert.Equal(50, result.Percentiles._500);
+            Assert.Equal(90, result.Percentiles._900);
+            Assert.Equal(99, result.Percentiles._990);
             Assert.Equal(100, result.Percentiles._999); // 99.9th percentile is 100
             Assert.Equal(100, result.Percentiles._10000);
         }
@@ -168,9 +168,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             // Assert
 
             Assert.Equal(100, result.TotalCount);
-            Assert.Equal(baseExponent + 75 * step, result.Percentiles._750);
-            Assert.Equal(baseExponent + 95 * step, result.Percentiles._950);
-            Assert.Equal(baseExponent + 98 * step, result.Percentiles._980);
+            Assert.Equal(baseExponent + 50 * step, result.Percentiles._500);
+            Assert.Equal(baseExponent + 90 * step, result.Percentiles._900);
+            Assert.Equal(baseExponent + 99 * step, result.Percentiles._990);
             Assert.Equal(baseExponent + 99 * step, result.Percentiles._999);
             Assert.Equal(baseExponent + 100 * step, result.Percentiles._10000);
         }

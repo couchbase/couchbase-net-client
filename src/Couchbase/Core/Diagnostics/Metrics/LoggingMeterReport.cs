@@ -96,14 +96,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
     internal class PercentilesUs
     {
-        [JsonPropertyName("75.0")]
-        public double _750 { get; set; }
+        [JsonPropertyName("50.0")]
+        public double _500 { get; set; }
 
-        [JsonPropertyName("95.0")]
-        public double _950 { get; set; }
+        [JsonPropertyName("90.0")]
+        public double _900 { get; set; }
 
-        [JsonPropertyName("98.0")]
-        public double _980 { get; set; }
+        [JsonPropertyName("99.0")]
+        public double _990 { get; set; }
 
         [JsonPropertyName("99.9")]
         public double _999 { get; set; }
