@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
 using Couchbase.Core.Exceptions;
 using Couchbase.Search.Queries;
 using Xunit;

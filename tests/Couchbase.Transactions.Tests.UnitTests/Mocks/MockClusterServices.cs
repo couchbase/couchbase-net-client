@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -9,8 +8,6 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.Tests.UnitTests.Mocks
 {
@@ -44,7 +41,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
 
     internal class MockTranscoder : ITypeTranscoder
     {
-        public Flags GetFormat<T>(T value) => new Flags() {Compression = Compression.None, DataFormat = DataFormat.Json, TypeCode = TypeCode.Object };
+        public Flags GetFormat<T>(T value) => new Flags() {Compression = Couchbase.Core.IO.Operations.Compression.None, DataFormat = DataFormat.Json, TypeCode = TypeCode.Object };
 
         public void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode) => Serializer.Serialize(stream, value);
 
@@ -66,7 +63,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
     {
         public void Dispose()
         {
-            
+
         }
 
         public ILogger CreateLogger(string categoryName) => new Mock<ILogger>().Object;

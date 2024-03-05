@@ -33,10 +33,11 @@ namespace Couchbase.Core.DI
         private readonly ISaslMechanismFactory _saslMechanismFactory;
         private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
+        private readonly IOperationConfigurator _operationConfigurator;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            TypedRedactor redactor, IRequestTracer tracer)
+            TypedRedactor redactor, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
@@ -46,6 +47,7 @@ namespace Couchbase.Core.DI
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentNullException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _operationConfigurator = operationConfigurator;
         }
 
         /// <inheritdoc />
@@ -59,7 +61,7 @@ namespace Couchbase.Core.DI
         {
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
-                nodeAdapter, _tracer);
+                nodeAdapter, _tracer, _operationConfigurator);
 
             //ensure server calls are made to set the state
             await clusterNode.InitializeAsync().ConfigureAwait(false);

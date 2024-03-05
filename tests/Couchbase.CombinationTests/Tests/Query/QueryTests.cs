@@ -2,6 +2,7 @@ using Couchbase.KeyValue;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Retry;

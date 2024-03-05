@@ -103,7 +103,16 @@ namespace Couchbase.Core.IO.Operations
 
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;
-                    bucketConfig = Transcoder.Decode<BucketConfig>(buffer.Slice(offset, length), Flags, OpCode);
+
+                    if ((Header.DataType & DataType.Snappy) != DataType.None)
+                    {
+                        using var decompressed = OperationCompressor.Decompress(buffer.Slice(offset, length), Span);
+                        bucketConfig = Transcoder.Decode<BucketConfig>(decompressed.Memory, Flags, OpCode);
+                    }
+                    else
+                    {
+                        bucketConfig = Transcoder.Decode<BucketConfig>(buffer.Slice(offset, length), Flags, OpCode);
+                    }
                 }
                 catch (Exception e)
                 {

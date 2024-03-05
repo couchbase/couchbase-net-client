@@ -1,31 +1,42 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Compression.Snappier;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace Couchbase.CombinationTests
+namespace Couchbase.CombinationTests.Fixtures
 {
     public class CouchbaseFixture : IDisposable, IAsyncDisposable, IAsyncLifetime
     {
         private readonly ClusterOptions _options;
         private ICluster _cluster;
         private readonly object _syncObj = new();
+        public readonly TestSettings _testSettings;
 
         public CouchbaseFixture()
         {
             _options = GetOptionsFromConfig();
+            _testSettings = GetSettingsFromConfig();
 
-            IServiceCollection serviceCollection = new ServiceCollection();
-            serviceCollection.AddLogging(builder => builder
-                .AddFilter(level => level >= LogLevel.Debug)
-            );
-            var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
-            loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+            if (_testSettings.UseLogging)
+            {
+                IServiceCollection serviceCollection = new ServiceCollection();
+                serviceCollection.AddLogging(builder => builder
+                    .AddFilter(level => level >= LogLevel.Debug)
+                );
+                var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+                loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            _options.WithLogging(loggerFactory);
+                _options.WithLogging(loggerFactory);
+            }
+
+            if (_testSettings.UseCompression)
+            {
+                _options.WithSnappierCompression();
+            }
         }
 
         public ClusterOptions GetOptionsFromConfig() => new ConfigurationBuilder()
@@ -33,6 +44,15 @@ namespace Couchbase.CombinationTests
                 .Build()
                 .GetSection("couchbase")
                 .Get<ClusterOptions>();
+
+        public TestSettings GetSettingsFromConfig()
+        {
+            return new ConfigurationBuilder()
+                .AddJsonFile("settings.json")
+                .Build()
+                .GetSection("testSettings")
+                .Get<TestSettings>();
+        }
 
         public async Task BuildAsync()
         {

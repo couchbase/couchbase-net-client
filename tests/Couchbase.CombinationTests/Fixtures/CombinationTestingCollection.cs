@@ -1,3 +1,4 @@
+using Couchbase.CombinationTests.Fixtures;
 using Xunit;
 
 namespace Couchbase.CombinationTests

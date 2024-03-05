@@ -78,7 +78,8 @@ namespace Couchbase.UnitTests.Core
                     Hostname = hostname,
                     KeyValue = port
                 },
-                NoopRequestTracer.Instance
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object
             )
             {
                 Owner = new FakeBucket("default", new ClusterOptions())
