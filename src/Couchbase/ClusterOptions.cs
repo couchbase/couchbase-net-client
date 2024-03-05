@@ -757,7 +757,7 @@ namespace Couchbase
         /// Specifies the network resolution strategy to use for alternative network; used in some container
         /// environments where there maybe internal and external addresses for connecting.
         /// </summary>
-        /// <remarks>The derault is "Auto"; Alternative addresses will be used if available.</remarks>
+        /// <remarks>The default is "Auto"; Alternative addresses will be used if available.</remarks>
         public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
         [CanBeNull] internal string? EffectiveNetworkResolution { get; set; }
         internal bool HasNetworkResolution => !string.IsNullOrWhiteSpace(EffectiveNetworkResolution);
