@@ -654,7 +654,7 @@ namespace Couchbase.Views
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Views.TrackOperation(Stopwatch.Elapsed);
+                MetricTracker.Views.TrackOperation(this, Stopwatch.Elapsed);
             }
         }
     }

@@ -755,7 +755,7 @@ namespace Couchbase.Core.IO.Operations
 
             //Since an operation may be retried, we want to add to the total elapsed time.
             Elapsed = Elapsed.Add(_stopwatch.Elapsed);
-            MetricTracker.KeyValue.TrackOperation(OpCode, _stopwatch.Elapsed);
+            MetricTracker.KeyValue.TrackOperation(this, _stopwatch.Elapsed);
         }
         #endregion
 

@@ -39,7 +39,7 @@ namespace Couchbase.Analytics
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Analytics.TrackOperation(Stopwatch.Elapsed);
+                MetricTracker.Analytics.TrackOperation(this, Stopwatch.Elapsed);
             }
         }
     }

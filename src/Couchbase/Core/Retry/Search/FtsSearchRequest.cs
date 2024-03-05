@@ -39,7 +39,7 @@ namespace Couchbase.Core.Retry.Search
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Search.TrackOperation(Stopwatch.Elapsed);
+                MetricTracker.Search.TrackOperation(this, Stopwatch.Elapsed);
             }
         }
     }

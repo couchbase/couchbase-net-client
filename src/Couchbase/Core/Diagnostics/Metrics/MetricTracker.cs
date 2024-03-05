@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Linq;
 using System.Runtime.CompilerServices;
+using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Retry.Query;
+using Couchbase.Core.Retry.Search;
 using Couchbase.Utils;
+using Couchbase.Views;
 
 #nullable enable
 
@@ -96,15 +100,19 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(OpCode opCode, TimeSpan duration)
+            public static void TrackOperation(OperationBase operation, TimeSpan duration)
             {
-                Operations.Record(duration.ToMicroseconds(),
-                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
-                    new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()));
+                var tagList = new TagList
+                {
+                    { OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name },
+                    { OuterRequestSpans.Attributes.Operation, operation.OpCode.ToMetricTag() },
+                    { OuterRequestSpans.Attributes.BucketName, operation.BucketName },
+                    { OuterRequestSpans.Attributes.ScopeName, operation.SName },
+                    { OuterRequestSpans.Attributes.CollectionName, operation.CName }
+                };
 
-                OperationCounts.Add(1,
-                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
-                    new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()));
+                Operations.Record(duration.ToMicroseconds(), tagList);
+                OperationCounts.Add(1, tagList);
             }
 
             /// <summary>
@@ -162,10 +170,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(TimeSpan duration) =>
+            public static void TrackOperation(QueryRequest queryRequest, TimeSpan duration) =>
                 Operations.Record(duration.ToMicroseconds(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.N1QLQuery));
+                        OuterRequestSpans.ServiceSpan.N1QLQuery),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
+                        queryRequest.Options?.BucketName),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
+                        queryRequest.Options?.ScopeName));
         }
 
         public static class Analytics
@@ -174,10 +186,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(TimeSpan duration) =>
+            public static void TrackOperation(AnalyticsRequest analyticsRequest, TimeSpan duration) =>
                 Operations.Record(duration.ToMicroseconds(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.AnalyticsQuery));
+                        OuterRequestSpans.ServiceSpan.AnalyticsQuery),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
+                        analyticsRequest.Options?.BucketName),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
+                        analyticsRequest.Options?.ScopeName));
         }
 
         public static class Search
@@ -186,10 +202,12 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(TimeSpan duration) =>
+            public static void TrackOperation(FtsSearchRequest searchRequest, TimeSpan duration) =>
                 Operations.Record(duration.ToMicroseconds(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.SearchQuery));
+                        OuterRequestSpans.ServiceSpan.SearchQuery),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
+                        searchRequest.Options?.ScopeName));
         }
 
         public static class Views
@@ -198,10 +216,12 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(TimeSpan duration) =>
+            public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration) =>
                 Operations.Record(duration.ToMicroseconds(),
                     new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.ViewQuery));
+                        OuterRequestSpans.ServiceSpan.ViewQuery),
+                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
+                        viewQuery.BucketName));
         }
     }
 }

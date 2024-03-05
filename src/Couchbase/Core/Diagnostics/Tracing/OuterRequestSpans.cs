@@ -15,45 +15,45 @@ namespace Couchbase.Core.Diagnostics.Tracing
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
             ///     for couchbase.
             /// </summary>
-            public static KeyValuePair<string, string> System = new("db.system", "couchbase");
+            public static KeyValuePair<string, string> System => new("db.system", "couchbase");
 
             /// <summary>
             ///     Each outer request should set an attribute that classifies the service
             /// </summary>
-            public static string Service = "db.couchbase.service";
+            public const string Service = "db.couchbase.service";
 
             /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on all operations which are at the bucket
             ///     level or below.
             /// </summary>
-            public static string BucketName = "db.name";
+            public const string BucketName = "db.name";
 
             /// <summary>
             ///     Should be placed on all operations which are at the scope level or below and on manager operations that touch a
             ///     single scope (especially on the CollectionManager).
             /// </summary>
-            public static string ScopeName = "db.couchbase.scope";
+            public const string ScopeName = "db.couchbase.scope";
 
             /// <summary>
             ///     Should be placed on all operations which are at the collection level.
             /// </summary>
-            public static string CollectionName = "db.couchbase.collection";
+            public const string CollectionName = "db.couchbase.collection";
 
             /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on N1QL and analytics operations.
             /// </summary>
-            public static string Statement = "db.statement";
+            public const string Statement = "db.statement";
 
             /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on all operations which do NOT have the
             ///     db.statement set.
             /// </summary>
-            public static string Operation = "db.operation";
+            public const string Operation = "db.operation";
 
             /// <summary>
             /// The status code for an individual response from a couchbase node.
             /// </summary>
-            public static string ResponseStatus = "db.couchbase.response.status";
+            public const string ResponseStatus = "db.couchbase.response.status";
         }
 
         /// <summary>

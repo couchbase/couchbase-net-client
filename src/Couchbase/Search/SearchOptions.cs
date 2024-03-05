@@ -48,6 +48,8 @@ namespace Couchbase.Search
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        internal string? ScopeName => _scopeName;
+
         /// <summary>
         /// A parent or external span for tracing.
         /// </summary>

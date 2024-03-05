@@ -16,7 +16,7 @@ namespace Couchbase.Core.Retry.Query
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.N1Ql.TrackOperation(Stopwatch.Elapsed);
+                MetricTracker.N1Ql.TrackOperation(this, Stopwatch.Elapsed);
             }
         }
     }

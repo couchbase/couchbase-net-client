@@ -29,9 +29,16 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
                 })
                 .Build();
 
+            var operation = new Get<object>
+            {
+                BucketName = "bucket",
+                CName = "_default",
+                SName = "_default"
+            };
+
             // Act
 
-            MetricTracker.KeyValue.TrackOperation(OpCode.Get, TimeSpan.FromSeconds(1));
+            MetricTracker.KeyValue.TrackOperation(operation, TimeSpan.FromSeconds(1));
 
             // Give the exporter time
             await Task.Delay(100);

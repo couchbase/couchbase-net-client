@@ -45,17 +45,44 @@ namespace Couchbase.Core.Diagnostics.Metrics
         private void MeasurementCallback(Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state)
         {
             string? service = null;
-            KeyValuePair<string, string>? singleTag = null;
+            KeyValuePair<string, string>? operationTag = null;
+            Dictionary<string, string>? additionalTags = null;
 
-            for (var i = 0; i < tags.Length; i++)
+            bool isCustomMeter = _meter is not LoggingMeter and not NoopMeter;
+
+            foreach (KeyValuePair<string, object?> tag in tags)
             {
-                if (tags[i].Key == OuterRequestSpans.Attributes.Service)
+                switch (tag.Key)
                 {
-                    service = tags[i].Value?.ToString();
-                }
-                else
-                {
-                    singleTag = new(tags[i].Key, tags[i].Value?.ToString() ?? "");
+                    case OuterRequestSpans.Attributes.Service:
+                        service = tag.Value?.ToString();
+                        break;
+
+                    case OuterRequestSpans.Attributes.Operation:
+                        var operation = tag.Value?.ToString();
+                        if (operation is not null)
+                        {
+                            operationTag = new KeyValuePair<string, string>(
+                                OuterRequestSpans.Attributes.Operation, operation);
+                        }
+
+                        break;
+
+                    default:
+                        // Only custom meters use other tag, only process them for custom meters.
+                        // Note that OpenTelemetry doesn't pass through MeterForwarder/IMeter at all, it
+                        // subscribes directly to the .NET metrics provider.
+                        if (isCustomMeter)
+                        {
+                            var value = tag.Value?.ToString();
+                            if (value is not null)
+                            {
+                                additionalTags ??= [];
+                                additionalTags.Add(tag.Key, value);
+                            }
+                        }
+
+                        break;
                 }
             }
 
@@ -65,7 +92,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 return;
             }
 
-            _meter.ValueRecorder(service).RecordValue((uint)measurement, singleTag);
+            _meter.ValueRecorder(service, additionalTags).RecordValue((uint)measurement, operationTag);
         }
 
         public void Dispose()
