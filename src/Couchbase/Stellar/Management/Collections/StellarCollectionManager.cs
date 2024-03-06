@@ -9,6 +9,7 @@ using Couchbase.Management.Collections;
 using Couchbase.Protostellar.Admin.Collection.V1;
 using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Util;
+using Couchbase.Utils;
 
 namespace Couchbase.Stellar.Management.Collections;
 
@@ -170,15 +171,11 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
         _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
 
-    public Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(GetScopeAsync));
-    }
+    public Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetScopeAsync), "Protostellar");
 
     public Task UpdateCollectionAsync(string scopeName, string collectionName, UpdateCollectionSettings settings,
-        UpdateCollectionOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(UpdateCollectionAsync));
-    }
+        UpdateCollectionOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetScopeAsync), "Protostellar");
 }
 #endif

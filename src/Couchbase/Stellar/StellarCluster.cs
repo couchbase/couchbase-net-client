@@ -212,7 +212,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     internal ITypeSerializer TypeSerializer { get; }
 
-    public IServiceProvider ClusterServices => throw new UnsupportedInProtostellarException("Cluster Service Provider");
+    public IServiceProvider ClusterServices =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Cluster Service Provider", "Protostellar");
 
     public IQueryIndexManager QueryIndexes
     {
@@ -223,7 +224,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         }
     }
 
-    public IAnalyticsIndexManager AnalyticsIndexes => throw new UnsupportedInProtostellarException("Analytics Index Management");
+    public IAnalyticsIndexManager AnalyticsIndexes =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Analytics Index Management", "Protostellar");
 
     public ISearchIndexManager SearchIndexes
     {
@@ -243,9 +245,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         }
     }
 
-    public IUserManager Users => throw new UnsupportedInProtostellarException("User Management");
+    public IUserManager Users =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("User Management", "Protostellar");
 
-    public IEventingFunctionManager EventingFunctions => throw new UnsupportedInProtostellarException("Eventing Functions");
+    public IEventingFunctionManager EventingFunctions =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Eventing Functions", "Protostellar");
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {
@@ -262,10 +266,15 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return new ValueTask<IBucket>(_buckets.GetOrAdd(name, new StellarBucket(name, this)));
     }
 
-    public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Diagnostics");
-    }
+    #region Diagnostics - Not Supported
+
+    public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Diagnostics", "Protostellar");
+
+    public Task<IPingReport> PingAsync(PingOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Ping", "Protostellar");
+
+    #endregion
 
     public void Dispose()
     {
@@ -288,11 +297,6 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return ValueTask.CompletedTask;
     }
 
-    public Task<IPingReport> PingAsync(PingOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Ping");
-    }
-
     public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
     {
         CheckIfDisposed();
@@ -309,12 +313,13 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return await _searchClient.QueryAsync(indexName, query, options).ConfigureAwait(false);
     }
 
-    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Wait Until Ready");
-    }
+    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("WaitUntilReady", "Protostellar");
+
     public CallOptions GrpcCallOptions() => new (headers: _metaData);
+
     public CallOptions GrpcCallOptions(CancellationToken cancellationToken) => new (headers: _metaData, cancellationToken: cancellationToken);
+
     public CallOptions GrpcCallOptions(TimeSpan? timeout, CancellationToken cancellationToken) =>
         new (headers: _metaData, deadline: timeout.FromNow(), cancellationToken: cancellationToken);
 
@@ -323,10 +328,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     #region Bootstrapping/start up error propagation
 
-    public Task BootStrapAsync()
-    {
-        throw new UnsupportedInProtostellarException("Boot Strap");
-    }
+    public Task BootStrapAsync() =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("BootStrap", "Protostellar");
 
     public bool IsBootstrapped => _deferredExceptions.Count == 0;
 

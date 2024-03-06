@@ -46,7 +46,8 @@ internal class StellarBucket : IBucket
         }
     }
 
-    public IViewIndexManager ViewIndexes => throw new UnsupportedInProtostellarException(nameof(ViewIndexes));
+    public IViewIndexManager ViewIndexes =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("View Indexes", "Protostellar");
 
     public ICouchbaseCollectionManager Collections
     {
@@ -112,10 +113,8 @@ internal class StellarBucket : IBucket
         return ValueTask.CompletedTask;
     }
 
-    public Task<IPingReport> PingAsync(PingOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Ping Bucket");
-    }
+    public Task<IPingReport> PingAsync(PingOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Ping", "Protostellar");
 
     public IScope Scope(string scopeName)
     {
@@ -129,15 +128,11 @@ internal class StellarBucket : IBucket
         return ValueTask.FromResult(Scope(scopeName));
     }
 
-    public Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Bucket View Queries");
-    }
+    public Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("View Queries", "Protostellar");
 
-    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException("Bucket WaitUntilReady");
-    }
+    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("WaitUntilReady", "Protostellar");
 
     private void CheckIfDisposed()
     {

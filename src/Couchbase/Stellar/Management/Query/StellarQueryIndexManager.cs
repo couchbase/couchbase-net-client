@@ -8,6 +8,7 @@ using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Management.Query;
 using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Util;
+using Couchbase.Utils;
 using IndexType = Couchbase.Management.Views.IndexType;
 
 namespace Couchbase.Stellar.Management.Query;
@@ -183,9 +184,7 @@ internal class StellarQueryIndexManager : IQueryIndexManager
     }
 
     public Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames,
-        WatchQueryIndexOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(WatchIndexesAsync));
-    }
+        WatchQueryIndexOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("WatchIndexesAsync", "Protostellar");
 }
 #endif

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Stellar;
@@ -105,31 +106,31 @@ public class CollectionTests
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_ScanAsync()
+    public async Task Throw_FeatureNotAvailableException_ScanAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async() => collection.ScanAsync(new PrefixScan("prefix")));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async() => collection.ScanAsync(new PrefixScan("prefix")));
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_GetAnyReplicaAsync()
+    public async Task Throw_FeatureNotAvailableException_GetAnyReplicaAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await collection.GetAnyReplicaAsync("key"));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await collection.GetAnyReplicaAsync("key"));
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_LookUpInAnyReplicaAsync()
+    public async Task Throw_FeatureNotAvailableException_LookUpInAnyReplicaAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await collection.LookupInAnyReplicaAsync("key", new List<LookupInSpec>()));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await collection.LookupInAnyReplicaAsync("key", new List<LookupInSpec>()));
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_LookUpInAllReplicasAsync()
+    public async Task Throw_FeatureNotAvailableException_LookUpInAllReplicasAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => collection.LookupInAllReplicasAsync("key", new List<LookupInSpec>()));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => collection.LookupInAllReplicasAsync("key", new List<LookupInSpec>()));
     }
 
     [Fact]

@@ -62,13 +62,15 @@ internal class StellarCollection : ICouchbaseCollection
         _retryHandler = stellarCluster.RetryHandler;
     }
 
-    public uint? Cid => throw new UnsupportedInProtostellarException("Cid (Collection ID)");
+    public uint? Cid =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(Cid), "Protostellar");
 
     public string Name { get; }
 
     public IScope Scope => _stellarScope;
 
-    public IBinaryCollection Binary => throw new UnsupportedInProtostellarException("Binary Operations");
+    public IBinaryCollection Binary =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(Binary), "Protostellar");
 
     public bool IsDefaultCollection { get; }
 
@@ -162,10 +164,8 @@ internal class StellarCollection : ICouchbaseCollection
         }
     }
 
-    public Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(GetAnyReplicaAsync));
-    }
+    public Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetAllReplicasAsync), "Protostellar");
 
     public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
     {
@@ -256,15 +256,11 @@ internal class StellarCollection : ICouchbaseCollection
         }
     }
 
-    public Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(LookupInAnyReplicaAsync));
-    }
+    public Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAnyReplicaOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(LookupInAnyReplicaAsync), "Protostellar");
 
-    public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(LookupInAllReplicasAsync));
-    }
+    public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id, IEnumerable<LookupInSpec> specs, LookupInAllReplicasOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(LookupInAllReplicasAsync), "Protostellar");
 
     public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
     {
@@ -393,10 +389,8 @@ internal class StellarCollection : ICouchbaseCollection
         }
     }
 
-    public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(ScanAsync));
-    }
+    public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ScanAsync), "Protostellar");
 
     public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
     {

@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
@@ -27,53 +28,53 @@ public class ClusterTests
       #region Stellar
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_Diagnostics()
+      public async Task Throw_FeatureNotAvailableException_Diagnostics()
       {
           var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await cluster.DiagnosticsAsync());
+          await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.DiagnosticsAsync());
       }
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_Ping()
+      public async Task Throw_FeatureNotAvailableException_Ping()
       {
           var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await cluster.PingAsync());
+          await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.PingAsync());
       }
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_Users()
+      public async Task Throw_FeatureNotAvailableException_Users()
       {
           var cluster = await CreateCluster();
-          Assert.Throws<UnsupportedInProtostellarException>(() => cluster.Users);
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.Users);
       }
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_EventingFunctions()
+      public async Task Throw_FeatureNotAvailableException_EventingFunctions()
       {
           var cluster = await CreateCluster();
-          Assert.Throws<UnsupportedInProtostellarException>(() => cluster.EventingFunctions);
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.EventingFunctions);
       }
 
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_WaitUntilReadyAsync()
+      public async Task Throw_FeatureNotAvailableException_WaitUntilReadyAsync()
       {
           var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.Zero));
+          await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.Zero));
       }
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_AnalyticsIndexes()
+      public async Task Throw_FeatureNotAvailableException_AnalyticsIndexes()
       {
           var cluster = await CreateCluster();
-          Assert.Throws<UnsupportedInProtostellarException>(() => cluster.AnalyticsIndexes);
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.AnalyticsIndexes);
       }
 
       [Fact]
-      public async Task Throw_UnsupportedInProtostellarException_ClusterServices()
+      public async Task Throw_FeatureNotAvailableException_ClusterServices()
       {
           var cluster = await CreateCluster();
-          Assert.Throws<UnsupportedInProtostellarException>(() => cluster.ClusterServices);
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.ClusterServices);
       }
 
       [Fact]

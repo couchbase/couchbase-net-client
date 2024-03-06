@@ -8,6 +8,7 @@ using Couchbase.Protostellar.Admin.Bucket.V1;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Util;
+using Couchbase.Utils;
 
 namespace Couchbase.Stellar.Management.Buckets;
 
@@ -120,14 +121,10 @@ internal class StellarBucketManager : IBucketManager
         return buckets;
     }
 
-    public Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(GetBucketAsync));
-    }
+    public Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetBucketAsync), "Protostellar");
 
-    public Task FlushBucketAsync(string bucketName, FlushBucketOptions? options = null)
-    {
-        throw new UnsupportedInProtostellarException(nameof(FlushBucketAsync));
-    }
+    public Task FlushBucketAsync(string bucketName, FlushBucketOptions? options = null)=>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(FlushBucketAsync), "Protostellar");
 }
 #endif

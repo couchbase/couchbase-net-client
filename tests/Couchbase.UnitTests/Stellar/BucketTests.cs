@@ -15,6 +15,8 @@ using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
 using Couchbase.Stellar.Query;
+using Couchbase.Utils;
+using Couchbase.Core.Exceptions;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.VisualBasic;
@@ -26,31 +28,31 @@ namespace Couchbase.UnitTests.Stellar;
 public class BucketTests
 {
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_ViewQueryAsync()
+    public async Task Throw_FeatureNotAvailableException_ViewQueryAsync()
     {
         var bucket = await CreateBucket();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await bucket.ViewQueryAsync<object, string>("", ""));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await bucket.ViewQueryAsync<object, string>("", ""));
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_PingAsync()
+    public async Task Throw_FeatureNotAvailableException_PingAsync()
     {
         var bucket = await CreateBucket();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await bucket.PingAsync());
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await bucket.PingAsync());
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_ViewIndexes()
+    public async Task Throw_FeatureNotAvailableException_ViewIndexes()
     {
         var bucket = await CreateBucket();
-        Assert.Throws<UnsupportedInProtostellarException>(() => bucket.ViewIndexes);
+        Assert.Throws<FeatureNotAvailableException>(() => bucket.ViewIndexes);
     }
 
     [Fact]
-    public async Task Throw_UnsupportedInProtostellarException_WaitUntileReadyAsync()
+    public async Task Throw_FeatureNotAvailableException_WaitUntileReadyAsync()
     {
         var bucket = await CreateBucket();
-        await Assert.ThrowsAsync<UnsupportedInProtostellarException>(async () => await bucket.WaitUntilReadyAsync(TimeSpan.Zero));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await bucket.WaitUntilReadyAsync(TimeSpan.Zero));
     }
 
     private async Task<IBucket> CreateBucket()

@@ -131,6 +131,8 @@ namespace Couchbase.Utils
         {
             throw new JsonException(message);
         }
+        public static FeatureNotAvailableException ThrowFeatureNotAvailableException(string featureName, string productName)
+            => new($"The feature {featureName} is not supported when using {productName}.");
     }
 }
 
