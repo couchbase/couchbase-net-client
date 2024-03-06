@@ -5,6 +5,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.CombinationTests.Fixtures;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
+using Couchbase.Core.Retry;
 using Couchbase.IntegrationTests.Utils;
 using Xunit;
 using Xunit.Abstractions;
@@ -66,6 +69,39 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             var cluster = await Couchbase.Cluster.ConnectAsync(clusterOptions);
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
             Assert.NotEqual(0, Interlocked.Read(ref pingCount));
+        }
+
+        [Fact]
+        public async Task Test_HttpConnectionStringWithManagementPort()
+        {
+            // Repro from forum post.
+            using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
+            var fixtureOptions = _fixture.GetOptionsFromConfig();
+            var ub = new UriBuilder(fixtureOptions.ConnectionString ?? "http://localhost:8091");
+            ub.Scheme = "http";
+            Uri uri = ub.Uri;
+            ClusterOptions clusterOptions = new ClusterOptions
+            {
+                UserName = fixtureOptions.UserName,
+                Password = fixtureOptions.Password,
+                TracingOptions = new TracingOptions { Enabled = false },
+                EnableOperationDurationTracing = false,
+                OrphanTracingOptions = new OrphanOptions { Enabled = false },
+                EnableTls = false,
+                ForceIpAsTargetHost = false,
+                QueryTimeout = TimeSpan.FromSeconds(1200),
+                HttpConnectionLifetime = TimeSpan.FromSeconds(1200),
+                KvDurabilityTimeout = TimeSpan.FromSeconds(1200),
+            };
+            clusterOptions.WithRetryStrategy(new BestEffortRetryStrategy());
+            clusterOptions.WithLogging(loggerFactory);
+
+            var cluster = await Couchbase.Cluster.ConnectAsync(uri.Host, clusterOptions).ConfigureAwait(false);
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("default");
+            var collection = bucket.DefaultCollection();
+            var upsertResult = await collection.UpsertAsync("foo", new { foo = "bar" });
+            _outputHelper.WriteLine("Upserted with Cas = " + upsertResult.Cas);
         }
     }
 }
