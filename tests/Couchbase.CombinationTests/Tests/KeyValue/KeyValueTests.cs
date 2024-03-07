@@ -145,6 +145,25 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
         }
 
         [Fact]
+        public async Task Test_TouchWithCasAsync()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = Guid.NewGuid().ToString();
+
+            await col.UpsertAsync(doc1, new {Name = doc1}, options => options.Expiry(TimeSpan.FromSeconds(2)));
+            var upsertResult = await col.ExistsAsync(doc1);
+            Assert.True(upsertResult.Exists);
+
+            var touchResult = await col.TouchWithCasAsync(doc1, TimeSpan.FromSeconds(2));
+            Assert.NotNull(touchResult);
+            Assert.NotEqual(0ul, touchResult?.Cas);
+
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            var existsResult = await col.ExistsAsync(doc1);
+            Assert.False(existsResult.Exists);
+        }
+
+        [Fact]
         public async Task Test_GetAndTouchAsync()
         {
             var col = await _fixture.GetDefaultCollection();

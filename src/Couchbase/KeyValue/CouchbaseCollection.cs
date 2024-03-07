@@ -524,6 +524,12 @@ namespace Couchbase.KeyValue
         /// <inheritdoc />
         public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {
+            _ = await TouchWithCasAsync(id, expiry, options).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task<IMutationResult?> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
+        {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
@@ -544,13 +550,17 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 Expires = expiry.ToTtl(),
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
-                Span = rootSpan
+                Span = rootSpan,
+                PreferReturns = options.PreferReturn,
             };
             _operationConfigurator.Configure(touchOp, options);
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, touchOp);
             var status = await _bucket.RetryAsync(touchOp, ctp.TokenPair).ConfigureAwait(false);
             options.Status = status;
+            return status == ResponseStatus.Success
+                ? new MutationResult(touchOp.Cas, null, touchOp.MutationToken, status)
+                : null;
         }
 
         #endregion

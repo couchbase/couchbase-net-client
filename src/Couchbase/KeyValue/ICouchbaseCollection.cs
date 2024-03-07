@@ -117,6 +117,16 @@ namespace Couchbase.KeyValue
         Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null);
 
         /// <summary>
+        /// Updates the expiration a document given an id, without modifying or returning its value.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting,
+        /// with a <see cref="IMutationResult"/> containing a Cas value.</returns>
+        Task<IMutationResult?> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null);
+
+        /// <summary>
         /// Gets a document for a given id and extends its expiration.
         /// </summary>
         /// <param name="id">The id of the document.</param>

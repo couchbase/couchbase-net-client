@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -11,10 +12,13 @@ namespace Couchbase.KeyValue;
 /// </summary>
 internal class TryTouchResult : TryResultBase, ITryTouchResult
 {
-    internal TryTouchResult(ResponseStatus status)
+    internal TryTouchResult(ResponseStatus status, IMutationResult? mutationResult)
     {
         Status = status;
+        MutationResult = mutationResult;
     }
+
+    public IMutationResult? MutationResult { get; }
 }
 /* ************************************************************
  *

@@ -394,6 +394,11 @@ internal class StellarCollection : ICouchbaseCollection
 
     public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
     {
+        _ = await TouchWithCasAsync(id, expiry, options).ConfigureAwait(false);
+    }
+
+    public async Task<IMutationResult?> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
+    {
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? TouchOptions.DefaultReadOnly;
@@ -407,8 +412,11 @@ internal class StellarCollection : ICouchbaseCollection
             Idempotent = false,
             Token = opts.Token
         };
-        _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return;
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+        return new MutationResult(response.Cas, null)
+        {
+            MutationToken = response.MutationToken
+        };
 
         async Task<TouchResponse> GrpcCall()
         {

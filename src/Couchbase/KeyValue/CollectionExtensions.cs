@@ -200,8 +200,8 @@ namespace Couchbase.KeyValue
             configureOptions?.Invoke(options);
             options.PreferReturn = true;
 
-            await collection.TouchAsync(id, expiry, options).ConfigureAwait(false);
-            return new TryTouchResult(options.Status);
+            var touchResult = await collection.TouchWithCasAsync(id, expiry, options).ConfigureAwait(false);
+            return new TryTouchResult(options.Status, touchResult);
         }
 
         /// <summary>
@@ -220,8 +220,8 @@ namespace Couchbase.KeyValue
             {
                 PreferReturn = true
             };
-            await collection.TouchAsync(id, expiry, options).ConfigureAwait(false);
-            return new TryTouchResult(options.Status);
+            var touchResult = await collection.TouchWithCasAsync(id, expiry, options).ConfigureAwait(false);
+            return new TryTouchResult(options.Status, touchResult);
         }
 
           /// <summary>
@@ -690,6 +690,37 @@ namespace Couchbase.KeyValue
             configureOptions(options);
 
             return collection.TouchAsync(id, expiry, options);
+        }
+
+        /// <summary>
+        /// Updates the expiration a document given an id, without modifying or returning its value.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting,
+        /// with a <see cref="IMutationResult"/> containing a Cas value.</returns>
+        public static Task<IMutationResult?> TouchWithCasAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
+        {
+            return collection.TouchWithCasAsync(id, expiry, TouchOptions.Default);
+        }
+
+        /// <summary>
+        /// Updates the expiration a document given an id, without modifying or returning its value.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting,
+        /// with a <see cref="IMutationResult"/> containing a Cas value.</returns>
+        public static Task<IMutationResult?> TouchWithCasAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
+            Action<TouchOptions> configureOptions)
+        {
+            var options = new TouchOptions();
+            configureOptions(options);
+
+            return collection.TouchWithCasAsync(id, expiry, options);
         }
 
         #endregion

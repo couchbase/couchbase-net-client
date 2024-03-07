@@ -1,3 +1,4 @@
+#nullable enable
 using Couchbase.Core.Exceptions.KeyValue;
 
 namespace Couchbase.KeyValue;
@@ -13,6 +14,12 @@ public interface ITryTouchResult
     /// If false, the document does not exist on the server for a given key.
     /// </summary>
     bool Exists { get; }
+
+    /// <summary>
+    /// The mutation result containing the Cas value after the Touch operation.
+    /// If Exists is false, this will be empty.
+    /// </summary>
+    IMutationResult? MutationResult { get; }
 }
 /* ************************************************************
  *

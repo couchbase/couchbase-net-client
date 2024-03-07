@@ -64,6 +64,11 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             throw new NotImplementedException();
         }
 
+        public Task<IMutationResult> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
         {
             throw new NotImplementedException();
@@ -183,6 +188,11 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
         }
 
         public Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IMutationResult> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {
             throw new NotImplementedException();
         }

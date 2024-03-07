@@ -138,4 +138,25 @@ public class CollectionExtensionTests
             await col.TryRemoveAsync(doc1);
         }
     }
+
+    [Fact]
+    public async Task Test_TryTouchAsync()
+    {
+        var col = await _fixture.GetDefaultCollection();
+        var doc1 = Guid.NewGuid().ToString();
+
+        await col.UpsertAsync(doc1, new {Name = doc1}, options => options.Expiry(TimeSpan.FromSeconds(2)));
+        var upsertResult = await col.ExistsAsync(doc1);
+        Assert.True(upsertResult.Exists);
+
+        var tryTouchResult = await col.TryTouchAsync(doc1, TimeSpan.FromSeconds(2));
+        Assert.True(tryTouchResult.Exists);
+        Assert.NotEqual(0ul, tryTouchResult?.MutationResult?.Cas);
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        var tryTouchExistsResult = await col.ExistsAsync(doc1);
+        Assert.False(tryTouchExistsResult.Exists);
+
+        var tryTouchNegativeResult = await col.TryTouchAsync(doc1 + "fake", TimeSpan.FromSeconds(2));
+        Assert.False(tryTouchNegativeResult.Exists);
+    }
 }
