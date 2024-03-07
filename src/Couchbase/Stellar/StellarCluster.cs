@@ -83,7 +83,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     {
         _clusterOptions = clusterOptions;
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
-        TypeSerializer = clusterOptions.Serializer ?? SystemTextJsonSerializer.Create();
+        TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
         ChannelCredentials = new ClusterChannelCredentials(clusterOptions);
         var socketsHandler = new SocketsHttpHandler();
         var serverCertValidationCallback = clusterOptions.HttpCertificateCallbackValidation ??
