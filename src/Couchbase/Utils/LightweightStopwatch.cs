@@ -9,9 +9,9 @@ namespace Couchbase.Utils
     /// A lightweight stopwatch implementation.
     /// </summary>
     /// <remarks>
-    /// This implementation doesn't support stopping, and has a poor resolution compared to
-    /// <see cref="Stopwatch"/> (approximately 10-16 milliseconds). However, on .NET Core 3.1 and later
-    /// it avoids heap allocations in cases where higher resolution is not required. For older frameworks
+    /// This implementation doesn't support stopping. Also, on .NET Core and .NET 5-7 it has a poor resolution
+    /// compared to <see cref="Stopwatch"/> (approximately 10-16 milliseconds). However, on .NET Core 3.1 and later
+    /// it avoids heap allocations and on .NET 8 or later it matches the resolution of Stopwatch. For older frameworks
     /// we fallback to a <see cref="Stopwatch"/> since <c>Environment.TickCount64</c> is not available
     /// and <see cref="Environment.TickCount"/> has issues wrapping to negative numbers.
     /// </remarks>
@@ -30,7 +30,9 @@ namespace Couchbase.Utils
         public static LightweightStopwatch StartNew() =>
             new()
             {
-#if NETCOREAPP3_1_OR_GREATER
+#if NET8_0_OR_GREATER
+                _startTicks = Stopwatch.GetTimestamp()
+#elif NETCOREAPP3_1_OR_GREATER
                 _startTicks = Environment.TickCount64
 #else
                 _stopwatch = Stopwatch.StartNew()
@@ -44,7 +46,9 @@ namespace Couchbase.Utils
         /// Resolution is 10-16 milliseconds.
         /// </remarks>
         public readonly long ElapsedMilliseconds =>
-#if NETCOREAPP3_1_OR_GREATER
+#if NET8_0_OR_GREATER
+            (long)Elapsed.TotalMilliseconds;
+#elif NETCOREAPP3_1_OR_GREATER
             Environment.TickCount64 - _startTicks;
 #else
             _stopwatch?.ElapsedMilliseconds ?? 0;
@@ -57,7 +61,9 @@ namespace Couchbase.Utils
         /// Resolution is 10-16 milliseconds.
         /// </remarks>
         public readonly TimeSpan Elapsed =>
-#if NETCOREAPP3_1_OR_GREATER
+#if NET8_0_OR_GREATER
+            Stopwatch.GetElapsedTime(_startTicks);
+#elif NETCOREAPP3_1_OR_GREATER
             TimeSpan.FromMilliseconds(ElapsedMilliseconds);
 #else
             _stopwatch?.Elapsed ?? TimeSpan.Zero;
@@ -68,7 +74,9 @@ namespace Couchbase.Utils
         /// </summary>
         public void Restart()
         {
-#if NETCOREAPP3_1_OR_GREATER
+#if NET8_0_OR_GREATER
+            _startTicks = Stopwatch.GetTimestamp();
+#elif NETCOREAPP3_1_OR_GREATER
             _startTicks = Environment.TickCount64;
 #else
             // It is a corner case that shouldn't happen where _stopwatch is null, it should be created

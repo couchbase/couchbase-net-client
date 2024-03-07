@@ -37,19 +37,30 @@ namespace Couchbase.Core.IO.Operations
         private List<RetryReason>? _retryReasons;
         private IRetryStrategy? _retryStrategy;
         private volatile bool _isSent;
-        private readonly Stopwatch _stopwatch;
         private IRequestSpan? _dispatchSpan;
         private bool _isOrphaned;
         private volatile string? _lastDispatchedFrom;
         private volatile string? _lastDispatchedTo;
         private string? _key;
 
+#if NET8_0_OR_GREATER
+        // Starting with .NET 8 the LightweightStopwatch provides high resolution timing
+        private LightweightStopwatch _stopwatch;
+#else
+        private Stopwatch _stopwatch;
+#endif
+
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
             Header = new OperationHeader { Status = ResponseStatus.None };
             Key = string.Empty;
+
+#if NET8_0_OR_GREATER
+            _stopwatch = LightweightStopwatch.StartNew();
+#else
             _stopwatch = Stopwatch.StartNew();
+#endif
         }
 
         #region IOperation Properties
@@ -751,11 +762,11 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public void StopRecording()
         {
-            _stopwatch.Stop();
+            var elapsed = _stopwatch.Elapsed;
 
             //Since an operation may be retried, we want to add to the total elapsed time.
-            Elapsed = Elapsed.Add(_stopwatch.Elapsed);
-            MetricTracker.KeyValue.TrackOperation(this, _stopwatch.Elapsed);
+            Elapsed = Elapsed.Add(elapsed);
+            MetricTracker.KeyValue.TrackOperation(this, elapsed);
         }
         #endregion
 
