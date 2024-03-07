@@ -173,7 +173,7 @@ namespace Couchbase.Management.Eventing
     /// </summary>
     public class EventingFunctionKeyspace
     {
-        internal EventingFunctionKeyspace(string bucketName, string scopeName, string collectionName)
+        public EventingFunctionKeyspace(string bucketName, string scopeName, string collectionName)
         {
             Bucket = bucketName;
             Scope = scopeName;
