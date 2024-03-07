@@ -69,11 +69,6 @@ namespace Couchbase.UnitTests.Core
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: cancelled, internalToken: CancellationToken.None));
             await Assert.ThrowsAsync<OperationCanceledException>(() => clusterNode.SendAsync(op, cancellationTokenPair));
-
-            // the Elapsed stopwatch should stop after the op is timed out.
-            var elapsedAfterThrow = op.Elapsed.Ticks;
-            await System.Threading.Tasks.Task.Delay(50);
-            Assert.Equal(elapsedAfterThrow, op.Elapsed.Ticks);
         }
 
         [Fact]
@@ -84,11 +79,6 @@ namespace Couchbase.UnitTests.Core
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: CancellationToken.None, internalToken: cancelled));
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(() => clusterNode.SendAsync(op, cancellationTokenPair));
-
-            // the Elapsed stopwatch should stop after the op is timed out.
-            var elapsedAfterThrow = op.Elapsed.Ticks;
-            await System.Threading.Tasks.Task.Delay(50);
-            Assert.Equal(elapsedAfterThrow, op.Elapsed.Ticks);
         }
 
         [Fact]

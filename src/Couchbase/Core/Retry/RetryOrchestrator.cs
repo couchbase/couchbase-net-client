@@ -379,8 +379,6 @@ namespace Couchbase.Core.Retry
             }
             catch (OperationCanceledException ex) when (!tokenPair.IsExternalCancellation)
             {
-                operation.StopRecording();
-
                 if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
                 {
                     // Not a true timeout. May execute if an operation is in flight while things are shutting down.
@@ -402,6 +400,10 @@ namespace Couchbase.Core.Retry
                     DispatchedTo = operation.LastDispatchedTo,
                     RetryReasons = operation.RetryReasons
                 });
+            }
+            finally
+            {
+                operation.StopRecording();
             }
 
             return ResponseStatus.Failure;//what to do here?

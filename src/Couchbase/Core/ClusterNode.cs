@@ -263,6 +263,8 @@ namespace Couchbase.Core
             try
             {
                 await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
+
+                return new ErrorMap(errorMapOp.GetValue());
             }
             catch (OperationCanceledException ex)
             {
@@ -271,9 +273,13 @@ namespace Couchbase.Core
                 {
                     ThrowHelper.ThrowTimeoutException(errorMapOp, ex, _redactor);
                 }
+
                 throw;
             }
-            return new ErrorMap(errorMapOp.GetValue());
+            finally
+            {
+                errorMapOp.StopRecording();
+            }
         }
 
         public async Task HelloHello()
@@ -361,6 +367,8 @@ namespace Couchbase.Core
             try
             {
                 await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
+
+                return heloOp.GetValue();
             }
             catch (OperationCanceledException ex)
             {
@@ -369,10 +377,13 @@ namespace Couchbase.Core
                 {
                     ThrowHelper.ThrowTimeoutException(heloOp, ex, _redactor);
                 }
+
                 throw;
             }
-
-            return heloOp.GetValue();
+            finally
+            {
+                heloOp.StopRecording();
+            }
         }
 
         public async Task<Manifest> GetManifest()
@@ -390,6 +401,8 @@ namespace Couchbase.Core
             try
             {
                 await ExecuteOp(ConnectionPool, manifestOp, ctp.TokenPair).ConfigureAwait(false);
+
+                return manifestOp.GetValue();
             }
             catch (OperationCanceledException ex)
             {
@@ -398,9 +411,13 @@ namespace Couchbase.Core
                 {
                     ThrowHelper.ThrowTimeoutException(manifestOp, ex, _redactor);
                 }
+
                 throw;
             }
-            return manifestOp.GetValue();
+            finally
+            {
+                manifestOp.StopRecording();
+            }
         }
 
         public async Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
@@ -467,6 +484,10 @@ namespace Couchbase.Core
                     ThrowHelper.ThrowTimeoutException(configOp, ex, _redactor);
                 }
                 throw;
+            }
+            finally
+            {
+                configOp.StopRecording();
             }
         }
 
@@ -565,15 +586,11 @@ namespace Couchbase.Core
                 return ResponseStatus.CircuitBreakerOpen;
             }
         }
-        public Task<ResponseStatus> ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default)
-        {
-            return ExecuteOp(ConnectionPool, op, tokenPair);
-        }
 
         public Task<ResponseStatus> ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default)
         {
             // op and connection come back via lambda parameters to prevent an extra closure heap allocation
-            return ExecuteOp((op2, state, effectiveToken) => op2.SendAsync((IConnection)state, effectiveToken),
+            return ExecuteOp(static (op2, state, effectiveToken) => op2.SendAsync((IConnection)state, effectiveToken),
                 op, connection, tokenPair);
         }
 
@@ -590,7 +607,7 @@ namespace Couchbase.Core
         private Task<ResponseStatus> ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationTokenPair tokenPair = default)
         {
             // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
-            return ExecuteOp((op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
+            return ExecuteOp(static (op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
                 op, connectionPool, tokenPair);
         }
 
@@ -667,8 +684,6 @@ namespace Couchbase.Core
             }
             catch (OperationCanceledException ex)
             {
-                op.StopRecording();
-
                 // Timeout handling logic is also in RetryOrchestrator, however this method can also be reached without
                 // passing through RetryOrchestrator for cases like diagnostics or bootstrapping. Therefore, we need the logic
                 // in both places.
@@ -814,6 +829,10 @@ namespace Couchbase.Core
                     }
                     throw;
                 }
+                finally
+                {
+                    selectBucketOp.StopRecording();
+                }
             }
             catch (DocumentNotFoundException)
             {
@@ -879,18 +898,20 @@ namespace Couchbase.Core
 
         private async Task HalfOpenCircuitBreakerTestAsync(IRequestSpan parentSpan)
         {
+            using var op = new Noop
+            {
+                Transcoder = _context.GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
+                Opaque = SequenceGenerator.GetNext(),
+                Span = parentSpan
+            };
+
             try
             {
                 LogCircuitBreakerSendingCanary(_redactor.SystemData(ConnectionPool.EndPoint));
                 using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
                 {
-                    await ExecuteOp(ConnectionPool, new Noop
-                    {
-                        Transcoder = _context.GlobalTranscoder,
-                        OperationBuilderPool = _operationBuilderPool,
-                        Opaque = SequenceGenerator.GetNext(),
-                        Span = parentSpan
-                    }, ctp.TokenPair).ConfigureAwait(false);
+                    await ExecuteOp(ConnectionPool, op, ctp.TokenPair).ConfigureAwait(false);
                 }
 
                 _circuitBreaker.MarkSuccess();
@@ -902,6 +923,10 @@ namespace Couchbase.Core
                     LogCircuitBreakerCanaryFailed(e, _redactor.SystemData(ConnectionPool.EndPoint));
                     _circuitBreaker.MarkFailure();
                 }
+            }
+            finally
+            {
+                op.StopRecording();
             }
         }
 

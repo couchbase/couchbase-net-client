@@ -45,7 +45,7 @@ namespace Couchbase.Core.IO.Operations
 
 #if NET8_0_OR_GREATER
         // Starting with .NET 8 the LightweightStopwatch provides high resolution timing
-        private LightweightStopwatch _stopwatch;
+        private readonly LightweightStopwatch _stopwatch;
 #else
         private Stopwatch _stopwatch;
 #endif
@@ -237,11 +237,16 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; } = null!;  // Assumes we always initialize with OperationConfigurator
 
-        public TimeSpan Elapsed
-        {
-            get;
-            private set;
-        } = TimeSpan.Zero;
+#if NET8_0_OR_GREATER
+        // When using a LightweightStopwatch, it can't be stopped, so we store the elapsed time here.
+        // A value of null indicates that it has not yet been stopped.
+        private TimeSpan? _elapsed;
+
+        public TimeSpan Elapsed => _elapsed ?? _stopwatch.Elapsed;
+#else
+        // When using a Stopwatch, we can stop it so simply return the elapsed time.
+        public TimeSpan Elapsed => _stopwatch.Elapsed;
+#endif
 
         /// <summary>
         /// Exception encountered when parsing data, if any.
@@ -340,8 +345,6 @@ namespace Couchbase.Core.IO.Operations
             _isSent = false;
             _valueTaskSource.Reset();
             _isCompleted = 0;
-            StopRecording();
-            _stopwatch.Restart();
         }
 
         #endregion
@@ -677,7 +680,6 @@ namespace Couchbase.Core.IO.Operations
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
             {
-                StopRecording();
                 data.Dispose();
                 return;
             }
@@ -723,11 +725,6 @@ namespace Couchbase.Core.IO.Operations
                 TrySetException(ex, true);
                 data.Dispose();
             }
-            finally
-            {
-                //for measuring latency using an LoggingMeter or similar.
-                StopRecording();
-            }
         }
 
         /// <inheritdoc />
@@ -760,12 +757,28 @@ namespace Couchbase.Core.IO.Operations
         #region Tracing and Metrics
 
         /// <inheritdoc />
-        public void StopRecording()
+        public virtual void StopRecording()
         {
-            var elapsed = _stopwatch.Elapsed;
+            // Just in case, make sure we don't record the same operation twice
+#if NET8_0_OR_GREATER
+            // For LightweightStopwatch a value stored in _elapsed indicates that it has not yet been stopped.
+            if (_elapsed.HasValue)
+            {
+                return;
+            }
 
-            //Since an operation may be retried, we want to add to the total elapsed time.
-            Elapsed = Elapsed.Add(elapsed);
+            var elapsed = _stopwatch.Elapsed;
+            _elapsed = elapsed;
+#else
+            if (!_stopwatch.IsRunning)
+            {
+                return;
+            }
+
+            _stopwatch.Stop();
+            var elapsed = _stopwatch.Elapsed;
+#endif
+
             MetricTracker.KeyValue.TrackOperation(this, elapsed);
         }
         #endregion

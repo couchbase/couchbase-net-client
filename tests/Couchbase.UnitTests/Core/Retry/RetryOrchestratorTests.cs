@@ -339,8 +339,31 @@ namespace Couchbase.UnitTests.Core.Retry
                 await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair));
         }
 
+        [Fact]
+        public async Task Operation_Retries_Calls_StopRecording_Once()
+        {
+            var retryOrchestrator =
+                new RetryOrchestrator(new Mock<ILogger<RetryOrchestrator>>().Object, new TypedRedactor(new ClusterOptions()));
 
+            var op = new Mock<OperationBase>();
 
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object,
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
+
+            bucketMock.Setup(x => x.SendAsync(op.Object, It.IsAny<CancellationTokenPair>()))
+                .Returns(Task.FromResult(ResponseStatus.Busy));
+
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
+
+            await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () =>
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op.Object, tokenPair.TokenPair));
+
+            op.Verify(x => x.StopRecording(), Times.Once);
+        }
 
         [Theory]
         [ClassData(typeof(NotRetryTestData))]

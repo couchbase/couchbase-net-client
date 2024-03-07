@@ -112,7 +112,7 @@ namespace Couchbase
             {
                 if (Nodes.TryGet(endPoint, out var clusterNode))
                 {
-                    return clusterNode.ExecuteOp(op, tokenPair);
+                    return clusterNode.SendAsync(op, tokenPair);
                 }
                 else
                 {

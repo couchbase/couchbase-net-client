@@ -78,19 +78,23 @@ namespace Couchbase.Diagnostics
                        {
                            await RecordLatencyAsync(endPointDiagnostics, async () =>
                            {
+                               using var op = new Noop();
                                try
                                {
-                                   using var op = new Noop();
                                    operationConfigurator.Configure(op);
 
-                                   using var ctp = token == CancellationToken.None ?
-                                   CancellationTokenPairSource.FromTimeout(context.ClusterOptions.KvTimeout) :
-                                   CancellationTokenPairSource.FromExternalToken(token);
+                                   using var ctp = token == CancellationToken.None
+                                       ? CancellationTokenPairSource.FromTimeout(context.ClusterOptions.KvTimeout)
+                                       : CancellationTokenPairSource.FromExternalToken(token);
                                    await clusterNode.ExecuteOp(connection, op, ctp.TokenPair).ConfigureAwait(false);
                                }
                                catch (ObjectDisposedException)
                                {
                                    //Ignore as the ping is on a timer is a race condition when the connection is closed
+                               }
+                               finally
+                               {
+                                   op.StopRecording();
                                }
                            }).ConfigureAwait(false);
                        }
