@@ -3,7 +3,6 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Couchbase.CombinationTests.Fixtures;
 using Couchbase.KeyValue;
 using Xunit;
 using Xunit.Abstractions;

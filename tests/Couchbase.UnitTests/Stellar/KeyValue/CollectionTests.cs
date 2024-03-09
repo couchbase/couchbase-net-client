@@ -109,7 +109,7 @@ public class CollectionTests
     public async Task Throw_FeatureNotAvailableException_ScanAsync()
     {
         var collection = await CreateCollection();
-        Assert.Throws<FeatureNotAvailableException>(() => collection.ScanAsync(new PrefixScan("prefix")));
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async() => collection.ScanAsync(new PrefixScan("prefix")));
     }
 
     [Fact]

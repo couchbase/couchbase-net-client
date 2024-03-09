@@ -99,8 +99,7 @@ namespace Couchbase.UnitTests.Utils
                     Hostname = hostname,
                     Views = 8091
                 },
-                NoopRequestTracer.Instance,
-                new Mock<IOperationConfigurator>().Object);
+                NoopRequestTracer.Instance);
         }
 
         #endregion

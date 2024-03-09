@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.CombinationTests.Fixtures;
 using Couchbase.DataStructures;
 using Couchbase.KeyValue;
 using Xunit;

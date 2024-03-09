@@ -522,7 +522,6 @@ namespace Couchbase
             }
             catch (Exception e)
             {
-                _deferredExceptions.Add(e);
                 _logger.LogDebug("Error encountered bootstrapping cluster; if the cluster is 6.5 or earlier, this can be ignored. {exception}.", e);
             }
         }
