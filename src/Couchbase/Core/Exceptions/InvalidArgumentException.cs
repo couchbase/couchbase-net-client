@@ -9,6 +9,8 @@ namespace Couchbase.Core.Exceptions
         {
         }
 
+        public InvalidArgumentException(IErrorContext context) : base(context){}
+
         public InvalidArgumentException() {}
     }
 }

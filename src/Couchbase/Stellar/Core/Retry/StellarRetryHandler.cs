@@ -192,7 +192,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 if (detail.Contains(StellarRetryStrings.PathMismatch)) throw new PathMismatchException(context);
                 if (detail.Contains(StellarRetryStrings.ValueOutOfRange)) throw new ValueInvalidException();
                 if (detail.Contains(StellarRetryStrings.PathValueOutOfRange)) throw new NumberTooBigException();
-                if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException();
+                if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException(detail);
                 break;
             case StatusCode.PermissionDenied:
             case StatusCode.Unauthenticated:
@@ -200,14 +200,16 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.Cancelled:
                 throw new RequestCanceledException();
             case StatusCode.DeadlineExceeded:
-                if (request.Idempotent) throw new UnambiguousTimeoutException();
+                if (request.Idempotent) throw new UnambiguousTimeoutException(detail);
                 throw new AmbiguousTimeoutException();
             case StatusCode.Internal:
-                throw new InternalServerFailureException();
+                throw new InternalServerFailureException(detail);
             case StatusCode.Unavailable:
                 context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
                 request.Attempts++;
                 break;
+            case StatusCode.InvalidArgument:
+                throw new InvalidArgumentException(context);
             default:
             {
                 context.Fields.Add("status", status);
