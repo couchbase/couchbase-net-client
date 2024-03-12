@@ -42,6 +42,8 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
         [Theory]
         [InlineData(ResponseStatus.KeyNotFound, OpCode.Add)]
+        [InlineData(ResponseStatus.Locked, OpCode.Set)]
+        [InlineData(ResponseStatus.Locked, OpCode.Unlock)]
         public void TestFailureTrue(ResponseStatus status, OpCode opCode)
         {
             Assert.True(status.Failure(opCode));
@@ -90,6 +92,28 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                     _output.WriteLine("Failure testing KeyExists with opCode={0} and withCas = {1}", opCode, withCas);
                     throw;
                 }
+            }
+        }
+
+        [Theory]
+        [InlineData(OpCode.Set, false)]
+        [InlineData(OpCode.Replace, false)]
+        [InlineData(OpCode.Delete, false)]
+        [InlineData(OpCode.Unlock, true)]
+        public void TestUnlockCasMismatchSpecialCase(OpCode opcode, bool isCasMismatch)
+        {
+            // possibly a bug in the server?  Unlock returns Locked instead of CasMismatch.
+            var mockOperation = new Mock<IOperation>();
+            mockOperation.SetupGet(op => op.OpCode).Returns(opcode);
+            var ex = ResponseStatus.Locked.CreateException(new KeyValueErrorContext(), mockOperation.Object);
+            if (isCasMismatch)
+            {
+                Assert.True(ex is CasMismatchException);
+            }
+            else
+            {
+                Assert.False(ex is CasMismatchException);
+                Assert.True(ex is DocumentLockedException);
             }
         }
     }

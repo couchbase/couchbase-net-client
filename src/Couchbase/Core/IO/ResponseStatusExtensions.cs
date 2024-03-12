@@ -56,7 +56,6 @@ namespace Couchbase.Core.IO
             switch (status)
             {
                 case ResponseStatus.VBucketBelongsToAnotherServer:
-                case ResponseStatus.Locked:
                 case ResponseStatus.TemporaryFailure:   //temp fail via RFC
                 case ResponseStatus.OutOfMemory:        //temp fail via RFC
                 case ResponseStatus.Busy:               //temp fail via RFC
@@ -68,6 +67,8 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.CircuitBreakerOpen:
                 case ResponseStatus.EConfigOnly:
                     return true;
+                case ResponseStatus.Locked:
+                    return op.OpCode != OpCode.Unlock; // Unlock return Locked results in CasMismatchException
                 default:
                     return false;
             }
@@ -122,7 +123,9 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.OperationTimeout:
                     return new AmbiguousTimeoutException { Context = ctx };
                 case ResponseStatus.Locked:
-                    return new DocumentLockedException { Context = ctx };
+                    return op.OpCode == OpCode.Unlock
+                    ? new CasMismatchException { Context = ctx }
+                    : new DocumentLockedException { Context = ctx };
                 case ResponseStatus.DocumentMutationLost:
                     return new MutationLostException { Context = ctx };
                 case ResponseStatus.DurabilityInvalidLevel:
