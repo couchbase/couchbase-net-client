@@ -42,7 +42,7 @@ namespace Couchbase.Query
         private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private bool _autoExecute;
-        private bool? _includeMetrics;
+        private bool _includeMetrics;
         private int? _maxServerParallelism;
         private int? _pipelineBatch;
         private int? _pipelineCapacity;
@@ -72,12 +72,13 @@ namespace Couchbase.Query
                     .AdHoc(IsAdHoc)
                     .AutoExecute(_autoExecute)
                     .CancellationToken(Token)
-                    .ClientContextId(Guid.NewGuid().ToString())
+                    .ClientContextId(CurrentContextId ?? Guid.NewGuid().ToString())
                     .FlexIndex(_flexIndex)
                     .PreserveExpiry(_preserveExpiry)
                     .Profile(_profile);
 
                 queryOptions._scanVectors = _scanVectors;
+                queryOptions.Metrics(_includeMetrics);
 
                 if (_arguments is not null)
                 {
@@ -106,10 +107,6 @@ namespace Couchbase.Query
                 if (_maxServerParallelism.HasValue)
                 {
                     queryOptions.MaxServerParallelism(_maxServerParallelism.Value);
-                }
-                if (_includeMetrics.HasValue)
-                {
-                    queryOptions.Metrics(_includeMetrics.Value);
                 }
                 if (_pipelineCapacity.HasValue)
                 {
