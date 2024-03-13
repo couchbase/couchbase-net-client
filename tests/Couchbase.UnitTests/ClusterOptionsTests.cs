@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 using Xunit.Abstractions;
 using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
@@ -338,6 +341,78 @@ namespace Couchbase.UnitTests
             var options = ClusterOptions.Default;
 
             Assert.True(options.UnorderedExecutionEnabled);
+        }
+
+        #endregion
+
+        #region BuildServiceProvider
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void BuildServiceProvider_WithoutCustomMeter_Succeeds(bool loggingMeterEnabled)
+        {
+            // Arrange
+
+            var options = new ClusterOptions()
+                .WithLoggingMeterOptions(options => options.Enabled(loggingMeterEnabled));
+
+            // Act
+
+            var provider = options.BuildServiceProvider();
+
+            // Assert
+
+            var meter = provider.GetRequiredService<IMeter>();
+            Assert.NotNull(meter);
+
+            if (loggingMeterEnabled)
+            {
+                Assert.IsType<LoggingMeter>(meter);
+            }
+            else
+            {
+                Assert.IsType<NoopMeter>(meter);
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void BuildServiceProvider_WithCustomMeter_UsesCustomMeter(bool loggingMeterEnabled)
+        {
+            // Arrange
+
+            var options = new ClusterOptions()
+                .WithLoggingMeterOptions(options => options.Enabled(loggingMeterEnabled))
+                .AddClusterService<IMeter>(new MockMeter());
+
+            // Act
+
+            var provider = options.BuildServiceProvider();
+
+            // Assert
+
+            var meter = provider.GetRequiredService<IMeter>();
+            Assert.NotNull(meter);
+            Assert.IsType<MockMeter>(meter);
+        }
+
+        #endregion
+
+        #region Helpers
+
+        // ReSharper disable once ClassNeverInstantiated.Local
+        private class MockMeter : IMeter
+        {
+            public IValueRecorder ValueRecorder(string name, IDictionary<string, string> tags)
+            {
+                return NoopValueRecorder.Instance;
+            }
+
+            public void Dispose()
+            {
+            }
         }
 
         #endregion

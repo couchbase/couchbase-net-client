@@ -7,7 +7,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     internal sealed class NoopMeter : IMeter
     {
-        public static IMeter Instance { get; } = new NoopMeter();
+        public static NoopMeter Instance { get; } = new();
 
         private NoopMeter()
         {

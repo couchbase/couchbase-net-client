@@ -928,13 +928,16 @@ namespace Couchbase
 #region Tracing & Metrics
 
             this.AddClusterService(LoggingMeterOptions);
-            if (LoggingMeterOptions.EnabledValue)
+            if (!_services.ContainsKey(typeof(IMeter)))
             {
-                this.AddClusterService<IMeter, LoggingMeter>();
-            }
-            else
-            {
-                this.AddClusterService<IMeter, NoopMeter>();
+                if (LoggingMeterOptions.EnabledValue)
+                {
+                    this.AddClusterService<IMeter, LoggingMeter>();
+                }
+                else
+                {
+                    this.AddClusterService<IMeter>(NoopMeter.Instance);
+                }
             }
 
             //set the tracer to be used
