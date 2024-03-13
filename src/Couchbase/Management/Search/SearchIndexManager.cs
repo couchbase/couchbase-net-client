@@ -37,7 +37,7 @@ namespace Couchbase.Management.Search
             _context = context;
         }
 
-        private Uri GetIndexUri(IScope?  scope, string? indexName = null)
+        private Uri GetIndexUri(IScope? scope, string? indexName = null)
         {
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
             var path = "api/index";
@@ -247,7 +247,7 @@ namespace Couchbase.Management.Search
         public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null, IScope? scope = null)
         {
             options ??= GetSearchIndexDocumentCountOptions.Default;
-            var baseUri = GetIndexedDocumentCountUri(indexName);
+            var baseUri = GetIndexedDocumentCountUri(indexName, scope);
             _logger.LogInformation("Trying to get index document count with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
