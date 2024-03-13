@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class ValueTooDeepException : KeyValueException
+    public class ValueTooDeepException : SubDocException
     {
     }
 }

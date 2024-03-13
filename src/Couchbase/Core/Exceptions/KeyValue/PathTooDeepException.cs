@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class PathTooDeepException : CouchbaseException
+    public class PathTooDeepException : SubDocException
     {
     }
 }

@@ -2,7 +2,7 @@ using System;
 
 namespace Couchbase.Management.Buckets
 {
-    public class BucketExistsException : Exception
+    public class BucketExistsException : CouchbaseException
     {
         public BucketExistsException(string bucketName)
             : base($"Bucket with name {bucketName} already exists")

@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class XattrInvalidOrderException
+    public class XattrInvalidOrderException : KeyValueException
     {
     }
 }

@@ -118,6 +118,10 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                     builder.CompleteOperationSpec(mutate);
                 }
             }
+            catch (ArgumentException e)
+            {
+                throw new InvalidArgumentException("The Path is invalid.", e);
+            }
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);

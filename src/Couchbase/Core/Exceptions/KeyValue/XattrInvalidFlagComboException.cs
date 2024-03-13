@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class XattrInvalidFlagComboException
+    public class XattrInvalidFlagComboException : KeyValueException
     {
     }
 }

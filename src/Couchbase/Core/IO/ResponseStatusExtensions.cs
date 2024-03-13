@@ -235,6 +235,8 @@ namespace Couchbase.Core.IO
                 ResponseStatus.SubDocPathMismatch => new PathMismatchException(),
                 ResponseStatus.SubDocPathNotFound => new PathNotFoundException(),
                 ResponseStatus.SubDocPathTooBig => new PathTooBigException(),
+                ResponseStatus.SubDocDocTooDeep => new PathTooDeepException(),
+                ResponseStatus.SubDocValueTooDeep => new ValueTooDeepException(),
                 _ => new SubDocException() { Context = ctx, SubDocumentStatus = subdocErrorStatus, SubDocumentErrorIndex = index }
             };
 
