@@ -1,6 +1,10 @@
 using System;
+using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.UnitTests.Helpers;
+using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Operations;
@@ -66,5 +70,19 @@ public class ClusterMapChangedNotificationTests
         //Assert
         Assert.Equal(1ul, clusterMapChangeNotificationOp.GetConfigVersion.Epoch);
         Assert.Equal(1102ul, clusterMapChangeNotificationOp.GetConfigVersion.Revision);
+    }
+
+    [Fact]
+    public void When_Replica_Changes_Should_Not_Throw()
+    {
+        var preChangeJson = ResourceHelper.ReadResource(@"Documents\Configs\config-pre-replica-change.json");
+        var postChangeJson = ResourceHelper.ReadResource(@"Documents\Configs\config-post-replica-change.json");
+        var preChange = JsonConvert.DeserializeObject<BucketConfig>(preChangeJson);
+        var postChange = JsonConvert.DeserializeObject<BucketConfig>(postChangeJson);
+
+        var selfCompare = postChange.HasVBucketMapChanged(postChange);
+        Assert.False(selfCompare);
+
+        Assert.True(preChange.HasVBucketMapChanged(postChange));
     }
 }

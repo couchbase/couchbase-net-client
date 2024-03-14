@@ -128,6 +128,21 @@ namespace Couchbase.Utils
 
             for (var i = 0; i < array.Length; i++)
             {
+                if (array[i] == null && other[i] == null)
+                {
+                    continue;
+                }
+
+                if (array[i] != null && other[i] == null)
+                {
+                    return false;
+                }
+
+                if (array[i]?.Length != other[i].Length)
+                {
+                    return false;
+                }
+
                 for (var j = 0; j < array[i].Length; j++)
                 {
                     if (array[i][j] != other[i][j])

@@ -81,6 +81,34 @@ namespace Couchbase.UnitTests.Utils
             Assert.Null(node.Value);
         }
 
+        [Fact]
+        public void CompareUnequalSizeArraysReturnsFalse()
+        {
+            var a = new short[2][];
+            a[0] = [1, 2];
+            var b = new short[2][];
+            b[0] = [1, 2, 3];
+            Assert.False(a.AreEqual(b));
+
+            var x = new short[2][];
+            x[0] = [1];
+            x[1] = [2];
+            var y = new short[2][];
+            y[0] = [1];
+            y[1] = [2, 3];
+            Assert.False(x.AreEqual(y));
+        }
+
+        [Fact]
+        public void BasicShortArrayCompare()
+        {
+            var a = new short[2][];
+            a[0] = [1, 2];
+            var b = new short[2][];
+            b[0] = [1, 2];
+            Assert.True(a.AreEqual(b));
+        }
+
         #region Helpers
 
         private ClusterNode MakeFakeClusterNode(string hostname)
