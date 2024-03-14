@@ -51,20 +51,25 @@ internal class ConfigPushHandler : IDisposable
 
                 try
                 {
-                    var currentVersion = _node.NodesAdapter.ConfigVersion;
-                    if (pushedVersion < currentVersion)
+                    ConfigVersion? currentVersion = null;
+                    if (_node.NodesAdapter != null)
                     {
-                        _logger.LogTrace("{0} skipping push: {1} < {2}", _node.EndPoint, pushedVersion, currentVersion);
-                        continue;
-                    }
+                        currentVersion = _node.NodesAdapter.ConfigVersion;
+                        if (pushedVersion < currentVersion)
+                        {
+                            _logger.LogTrace("{0} skipping push: {1} < {2}", _node.EndPoint, pushedVersion,
+                                currentVersion);
+                            continue;
+                        }
 
-                    if (_pushedVersions.Count > 1)
-                    {
-                        // We are receiving multiple config push notifications faster than they can be processed.
-                        // Back off a little more the more aggressively we are being spammed.
-                        // The next time though the loop, we will end up with the latest version and skip the obsolete ones.
-                        await Task.Delay(_pushedVersions.Count + 10, _continueLoopingSource.Token)
-                            .ConfigureAwait(false);
+                        if (_pushedVersions.Count > 1)
+                        {
+                            // We are receiving multiple config push notifications faster than they can be processed.
+                            // Back off a little more the more aggressively we are being spammed.
+                            // The next time though the loop, we will end up with the latest version and skip the obsolete ones.
+                            await Task.Delay(_pushedVersions.Count + 10, _continueLoopingSource.Token)
+                                .ConfigureAwait(false);
+                        }
                     }
 
                     using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
