@@ -118,7 +118,8 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Allows for server push cluster map configurations.
         /// </summary>
-        ClusterMapChangeNotification = 0x01
+        ClusterMapChangeNotification = 0x09b//the "real" server value is 0x01 + the Magic bit -
+                                            //this is because of the value between Set andClusterMapChangeNotification
     }
 }
 
