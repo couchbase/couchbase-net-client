@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
 using Couchbase.Core.IO.Operations;
@@ -9,6 +10,30 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 {
     public class RawBinaryTranscoderTests
     {
+        #region GetFormat
+
+        [Fact]
+        public void Test_GetFormat_Binary_Succeeds()
+        {
+            var transcoder = new RawBinaryTranscoder();
+
+            var flags = transcoder.GetFormat(new byte[] {0x0});
+
+            Assert.Equal(DataFormat.Binary, flags.DataFormat);
+        }
+
+        [Fact]
+        public void Test_GetFormat_Object_Fails()
+        {
+            var transcoder = new RawBinaryTranscoder();
+
+            Assert.Throws<InvalidOperationException>(()=>transcoder.GetFormat(new object()));
+        }
+
+        #endregion
+
+        #region Encode
+
         [Fact]
         public void Test_Encode_ByteArrays()
         {
@@ -25,6 +50,37 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             Assert.True(stream.Length == 2);
         }
 
+        [Fact]
+        public void Test_Encode_Memory()
+        {
+            var transcoder = new RawBinaryTranscoder();
+
+            var flags = new Flags
+            {
+                DataFormat = DataFormat.Binary
+            };
+
+            using var stream = new MemoryStream();
+            transcoder.Encode(stream, (Memory<byte>)new byte[]{0x00, 0x01}, flags, OpCode.Add);
+
+            Assert.True(stream.Length == 2);
+        }
+
+        [Fact]
+        public void Test_Encode_ReadOnlyMemory()
+        {
+            var transcoder = new RawBinaryTranscoder();
+
+            var flags = new Flags
+            {
+                DataFormat = DataFormat.Binary
+            };
+
+            using var stream = new MemoryStream();
+            transcoder.Encode(stream, (ReadOnlyMemory<byte>)new byte[]{0x00, 0x01}, flags, OpCode.Add);
+
+            Assert.True(stream.Length == 2);
+        }
 
         [Fact]
         public void Test_Encode_Object_Fails()
@@ -39,6 +95,10 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             using var stream = new MemoryStream();
             Assert.Throws<InvalidOperationException>(()=>transcoder.Encode(stream, new object(), flags, OpCode.Add));
         }
+
+        #endregion
+
+        #region Decode
 
         [Theory]
         [InlineData(DataFormat.String)]
@@ -61,6 +121,27 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             Assert.True(bytes.Length == 2);
         }
 
+        [Theory]
+        [InlineData(DataFormat.String)]
+        [InlineData(DataFormat.Binary)]
+        [InlineData(DataFormat.Json)]
+        [InlineData(DataFormat.Private)]
+        [InlineData(DataFormat.Reserved)]
+        public void Test_Decode_MemoryOwner(DataFormat dataFormat)
+        {
+            var transcoder = new RawBinaryTranscoder();
+
+            var flags = new Flags
+            {
+                DataFormat = dataFormat //Note flags type is independent of T - everything is byte[]
+            };
+
+            var memory = new ReadOnlyMemory<byte>(new byte[]{0x0, 0x1});
+            using var bytes = transcoder.Decode<IMemoryOwner<byte>>(memory, flags, OpCode.NoOp);
+
+            Assert.True(bytes.Memory.Length == 2);
+        }
+
         [Fact]
         public void Test_Decode_Object_Fails()
         {
@@ -75,22 +156,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             Assert.Throws<InvalidOperationException>(()=> transcoder.Decode<object>(memory, flags, OpCode.NoOp));
         }
 
-        [Fact]
-        public void Test_GetFormat_Binary_Succeeds()
-        {
-            var transcoder = new RawBinaryTranscoder();
-
-            var flags = transcoder.GetFormat(new byte[] {0x0});
-
-            Assert.Equal(DataFormat.Binary, flags.DataFormat);
-        }
-
-        [Fact]
-        public void Test_GetFormat_Object_Fails()
-        {
-            var transcoder = new RawBinaryTranscoder();
-
-            Assert.Throws<InvalidOperationException>(()=>transcoder.GetFormat(new object()));
-        }
+        #endregion
     }
 }

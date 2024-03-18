@@ -98,8 +98,6 @@ namespace Couchbase.Core.IO.Serializers
 
         #region Fields
 
-        private static readonly Encoding Utf8NoBomEncoding = new UTF8Encoding(false);
-
         private JsonSerializerSettings _serializationSettings = null!;
         private JsonSerializerSettings _deserializationSettings = null!;
         private DeserializationOptions? _deserializationOptions;
@@ -242,7 +240,7 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public void Serialize(Stream stream, object? obj)
         {
-            using (var sw = new StreamWriter(stream, Utf8NoBomEncoding, 1024, true))
+            using (var sw = new StreamWriter(stream, EncodingUtils.Utf8NoBomEncoding, 1024, true))
             {
                 using (var jr = new JsonTextWriter(sw)
                 {

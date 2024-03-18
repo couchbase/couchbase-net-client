@@ -1,10 +1,10 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -56,7 +56,8 @@ namespace Couchbase.Core.IO.Transcoders
                     dataFormat = DataFormat.Json;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    ThrowHelper.ThrowArgumentOutOfRangeException();
+                    return default; //unreachable
             }
             return new Flags { Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
         }
@@ -80,37 +81,42 @@ namespace Couchbase.Core.IO.Transcoders
                             stream.Write(bytes, 0, bytes.Length);
                             break;
                         }
-                        throw new UnsupportedException("JsonTranscoder does not support byte arrays.");
+                        ThrowHelper.ThrowUnsupportedException("JsonTranscoder does not support byte arrays.");
                     }
                     else
                     {
                         var msg = $"The value of T does not match the DataFormat provided: {flags.DataFormat}";
-                        throw new ArgumentException(msg);
+                        ThrowHelper.ThrowArgumentException(msg, nameof(value));
                     }
 
+                    break;
+
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    ThrowHelper.ThrowArgumentOutOfRangeException();
+                    break;
             }
         }
 
         [return: MaybeNull]
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
-            var typeCode = Type.GetTypeCode(typeof(T));
             if (typeof(T) == typeof(byte[]))
             {
-                if (opcode == OpCode.Append || opcode == OpCode.Prepend)
+                if (opcode is OpCode.Append or OpCode.Prepend)
                 {
-                    object value = DecodeBinary(buffer.Span);
-                    return (T) value;
+                    var value = DecodeBinary(buffer.Span);
+                    return (T)(object) value;
                 }
-                throw new UnsupportedException("JsonTranscoder does not support byte arrays.");
+
+                ThrowHelper.ThrowUnsupportedException("JsonTranscoder does not support byte arrays.");
+                return default!; //unreachable
             }
+
             //special case for some binary ops
-            if (typeCode == TypeCode.UInt64 && (opcode == OpCode.Increment || opcode == OpCode.Decrement))
+            if (typeof(T) == typeof(ulong) && opcode is OpCode.Increment or OpCode.Decrement)
             {
-                object value = ByteConverter.ToUInt64(buffer.Span, true);
-                return (T) value;
+                var value = ByteConverter.ToUInt64(buffer.Span, true);
+                return (T)(object)value;
             }
 
             //everything else gets the JSON treatment

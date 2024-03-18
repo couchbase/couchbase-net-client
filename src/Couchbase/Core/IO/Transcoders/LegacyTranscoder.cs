@@ -36,7 +36,7 @@ namespace Couchbase.Core.IO.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Object:
-                    if (typeof(T) == typeof(Byte[]))
+                    if (typeof(T) == typeof(byte[]))
                     {
                         dataFormat = DataFormat.Binary;
                     }
@@ -61,7 +61,8 @@ namespace Couchbase.Core.IO.Transcoders
                     dataFormat = DataFormat.String;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    ThrowHelper.ThrowArgumentOutOfRangeException();
+                    return default!; // unreachable
             }
             return new Flags() { Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
         }
@@ -89,12 +90,13 @@ namespace Couchbase.Core.IO.Transcoders
                     else
                     {
                         var msg = $"The value of T does not match the DataFormat provided: {flags.DataFormat}";
-                        throw new ArgumentException(msg);
+                        ThrowHelper.ThrowArgumentException(msg, nameof(value));
                     }
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    ThrowHelper.ThrowArgumentOutOfRangeException();
+                    break;
             }
         }
 
@@ -194,7 +196,8 @@ namespace Couchbase.Core.IO.Transcoders
                     break;
 
                 default:
-                    throw new InvalidEnumArgumentException(nameof(typeCode), (int) typeCode, typeof(TypeCode));
+                    ThrowHelper.ThrowInvalidEnumArgumentException(nameof(typeCode), (int) typeCode, typeof(TypeCode));
+                    break;
             }
         }
 
@@ -236,7 +239,8 @@ namespace Couchbase.Core.IO.Transcoders
                     else
                     {
                         var msg = $"The value of T does not match the DataFormat provided: {flags.DataFormat}";
-                        throw new ArgumentException(msg);
+                        ThrowHelper.ThrowArgumentException(msg, nameof(value));
+                        return default!; //unreachable
                     }
                     break;
 
@@ -357,7 +361,8 @@ namespace Couchbase.Core.IO.Transcoders
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    ThrowHelper.ThrowArgumentOutOfRangeException();
+                    return default!; // unreachable
             }
             return (T?)value;
         }

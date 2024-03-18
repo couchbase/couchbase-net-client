@@ -106,6 +106,12 @@ namespace Couchbase.Utils
                 Context = context
             };
         }
+        
+        [DoesNotReturn]
+        public static void ThrowUnsupportedException(string? message)
+        {
+            throw new UnsupportedException(message);
+        }
 
         [DoesNotReturn]
         public static void ThrowFalseTimeoutException(IOperation operation, KeyValueErrorContext errorContext)

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Couchbase.Core.IO.Operations;
@@ -11,41 +10,51 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 {
     public class RawStringTranscoderTests
     {
+        #region GetFormat
+
         [Fact]
-        public void DecodeString_Defaults_To_Null_When_Buffer_Is_Empty_And_Type_Is_String()
+        public void Test_GetFormat_Object_Fails()
         {
             var transcoder = new RawStringTranscoder();
 
-            var bytes = new byte[0];
-            var result = transcoder.Decode<string>(bytes.AsMemory(),
-                new Flags { DataFormat = DataFormat.String },
-                OpCode.NoOp);
-
-            Assert.Null(result);
+            Assert.Throws<InvalidOperationException>(() => transcoder.GetFormat(new object()));
         }
 
         [Fact]
-        public void Test_Serialize_String()
+        public void Test_GetFormat_String_String()
         {
             var transcoder = new RawStringTranscoder();
-            string data = "Hello";
+
+            var flags = transcoder.GetFormat("12");
+
+            Assert.Equal(DataFormat.String, flags.DataFormat);
+        }
+
+        #endregion
+
+        #region Encode
+
+        [Theory]
+        [InlineData(100)]
+        [InlineData(10_000)]
+        public void Test_Encode_String(int length)
+        {
+            var transcoder = new RawStringTranscoder();
 
             var flags = new Flags
             {
-                Compression = Couchbase.Core.IO.Operations.Compression.None,
-                DataFormat = DataFormat.String,
-                TypeCode = Convert.GetTypeCode(data)
+                DataFormat = DataFormat.String
             };
 
-            var expected = new byte[] { 0x48, 0x65, 0x6c, 0x6c, 0x6f };
+            var str = new string('0', length);
             using var stream = new MemoryStream();
-            transcoder.Encode(stream, data, flags, OpCode.Get);
+            transcoder.Encode(stream, str, flags, OpCode.NoOp);
 
-            Assert.Equal(expected, stream.ToArray());
+            Assert.Equal(stream.ToArray(), Encoding.UTF8.GetBytes(str));
         }
 
         [Fact]
-        public void Test_Char_Fails()
+        public void Test_Encode_Char_Fails()
         {
             var transcoder = new RawStringTranscoder();
             var value = 'o';
@@ -62,7 +71,38 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         }
 
         [Fact]
-        public void Test_Deserialize_String()
+        public void Test_Encode_Object_Fails()
+        {
+            var transcoder = new RawStringTranscoder();
+
+            var flags = new Flags
+            {
+                DataFormat = DataFormat.String
+            };
+
+            using var stream = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => transcoder.Encode(stream, new object(), flags, OpCode.Add));
+        }
+
+        #endregion
+
+        #region Decode
+
+        [Fact]
+        public void DecodeString_Defaults_To_Null_When_Buffer_Is_Empty_And_Type_Is_String()
+        {
+            var transcoder = new RawStringTranscoder();
+
+            var bytes = Array.Empty<byte>();
+            var result = transcoder.Decode<string>(bytes.AsMemory(),
+                new Flags { DataFormat = DataFormat.String },
+                OpCode.NoOp);
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void Test_Decode_String()
         {
             var transcoder = new RawStringTranscoder();
             // ReSharper disable once StringLiteralTypo
@@ -82,20 +122,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         }
 
         [Fact]
-        public void Test_Encode_Object_Fails()
-        {
-            var transcoder = new RawStringTranscoder();
-
-            var flags = new Flags
-            {
-                DataFormat = DataFormat.String
-            };
-
-            using var stream = new MemoryStream();
-            Assert.Throws<InvalidOperationException>(() => transcoder.Encode(stream, new object(), flags, OpCode.Add));
-        }
-
-        [Fact]
         public void Test_Decode_Object_Fails()
         {
             var transcoder = new RawStringTranscoder();
@@ -109,12 +135,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             Assert.Throws<InvalidOperationException>(() => transcoder.Decode<object>(memory, flags, OpCode.NoOp));
         }
 
-        [Fact]
-        public void Test_GetFormat_Object_Fails()
-        {
-            var transcoder = new RawStringTranscoder();
-
-            Assert.Throws<InvalidOperationException>(() => transcoder.GetFormat(new object()));
-        }
+        #endregion
     }
 }

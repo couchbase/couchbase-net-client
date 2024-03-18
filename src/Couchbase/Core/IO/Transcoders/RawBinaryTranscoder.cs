@@ -32,28 +32,31 @@ namespace Couchbase.Core.IO.Transcoders
                 return new Flags { Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
             }
 
-            throw new InvalidOperationException("The RawBinaryTranscoder only supports byte arrays, Memory<byte>, and ReadOnlyMemory<byte> as input.");
+            ThrowHelper.ThrowInvalidOperationException("The RawBinaryTranscoder only supports byte arrays, Memory<byte>, and ReadOnlyMemory<byte> as input.");
+            return default; // unreachable
         }
 
         public override void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            if(value is byte[] bytes)
+            // For value types this typeof check approach allows eliding branches during JIT
+            if (typeof(T) == typeof(Memory<byte>))
+            {
+                stream.Write((Memory<byte>)(object)value!);
+                return;
+            }
+            if (typeof(T) == typeof(ReadOnlyMemory<byte>))
+            {
+                stream.Write((ReadOnlyMemory<byte>)(object)value!);
+                return;
+            }
+
+            if (value is byte[] bytes)
             {
                 stream.Write(bytes, 0, bytes.Length);
                 return;
             }
-            if (value is Memory<byte> memory)
-            {
-                stream.Write(memory);
-                return;
-            }
-            if (value is ReadOnlyMemory<byte> readOnlyMemory)
-            {
-                stream.Write(readOnlyMemory);
-                return;
-            }
 
-            throw new InvalidOperationException("The RawBinaryTranscoder can only encode byte arrays, Memory<byte>, and ReadOnlyMemory<byte>.");
+            ThrowHelper.ThrowInvalidOperationException("The RawBinaryTranscoder can only encode byte arrays, Memory<byte>, and ReadOnlyMemory<byte>.");
         }
 
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
@@ -90,7 +93,8 @@ namespace Couchbase.Core.IO.Transcoders
                 }
             }
 
-            throw new InvalidOperationException("The RawBinaryTranscoder can only decode byte arrays or IMemoryOwner<byte>.");
+            ThrowHelper.ThrowInvalidOperationException("The RawBinaryTranscoder can only decode byte arrays or IMemoryOwner<byte>.");
+            return default!; // unreachable
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 using Couchbase.Core.Exceptions;
@@ -403,6 +404,22 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             using var stream = new MemoryStream();
             transcoder.SerializeAsJson(stream, value);
             var actual = transcoder.DeserializeAsJson<int>(stream.ToArray());
+
+            Assert.Equal(value, actual);
+        }
+
+        [Theory]
+        [InlineData(OpCode.Increment)]
+        [InlineData(OpCode.Decrement)]
+        public void Test_IncrementDecrement_Decode_ULong(OpCode opCode)
+        {
+            var transcoder = new JsonTranscoder();
+            ulong value = 42;
+
+            var buffer = new byte[sizeof(ulong)];
+            BinaryPrimitives.WriteUInt64BigEndian(buffer, value);
+
+            var actual = transcoder.Decode<ulong>(buffer, default, opCode);
 
             Assert.Equal(value, actual);
         }

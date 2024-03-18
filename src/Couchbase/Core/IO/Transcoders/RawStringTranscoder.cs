@@ -5,6 +5,7 @@ using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -12,6 +13,8 @@ namespace Couchbase.Core.IO.Transcoders
 {
     public class RawStringTranscoder : BaseTranscoder
     {
+        private const int BufferSize = 1024;
+
         [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
         public RawStringTranscoder() : this(DefaultSerializer.Instance)
@@ -25,40 +28,52 @@ namespace Couchbase.Core.IO.Transcoders
 
         public override Flags GetFormat<T>(T value)
         {
-            var typeCode = Type.GetTypeCode(typeof(T));
-            if (typeCode == TypeCode.String)
+            if (typeof(T) == typeof(string))
             {
-                var dataFormat = DataFormat.String;
-                return new Flags {Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode};
+                return new Flags
+                {
+                    Compression = Operations.Compression.None,
+                    DataFormat = DataFormat.String,
+                    TypeCode = TypeCode.String
+                };
             }
 
-            throw new InvalidOperationException("The RawStringTranscoder only supports strings as input.");
+            ThrowHelper.ThrowInvalidOperationException("The RawStringTranscoder only supports strings as input.");
+            return default; // unreachable
         }
 
         public override void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            if (value is byte[] bytes)
-            {
-                stream.Write(bytes, 0, bytes.Length);
-                return;
-            }
             if (value is string str)
             {
-                var buffer = ArrayPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
-                try
+                if (str.Length <= BufferSize)
                 {
-                    var length = ByteConverter.FromString(str, buffer.AsSpan());
-                    stream.Write(buffer, 0, length);
+                    // For small strings (less than the buffer size), it is more efficient to avoid the cost of allocating the buffers
+                    // within a StreamWriter and serialize directly to a pooled buffer instead.
+
+                    var buffer = ArrayPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
+                    try
+                    {
+                        var length = ByteConverter.FromString(str, buffer.AsSpan());
+                        stream.Write(buffer, 0, length);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
                 }
-                finally
+                else
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    // For larger strings, use a StreamWriter to serialize the stream in blocks to avoid allocating a very large buffer.
+
+                    using var writer = new StreamWriter(stream, EncodingUtils.Utf8NoBomEncoding, BufferSize, leaveOpen: true);
+                    writer.Write(str);
                 }
 
                 return;
             }
 
-            throw new InvalidOperationException("The RawStringTranscoder can only encode strings.");
+            ThrowHelper.ThrowInvalidOperationException("The RawStringTranscoder can only encode strings.");
         }
 
         [return: MaybeNull]
@@ -71,7 +86,8 @@ namespace Couchbase.Core.IO.Transcoders
                 return (T?) value;
             }
 
-            throw new InvalidOperationException("The RawStringTranscoder can only decode strings.");
+            ThrowHelper.ThrowInvalidOperationException("The RawStringTranscoder can only decode strings.");
+            return default!; // unreachable
         }
     }
 }
