@@ -171,7 +171,7 @@ namespace Couchbase.UnitTests.Diagnostics
                 throw new NotImplementedException();
             }
 
-            public Task<BucketConfig> GetClusterMap(ConfigVersion? configVersion = default)
+            public Task<BucketConfig> GetClusterMap(ConfigVersion? configVersion = default, CancellationToken cancellationToken = default)
             {
                 throw new NotImplementedException();
             }

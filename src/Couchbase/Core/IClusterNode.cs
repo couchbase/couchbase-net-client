@@ -63,7 +63,7 @@ namespace Couchbase.Core
         /// <param name="cancellationToken">The cancellation token.</param>
         Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default);
 
-        Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default);
+        Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, CancellationToken cancellationToken = default);
 
         Task<ResponseStatus> ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default);
 

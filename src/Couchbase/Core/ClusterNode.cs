@@ -70,7 +70,7 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
-            _configPushHandler = new ConfigPushHandler(this, context, logger);
+            _configPushHandler = new ConfigPushHandler(this, context, logger, redactor);
             EndPoint = endPoint;
 
             try
@@ -421,8 +421,9 @@ namespace Couchbase.Core
             await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient)
+        public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient, CancellationToken cancellationToken = default)
         {
+            // TODO: we should address implicit usage of default cancellation token.
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
             using var configOp = new Config
             {
@@ -438,13 +439,14 @@ namespace Couchbase.Core
             //the server will try to dedup the config revision because the rev and epoch already
             //exists. Since this is a bucket bootstrap we must force the config because we want
             //a new config that shows bucket level details.
-            if (latestVersionOnClient.HasValue && ServerFeatures.GetClusterConfigWithKnownVersion)
+            if (latestVersionOnClient.HasValue && (ServerFeatures?.GetClusterConfigWithKnownVersion ?? false))
             {
                 configOp.Epoch = latestVersionOnClient.Value.Epoch;
                 configOp.Revision = latestVersionOnClient.Value.Revision;
             }
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout,
+                cancellationToken);
             try
             {
                 var status = await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);

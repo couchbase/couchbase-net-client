@@ -1,35 +1,52 @@
 using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
-using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
 
-internal class ConfigPushHandler : IDisposable
+internal partial class ConfigPushHandler : IDisposable
 {
     private readonly ILogger _logger;
     private readonly ClusterNode _node;
     private readonly ClusterContext _context;
-    private readonly BlockingCollection<ConfigVersion> _pushedVersions;
+    private readonly TypedRedactor _redactor;
 
     private readonly CancellationTokenSource _continueLoopingSource = new();
-    private readonly Task _processLoop;
+    private readonly object _lock = new();
+    private readonly SemaphoreSlim _versionReceivedEvent = new(initialCount: 0, maxCount: 1);
 
-    public ConfigPushHandler(ClusterNode node, ClusterContext context, ILogger logger)
+    // Version received and not yet processed
+    private ConfigVersion _latestVersion;
+    private bool _disposed;
+
+    public ConfigPushHandler(ClusterNode node, ClusterContext context, ILogger logger, TypedRedactor redactor)
     {
         // TODO: inject logger via DI rather than using ClusterNode's logger instance.
         _logger = logger;
         _node = node;
         _context = context;
+        _redactor = redactor;
 
-        // create a Producer/Consumer blocking collection backed by a stack, so that entries
-        // are processed LIFO.
-        _pushedVersions = new BlockingCollection<ConfigVersion>(new ConcurrentStack<ConfigVersion>());
-        _processLoop = ProcessConfigPushes();
+        bool restoreFlow = false;
+        try
+        {
+            if (!ExecutionContext.IsFlowSuppressed())
+            {
+                ExecutionContext.SuppressFlow();
+                restoreFlow = true;
+            }
+
+            _ = ProcessConfigPushesAsync(_continueLoopingSource.Token);
+        }
+        finally
+        {
+            if (restoreFlow)
+            {
+                ExecutionContext.RestoreFlow();
+            }
+        }
 
         // Can this be done with only keeping track of "MaxPushedConfigVersion"?  Maybe, but not trivially.
         // If it is fetched from another node, then GetClusterMap may return null.  If something then interfered
@@ -37,92 +54,112 @@ internal class ConfigPushHandler : IDisposable
         // TODO: investigate simpler MaxPushedConfigVersion approach.
     }
 
-    private Task ProcessConfigPushes()
+    private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
-        // start a long-running background task to consume the blocking collection.
-        return Task.Factory.StartNew(async (_) =>
+        while (!cancellationToken.IsCancellationRequested)
         {
-            foreach (var pushedVersion in _pushedVersions.GetConsumingEnumerable(_continueLoopingSource.Token))
+            // Don't release this semaphore, it is released whenever a new config is received.
+            await _versionReceivedEvent.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            try
             {
-                if (_continueLoopingSource.IsCancellationRequested)
+                ConfigVersion pushedVersion;
+                lock (_lock)
                 {
-                    break;
+                    // This lock prevents tearing of the ConfigVersion struct
+                    pushedVersion = _latestVersion;
                 }
 
-                try
+                // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
+                // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
+                // received is processed here but then on the next loop WaitAsync will immediately return a second time
+                // due the semaphore being released again by ProcessConfigPush.
+
+                ConfigVersion? currentVersion = null;
+                if (_node.NodesAdapter != null)
                 {
-                    ConfigVersion? currentVersion = null;
-                    if (_node.NodesAdapter != null)
-                    {
-                        currentVersion = _node.NodesAdapter.ConfigVersion;
-                        if (pushedVersion < currentVersion)
-                        {
-                            _logger.LogTrace("{0} skipping push: {1} < {2}", _node.EndPoint, pushedVersion,
-                                currentVersion);
-                            continue;
-                        }
+                    currentVersion = _node.NodesAdapter.ConfigVersion;
 
-                        if (_pushedVersions.Count > 1)
-                        {
-                            // We are receiving multiple config push notifications faster than they can be processed.
-                            // Back off a little more the more aggressively we are being spammed.
-                            // The next time though the loop, we will end up with the latest version and skip the obsolete ones.
-                            await Task.Delay(_pushedVersions.Count + 10, _continueLoopingSource.Token)
-                                .ConfigureAwait(false);
-                        }
-                    }
-
-                    using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
-                    try
+                    // Recheck to see if this node received the config version from another node since
+                    // the event was queued on this processing thread
+                    if (pushedVersion <= currentVersion)
                     {
-                        var bucketConfig = await _node.GetClusterMap(latestVersionOnClient: currentVersion).ConfigureAwait(false);
-                        if (bucketConfig != null)
-                        {
-                            // GetClusterMap returns null when the config has already been seen by the client
-                            // therefore, not-null means this is a new config that must be published to all subscribers.
-                            _logger.LogDebug("{0} new config {1} due to config push", _node.EndPoint,
-                                bucketConfig.ConfigVersion);
-                            _context.PublishConfig(bucketConfig);
-
-                            // Back off in the processing loop.
-                            // If configs come back-to-back-to-back, we'll end up piling up a few pushed notifications
-                            // Since we're processing LIFO, this lets us avoid requests for configs that will be obsolete
-                            // in a trivial amount of time.
-                            await Task.Delay(100).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(LoggingEvents.ConfigEvent, e,
-                            "Issue getting Cluster Map on server {Server}!", _node.EndPoint);
+                        SkippingPush(_redactor.SystemData(_node.EndPoint), pushedVersion, currentVersion.GetValueOrDefault());
+                        continue;
                     }
                 }
-                catch (Exception ex)
+
+                var bucketConfig = await _node.GetClusterMap(latestVersionOnClient: currentVersion, cancellationToken).ConfigureAwait(false);
+                if (bucketConfig != null)
                 {
-                    // catch all exceptions because we don't want to terminate the processing loop
-                    _logger.LogWarning("Process config push failed: {0}", ex);
+                    // GetClusterMap returns null when the config has already been seen by the client
+                    // therefore, not-null means this is a new config that must be published to all subscribers.
+                    ConfigPublished(_redactor.SystemData(_node.EndPoint), bucketConfig.ConfigVersion);
+                    _context.PublishConfig(bucketConfig);
                 }
             }
+            catch (Exception ex)
+            {
+                // catch all exceptions because we don't want to terminate the processing loop
+                _logger.LogWarning(ex, "Process config push failed");
+            }
+        }
 
-            _logger.LogDebug("Exited consumer loop");
-        }, _continueLoopingSource.Token, TaskCreationOptions.LongRunning);
+        _logger.LogDebug("Exited consumer loop");
     }
 
     public void ProcessConfigPush(ConfigVersion configVersion)
     {
-        _pushedVersions.Add(configVersion);
+        // We must use a lock, not Interlocked, because ConfigVersion is a large reference type
+        // and tearing could occur. Also, we're doing reads and writes with comparisons.
+        lock (_lock)
+        {
+            // Will always be true at start, when _nextVersion is all zeros. Also ignores any lower
+            // versions received without signaling the processing thread.
+            if (configVersion < _latestVersion)
+            {
+                // Already pushed from to the processing thread previously
+                SkippingPush(_redactor.SystemData(_node.EndPoint), configVersion, _latestVersion);
+                return;
+            }
+
+            if (_node.NodesAdapter is not null && _node.NodesAdapter.ConfigVersion <= configVersion)
+            {
+                // Already seen by this node via another node's push
+                SkippingPush(_redactor.SystemData(_node.EndPoint), configVersion, _node.NodesAdapter.ConfigVersion);
+                return;
+            }
+
+            _latestVersion = configVersion;
+
+            try
+            {
+                _versionReceivedEvent.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                // Ignore this error, it means that we're already waiting on the processing thread
+                // to handle a new config version. When it wakes it will see this new version instead.
+            }
+        }
     }
 
-    private bool _disposed = false;
     public void Dispose()
     {
         if (_disposed) return;
 
         // cancel the processing loop, allowing the background task to gracefully finish.
         _continueLoopingSource.Cancel();
-        _pushedVersions.Dispose();
+        _continueLoopingSource.Dispose();
         _disposed = true;
     }
+
+    [LoggerMessage(0, LogLevel.Debug, "{endpoint} new config {pushedVersion} due to config push")]
+    private partial void ConfigPublished(Redacted<HostEndpointWithPort> endpoint, ConfigVersion pushedVersion);
+
+    [LoggerMessage(1, LogLevel.Trace, "Skipping push: {endpoint} < {pushedVersion} < {currentVersion}")]
+    private partial void SkippingPush(Redacted<HostEndpointWithPort> endpoint, ConfigVersion pushedVersion,
+        ConfigVersion currentVersion);
 }
 
 /* ************************************************************

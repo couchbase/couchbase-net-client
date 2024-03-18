@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace Couchbase.Core.Configuration.Server;
 
@@ -9,6 +10,7 @@ namespace Couchbase.Core.Configuration.Server;
 /// be compared first and if equal the revision should be compared.
 /// <remarks>https://issues.couchbase.com/browse/CBD-4083</remarks>
 /// </summary>
+[StructLayout(LayoutKind.Auto)]
 internal readonly struct ConfigVersion : IEquatable<ConfigVersion>, IComparable<ConfigVersion>
 {
     public ConfigVersion(ulong epoch, ulong revision)
