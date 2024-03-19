@@ -113,7 +113,7 @@ namespace Couchbase.Core.Configuration.Server
                         .ConfigureAwait(false);
 
                     _logger.LogDebug("Done waiting, polling...");
-
+                    
                     bool connected = false;
                     foreach (var clusterNode in _context.Nodes.Where(x =>
                         x.HasKv && x.BucketType != BucketType.Memcached))
@@ -123,6 +123,9 @@ namespace Couchbase.Core.Configuration.Server
                         //directly fetch a new one from the server and enqueue it.
                         if (clusterNode.ServerFeatures.ClustermapChangeNotificationBrief)
                         {
+                            //we really don't know if we are connected in this case
+                            //but we need to rely on the Faster Failover logic
+                            connected = true;
                             continue;
                         }
 
@@ -154,7 +157,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
                     }
 
-                    if (!connected && _context!.ClusterOptions!.ConnectionStringValue!.IsDnsSrv)
+                    if (!connected && _context.ClusterOptions!.ConnectionStringValue!.IsDnsSrv)
                     {
                         _logger.LogInformation("Bootstrapping: The handler can no longer connect " +
                             " to the cluster and will attempt to rebootstrap against the DNS SRV records.");
