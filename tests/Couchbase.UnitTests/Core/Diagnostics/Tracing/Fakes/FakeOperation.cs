@@ -124,6 +124,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public ConfigVersion? ConfigVersion { get; set; }
+
         public string LastErrorMessage { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public bool PreferReturns { get; }

@@ -752,6 +752,8 @@ namespace Couchbase.Core.IO.Operations
             return LastErrorCode != null && LastErrorCode.Attrs.Contains("retry-now");
         }
 
+        public ConfigVersion? ConfigVersion { get; set; }
+
         #endregion
 
         #region Tracing and Metrics

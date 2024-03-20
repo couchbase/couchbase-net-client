@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -285,7 +286,7 @@ namespace Couchbase.Core.Retry
                             var reason = status.ResolveRetryReason();
                             if (reason.AlwaysRetry())
                             {
-                                LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
+                                LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason, operation.ConfigVersion);
 
                                 await backoff.Delay(operation).ConfigureAwait(false);
 
@@ -345,7 +346,7 @@ namespace Couchbase.Core.Retry
                         if (reason.AlwaysRetry())
                         {
                             lastRetriedException = e;
-                            LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
+                            LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason, operation.ConfigVersion);
 
                             await backoff.Delay(operation).ConfigureAwait(false);
                             // no need to reset op in this case as it was not actually sent
@@ -441,8 +442,8 @@ namespace Couchbase.Core.Retry
 
         #region Logging
 
-        [LoggerMessage(1, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and always retry.")]
-        private partial void LogRetryDueToAlwaysRetry(uint opaque, Redacted<string> key, RetryReason reason);
+        [LoggerMessage(1, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and always retry using configVersion: {configVersion}.")]
+        private partial void LogRetryDueToAlwaysRetry(uint opaque, Redacted<string> key, RetryReason reason, ConfigVersion? configVersion);
 
         [LoggerMessage(2, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and action duration.")]
         private partial void LogRetryDueToDuration(uint opaque, Redacted<string> key, RetryReason reason);

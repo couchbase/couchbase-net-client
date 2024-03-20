@@ -606,6 +606,9 @@ namespace Couchbase.Core
 
             try
             {
+                //For each send of potentially many sends, capture the config version info
+                op.ConfigVersion = NodesAdapter?.ConfigVersion;
+
                 // Await the send in case the send throws an exception (i.e. SendQueueFullException)
                 await sender(op, state, tokenPair).ConfigureAwait(false);
 
@@ -623,7 +626,7 @@ namespace Couchbase.Core
                     return status;
                 }
 
-                LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+                LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque, NodesAdapter!.ConfigVersion);
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -647,6 +650,10 @@ namespace Couchbase.Core
                         {
                             //If null we don't have a later config epoch/revision available
                             _context.PublishConfig(config);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("We do not have a later config than configVersion: {configVersion}", NodesAdapter!.ConfigVersion);
                         }
                     }
                 }
@@ -760,7 +767,10 @@ namespace Couchbase.Core
                     BucketConfig bucketConfig = null;
                     using (operationResponse)
                     {
-                        var clusterMapChangeNotificationOp = new ClusterMapChangeNotification();
+                        var clusterMapChangeNotificationOp = new ClusterMapChangeNotification
+                        {
+                            Transcoder = _context.GlobalTranscoder
+                        };
                         clusterMapChangeNotificationOp.HandleOperationCompleted(operationResponse);
 
                         if (clusterMapChangeNotificationOp.HasExtras)
@@ -1012,8 +1022,8 @@ namespace Couchbase.Core
         [LoggerMessage(100, LogLevel.Debug, "Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.")]
         private partial void LogKvExecutingOperation(OpCode opcode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque);
 
-        [LoggerMessage(101, LogLevel.Debug, "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.")]
-        private partial void LogKvStatusReturned(Redacted<HostEndpointWithPort> endpoint, ResponseStatus status, OpCode opcode, Redacted<string> key, uint opaque);
+        [LoggerMessage(101, LogLevel.Debug, "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque} and configVersion: {configVersion}.")]
+        private partial void LogKvStatusReturned(Redacted<HostEndpointWithPort> endpoint, ResponseStatus status, OpCode opcode, Redacted<string> key, uint opaque, ConfigVersion configVersion);
 
         [LoggerMessage(102, LogLevel.Warning, "Unexpected Status for KeyValue operation not found in Error Map: 0x{code:X4}")]
         private partial void LogKvStatusNotFound(short code);

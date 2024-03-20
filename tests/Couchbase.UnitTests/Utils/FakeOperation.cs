@@ -146,6 +146,8 @@ namespace Couchbase.UnitTests.Utils
             throw new NotImplementedException();
         }
 
+        public ConfigVersion? ConfigVersion { get; set; }
+
         public string LastErrorMessage { get; set; }
         public bool PreferReturns { get; }
         public bool CanStream => throw new NotImplementedException();

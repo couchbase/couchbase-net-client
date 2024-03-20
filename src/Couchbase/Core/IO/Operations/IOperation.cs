@@ -204,6 +204,11 @@ namespace Couchbase.Core.IO.Operations
         ErrorCode? LastErrorCode { get; set; }
 
         bool RetryNow();
+
+        /// <summary>
+        /// The version of the cluster map config used for each send.
+        /// </summary>
+        ConfigVersion? ConfigVersion { get; set; }
     }
 }
 
