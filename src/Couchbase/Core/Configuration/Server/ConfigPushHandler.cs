@@ -123,7 +123,7 @@ internal partial class ConfigPushHandler : IDisposable
                 return;
             }
 
-            if (_node.NodesAdapter is not null && _node.NodesAdapter.ConfigVersion <= configVersion)
+            if (_node.NodesAdapter is not null && _node.NodesAdapter.ConfigVersion >= configVersion)
             {
                 // Already seen by this node via another node's push
                 SkippingPush(_redactor.SystemData(_node.EndPoint), configVersion, _node.NodesAdapter.ConfigVersion);
