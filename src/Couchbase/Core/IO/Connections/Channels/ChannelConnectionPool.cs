@@ -17,8 +17,10 @@ namespace Couchbase.Core.IO.Connections.Channels
     /// <summary>
     /// Connection pool based on queuing operations via the TPL data flows library.
     /// </summary>
-    internal partial class ChannelConnectionPool : ConnectionPoolBase
+    internal sealed partial class ChannelConnectionPool : ConnectionPoolBase
     {
+        private static readonly Random _random = new();
+
         private readonly IConnectionPoolScaleController _scaleController;
         private readonly IRedactor _redactor;
         private readonly ILogger<ChannelConnectionPool> _logger;
@@ -31,16 +33,16 @@ namespace Couchbase.Core.IO.Connections.Channels
         private bool _initialized;
 
         /// <inheritdoc />
-        public sealed override int Size => _connections.Count;
+        public override int Size => _connections.Count;
 
         /// <inheritdoc />
-        public sealed override int MinimumSize { get; set; }
+        public override int MinimumSize { get; set; }
 
         /// <inheritdoc />
-        public sealed override int MaximumSize { get; set; }
+        public override int MaximumSize { get; set; }
 
         /// <inheritdoc />
-        public sealed override int PendingSends => _sendQueue.Reader.Count;
+        public override int PendingSends => _sendQueue.Reader.Count;
 
         /// <summary>
         /// Creates a new ChannelConnectionPool.
@@ -133,14 +135,41 @@ namespace Couchbase.Core.IO.Connections.Channels
         }
 
         /// <inheritdoc />
+        public override async Task<bool> TrySendImmediatelyAsync(IOperation op, CancellationToken cancellationToken = default)
+        {
+            EnsureNotDisposed();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            IConnection? connection = GetConnectionsCore().RandomOrDefault();
+            if (connection is null)
+            {
+                // Fallback to sending via the queue if no connections are available
+                await SendAsync(op, cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
+            // Create queue item and send it so that we replicate all behaviors of the queue item.
+            // However, don't capture the ExecutionContext since we're not queueing on the pool and therefore
+            // don't need to restore the context. It's captured instead when awaiting.
+            var queueItem = new ChannelQueueItem(op, cancellationToken, captureContext: false);
+            await queueItem.SendAsync(connection).ConfigureAwait(false);
+
+            return true;
+        }
+
+        /// <inheritdoc />
         public override IEnumerable<IConnection> GetConnections()
         {
             EnsureNotDisposed();
 
-            return new List<IConnection>(_connections
-                .Where(p => !p.IsComplete)
-                .Select(p => p.Connection));
+            return GetConnectionsCore().ToList();
         }
+
+        private IEnumerable<IConnection> GetConnectionsCore() =>
+            _connections
+                .Where(static p => !p.IsComplete)
+                .Select(static p => p.Connection);
 
         /// <inheritdoc />
         public override async Task ScaleAsync(int delta)

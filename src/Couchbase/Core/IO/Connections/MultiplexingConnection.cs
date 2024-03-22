@@ -154,6 +154,8 @@ namespace Couchbase.Core.IO.Connections
 
             await _statesInFlight.AddAsync(state, cancellationToken).ConfigureAwait(false);
 
+            // _writeMutex is used to prevent interleaved writes from different threads. This primarily
+            // occurs when running Diagnostics pings or when using IConnectionPool.TrySendImmediatelyAsync.
             await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {

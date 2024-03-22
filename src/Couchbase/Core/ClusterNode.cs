@@ -449,7 +449,9 @@ namespace Couchbase.Core
                 cancellationToken);
             try
             {
-                var status = await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
+                // Get config map operations are high priority and should not be queued, so use TrySendImmediatelyAsync
+                var status = await ExecuteOpImmediatelyAsync(ConnectionPool, configOp, ctp.TokenPair)
+                    .ConfigureAwait(false);
                 if (status == ResponseStatus.KeyNotFound)
                 {
                     //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
@@ -597,6 +599,13 @@ namespace Couchbase.Core
         {
             // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
             return ExecuteOp(static (op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
+                op, connectionPool, tokenPair);
+        }
+
+        private Task<ResponseStatus> ExecuteOpImmediatelyAsync(IConnectionPool connectionPool, IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
+            return ExecuteOp(static (op2, state, effectiveToken) => ((IConnectionPool)state).TrySendImmediatelyAsync(op2, effectiveToken),
                 op, connectionPool, tokenPair);
         }
 

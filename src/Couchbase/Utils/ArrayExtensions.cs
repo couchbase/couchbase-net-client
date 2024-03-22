@@ -1,8 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using System.Reflection;
 using System.Security.Cryptography;
 
@@ -10,10 +8,16 @@ namespace Couchbase.Utils
 {
     internal static class ArrayExtensions
     {
+#if NETCOREAPP3_1_OR_GREATER
+        private static int GetRandomInt32(int toExclusive) => RandomNumberGenerator.GetInt32(toExclusive);
+#else
         /// <summary>
         /// Provides random number generation for array randomization
         /// </summary>
-        internal static Random Random = new Random();
+        private static readonly Random Random = new();
+
+        private static int GetRandomInt32(int toExclusive) => Random.Next(toExclusive);
+#endif
 
         public static List<T> Shuffle<T>(this List<T> list)
         {
@@ -21,7 +25,7 @@ namespace Couchbase.Utils
             while (length > 1)
             {
                 length--;
-                var index = Random.Next(length + 1);
+                var index = GetRandomInt32(length + 1);
                 var item = list[index];
                 list[index] = list[length];
                 list[length] = item;
@@ -30,20 +34,45 @@ namespace Couchbase.Utils
         }
 
 #nullable enable
-        public static T? GetRandom<T>(this IEnumerable<T> list)
+        public static T? RandomOrDefault<T>(this IEnumerable<T> source)
             where T : class
         {
+
+            if (source is IList<T> list)
+            {
+                // Fast path for a known length
+
+                if (list.Count == 0)
+                {
+                    return default;
+                }
+
+                return list[GetRandomInt32(list.Count)];
+            }
+
             var item = default(T);
 
-            var enumerable = list as IList<T> ?? list.ToList();
-            if (enumerable.Count > 0)
+            var count = 0;
+            foreach (var element in source)
             {
-#if NETCOREAPP3_1_OR_GREATER
-                var index = RandomNumberGenerator.GetInt32(enumerable.Count);
-#else
-                var index = Random.Next(enumerable.Count);
-#endif
-                item = enumerable[index];
+                if (count == 0)
+                {
+                    item = element;
+                }
+                else
+                {
+                    // If more than one item is an option, apply a weighted random selection.
+                    // For example, if this is the 4th item, the current value of item is one
+                    // of the first 3 items. We should therefore have a 1 in 4 chance of selecting
+                    // the current item, otherwise leave the previous random selection from the
+                    // first 3 items.
+                    if (GetRandomInt32(count) == 0)
+                    {
+                        item = element;
+                    }
+                }
+
+                count++;
             }
 
             return item;
@@ -57,12 +86,7 @@ namespace Couchbase.Utils
             var enumerable = list as IList<T> ?? list.ToList();
             if (enumerable.Count > 0)
             {
-#if NETCOREAPP3_1_OR_GREATER
-                var index = RandomNumberGenerator.GetInt32(enumerable.Count);
-#else
-                var index = Random.Next(enumerable.Count);
-#endif
-                item = enumerable[index];
+                item = enumerable[GetRandomInt32(enumerable.Count)];
             }
 
             return item;
@@ -74,14 +98,9 @@ namespace Couchbase.Utils
             var item = default(T);
 
             var list = enumerable.Where(whereClause).ToList();
-            if (list.Any())
+            if (list.Count > 0)
             {
-#if NETCOREAPP3_1_OR_GREATER
-                var index = RandomNumberGenerator.GetInt32(list.Count);
-#else
-                var index = Random.Next(list.Count);
-#endif
-                item = list[index];
+                item = list[GetRandomInt32(list.Count)];
             }
 
             return item;

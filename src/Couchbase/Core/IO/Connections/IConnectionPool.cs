@@ -58,6 +58,26 @@ namespace Couchbase.Core.IO.Connections
         Task SendAsync(IOperation op, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// If supported, sends an operation immediately, bypassing any queueing or other delays.
+        /// When the operation is not queued the task will block waiting for the send to complete.
+        /// </summary>
+        /// <param name="op"><see cref="IOperation"/> to send.</param>
+        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
+        /// <returns>True if sent immediately, or false if queued.</returns>
+        /// <remarks>
+        /// <para>
+        /// Completion of the returned task indicates that the operation has been either sent or queued to be sent.
+        /// The operation will be marked as complete when a response is received.
+        /// </para>
+        /// <para>
+        /// This cannot jump an operation in line in front of an already-started write, it may block waiting for another
+        /// write to complete before sending this operation. Also, if multiple operations are sent simultaneously via
+        /// TrySendImmediatelyAsync they may block each other waiting for a connection to become available.
+        /// </para>
+        /// </remarks>
+        Task<bool> TrySendImmediatelyAsync(IOperation op, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Requests that the connections in the pool be frozen, with no connections being added or removed.
         /// </summary>
         /// <returns>An <seealso cref="IAsyncDisposable"/> which releases the freeze when disposed.</returns>

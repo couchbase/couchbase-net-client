@@ -153,6 +153,14 @@ namespace Couchbase.Core.IO.Connections
         public abstract Task SendAsync(IOperation operation, CancellationToken cancellationToken = default);
 
         /// <inheritdoc />
+        public virtual async Task<bool> TrySendImmediatelyAsync(IOperation op, CancellationToken cancellationToken = default)
+        {
+            await SendAsync(op, cancellationToken).ConfigureAwait(false);
+
+            return false;
+        }
+
+        /// <inheritdoc />
         public abstract IEnumerable<IConnection> GetConnections();
 
         /// <inheritdoc />
