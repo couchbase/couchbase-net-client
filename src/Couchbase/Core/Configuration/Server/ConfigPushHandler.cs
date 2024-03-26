@@ -92,10 +92,13 @@ internal partial class ConfigPushHandler : IDisposable
                 var bucketConfig = await _node.GetClusterMap(latestVersionOnClient: currentVersion, cancellationToken).ConfigureAwait(false);
                 if (bucketConfig != null)
                 {
-                    // GetClusterMap returns null when the config has already been seen by the client
-                    // therefore, not-null means this is a new config that must be published to all subscribers.
-                    ConfigPublished(_redactor.SystemData(_node.EndPoint), bucketConfig.ConfigVersion);
-                    _context.PublishConfig(bucketConfig);
+                    if (bucketConfig.ConfigVersion <= pushedVersion)
+                    {
+                        // GetClusterMap returns null when the config has already been seen by the client
+                        // therefore, not-null means this is a new config that must be published to all subscribers.
+                        ConfigPublished(_redactor.SystemData(_node.EndPoint), bucketConfig.ConfigVersion, currentVersion);
+                        _context.PublishConfig(bucketConfig);
+                    }
                 }
             }
             catch (Exception ex)
@@ -116,7 +119,7 @@ internal partial class ConfigPushHandler : IDisposable
         {
             // Will always be true at start, when _nextVersion is all zeros. Also ignores any lower
             // versions received without signaling the processing thread.
-            if (configVersion < _latestVersion)
+            if (configVersion <= _latestVersion)
             {
                 // Already pushed from to the processing thread previously
                 SkippingPush(_redactor.SystemData(_node.EndPoint), configVersion, _latestVersion);
@@ -154,10 +157,10 @@ internal partial class ConfigPushHandler : IDisposable
         _disposed = true;
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{endpoint} new config {pushedVersion} due to config push")]
-    private partial void ConfigPublished(Redacted<HostEndpointWithPort> endpoint, ConfigVersion pushedVersion);
+    [LoggerMessage(0, LogLevel.Debug, "{endpoint} new config {pushedVersion} due to config push - old {currentVersion}")]
+    private partial void ConfigPublished(Redacted<HostEndpointWithPort> endpoint, ConfigVersion pushedVersion, ConfigVersion? currentVersion);
 
-    [LoggerMessage(1, LogLevel.Trace, "Skipping push: {endpoint} < {pushedVersion} < {currentVersion}")]
+    [LoggerMessage(1, LogLevel.Debug, "Skipping push: {endpoint} < {pushedVersion} < {currentVersion}")]
     private partial void SkippingPush(Redacted<HostEndpointWithPort> endpoint, ConfigVersion pushedVersion,
         ConfigVersion currentVersion);
 }

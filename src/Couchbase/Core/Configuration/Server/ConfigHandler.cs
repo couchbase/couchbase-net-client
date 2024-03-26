@@ -113,7 +113,7 @@ namespace Couchbase.Core.Configuration.Server
                         .ConfigureAwait(false);
 
                     _logger.LogDebug("Done waiting, polling...");
-                    
+
                     bool connected = false;
                     foreach (var clusterNode in _context.Nodes.Where(x =>
                         x.HasKv && x.BucketType != BucketType.Memcached))

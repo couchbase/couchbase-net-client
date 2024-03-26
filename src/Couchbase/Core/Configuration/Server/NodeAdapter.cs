@@ -62,7 +62,7 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public ConfigVersion ConfigVersion { get; }
+        public ConfigVersion ConfigVersion { get; internal set; }
 
         private bool UseAlternateAddress { get; set; }
 
