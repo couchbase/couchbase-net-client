@@ -56,7 +56,6 @@ namespace Couchbase.Core
         private readonly string _remoteHostName;
         private string _bucketName = BucketConfig.GlobalBucketName;
         private IBucket _owner;
-        private readonly ConfigPushHandler _configPushHandler;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -70,7 +69,6 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
-            _configPushHandler = new ConfigPushHandler(this, context, logger, redactor);
             EndPoint = endPoint;
 
             try
@@ -787,7 +785,7 @@ namespace Couchbase.Core
                             // dump the configVersion into a background, single-threaded LIFO queue
                             // to limit the performance impact of a swarm of push notifications.
                             var configVersion = clusterMapChangeNotificationOp.GetConfigVersion;
-                            _configPushHandler.ProcessConfigPush(configVersion);
+                            (Owner as CouchbaseBucket)?.ProcessConfigPush(configVersion);
                         }
                         else
                         {
@@ -946,7 +944,6 @@ namespace Couchbase.Core
             _disposed = true;
 
             LogDispose(_redactor.SystemData(EndPoint));
-            _configPushHandler?.Dispose();
             ConnectionPool?.Dispose();
         }
 

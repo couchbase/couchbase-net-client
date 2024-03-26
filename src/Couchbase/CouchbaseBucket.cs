@@ -40,6 +40,9 @@ namespace Couchbase
         private IViewIndexManager? _viewIndexManager;
         private ICouchbaseCollectionManager? _collectionManager;
 
+        private readonly ConfigPushHandler _configPushHandler;
+        private volatile int _disposed;
+
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
@@ -50,6 +53,7 @@ namespace Couchbase
             _viewClientLazy = new LazyService<IViewClient>(context.ServiceProvider);
             _viewManagerLazy = new LazyService<IViewIndexManagerFactory>(context.ServiceProvider);
             _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
+            _configPushHandler = new ConfigPushHandler(this, Context, Logger, Redactor);
         }
 
         public override IViewIndexManager ViewIndexes =>
@@ -353,9 +357,36 @@ namespace Couchbase
             Bootstrapper.Start(this);
         }
 
+        public void ProcessConfigPush(ConfigVersion configVersion)
+        {
+            _configPushHandler.ProcessConfigPush(configVersion);
+        }
+
         private void ClearErrors()
         {
             ((IBootstrappable)this).DeferredExceptions.Clear();
+        }
+
+        public override void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                base.Dispose();
+                _configPushHandler.Dispose();
+            }
+        }
+
+        public override ValueTask DisposeAsync()
+        {
+            try
+            {
+                Dispose();
+                return default;
+            }
+            catch (Exception ex)
+            {
+                return new ValueTask(Task.FromException(ex));
+            }
         }
     }
 }
