@@ -643,24 +643,48 @@ namespace Couchbase.Core
 
                 if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                 {
-                    if (!ServerFeatures.DedupeNotMyVbucketClustermap)
+                    var config = op.ReadConfig(_context.GlobalTranscoder);
+                    if (config is not null)
                     {
-                        //legacy NMVB config handling w/the config in the body
-                        var config = op.ReadConfig(_context.GlobalTranscoder);
                         _context.PublishConfig(config);
                     }
                     else
                     {
-                        //This is the path of newer FF config processing w/deduplication
-                        var config = await GetClusterMap(NodesAdapter.ConfigVersion).ConfigureAwait(false);
-                        if (config != null)
+                        if ((ServerFeatures.ClustermapChangeNotificationBrief ||
+                            ServerFeatures.ClustermapChangeNotification) && op.ConfigVersion.HasValue)
                         {
-                            //If null we don't have a later config epoch/revision available
-                            _context.PublishConfig(config);
+                            if (ServerFeatures.DedupeNotMyVbucketClustermap && Owner is CouchbaseBucket bucket)
+                            {
+                                // the server believes we already have the newer clustermap, so returned no body
+                                // notify the config push handler just in case we somehow missed applying this version,
+                                // but this is most likely going to be skipped.
+                                _logger.LogDebug(
+                                    "no config body after NMVB with FF enabled ({ConfigVersion}) for {opaque}/{key}.",
+                                    op.ConfigVersion.Value,
+                                    op.Opaque,
+                                    op.Key);
+                                bucket.ProcessConfigPush(op.ConfigVersion.Value);
+                            }
+                            else
+                            {
+                                // this should not be possible
+                                throw new InvalidOperationException(
+                                    "No config body after NotMyVBucket, even though DedupeNotMyVBucket was not enabled.");
+                            }
                         }
                         else
                         {
-                            _logger.LogDebug("We do not have a later config than configVersion: {configVersion}", NodesAdapter!.ConfigVersion);
+                            //This is the path without Faster Failover when doing ConfigPolling
+                            config = await GetClusterMap(NodesAdapter.ConfigVersion).ConfigureAwait(false);
+                            if (config != null)
+                            {
+                                //If null we don't have a later config epoch/revision available
+                                _context.PublishConfig(config);
+                            }
+                            else
+                            {
+                                _logger.LogDebug("We do not have a later config than configVersion: {configVersion}", NodesAdapter!.ConfigVersion);
+                            }
                         }
                     }
                 }

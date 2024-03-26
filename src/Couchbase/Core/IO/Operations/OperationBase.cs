@@ -394,8 +394,9 @@ namespace Couchbase.Core.IO.Operations
         public BucketConfig? ReadConfig(ITypeTranscoder transcoder)
         {
             BucketConfig? config = null;
-            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data.Length > 0)
+            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data.Length > 0 && Header.DataType == DataType.Json)
             {
+                // TODO:  Handle DataType.Snappy when Snappy-everywhere is implemented.
                 var offset = Header.BodyOffset;
                 var length = Header.TotalLength - Header.BodyOffset;
 
