@@ -190,7 +190,7 @@ namespace Couchbase.Core
                 case ServiceType.Views:
                     try
                     {
-                        node = Nodes.GetRandom(x => x.HasViews && x.Owner
+                        node = Nodes.RandomOrDefault(x => x.HasViews && x.Owner
                                                            != null && x.Owner.Name == bucketName);
                     }
                     catch (NullReferenceException)
@@ -201,19 +201,19 @@ namespace Couchbase.Core
 
                     break;
                 case ServiceType.Query:
-                    node = Nodes.GetRandom(x => x.HasQuery);
+                    node = Nodes.RandomOrDefault(static x => x.HasQuery);
                     break;
                 case ServiceType.Search:
-                    node = Nodes.GetRandom(x => x.HasSearch);
+                    node = Nodes.RandomOrDefault(static x => x.HasSearch);
                     break;
                 case ServiceType.Analytics:
-                    node = Nodes.GetRandom(x => x.HasAnalytics);
+                    node = Nodes.RandomOrDefault(static x => x.HasAnalytics);
                     break;
                 case ServiceType.Eventing:
-                    node = Nodes.GetRandom(x => x.HasEventing);
+                    node = Nodes.RandomOrDefault(static x => x.HasEventing);
                     break;
                 case ServiceType.Management:
-                    node = Nodes.GetRandom(x => x.ManagementUri != null);
+                    node = Nodes.RandomOrDefault(static x => x.ManagementUri != null);
                     break;
                 default:
                     _logger.LogDebug("No nodes available for service {service}", service);

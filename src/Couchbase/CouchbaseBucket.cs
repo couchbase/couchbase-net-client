@@ -173,9 +173,12 @@ namespace Couchbase
 
         public override async Task ForceConfigUpdateAsync()
         {
-            var configNode = Nodes.GetRandom(x => x.HasKv);
-            var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
-            Context.PublishConfig(config);
+            var configNode = Nodes.RandomOrDefault(static x => x.HasKv);
+            if (configNode is not null)
+            {
+                var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
+                Context.PublishConfig(config);
+            }
         }
 
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
@@ -317,7 +320,7 @@ namespace Couchbase
             }
 
             //Make sure we use a node with the data service
-            var node = Nodes.GetRandom(x => x.HasKv);
+            var node = Nodes.RandomOrDefault(static x => x.HasKv);
             if (node == null)
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");

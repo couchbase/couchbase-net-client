@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+
+#nullable enable
 
 namespace Couchbase.Utils
 {
@@ -21,23 +23,24 @@ namespace Couchbase.Utils
 
         public static List<T> Shuffle<T>(this List<T> list)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (list is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(list));
+            }
+
             var length = list.Count;
             while (length > 1)
             {
+                var index = GetRandomInt32(length);
                 length--;
-                var index = GetRandomInt32(length + 1);
-                var item = list[index];
-                list[index] = list[length];
-                list[length] = item;
+                (list[index], list[length]) = (list[length], list[index]);
             }
             return list;
         }
 
-#nullable enable
         public static T? RandomOrDefault<T>(this IEnumerable<T> source)
-            where T : class
         {
-
             if (source is IList<T> list)
             {
                 // Fast path for a known length
@@ -78,126 +81,173 @@ namespace Couchbase.Utils
             return item;
         }
 
-        public static T? GetRandomValueType<T>(this IEnumerable<T> list)
-            where T : struct
-        {
-            T? item = null;
-
-            var enumerable = list as IList<T> ?? list.ToList();
-            if (enumerable.Count > 0)
-            {
-                item = enumerable[GetRandomInt32(enumerable.Count)];
-            }
-
-            return item;
-        }
-#nullable restore
-
-        public static T GetRandom<T>(this IEnumerable<T> enumerable, Func<T, bool> whereClause)
+        // The overload with a predicate could delegate to the overload without a predicate using call to Enumerable.Where,
+        // but this would add an extra layer of indirection and heap allocation. Alternatively, we could delegate from the
+        // other overload to this one and pass an always-true predicate, but that adds the overhead of a delegate call.
+        // So repeating the implementation is the most efficient solution.
+        public static T? RandomOrDefault<T>(this IEnumerable<T> source, Func<T, bool> predicate)
         {
             var item = default(T);
 
-            var list = enumerable.Where(whereClause).ToList();
-            if (list.Count > 0)
+            var count = 0;
+            foreach (var element in source)
             {
-                item = list[GetRandomInt32(list.Count)];
+                if (predicate(element))
+                {
+                    if (count == 0)
+                    {
+                        item = element;
+                    }
+                    else
+                    {
+                        // If more than one item is an option, apply a weighted random selection.
+                        // For example, if this is the 4th item, the current value of item is one
+                        // of the first 3 items. We should therefore have a 1 in 4 chance of selecting
+                        // the current item, otherwise leave the previous random selection from the
+                        // first 3 items.
+                        if (GetRandomInt32(count) == 0)
+                        {
+                            item = element;
+                        }
+                    }
+
+                    count++;
+                }
             }
 
             return item;
         }
 
-        public static bool AreEqual<T>(this List<T> array, List<T> other)
+        public static bool AreEqual<T>(this List<T>? array, List<T>? other)
         {
-            if (array == null && other == null) return true;
-            if (array == null) return false;
-            if (other == null) return false;
-
-            return array.Count == other.Count && array.SequenceEqual(other);
-        }
-
-        public static bool AreEqual<T>(this Array array, Array other)
-        {
-            return (other != null &&
-                CompareItems<T>(array, other));
-        }
-
-        static bool CompareItems<T>(this Array array, Array other)
-        {
-            return array.Rank == other.Rank &&
-                   Enumerable.Range(0, array.Rank).
-                   All(dim => array.GetLength(dim) == other.GetLength(dim)) &&
-                   array.Cast<T>().SequenceEqual(other.Cast<T>());
-        }
-
-        public static bool AreEqual(this short[][] array, short[][] other)
-        {
-            if (array == null && other == null)
+            if (ReferenceEquals(array, other))
             {
+                // They are the same instance or are both null
                 return true;
             }
-            if (array != null && other == null)
+            if (array == null || other == null)
             {
                 return false;
             }
 
-            if (array?.Length != other.Length)
+#if NET6_0_OR_GREATER
+            // For modern frameworks, this can allow vectorization if the type T is bitwise equatable.
+            // This won't be true if T is a reference type, but may occur for value types.
+            return CollectionsMarshal.AsSpan(array).SequenceEqual(CollectionsMarshal.AsSpan(other));
+#else
+            return array.SequenceEqual(other);
+#endif
+        }
+
+        public static bool AreEqual<T>(this T[]? array, T[]? other)
+        {
+            if (ReferenceEquals(array, other))
+            {
+                // They are the same instance or are both null
+                return true;
+            }
+            if (array == null || other == null)
+            {
+                return false;
+            }
+
+            return array.SequenceEqual(other);
+        }
+
+        public static bool AreEqual(this short[]?[]? array, short[]?[]? other)
+        {
+            if (ReferenceEquals(array, other))
+            {
+                // They are the same instance or are both null
+                return true;
+            }
+            if (array == null || other == null)
+            {
+                return false;
+            }
+            if (array.Length != other.Length)
             {
                 return false;
             }
 
             for (var i = 0; i < array.Length; i++)
             {
-                if (array[i] == null && other[i] == null)
+                var innerArray = array[i];
+                var innerOther = other[i];
+
+                if (ReferenceEquals(innerArray, innerOther))
                 {
+                    // They are the same instance or are both null
                     continue;
                 }
-
-                if (array[i] != null && other[i] == null)
+                if (innerArray == null || innerOther == null)
                 {
                     return false;
                 }
 
-                if (array[i]?.Length != other[i].Length)
+                // Vectorized comparison where possible, for short[] even .NET 4 can vectorize when using MemoryExtensions.SequenceEqual on a ReadOnlySpan<short>.
+                if (!((ReadOnlySpan<short>)innerArray).SequenceEqual(innerOther))
                 {
                     return false;
-                }
-
-                for (var j = 0; j < array[i].Length; j++)
-                {
-                    if (array[i][j] != other[i][j])
-                    {
-                        return false;
-                    }
                 }
             }
+
             return true;
         }
 
-        public static int GetCombinedHashcode(this Array array)
+        public static int GetCombinedHashcode<T>(this T[] array)
+            where T : notnull
         {
-            unchecked
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (array is null)
             {
-                var hash = 0;
-                var count = 0;
-                foreach (var item in array)
-                {
-                    if (item.GetType().GetTypeInfo().BaseType == typeof (Array))
-                    {
-                        var jagged = (Array)item;
-                        foreach (var inner in jagged)
-                        {
-                            hash += inner.GetHashCode();
-                            count++;
-                        }
-                    }
-                    else
-                    {
-                        hash += item.GetHashCode();
-                        count++;
-                    }
-                }
-                return 31*hash + count.GetHashCode();
+                ThrowHelper.ThrowArgumentNullException(nameof(array));
             }
+
+            var hashCode = new HashCode();
+
+            foreach (var item in array)
+            {
+                hashCode.Add(item);
+            }
+
+            hashCode.Add(array.Length);
+
+            return hashCode.ToHashCode();
+        }
+
+        // Overload used for VBucketServerMaps
+        public static int GetCombinedHashcode(this short[][] array)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (array is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(array));
+            }
+
+            var hashCode = new HashCode();
+
+            var count = 0;
+            foreach (var innerArray in array)
+            {
+#if NET6_0_OR_GREATER
+                // It isn't important that the hash code be consistent across platforms, only that it is consistent
+                // for a given application execution. On newer platforms, use a more performant hash code calculation
+                // since we can safely consider an array of shorts as an array of bytes.
+                hashCode.AddBytes(MemoryMarshal.AsBytes((ReadOnlySpan<short>)innerArray));
+#else
+                foreach (var item in innerArray)
+                {
+                    hashCode.Add(item);
+                }
+#endif
+
+                count += innerArray.Length;
+            }
+
+            hashCode.Add(count);
+
+            return hashCode.ToHashCode();
         }
 
         public static ReadOnlyMemory<byte> StripBrackets(this ReadOnlyMemory<byte> theArray)
@@ -209,16 +259,13 @@ namespace Couchbase.Utils
             return theArray;
         }
 
-        public static bool IsJson(this Span<byte> buffer)
-        {
-            return ((ReadOnlySpan<byte>) buffer).IsJson();
-        }
+        public static bool IsJson(this Span<byte> buffer) =>
+            ((ReadOnlySpan<byte>) buffer).IsJson();
 
-        public static bool IsJson(this ReadOnlySpan<byte> buffer)
-        {
-            return (buffer.Length > 1 && buffer[0] == 0x5b && buffer[buffer.Length-1] == 0x5d) ||
-                   (buffer.Length > 1 && buffer[0] == 0x7b && buffer[buffer.Length-1] == 0x7d);
-        }
+        public static bool IsJson(this ReadOnlySpan<byte> buffer) =>
+            buffer.Length > 1 &&
+            ((buffer[0] == 0x5b && buffer[buffer.Length - 1] == 0x5d) ||
+             (buffer[0] == 0x7b && buffer[buffer.Length - 1] == 0x7d));
     }
 }
 

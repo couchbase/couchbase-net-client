@@ -64,7 +64,7 @@ namespace Couchbase.Core.Sharding
             {
                 if (_replicas.Any(x => x != -1))
                 {
-                    var index = _replicas.GetRandomValueType().GetValueOrDefault();
+                    var index = _replicas.RandomOrDefault();
                     if (index > -1 && index < _endPoints.Count
                         && index < _vBucketServerMap.EndPoints.Count)
                     {
@@ -79,7 +79,8 @@ namespace Couchbase.Core.Sharding
                     }
                 }
             }
-            return endPoint ?? (_endPoints.GetRandomValueType());
+
+            return endPoint ?? (_endPoints.Count > 0 ? _endPoints.RandomOrDefault() : null);
         }
 
         /// <summary>

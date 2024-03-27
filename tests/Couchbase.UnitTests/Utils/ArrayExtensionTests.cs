@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Linq;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
-using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
@@ -23,6 +21,31 @@ namespace Couchbase.UnitTests.Utils
     public class ArrayExtensionsTests
     {
         private static readonly Encoding Utf8NoBomEncoding = new UTF8Encoding(false);
+
+        #region Shuffle
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(20)]
+        public void Shuffle_AnyLength_Shuffles(int length)
+        {
+            // Arrange
+
+            var list = Enumerable.Range(0, length).ToList();
+
+            // Act
+
+            list = list.Shuffle();
+
+            // Assert
+
+            Assert.NotNull(list);
+            Assert.Equal(length, list.Count);
+        }
+
+        #endregion
 
         #region IsJson
 
@@ -51,8 +74,10 @@ namespace Couchbase.UnitTests.Utils
 
         #endregion
 
+        #region RandomOrDefault
+
         [Fact]
-        public void GetRandom_Where_Clause()
+        public void RandomOrDefault_Success()
         {
             var dict = new Dictionary<string, ClusterNode>
             {
@@ -61,13 +86,28 @@ namespace Couchbase.UnitTests.Utils
                 {"127.0.0.3", MakeFakeClusterNode("127.0.0.3") }
             };
 
-            var node = dict.GetRandom(x => x.Value.HasViews);
+            var node = dict.RandomOrDefault();
+
+            Assert.NotNull(node.Value);
+        }
+
+        [Fact]
+        public void RandomOrDefault_Where_Clause()
+        {
+            var dict = new Dictionary<string, ClusterNode>
+            {
+                {"127.0.0.1", MakeFakeClusterNode("127.0.0.1") },
+                {"127.0.0.2", MakeFakeClusterNode("127.0.0.2") },
+                {"127.0.0.3", MakeFakeClusterNode("127.0.0.3") }
+            };
+
+            var node = dict.RandomOrDefault(x => x.Value.HasViews);
 
             Assert.True(node.Value.HasViews);
         }
 
         [Fact]
-        public void GetRandom_Where_Clause_No_Matches()
+        public void RandomOrDefault_Where_Clause_No_Matches()
         {
             var dict = new Dictionary<string, ClusterNode>
             {
@@ -76,38 +116,141 @@ namespace Couchbase.UnitTests.Utils
                 {"127.0.0.3", MakeFakeClusterNode("127.0.0.3") }
             };
 
-            var node = dict.GetRandom(x => x.Value.HasAnalytics);
+            var node = dict.RandomOrDefault(x => x.Value.HasAnalytics);
 
             Assert.Null(node.Value);
         }
 
-        [Fact]
-        public void CompareUnequalSizeArraysReturnsFalse()
-        {
-            var a = new short[2][];
-            a[0] = [1, 2];
-            var b = new short[2][];
-            b[0] = [1, 2, 3];
-            Assert.False(a.AreEqual(b));
+        #endregion
 
-            var x = new short[2][];
-            x[0] = [1];
-            x[1] = [2];
-            var y = new short[2][];
-            y[0] = [1];
-            y[1] = [2, 3];
-            Assert.False(x.AreEqual(y));
+        #region AreEqual_T
+
+        [Fact]
+        public void AreEqual_T_UnequalSizes_ReturnsFalse()
+        {
+            int[] a = [1, 2];
+            int[] b = [1, 2, 3];
+
+            Assert.False(a.AreEqual(b));
         }
 
         [Fact]
-        public void BasicShortArrayCompare()
+        public void AreEqual_T_NullAB_ReturnsTrue()
         {
-            var a = new short[2][];
-            a[0] = [1, 2];
-            var b = new short[2][];
-            b[0] = [1, 2];
+            int[] a = null;
+            int[] b = null;
+
             Assert.True(a.AreEqual(b));
         }
+
+        [Fact]
+        public void AreEqual_T_NullA_ReturnsFalse()
+        {
+            int[] a = null;
+            int[] b = [1, 2];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_T_NullB_ReturnsFalse()
+        {
+            int[] a = [1, 2];
+            int[] b = null;
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_Int32_NotEqual()
+        {
+            int[] a = [1, 2];
+            int[] b = [1, 3];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_String_NotEqual()
+        {
+            string[] a = ["one", "two"];
+            string[] b = ["one", "three"];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_Int32_Equal()
+        {
+            int[] a = [1, 2];
+            int[] b = [1, 2];
+
+            Assert.True(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_String_Equal()
+        {
+            string[] a = ["one", "two"];
+            string[] b = ["one", "two"];
+
+            Assert.True(a.AreEqual(b));
+        }
+
+        #endregion
+
+        #region AreEqual_ShortArray
+
+        [Fact]
+        public void AreEqual_ShortArray_UnequalSizesScenario1_ReturnsFalse()
+        {
+            short[][] a = [[1, 2], null];
+            short[][] b = [[1, 2]];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_ShortArray_UnequalSizesScenario2_ReturnsFalse()
+        {
+            short[][] a = [[1, 2], null];
+            short[][] b = [[1, 2, 3], null];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_ShortArray_UnequalSizesScenario3_ReturnsFalse()
+        {
+            short[][] a = [[1], [2]];
+            short[][] b = [[1], [2, 3]];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        public void AreEqual_ShortArray_NullElement_ReturnsFalse(int nullElementIndex)
+        {
+            var a = new short[2][];
+            a[nullElementIndex] = [1, 2];
+            var b = new short[2][];
+            b[1 - nullElementIndex] = [1, 2];
+
+            Assert.False(a.AreEqual(b));
+        }
+
+        [Fact]
+        public void AreEqual_ShortArray_Equal()
+        {
+            short[][] a = [[1, 2], null];
+            short[][] b = [[1, 2], null];
+
+            Assert.True(a.AreEqual(b));
+        }
+
+        #endregion
 
         #region Helpers
 
