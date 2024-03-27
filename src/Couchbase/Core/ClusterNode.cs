@@ -233,6 +233,8 @@ namespace Couchbase.Core
         /// <inheritdoc />
         public event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
 
+        public bool IsDead => _disposed;
+
         private void OnKeyEndPointsChanged(NotifyCollectionChangedEventArgs e)
         {
             KeyEndPointsChanged?.Invoke(this, e);

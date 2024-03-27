@@ -73,6 +73,8 @@ namespace Couchbase.Core
         /// Notifies when the <see cref="KeyEndPoints"/> collection is changed.
         /// </summary>
         event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
+
+        bool IsDead{ get; }
     }
 }
 

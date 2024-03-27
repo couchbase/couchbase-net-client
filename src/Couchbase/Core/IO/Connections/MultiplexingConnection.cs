@@ -136,7 +136,7 @@ namespace Couchbase.Core.IO.Connections
             }
             if (Volatile.Read(ref _disposed) > 0)
             {
-                ThrowHelper.ThrowObjectDisposedException(nameof(MultiplexingConnection));
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(MultiplexingConnection));
             }
 
             AsyncStateBase state = operation.CanStream ?

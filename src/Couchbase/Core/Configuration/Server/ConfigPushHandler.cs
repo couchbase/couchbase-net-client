@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +22,7 @@ internal partial class ConfigPushHandler : IDisposable
 
     // Version received and not yet processed
     private ConfigVersion _latestVersion;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     public ConfigPushHandler(CouchbaseBucket bucket, ClusterContext context, ILogger logger, TypedRedactor redactor)
     {
@@ -97,12 +98,21 @@ internal partial class ConfigPushHandler : IDisposable
                         }
                     }
 
-                    var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv);
+                    var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv && !x.IsDead);
                     if (node != null)
                     {
-                        var bucketConfig = await node
-                            .GetClusterMap(latestVersionOnClient: effectiveVersion, cancellationToken)
-                            .ConfigureAwait(false);
+                        BucketConfig bucketConfig = null;
+                        try
+                        {
+                            bucketConfig = await node
+                                .GetClusterMap(latestVersionOnClient: effectiveVersion, cancellationToken)
+                                .ConfigureAwait(false);
+                        }
+                        catch (SocketNotAvailableException)
+                        {
+                            attempted = true;
+                            _logger.LogWarning("Socket closed on {EndPoint} retrying on next available node", node.EndPoint);
+                        }
 
                         if (bucketConfig != null)
                         {

@@ -192,6 +192,9 @@ namespace Couchbase.UnitTests.Diagnostics
             }
 
             public event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
+
+            public bool IsDead { get; }
+
             #endregion
         }
     }
