@@ -820,6 +820,9 @@ namespace Couchbase.Core
 
                     if (bucketConfig is not null)
                     {
+                        bucketConfig.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
+                        bucketConfig.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
+
                         _context.PublishConfig(bucketConfig);
                     }
                 };
