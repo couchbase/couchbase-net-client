@@ -235,7 +235,6 @@ namespace Couchbase
 
                 if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {
-                    Logger.LogDebug("Sending op {operation} with {key} to {node} using VBID from rev{configVersion}: {vbucketid}", op.OpCode, op.Key, clusterNode.EndPoint, op.VBucketId, CurrentConfig?.ConfigVersion);
                     return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                 }
 

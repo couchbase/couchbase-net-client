@@ -610,13 +610,13 @@ namespace Couchbase.Core
 
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
+            //For each send of potentially many sends, capture the config version info
+            op.ConfigVersion = NodesAdapter?.ConfigVersion;
+
+            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
 
             try
             {
-                //For each send of potentially many sends, capture the config version info
-                op.ConfigVersion = NodesAdapter?.ConfigVersion;
-
                 // Await the send in case the send throws an exception (i.e. SendQueueFullException)
                 await sender(op, state, tokenPair).ConfigureAwait(false);
 
@@ -630,11 +630,11 @@ namespace Couchbase.Core
 
                 if (!status.Failure(op.OpCode))
                 {
-                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
+                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
                     return status;
                 }
 
-                LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque, NodesAdapter!.ConfigVersion);
+                LogKvStatusReturned(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -726,7 +726,7 @@ namespace Couchbase.Core
                         _logger.LogWarning("KV Operation timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", op.Elapsed, op.Timeout, op.Opaque);
                     }
 
-                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.IsSent);
+                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion, op.IsSent);
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
@@ -749,7 +749,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                LogKvOperationFailed(e, op);
+                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.UserData(op.Key), op.Opaque, op.Header.Status, op.ConfigVersion);
 
                 throw;
             }
@@ -898,7 +898,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(exception))
                 {
-                    LogCircuitBreakerMarkFailure(op.Opaque, _redactor.SystemData(ConnectionPool.EndPoint));
+                    LogCircuitBreakerMarkFailure(op.OpCode,_redactor.SystemData(ConnectionPool.EndPoint), _redactor.SystemData(op.Key), op.Opaque, op.ConfigVersion);
 
                     _circuitBreaker.MarkFailure();
                 }
@@ -1054,29 +1054,29 @@ namespace Couchbase.Core
                                                                      "is unavailable or the node itself does not have the Data service enabled.")]
         private partial void LogCouldNotSelectBucket(Redacted<string> bucketName);
 
-        [LoggerMessage(100, LogLevel.Debug, "Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.")]
-        private partial void LogKvExecutingOperation(OpCode opcode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque);
+        [LoggerMessage(100, LogLevel.Debug, "Executing op {opcode} on {endpoint} with key {key} and opaque {opaque} using configVersion: {configVersion}.")]
+        private partial void LogKvExecutingOperation(OpCode opcode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
-        [LoggerMessage(101, LogLevel.Debug, "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque} and configVersion: {configVersion}.")]
-        private partial void LogKvStatusReturned(Redacted<HostEndpointWithPort> endpoint, ResponseStatus status, OpCode opcode, Redacted<string> key, uint opaque, ConfigVersion configVersion);
+        [LoggerMessage(101, LogLevel.Debug, "The KV status of op {opCode} on {endpoint} with {key} and opaque {opaque} using configVersion: {configVersion}.")]
+        private partial void LogKvStatusReturned(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
         [LoggerMessage(102, LogLevel.Warning, "Unexpected Status for KeyValue operation not found in Error Map: 0x{code:X4}")]
         private partial void LogKvStatusNotFound(short code);
 
-        [LoggerMessage(103, LogLevel.Debug, "Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}")]
-        private partial void LogKvOperationCompleted(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque);
+        [LoggerMessage(103, LogLevel.Debug, "Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque} using configVersion: {configVersion}.")]
+        private partial void LogKvOperationCompleted(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
-        [LoggerMessage(104, LogLevel.Debug, "Op failed: {op}")]
-        private partial void LogKvOperationFailed(Exception ex, IOperation op);
+        [LoggerMessage(104, LogLevel.Debug, "KV Operation failed for {opCode} on {endpoint} with key {key} and opaque {opaque} with status {status} using configVersion: {configVersion}.")]
+        private partial void LogKvOperationFailed(Exception ex, OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ResponseStatus status, ConfigVersion? configVersion);
 
-        [LoggerMessage(105, LogLevel.Debug, "KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}. Is orphaned: {isSent}")]
-        private partial void LogKvOperationTimeout(Redacted<HostEndpointWithPort> endpoint, OpCode opCode, Redacted<string> key, uint opaque, bool isSent);
+        [LoggerMessage(105, LogLevel.Debug, "KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque} using configVersion: {configVersion}. Is orphaned: {isSent}")]
+        private partial void LogKvOperationTimeout(Redacted<HostEndpointWithPort> endpoint, OpCode opCode, Redacted<string> key, uint opaque, ConfigVersion? configVersion, bool isSent);
 
         [LoggerMessage(200, LogLevel.Debug, "CB: Current state is {state}.")]
         private partial void LogCircuitBreakerState(CircuitBreakerState state);
 
-        [LoggerMessage(201, LogLevel.Debug, "CB: Marking a failure for {opaque} to {endpoint}.")]
-        private partial void LogCircuitBreakerMarkFailure(uint opaque, Redacted<HostEndpointWithPort> endpoint);
+        [LoggerMessage(201, LogLevel.Debug, "CB: Marking a failure for op {opCode} on {endpoint} with key {key} and opaque {opaque} using configVersion: {configVersion}.")]
+        private partial void LogCircuitBreakerMarkFailure(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
         [LoggerMessage(202, LogLevel.Debug, "CB: Sending a canary to {endpoint}.")]
         private partial void LogCircuitBreakerSendingCanary(Redacted<HostEndpointWithPort> endpoint);
