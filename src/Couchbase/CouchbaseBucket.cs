@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -42,6 +43,7 @@ namespace Couchbase
 
         private readonly ConfigPushHandler _configPushHandler;
         private volatile int _disposed;
+        private readonly object _currentConfigLock = new();
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
@@ -72,6 +74,8 @@ namespace Couchbase
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
             try
             {
+                IKeyMapper? newKeymapper = null;
+                IEnumerable<IClusterNode>? newNodes = null;
                 if (newConfig.HasConfigChanges(CurrentConfig, Name))
                 {
                     if (Logger.IsEnabled(LogLevel.Debug))
@@ -87,7 +91,7 @@ namespace Couchbase
                     {
                         Logger.LogDebug(LoggingEvents.ConfigEvent,
                             "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
-                        KeyMapper = _vBucketKeyMapperFactory.Create(newConfig);
+                        newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
                     }
 
                     if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
@@ -95,18 +99,29 @@ namespace Couchbase
                         Logger.LogDebug(LoggingEvents.ConfigEvent,
                             "Updating cluster nodes for rev#{revision} on {bucketName}", newConfig.Rev, Name);
                         await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
-                        var nodes = Context.GetNodes(Name);
-
-                        //update the local nodes collection
-                        Nodes.Clear();
-                        foreach (var clusterNode in nodes)
-                        {
-                            Nodes.Add(clusterNode);
-                        }
+                        newNodes = Context.GetNodes(Name);
                     }
 
                     //only accept the latest version if the processing was successful
-                    CurrentConfig = newConfig;
+                    lock (_currentConfigLock)
+                    {
+                        if (newKeymapper is not null)
+                        {
+                            KeyMapper = newKeymapper;
+                        }
+
+                        if (newNodes is not null)
+                        {
+                            //update the local nodes collection
+                            Nodes.Clear();
+                            foreach (var clusterNode in newNodes)
+                            {
+                                Nodes.Add(clusterNode);
+                            }
+                        }
+                        
+                        CurrentConfig = newConfig;
+                    }
                 }
             }
             catch (Exception ex)
