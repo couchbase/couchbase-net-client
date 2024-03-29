@@ -56,7 +56,7 @@ namespace Couchbase.KeyValue
         {
             get
             {
-                _logger.LogDebug("Fetching collection {collectionName}.", name);
+                _logger.LogTrace("Fetching collection {collectionName}.", name);
                 return _collections.GetOrAdd(name,
                     key => _collectionFactory.Create(_bucket, this, key));
             }
@@ -75,7 +75,7 @@ namespace Couchbase.KeyValue
 
         public ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName)
         {
-            _logger.LogDebug("Fetching collection {collectionName}.", collectionName);
+            _logger.LogTrace("Fetching collection {collectionName}.", collectionName);
             return new ValueTask<ICouchbaseCollection>(Collection(collectionName));
         }
 

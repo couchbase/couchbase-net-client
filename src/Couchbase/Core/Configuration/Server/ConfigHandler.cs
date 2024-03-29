@@ -107,12 +107,12 @@ namespace Couchbase.Core.Configuration.Server
             {
                 while (!_tokenSource.IsCancellationRequested)
                 {
-                    _logger.LogDebug("Waiting for {interval} before polling.",
+                    _logger.LogTrace("Waiting for {interval} before polling.",
                         _context.ClusterOptions.ConfigPollInterval);
                     await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
                         .ConfigureAwait(false);
 
-                    _logger.LogDebug("Done waiting, polling...");
+                    _logger.LogTrace("Done waiting, polling...");
 
                     bool connected = false;
                     foreach (var clusterNode in _context.Nodes.Where(x =>

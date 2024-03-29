@@ -354,7 +354,7 @@ namespace Couchbase.Core
 
         #region Logging
 
-        [LoggerMessage(1, LogLevel.Debug, "Fetching scope {scopeName}")]
+        [LoggerMessage(1, LogLevel.Trace, "Fetching scope {scopeName}")]
         private partial void LogScopeLookup(Redacted<string> scopeName);
 
         [LoggerMessage(100, LogLevel.Debug, "Disposing bucket [{name}]!")]
