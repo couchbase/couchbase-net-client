@@ -229,7 +229,7 @@ namespace Couchbase.Core.Configuration.Server
             //A null config should not make it to the processor
             if(config == null) ThrowHelper.ThrowArgumentNullException(nameof(config));
 
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Trace))
             {
                 // Only log if debug logging is enabled to avoid serialization cost
                 _logger.LogDebug(LoggingEvents.ConfigEvent,

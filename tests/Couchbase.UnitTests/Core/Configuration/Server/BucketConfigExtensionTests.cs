@@ -360,6 +360,7 @@ public class BucketConfigExtensionTests
                 }
             }
         };
+        configA.OnDeserialized();
 
         var configB = new BucketConfig
         {
@@ -426,6 +427,7 @@ public class BucketConfigExtensionTests
                 }
             }
         };
+        configB.OnDeserialized();
 
         var configC = new BucketConfig
         {
@@ -492,6 +494,8 @@ public class BucketConfigExtensionTests
                 }
             }
         };
+        configC.OnDeserialized();
+
         #endregion
 
         var bucket = CreateBucket(configA);

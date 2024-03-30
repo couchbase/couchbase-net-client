@@ -179,12 +179,6 @@ namespace Couchbase.Core
         {
             //Ignore any null configs if config deduping is enabled
             if (bucketConfig == null) return;
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug(LoggingEvents.ConfigEvent,
-                    JsonSerializer.Serialize(bucketConfig, InternalSerializationContext.Default.BucketConfig));
-            }
-
             _configHandler.Publish(bucketConfig);
         }
 

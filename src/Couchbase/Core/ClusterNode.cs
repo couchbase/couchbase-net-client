@@ -610,9 +610,6 @@ namespace Couchbase.Core
 
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            //For each send of potentially many sends, capture the config version info
-            op.ConfigVersion = NodesAdapter?.ConfigVersion;
-
             LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
 
             try
@@ -634,7 +631,7 @@ namespace Couchbase.Core
                     return status;
                 }
 
-                LogKvStatusReturned(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
+                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -1057,8 +1054,8 @@ namespace Couchbase.Core
         [LoggerMessage(100, LogLevel.Debug, "Executing op {opcode} on {endpoint} with key {key} and opaque {opaque} using configVersion: {configVersion}.")]
         private partial void LogKvExecutingOperation(OpCode opcode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
-        [LoggerMessage(101, LogLevel.Debug, "The KV status of op {opCode} on {endpoint} with {key} and opaque {opaque} using configVersion: {configVersion}.")]
-        private partial void LogKvStatusReturned(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
+        [LoggerMessage(101, LogLevel.Debug, "The KV status {status} for op {opCode} on {endpoint} with {key} and opaque {opaque} using configVersion: {configVersion}.")]
+        private partial void LogKvStatusReturned(ResponseStatus status, OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque, ConfigVersion? configVersion);
 
         [LoggerMessage(102, LogLevel.Warning, "Unexpected Status for KeyValue operation not found in Error Map: 0x{code:X4}")]
         private partial void LogKvStatusNotFound(short code);

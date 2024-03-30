@@ -1,8 +1,11 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
@@ -71,6 +74,8 @@ internal partial class ConfigPushHandler : IDisposable
                     pushedVersion = _latestVersion;
                 }
 
+                LogEnteredSemaphorePush(pushedVersion);
+
                 // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
                 // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
                 // received is processed here but then on the next loop WaitAsync will immediately return a second time
@@ -85,27 +90,35 @@ internal partial class ConfigPushHandler : IDisposable
                     // the event was queued on this processing thread
                     if (pushedVersion <= currentVersion)
                     {
-                        SkippingPush(_redactor.SystemData(_bucket.Name), pushedVersion, currentVersion.GetValueOrDefault());
+                        LogSkippingPush(_redactor.SystemData(_bucket.Name), pushedVersion,
+                            currentVersion.GetValueOrDefault());
                         continue;
                     }
                 }
 
-                var node = _bucket.Nodes.FirstOrDefault(x => x.HasManagement);
+                var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv);
                 if (node != null)
                 {
                     var bucketConfig = await node
-                        .GetClusterMap(latestVersionOnClient: currentVersion, cancellationToken).ConfigureAwait(false);
+                        .GetClusterMap(latestVersionOnClient: currentVersion, cancellationToken)
+                        .ConfigureAwait(false);
+
                     if (bucketConfig != null)
                     {
-                        if (bucketConfig.ConfigVersion <= pushedVersion)
+                        var newVersion = bucketConfig.ConfigVersion;
+                        if (newVersion > currentVersion)
                         {
                             // GetClusterMap returns null when the config has already been seen by the client
                             // therefore, not-null means this is a new config that must be published to all subscribers.
-                            ConfigPublished(_redactor.SystemData(_bucket.Name), bucketConfig.ConfigVersion,
+                            LogConfigPublished(_redactor.SystemData(_bucket.Name), bucketConfig.ConfigVersion,
                                 currentVersion);
                             _context.PublishConfig(bucketConfig);
                         }
                     }
+                }
+                else
+                {
+                    _logger.LogDebug("The node was null for {configVersion}", currentVersion);
                 }
             }
             catch (Exception ex)
@@ -120,6 +133,8 @@ internal partial class ConfigPushHandler : IDisposable
 
     public void ProcessConfigPush(ConfigVersion configVersion)
     {
+        LogServerPushedVersion(configVersion);
+
         // We must use a lock, not Interlocked, because ConfigVersion is a large reference type
         // and tearing could occur. Also, we're doing reads and writes with comparisons.
         lock (_lock)
@@ -129,16 +144,18 @@ internal partial class ConfigPushHandler : IDisposable
             if (configVersion <= _latestVersion)
             {
                 // Already pushed from to the processing thread previously
-                SkippingPush(_redactor.SystemData(_bucket.Name), configVersion, _latestVersion);
+                LogSkippingPush(_redactor.SystemData(_bucket.Name), configVersion, _latestVersion);
                 return;
             }
 
-            if (_bucket.CurrentConfig is not null && _bucket.CurrentConfig.ConfigVersion >= configVersion)
+            if (_bucket.CurrentConfig is not null && configVersion <= _bucket.CurrentConfig.ConfigVersion)
             {
                 // Already seen by this node via another node's push
-                SkippingPush(_redactor.SystemData(_bucket.Name), configVersion, _bucket.CurrentConfig.ConfigVersion);
+                LogSkippingPush(_redactor.SystemData(_bucket.Name), configVersion, _bucket.CurrentConfig.ConfigVersion);
                 return;
             }
+
+            LogUpdatedLastestVersion(_latestVersion, configVersion);
 
             _latestVersion = configVersion;
 
@@ -165,11 +182,21 @@ internal partial class ConfigPushHandler : IDisposable
     }
 
     [LoggerMessage(0, LogLevel.Debug, "{bucket} new config {pushedVersion} due to config push - old {currentVersion}")]
-    private partial void ConfigPublished(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion? currentVersion);
+    private partial void LogConfigPublished(Redacted<string> bucket, ConfigVersion pushedVersion,
+        ConfigVersion? currentVersion);
 
     [LoggerMessage(1, LogLevel.Debug, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
-    private partial void SkippingPush(Redacted<string> bucket, ConfigVersion pushedVersion,
+    private partial void LogSkippingPush(Redacted<string> bucket, ConfigVersion pushedVersion,
         ConfigVersion currentVersion);
+
+    [LoggerMessage(2, LogLevel.Debug, "Entered the semaphore to check pushedVersion {pushedVersion}")]
+    private partial void LogEnteredSemaphorePush(ConfigVersion pushedVersion);
+
+    [LoggerMessage(3, LogLevel.Debug, "The server pushed configVersion: {configVersion}")]
+    private partial void LogServerPushedVersion(ConfigVersion configVersion);
+
+    [LoggerMessage(4, LogLevel.Debug, "Updating the latest configVersion {latestVersion} to the {configVersion}")]
+    private partial void LogUpdatedLastestVersion(ConfigVersion latestVersion, ConfigVersion configVersion);
 }
 
 /* ************************************************************
@@ -190,4 +217,3 @@ internal partial class ConfigPushHandler : IDisposable
  *    limitations under the License.
  *
  * ************************************************************/
-
