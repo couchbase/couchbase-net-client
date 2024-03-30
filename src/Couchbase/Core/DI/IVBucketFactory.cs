@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 
 #nullable enable
@@ -16,7 +17,7 @@ namespace Couchbase.Core.DI
         /// </summary>
         /// <returns>The new <see cref="IVBucket"/>.</returns>
         IVBucket Create(ICollection<HostEndpointWithPort> endPoints, short index, short primary,
-            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName);
+            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName, ConfigVersion configVersion);
     }
 }
 

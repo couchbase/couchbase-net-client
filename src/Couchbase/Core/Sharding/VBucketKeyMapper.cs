@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
@@ -22,6 +23,7 @@ namespace Couchbase.Core.Sharding
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly ICollection<HostEndpointWithPort> _endPoints;
         private readonly string _bucketName;
+        private readonly ConfigVersion _configVersion;
 
         //for log redaction
        // private Func<object, string> User = RedactableArgument.UserAction;
@@ -44,6 +46,7 @@ namespace Couchbase.Core.Sharding
             _vBucketFactory = vBucketFactory;
 
             Rev = config.Rev;
+            _configVersion = config.ConfigVersion;
             _vBucketServerMap = vBucketServerMap;
             _endPoints = _vBucketServerMap.EndPoints;
             _bucketName = config.Name;
@@ -147,7 +150,7 @@ namespace Couchbase.Core.Sharding
                 }
 
                 vBuckets.Add((short)i,
-                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
+                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName, _configVersion));
             }
             return vBuckets;
         }
@@ -184,7 +187,7 @@ namespace Couchbase.Core.Sharding
                 }
 
                 vBucketMapForwards.Add((short)i,
-                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
+                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName, _configVersion));
             }
 
             return vBucketMapForwards;
@@ -201,6 +204,11 @@ namespace Couchbase.Core.Sharding
         }
 
         public ulong Rev { get; set; }
+
+        public override string ToString()
+        {
+            return _configVersion.ToString();
+        }
     }
 }
 

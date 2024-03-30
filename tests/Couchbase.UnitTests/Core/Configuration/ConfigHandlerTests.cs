@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var config2 = new BucketConfig
             {
                 Name = "default",
-                Rev = 3
+                Rev = 2
             };
 
             //act

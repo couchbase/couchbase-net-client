@@ -13,10 +13,13 @@ namespace Couchbase.Core.Configuration.Server;
 [StructLayout(LayoutKind.Auto)]
 internal readonly struct ConfigVersion : IEquatable<ConfigVersion>, IComparable<ConfigVersion>
 {
+    private readonly string _configVersionToString;
+
     public ConfigVersion(ulong epoch, ulong revision)
     {
         Epoch = epoch;
         Revision = revision;
+        _configVersionToString = $"{Epoch}/{Revision}";
     }
 
     /// <summary>
@@ -119,6 +122,6 @@ internal readonly struct ConfigVersion : IEquatable<ConfigVersion>, IComparable<
 
     public override string ToString()
     {
-        return $"{Epoch}/{Revision}";
+        return _configVersionToString;
     }
 }

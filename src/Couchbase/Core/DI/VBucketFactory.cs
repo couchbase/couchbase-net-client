@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 using Microsoft.Extensions.Logging;
 
@@ -22,8 +23,8 @@ namespace Couchbase.Core.DI
 
         /// <inheritdoc />
         public IVBucket Create(ICollection<HostEndpointWithPort> endPoints, short index, short primary,
-            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName) =>
-            new VBucket(endPoints, index, primary, replicas, rev, vBucketServerMap, bucketName, _logger);
+            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName, ConfigVersion configVersion) =>
+            new VBucket(endPoints, index, primary, replicas, rev, vBucketServerMap, bucketName, _logger, configVersion);
     }
 }
 

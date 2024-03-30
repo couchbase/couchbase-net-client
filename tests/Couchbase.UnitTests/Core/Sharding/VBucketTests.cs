@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var primary = vBucketMap[0];
             var replicas = new []{vBucketMap[1]};
             _vBucket = new VBucket(_servers, 0, primary, replicas, bucketConfig.Rev, _vBucketServerMap, "default",
-                new Mock<ILogger<VBucket>>().Object);
+                new Mock<ILogger<VBucket>>().Object, new ConfigVersion());
         }
 
         [Fact]
@@ -166,7 +166,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var vBucketServerMap = GetServerMap("127.0.0.1:10210");
 
             var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] {2}, 0,
-                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
+                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object, new ConfigVersion());
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
         }
@@ -177,7 +177,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var vBucketServerMap = GetServerMap();
 
             var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { 0 }, 0,
-                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
+                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object, new ConfigVersion());
             var found = vBucket.LocatePrimary();
             Assert.Null(found);//should be null
         }
@@ -188,7 +188,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var vBucketServerMap = GetServerMap("127.0.0.1:10210");
 
             var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { -1 }, 0,
-                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
+                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object, new ConfigVersion());
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
         }
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var vBucketServerMap = GetServerMap("127.0.0.1:10210", "127.0.0.2:10210");
 
             var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { 0 }, 0,
-                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
+                vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object, new ConfigVersion());
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
         }

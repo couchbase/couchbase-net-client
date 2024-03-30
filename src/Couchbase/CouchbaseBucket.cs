@@ -107,15 +107,9 @@ namespace Couchbase
                                 Logger.LogDebug(
                                     "Processing cluster map for #rev{revision} on {bucketName} - old rev#{oldRevision}",
                                     newConfig.ConfigVersion, Name, CurrentConfig?.ConfigVersion);
-                                Logger.LogDebug(JsonSerializer.Serialize(newConfig, InternalSerializationContext.Default.BucketConfig!));
-                            }
 
-                            if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
-                            {
-                                Logger.LogDebug(LoggingEvents.ConfigEvent,
-                                    "Updating VB key mapper for rev#{revision} on {bucketName}",
-                                    newConfig.ConfigVersion, Name);
-                                newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
+                                Logger.LogDebug(JsonSerializer.Serialize(newConfig,
+                                    InternalSerializationContext.Default.BucketConfig!));
                             }
 
                             if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
@@ -125,28 +119,42 @@ namespace Couchbase
                                     newConfig.ConfigVersion, Name);
                                 await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
                                 newNodes = Context.GetNodes(Name);
+                                newKeymapper =
+                                    _vBucketKeyMapperFactory
+                                        .Create(newConfig); //force the new revision as were on a new config
                             }
-
-                            //only accept the latest version if the processing was successful
-                            lock (_currentConfigLock)
+                            else
                             {
-                                if (newKeymapper is not null)
+                                if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
                                 {
-                                    KeyMapper = newKeymapper;
+                                    Logger.LogDebug(LoggingEvents.ConfigEvent,
+                                        "Updating VB key mapper for rev#{revision} on {bucketName}",
+                                        newConfig.ConfigVersion, Name);
+                                    newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
                                 }
-
-                                if (newNodes is not null)
-                                {
-                                    //update the local nodes collection
-                                    Nodes.Clear();
-                                    foreach (var clusterNode in newNodes)
-                                    {
-                                        Nodes.Add(clusterNode);
-                                    }
-                                }
-
-                                CurrentConfig = newConfig;
                             }
+                        }
+
+                        //only accept the latest version if the processing was successful
+                        lock (_currentConfigLock)
+                        {
+                            if (newKeymapper is not null)
+                            {
+                                KeyMapper = newKeymapper;
+                            }
+
+                            if (newNodes is not null)
+                            {
+                                //update the local nodes collection
+                                Nodes.Clear();
+                                foreach (var clusterNode in newNodes)
+                                {
+                                    Nodes.Add(clusterNode);
+                                }
+                            }
+
+                            CurrentConfig = newConfig;
+                            Logger.LogDebug(LoggingEvents.ConfigEvent,"Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.ConfigVersion);
                         }
                     }
                 }
@@ -160,8 +168,7 @@ namespace Couchbase
                     _configMutex.Release();
                 }
             }
-
-            Logger.LogDebug(LoggingEvents.ConfigEvent,"Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.ConfigVersion);
+            Logger.LogDebug(LoggingEvents.ConfigEvent,"The last pushed revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.ConfigVersion);
         }
 
         public override async Task ForceConfigUpdateAsync()
@@ -278,7 +285,7 @@ namespace Couchbase
 
                 Logger.LogDebug(
                     "Mapping op {OpCode} to {Endpoint} for key {Key} and opaque {Opaque} using configVersion: {ConfigVersion}",
-                    op.OpCode, endPoint, op.Key, op.Opaque, CurrentConfig?.ConfigVersion);
+                    op.OpCode, endPoint, op.Key, op.Opaque, vBucket.ToString());
 
                 if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {

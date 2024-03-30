@@ -1,11 +1,9 @@
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
@@ -64,62 +62,90 @@ internal partial class ConfigPushHandler : IDisposable
         {
             // Don't release this semaphore, it is released whenever a new config is received.
             await _versionReceivedEvent.WaitAsync(cancellationToken).ConfigureAwait(false);
-
             try
             {
                 ConfigVersion pushedVersion;
-                lock (_lock)
+                var attempted = false;
+                do
                 {
-                    // This lock prevents tearing of the ConfigVersion struct
-                    pushedVersion = _latestVersion;
-                }
-
-                LogEnteredSemaphorePush(pushedVersion);
-
-                // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
-                // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
-                // received is processed here but then on the next loop WaitAsync will immediately return a second time
-                // due the semaphore being released again by ProcessConfigPush.
-
-                ConfigVersion? currentVersion = null;
-                if (_bucket.CurrentConfig != null)
-                {
-                    currentVersion = _bucket.CurrentConfig?.ConfigVersion;
-
-                    // Recheck to see if this node received the config version from another node since
-                    // the event was queued on this processing thread
-                    if (pushedVersion <= currentVersion)
+                    lock (_lock)
                     {
-                        LogSkippingPush(_redactor.SystemData(_bucket.Name), pushedVersion,
-                            currentVersion.GetValueOrDefault());
-                        continue;
+                        // This lock prevents tearing of the ConfigVersion struct
+                        pushedVersion = _latestVersion;
                     }
-                }
 
-                var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv);
-                if (node != null)
-                {
-                    var bucketConfig = await node
-                        .GetClusterMap(latestVersionOnClient: currentVersion, cancellationToken)
-                        .ConfigureAwait(false);
+                    LogEnteredSemaphorePush(pushedVersion);
 
-                    if (bucketConfig != null)
+                    // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
+                    // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
+                    // received is processed here but then on the next loop WaitAsync will immediately return a second time
+                    // due the semaphore being released again by ProcessConfigPush.
+                    ConfigVersion? effectiveVersion = null;
+                    if (_bucket.CurrentConfig != null)
                     {
-                        var newVersion = bucketConfig.ConfigVersion;
-                        if (newVersion > currentVersion)
+                        BucketConfig effectiveConfig = null;
+                        Interlocked.Exchange(ref effectiveConfig, _bucket.CurrentConfig);
+                        effectiveVersion = effectiveConfig.ConfigVersion;
+
+                        // Recheck to see if this node received the config version from another node since
+                        // the event was queued on this processing thread
+                        if (pushedVersion <= effectiveVersion)
                         {
-                            // GetClusterMap returns null when the config has already been seen by the client
-                            // therefore, not-null means this is a new config that must be published to all subscribers.
-                            LogConfigPublished(_redactor.SystemData(_bucket.Name), bucketConfig.ConfigVersion,
-                                currentVersion);
-                            _context.PublishConfig(bucketConfig);
+                            LogSkippingPush2(_redactor.SystemData(_bucket.Name), pushedVersion,
+                                effectiveVersion.GetValueOrDefault());
+                            continue;
                         }
                     }
-                }
-                else
-                {
-                    _logger.LogDebug("The node was null for {configVersion}", currentVersion);
-                }
+
+                    var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv);
+                    if (node != null)
+                    {
+                        var bucketConfig = await node
+                            .GetClusterMap(latestVersionOnClient: effectiveVersion, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (bucketConfig != null)
+                        {
+                            var newVersion = bucketConfig.ConfigVersion;
+                            if (newVersion > effectiveVersion)
+                            {
+                                // GetClusterMap returns null when the config has already been seen by the client
+                                // therefore, not-null means this is a new config that must be published to all subscribers.
+                                LogConfigPublished(_redactor.SystemData(_bucket.Name), bucketConfig.ConfigVersion,
+                                    effectiveVersion);
+                                _context.PublishConfig(bucketConfig);
+                            }
+                            else
+                            {
+                                _logger.LogDebug("Skipping the config version: {newVersion} < {currentVersion}",
+                                    newVersion, effectiveVersion);
+                            }
+                            ConfigVersion nextVersion;
+                            ConfigVersion sentVersion;
+                            lock (_lock)
+                            {
+                                nextVersion = _latestVersion;
+                                sentVersion = bucketConfig.ConfigVersion;
+                            }
+
+                            if (nextVersion > sentVersion)
+                            {
+                                _logger.LogDebug("Trying again: the next version is {nextVersion} is greater the sent {sentVersion}", nextVersion, sentVersion);
+                                attempted = true;
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug(
+                                "The server returned null for pushed version {pushedVersion} currentVersion: {currentVersion}",
+                                pushedVersion, effectiveVersion);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug("The node was null for {configVersion}", effectiveVersion);
+                    }
+                } while (attempted);
             }
             catch (Exception ex)
             {
@@ -155,8 +181,7 @@ internal partial class ConfigPushHandler : IDisposable
                 return;
             }
 
-            LogUpdatedLastestVersion(_latestVersion, configVersion);
-
+            LogUpdatedLatestVersion(_latestVersion, configVersion);
             _latestVersion = configVersion;
 
             try
@@ -165,6 +190,7 @@ internal partial class ConfigPushHandler : IDisposable
             }
             catch (SemaphoreFullException)
             {
+                _logger.LogDebug("Tried to release VersionReceivedEvent but we are already waiting on the processing thread");
                 // Ignore this error, it means that we're already waiting on the processing thread
                 // to handle a new config version. When it wakes it will see this new version instead.
             }
@@ -182,12 +208,13 @@ internal partial class ConfigPushHandler : IDisposable
     }
 
     [LoggerMessage(0, LogLevel.Debug, "{bucket} new config {pushedVersion} due to config push - old {currentVersion}")]
-    private partial void LogConfigPublished(Redacted<string> bucket, ConfigVersion pushedVersion,
-        ConfigVersion? currentVersion);
+    private partial void LogConfigPublished(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion? currentVersion);
 
     [LoggerMessage(1, LogLevel.Debug, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
-    private partial void LogSkippingPush(Redacted<string> bucket, ConfigVersion pushedVersion,
-        ConfigVersion currentVersion);
+    private partial void LogSkippingPush(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
+
+    [LoggerMessage(5, LogLevel.Debug, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
+    private partial void LogSkippingPush2(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
 
     [LoggerMessage(2, LogLevel.Debug, "Entered the semaphore to check pushedVersion {pushedVersion}")]
     private partial void LogEnteredSemaphorePush(ConfigVersion pushedVersion);
@@ -196,7 +223,7 @@ internal partial class ConfigPushHandler : IDisposable
     private partial void LogServerPushedVersion(ConfigVersion configVersion);
 
     [LoggerMessage(4, LogLevel.Debug, "Updating the latest configVersion {latestVersion} to the {configVersion}")]
-    private partial void LogUpdatedLastestVersion(ConfigVersion latestVersion, ConfigVersion configVersion);
+    private partial void LogUpdatedLatestVersion(ConfigVersion latestVersion, ConfigVersion configVersion);
 }
 
 /* ************************************************************

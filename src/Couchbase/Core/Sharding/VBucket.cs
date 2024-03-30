@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -18,9 +19,10 @@ namespace Couchbase.Core.Sharding
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly ILogger<VBucket> _logger;
         private readonly ICollection<HostEndpointWithPort> _endPoints;
+        private readonly string _vbucketIdToString;
 
         public VBucket(ICollection<HostEndpointWithPort> endPoints, short index, short primary, short[] replicas, ulong rev,
-            VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger)
+            VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger, ConfigVersion configVersion)
         {
             if (logger == null)
             {
@@ -35,6 +37,7 @@ namespace Couchbase.Core.Sharding
             _vBucketServerMap = vBucketServerMap;
             BucketName = bucketName;
             _logger = logger;
+            _vbucketIdToString = $"{Index}-{configVersion.ToString()}";
         }
 
         /// <summary>
@@ -138,6 +141,11 @@ namespace Couchbase.Core.Sharding
         }
 
         public string BucketName { get; }
+
+        public override string ToString()
+        {
+            return _vbucketIdToString;
+        }
     }
 }
 
