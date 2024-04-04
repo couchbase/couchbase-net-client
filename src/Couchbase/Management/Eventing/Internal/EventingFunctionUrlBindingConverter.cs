@@ -142,6 +142,7 @@ namespace Couchbase.Management.Eventing.Internal
 
         public override void Write(Utf8JsonWriter writer, EventingFunctionUrlBinding value, JsonSerializerOptions options)
         {
+            writer.WriteStartObject();
             if (value.Auth is ISerializableEventingFunctionUrlAuth serializable)
             {
                 serializable.WriteToObject(writer);
@@ -151,6 +152,7 @@ namespace Couchbase.Management.Eventing.Internal
             writer.WriteBoolean(AllowCookiesPropertyName, value.AllowCookies);
             writer.WriteBoolean(ValidateSslCertificatePropertyName, value.ValidateSslCertificate);
             writer.WriteString(ValuePropertyName, value.Alias);
+            writer.WriteEndObject();
         }
     }
 }

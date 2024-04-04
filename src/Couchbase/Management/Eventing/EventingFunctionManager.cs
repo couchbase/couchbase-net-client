@@ -1,5 +1,7 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -17,19 +19,21 @@ namespace Couchbase.Management.Eventing
         private readonly IEventingFunctionService _service;
         private readonly ILogger<EventingFunctionManager> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly EventingFunctionKeyspace? _managementScope;
 
-        public EventingFunctionManager(IEventingFunctionService service, ILogger<EventingFunctionManager> logger, IRequestTracer tracer)
+        public EventingFunctionManager(IEventingFunctionService service, ILogger<EventingFunctionManager> logger, IRequestTracer tracer, EventingFunctionKeyspace? managementScope = null)
         {
             _service = service;
             _logger = logger;
             _tracer = tracer;
+            _managementScope = managementScope;
         }
 
         private CancellationTokenPairSource CreateRetryTimeoutCancellationTokenSource(FunctionOptionsBase options) =>
             CancellationTokenPairSource.FromTimeout(options.Timeout, options.Token);
 
         /// <inheritdoc />
-        public async Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions options = null)
+        public async Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions? options = null)
         {
             //POST http://localhost:8096/api/v1/functions/<name>;
             options ??= UpsertFunctionOptions.Default;
@@ -46,7 +50,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -80,7 +84,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task DropFunctionAsync(string name, DropFunctionOptions options = null)
+        public async Task DropFunctionAsync(string name, DropFunctionOptions? options = null)
         {
             //DELETE http://localhost:8096/api/v1/functions/<name>
             options ??= DropFunctionOptions.Default;
@@ -97,7 +101,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -127,7 +131,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<EventingFunction>> GetAllFunctionsAsync(GetAllFunctionOptions options = null)
+        public async Task<IEnumerable<EventingFunction>> GetAllFunctionsAsync(GetAllFunctionOptions? options = null)
         {
             //GET http://localhost:8096/api/v1/functions
             options ??= GetAllFunctionOptions.Default;
@@ -144,13 +148,36 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunctionList)
+                    var allFunctions = await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunctionList)
                         .ConfigureAwait(false);
+                    if (allFunctions is null)
+                    {
+                        return Enumerable.Empty<EventingFunction>();
+                    }
+
+                    var filteredFunctions = allFunctions.Where(eventingFunction =>
+                    {
+                        if (_managementScope is null &&
+                            eventingFunction.FunctionScope is null or { Bucket: "*", Scope: "*" })
+                        {
+                            return true;
+                        }
+
+                        if (_managementScope is not null &&
+                            eventingFunction.FunctionScope.Bucket == _managementScope.Bucket
+                            && eventingFunction.FunctionScope.Scope == _managementScope.Scope)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+                    return filteredFunctions;
                 }
             }
             catch (Exception e)
@@ -161,7 +188,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task<EventingFunction> GetFunctionAsync(string name, GetFunctionOptions options = null)
+        public async Task<EventingFunction?> GetFunctionAsync(string name, GetFunctionOptions? options = null)
         {
             //GET http://localhost:8096/api/v1/functions/<name>
             options ??= GetFunctionOptions.Default;
@@ -178,14 +205,15 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                   using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                   using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
 
                     if (response.IsSuccessStatusCode)
                     {
                         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                        return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunction)
+                        var deserialized = await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunction)
                             .ConfigureAwait(false);
+                        return deserialized ?? throw new CouchbaseException($"Could not parse response for {nameof(GetFunctionAsync)})");
                     }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -215,7 +243,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task PauseFunctionAsync(string name, PauseFunctionOptions options = null)
+        public async Task PauseFunctionAsync(string name, PauseFunctionOptions? options = null)
         {
             //POST http://localhost:8096/api/v1/functions/<name>/pause
             options ??= PauseFunctionOptions.Default;
@@ -232,7 +260,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -262,7 +290,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task ResumeFunctionAsync(string name, ResumeFunctionOptions options = null)
+        public async Task ResumeFunctionAsync(string name, ResumeFunctionOptions? options = null)
         {
             //POST http://localhost:8096/api/v1/functions/<name>/resume
             options ??= ResumeFunctionOptions.Default;
@@ -279,7 +307,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -307,7 +335,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task DeployFunctionAsync(string name, DeployFunctionOptions options = null)
+        public async Task DeployFunctionAsync(string name, DeployFunctionOptions? options = null)
         {
             //POST http://localhost:8096/api/v1/functions/<name>/deploy
             options ??= DeployFunctionOptions.Default;
@@ -324,7 +352,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -352,7 +380,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task UndeployFunctionAsync(string name, UndeployFunctionOptions options = null)
+        public async Task UndeployFunctionAsync(string name, UndeployFunctionOptions? options = null)
         {
             //POST http://localhost:8096/api/v1/functions/<name>/undeploy
             options ??= UndeployFunctionOptions.Default;
@@ -369,7 +397,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -397,7 +425,7 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public async Task<EventingStatus> FunctionsStatus(FunctionsStatusOptions options = null)
+        public async Task<EventingStatus> FunctionsStatus(FunctionsStatusOptions? options = null)
         {
             //GET http://localhost:8096/api/v1/status
             options ??= FunctionsStatusOptions.Default;
@@ -414,14 +442,15 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, managementScope: _managementScope)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                    return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingStatus)
+                    var deserialized = await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingStatus)
                         .ConfigureAwait(false);
+                    return deserialized ?? new EventingStatus();
                 }
             }
             catch (Exception e)

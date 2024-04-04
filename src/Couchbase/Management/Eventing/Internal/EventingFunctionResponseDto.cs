@@ -34,6 +34,10 @@ namespace Couchbase.Management.Eventing.Internal
         [JsonPropertyOrder(0)]
         public DeploymentConfig DeploymentConfig { get; set; } = new();
 
+        [JsonPropertyName("function_scope")]
+        [JsonPropertyOrder(5)]
+        public FunctionScope FunctionScope { get; set; }
+
         public static explicit operator EventingFunction(EventingFunctionResponseDto func) =>
             new()
             {
@@ -44,7 +48,8 @@ namespace Couchbase.Management.Eventing.Internal
                 HandlerUuid = func.HandlerUuid,
                 FunctionInstanceId = func.FunctionInstanceId,
                 Settings = func.Settings,
-                DeploymentConfig = func.DeploymentConfig
+                DeploymentConfig = func.DeploymentConfig,
+                FunctionScope = func.FunctionScope,
             };
     }
 }

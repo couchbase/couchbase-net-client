@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -26,19 +27,28 @@ namespace Couchbase.Management.Eventing
             _redactor = redactor;
         }
 
-        private Uri GetUri(string path)
+        private Uri GetUri(string path, EventingFunctionKeyspace? managementScope)
         {
             var uri = _serviceUriProvider.GetRandomEventingUri();
-            return new UriBuilder(uri)
+            var ub = new UriBuilder(uri)
             {
                 Path = path
-            }.Uri;
+            };
+
+            var isGlobal = managementScope is null or { Bucket: "*", Scope: "*" };
+            if (!isGlobal)
+            {
+                ub.Query =
+                    $"bucket={Uri.EscapeDataString(managementScope!.Bucket)}&scope={Uri.EscapeDataString(managementScope!.Scope)}";
+            }
+
+            return ub.Uri;
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseMessage> GetAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token)
+        public Task<HttpResponseMessage> GetAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null)
         {
-            var requestUri = GetUri(path);
+            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             encodeSpan.Dispose();
@@ -48,13 +58,13 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseMessage> PostAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction eventingFunction = null)
+        public Task<HttpResponseMessage> PostAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction? eventingFunction = null, EventingFunctionKeyspace? managementScope = null)
         {
-            var requestUri = GetUri(path);
+            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             var content = eventingFunction != null ?
-                new StringContent(eventingFunction.ToJson()) :
+                new StringContent(eventingFunction.ToJson(managementScope)) :
                 new StringContent(string.Empty);
 
             encodeSpan.Dispose();
@@ -64,9 +74,9 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseMessage> DeleteAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token)
+        public Task<HttpResponseMessage> DeleteAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null)
         {
-            var requestUri = GetUri(path);
+            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             encodeSpan.Dispose();

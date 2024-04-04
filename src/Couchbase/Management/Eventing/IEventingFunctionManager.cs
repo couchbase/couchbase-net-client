@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
@@ -15,7 +16,7 @@ namespace Couchbase.Management.Eventing
     [InterfaceStability(Level.Uncommitted)]
     public interface IEventingFunctionManager
     {
-        Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions options = null);
+        Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions? options = null);
 
         /// <summary>
         /// Drops a function.
@@ -23,7 +24,7 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>A <see cref="Task"/> for awaiting.</returns>
-        Task DropFunctionAsync(string name, DropFunctionOptions options = null);
+        Task DropFunctionAsync(string name, DropFunctionOptions? options = null);
 
         /// <summary>
         /// Deploys a function (from state undeployed to deployed).
@@ -31,14 +32,14 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>A <see cref="Task"/> for awaiting.</returns>
-        Task DeployFunctionAsync(string name, DeployFunctionOptions options = null);
+        Task DeployFunctionAsync(string name, DeployFunctionOptions? options = null);
 
         /// <summary>
         /// Lists all functions (both deployed and undeployed).
         /// </summary>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>An <see cref="IEnumerable{EventFunction}"/> for enumeration of the results.</returns>
-        Task<IEnumerable<EventingFunction>> GetAllFunctionsAsync(GetAllFunctionOptions options = null);
+        Task<IEnumerable<EventingFunction>> GetAllFunctionsAsync(GetAllFunctionOptions? options = null);
 
         /// <summary>
         /// Fetches a specific function.
@@ -46,7 +47,7 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns></returns>
-        Task<EventingFunction> GetFunctionAsync(string name, GetFunctionOptions options = null);
+        Task<EventingFunction?> GetFunctionAsync(string name, GetFunctionOptions? options = null);
 
         /// <summary>
         /// Pauses a function.
@@ -54,7 +55,7 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>A <see cref="Task"/> for awaiting.</returns>
-        Task PauseFunctionAsync(string name, PauseFunctionOptions options = default);
+        Task PauseFunctionAsync(string name, PauseFunctionOptions? options = default);
 
         /// <summary>
         /// Resumes a function if it is paused.
@@ -62,7 +63,7 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>A <see cref="Task"/> for awaiting.</returns>
-        Task ResumeFunctionAsync(string name, ResumeFunctionOptions options = default);
+        Task ResumeFunctionAsync(string name, ResumeFunctionOptions? options = default);
 
         /// <summary>
         /// Undeploys a function (from state deployed to undeployed).
@@ -70,14 +71,14 @@ namespace Couchbase.Management.Eventing
         /// <param name="name">The function name.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>A <see cref="Task"/> for awaiting.</returns>
-        Task UndeployFunctionAsync(string name, UndeployFunctionOptions options = default);
+        Task UndeployFunctionAsync(string name, UndeployFunctionOptions? options = default);
 
         /// <summary>
         /// Receives the status of all the eventing functions.
         /// </summary>
         /// <param name="options">Any optional parameters.</param>
         /// <returns></returns>
-        Task<EventingStatus> FunctionsStatus(FunctionsStatusOptions options = default);
+        Task<EventingStatus> FunctionsStatus(FunctionsStatusOptions? options = default);
     }
 
     public class EventingStatus
@@ -85,13 +86,12 @@ namespace Couchbase.Management.Eventing
         [JsonPropertyName("num_eventing_nodes")]
         public int NumEventingNodes { get; set; }
 
-        [JsonPropertyName("apps")]
-        public List<EventingFunctionState> Functions { get; set; }
+        [JsonPropertyName("apps")] public List<EventingFunctionState> Functions { get; set; } = new();
     }
 
     public class EventingFunctionState
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("composite_status")]
         [JsonConverter(typeof(EventingFunctionStatusConverter))]
@@ -141,7 +141,7 @@ namespace Couchbase.Management.Eventing
         /// <summary>
         /// An optional parent <see cref="IRequestSpan"/> for tracing.
         /// </summary>
-        public IRequestSpan RequestSpan { get; set; }
+        public IRequestSpan? RequestSpan { get; set; }
 
         /// <summary>
         /// The unique client context id of request.

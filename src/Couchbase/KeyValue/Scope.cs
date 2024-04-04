@@ -7,6 +7,8 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.Utils;
+using Couchbase.Management.Eventing;
+using Couchbase.Management.Eventing.Internal;
 using Couchbase.Management.Search;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -26,7 +28,7 @@ namespace Couchbase.KeyValue
         private readonly string _queryContext;
         private readonly ICollectionFactory _collectionFactory;
 
-        public Scope(string name, BucketBase bucket, ICollectionFactory collectionFactory, ILogger<Scope> logger)
+        public Scope(string name, BucketBase bucket, ICollectionFactory collectionFactory, ILogger<Scope> logger, IEventingFunctionManagerFactory eventingFunctionManagerFactory)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
@@ -37,6 +39,7 @@ namespace Couchbase.KeyValue
             _queryContext = Utils.QueryContext.Create(_bucket.Name.EscapeIfRequired(), name.EscapeIfRequired());
             IsDefaultScope = name == DefaultScopeName;
             SearchIndexes = new ScopedSearchIndexManagerWrapper(this);
+            EventingFunctions = eventingFunctionManagerFactory.CreateScoped(this);
         }
 
         /// <summary>
@@ -123,6 +126,9 @@ namespace Couchbase.KeyValue
 
             return _bucket.Cluster.AnalyticsQueryAsync<T>(statement, options);
         }
+
+        /// <inheritdoc />
+        public IEventingFunctionManager EventingFunctions { get; }
 
         /// <inheritdoc />
         public ISearchIndexManager SearchIndexes { get; }

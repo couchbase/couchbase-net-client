@@ -1,0 +1,68 @@
+[
+  {
+    "appcode": "function OnUpdate(doc, meta) {}",
+    "depcfg": {
+      "source_bucket": "default",
+      "source_scope": "eventing",
+      "source_collection": "source",
+      "metadata_bucket": "default",
+      "metadata_scope": "eventing",
+      "metadata_collection": "meta"
+    },
+    "version": "external",
+    "enforce_schema": false,
+    "handleruuid": 3488634034,
+    "function_instance_id": "X40ih3",
+    "appname": "randomFunctionName",
+    "settings": {
+      "dcp_stream_boundary": "everything",
+      "deployment_status": false,
+      "description": "",
+      "execution_timeout": 60,
+      "language_compatibility": "6.6.2",
+      "log_level": "INFO",
+      "n1ql_consistency": "none",
+      "processing_status": false,
+      "timer_context_size": 1024,
+      "user_prefix": "eventing",
+      "worker_count": 1
+    },
+    "function_scope": {
+      "bucket": "*",
+      "scope": "*"
+    }
+  },
+  {
+    "appcode": "function OnUpdate(doc, meta) {}",
+    "depcfg": {
+      "source_bucket": "default",
+      "source_scope": "eventing",
+      "source_collection": "source",
+      "metadata_bucket": "default",
+      "metadata_scope": "eventing",
+      "metadata_collection": "meta"
+    },
+    "version": "external",
+    "enforce_schema": false,
+    "handleruuid": 2352040952,
+    "function_instance_id": "fpKlI",
+    "appname": "randomFunctionName",
+    "settings": {
+      "dcp_stream_boundary": "everything",
+      "deployment_status": false,
+      "description": "",
+      "execution_timeout": 60,
+      "language_compatibility": "6.6.2",
+      "log_level": "INFO",
+      "n1ql_consistency": "none",
+      "processing_status": false,
+      "timer_context_size": 1024,
+      "user_prefix": "eventing",
+      "worker_count": 1
+    },
+    "function_scope": {
+      "bucket": "hr",
+      "scope": "employees"
+    }
+  }
+]

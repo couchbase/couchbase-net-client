@@ -1,3 +1,4 @@
+#nullable enable
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace Couchbase.Management.Eventing
     /// <summary>
     /// An HTTP service for doing CRUD operations on a <see cref="EventingFunction"/>.
     /// </summary>
-    public interface IEventingFunctionService
+    internal interface IEventingFunctionService
     {
         /// <summary>
         /// Sends a GET request to the eventing management service for a specific eventing function.
@@ -17,8 +18,9 @@ namespace Couchbase.Management.Eventing
         /// <param name="parentSpan">The parent <see cref="IRequestSpan"/></param>
         /// <param name="encodeSpan">The encoding phase <see cref="IRequestSpan"/></param>
         /// <param name="token">A <see cref="CancellationToken"/> token</param>
+        /// <param name="managementScope">The scope of the eventing function</param>
         /// <returns>A <see cref="HttpResponseMessage"/> representing the server response</returns>
-        Task<HttpResponseMessage> GetAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token);
+        Task<HttpResponseMessage> GetAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null);
 
         /// <summary>
         /// Sends a POST request to the eventing management service inserting or updating a <see cref="EventingFunction"/>
@@ -28,8 +30,9 @@ namespace Couchbase.Management.Eventing
         /// <param name="encodeSpan">The encoding phase <see cref="IRequestSpan"/></param>
         /// <param name="token">A <see cref="CancellationToken"/> token</param>
         /// <param name="eventingFunction">The <see cref="EventingFunction"/> to send to the server</param>
+        /// <param name="managementScope">The scope of the eventing function</param>
         /// <returns>A <see cref="HttpResponseMessage"/> representing the server response</returns>
-        Task<HttpResponseMessage> PostAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction eventingFunction = null);
+        Task<HttpResponseMessage> PostAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction? eventingFunction = null, EventingFunctionKeyspace? managementScope = null);
 
         /// <summary>
         /// Sends a DELETE request for a particular <see cref="EventingFunction"/> that has already been published.
@@ -38,7 +41,8 @@ namespace Couchbase.Management.Eventing
         /// <param name="parentSpan">The parent <see cref="IRequestSpan"/></param>
         /// <param name="encodeSpan">The encoding phase <see cref="IRequestSpan"/></param>
         /// <param name="token">A <see cref="CancellationToken"/> token</param>
+        /// <param name="managementScope">The scope of the eventing function</param>
         /// <returns>A <see cref="HttpResponseMessage"/> representing the server response</returns>
-        Task<HttpResponseMessage> DeleteAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token);
+        Task<HttpResponseMessage> DeleteAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null);
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.KeyValue;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Search;
 using Couchbase.Query;
 
@@ -43,6 +44,7 @@ internal class StellarScope : IScope
         return _stellarCluster.AnalyticsQueryAsync<T>(statement, options);
     }
 
+    public IEventingFunctionManager EventingFunctions => throw new NotImplementedException();
     public ISearchIndexManager SearchIndexes => throw new NotImplementedException();
 
     public ICouchbaseCollection Collection(string collectionName)

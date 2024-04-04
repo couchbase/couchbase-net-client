@@ -21,6 +21,7 @@ using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Eventing;
+using Couchbase.Management.Eventing.Internal;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
@@ -113,7 +114,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
             yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));
-            yield return (typeof(IEventingFunctionManager), new SingletonServiceFactory(typeof(EventingFunctionManager)));
+            yield return (typeof(IEventingFunctionManagerFactory), new SingletonServiceFactory(typeof(EventingFunctionManagerFactory)));
 
             yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
             yield return (typeof(CircuitBreakerConfiguration), new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));

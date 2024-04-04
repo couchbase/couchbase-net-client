@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -102,7 +102,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -122,12 +122,81 @@ namespace Couchbase.UnitTests.Management.Eventing
         }
 
         [Fact]
+        public async Task Test_GetAllFunctions_GlobalScope()
+        {
+            using var response =
+                ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+            var buffer = new byte[response.Length];
+            response.Read(buffer, 0, buffer.Length);
+
+            var httpResponseMessage = new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(buffer)
+            };
+
+            var serviceMock = new Mock<IEventingFunctionService>();
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(),
+                    It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+                .Returns(Task.FromResult(httpResponseMessage));
+
+            using var tracer = new RequestTracer();
+            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+            tracer.Start(listener);
+
+            var manager = new EventingFunctionManager(serviceMock.Object,
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+            var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
+            var eventingFunction = eventingFunctions.First();
+            Assert.Equal("X40ih3", eventingFunction.FunctionInstanceId);
+            Assert.NotNull(eventingFunction.FunctionScope);
+            Assert.Equal("*", eventingFunction.FunctionScope.Scope);
+            Assert.Equal("*", eventingFunction.FunctionScope.Bucket);
+            Assert.Equal(1, eventingFunctions.Count);
+        }
+
+        [Fact]
+        public async Task Test_GetAllFunctions_Scoped()
+        {
+            using var response =
+                ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+            var buffer = new byte[response.Length];
+            response.Read(buffer, 0, buffer.Length);
+
+            var httpResponseMessage = new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(buffer)
+            };
+
+            var serviceMock = new Mock<IEventingFunctionService>();
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(),
+                    It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+                .Returns(Task.FromResult(httpResponseMessage));
+
+            using var tracer = new RequestTracer();
+            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+            tracer.Start(listener);
+
+            var manager = new EventingFunctionManager(serviceMock.Object,
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer,
+                new EventingFunctionKeyspace("hr", "employees", null));
+            var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
+            var eventingFunction = eventingFunctions.First();
+            Assert.Equal("fpKlI", eventingFunction.FunctionInstanceId);
+            Assert.NotNull(eventingFunction.FunctionScope);
+            Assert.Equal("employees", eventingFunction.FunctionScope.Scope);
+            Assert.Equal("hr", eventingFunction.FunctionScope.Bucket);
+            Assert.Equal(1, eventingFunctions.Count);
+        }
+
+        [Fact]
         public void Test_ToJson()
         {
             var originalJson = ResourceHelper.ReadResource(@"Documents\Eventing\getfunction-response.json");
             var eventingResource = JsonConvert.DeserializeObject<EventingFunction>(originalJson);
 
-            var json = eventingResource.ToJson();
+            var json = eventingResource.ToJson(null);
         }
 
         [Theory]
@@ -151,7 +220,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -190,7 +259,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            serviceMock.Setup(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -228,7 +297,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -266,7 +335,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -304,7 +373,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -343,7 +412,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -378,7 +447,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();

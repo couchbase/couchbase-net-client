@@ -4,6 +4,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue;
+using Couchbase.Management.Eventing.Internal;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -18,17 +19,19 @@ namespace Couchbase.Core.DI
     {
         private readonly ILogger<Scope> _scopeLogger;
         private readonly ICollectionFactory _collectionFactory;
+        private readonly IEventingFunctionManagerFactory _eventingFunctionManagerFactory;
 
-        public ScopeFactory(ILogger<Scope> scopeLogger, ICollectionFactory collectionFactory)
+        public ScopeFactory(ILogger<Scope> scopeLogger, ICollectionFactory collectionFactory, IEventingFunctionManagerFactory eventingFunctionManagerFactory)
         {
             _scopeLogger = scopeLogger;
             _collectionFactory = collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
+            _eventingFunctionManagerFactory = eventingFunctionManagerFactory;
         }
 
         /// <inheritdoc />
         public IScope CreateScope(string name, BucketBase bucket)
         {
-            return new Scope(name, bucket,_collectionFactory, _scopeLogger);
+            return new Scope(name, bucket,_collectionFactory, _scopeLogger, _eventingFunctionManagerFactory);
         }
     }
 }

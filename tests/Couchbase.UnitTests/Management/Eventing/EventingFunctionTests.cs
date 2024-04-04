@@ -62,7 +62,11 @@ namespace Couchbase.UnitTests.Management.Eventing
                 }
             };
 
-            var json = eventingFunction.ToJson();
+            var json = eventingFunction.ToJson(null);
+            Newtonsoft.Json.Linq.JObject.Parse(json);
+            var withScope = eventingFunction.ToJson(new("UnitTestBucketName", "UnitTestScopeName", null));
+            Assert.Matches("function_scope", withScope);
+            Assert.Matches("\"UnitTestBucketName\"", withScope);
         }
 
         [Fact]

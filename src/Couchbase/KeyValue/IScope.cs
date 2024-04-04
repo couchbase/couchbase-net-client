@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Search;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -49,9 +50,14 @@ namespace Couchbase.KeyValue
         Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default);
 
         /// <summary>
-        /// Gets a management interface for scope level FTS and Vector Search indexes.
+        /// Gets a management interface for scope-level FTS and Vector Search indexes.
         /// </summary>
         ISearchIndexManager SearchIndexes { get; }
+
+        /// <summary>
+        /// Gets a management interface for scope-level Eventing Functions.
+        /// </summary>
+        IEventingFunctionManager EventingFunctions { get; }
     }
 }
 

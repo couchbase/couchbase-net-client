@@ -32,7 +32,7 @@ namespace Couchbase.Management.Eventing.Internal
                 Code = func.Code,
                 Version = func.Version,
                 Settings = func.Settings,
-                DeploymentConfig = func.DeploymentConfig
+                DeploymentConfig = func.DeploymentConfig,
             };
     }
 }

@@ -28,6 +28,7 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
 
@@ -66,7 +67,9 @@ namespace Couchbase
         internal LazyService<IQueryIndexManager> LazyQueryManager;
         internal LazyService<ISearchIndexManager> LazySearchManager;
         internal LazyService<IAnalyticsIndexManager> LazyAnalyticsIndexManager;
-        internal LazyService<IEventingFunctionManager> LazyEventingFunctionManager;
+        internal LazyService<IEventingFunctionManagerFactory> LazyEventingFunctionManagerFactory;
+
+        internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -91,7 +94,8 @@ namespace Couchbase
             LazyUserManager = new LazyService<IUserManager>(_context.ServiceProvider);
             LazySearchManager = new LazyService<ISearchIndexManager>(_context.ServiceProvider);
             LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
-            LazyEventingFunctionManager = new LazyService<IEventingFunctionManager>(_context.ServiceProvider);
+            LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
+            LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -472,7 +476,8 @@ namespace Couchbase
         public IUserManager Users => LazyUserManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.GetValueOrThrow();
+        public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.Value
+            ?? throw new CouchbaseException($"Service {nameof(IEventingFunctionManagerFactory)} is not registered.");
 
         #endregion
 

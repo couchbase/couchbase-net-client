@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Query;
@@ -86,9 +87,31 @@ namespace Couchbase.Management.Eventing
         /// <remarks>Required.</remarks>
         internal DeploymentConfig DeploymentConfig { get; set; } = new();
 
-        public string ToJson() =>
-            JsonSerializer.Serialize(this, EventingSerializerContext.Primary.EventingFunction);
+        internal FunctionScope FunctionScope { get; init; } = null;
+
+        public string ToJson() => ToJson(null);
+        public string ToJson(EventingFunctionKeyspace managementScope)
+        {
+            if (managementScope is null)
+            {
+                return JsonSerializer.Serialize(this, EventingSerializerContext.Primary.EventingFunction);
+            }
+
+            // locking shouldn't be necessary, as this should be the only place it is set.
+
+            var node = JsonSerializer.SerializeToNode(this, EventingSerializerContext.Primary.EventingFunction);
+            var jobj = node?.AsObject();
+            var functionScope = new JsonObject()
+            {
+                ["bucket"] = managementScope.Bucket,
+                ["scope"] = managementScope.Scope,
+            };
+            jobj?.Add("function_scope", functionScope);
+            return jobj?.ToString();
+        }
     }
+
+    internal record FunctionScope(string Bucket, string Scope);
 
     /// <summary>
     /// The deployment configuration.

@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
+using Couchbase.Management.Eventing.Internal;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -52,7 +53,7 @@ namespace Couchbase.UnitTests.KeyValue
             bucket.Setup(x => x.Name).Returns(bucketName);
 
             var scope = new Scope(scopeName, bucket.Object, new Mock<ICollectionFactory>().Object,
-                new Mock<ILogger<Scope>>().Object);
+                new Mock<ILogger<Scope>>().Object, new Mock<IEventingFunctionManagerFactory>().Object);
 
             Assert.Equal(expectedContext, scope.QueryContext);
         }

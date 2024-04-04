@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
+using Couchbase.Management.Eventing.Internal;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -27,7 +28,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IEventingFunctionManagerFactory>().Object);
 
             // Act/Assert
 
@@ -39,7 +40,7 @@ namespace Couchbase.UnitTests.Core.DI
         {
             // Arrange
 
-            var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object, CreateCollectionFactoryMock());
+            var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object, CreateCollectionFactoryMock(), new Mock<IEventingFunctionManagerFactory>().Object);
 
             // Act
 
