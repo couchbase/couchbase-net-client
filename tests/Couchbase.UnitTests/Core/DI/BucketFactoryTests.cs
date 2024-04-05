@@ -41,7 +41,8 @@ namespace Couchbase.UnitTests.Core.DI
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
-                new Mock<IHttpClusterMapFactory>().Object);
+                new Mock<IHttpClusterMapFactory>().Object,
+                new Mock<IConfigPushHandlerFactory>().Object);
 
                 // Act
 
@@ -71,7 +72,8 @@ namespace Couchbase.UnitTests.Core.DI
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
-                new Mock<IHttpClusterMapFactory>().Object);
+                new Mock<IHttpClusterMapFactory>().Object,
+                new Mock<IConfigPushHandlerFactory>().Object);
 
             // Act/Assert
 

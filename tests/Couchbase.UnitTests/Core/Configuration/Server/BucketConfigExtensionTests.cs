@@ -543,7 +543,8 @@ public class BucketConfigExtensionTests
             NoopRequestTracer.Instance,
             new Mock<IOperationConfigurator>().Object,
             new BestEffortRetryStrategy(),
-            bootstrapConfig);
+            bootstrapConfig,
+            new Mock<IConfigPushHandlerFactory>().Object);
 
         node.Setup(x => x.Owner).Returns(bucket);
 

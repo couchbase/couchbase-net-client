@@ -48,7 +48,7 @@ namespace Couchbase
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config, IConfigPushHandlerFactory configPushHandlerFactory)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
@@ -56,7 +56,7 @@ namespace Couchbase
             _viewClientLazy = new LazyService<IViewClient>(context.ServiceProvider);
             _viewManagerLazy = new LazyService<IViewIndexManagerFactory>(context.ServiceProvider);
             _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
-            _configPushHandler = new ConfigPushHandler(this, Context, Logger, Redactor);
+            _configPushHandler = configPushHandlerFactory.Create(this, Context);
         }
 
         public override IViewIndexManager ViewIndexes =>
