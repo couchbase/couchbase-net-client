@@ -23,7 +23,7 @@ public class BucketConfigExtensionTests
     public void Test_HasVBucketChanged_OldConfig_IsNull()
     {
         var newConfig = new BucketConfig();
-        Assert.True(newConfig.HasVBucketMapChanged(null));
+        Assert.True(newConfig.HasVBucketMapChanged(null, out _));
     }
 
     [Fact]
@@ -48,7 +48,51 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.True(newConfig.HasVBucketMapChanged(oldConfig));
+        Assert.True(newConfig.HasVBucketMapChanged(oldConfig, out _));
+    }
+
+    [Fact]
+    public void Test_HasVBucketChanged_VBucketEmpty()
+    {
+        // MB-60405
+        var oldConfig = new BucketConfig
+        {
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                VBucketMap = new[] { new short[]{1,0}, new short[]{0,1}},
+                VBucketMapForward = new[] { new short[]{1,0}, new short[]{0,1}},
+                ServerList = new []{"localhost1", "localhost2"}
+            }
+        };
+
+        {
+            var newConfig = new BucketConfig
+            {
+                VBucketServerMap = new VBucketServerMapDto
+                {
+                    VBucketMap = new short[][] { }, //changed, but empty.
+                    VBucketMapForward = new[] { new short[] { 1, 0 }, new short[] { 0, 1 } },
+                    ServerList = new[] { "localhost1", "localhost2" }
+                }
+            };
+            Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
+            Assert.True(emptyVBucketMap);
+        }
+
+        {
+            var newConfig = new BucketConfig
+            {
+                VBucketServerMap = new VBucketServerMapDto
+                {
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    VBucketMap = null, //changed, but missing.
+                    VBucketMapForward = new[] { new short[] { 1, 0 }, new short[] { 0, 1 } },
+                    ServerList = new[] { "localhost1", "localhost2" }
+                }
+            };
+            Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
+            Assert.True(emptyVBucketMap);
+        }
     }
 
     [Fact]
@@ -73,7 +117,8 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.False(newConfig.HasVBucketMapChanged(oldConfig));
+        Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
+        Assert.False(emptyVBucketMap);
     }
 
     [Fact]
@@ -98,7 +143,8 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.True(newConfig.HasVBucketMapChanged(oldConfig));
+        Assert.True(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
+        Assert.False(emptyVBucketMap);
     }
 
     [Fact]
@@ -500,18 +546,18 @@ public class BucketConfigExtensionTests
 
         var bucket = CreateBucket(configA);
         Assert.Equal(configA, bucket.CurrentConfig);
-        Assert.True(configA.HasVBucketMapChanged(null));
+        Assert.True(configA.HasVBucketMapChanged(null, out _));
         Assert.True(configA.HasClusterNodesChanged(null));
 
         await bucket.ConfigUpdatedAsync(configB);
         Assert.Equal(configB, bucket.CurrentConfig);
-        Assert.True(configB.HasVBucketMapChanged(configA));
+        Assert.True(configB.HasVBucketMapChanged(configA, out _));
         Assert.True(configB.HasClusterNodesChanged(configA));
 
         await bucket.ConfigUpdatedAsync(configC);
         Assert.Equal(configC, bucket.CurrentConfig);
-        Assert.True(configC.HasVBucketMapChanged(configB));
-        Assert.True(configC.HasVBucketMapChanged(configB));
+        Assert.True(configC.HasVBucketMapChanged(configB, out _));
+        Assert.True(configC.HasVBucketMapChanged(configB, out _));
     }
 
     CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig)

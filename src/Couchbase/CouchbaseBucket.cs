@@ -96,6 +96,7 @@ namespace Couchbase
                         newConfig = _tempConfig;
                     }
 
+                    bool anyChanges = false;
                     if (newConfig.ConfigVersion > CurrentConfig?.ConfigVersion)
                     {
                         IKeyMapper? newKeymapper = null;
@@ -122,39 +123,55 @@ namespace Couchbase
                                 newKeymapper =
                                     _vBucketKeyMapperFactory
                                         .Create(newConfig); //force the new revision as were on a new config
+                                anyChanges = true;
                             }
                             else
                             {
-                                if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
+                                if (newConfig.HasVBucketMapChanged(CurrentConfig, out var emptyVBucketMap) || newConfig.IgnoreRev)
                                 {
                                     Logger.LogDebug(LoggingEvents.ConfigEvent,
                                         "Updating VB key mapper for rev#{revision} on {bucketName}",
                                         newConfig.ConfigVersion, Name);
                                     newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
+                                    anyChanges = true;
+                                }
+
+                                if (emptyVBucketMap)
+                                {
+                                    Logger.LogInformation("Encountered bucket config with empty VBucketMap");
                                 }
                             }
                         }
 
                         //only accept the latest version if the processing was successful
-                        lock (_currentConfigLock)
+                        if (anyChanges)
                         {
-                            if (newKeymapper is not null)
+                            lock (_currentConfigLock)
                             {
-                                KeyMapper = newKeymapper;
-                            }
-
-                            if (newNodes is not null)
-                            {
-                                //update the local nodes collection
-                                Nodes.Clear();
-                                foreach (var clusterNode in newNodes)
+                                if (newKeymapper is not null)
                                 {
-                                    Nodes.Add(clusterNode);
+                                    KeyMapper = newKeymapper;
                                 }
-                            }
 
-                            CurrentConfig = newConfig;
-                            Logger.LogDebug(LoggingEvents.ConfigEvent,"Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.ConfigVersion);
+                                if (newNodes is not null)
+                                {
+                                    //update the local nodes collection
+                                    Nodes.Clear();
+                                    foreach (var clusterNode in newNodes)
+                                    {
+                                        Nodes.Add(clusterNode);
+                                    }
+                                }
+
+                                CurrentConfig = newConfig;
+                                Logger.LogDebug(LoggingEvents.ConfigEvent,
+                                    "Current revision for {bucketName} is rev#{revision}", Name,
+                                    CurrentConfig?.ConfigVersion);
+                            }
+                        }
+                        else
+                        {
+                            Logger.LogDebug(LoggingEvents.ConfigEvent, "BucketConfig processed, but no effective changes applied");
                         }
                     }
                 }
