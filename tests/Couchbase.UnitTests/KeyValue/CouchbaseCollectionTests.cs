@@ -235,7 +235,8 @@ namespace Couchbase.UnitTests.KeyValue
                     new TypedRedactor(RedactionLevel.None),
                     new HostEndpointWithPort("127.0.0.1", 11210),
                     new NodeAdapter(),
-                    NoopRequestTracer.Instance);
+                    NoopRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object);
 
                 await clusterNode.SendAsync(op, token).ConfigureAwait(false);
 

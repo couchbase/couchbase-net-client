@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
@@ -57,10 +58,11 @@ namespace Couchbase.Core
         private readonly string _remoteHostName;
         private string _bucketName = BucketConfig.GlobalBucketName;
         private IBucket _owner;
+        private readonly IOperationConfigurator _operationConfigurator;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            TypedRedactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer)
+            TypedRedactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -70,6 +72,7 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
+            _operationConfigurator = operationConfigurator;
             EndPoint = endPoint;
 
             try
@@ -101,17 +104,18 @@ namespace Couchbase.Core
             }
         }
 
-        public ClusterNode(ClusterContext context)
+        public ClusterNode(ClusterContext context, IOperationConfigurator operationConfigurator)
             : this(context, context.ServiceProvider.GetRequiredService<ObjectPool<OperationBuilder>>(),
-                context.ServiceProvider.GetRequiredService<CircuitBreaker>())
+                context.ServiceProvider.GetRequiredService<CircuitBreaker>(), operationConfigurator)
         {
         }
 
-        public ClusterNode(ClusterContext context, ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ILogger<ClusterNode> logger = null)
+        public ClusterNode(ClusterContext context, ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, IOperationConfigurator operationConfigurator, ILogger<ClusterNode> logger = null)
         {
             _context = context;
             _operationBuilderPool = operationBuilderPool;
             _circuitBreaker = circuitBreaker;
+            _operationConfigurator = operationConfigurator;
             _logger = logger;
         }
 
@@ -426,13 +430,16 @@ namespace Couchbase.Core
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
             using var configOp = new Config
             {
-                Transcoder = _context.GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
                 Span = rootSpan,
                 Timeout = _context.ClusterOptions.KvTimeout
             };
+
+            //This is necessary for compression
+            _operationConfigurator.Configure(configOp);
+            configOp.Transcoder = _context.GlobalTranscoder;
 
             //When bootstrapping this may be a node that had already bootstrapped against GCCCP
             //the server will try to dedup the config revision because the rev and epoch already
@@ -459,11 +466,20 @@ namespace Couchbase.Core
 
                 //Return back the config and swap any $HOST placeholders
                 var config = configOp.GetValue();
-                if (config != null)
+
+                if (config is not null)
                 {
                     config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
                     config.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
                 }
+                else if (configOp.Exception is not null)
+                {
+                    //If the config is null, but the response successful, then something happened
+                    //processing the packet body. In this case bubble it up so i t can  be addressed,
+                    //otherwise we'll just get a useless NRE later in the code.
+                    ExceptionDispatchInfo.Capture(configOp.Exception).Throw();
+                }
+
                 return config;
             }
             catch (OperationCanceledException ex)

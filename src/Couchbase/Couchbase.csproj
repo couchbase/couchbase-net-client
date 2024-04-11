@@ -56,6 +56,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Snappier" />
     <PackageReference Include="System.IO.Pipelines" />
     <PackageReference Include="System.Linq.Async" />
     <PackageReference Include="System.Text.Json" />

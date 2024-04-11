@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 using Couchbase.KeyValue;

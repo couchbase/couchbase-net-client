@@ -56,7 +56,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 {
                     Hostname = "127.0.0.1"
                 },
-                NoopRequestTracer.Instance)
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object)
             {
                 ErrorMap = errorMap
             };
@@ -118,7 +119,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 {
                     Hostname = "127.0.0.1"
                 },
-                NoopRequestTracer.Instance)
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object)
             {
                 ErrorMap = errorMap
             };

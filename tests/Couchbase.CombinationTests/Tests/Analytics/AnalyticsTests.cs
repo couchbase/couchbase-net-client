@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.CombinationTests.Fixtures;
 using Xunit;
 
 namespace Couchbase.CombinationTests.Tests.Query

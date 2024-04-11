@@ -4,5 +4,10 @@
     "username": "Administrator",
     "password": "password",
     "enableDnsSrvResolution":  false
+  },
+
+  "testSettings" : {
+    "useCompression": false,
+    "useLogging" : false
   }
 }

@@ -248,14 +248,14 @@ namespace Couchbase.Core.IO.Operations
         public TimeSpan Elapsed => _stopwatch.Elapsed;
 #endif
 
-        #endregion
-
-        #region Protected Properties
-
         /// <summary>
         /// Exception encountered when parsing data, if any.
         /// </summary>
-        protected Exception? Exception { get; set; }
+        public Exception? Exception { get; protected set; }
+
+        #endregion
+
+        #region Protected Properties
 
         /// <summary>
         /// Response data.

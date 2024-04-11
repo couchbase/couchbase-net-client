@@ -40,7 +40,8 @@ namespace Couchbase.UnitTests.Core
                     .Setup(x => x.Name)
                     .Returns("beer-sample");
 
-            var node1 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker())
+            var node1 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker(),
+                new Mock<IOperationConfigurator>().Object)
             {
                 Owner = beerSample.Object,
                 EndPoint = new HostEndpointWithPort("127.0.0.1", 10210)
@@ -50,7 +51,8 @@ namespace Couchbase.UnitTests.Core
             travelSample
                 .Setup(x => x.Name)
                 .Returns("travel-sample");
-            var node2 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker())
+            var node2 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker(),
+                new Mock<IOperationConfigurator>().Object)
             {
                 Owner = travelSample.Object,
                 EndPoint = new HostEndpointWithPort("127.0.0.1", 10210)
@@ -135,7 +137,8 @@ namespace Couchbase.UnitTests.Core
                 redactor: new(Couchbase.Core.Logging.RedactionLevel.None),
                 endPoint: new(hostname, 8091),
                 nodeAdapter: new() { Hostname = hostname},
-                tracer: new Couchbase.Core.Diagnostics.Tracing.NoopRequestTracer()
+                tracer: new Couchbase.Core.Diagnostics.Tracing.NoopRequestTracer(),
+                new Mock<IOperationConfigurator>().Object
                 )
             {
                 Owner = owner.Object,

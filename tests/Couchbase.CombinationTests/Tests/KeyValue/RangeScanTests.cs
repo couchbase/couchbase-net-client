@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.CombinationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
