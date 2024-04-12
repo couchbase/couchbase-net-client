@@ -35,11 +35,11 @@ namespace Couchbase.DataStructures
             {
                 try
                 {
-                    var result = await Collection.LookupInAsync(Key, builder => builder.Get("[-1]"))
+                    var result = await Collection.LookupInAsync(Key, builder => builder.Get("[0]"))
                         .ConfigureAwait(false);
                     var item = result.ContentAs<TValue>(0);
 
-                    await Collection.MutateInAsync(Key, builder => builder.Remove("[-1]"),
+                    await Collection.MutateInAsync(Key, builder => builder.Remove("[0]"),
                         options => options.Cas(result.Cas)).ConfigureAwait(false);
 
                     return item;
