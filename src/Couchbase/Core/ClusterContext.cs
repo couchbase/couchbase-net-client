@@ -312,7 +312,7 @@ namespace Couchbase.Core
         {
             if (ClusterOptions.ConnectionStringValue == null)
             {
-                throw new InvalidOperationException("ConnectionString has not been set.");
+                ThrowHelper.ThrowInvalidOperationException("ConnectionString has not been set.");
             }
 
             try
@@ -356,7 +356,7 @@ namespace Couchbase.Core
                 //defer throwing exceptions until all nodes have been tried.
                 //if this is non null that means and we haven't bootstrapped
                 //then bootstrapping has failed and we can throw the agg exception
-                List<Exception> exceptions = new List<Exception>();
+                List<ExceptionDispatchInfo> exceptions = null;
 
                 //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
                 foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
@@ -388,7 +388,7 @@ namespace Couchbase.Core
                         }
 
                         //ignore the exceptions since at least one node bootstrapped
-                        exceptions.Clear();
+                        exceptions?.Clear();
                     }
                     catch (Exception e)
                     {
@@ -407,7 +407,7 @@ namespace Couchbase.Core
                             server);
 
                         //hold on to the exception to create agg exception if none complete.
-                        exceptions.Add(e);
+                        (exceptions ??= []).Add(ExceptionDispatchInfo.Capture(e));
 
                         //skip to next endpoint and try again
                         continue;
@@ -466,18 +466,17 @@ namespace Couchbase.Core
                     }
                 }
 
-                if (exceptions?.Count > 0)
+                if (exceptions is { Count: > 0 })
                 {
                     //for backwards compatibility return an auth exception if one exists (logs will show others).
-                    var authException =
-                        exceptions.FirstOrDefault(e => e.GetType() == typeof(AuthenticationFailureException));
-                    if (authException != null)
-                    {
-                        ExceptionDispatchInfo.Capture(authException).Throw();
-                    }
+                    var authException = exceptions.FirstOrDefault(
+                        static e => e.SourceException.GetType() == typeof(AuthenticationFailureException));
+
+                    authException?.Throw();
 
                     //Not an auth exception but still cannot bootstrap so return all the exceptions
-                    throw new AggregateException("Bootstrapping has failed!", exceptions);
+                    throw new AggregateException("Bootstrapping has failed!",
+                        exceptions.Select(static p => p.SourceException));
                 }
             }
             finally

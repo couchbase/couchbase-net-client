@@ -469,17 +469,13 @@ namespace Couchbase.Core
                 //Return back the config and swap any $HOST placeholders
                 var config = configOp.GetValue();
 
+                // Propagate any exception that occurred during parsing, this prevents NREs later if config is null
+                configOp.Exception?.Throw();
+
                 if (config is not null)
                 {
                     config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
                     config.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
-                }
-                else if (configOp.Exception is not null)
-                {
-                    //If the config is null, but the response successful, then something happened
-                    //processing the packet body. In this case bubble it up so i t can  be addressed,
-                    //otherwise we'll just get a useless NRE later in the code.
-                    ExceptionDispatchInfo.Capture(configOp.Exception).Throw();
                 }
 
                 return config;

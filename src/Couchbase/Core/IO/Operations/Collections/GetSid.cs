@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 
 namespace Couchbase.Core.IO.Operations.Collections
 {
@@ -20,7 +21,7 @@ namespace Couchbase.Core.IO.Operations.Collections
                 }
                 catch (Exception e)
                 {
-                    Exception = e;
+                    Exception = ExceptionDispatchInfo.Capture(e);
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }

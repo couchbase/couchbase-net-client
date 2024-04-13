@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -251,7 +252,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Exception encountered when parsing data, if any.
         /// </summary>
-        public Exception? Exception { get; protected set; }
+        public ExceptionDispatchInfo? Exception { get; protected set; }
 
         #endregion
 

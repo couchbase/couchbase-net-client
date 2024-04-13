@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.EnhancedDurability
@@ -65,7 +66,7 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
                 }
                 catch (Exception e)
                 {
-                    Exception = e;
+                    Exception = ExceptionDispatchInfo.Capture(e);
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }

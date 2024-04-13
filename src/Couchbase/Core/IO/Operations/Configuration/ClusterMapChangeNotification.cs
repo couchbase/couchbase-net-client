@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Converters;
 
@@ -29,7 +30,7 @@ internal sealed class ClusterMapChangeNotification : OperationBase<BucketConfig>
             }
             catch (Exception e)
             {
-                Exception = e;
+                Exception = ExceptionDispatchInfo.Capture(e);
                 HandleClientError(e.Message, ResponseStatus.ClientFailure);
             }
         }

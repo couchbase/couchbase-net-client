@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.Utils;
 
@@ -55,7 +56,7 @@ namespace Couchbase.Core.IO.Operations
                 }
                 catch (Exception e)
                 {
-                    Exception = e;
+                    Exception = ExceptionDispatchInfo.Capture(e);
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }

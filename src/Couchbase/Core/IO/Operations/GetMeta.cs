@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using Couchbase.Core.IO.Converters;
 
 #nullable enable
@@ -34,7 +35,7 @@ namespace Couchbase.Core.IO.Operations
                 }
                 catch (Exception e)
                 {
-                    Exception = e;
+                    Exception = ExceptionDispatchInfo.Capture(e);
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }

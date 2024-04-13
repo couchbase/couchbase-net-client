@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -66,7 +67,7 @@ namespace Couchbase.Core.IO.Operations
                 }
                 catch (Exception e)
                 {
-                    Exception = e;
+                    Exception = ExceptionDispatchInfo.Capture(e);
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }
