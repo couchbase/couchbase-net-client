@@ -106,7 +106,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 // This is the outer span
                 var durationStr = SetEndTimeAndDuration();
 
-                SetAttribute(ThresholdTags.TotalDuration, durationStr);
+                SetAttribute(ThresholdTags.TotalDurationTag, durationStr);
 
                 _activity.Stop();
             }
@@ -120,7 +120,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                     {
                         var durationStr = SetEndTimeAndDuration();
 
-                        SetAttribute(ThresholdTags.EncodeDuration, durationStr);
+                        SetAttribute(ThresholdTags.EncodeDurationTag, durationStr);
 
                         _activity.Stop();
                         break;
@@ -130,7 +130,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                     {
                         var durationStr = SetEndTimeAndDuration();
 
-                        SetAttribute(ThresholdTags.DispatchDuration, durationStr);
+                        SetAttribute(ThresholdTags.DispatchDurationTag, durationStr);
 
                         _activity.Stop();
                         break;

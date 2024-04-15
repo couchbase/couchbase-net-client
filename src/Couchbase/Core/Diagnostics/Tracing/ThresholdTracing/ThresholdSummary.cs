@@ -87,10 +87,10 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             return new()
             {
                 //ThresholdSummary specific spans
-                total_duration_us = LastMicroseconds(activity, ThresholdTags.TotalDuration),
-                encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDuration),
-                last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDuration),
-                total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDuration),
+                total_duration_us = LastMicroseconds(activity, ThresholdTags.TotalDurationTag),
+                encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDurationTag),
+                last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDurationTag),
+                total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDurationTag),
                 timeout_ms = MillisecondsOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds),
 
                 //Basic OT tags

@@ -56,7 +56,7 @@ namespace Couchbase.Core.IO.Authentication.X509
         /// <remarks>
         /// This in-memory certificate does not work on .NET Framework (legacy) clients.
         /// </remarks>
-        internal static readonly string CapellaCaCertPem =
+        internal const string CapellaCaCertPem =
 @"-----BEGIN CERTIFICATE-----
 MIIDFTCCAf2gAwIBAgIRANLVkgOvtaXiQJi0V6qeNtswDQYJKoZIhvcNAQELBQAw
 JDESMBAGA1UECgwJQ291Y2hiYXNlMQ4wDAYDVQQLDAVDbG91ZDAeFw0xOTEyMDYy

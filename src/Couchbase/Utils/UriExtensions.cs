@@ -5,10 +5,10 @@ namespace Couchbase.Utils
 {
     internal static class UriExtensions
     {
-        public static string Http = "http";
-        public static string Https = "https";
+        public const string Http = "http";
+        public const string Https = "https";
 
-        public static string QueryPath = "/query/service";
+        public const string QueryPath = "/query/service";
         public const string AnalyticsPath = "/analytics/service";
 
         internal static Uri GetQueryUri(this NodeAdapter nodeAdapter, ClusterOptions clusterOptions)

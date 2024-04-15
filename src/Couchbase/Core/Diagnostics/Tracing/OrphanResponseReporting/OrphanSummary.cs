@@ -133,10 +133,10 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 ServiceType = LastValueOrNull(activity, OuterRequestSpans.Attributes.Service),
 
                 //ThresholdSummary specific spans
-                total_duration_us = LastMicroseconds(activity, ThresholdTags.TotalDuration),
-                encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDuration),
-                last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDuration),
-                total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDuration),
+                total_duration_us = LastMicroseconds(activity, ThresholdTags.TotalDurationTag),
+                encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDurationTag),
+                last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDurationTag),
+                total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDurationTag),
                 timeout_ms = LastMicroseconds(activity, InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds),
 
                 //Basic OT tags

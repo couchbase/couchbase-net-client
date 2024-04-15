@@ -21,8 +21,8 @@ namespace Couchbase.Core.IO.Authentication
     /// <seealso cref="ISaslMechanism" />
     internal class ScramShaMechanism : SaslMechanismBase
     {
-        private static readonly string ClientKey = "Client Key";
-        private static readonly int ShaByteLength = 20;
+        private const string ClientKey = "Client Key";
+        private const int ShaByteLength = 20;
         private readonly string _username;
         private readonly string _password;
 

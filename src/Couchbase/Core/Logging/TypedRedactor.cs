@@ -15,9 +15,9 @@ namespace Couchbase.Core.Logging
     /// </remarks>
     internal sealed class TypedRedactor
     {
-        private static readonly string _user = "ud";
-        private static readonly string _meta = "md";
-        private static readonly string _system = "sd";
+        private const string _user = "ud";
+        private const string _meta = "md";
+        private const string _system = "sd";
 
         public TypedRedactor(ClusterOptions options) : this(options.RedactionLevel)
         {

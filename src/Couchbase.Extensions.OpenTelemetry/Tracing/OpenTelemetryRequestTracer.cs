@@ -11,7 +11,7 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
 {
     public class OpenTelemetryRequestTracer : IRequestTracer
     {
-        internal static readonly string SourceName = "Couchbase.DotnetSdk.OpenTelemetryRequestTracer";
+        internal const string SourceName = "Couchbase.DotnetSdk.OpenTelemetryRequestTracer";
         private static readonly ActivitySource ActivitySource = new(SourceName, "1.0.0");
 
         // Shared instance of a NoopRequestSpan which refers to this tracer and is a root span with no parent
