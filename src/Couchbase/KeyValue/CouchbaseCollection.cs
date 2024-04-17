@@ -756,7 +756,7 @@ namespace Couchbase.KeyValue
                 }));
             }
 
-            var completed = TaskHelpers.WhenAnySuccessful(tasks);
+            var completed = TaskHelpers.WhenAnySuccessful(tasks, opts.Token);
             try
             {
                 await completed.ConfigureAwait(false);
@@ -1133,7 +1133,7 @@ namespace Couchbase.KeyValue
             tasks.AddRange(
                 vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
-            var firstCompleted = TaskHelpers.WhenAnySuccessful(tasks);
+            var firstCompleted = TaskHelpers.WhenAnySuccessful(tasks, options.TokenValue);
             try
             {
                 await firstCompleted.ConfigureAwait(false);
