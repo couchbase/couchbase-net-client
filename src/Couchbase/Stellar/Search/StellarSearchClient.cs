@@ -114,33 +114,41 @@ namespace Couchbase.Stellar.Search
                     //--------Declare and Initialise the 3 compound queries--------
                     Couchbase.Protostellar.Search.V1.DisjunctionQuery mustNot, should;
                     Couchbase.Protostellar.Search.V1.ConjunctionQuery must;
-                    mustNot = should = new Couchbase.Protostellar.Search.V1.DisjunctionQuery { Boost = coreQuery.MustNotQueries.BoostValue };
-                    must = new ConjunctionQuery { Boost = coreQuery.MustQueries.BoostValue };
 
-                    //--------Recurse to add converted queries to the above compound queries--------
-                    foreach (var q in coreQuery.MustQueries.AsReadOnly().Queries)
-                    {
-                        must.Queries.Add(QueryConverter(searchRequest, q));
-                    }
-
-                    foreach (var q in coreQuery.MustNotQueries.AsReadOnly().Queries)
-                    {
-                        mustNot.Queries.Add(QueryConverter(searchRequest, q));
-                    }
-
-                    foreach (var q in coreQuery.ShouldQueries.AsReadOnly().Queries)
-                    {
-                        should.Queries.Add(QueryConverter(searchRequest, q));
-                    }
-
-                    //--------Initialise BooleanQuery--------
                     protoQuery.BooleanQuery = new Couchbase.Protostellar.Search.V1.BooleanQuery
                     {
-                        Boost = query.BoostValue,
-                        Must = must,
-                        MustNot = mustNot,
-                        Should = should
+                        Boost = query.BoostValue
                     };
+
+                    if (coreQuery.ShouldQueries is not null)
+                    {
+                        should = new DisjunctionQuery() { Boost = coreQuery.ShouldQueries.BoostValue };
+                        foreach (var q in coreQuery.ShouldQueries.AsReadOnly().Queries)
+                        {
+                            should.Queries.Add(QueryConverter(searchRequest, q));
+                        }
+                        protoQuery.BooleanQuery.Should = should;
+                    }
+
+                    if (coreQuery.MustNotQueries is not null)
+                    {
+                        mustNot = new DisjunctionQuery(){ Boost = coreQuery.MustNotQueries.BoostValue };
+                        foreach (var q in coreQuery.MustNotQueries.AsReadOnly().Queries)
+                        {
+                            mustNot.Queries.Add(QueryConverter(searchRequest, q));
+                        }
+                        protoQuery.BooleanQuery.MustNot = mustNot;
+                    }
+
+                    if (coreQuery.MustQueries is not null)
+                    {
+                        must = new ConjunctionQuery() { Boost = coreQuery.MustQueries.BoostValue };
+                        foreach (var q in coreQuery.MustQueries.AsReadOnly().Queries)
+                        {
+                            must.Queries.Add(QueryConverter(searchRequest, q));
+                        }
+                        protoQuery.BooleanQuery.Must = must;
+                    }
                 }
                     break;
                 case Couchbase.Search.Queries.Compound.ConjunctionQuery query:
@@ -164,9 +172,9 @@ namespace Couchbase.Stellar.Search
                     var coreQuery = query.AsReadOnly();
                     protoQuery.DisjunctionQuery = new Couchbase.Protostellar.Search.V1.DisjunctionQuery
                     {
-                        Boost = query.BoostValue,
-                        Minimum = (uint)coreQuery.Min
+                        Boost = query.BoostValue
                     };
+                    if (coreQuery.Min.HasValue) protoQuery.DisjunctionQuery.Minimum = (uint)coreQuery.Min;
                     if (coreQuery.Queries != null)
                     {
                         foreach (var q in coreQuery.Queries)

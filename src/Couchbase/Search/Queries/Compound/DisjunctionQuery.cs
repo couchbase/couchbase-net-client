@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Couchbase.Core.Exceptions;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Compound
@@ -13,7 +14,7 @@ namespace Couchbase.Search.Queries.Compound
     /// <seealso cref="SearchQueryBase" />
     public class DisjunctionQuery : SearchQueryBase, IEnumerable<ISearchQuery>
     {
-        private int _min = 1;
+        private int? _min;
         private readonly List<ISearchQuery> _queries;
 
         public DisjunctionQuery(params ISearchQuery[] queries)
@@ -63,17 +64,20 @@ namespace Couchbase.Search.Queries.Compound
         {
             if (!_queries.Any())
             {
-                throw new InvalidOperationException("A DisjunctionQuery must have a least one child query!");
+                throw new InvalidArgumentException("A DisjunctionQuery must have a least one child query!");
             }
-
+            if (_min.HasValue && _min > _queries.Count)
+            {
+                throw new InvalidArgumentException($"The Disjunction query has fewer children than the configured minimum of {_min}");
+            }
             var json = base.Export();
-            json.Add(new JProperty("min", _min));
+            if (_min.HasValue) json.Add(new JProperty("min", _min));
             json.Add(new JProperty("disjuncts", new JArray(_queries.Select(x => x.Export()))));
 
             return json;
         }
 
-        public void Deconstruct(out int min, out IReadOnlyList<ISearchQuery> queries)
+        public void Deconstruct(out int? min, out IReadOnlyList<ISearchQuery> queries)
         {
             min = _min;
             queries = _queries;
@@ -81,11 +85,11 @@ namespace Couchbase.Search.Queries.Compound
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out int min, out IReadOnlyList<ISearchQuery> queries);
+            this.Deconstruct(out int? min, out IReadOnlyList<ISearchQuery> queries);
             return new ReadOnly(min, queries);
         }
 
-        public record ReadOnly(int Min, IReadOnlyList<ISearchQuery> Queries);
+        public record ReadOnly(int? Min, IReadOnlyList<ISearchQuery> Queries);
     }
 }
 

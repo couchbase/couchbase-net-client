@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-
+#nullable enable
 namespace Couchbase.Search.Queries.Compound
 {
     /// <summary>
@@ -11,9 +11,9 @@ namespace Couchbase.Search.Queries.Compound
     /// <seealso cref="SearchQueryBase" />
     public class BooleanQuery : SearchQueryBase
     {
-        private readonly ConjunctionQuery _mustQueries = new ConjunctionQuery();
-        private readonly DisjunctionQuery _shouldQueries = new DisjunctionQuery();
-        private readonly DisjunctionQuery _mustNotQueries = new DisjunctionQuery();
+        private ConjunctionQuery? _mustQueries;
+        private DisjunctionQuery? _shouldQueries;
+        private DisjunctionQuery? _mustNotQueries;
 
         /// <summary>
         /// Result documents must satisfy these queries.
@@ -22,6 +22,7 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public BooleanQuery Must(params ISearchQuery[] queries)
         {
+            _mustQueries ??= new();
             _mustQueries.And(queries);
             return this;
         }
@@ -33,6 +34,7 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public BooleanQuery Should(params ISearchQuery[] queries)
         {
+            _shouldQueries ??= new();
             _shouldQueries.Or(queries);
             return this;
         }
@@ -44,6 +46,7 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public BooleanQuery ShouldMin(int min)
         {
+            _shouldQueries ??= new();
             _shouldQueries.Min(min);
             return this;
         }
@@ -55,6 +58,7 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public BooleanQuery MustNot(params ISearchQuery[] queries)
         {
+            _mustNotQueries ??= new();
             _mustNotQueries.Or(queries);
             return this;
         }
@@ -63,21 +67,21 @@ namespace Couchbase.Search.Queries.Compound
         [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public override JObject Export()
         {
-            if (!_shouldQueries.Any() && !_mustNotQueries.Any() && !_mustQueries.Any())
+            if (_shouldQueries is null && _mustQueries is null && _mustNotQueries is null)
             {
                 throw new InvalidOperationException("A BooleanQuery must have a least one child query!");
             }
 
             var json = base.Export();
-            if (_mustQueries.Any())
+            if (_mustQueries?.Any() == true)
             {
                 json.Add(new JProperty("must", _mustQueries.Export()));
             }
-            if (_mustNotQueries.Any())
+            if (_mustNotQueries?.Any() == true)
             {
                 json.Add(new JProperty("must_not", _mustNotQueries.Export()));
             }
-            if (_shouldQueries.Any())
+            if (_shouldQueries?.Any() == true)
             {
                 json.Add(new JProperty("should", _shouldQueries.Export()));
             }
@@ -85,7 +89,7 @@ namespace Couchbase.Search.Queries.Compound
             return json;
         }
 
-        public void Deconstruct(out ConjunctionQuery mustQueries, out DisjunctionQuery shouldQueries, out DisjunctionQuery mustNotQueries)
+        public void Deconstruct(out ConjunctionQuery? mustQueries, out DisjunctionQuery? shouldQueries, out DisjunctionQuery? mustNotQueries)
         {
             mustQueries = _mustQueries;
             shouldQueries = _shouldQueries;
@@ -94,11 +98,11 @@ namespace Couchbase.Search.Queries.Compound
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out ConjunctionQuery mustQueries, out DisjunctionQuery shouldQueries, out DisjunctionQuery mustNotQueries);
+            this.Deconstruct(out ConjunctionQuery? mustQueries, out DisjunctionQuery? shouldQueries, out DisjunctionQuery? mustNotQueries);
             return new ReadOnly(mustQueries, shouldQueries, mustNotQueries);
         }
 
-        public record ReadOnly(ConjunctionQuery MustQueries, DisjunctionQuery ShouldQueries, DisjunctionQuery MustNotQueries);
+        public record ReadOnly(ConjunctionQuery? MustQueries, DisjunctionQuery? ShouldQueries, DisjunctionQuery? MustNotQueries);
     }
 }
 

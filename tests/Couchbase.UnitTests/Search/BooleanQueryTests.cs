@@ -81,7 +81,6 @@ namespace Couchbase.UnitTests.Search
             {
                 must_not = new
                 {
-                    min = 1,
                     disjuncts = new dynamic[]
                     {
                         new
@@ -108,7 +107,6 @@ namespace Couchbase.UnitTests.Search
             {
                 should = new
                 {
-                    min = 1,
                     disjuncts = new dynamic[]
                     {
                         new

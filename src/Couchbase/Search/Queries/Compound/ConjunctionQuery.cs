@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Couchbase.Core.Exceptions;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Compound
@@ -47,7 +48,7 @@ namespace Couchbase.Search.Queries.Compound
         {
             if (!_queries.Any())
             {
-                throw new InvalidOperationException("A ConjunctionQuery must have a least one child query!");
+                throw new InvalidArgumentException("A ConjunctionQuery must have a least one child query!");
             }
 
             var json = base.Export();

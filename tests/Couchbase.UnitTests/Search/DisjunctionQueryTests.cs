@@ -35,7 +35,6 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                min = 1,
                 disjuncts = new[]
                 {
                     new
