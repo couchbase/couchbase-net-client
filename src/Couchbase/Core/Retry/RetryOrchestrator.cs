@@ -9,30 +9,28 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
-using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Couchbase.Core.IO;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Core.Retry
 {
-    internal partial class RetryOrchestrator : IRetryOrchestrator
+    internal partial class RetryOrchestrator(
+        ILogger<RetryOrchestrator> logger,
+        TypedRedactor redactor)
+        : IRetryOrchestrator
     {
-        private readonly ILogger<RetryOrchestrator> _logger;
-        private readonly TypedRedactor _redactor;
-
-        public RetryOrchestrator(ILogger<RetryOrchestrator> logger, TypedRedactor redactor)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-        }
+        private readonly ILogger<RetryOrchestrator> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly TypedRedactor _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
         public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
             var token = request.Token;
-            CancellationTokenSource cts1 = null;
-            CancellationTokenSource cts2 = null;
+            CancellationTokenSource? cts1 = null;
+            CancellationTokenSource? cts2 = null;
 
             if (request.Timeout > TimeSpan.Zero)
             {
@@ -98,7 +96,8 @@ namespace Couchbase.Core.Retry
                                 var cappedDuration =
                                     request.Timeout.CappedDuration(duration.Value, stopwatch.Elapsed);
 
-                                LogCappedQueryDuration(request.ClientContextId, cappedDuration.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
+                                LogCappedQueryDuration(request.ClientContextId, cappedDuration.TotalMilliseconds,
+                                    stopwatch.ElapsedMilliseconds);
 
                                 try
                                 {
@@ -172,8 +171,7 @@ namespace Couchbase.Core.Retry
         {
             try
             {
-                var backoff = ControlledBackoff.Create();
-                Exception lastRetriedException = null;
+                Exception? lastRetriedException = null;
 
                 do
                 {
@@ -194,220 +192,97 @@ namespace Couchbase.Core.Retry
                         }
 
                         var status = await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
-                        if (status == ResponseStatus.Success
-                            || status == ResponseStatus.RangeScanComplete
-                            || status == ResponseStatus.RangeScanMore
-                            || status == ResponseStatus.SubDocSuccessDeletedDocument)
+                        switch (status, operation.OpCode)
                         {
-                            return status;
-                        }
+                            // Success cases
+                            case (ResponseStatus.Success or ResponseStatus.RangeScanComplete or ResponseStatus.RangeScanMore or ResponseStatus.SubDocSuccessDeletedDocument, _):
+                            //For ICouchbaseCollection.ExistsAsync so we do not need to throw and capture the exception
+                            case (ResponseStatus.KeyNotFound, OpCode.GetMeta):
+                            //sub-doc path failures for lookups are handled when the ContentAs() method is called.
+                            //so we simply return back to the caller and let it be handled later.
+                            case (ResponseStatus.SubDocMultiPathFailure or ResponseStatus.SubdocMultiPathFailureDeleted, OpCode.MultiLookup):
+                            case (ResponseStatus.KeyNotFound, OpCode.RangeScanCreate or OpCode.RangeScanCancel):
+                                return status;
 
-                        //For ICouchbaseCollection.ExistsAsync so we do not need to throw and capture the exception
-                        if (status == ResponseStatus.KeyNotFound && operation.OpCode == OpCode.GetMeta)
-                        {
-                            return status;
-                        }
+                            case (ResponseStatus.RangeScanCanceled, OpCode.RangeScanContinue or OpCode.RangeScanCancel):
+                            case (ResponseStatus.UnknownCollection, OpCode.RangeScanContinue or OpCode.RangeScanCreate):
+                                // Not sure what this does since we don't throw the exception?
+                                status.CreateException(CreateKeyValueErrorContext(bucket, operation, status), operation);
+                                break;
 
-                        //sub-doc path failures for lookups are handled when the ContentAs() method is called.
-                        //so we simply return back to the caller and let it be handled later.
-                        if ((status == ResponseStatus.SubDocMultiPathFailure ||
-                             status == ResponseStatus.SubdocMultiPathFailureDeleted)
-                            && operation.OpCode == OpCode.MultiLookup)
-                        {
-                            return status;
-                        }
-
-                        if (status == ResponseStatus.KeyNotFound &&
-                            (operation.OpCode is OpCode.RangeScanCreate or OpCode.RangeScanCancel))
-                        {
-                            return status;
-                        }
-
-                        if (status == ResponseStatus.RangeScanCanceled &&
-                            (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCancel))
-                        {
-                            var kvc = new KeyValueErrorContext
-                            {
-                                BucketName = bucket.Name,
-                                Cas = operation.Cas,
-                                ClientContextId = operation.ClientContextId,
-                                CollectionName = operation.CName,
-                                DispatchedFrom = operation.LastDispatchedFrom,
-                                DispatchedTo = operation.LastDispatchedTo,
-                                DocumentKey = operation.Key,
-                                Message = operation.LastErrorCode?.ToString(),
-                                OpCode = operation.OpCode
-                            };
-                            status.CreateException(kvc, operation);
-                        }
-
-                        if (status == ResponseStatus.UnknownCollection &&
-                            (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCreate))
-                        {
-                            var kvc = new KeyValueErrorContext
-                            {
-                                BucketName = bucket.Name,
-                                Cas = operation.Cas,
-                                ClientContextId = operation.ClientContextId,
-                                CollectionName = operation.CName,
-                                DispatchedFrom = operation.LastDispatchedFrom,
-                                DispatchedTo = operation.LastDispatchedTo,
-                                DocumentKey = operation.Key,
-                                Message = operation.LastErrorCode?.ToString(),
-                                OpCode = operation.OpCode
-                            };
-                            status.CreateException(kvc, operation);
-                        }
-
-                        if (status.IsRetriable(operation) || operation.RetryNow())
-                        {
-                            if (status == ResponseStatus.UnknownScope || status == ResponseStatus.UnknownCollection)
-                            {
+                            case (ResponseStatus.UnknownScope or ResponseStatus.UnknownCollection, _):
                                 // LogRefreshingCollectionId(e);
                                 if (!await RefreshCollectionId(bucket, operation)
                                         .ConfigureAwait(false))
                                 {
                                     // rethrow if we fail to refresh the collection ID so we hit retry logic
                                     // otherwise we'll loop and retry immediately
-                                    operation.Reset();
-                                    operation.IncrementAttempts(status == ResponseStatus.UnknownScope
+                                    ResetAndIncrementAttempts(operation, status == ResponseStatus.UnknownScope
                                         ? RetryReason.ScopeNotFound
                                         : RetryReason.CollectionNotFound);
                                     continue;
                                 }
-                            }
-                            else if (status == ResponseStatus.EConfigOnly)
-                            {
+
+                                break;
+
+                            case (ResponseStatus.EConfigOnly, _):
                                 //If EConfigOnly is returned by the server. We force a config check
                                 //to ensure that the config is not stale. See NCBC-3492/CBD-5609
                                 await bucket.ForceConfigUpdateAsync().ConfigureAwait(false);
-                            }
+                                break;
+                        }
 
-                            var reason = status.ResolveRetryReason();
-                            if (reason.AlwaysRetry())
+                        if (status.IsRetriable(operation) || operation.RetryNow())
+                        {
+                            if (await TryPrepareOperationForRetryAndWaitAsync(operation, status.ResolveRetryReason(), tokenPair)
+                                    .ConfigureAwait(false))
                             {
-                                LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason, operation.ConfigVersion);
-
-                                await backoff.Delay(operation).ConfigureAwait(false);
-
-                                // no need to reset op in this case as it was not actually sent
-                                if (reason != RetryReason.CircuitBreakerOpen)
-                                {
-                                    operation.Reset();
-                                }
-
-                                operation.IncrementAttempts(reason);
                                 continue;
                             }
-
-                            var strategy = operation.RetryStrategy;
-                            var action = strategy.RetryAfter(operation, reason);
-
-                            if (action.Retry || operation.RetryNow())
-                            {
-                                LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
-
-                                // Reset first so operation is not marked as sent if canceled during the delay
-                                operation.Reset();
-                                operation.IncrementAttempts(reason);
-
-                                await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
-                                    .ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
-                                {
-                                    return status;
-                                }
-
-                                throw status.CreateException(operation, bucket);
-                            }
                         }
-                        else
+
+                        // If we reach this point this is a failure, do not retry
+                        if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
                         {
-                            if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
-                            {
-                                return status;
-                            }
-
-                            //do not retry just raise the exception
-                            throw status.CreateException(operation, bucket);
+                            return status;
                         }
+                        throw status.CreateException(operation, bucket);
                     }
                     catch (CouchbaseException e) when (e is IRetryable && !tokenPair.IsCancellationRequested)
                     {
                         /*
-                         * Note this section is duplicate logic so we can the case when an exception is thrown
-                         * but the operation may be retried. There are only a few corner cases because most all
+                         * Note this section is duplicate logic so we can handle the case when an exception is thrown
+                         * but the operation may be retried. There are only a few corner cases because most
                          * of the cases are handled above in the try block.
                          */
-                        var reason = e.ResolveRetryReason();
-                        if (reason.AlwaysRetry())
+
+                        if (!await TryPrepareOperationForRetryAndWaitAsync(operation, e.ResolveRetryReason(), tokenPair)
+                                .ConfigureAwait(false))
                         {
-                            lastRetriedException = e;
-                            LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason, operation.ConfigVersion);
-
-                            await backoff.Delay(operation).ConfigureAwait(false);
-                            // no need to reset op in this case as it was not actually sent
-                            if (reason != RetryReason.CircuitBreakerOpen)
-                            {
-                                operation.Reset();
-                            }
-
-                            operation.IncrementAttempts(reason);
-                            continue;
-                        }
-
-                        var strategy = operation.RetryStrategy;
-                        var action = strategy.RetryAfter(operation, reason);
-                        if (action.Retry)
-                        {
-                            lastRetriedException = e;
-                            LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
-                            // Reset first so operation is not marked as sent if canceled during the delay
-                            operation.Reset();
-                            operation.IncrementAttempts(reason);
-
-                            await backoff.Delay(operation).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            throw; //don't retry
+                            // Not retrying, rethrow the exception
+                            throw;
                         }
                     }
                 } while (true);
             }
             catch (OperationCanceledException ex) when (!tokenPair.IsExternalCancellation)
             {
+                var errorContext = CreateKeyValueErrorContext(bucket, operation, ResponseStatus.OperationTimeout);
+
                 if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
                 {
                     // Not a true timeout. May execute if an operation is in flight while things are shutting down.
-                    ThrowHelper.ThrowFalseTimeoutException(operation);
+                    ThrowHelper.ThrowFalseTimeoutException(operation, errorContext);
                 }
 
                 MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
-                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor, new KeyValueErrorContext
-                {
-                    BucketName = operation.BucketName,
-                    ClientContextId = operation.Opaque.ToStringInvariant(),
-                    DocumentKey = operation.Key,
-                    Cas = operation.Cas,
-                    Status = ResponseStatus.OperationTimeout,
-                    CollectionName = operation.CName,
-                    ScopeName = operation.SName,
-                    OpCode = operation.OpCode,
-                    DispatchedFrom = operation.LastDispatchedFrom,
-                    DispatchedTo = operation.LastDispatchedTo,
-                    RetryReasons = operation.RetryReasons
-                });
+                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor, errorContext);
+                return default; // unreachable
             }
             finally
             {
                 operation.StopRecording();
             }
-
-            return ResponseStatus.Failure;//what to do here?
         }
 
         // protected internal for a unit test seam
@@ -440,6 +315,68 @@ namespace Couchbase.Core.Retry
             return false;
         }
 
+        // Attempts to prepare an operation to be retried based on the retry reason and strategy. If the operation
+        // should not be retried, returns false.
+        private async Task<bool> TryPrepareOperationForRetryAndWaitAsync(IOperation operation, RetryReason reason,
+            CancellationTokenPair tokenPair)
+        {
+            var forceRetry = reason.AlwaysRetry();
+            var action = forceRetry
+                ? new RetryAction(ControlledBackoff.CalculateBackoffCore(operation))
+                : operation.RetryStrategy.RetryAfter(operation, reason);
+            if (action.Retry || operation.RetryNow())
+            {
+                if (forceRetry)
+                {
+                    LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason,
+                        operation.ConfigVersion);
+                }
+                else
+                {
+                    LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
+                }
+
+                // Reset first so operation is not marked as sent if canceled during the delay
+                ResetAndIncrementAttempts(operation, reason);
+
+                await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
+                    .ConfigureAwait(false);
+                return true;
+            }
+
+            // Do not retry
+            return false;
+        }
+
+        private static void ResetAndIncrementAttempts(IOperation operation, RetryReason reason)
+        {
+            // Reset first so operation is not marked as sent if canceled during the delay
+            // no need to reset op if the circuit breaker is open as it was not actually sent
+            if (reason != RetryReason.CircuitBreakerOpen)
+            {
+                operation.Reset();
+            }
+
+            operation.IncrementAttempts(reason);
+        }
+
+        private static KeyValueErrorContext CreateKeyValueErrorContext(BucketBase bucket, IOperation operation, ResponseStatus status) =>
+            new()
+            {
+                BucketName = bucket.Name,
+                Cas = operation.Cas,
+                Status = status,
+                ClientContextId = operation.ClientContextId,
+                ScopeName = operation.SName,
+                CollectionName = operation.CName,
+                DispatchedFrom = operation.LastDispatchedFrom,
+                DispatchedTo = operation.LastDispatchedTo,
+                DocumentKey = operation.Key,
+                Message = operation.LastErrorCode?.ToString(),
+                OpCode = operation.OpCode,
+                RetryReasons = operation.RetryReasons,
+            };
+
         #region Logging
 
         [LoggerMessage(1, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and always retry using configVersion: {configVersion}.")]
@@ -449,7 +386,7 @@ namespace Couchbase.Core.Retry
         private partial void LogRetryDueToDuration(uint opaque, Redacted<string> key, RetryReason reason);
 
         [LoggerMessage(LoggingEvents.QueryEvent, LogLevel.Debug, "Retrying query {clientContextId}/{statement} because {reason}.")]
-        private partial void LogRetryQuery(string clientContextId, Redacted<string> statement, RetryReason reason);
+        private partial void LogRetryQuery(string? clientContextId, Redacted<string?> statement, RetryReason reason);
 
         [LoggerMessage(100, LogLevel.Information, "Updating stale manifest for collection and retrying.")]
         private partial void LogRefreshingCollectionId(Exception ex);
@@ -462,10 +399,10 @@ namespace Couchbase.Core.Retry
 
         [LoggerMessage(300, LogLevel.Debug,
             "Timeout for {clientContextId} is {timeout} and duration is {duration} and elapsed is {elapsed}")]
-        private partial void LogQueryDurations(string clientContextId, double timeout, double duration, long elapsed);
+        private partial void LogQueryDurations(string? clientContextId, double timeout, double duration, long elapsed);
 
         [LoggerMessage(301, LogLevel.Debug, "Timeout for {clientContextId} capped duration is {duration} and elapsed is {elapsed}")]
-        private partial void LogCappedQueryDuration(string clientContextId, double duration, long elapsed);
+        private partial void LogCappedQueryDuration(string? clientContextId, double duration, long elapsed);
 
         #endregion
     }

@@ -87,6 +87,7 @@ namespace Couchbase.Utils
             return value;
         }
 
+        [DoesNotReturn]
         public static void ThrowTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
         {
             var message = $"The {operation.OpCode} operation {operation.Opaque}/{redactor.UserData(operation.Key)} timed out after {operation.Elapsed}. " +
@@ -106,22 +107,9 @@ namespace Couchbase.Utils
             };
         }
 
-        public static void ThrowFalseTimeoutException(IOperation operation)
+        [DoesNotReturn]
+        public static void ThrowFalseTimeoutException(IOperation operation, KeyValueErrorContext errorContext)
         {
-            var errorContext = new KeyValueErrorContext
-            {
-                DispatchedFrom = operation.LastDispatchedFrom,
-                DispatchedTo = operation.LastDispatchedTo,
-                DocumentKey = operation.Key,
-                ClientContextId = operation.ClientContextId,
-                Cas = operation.Cas,
-                BucketName = operation.BucketName,
-                CollectionName = operation.CName,
-                ScopeName = operation.SName,
-                OpCode = operation.OpCode,
-                RetryReasons = operation.RetryReasons
-            };
-
             errorContext.Message = $"The Operation ({operation.OpCode}) was incomplete, and its Lifetime ({operation.Elapsed.TotalSeconds}s) is inferior to its Timeout ({operation.Timeout.TotalSeconds}s) value.";
             throw new CouchbaseException(errorContext);
         }

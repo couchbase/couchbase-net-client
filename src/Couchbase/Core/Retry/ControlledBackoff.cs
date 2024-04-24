@@ -10,7 +10,9 @@ namespace Couchbase.Core.Retry
             return Task.Delay(CalculateBackoff(request), request.Token);
         }
 
-        public TimeSpan CalculateBackoff(IRequest request)
+        public TimeSpan CalculateBackoff(IRequest request) => CalculateBackoffCore(request);
+
+        internal static TimeSpan CalculateBackoffCore(IRequest request)
         {
             switch (request.Attempts)
             {
