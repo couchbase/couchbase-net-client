@@ -118,7 +118,9 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucketConfig.NetworkResolution == NetworkResolution.Auto || bucketConfig.NetworkResolution == NetworkResolution.External)
             {
-                return string.Compare(nodeExt.Hostname, nodeExt.AlternateAddresses[Couchbase.NetworkResolution.External].Hostname, StringComparison.InvariantCultureIgnoreCase) != 0;
+                return string.Compare(nodeExt.Hostname,
+                    nodeExt.AlternateAddresses[NetworkResolution.External].Hostname,
+                    StringComparison.InvariantCultureIgnoreCase) != 0 || nodeExt.HasAlternateAddress;
             }
 
             //It's a custom configuration being used - try it.
@@ -134,8 +136,8 @@ namespace Couchbase.Core.Configuration.Server
         {
             if (UseAlternateAddress)
             {
-                var networkResolution = bucketConfig.NetworkResolution == Couchbase.NetworkResolution.Auto
-                    ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
+                var networkResolution = bucketConfig.NetworkResolution == NetworkResolution.Auto
+                    ? NetworkResolution.External : bucketConfig.NetworkResolution;
 
                 var hostname = nodeExt.AlternateAddresses[networkResolution].Hostname;
                 _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using alternate mapping {nodeExt.Hostname} to {hostname} - rev {bucketConfig.ConfigVersion}.";
@@ -150,8 +152,8 @@ namespace Couchbase.Core.Configuration.Server
         {
             if (UseAlternateAddress)
             {
-                var networkResolution = bucketConfig.NetworkResolution == Couchbase.NetworkResolution.Auto
-                    ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
+                var networkResolution = bucketConfig.NetworkResolution == NetworkResolution.Auto
+                    ? NetworkResolution.External : bucketConfig.NetworkResolution;
 
                 var ports = nodeExt.AlternateAddresses[networkResolution].Ports;
                 if (ports != null)

@@ -297,7 +297,6 @@ namespace Couchbase.Core.Configuration.Server
                     }
                     //We detect internal or "default" should be used
                     NetworkResolution = options.EffectiveNetworkResolution = Couchbase.NetworkResolution.Default;
-                    return;
                 }
                 else
                 {
@@ -468,7 +467,7 @@ namespace Couchbase.Core.Configuration.Server
                 {
                     var alternateAddress = nodeExt.AlternateAddresses[NetworkResolution];
                     var port = alternateAddress.Ports.Kv > 0 ? alternateAddress.Ports.Kv : alternateAddress.Ports.KvSsl;
-                    VBucketServerMap.ServerList[i] = alternateAddress.Hostname + ":" + port;
+                    VBucketServerMap.ServerList[i] = $"{alternateAddress.Hostname}:{port}";
                 }
             }
         }

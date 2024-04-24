@@ -34,6 +34,36 @@ namespace Couchbase.UnitTests.Core
             _output = output;
         }
 
+        [Theory]
+        [InlineData(@"Documents\Configs\config-localhost-alt-addresses-8093.json", 8093)]
+        [InlineData(@"Documents\Configs\config-localhost-alt-addresses-5555.json", 5555)]
+        public void Use_Alternate_Address_Query_Port(string configPath, int expectedPort)
+        {
+            // Arrange
+
+            var config = ResourceHelper.ReadResource(configPath, InternalSerializationContext.Default.BucketConfig);
+            var options = new ClusterOptions
+            {
+                NetworkResolution = NetworkResolution.External
+            };
+            config.SetEffectiveNetworkResolution(options);
+
+            var nodeAdapter = new NodeAdapter(null, config.NodesExt.First(), config);
+            var clusterNode = CreateMockedNode("localhost", 11210, nodeAdapter);
+
+            var context = new ClusterContext();
+            context.AddNode(clusterNode);
+
+            // Act
+
+            var serviceUriProvider = new ServiceUriProvider(context);
+            var uri = serviceUriProvider.GetRandomQueryUri();
+
+            //Assert
+
+            Assert.Equal(expectedPort, uri.Port);
+        }
+
         [Fact]
         public void PruneNodes_Removes_Rebalanced_Node()
         {
@@ -57,7 +87,7 @@ namespace Couchbase.UnitTests.Core
             Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Equals(removed));
         }
 
-        private IClusterNode CreateMockedNode(string hostname, int port)
+        private IClusterNode CreateMockedNode(string hostname, int port, NodeAdapter nodeAdapter = null)
         {
             var mockConnectionPool = new Mock<IConnectionPool>();
 
@@ -66,6 +96,12 @@ namespace Couchbase.UnitTests.Core
                 .Setup(m => m.Create(It.IsAny<ClusterNode>()))
                 .Returns(mockConnectionPool.Object);
 
+            nodeAdapter ??= new NodeAdapter
+            {
+                Hostname = hostname,
+                KeyValue = port
+            };
+
             var clusterNode = new ClusterNode(new ClusterContext(), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
@@ -73,11 +109,7 @@ namespace Couchbase.UnitTests.Core
                 new Mock<ISaslMechanismFactory>().Object,
                 new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort(hostname, port),
-                new NodeAdapter
-                {
-                    Hostname = hostname,
-                    KeyValue = port
-                },
+                nodeAdapter,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object
             )

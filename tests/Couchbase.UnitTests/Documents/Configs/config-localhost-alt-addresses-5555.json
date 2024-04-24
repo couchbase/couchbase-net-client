@@ -1,0 +1,77 @@
+{
+  "rev": 49323,
+  "nodesExt": [
+    {
+      "services": {
+        "backupAPI": 8097,
+        "backupAPIHTTPS": 18097,
+        "backupGRPC": 9124,
+        "capi": 8092,
+        "capiSSL": 18092,
+        "cbas": 8095,
+        "cbasSSL": 18095,
+        "eventingAdminPort": 8096,
+        "eventingDebug": 9140,
+        "eventingSSL": 18096,
+        "fts": 8094,
+        "ftsGRPC": 9130,
+        "ftsGRPCSSL": 19130,
+        "ftsSSL": 18094,
+        "indexAdmin": 9100,
+        "indexHttp": 9102,
+        "indexHttps": 19102,
+        "indexScan": 9101,
+        "indexStreamCatchup": 9104,
+        "indexStreamInit": 9103,
+        "indexStreamMaint": 9105,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "projector": 9999
+      },
+      "thisNode": true,
+      "alternateAddresses": {
+        "external": {
+          "hostname": "localhost",
+          "ports": {
+            "mgmt": 8091,
+            "kv": 11210,
+            "projector": 9999,
+            "n1ql": 5555,
+            "indexAdmin": 9100,
+            "indexScan": 9101,
+            "indexHttp": 9102,
+            "indexStreamInit": 9103,
+            "indexStreamCatchup": 9104,
+            "indexStreamMaint": 9105,
+            "fts": 8094,
+            "ftsGRPC": 9130,
+            "capi": 8092
+          }
+        }
+      }
+    }
+  ],
+  "revEpoch": 1,
+  "clusterCapabilitiesVer": [
+    1,
+    0
+  ],
+  "clusterCapabilities": {
+    "n1ql": [
+      "costBasedOptimizer",
+      "indexAdvisor",
+      "javaScriptFunctions",
+      "inlineFunctions",
+      "enhancedPreparedStatements",
+      "readFromReplica"
+    ],
+    "search": [
+      "vectorSearch",
+      "scopedSearchIndex"
+    ]
+  }
+}
