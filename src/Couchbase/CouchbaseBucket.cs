@@ -72,6 +72,11 @@ namespace Couchbase
         private BucketConfig _tempConfig = new ();
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
+            if (!string.Equals(newConfig.Name, this.Name, StringComparison.InvariantCulture))
+            {
+                return;
+            }
+
             var shouldPublish = false;
             lock (_currentConfigLock)
             {

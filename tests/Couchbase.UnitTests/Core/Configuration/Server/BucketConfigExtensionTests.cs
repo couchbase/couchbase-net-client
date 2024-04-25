@@ -542,6 +542,62 @@ public class BucketConfigExtensionTests
         };
         configC.OnDeserialized();
 
+        var configD = new BucketConfig
+        {
+            Rev = 4,
+            Name = "someOtherBucket",
+            Nodes = new List<Node>
+            {
+                new()
+                {
+                    Hostname = "nodeB:8091",
+                    CouchApiBase = "http://nodeB:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                }
+            },
+            NodesExt = new List<NodesExt>
+            {
+                new()
+                {
+                    Hostname = "nodeA",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                },
+                new()
+                {
+                    Hostname = "nodeB",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                }
+            },
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                ServerList = new []{"nodeA:11210", "nodeB:11210"},
+                VBucketMap = new[]
+                {
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                }
+            }
+        };
+        configD.OnDeserialized();
         #endregion
 
         var bucket = CreateBucket(configA);
@@ -558,6 +614,10 @@ public class BucketConfigExtensionTests
         Assert.Equal(configC, bucket.CurrentConfig);
         Assert.True(configC.HasVBucketMapChanged(configB, out _));
         Assert.True(configC.HasVBucketMapChanged(configB, out _));
+
+        // should skip a config belonging to the wrong bucket
+        await bucket.ConfigUpdatedAsync(configD);
+        Assert.Equal(configC, bucket.CurrentConfig);
     }
 
     CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig)

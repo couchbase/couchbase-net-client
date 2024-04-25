@@ -72,6 +72,11 @@ namespace Couchbase
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
+            if (!string.Equals(newConfig.Name, this.Name, StringComparison.InvariantCulture))
+            {
+                return;
+            }
+
             using var cts = new CancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
             try
