@@ -126,19 +126,20 @@ namespace Couchbase.Core.IO.HTTP
 #else
             var handler = new SocketsHttpHandler();
 
+            X509Certificate2Collection? certs = null;
             //for x509 cert authentication
             if (_context.ClusterOptions.X509CertificateFactory != null)
             {
                 handler.SslOptions.EnabledSslProtocols = _context.ClusterOptions.EnabledSslProtocols;
 
-                var certificates = _context.ClusterOptions.X509CertificateFactory.GetCertificates();
-                handler.SslOptions.ClientCertificates = certificates;
+                certs = _context.ClusterOptions.X509CertificateFactory.GetCertificates();
+                handler.SslOptions.ClientCertificates = certs;
 
                 // This emulates the behavior of HttpClientHandler in Manual mode, which selects the first certificate
                 // from the list which is eligible for use as a client certificate based on having a private key and
                 // the correct key usage flags.
                 handler.SslOptions.LocalCertificateSelectionCallback =
-                    (_, _, _, _, _) => GetClientCertificate(certificates)!;
+                    (_, _, _, _, _) => GetClientCertificate(certs)!;
             }
 
             // We don't need to check for unsupported platforms here, because this code path only applies to recent
@@ -156,6 +157,12 @@ namespace Couchbase.Core.IO.HTTP
                         && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors))
                     {
                         return true;
+                    }
+
+                    if (certs != null)
+                    {
+                        var customCertsCallback = CertificateFactory.GetValidatorWithPredefinedCertificates(certs, _logger, _redactor);
+                        return customCertsCallback(sender, certificate, chain, sslPolicyErrors);
                     }
 
                     var callback = CertificateFactory.GetValidatorWithDefaultCertificates(_logger, _redactor);
@@ -205,11 +212,7 @@ namespace Couchbase.Core.IO.HTTP
                 _logger.LogDebug(e, "Cannot set MaxConnectionsPerServer, not supported on this platform");
             }
 
-            var authenticatingHandler = _context.ClusterOptions.X509CertificateFactory == null
-                ? (HttpMessageHandler)new AuthenticatingHttpMessageHandler(handler, _context)
-                : handler;
-
-            return authenticatingHandler;
+            return new AuthenticatingHttpMessageHandler(handler, _context);
         }
 
 #if !NETCOREAPP3_1_OR_GREATER

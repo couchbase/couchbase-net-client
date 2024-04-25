@@ -139,9 +139,14 @@ namespace Couchbase.Core.IO.Connections
                             return true;
                         }
 
-                        var callback = CertificateFactory.GetValidatorWithDefaultCertificates(_sslLogger, _redactor);
+                        if (certs != null)
+                        {
+                            var customCertsCallback = CertificateFactory.GetValidatorWithPredefinedCertificates(certs, _sslLogger, _redactor);
+                            return customCertsCallback(sender, certificate, chain, sslPolicyErrors);
+                        }
 
-                        return callback(sender, certificate, chain, sslPolicyErrors);
+                        var defaultCallback = CertificateFactory.GetValidatorWithDefaultCertificates(_sslLogger, _redactor);
+                        return defaultCallback(sender, certificate, chain, sslPolicyErrors);
                     };
                 }
 
