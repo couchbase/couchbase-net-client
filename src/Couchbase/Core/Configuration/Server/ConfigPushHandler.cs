@@ -50,11 +50,6 @@ internal partial class ConfigPushHandler : IDisposable
                 ExecutionContext.RestoreFlow();
             }
         }
-
-        // Can this be done with only keeping track of "MaxPushedConfigVersion"?  Maybe, but not trivially.
-        // If it is fetched from another node, then GetClusterMap may return null.  If something then interfered
-        // with the other node fetching it, this node might never fetch it.
-        // TODO: investigate simpler MaxPushedConfigVersion approach.
     }
 
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
@@ -65,10 +60,10 @@ internal partial class ConfigPushHandler : IDisposable
             await _versionReceivedEvent.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                ConfigVersion pushedVersion;
                 var attempted = false;
                 do
                 {
+                    ConfigVersion pushedVersion;
                     lock (_lock)
                     {
                         // This lock prevents tearing of the ConfigVersion struct
@@ -127,8 +122,8 @@ internal partial class ConfigPushHandler : IDisposable
                             }
                             else
                             {
-                                _logger.LogDebug("Skipping the config version: {newVersion} < {currentVersion}",
-                                    newVersion, effectiveVersion);
+                                LogSkippingPush2(_redactor.SystemData(_bucket.Name), newVersion,
+                                    effectiveVersion.GetValueOrDefault());
                             }
                             ConfigVersion nextVersion;
                             ConfigVersion sentVersion;
@@ -140,20 +135,18 @@ internal partial class ConfigPushHandler : IDisposable
 
                             if (nextVersion > sentVersion)
                             {
-                                _logger.LogDebug("Trying again: the next version is {nextVersion} is greater the sent {sentVersion}", nextVersion, sentVersion);
+                                LogAttemptedButSkipped(nextVersion, sentVersion);
                                 attempted = true;
                             }
                         }
                         else
                         {
-                            _logger.LogDebug(
-                                "The server returned null for pushed version {pushedVersion} currentVersion: {currentVersion}",
-                                pushedVersion, effectiveVersion);
+                            LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
                         }
                     }
                     else
                     {
-                        _logger.LogDebug("The node was null for {configVersion}", effectiveVersion);
+                        LogNodeWasNull(effectiveVersion.GetValueOrDefault());
                     }
                 } while (attempted);
             }
@@ -220,20 +213,29 @@ internal partial class ConfigPushHandler : IDisposable
     [LoggerMessage(0, LogLevel.Debug, "{bucket} new config {pushedVersion} due to config push - old {currentVersion}")]
     private partial void LogConfigPublished(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion? currentVersion);
 
-    [LoggerMessage(1, LogLevel.Debug, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
+    [LoggerMessage(1, LogLevel.Trace, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
     private partial void LogSkippingPush(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
 
-    [LoggerMessage(5, LogLevel.Debug, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
-    private partial void LogSkippingPush2(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
-
-    [LoggerMessage(2, LogLevel.Debug, "Entered the semaphore to check pushedVersion {pushedVersion}")]
+    [LoggerMessage(2, LogLevel.Trace, "Entered the semaphore to check pushedVersion {pushedVersion}")]
     private partial void LogEnteredSemaphorePush(ConfigVersion pushedVersion);
 
-    [LoggerMessage(3, LogLevel.Debug, "The server pushed configVersion: {configVersion}")]
+    [LoggerMessage(3, LogLevel.Trace, "The server pushed configVersion: {configVersion}")]
     private partial void LogServerPushedVersion(ConfigVersion configVersion);
 
-    [LoggerMessage(4, LogLevel.Debug, "Updating the latest configVersion {latestVersion} to the {configVersion}")]
+    [LoggerMessage(4, LogLevel.Trace, "Updating the latest configVersion {latestVersion} to the {configVersion}")]
     private partial void LogUpdatedLatestVersion(ConfigVersion latestVersion, ConfigVersion configVersion);
+
+    [LoggerMessage(5, LogLevel.Trace, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
+    private partial void LogSkippingPush2(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
+
+    [LoggerMessage(6, LogLevel.Trace, "Trying again: the next version is {nextVersion} is greater the sent {sentVersion}")]
+    private partial void LogAttemptedButSkipped(ConfigVersion nextVersion, ConfigVersion sentVersion);
+
+    [LoggerMessage(7, LogLevel.Trace,"The server returned null for pushed version {pushedVersion} currentVersion: {effectiveVersion}")]
+    private partial void LogServerReturnedNullConfig(ConfigVersion pushedVersion, ConfigVersion effectiveVersion);
+
+    [LoggerMessage(8, LogLevel.Trace, "The node was null for {effectiveVersion}")]
+    private partial void LogNodeWasNull(ConfigVersion effectiveVersion);
 }
 
 /* ************************************************************
