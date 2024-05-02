@@ -78,7 +78,7 @@ namespace Couchbase.Query
                     return new IndexNotFoundException(context);
 
                 if (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
-                    error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                    error.Message.Contains("already exist", StringComparison.OrdinalIgnoreCase))
                     return new IndexExistsException(context);
 
                 if (error.Code >= 5000 && error.Code < 6000) return new InternalServerFailureException(context);
