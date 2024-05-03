@@ -10,8 +10,6 @@ namespace Couchbase.Core.IO.Connections.Channels
     [StructLayout(LayoutKind.Auto)]
     internal readonly struct ChannelQueueItem
     {
-        private static ContextCallback? SendCallbackDelegate;
-
         public IOperation Operation { get; }
         public CancellationToken CancellationToken { get; }
 
@@ -46,8 +44,6 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // There is a captured ExecutionContext, execute the operation on the captured context.
                 // The state management is hand-coded instead of using a closure. This avoids allocating
                 // both a delegate and a closure for each call, instead only allocating the state object.
-
-                SendCallbackDelegate ??= SendCallback;
 
                 var sendState = new SendState(Operation, connection);
                 ExecutionContext.Run(CapturedContext, SendCallback, sendState);

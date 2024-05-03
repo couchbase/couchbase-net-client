@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -378,6 +379,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
         #region Depth Stack
 
+        [StructLayout(LayoutKind.Auto)]
         private readonly record struct PathStateItem(string Path, int? ArrayIndex = null);
 
         /// <summary>
@@ -385,6 +387,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// The strings for previous paths that lead to the current property or array item
         /// are stored in the layers of the stack to reduce string allocations as we navigate.
         /// </summary>
+        [StructLayout(LayoutKind.Auto)]
         private readonly struct PathState
         {
             private readonly Stack<PathStateItem> _stack = new(16);
@@ -530,6 +533,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             }
         }
 
+        [StructLayout(LayoutKind.Auto)]
         private struct JsonBuffer : IDisposable
         {
             public byte[] Buffer;
@@ -537,7 +541,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             public int UsedBytes;
             public bool IsStreamComplete;
 
-            public ReadOnlySpan<byte> CurrentSegment => Buffer.AsSpan(Offset, UsedBytes);
+            public readonly ReadOnlySpan<byte> CurrentSegment => Buffer.AsSpan(Offset, UsedBytes);
 
             public JsonBuffer(int bufferSize)
             {

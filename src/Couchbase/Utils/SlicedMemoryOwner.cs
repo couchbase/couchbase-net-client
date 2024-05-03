@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 #nullable enable
 
@@ -26,6 +27,7 @@ namespace Couchbase.Utils
     /// While this structure does implement <see cref="IMemoryOwner{T}"/>, casting to the interface
     /// should be avoided as it will cause boxing.
     /// </remarks>
+    [StructLayout(LayoutKind.Auto)]
     internal readonly struct SlicedMemoryOwner<T> : IMemoryOwner<T>, IEquatable<SlicedMemoryOwner<T>>
     {
         private readonly int _start;

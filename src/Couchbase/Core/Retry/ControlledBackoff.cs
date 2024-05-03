@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Core.Retry
 {
-    public struct ControlledBackoff : IBackoffCalculator
+    public readonly struct ControlledBackoff : IBackoffCalculator
     {
         public Task Delay(IRequest request)
         {

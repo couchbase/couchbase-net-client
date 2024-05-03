@@ -1,8 +1,10 @@
 using System;
+using System.Runtime.InteropServices;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
+    [StructLayout(LayoutKind.Auto)]
     public struct Flags
     {
         public DataFormat DataFormat { get; set; }
@@ -35,7 +37,7 @@ namespace Couchbase.Core.IO.Operations
         /// Write flags to a buffer. The buffer must be at least 4 bytes long.
         /// </summary>
         /// <param name="buffer">The buffer to receive the flags.</param>
-        internal void Write(Span<byte> buffer)
+        internal readonly void Write(Span<byte> buffer)
         {
             if (buffer.Length < 4)
             {

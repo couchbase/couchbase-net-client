@@ -7,9 +7,9 @@ namespace Couchbase.Query
     /// Component of a scan vector supplied in query request as part of RYOW.
     /// </summary>
     [JsonConverter(typeof(ScanVectorComponentJsonConverter))]
-    internal struct ScanVectorComponent
+    internal readonly struct ScanVectorComponent
     {
-        public long SequenceNumber { get; set; }
-        public long VBucketUuid { get; set; }
+        public long SequenceNumber { get; init; }
+        public long VBucketUuid { get; init; }
     }
 }

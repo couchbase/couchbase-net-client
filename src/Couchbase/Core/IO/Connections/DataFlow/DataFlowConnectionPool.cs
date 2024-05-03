@@ -472,10 +472,10 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         }
 
         [StructLayout(LayoutKind.Auto)]
-        private struct QueueItem
+        private readonly struct QueueItem
         {
-            public IOperation Operation { get; set; }
-            public CancellationToken CancellationToken { get; set; }
+            public IOperation Operation { get; init; }
+            public CancellationToken CancellationToken { get; init; }
         }
     }
 }

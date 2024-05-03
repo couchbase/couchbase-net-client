@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    internal struct FramingExtraInfo
+    internal readonly struct FramingExtraInfo
     {
 
         public FramingExtraInfo(RequestFramingExtraType type, byte length)

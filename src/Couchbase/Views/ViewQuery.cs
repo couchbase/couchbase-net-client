@@ -70,7 +70,7 @@ namespace Couchbase.Views
         /// </value>
         public string? ViewName { get; private set; }
 
-        private struct QueryArguments
+        private static class QueryArguments
         {
             public const string Descending = "descending";
             public const string EndKey = "endkey";

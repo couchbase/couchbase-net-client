@@ -1,10 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.Retry
 {
-    public struct ExponentialBackoff : IBackoffCalculator
+    public readonly struct ExponentialBackoff : IBackoffCalculator
     {
         private readonly int _maxRetries;
         private readonly int _delayMillis;

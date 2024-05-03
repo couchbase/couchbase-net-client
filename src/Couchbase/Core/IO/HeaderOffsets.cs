@@ -3,7 +3,7 @@ namespace Couchbase.Core.IO
     /// <remarks>
     /// See http://code.google.com/p/memcached/wiki/BinaryProtocolRevamped#Packet_Structure
     /// </remarks>
-    internal struct HeaderOffsets
+    internal static class HeaderOffsets
     {
         public const byte MagicValue = 0x81;
 

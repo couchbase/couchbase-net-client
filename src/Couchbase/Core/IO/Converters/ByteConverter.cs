@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Converters
         #region Private helpers
 
         private static T Read<T>(ReadOnlySpan<byte> src, bool useNbo)
-            where T: struct
+            where T: unmanaged
         {
             if (useNbo)
             {

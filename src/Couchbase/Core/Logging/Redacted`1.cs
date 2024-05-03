@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 #nullable enable
 
@@ -20,6 +21,7 @@ namespace Couchbase.Core.Logging
     /// There are some cases where generated C# logging methods use string interpolation to build the log message.
     /// </para>
     /// </remarks>
+    [StructLayout(LayoutKind.Auto)]
     internal readonly struct Redacted<T>
 #if NET6_0_OR_GREATER
         : ISpanFormattable

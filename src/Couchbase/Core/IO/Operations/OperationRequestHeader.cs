@@ -1,18 +1,21 @@
+using System.Runtime.InteropServices;
+
 namespace Couchbase.Core.IO.Operations
 {
-    internal struct OperationRequestHeader
+    [StructLayout(LayoutKind.Auto)]
+    internal readonly struct OperationRequestHeader
     {
         public const int Length = 24;
 
-        public OpCode OpCode { get; set; }
+        public OpCode OpCode { get; init; }
 
-        public uint Opaque { get; set; }
+        public uint Opaque { get; init; }
 
-        public ulong Cas { get; set; }
+        public ulong Cas { get; init; }
 
-        public short? VBucketId { get; set; }
+        public short? VBucketId { get; init; }
 
-        public DataType DataType { get; set; }
+        public DataType DataType { get; init; }
     }
 }
 

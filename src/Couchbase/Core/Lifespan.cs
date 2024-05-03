@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Couchbase.Core
 {
@@ -13,7 +13,7 @@ namespace Couchbase.Core
         /// <value>
         /// The creation time.
         /// </value>
-        public DateTime CreationTime { get; set; }
+        public DateTime CreationTime { readonly get; set; }
 
         /// <summary>
         /// True if the operation has timed out.
@@ -26,7 +26,7 @@ namespace Couchbase.Core
         /// <value>
         /// The duration.
         /// </value>
-        public uint Duration { get; set; }
+        public uint Duration { readonly get; set; }
 
         /// <summary>
         /// Checks if the operation has exceeded it's duration; if it has it is flagged as timedout.
