@@ -139,7 +139,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
         #endregion
 
-        #region TryRemove
+        #region TryGet
 
         [Theory]
         [InlineData(0)]
@@ -166,38 +166,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Assert
 
             Assert.True(result);
-            Assert.Equal(state, stateMatch.State);
+            Assert.Equal(state, stateMatch);
             Assert.Equal((int) extraStates + 1, set.Count);
-        }
-
-        [Theory]
-        [InlineData(0)]
-        [InlineData(7)]
-        public async Task TryGet_InSet_GetsAndCanBeRemoved(uint extraStates)
-        {
-            // Arrange
-
-            uint opaque = extraStates;
-            var state = MakeState(opaque);
-
-            using var set = new InFlightOperationSet(8, TimeSpan.FromSeconds(75));
-            for (uint i = 0; i < extraStates; i++)
-            {
-                await set.AddAsync(MakeState(i));
-            }
-
-            await set.AddAsync(state);
-
-            // Act
-
-            var result = set.TryGet(opaque, out var stateMatch);
-            stateMatch.Remove();
-
-            // Assert
-
-            Assert.True(result);
-            Assert.Equal(state, stateMatch.State);
-            Assert.Equal((int) extraStates, set.Count);
         }
 
         [Fact]

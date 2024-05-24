@@ -31,15 +31,22 @@ namespace Couchbase
         /// <summary>
         /// Maximum number of operations which may be sent and still awaiting a response from the server
         /// per connection. This value may need tuning on high latency connections or based on average
-        /// operation response size. Defaults to 8 operations per connection.
+        /// operation response size. Defaults to 16 operations per connection.
         /// </summary>
         /// <remarks>
-        /// Note that this is not directly limiting the total number of in-flight operations, each bucket
-        /// and each node gets a dedicated pool of connections that scale based on the minimum and
-        /// maximum pool size. This limit is per connection.
+        /// <para>
+        ///     Note that this is not directly limiting the total number of in-flight operations, each bucket
+        ///     and each node gets a dedicated pool of connections that scale based on the minimum and
+        ///     maximum pool size. This limit is per connection.
+        /// </para>
+        /// <para>
+        ///     This limit only applies to operations sent on the wire and awaiting a response.
+        ///     Operations waiting to be retried do not count against this limit. Operations being encoded or
+        ///     decoded also do not count towards this limit.
+        /// </para>
         /// </remarks>
         [InterfaceStability(Level.Volatile)]
-        public int MaximumInFlightOperationsPerConnection { get; set; } = 8;
+        public int MaximumInFlightOperationsPerConnection { get; set; } = 16;
 
         /// <summary>
         /// If enabled, HTTP responses such as query responses will be streamed after response headers

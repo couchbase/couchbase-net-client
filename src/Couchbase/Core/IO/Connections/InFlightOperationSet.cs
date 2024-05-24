@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +20,7 @@ namespace Couchbase.Core.IO.Connections
         // of a dictionary and allows lock-free operations using Interlocked. However, a ConcurrentDictionary may outperform
         // this approach if the maximum is large due to the cost of iterating the list. If we find the need for large maximums
         // we should reevaluate the approach.
-        private readonly AsyncStateBase?[] _statesInFlight;
+        private readonly ConcurrentDictionary<uint, AsyncStateBase> _statesInFlight = new();
 
         // Limits the number of in-flight operations in a non-blocking manner. Operations should be added to the collection only
         // after waiting on the semaphore and operations should be removed from the collection before releasing the semaphore.
@@ -70,7 +72,6 @@ namespace Couchbase.Core.IO.Connections
             Timeout = timeout;
             CleanupInterval = cleanupInterval ?? TimeSpan.FromSeconds(30);
 
-            _statesInFlight = new AsyncStateBase?[maximumOperations];
             _semaphore = new SemaphoreSlim(maximumOperations);
 
             bool restoreFlow = false;
@@ -108,30 +109,12 @@ namespace Couchbase.Core.IO.Connections
 
             await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            var added = false;
-            try
+            if (!_statesInFlight.TryAdd(state.Opaque, state))
             {
-                // The semaphore ensures we have room, now find the first node in the list that is currently null
-                // in a lock-free manner
-                for (var i = 0; i < _statesInFlight.Length; i++)
-                {
-                    var previousValue = Interlocked.CompareExchange(ref _statesInFlight[i], state, null);
-                    if (previousValue is null)
-                    {
-                        added = true;
-                        break;
-                    }
-                }
-            }
-            finally
-            {
-                if (!added)
-                {
-                    // This path shouldn't happen because of the semaphore, but we'll check just to be safe
-                    _semaphore.Release();
-                    ThrowHelper.ThrowInvalidOperationException(
-                        "Unable to add AsyncState to InFlightOperationSet, semaphore is out of sync.");
-                }
+                // This shouldn't happen, but if for some reason the Opaque was already added,
+                // release the semaphore so we don't leak.
+
+                _semaphore.Release();
             }
         }
 
@@ -143,46 +126,24 @@ namespace Couchbase.Core.IO.Connections
         /// <returns>True if the operation was found.</returns>
         public bool TryRemove(uint opaque, [NotNullWhen(true)] out AsyncStateBase? state)
         {
-            for (var i = 0; i < _statesInFlight.Length; i++)
+            var removed = _statesInFlight.TryRemove(opaque, out state);
+
+            if (removed)
             {
-                var possibleMatch = Volatile.Read(ref _statesInFlight[i]);
-                if (possibleMatch?.Opaque == opaque)
-                {
-                    // We found a possible match, try to remove it in a thread-safe way
-                    if (Interlocked.CompareExchange(ref _statesInFlight[i], null, possibleMatch) == possibleMatch)
-                    {
-                        _semaphore.Release();
-                        state = possibleMatch;
-                        return true;
-                    }
-                }
+                _semaphore.Release();
             }
 
-            state = null;
-            return false;
+            return removed;
         }
 
         /// <summary>
         /// Try to get an operation from the set.
         /// </summary>
         /// <param name="opaque">Opaque identifier of the operation to get.</param>
-        /// <param name="stateMatch">The operation state, if found, with information necessary to remove it.</param>
+        /// <param name="state">The operation state, if found.</param>
         /// <returns>True if the operation was found.</returns>
-        public bool TryGet(uint opaque, out StateMatch stateMatch)
-        {
-            for (var i = 0; i < _statesInFlight.Length; i++)
-            {
-                var possibleMatch = Volatile.Read(ref _statesInFlight[i]);
-                if (possibleMatch?.Opaque == opaque)
-                {
-                    stateMatch = new StateMatch(this, possibleMatch, i);
-                    return true;
-                }
-            }
-
-            stateMatch = default;
-            return false;
-        }
+        public bool TryGet(uint opaque, [NotNullWhen(true)] out AsyncStateBase? state) =>
+            _statesInFlight.TryGetValue(opaque, out state);
 
         /// <summary>
         /// Wait for all currently in flight operations to complete.
@@ -200,13 +161,9 @@ namespace Couchbase.Core.IO.Connections
             }
 
             List<Task> completionTasks = new(Count);
-            for (var i = 0; i < _statesInFlight.Length; i++)
+            foreach (var state in _statesInFlight.Values)
             {
-                var state = Volatile.Read(ref _statesInFlight[i]);
-                if (state is not null)
-                {
-                    completionTasks.Add(state.CompletionTask);
-                }
+                completionTasks.Add(state.CompletionTask);
             }
 
             var allStatesTask = Task.WhenAll(completionTasks);
@@ -243,17 +200,14 @@ namespace Couchbase.Core.IO.Connections
                         continue;
                     }
 
-                    for (var i = 0; i < _statesInFlight.Length; i++)
+                    foreach (var state in _statesInFlight.Values)
                     {
-                        var state = Volatile.Read(ref _statesInFlight[i]);
-                        if (state?.TimeInFlight > Timeout)
+                        if (state.TimeInFlight > Timeout)
                         {
-                            // Remove the state in a thread-safe manner
-                            var removedState = Interlocked.CompareExchange(ref _statesInFlight[i], null, state);
-                            if (ReferenceEquals(state, removedState))
+                            if (TryRemove(state.Opaque, out var removedState))
                             {
-                                _semaphore.Release();
-                                state.Dispose();
+                                Debug.Assert(ReferenceEquals(state, removedState));
+                                removedState.Dispose();
                             }
                         }
                     }
@@ -276,46 +230,10 @@ namespace Couchbase.Core.IO.Connections
 
             _semaphore.Dispose();
 
-            for (var i = 0; i < _statesInFlight.Length; i++)
+            foreach (var state in _statesInFlight.Values)
             {
-                // free up all states in flight
-                var state = Interlocked.Exchange(ref _statesInFlight[i], null);
-                if (state is not null)
-                {
-                    state.Complete(SlicedMemoryOwner<byte>.Empty);
-                    state.Dispose();
-                }
-            }
-        }
-
-        public readonly struct StateMatch
-        {
-            public InFlightOperationSet OperationSet { get; }
-            public AsyncStateBase State { get; }
-            public int Index { get; }
-
-            public StateMatch(InFlightOperationSet operationSet, AsyncStateBase state, int index)
-            {
-                OperationSet = operationSet;
-                State = state;
-                Index = index;
-            }
-
-            /// <summary>
-            /// Remove the State from the operation set if it is still present.
-            /// </summary>
-            public void Remove()
-            {
-                if (State is null)
-                {
-                    // Just in case this is the zero-init default StateMatch
-                    return;
-                }
-
-                if (Interlocked.CompareExchange(ref OperationSet._statesInFlight[Index], null, State) == State)
-                {
-                    OperationSet._semaphore.Release();
-                }
+                state.Complete(SlicedMemoryOwner<byte>.Empty);
+                state.Dispose();
             }
         }
     }

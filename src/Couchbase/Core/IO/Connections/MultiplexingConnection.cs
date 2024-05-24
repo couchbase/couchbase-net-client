@@ -231,11 +231,11 @@ namespace Couchbase.Core.IO.Connections
                                 var opaque =
                                     ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque),
                                         false);
-                                if (_statesInFlight.TryGet(opaque, out var stateMatch))
+                                if (_statesInFlight.TryGet(opaque, out var state))
                                 {
-                                    if (stateMatch.State.Complete(in operationResponse))
+                                    if (state.Complete(in operationResponse))
                                     {
-                                        stateMatch.Remove();
+                                        _statesInFlight.TryRemove(opaque, out _);
                                     }
                                 }
                                 else
