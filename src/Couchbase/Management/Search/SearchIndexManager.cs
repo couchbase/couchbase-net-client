@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -364,6 +363,8 @@ namespace Couchbase.Management.Search
 
         public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions? options = null, IScope? scope = null)
         {
+            CheckVectorSearchSupport(indexDefinition);
+
             options ??= UpsertSearchIndexOptions.Default;
             var baseUri = GetIndexUri(scope, indexDefinition.Name);
             _logger.LogInformation("Trying to upsert index with name {indexDefinition.Name} - {baseUri}",
@@ -413,6 +414,61 @@ namespace Couchbase.Management.Search
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
             }
+        }
+
+        private void CheckVectorSearchSupport(SearchIndex index)
+        {
+            if (ContainsVectorMappings(index))
+            {
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
+                    "Indexes containing vector mappings are only available from Couchbase Server 7.6.0 and above, with at least one search node.");
+            }
+        }
+
+        private static bool ContainsVectorMappings(SearchIndex index)
+        {
+            var json = JObject.Parse(JsonConvert.SerializeObject(index));
+            var typesObject = json.SelectToken("params.mapping.types");
+            if (typesObject != null)
+            {
+                foreach (var typesProperty in ((JObject)typesObject).Properties())
+                {
+                    if (((JObject)typesProperty.Value).TryGetValue("properties", out var props))
+                    {
+                        using var enumerator = ((JObject)props).Properties().GetEnumerator();
+                        return RecurseInnerProperties(enumerator);
+                    }
+                }
+            }
+            return false;
+        }
+        private static bool RecurseInnerProperties(IEnumerator<JProperty> innerProperties)
+        {
+            while (innerProperties.MoveNext())
+            {
+                var element = innerProperties.Current;
+                if (((JObject)element!.Value).TryGetValue("fields", out var fields))
+                {
+                    foreach (var jToken in (JArray)fields)
+                    {
+                        var field = (JObject)jToken;
+                        if (field.TryGetValue("type", out var typeValue))
+                        {
+                            if (typeValue.ToString().StartsWith("vector", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                else if (((JObject)element.Value).TryGetValue("properties", out var innerProps))
+                {
+                    return RecurseInnerProperties(((JObject)innerProps).Properties().GetEnumerator());
+                }
+
+                return false;
+            }
+            return false;
         }
     }
 }

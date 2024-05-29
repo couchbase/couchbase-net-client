@@ -1,13 +1,12 @@
 #nullable enable
 using System.Collections.Generic;
-using System.Linq;
 using Couchbase.Core.Compatibility;
 using Stj = System.Text.Json.Serialization;
 using NSft = Newtonsoft.Json;
 
 namespace Couchbase.Search.Queries.Vector;
 
-[InterfaceStability(Level.Volatile)]
+[InterfaceStability(Level.Committed)]
 public sealed record VectorSearch(
     [property: Stj.JsonPropertyName(VectorSearch.PropVectorQueries)]
     [property: NSft.JsonProperty(VectorSearch.PropVectorQueries)]
@@ -32,10 +31,10 @@ public sealed record VectorSearch(
         new VectorSearch(vectorQueries, options);
 }
 
-[InterfaceStability(Level.Volatile)]
+[InterfaceStability(Level.Committed)]
 public sealed record VectorSearchOptions(VectorQueryCombination? VectoryQueryCombination = null);
 
-[InterfaceStability(Level.Volatile)]
+[InterfaceStability(Level.Committed)]
 public enum VectorQueryCombination
 {
     And = 0,

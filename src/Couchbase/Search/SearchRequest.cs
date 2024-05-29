@@ -10,7 +10,7 @@ namespace Couchbase.Search;
 /// <summary>
 /// A top-level SearchRequest, encompassing all Search sub-request types, including FTS and VectorSearch.
 /// </summary>
-[InterfaceStability(Level.Volatile)]
+[InterfaceStability(Level.Committed)]
 public sealed record SearchRequest(ISearchQuery? SearchQuery = null, VectorSearch? VectorSearch = null)
 {
     public static SearchRequest Create(ISearchQuery searchQuery) => new SearchRequest(SearchQuery: searchQuery);
