@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
@@ -93,7 +94,7 @@ internal partial class ConfigPushHandler : IDisposable
                         }
                     }
 
-                    var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv && !x.IsDead);
+                    var node = _bucket.Nodes.RandomOrDefault(x => x.HasKv && !x.IsDead);
                     if (node != null)
                     {
                         BucketConfig bucketConfig = null;
@@ -107,6 +108,7 @@ internal partial class ConfigPushHandler : IDisposable
                         {
                             attempted = true;
                             _logger.LogWarning("Socket closed on {EndPoint} retrying on next available node", node.EndPoint);
+                            await Task.Yield();
                         }
 
                         if (bucketConfig != null)
