@@ -651,10 +651,15 @@ namespace Couchbase.Views
 
         public sealed override void StopRecording()
         {
+            StopRecording(null);
+        }
+
+        public sealed override void StopRecording(Type? errorType)
+        {
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Views.TrackOperation(this, Stopwatch.Elapsed);
+                MetricTracker.Views.TrackOperation(this, Stopwatch.Elapsed, errorType);
             }
         }
     }

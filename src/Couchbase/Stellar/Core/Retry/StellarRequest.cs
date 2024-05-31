@@ -22,7 +22,13 @@ public class StellarRequest : IRequest
     public CancellationToken Token { get; set; }
     public string? ClientContextId { get; set; }
     public string? Statement { get; set; }
+
     public void StopRecording()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void StopRecording(Type? errorType)
     {
         throw new NotImplementedException();
     }

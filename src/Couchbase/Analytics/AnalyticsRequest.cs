@@ -36,10 +36,15 @@ namespace Couchbase.Analytics
 
         public sealed override void StopRecording()
         {
+            StopRecording(null);
+        }
+
+        public sealed override void StopRecording(Type? errorType)
+        {
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Analytics.TrackOperation(this, Stopwatch.Elapsed);
+                MetricTracker.Analytics.TrackOperation(this, Stopwatch.Elapsed, errorType);
             }
         }
     }

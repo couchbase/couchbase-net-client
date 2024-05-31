@@ -555,6 +555,8 @@ namespace Couchbase.Core
             CancellationToken cancellationToken)
             where TOperation : class, IOperation
         {
+            Type outcomeErrorType = null;
+
             using var ctp = CancellationTokenPairSource.FromTimeout(
                 _context.ClusterOptions.KvTimeout, cancellationToken);
             try
@@ -567,12 +569,18 @@ namespace Couchbase.Core
             catch (OperationCanceledException ex) when (ctp.IsInternalCancellation)
             {
                 //Check to see if it was because of a "hung" socket which causes the token to timeout
-                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor);
-                return default; // unreachable
+                var timeoutException = ThrowHelper.CreateTimeoutException(operation, ex, _redactor);
+                outcomeErrorType = timeoutException.GetType();
+                throw timeoutException;
+            }
+            catch (Exception ex)
+            {
+                outcomeErrorType = ex.GetType();
+                throw;
             }
             finally
             {
-                operation.StopRecording();
+                operation.StopRecording(outcomeErrorType);
             }
         }
 
@@ -800,7 +808,7 @@ namespace Couchbase.Core
                             Transcoder = _context.GlobalTranscoder
                         };
                         clusterMapChangeNotificationOp.HandleOperationCompleted(operationResponse);
-                        MetricTracker.KeyValue.TrackOperation(clusterMapChangeNotificationOp, TimeSpan.Zero);
+                        MetricTracker.KeyValue.TrackOperation(clusterMapChangeNotificationOp, TimeSpan.Zero, errorType: null);
 
                         if (clusterMapChangeNotificationOp.HasExtras)
                         {
@@ -928,6 +936,7 @@ namespace Couchbase.Core
                 Span = parentSpan
             };
 
+            Type outcomeErrorType = null;
             try
             {
                 LogCircuitBreakerSendingCanary(_redactor.SystemData(ConnectionPool.EndPoint));
@@ -940,6 +949,8 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
+                outcomeErrorType = e.GetType();
+
                 if (_circuitBreaker.CompletionCallback(e))
                 {
                     LogCircuitBreakerCanaryFailed(e, _redactor.SystemData(ConnectionPool.EndPoint));
@@ -948,7 +959,7 @@ namespace Couchbase.Core
             }
             finally
             {
-                op.StopRecording();
+                op.StopRecording(outcomeErrorType);
             }
         }
 

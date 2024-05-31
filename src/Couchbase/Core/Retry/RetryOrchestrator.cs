@@ -47,6 +47,7 @@ namespace Couchbase.Core.Retry
                 }
             }
 
+            Type? outcomeErrorType = null;
             try
             {
                 //for measuring the capped duration
@@ -153,10 +154,15 @@ namespace Couchbase.Core.Retry
                     }
                 } while (true);
             }
+            catch (Exception ex)
+            {
+                outcomeErrorType = ex.GetType();
+                throw;
+            }
             finally
             {
                 //stop recording metrics and either return result or throw exception
-                request.StopRecording();
+                request.StopRecording(outcomeErrorType);
 
                 cts2?.Dispose();
 
@@ -169,6 +175,7 @@ namespace Couchbase.Core.Retry
 
         public async Task<ResponseStatus> RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default)
         {
+            Type? outcomeErrorType = null;
             try
             {
                 Exception? lastRetriedException = null;
@@ -244,6 +251,7 @@ namespace Couchbase.Core.Retry
                         // If we reach this point this is a failure, do not retry
                         if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
                         {
+                            outcomeErrorType = typeof(DocumentNotFoundException);
                             return status;
                         }
                         throw status.CreateException(operation, bucket);
@@ -272,16 +280,23 @@ namespace Couchbase.Core.Retry
                 if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
                 {
                     // Not a true timeout. May execute if an operation is in flight while things are shutting down.
+                    outcomeErrorType = typeof(CouchbaseException);
                     ThrowHelper.ThrowFalseTimeoutException(operation, errorContext);
                 }
 
                 MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
-                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor, errorContext);
-                return default; // unreachable
+                var timeoutException = ThrowHelper.CreateTimeoutException(operation, ex, _redactor, errorContext);
+                outcomeErrorType = timeoutException.GetType();
+                throw timeoutException;
+            }
+            catch (Exception ex)
+            {
+                outcomeErrorType = ex.GetType();
+                throw;
             }
             finally
             {
-                operation.StopRecording();
+                operation.StopRecording(outcomeErrorType);
             }
         }
 

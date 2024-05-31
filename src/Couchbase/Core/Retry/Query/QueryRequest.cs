@@ -11,14 +11,23 @@ namespace Couchbase.Core.Retry.Query
 
         public override bool Idempotent => Options.IsReadOnly;
 
+        #nullable enable
+
         public sealed override void StopRecording()
+        {
+            StopRecording(null);
+        }
+
+        public sealed override void StopRecording(Type? errorType)
         {
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.N1Ql.TrackOperation(this, Stopwatch.Elapsed);
+                MetricTracker.N1Ql.TrackOperation(this, Stopwatch.Elapsed, errorType);
             }
         }
+
+        #nullable restore
     }
 }
 

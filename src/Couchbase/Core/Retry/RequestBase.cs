@@ -36,6 +36,9 @@ namespace Couchbase.Core.Retry
         public abstract void StopRecording();
 
         /// <inheritdoc />
+        public virtual void StopRecording(Type? errorType) => StopRecording(); // Fallback behavior, should override in derived classes
+
+        /// <inheritdoc />
         [Obsolete("Unused, will be removed in a future version.")]
         public IValueRecorder Recorder
         {

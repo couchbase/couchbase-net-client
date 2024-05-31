@@ -5,6 +5,7 @@ using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry.Query;
@@ -100,7 +101,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(OperationBase operation, TimeSpan duration)
+            public static void TrackOperation(OperationBase operation, TimeSpan duration, Type? errorType)
             {
                 var tagList = new TagList
                 {
@@ -108,7 +109,8 @@ namespace Couchbase.Core.Diagnostics.Metrics
                     { OuterRequestSpans.Attributes.Operation, operation.OpCode.ToMetricTag() },
                     { OuterRequestSpans.Attributes.BucketName, operation.BucketName },
                     { OuterRequestSpans.Attributes.ScopeName, operation.SName },
-                    { OuterRequestSpans.Attributes.CollectionName, operation.CName }
+                    { OuterRequestSpans.Attributes.CollectionName, operation.CName },
+                    { OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType) },
                 };
 
                 Operations.Record(duration.ToMicroseconds(), tagList);
@@ -170,14 +172,18 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(QueryRequest queryRequest, TimeSpan duration) =>
-                Operations.Record(duration.ToMicroseconds(),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.N1QLQuery),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
-                        queryRequest.Options?.BucketName),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
-                        queryRequest.Options?.ScopeName));
+            public static void TrackOperation(QueryRequest queryRequest, TimeSpan duration, Type? errorType)
+            {
+                var tags = new TagList
+                {
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery),
+                    new(OuterRequestSpans.Attributes.BucketName, queryRequest.Options?.BucketName),
+                    new(OuterRequestSpans.Attributes.ScopeName, queryRequest.Options?.ScopeName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+
+                Operations.Record(duration.ToMicroseconds(), tags);
+            }
         }
 
         public static class Analytics
@@ -186,14 +192,18 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(AnalyticsRequest analyticsRequest, TimeSpan duration) =>
-                Operations.Record(duration.ToMicroseconds(),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.AnalyticsQuery),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
-                        analyticsRequest.Options?.BucketName),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
-                        analyticsRequest.Options?.ScopeName));
+            public static void TrackOperation(AnalyticsRequest analyticsRequest, TimeSpan duration, Type? errorType)
+            {
+                var tags = new TagList
+                {
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.AnalyticsQuery),
+                    new(OuterRequestSpans.Attributes.BucketName, analyticsRequest.Options?.BucketName),
+                    new(OuterRequestSpans.Attributes.ScopeName, analyticsRequest.Options?.ScopeName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+
+                Operations.Record(duration.ToMicroseconds(), tags);
+            }
         }
 
         public static class Search
@@ -202,12 +212,11 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(FtsSearchRequest searchRequest, TimeSpan duration) =>
+            public static void TrackOperation(FtsSearchRequest searchRequest, TimeSpan duration, Type? errorType) =>
                 Operations.Record(duration.ToMicroseconds(),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.SearchQuery),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.ScopeName,
-                        searchRequest.Options?.ScopeName));
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.SearchQuery),
+                    new(OuterRequestSpans.Attributes.ScopeName, searchRequest.Options?.ScopeName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType)));
         }
 
         public static class Views
@@ -216,12 +225,51 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration) =>
+            public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration, Type? errorType) =>
                 Operations.Record(duration.ToMicroseconds(),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.Service,
-                        OuterRequestSpans.ServiceSpan.ViewQuery),
-                    new KeyValuePair<string, object?>(OuterRequestSpans.Attributes.BucketName,
-                        viewQuery.BucketName));
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.ViewQuery),
+                    new(OuterRequestSpans.Attributes.BucketName, viewQuery.BucketName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType)));
+        }
+
+        // internal for unit testing
+        internal static string GetOutcome(Type? errorType)
+        {
+            if (errorType is null)
+            {
+                return "Success";
+            }
+
+            if (errorType == typeof(DocumentNotFoundException))
+            {
+                // Fast path for this common error type
+                return "DocumentNotFound";
+            }
+
+            var couchbaseException = typeof(CouchbaseException);
+            if (errorType == couchbaseException || !couchbaseException.IsAssignableFrom(errorType))
+            {
+                // In the case where this is not an inherited exception, say "Error" not "Couchbase".
+
+                // Also returns "Error" for non-Couchbase exceptions so metric cardinality is not increased
+                // for every possible .NET exception type. This can be revised in the future if necessary.
+
+                return "Error";
+            }
+
+            const string ExceptionSuffix = "Exception";
+
+            var outcome = errorType.Name;
+#if NET6_0_OR_GREATER
+            if (outcome.AsSpan().EndsWith(ExceptionSuffix)) // Faster comparison for .NET 6 and later
+#else
+            if (outcome.EndsWith(ExceptionSuffix, StringComparison.Ordinal))
+#endif
+            {
+                // Strip "Exception" from the end of the type name, matches the behavior of the Java SDK
+                outcome = outcome.Substring(0, outcome.Length - ExceptionSuffix.Length);
+            }
+            return outcome;
         }
     }
 }

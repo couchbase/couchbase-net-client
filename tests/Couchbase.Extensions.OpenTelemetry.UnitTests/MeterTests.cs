@@ -38,7 +38,7 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
 
             // Act
 
-            MetricTracker.KeyValue.TrackOperation(operation, TimeSpan.FromSeconds(1));
+            MetricTracker.KeyValue.TrackOperation(operation, TimeSpan.FromSeconds(1), null);
 
             // Give the exporter time
             await Task.Delay(100);

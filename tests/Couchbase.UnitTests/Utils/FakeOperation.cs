@@ -114,6 +114,10 @@ namespace Couchbase.UnitTests.Utils
         {
         }
 
+        public void StopRecording(Type errorType)
+        {
+        }
+
         public bool IsReadOnly { get; set; }
         public bool IsSent { get; private set; }
 

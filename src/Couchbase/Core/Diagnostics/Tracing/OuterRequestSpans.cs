@@ -54,6 +54,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
             /// The status code for an individual response from a couchbase node.
             /// </summary>
             public const string ResponseStatus = "db.couchbase.response.status";
+
+            /// <summary>
+            /// The outcome of the operation.
+            /// </summary>
+            public const string Outcome = "outcome";
         }
 
         /// <summary>

@@ -140,5 +140,10 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         {
             throw new NotImplementedException();
         }
+
+        public void StopRecording(Type errorType)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

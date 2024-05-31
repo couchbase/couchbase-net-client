@@ -90,18 +90,23 @@ namespace Couchbase.Utils
         [DoesNotReturn]
         public static void ThrowTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
         {
+            throw CreateTimeoutException(operation, innerException, redactor, context);
+        }
+
+        public static Exception CreateTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
+        {
             var message = $"The {operation.OpCode} operation {operation.Opaque}/{redactor.UserData(operation.Key)} timed out after {operation.Elapsed}. " +
                           $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}. The KvTimeout is {operation.Timeout}.";
 
             if (operation.IsSent && !operation.IsReadOnly)
             {
-                throw new AmbiguousTimeoutException(message, innerException)
+                return new AmbiguousTimeoutException(message, innerException)
                 {
                     Context = context
                 };
             }
 
-            throw new UnambiguousTimeoutException(message, innerException)
+            return new UnambiguousTimeoutException(message, innerException)
             {
                 Context = context
             };

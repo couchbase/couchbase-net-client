@@ -362,7 +362,7 @@ namespace Couchbase.UnitTests.Core.Retry
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () =>
                 await retryOrchestrator.RetryAsync(bucketMock.Object, op.Object, tokenPair.TokenPair));
 
-            op.Verify(x => x.StopRecording(), Times.Once);
+            op.Verify(x => x.StopRecording(It.IsAny<Type>()), Times.Once);
         }
 
         [Theory]

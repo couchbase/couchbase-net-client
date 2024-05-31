@@ -761,7 +761,10 @@ namespace Couchbase.Core.IO.Operations
         #region Tracing and Metrics
 
         /// <inheritdoc />
-        public virtual void StopRecording()
+        public virtual void StopRecording() => StopRecording(null);
+
+        /// <inheritdoc />
+        public virtual void StopRecording(Type? errorType)
         {
             // Just in case, make sure we don't record the same operation twice
 #if NET8_0_OR_GREATER
@@ -783,7 +786,7 @@ namespace Couchbase.Core.IO.Operations
             var elapsed = _stopwatch.Elapsed;
 #endif
 
-            MetricTracker.KeyValue.TrackOperation(this, elapsed);
+            MetricTracker.KeyValue.TrackOperation(this, elapsed, errorType);
         }
         #endregion
 

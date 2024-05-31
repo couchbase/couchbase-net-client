@@ -34,14 +34,23 @@ namespace Couchbase.Core.Retry.Search
             return json;
         }
 
+        #nullable enable
+
         public sealed override void StopRecording()
+        {
+            StopRecording(null);
+        }
+
+        public sealed override void StopRecording(Type? errorType)
         {
             if (Stopwatch != null)
             {
                 Stopwatch.Stop();
-                MetricTracker.Search.TrackOperation(this, Stopwatch.Elapsed);
+                MetricTracker.Search.TrackOperation(this, Stopwatch.Elapsed, errorType);
             }
         }
+
+        #nullable restore
     }
 }
 

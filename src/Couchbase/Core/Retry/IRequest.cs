@@ -42,6 +42,13 @@ namespace Couchbase.Core.Retry
         /// </summary>
         void StopRecording();
 
+        void StopRecording(Type? errorType)
+#if NET6_0_OR_GREATER
+            => StopRecording(); // Default implementation for .NET 6.0 and later where DIMs are supported
+#else
+            ;
+#endif
+
         /// <summary>
         /// A <see cref="IValueRecorder"/> instance for measuring latencies.
         /// </summary>
