@@ -260,27 +260,11 @@ namespace Couchbase.Core
                 Span = childSpan
             };
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
-            try
-            {
-                await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
-
-                return new ErrorMap(errorMapOp.GetValue());
-            }
-            catch (OperationCanceledException ex)
-            {
-                //Check to see if it was because of a "hung" socket which causes the token to timeout
-                if (ctp.IsInternalCancellation)
-                {
-                    ThrowHelper.ThrowTimeoutException(errorMapOp, ex, _redactor);
-                }
-
-                throw;
-            }
-            finally
-            {
-                errorMapOp.StopRecording();
-            }
+            return await ExecuteInternalOperationAsync(connection, errorMapOp,
+                ExecuteOp,
+                static (_, op) => new ErrorMap(op.GetValue()),
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public async Task HelloHello()
@@ -364,27 +348,11 @@ namespace Couchbase.Core
                 Span = childSpan,
             };
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
-            try
-            {
-                await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
-
-                return heloOp.GetValue();
-            }
-            catch (OperationCanceledException ex)
-            {
-                //Check to see if it was because of a "hung" socket which causes the token to timeout
-                if (ctp.IsInternalCancellation)
-                {
-                    ThrowHelper.ThrowTimeoutException(heloOp, ex, _redactor);
-                }
-
-                throw;
-            }
-            finally
-            {
-                heloOp.StopRecording();
-            }
+            return await ExecuteInternalOperationAsync(connection, heloOp,
+                ExecuteOp,
+                static (_, op) => op.GetValue(),
+                cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public async Task<Manifest> GetManifest()
@@ -398,27 +366,13 @@ namespace Couchbase.Core
                 Span = rootSpan,
             };
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
-            try
-            {
-                await ExecuteOp(ConnectionPool, manifestOp, ctp.TokenPair).ConfigureAwait(false);
+            await ExecuteInternalOperationAsync(ConnectionPool, manifestOp,
+                ExecuteOp,
+                static (_, op) => op.GetValue(),
+                default(CancellationToken))
+                .ConfigureAwait(false);
 
-                return manifestOp.GetValue();
-            }
-            catch (OperationCanceledException ex)
-            {
-                //Check to see if it was because of a "hung" socket which causes the token to timeout
-                if (ctp.IsInternalCancellation)
-                {
-                    ThrowHelper.ThrowTimeoutException(manifestOp, ex, _redactor);
-                }
-
-                throw;
-            }
-            finally
-            {
-                manifestOp.StopRecording();
-            }
+            return manifestOp.GetValue();
         }
 
         public async Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
@@ -453,46 +407,34 @@ namespace Couchbase.Core
                 configOp.Revision = latestVersionOnClient.Value.Revision;
             }
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout,
-                cancellationToken);
-            try
-            {
-                // Get config map operations are high priority and should not be queued, so use TrySendImmediatelyAsync
-                var status = await ExecuteOpImmediatelyAsync(ConnectionPool, configOp, ctp.TokenPair)
-                    .ConfigureAwait(false);
-                if (status == ResponseStatus.KeyNotFound)
+            var config = await ExecuteInternalOperationAsync(ConnectionPool, configOp,
+                ExecuteOpImmediatelyAsync,
+                static (status, op) =>
                 {
-                    //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
-                    throw status.CreateException(configOp, string.Empty);
-                }
+                    if (status == ResponseStatus.KeyNotFound)
+                    {
+                        //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
+                        throw status.CreateException(op, string.Empty);
+                    }
 
-                //Return back the config and swap any $HOST placeholders
-                var config = configOp.GetValue();
+                    //Return back the config and swap any $HOST placeholders
+                    var config = op.GetValue();
 
-                // Propagate any exception that occurred during parsing, this prevents NREs later if config is null
-                configOp.Exception?.Throw();
+                    // Propagate any exception that occurred during parsing, this prevents NREs later if config is null
+                    op.Exception?.Throw();
 
-                if (config is not null)
-                {
-                    config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
-                    config.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
-                }
+                    return config;
+                },
+                cancellationToken)
+                .ConfigureAwait(false);
 
-                return config;
-            }
-            catch (OperationCanceledException ex)
+            if (config is not null)
             {
-                //Check to see if it was because of a "hung" socket which causes the token to timeout
-                if (ctp.IsInternalCancellation)
-                {
-                    ThrowHelper.ThrowTimeoutException(configOp, ex, _redactor);
-                }
-                throw;
+                config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
+                config.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
             }
-            finally
-            {
-                configOp.StopRecording();
-            }
+
+            return config;
         }
 
         private void BuildServiceUris()
@@ -588,6 +530,49 @@ namespace Couchbase.Core
                 }
 
                 return ResponseStatus.CircuitBreakerOpen;
+            }
+        }
+
+        /// <summary>
+        /// Executes an operation internal to the ClusterNode, such as a Hello or GetManifest operation.
+        /// Handles timeouts and metrics tracking, forwarding the actual execution to the provided executor.
+        /// The provided projector may process the result and throw exceptions if necessary.
+        /// </summary>
+        /// <typeparam name="TConnection">Type of connection.</typeparam>
+        /// <typeparam name="TOperation">Type of operation.</typeparam>
+        /// <typeparam name="TResult">Type of result.</typeparam>
+        /// <param name="connection">The <see cref="IConnectionPool"/> or <see cref="IConnection"/> to use.</param>
+        /// <param name="operation">The operation to execute.</param>
+        /// <param name="executor">One of the ExecuteOp or ExecuteOpImmediatelyAsync delegates.</param>
+        /// <param name="projector">Callback to perform projections on the result.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The result returned by the <paramref name="projector" />.</returns>
+        private async Task<TResult> ExecuteInternalOperationAsync<TConnection, TOperation, TResult>(
+            TConnection connection,
+            TOperation operation,
+            Func<TConnection, TOperation, CancellationTokenPair, Task<ResponseStatus>> executor,
+            Func<ResponseStatus, TOperation, TResult> projector,
+            CancellationToken cancellationToken)
+            where TOperation : class, IOperation
+        {
+            using var ctp = CancellationTokenPairSource.FromTimeout(
+                _context.ClusterOptions.KvTimeout, cancellationToken);
+            try
+            {
+                var status = await executor(connection, operation, ctp.TokenPair)
+                    .ConfigureAwait(false);
+
+                return projector(status, operation);
+            }
+            catch (OperationCanceledException ex) when (ctp.IsInternalCancellation)
+            {
+                //Check to see if it was because of a "hung" socket which causes the token to timeout
+                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor);
+                return default; // unreachable
+            }
+            finally
+            {
+                operation.StopRecording();
             }
         }
 
@@ -857,28 +842,19 @@ namespace Couchbase.Core
                     Span = rootSpan,
                 };
 
-                using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
-                try
-                {
-                    var status = await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
-                    if (status != ResponseStatus.Success)
+                await ExecuteInternalOperationAsync(connection, selectBucketOp,
+                    ExecuteOp,
+                    static (status, op) =>
                     {
-                        throw status.CreateException(selectBucketOp, bucketName);
-                    }
-                }
-                catch (OperationCanceledException ex)
-                {
-                    //Check to see if it was because of a "hung" socket which causes the token to timeout
-                    if (ctp.IsInternalCancellation)
-                    {
-                        ThrowHelper.ThrowTimeoutException(selectBucketOp, ex, _redactor);
-                    }
-                    throw;
-                }
-                finally
-                {
-                    selectBucketOp.StopRecording();
-                }
+                        if (status != ResponseStatus.Success)
+                        {
+                            throw status.CreateException(op, op.Key);
+                        }
+
+                        return (object) null; // We don't need the return value
+                    },
+                    cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch (DocumentNotFoundException)
             {
