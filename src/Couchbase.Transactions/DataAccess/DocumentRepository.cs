@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Unicode;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -13,6 +12,7 @@ using Couchbase.Transactions.Internal;
 using Couchbase.Transactions.Support;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Couchbase.Transactions.DataAccess
 {
@@ -68,7 +68,6 @@ namespace Couchbase.Transactions.DataAccess
             {
                 throw new ArgumentOutOfRangeException("Document CAS should not be wildcard or default when replacing.");
             }
-
             var specs = CreateMutationSpecs(atr, "replace", content, doc.DocumentMetadata);
             var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(doc.Cas);
             if (accessDeleted)
@@ -168,8 +167,8 @@ namespace Couchbase.Transactions.DataAccess
                 LookupInSpec.Get(TransactionFields.StagedData, isXattr: true)
             };
 
-            var opts = new LookupInOptions().Defaults(keyValueTimeout)
-                .Serializer(Transactions.MetadataSerializer).AccessDeleted(true);
+            //We use .Transcoder() instead of .Serializer() as LookupInResult uses the Transcoder's Serializer for ContentAs<T>
+            var opts = new LookupInOptions().Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(new JsonTranscoder(Transactions.MetadataSerializer));
 
             int? txnIndex = 0;
             int docMetaIndex = 1;
