@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -14,7 +13,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Integrated.Transactions.DataAccess
 {
-    internal class AtrRepository : IAtrRepository
+    internal class AtrRepository
     {
         private readonly string _attemptId;
         private readonly TransactionContext _overallContext;
@@ -39,6 +38,20 @@ namespace Couchbase.Integrated.Transactions.DataAccess
         private readonly string _atrRoot;
 
         public ICouchbaseCollection Collection { get; }
+
+        public string ScopeName => Collection.Scope.Name;
+        public string BucketName => Collection.Scope.Bucket.Name;
+        public string CollectionName => Collection.Name;
+
+        public string FullPath => $"{BucketName}.{ScopeName}.{CollectionName}::{AtrId}";
+
+        public AtrRef AtrRef => new AtrRef()
+        {
+            BucketName = BucketName,
+            ScopeName = ScopeName,
+            CollectionName = CollectionName,
+            Id = AtrId
+        };
 
         public AtrRepository(string attemptId, TransactionContext overallContext, ICouchbaseCollection atrCollection, string atrId, DurabilityLevel? atrDurability, ILoggerFactory loggerFactory, string? testHookAtrId = null)
         {
@@ -66,14 +79,10 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             _atrDurability = atrDurability ?? DurabilityLevel.Majority;
         }
 
-        public Task<AtrEntry?> FindEntryForTransaction(ICouchbaseCollection atrCollection, string atrId, string? attemptId = null)
-            => FindEntryForTransaction(atrCollection, atrId, attemptId ?? _attemptId, _overallContext?.Config?.KeyValueTimeout);
-
         public static async Task<AtrEntry?> FindEntryForTransaction(
             ICouchbaseCollection atrCollection,
             string atrId,
-            string attemptId,
-            TimeSpan? keyValueTimeout = null
+            string attemptId
             )
         {
             _ = atrCollection ?? throw new ArgumentNullException(nameof(atrCollection));
@@ -81,7 +90,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 
             var lookupInResult = await atrCollection.LookupInAsync(atrId,
                 specs => specs.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-                opts => opts.Defaults(keyValueTimeout).AccessDeleted(true)).CAF();
+                opts => opts.Defaults().AccessDeleted(true)).CAF();
 
             if (!lookupInResult.Exists(0))
             {
@@ -240,10 +249,10 @@ namespace Couchbase.Integrated.Transactions.DataAccess
         }
 
         private LookupInOptions GetLookupOpts() => new LookupInOptions()
-            .Defaults(_overallContext.Config.KeyValueTimeout).Serializer(Transactions.MetadataSerializer);
+            .Defaults().Serializer(Transactions.MetadataSerializer);
 
         private MutateInOptions GetMutateOpts(StoreSemantics storeSemantics) => new MutateInOptions()
-            .Defaults(_atrDurability, _overallContext.Config.KeyValueTimeout)
+            .Defaults(_atrDurability)
             .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
     }
@@ -253,7 +262,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -268,4 +277,10 @@ namespace Couchbase.Integrated.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

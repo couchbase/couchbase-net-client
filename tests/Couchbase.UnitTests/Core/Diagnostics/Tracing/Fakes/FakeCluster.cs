@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Diagnostics;
+using Couchbase.Integrated.Transactions;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -89,6 +90,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public IBucketManager Buckets { get; }
         public IUserManager Users { get; }
         public IEventingFunctionManager EventingFunctions { get; }
+        public Transactions Transactions => throw new NotImplementedException();
+
         public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options)
         {
             throw new NotImplementedException();

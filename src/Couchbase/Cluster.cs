@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -28,6 +29,7 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Integrated.Transactions;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
@@ -70,6 +72,7 @@ namespace Couchbase
         internal LazyService<IEventingFunctionManagerFactory> LazyEventingFunctionManagerFactory;
 
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
+        internal Lazy<Integrated.Transactions.Transactions> LazyTransactions;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -96,6 +99,7 @@ namespace Couchbase
             LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
+            LazyTransactions = new(() => Integrated.Transactions.Transactions.Create(this));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -479,6 +483,10 @@ namespace Couchbase
         public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.Value
             ?? throw new CouchbaseException($"Service {nameof(IEventingFunctionManagerFactory)} is not registered.");
 
+        #endregion
+
+        #region Transactions
+        public  Integrated.Transactions.Transactions Transactions => LazyTransactions.Value;
         #endregion
 
         #region Misc

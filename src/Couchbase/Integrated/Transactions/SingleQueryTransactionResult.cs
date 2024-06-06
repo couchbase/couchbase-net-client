@@ -1,7 +1,7 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Compatibility;
 using Couchbase.Query;
 
 namespace Couchbase.Integrated.Transactions
@@ -9,7 +9,8 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// The transaction result from a single query transaction.
     /// </summary>
-    internal class SingleQueryTransactionResult<T>
+    [InterfaceStability(Level.Volatile)]
+    public class SingleQueryTransactionResult<T>
     {
         /// <summary>
         /// Gets the query result, if any.
@@ -32,7 +33,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -47,4 +48,8 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+

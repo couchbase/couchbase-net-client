@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -84,4 +83,8 @@ namespace Couchbase.Integrated.Transactions.Internal
         }
     }
 }
-#endif
+
+
+
+
+

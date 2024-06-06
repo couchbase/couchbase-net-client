@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -17,19 +16,17 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Integrated.Transactions.DataAccess
 {
-    internal class DocumentRepository : IDocumentRepository
+    internal class DocumentRepository
     {
         private readonly TransactionContext _overallContext;
-        private readonly TimeSpan? _keyValueTimeout;
         private readonly DurabilityLevel _durability;
         private readonly string _attemptId;
         private readonly JsonSerializer _metadataSerializer;
         private readonly ITypeTranscoder _userDataTranscoder;
 
-        public DocumentRepository(TransactionContext overallContext, TimeSpan? keyValueTimeout, DurabilityLevel durability, string attemptId, Core.IO.Serializers.ITypeSerializer userDataSerializer)
+        public DocumentRepository(TransactionContext overallContext, DurabilityLevel durability, string attemptId, Core.IO.Serializers.ITypeSerializer userDataSerializer)
         {
             _overallContext = overallContext;
-            _keyValueTimeout = keyValueTimeout;
             _durability = durability;
             _attemptId = attemptId;
 
@@ -43,7 +40,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             _userDataTranscoder = new JsonTranscoder(userDataSerializer);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, IAtrRepository atr, ulong? cas = null)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, AtrRepository atr, ulong? cas = null)
         {
             List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content);
             var opts = GetMutateInOptions(StoreSemantics.Insert)
@@ -63,7 +60,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             return (mutateResult.Cas, mutateResult.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, IAtrRepository atr, bool accessDeleted)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, AtrRepository atr, bool accessDeleted)
         {
             if (doc.Cas == 0)
             {
@@ -81,7 +78,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedRemove(TransactionGetResult doc, IAtrRepository atr)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedRemove(TransactionGetResult doc, AtrRepository atr)
         {
             // For ExtAllKvCombinations, the Java implementation was updated to write "txn" as one JSON blob instead of multiple MutateInSpecs.
             // Remove is the one where it had to be updated, given that we need to remove the staged data only if it exists.
@@ -118,7 +115,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
         {
             if (insertMode)
             {
-                var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout);
+                var opts = new InsertOptions().Defaults(_durability);
                 var mutateResult = await collection.InsertAsync(docId, finalDoc, opts).CAF();
                 return (mutateResult.Cas, mutateResult?.MutationToken);
             }
@@ -138,7 +135,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 
         public async Task UnstageRemove(ICouchbaseCollection collection, string docId, ulong cas = 0)
         {
-            var opts = new RemoveOptions().Defaults(_durability, _keyValueTimeout).Cas(cas);
+            var opts = new RemoveOptions().Defaults(_durability).Cas(cas);
             await collection.RemoveAsync(docId, opts).CAF();
         }
 
@@ -159,8 +156,8 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             _ = await collection.MutateInAsync(docId, specs, opts).CAF();
         }
 
-        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument).CAF();
-        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true)
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true) => await LookupDocumentStaticAsync(collection, docId, fullDocument).CAF();
+        internal static async Task<DocumentLookupResult> LookupDocumentStaticAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true)
         {
             var specs = new List<LookupInSpec>()
             {
@@ -169,7 +166,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
                 LookupInSpec.Get(TransactionFields.StagedData, isXattr: true)
             };
 
-            var opts = new LookupInOptions().Defaults(keyValueTimeout)
+            var opts = new LookupInOptions().Defaults()
                 .Serializer(Transactions.MetadataSerializer).AccessDeleted(true);
 
             int? txnIndex = 0;
@@ -218,11 +215,11 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             return result;
         }
 
-        private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics) => new MutateInOptions().Defaults(_durability, _keyValueTimeout)
+        private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics) => new MutateInOptions().Defaults(_durability)
             .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
 
-        private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, object content, DocumentMetadata? dm = null)
+        private List<MutateInSpec> CreateMutationSpecs(AtrRepository atr, string opType, object content, DocumentMetadata? dm = null)
         {
             // Round-trip the content through the user's specified serializer.
             object userSerializedContent = content;
@@ -295,7 +292,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -310,4 +307,10 @@ namespace Couchbase.Integrated.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

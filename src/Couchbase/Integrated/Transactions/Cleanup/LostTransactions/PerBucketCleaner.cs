@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Concurrent;
@@ -23,7 +22,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         public string ClientUuid { get; }
 
         private readonly Cleaner _cleaner;
-        private readonly ICleanerRepository _repository;
+        private readonly CleanerRepository _repository;
         private readonly TimeSpan _cleanupWindow;
         private readonly ILogger<PerBucketCleaner> _logger;
         private readonly Timer _processCleanupTimer;
@@ -38,7 +37,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         public long RunCount => Interlocked.Read(ref _runCount);
         public bool Running => !_cts.IsCancellationRequested;
 
-        public PerBucketCleaner(string clientUuid, Cleaner cleaner, ICleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
+        public PerBucketCleaner(string clientUuid, Cleaner cleaner, CleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
         {
             ClientUuid = clientUuid;
             _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into ICleanerRepository, and then that should be made a property, eliminating the need for a _repository variable here.
@@ -51,7 +50,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                 dueTime: startDisabled ? -1 : 0,
                 period: (int)cleanupWindow.TotalMilliseconds);
 
-            FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
+            FullBucketName = (bucket: KeySpace.Bucket, scope: KeySpace.Scope, collection: KeySpace.Collection, clientUuid: ClientUuid).ToString();
         }
 
         public void Start()
@@ -64,9 +63,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             _processCleanupTimer.Change(-1, (int)_cleanupWindow.TotalMilliseconds);
         }
 
-        public string BucketName => _repository.BucketName;
-        public string ScopeName => _repository.ScopeName;
-        public string CollectionName => _repository.CollectionName;
+        public KeySpace KeySpace => _repository.KeySpace;
 
         public string FullBucketName { get; }
 
@@ -329,7 +326,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                     case ErrorClass.FailDocNotFound:
                     case ErrorClass.FailPathNotFound:
                         // If the ATR is not present, continue as success.
-                        _logger.LogTrace("ATR {atrId} not present on {collection}: {ec}", atrId,_repository.Collection.MakeKeyspace(), ec);
+                        _logger.LogTrace("ATR {atrId} not present on {collection}: {ec}", atrId, _repository.KeySpace, ec);
                         return;
                     default:
                         // Else if there’s an error, continue as success.
@@ -362,13 +359,14 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                     && attempt.TimestampStartMsecs!.Value.AddMilliseconds(attempt.ExpiresAfterMsecs!.Value) < parsedHlc!.NowTime;
                 if (isExpired)
                 {
+                    var anyCollection = await _repository.GetCollection().CAF();
                     var atrCollection = await AtrRepository.GetAtrCollection(new AtrRef()
                     {
-                        BucketName = BucketName,
-                        ScopeName = ScopeName,
-                        CollectionName = CollectionName,
+                        BucketName = this.KeySpace.Bucket,
+                        ScopeName = this.KeySpace.Scope,
+                        CollectionName = this.KeySpace.Collection,
                         Id = atrId
-                    }, _repository.Collection).CAF();
+                    }, anyCollection).CAF();
 
                     if (atrCollection == null)
                     {
@@ -448,7 +446,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -463,4 +461,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

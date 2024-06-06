@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
@@ -30,4 +29,8 @@ namespace Couchbase.Integrated.Transactions.DataModel
     internal record TxDataReportedConfig(long kvTimeoutMs, int numAtrs, string durabilityLevel);
     internal record TxDataMutation(string scp, string coll, string bkt, string id, string cas, string type);
 }
-#endif
+
+
+
+
+

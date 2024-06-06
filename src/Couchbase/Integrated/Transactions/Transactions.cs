@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -29,7 +28,7 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// A class for running transactional operations against a Couchbase Cluster.
     /// </summary>
-    internal class Transactions : IDisposable, IAsyncDisposable
+    public class Transactions : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// A standard delay between retried operations.
@@ -72,8 +71,8 @@ namespace Couchbase.Integrated.Transactions
         internal ICluster Cluster => _cluster;
 
         internal ITestHooks TestHooks { get; set; } = DefaultTestHooks.Instance;
-        internal IDocumentRepository? DocumentRepository { get; set; } = null;
-        internal IAtrRepository? AtrRepository { get; set; } = null;
+        internal DocumentRepository? DocumentRepository { get; set; } = null;
+        internal AtrRepository? AtrRepository { get; set; } = null;
         internal int? CleanupQueueLength => Config.CleanupClientAttempts ?_cleanupWorkQueue?.QueueLength : null;
 
         internal ICleanupTestHooks CleanupTestHooks
@@ -109,13 +108,13 @@ namespace Couchbase.Integrated.Transactions
                 ?? NullLoggerFactory.Instance;
             _logger = loggerFactory.CreateLogger<Transactions>();
 
-            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, Config.KeyValueTimeout,loggerFactory, config.CleanupClientAttempts);
+            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, config.CleanupClientAttempts);
 
-            _cleaner = new Cleaner(cluster, Config.KeyValueTimeout, loggerFactory, creatorName: nameof(Transactions));
+            _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(Transactions));
 
             if (config.CleanupLostAttempts)
             {
-                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupWindow, config.KeyValueTimeout, metadataCollection: config.MetadataCollection);
+                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow, metadataCollection: config.MetadataCollection);
             }
 
             // TODO: whatever the equivalent of 'cluster.environment().eventBus().publish(new TransactionsStarted(config));' is.
@@ -127,7 +126,7 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="cluster">The cluster where your documents will be located.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster) => Create(cluster, TransactionConfigBuilder.Create().Build());
+        public static Transactions Create(ICluster cluster) => Create(cluster, new TransactionConfig());
 
         /// <summary>
         /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
@@ -138,23 +137,23 @@ namespace Couchbase.Integrated.Transactions
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
         public static Transactions Create(ICluster cluster, TransactionConfig config) => new Transactions(cluster, config);
 
-        /// <summary>
-        /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
-        /// </summary>
-        /// <param name="cluster">The cluster where your documents will be located.</param>
-        /// <param name="configBuilder">The <see cref="TransactionConfigBuilder"/> to generate a <see cref="TransactionConfig"/> to use for all transactions against this cluster.</param>
-        /// <returns>A <see cref="Transactions"/> instance.</returns>
-        /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster, TransactionConfigBuilder configBuilder) =>
-            Create(cluster, configBuilder.Build());
-
-        /// <summary>
-        /// Run a transaction agains the cluster.
-        /// </summary>
-        /// <param name="transactionLogic">A func representing the transaction logic. All data operations should use the methods on the <see cref="AttemptContext"/> provided.  Do not mix and match non-transactional data operations.</param>
-        /// <returns>The result of the transaction.</returns>
-        public Task<TransactionResult> RunAsync(Func<AttemptContext, Task> transactionLogic) =>
-            RunAsync(transactionLogic, PerTransactionConfigBuilder.Create().Build());
+        // /// <summary>
+        // /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
+        // /// </summary>
+        // /// <param name="cluster">The cluster where your documents will be located.</param>
+        // /// <param name="configBuilder">The <see cref="TransactionConfigBuilder"/> to generate a <see cref="TransactionConfig"/> to use for all transactions against this cluster.</param>
+        // /// <returns>A <see cref="Transactions"/> instance.</returns>
+        // /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
+        // public static Transactions Create(ICluster cluster, TransactionConfigBuilder configBuilder) =>
+        //     Create(cluster, configBuilder.Build());
+        //
+        // /// <summary>
+        // /// Run a transaction agains the cluster.
+        // /// </summary>
+        // /// <param name="transactionLogic">A func representing the transaction logic. All data operations should use the methods on the <see cref="AttemptContext"/> provided.  Do not mix and match non-transactional data operations.</param>
+        // /// <returns>The result of the transaction.</returns>
+        // public Task<TransactionResult> RunAsync(Func<AttemptContext, Task> transactionLogic) =>
+        //     RunAsync(transactionLogic, PerTransactionConfigBuilder.Create().Build());
 
         /// <summary>
         /// Run a transaction agains the cluster.
@@ -263,16 +262,16 @@ namespace Couchbase.Integrated.Transactions
         /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
         /// <param name="statement">The statement to execute.</param>
         /// <param name="config">The configuration to use for this transaction.</param>
+        /// <param name="options">The query-specific options</param>
         /// <param name="scope">The scope</param>
         /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
-        public async Task<SingleQueryTransactionResult<T>> QueryAsync<T>(string statement, SingleQueryTransactionConfigBuilder? config = null, IScope? scope = null)
+        public async Task<SingleQueryTransactionResult<T>> QueryAsync<T>(string statement, PerTransactionConfig? config = null, TransactionQueryOptions? options = null, IScope? scope = null)
         {
+            // TODO:  Update this for Single Query spec regarding the parameters.
             using var rootSpan = _requestTracer.RequestSpan(nameof(QueryAsync))
                 .SetAttribute("db.couchbase.transactions.tximplicit", true);
-
-            config ??= SingleQueryTransactionConfigBuilder.Create();
-            var options = config.QueryOptionsValue ?? new();
-            var perTransactionConfig = config.Build();
+            options ??= new();
+            config ??= new();
 
             var txImplicit = true;
             IQueryResult<T>? queryResult = null;
@@ -280,7 +279,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 var originalQueryResult = await ctx.QueryAsync<T>(statement, options, txImplicit, scope, rootSpan).CAF();
                 queryResult = new Internal.SingleQueryResultWrapper<T>(originalQueryResult, ctx);
-            }, perTransactionConfig, singleQueryTransactionMode: true).CAF();
+            }, config, singleQueryTransactionMode: true).CAF();
 
             return new SingleQueryTransactionResult<T>()
             {
@@ -484,7 +483,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -499,4 +498,10 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

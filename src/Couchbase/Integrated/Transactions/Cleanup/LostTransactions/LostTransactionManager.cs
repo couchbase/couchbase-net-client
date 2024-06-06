@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Concurrent;
@@ -28,7 +27,6 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         private readonly ConcurrentDictionary<string, PerBucketCleaner> _discoveredBuckets = new ConcurrentDictionary<string, PerBucketCleaner>();
         private readonly ICluster _cluster;
         private readonly TimeSpan _cleanupWindow;
-        private readonly TimeSpan? _keyValueTimeout;
         private readonly Timer _discoverBucketsTimer;
         private readonly CancellationTokenSource _overallCancellation = new CancellationTokenSource();
         private readonly SemaphoreSlim _timerCallbackMutex = new SemaphoreSlim(1);
@@ -39,14 +37,13 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         public int RunningCount => _discoveredBuckets.Where(pbc => pbc.Value.Running).Count();
         public long TotalRunCount => _discoveredBuckets.Sum(pbc => pbc.Value.RunCount);
 
-        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, TimeSpan? keyValueTimeout, string? clientUuid = null, bool startDisabled = false, ICouchbaseCollection? metadataCollection = null)
+        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, string? clientUuid = null, bool startDisabled = false, KeySpace? metadataCollection = null)
         {
             ClientUuid = clientUuid ?? Guid.NewGuid().ToString();
             _logger = loggerFactory.CreateLogger<LostTransactionManager>();
             _loggerFactory = loggerFactory;
             _cluster = cluster;
             _cleanupWindow = cleanupWindow;
-            _keyValueTimeout = keyValueTimeout;
 
             if (metadataCollection == null)
             {
@@ -57,7 +54,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             {
                 // cleanup only the specifified collection.
                 var singleBucketCleaner = CleanerForCollection(metadataCollection, startDisabled);
-                _discoveredBuckets.TryAdd(metadataCollection.Scope.Bucket.Name, singleBucketCleaner);
+                _discoveredBuckets.TryAdd(metadataCollection.Bucket, singleBucketCleaner);
                 _discoverBucketsTimer = new Timer(PlaceholderDoNothingCallback, null, -1, DiscoverBucketsPeriodMs);
             }
         }
@@ -73,7 +70,11 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             _discoverBucketsTimer.Change(-1, DiscoverBucketsPeriodMs);
             _overallCancellation.Cancel();
             await RemoveClientEntries().CAF();
+            #if NET5_0_OR_GREATER
             await _discoverBucketsTimer.DisposeAsync().CAF();
+            #else
+            _discoverBucketsTimer.Dispose();
+            #endif
         }
 
         private async Task RemoveClientEntries()
@@ -208,14 +209,14 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         {
             var bucket = await _cluster.BucketAsync(bucketName).CAF();
             var collection = bucket.DefaultCollection();
-            return CleanerForCollection(collection, startDisabled);
+            return CleanerForCollection(new KeySpace(bucket.Name, collection.Scope.Name, collection.Name), startDisabled);
         }
 
-        private PerBucketCleaner CleanerForCollection(ICouchbaseCollection collection, bool startDisabled)
+        private PerBucketCleaner CleanerForCollection(KeySpace collection, bool startDisabled)
         {
-            _logger.LogDebug("New cleaner for {collection}", collection.MakeKeyspace());
-            var repository = new CleanerRepository(collection, _keyValueTimeout);
-            var cleaner = new Cleaner(_cluster, _keyValueTimeout, _loggerFactory, creatorName: nameof(LostTransactionManager));
+            _logger.LogDebug("New cleaner for {collection}", collection);
+            var repository = new CleanerRepository(collection, _cluster);
+            var cleaner = new Cleaner(_cluster, _loggerFactory, creatorName: nameof(LostTransactionManager));
             return new PerBucketCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled) { TestHooks = TestHooks };
         }
     }
@@ -225,7 +226,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -240,4 +241,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

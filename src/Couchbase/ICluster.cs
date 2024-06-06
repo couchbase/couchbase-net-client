@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
@@ -92,6 +93,11 @@ namespace Couchbase
         /// Allows a user to read eventing functions, modify them and change their deployment state.
         /// </summary>
         IEventingFunctionManager EventingFunctions { get; }
+        #endregion
+
+        #region Transactions
+        [InterfaceStability(Level.Volatile)]
+        public Integrated.Transactions.Transactions Transactions { get; }
         #endregion
     }
 }

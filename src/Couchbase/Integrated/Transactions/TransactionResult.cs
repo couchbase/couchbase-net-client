@@ -1,7 +1,7 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Compatibility;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Integrated.Transactions
@@ -9,7 +9,8 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// The result of a transaction.
     /// </summary>
-    internal class TransactionResult
+    [InterfaceStability(Level.Volatile)]
+    public class TransactionResult
     {
         /// <summary>
         /// Gets the automatically-generated ID of this transaction.
@@ -38,7 +39,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -53,4 +54,8 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+

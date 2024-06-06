@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -13,4 +12,8 @@ namespace Couchbase.Integrated.Transactions.DataModel
     }
     internal record QueryInsertResult(string scas);
 }
-#endif
+
+
+
+
+

@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using Newtonsoft.Json;
 
@@ -6,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Integrated.Transactions.DataModel
 {
-    // TODO: this class should be made internal
+    // TODO: this class should be made a record
     internal class AtrRef
     {
         [JsonProperty("id")]
@@ -29,7 +28,7 @@ namespace Couchbase.Integrated.Transactions.DataModel
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -44,4 +43,13 @@ namespace Couchbase.Integrated.Transactions.DataModel
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Concurrent;
@@ -42,7 +41,8 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// Provides methods that allow an application's transaction logic to read, mutate, insert, and delete documents.
     /// </summary>
-    internal class AttemptContext
+    [InterfaceStability(Level.Volatile)]
+    public class AttemptContext
     {
         private static readonly TimeSpan ExpiryThreshold = TimeSpan.FromMilliseconds(10);
         private static readonly TimeSpan WriteWriteConflictTimeLimit = TimeSpan.FromSeconds(1);
@@ -55,8 +55,8 @@ namespace Couchbase.Integrated.Transactions
 
         private readonly StagedMutationCollection _stagedMutations = new StagedMutationCollection();
         private readonly object _initAtrLock = new();
-        private IAtrRepository? _atr = null;
-        private readonly IDocumentRepository _docs;
+        private AtrRepository? _atr = null;
+        private readonly DocumentRepository _docs;
         private readonly DurabilityLevel _effectiveDurabilityLevel;
         private readonly List<MutationToken> _finalMutations = new List<MutationToken>();
         private readonly ConcurrentDictionary<long, TransactionOperationFailedException> _previousErrors = new ConcurrentDictionary<long, TransactionOperationFailedException>();
@@ -90,8 +90,8 @@ namespace Couchbase.Integrated.Transactions
             IRedactor redactor,
             ILoggerFactory loggerFactory,
             ICluster cluster,
-            IDocumentRepository? documentRepository = null,
-            IAtrRepository? atrRepository = null,
+            DocumentRepository? documentRepository = null,
+            AtrRepository? atrRepository = null,
             IRequestTracer? requestTracer = null,
             bool singleQueryTransactionMode = false)
         {
@@ -107,7 +107,7 @@ namespace Couchbase.Integrated.Transactions
             _loggerFactory = loggerFactory;
             Logger = loggerFactory.CreateLogger<AttemptContext>();
             _triage = new ErrorTriage(this, loggerFactory);
-            _docs = documentRepository ?? new DocumentRepository(_overallContext, _config.KeyValueTimeout, _effectiveDurabilityLevel, AttemptId, _nonStreamingTypeSerializer);
+            _docs = documentRepository ?? new DocumentRepository(_overallContext, _effectiveDurabilityLevel, AttemptId, _nonStreamingTypeSerializer);
             _singleQueryTransactionMode = singleQueryTransactionMode;
             if (atrRepository != null)
             {
@@ -153,7 +153,7 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
             DoneCheck();
             CheckErrors();
-            CheckExpiryAndThrow(id, hookPoint: ITestHooks.HOOK_GET);
+            CheckExpiryAndThrow(id, hookPoint: DefaultTestHooks.HOOK_GET);
 
             /*
              * Check stagedMutations.
@@ -218,7 +218,7 @@ namespace Couchbase.Integrated.Transactions
                                                       .Parameter(id);
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __get",
                     options: queryOptions,
-                    hookPoint: ITestHooks.HOOK_QUERY_KV_GET,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_KV_GET,
                     txdata: JObject.FromObject(new { kv = true }),
                     parentSpan: traceSpan.Item).CAF();
 
@@ -300,9 +300,8 @@ namespace Couchbase.Integrated.Transactions
                 var docAtrCollection = await getCollectionTask.CAF()
                                        ?? throw new ActiveTransactionRecordNotFoundException();
 
-                var findEntryTask = _atr?.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!, blockingTxn.Id!.AttemptId)
-                                    ?? AtrRepository.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!,
-                                        blockingTxn.Id!.AttemptId, _config.KeyValueTimeout);
+                var findEntryTask =  AtrRepository.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!,
+                                        blockingTxn.Id!.AttemptId);
 
                 AtrEntry? atrEntry = null;
                 try
@@ -423,7 +422,7 @@ namespace Couchbase.Integrated.Transactions
                 throw ErrorBuilder.CreateError(this, ErrorClass.FailDocNotFound, new DocumentNotFoundException()).Build();
             }
 
-            CheckExpiryAndThrow(doc.Id, ITestHooks.HOOK_REPLACE);
+            CheckExpiryAndThrow(doc.Id, DefaultTestHooks.HOOK_REPLACE);
             await CheckWriteWriteConflict(doc, ForwardCompatibility.WriteWriteConflictReplacing, traceSpan.Item).CAF();
             await InitAtrIfNeeded(doc.Collection, doc.Id, traceSpan.Item).CAF();
             await SetAtrPendingIfFirstMutation(doc.Collection, traceSpan.Item).CAF();
@@ -449,7 +448,7 @@ namespace Couchbase.Integrated.Transactions
                                                .Parameter(new { });
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __update",
                     options: queryOptions,
-                    hookPoint: ITestHooks.HOOK_QUERY_KV_REPLACE,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_KV_REPLACE,
                     txdata: txdata,
                     parentSpan: traceSpan.Item).CAF();
 
@@ -591,7 +590,7 @@ namespace Couchbase.Integrated.Transactions
                 throw new DocumentExistsException();
             }
 
-            CheckExpiryAndThrow(id, hookPoint: ITestHooks.HOOK_INSERT);
+            CheckExpiryAndThrow(id, hookPoint: DefaultTestHooks.HOOK_INSERT);
 
             await InitAtrIfNeeded(collection, id, traceSpan.Item).CAF();
             await SetAtrPendingIfFirstMutation(collection, traceSpan.Item).CAF();
@@ -616,7 +615,7 @@ namespace Couchbase.Integrated.Transactions
                                                .Parameter(new { });
                 using var queryResult = await QueryWrapper<QueryInsertResult>(0, _queryContextScope, "EXECUTE __insert",
                     options: queryOptions,
-                    hookPoint: ITestHooks.HOOK_QUERY_KV_INSERT,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_KV_INSERT,
                     txdata: JObject.FromObject(new { kv = true }),
                     parentSpan: traceSpan.Item).CAF();
 
@@ -660,7 +659,7 @@ namespace Couchbase.Integrated.Transactions
                     try
                     {
                         // Check expiration again, since insert might be retried.
-                        ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_CREATE_STAGED_INSERT, id);
+                        ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_CREATE_STAGED_INSERT, id);
 
                         await _testHooks.BeforeStagedInsert(this, id).CAF();
                         var contentWrapper = new JObjectContentWrapper(content);
@@ -819,7 +818,7 @@ namespace Couchbase.Integrated.Transactions
                     try
                     {
                         var docDurability = _effectiveDurabilityLevel;
-                        ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_PENDING);
+                        ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ATR_PENDING);
                         await _testHooks.BeforeAtrPending(this).CAF();
                         var t1 = _overallContext.StartTime;
                         var t2 = DateTimeOffset.UtcNow;
@@ -874,7 +873,7 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
             DoneCheck();
             CheckErrors();
-            CheckExpiryAndThrow(doc.Id, ITestHooks.HOOK_REMOVE);
+            CheckExpiryAndThrow(doc.Id, DefaultTestHooks.HOOK_REMOVE);
 
             var stagedOld = _stagedMutations.Find(doc);
             if (stagedOld != null)
@@ -921,7 +920,7 @@ namespace Couchbase.Integrated.Transactions
                                                       .Parameter(new { });
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __delete",
                     options: queryOptions,
-                    hookPoint: ITestHooks.HOOK_QUERY_KV_REMOVE,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_KV_REMOVE,
                     txdata: txdata,
                     parentSpan: traceSpan.Item).CAF();
 
@@ -1062,7 +1061,7 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
 
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#CommitAsync
-            CheckExpiryAndThrow(null, ITestHooks.HOOK_BEFORE_COMMIT);
+            CheckExpiryAndThrow(null, DefaultTestHooks.HOOK_BEFORE_COMMIT);
             DoneCheck();
             IsDone = true;
 
@@ -1089,7 +1088,7 @@ namespace Couchbase.Integrated.Transactions
                     scope: _queryContextScope,
                     statement: "COMMIT",
                     options: new QueryOptions(),
-                    hookPoint: ITestHooks.HOOK_QUERY_COMMIT,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_COMMIT,
                     parentSpan: traceSpan.Item).CAF();
                 _state = AttemptStates.COMPLETED;
                 UnstagingComplete = true;
@@ -1122,7 +1121,7 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
 
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#SetATRComplete
-            if (HasExpiredClientSide(null, ITestHooks.HOOK_ATR_COMPLETE) && !_expirationOvertimeMode)
+            if (HasExpiredClientSide(null, DefaultTestHooks.HOOK_ATR_COMPLETE) && !_expirationOvertimeMode)
             {
                 // If transaction has expired and not in ExpiryOvertimeMode: though technically expired, the transaction should be regarded
                 // as successful, as this is just a cleanup step.
@@ -1199,7 +1198,7 @@ namespace Couchbase.Integrated.Transactions
                 try
                 {
                     await _testHooks.BeforeDocRemoved(this, sm.Doc.Id).CAF();
-                    if (!_expirationOvertimeMode && HasExpiredClientSide(sm.Doc.Id, ITestHooks.HOOK_REMOVE_DOC))
+                    if (!_expirationOvertimeMode && HasExpiredClientSide(sm.Doc.Id, DefaultTestHooks.HOOK_REMOVE_DOC))
                     {
                         _expirationOvertimeMode = true;
                     }
@@ -1254,7 +1253,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 try
                 {
-                    if (!_expirationOvertimeMode && HasExpiredClientSide(sm.Doc.Id, ITestHooks.HOOK_COMMIT_DOC))
+                    if (!_expirationOvertimeMode && HasExpiredClientSide(sm.Doc.Id, DefaultTestHooks.HOOK_COMMIT_DOC))
                     {
                         _expirationOvertimeMode = true;
                     }
@@ -1347,7 +1346,7 @@ namespace Couchbase.Integrated.Transactions
 
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_COMMIT);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ATR_COMMIT);
                     await _testHooks.BeforeAtrCommit(this).CAF();
                     await _atr.MutateAtrCommit(_stagedMutations.ToList()).CAF();
                     Logger.LogDebug("{method} for {atr} (attempt={attemptId})", nameof(SetAtrCommit), Redactor.UserData(_atr.FullPath), AttemptId);
@@ -1444,7 +1443,7 @@ namespace Couchbase.Integrated.Transactions
                 string? refreshedStatus = null;
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_COMMIT_AMBIGUITY_RESOLUTION);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ATR_COMMIT_AMBIGUITY_RESOLUTION);
                     await _testHooks.BeforeAtrCommitAmbiguityResolution(this).CAF();
                     refreshedStatus = await _atr!.LookupAtrState().CAF();
 
@@ -1513,7 +1512,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_ABORT);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ATR_ABORT);
                     await _testHooks.BeforeAtrAborted(this).CAF();
                     await _atr!.MutateAtrAborted(_stagedMutations.ToList()).CAF();
                     Logger.LogDebug("{method} for {atr} (attempt={attemptId})", nameof(SetAtrAborted), Redactor.UserData(_atr.FullPath), AttemptId);
@@ -1560,7 +1559,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_ROLLBACK_COMPLETE);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ATR_ROLLBACK_COMPLETE);
                     await _testHooks.BeforeAtrRolledBack(this).CAF();
                     await _atr!.MutateAtrRolledBack().CAF();
                     Logger.LogDebug("{method} for {atr} (attempt={attemptId})",
@@ -1603,21 +1602,21 @@ namespace Couchbase.Integrated.Transactions
         /// <remarks>Calling this method on AttemptContext is usually unnecessary, as unhandled exceptions will trigger a rollback automatically.</remarks>
         public Task RollbackAsync(IRequestSpan? parentSpan = null) => this.RollbackInternal(true, parentSpan);
 
-        /// <summary>
-        /// Run a query in transaction mode.
-        /// </summary>
-        /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
-        /// <param name="statement">The statement to execute.</param>
-        /// <param name="config">The configuration to use for this query.</param>
-        /// <param name="scope">The scope</param>
-        /// <param name="parentSpan">The optional parent tracing span.</param>
-        /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
-        /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryConfigBuilder? config = null, IScope? scope = null, IRequestSpan? parentSpan = null)
-        {
-            var options = config?.Build() ?? new TransactionQueryOptions();
-            return QueryAsync<T>(statement, options, scope, parentSpan);
-        }
+        // /// <summary>
+        // /// Run a query in transaction mode.
+        // /// </summary>
+        // /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
+        // /// <param name="statement">The statement to execute.</param>
+        // /// <param name="config">The configuration to use for this query.</param>
+        // /// <param name="scope">The scope</param>
+        // /// <param name="parentSpan">The optional parent tracing span.</param>
+        // /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
+        // /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
+        // public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryConfigBuilder? config = null, IScope? scope = null, IRequestSpan? parentSpan = null)
+        // {
+        //     var options = config?.Build() ?? new TransactionQueryOptions();
+        //     return QueryAsync<T>(statement, options, scope, parentSpan);
+        // }
 
         /// <summary>
         /// Run a query in transaction mode.
@@ -1641,7 +1640,7 @@ namespace Couchbase.Integrated.Transactions
                 scope: scope,
                 statement: statement,
                 options: options.Build(txImplicit),
-                hookPoint: ITestHooks.HOOK_QUERY,
+                hookPoint: DefaultTestHooks.HOOK_QUERY,
                 parentSpan: traceSpan.Item,
                 txImplicit: txImplicit
                 ).CAF();
@@ -1661,7 +1660,7 @@ namespace Couchbase.Integrated.Transactions
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A?view#rollbackInternal
             if (!_expirationOvertimeMode)
             {
-                if (HasExpiredClientSide(null, hookPoint: ITestHooks.HOOK_ROLLBACK))
+                if (HasExpiredClientSide(null, hookPoint: DefaultTestHooks.HOOK_ROLLBACK))
                 {
                     _expirationOvertimeMode = true;
                 }
@@ -1709,7 +1708,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 var queryOptions = NonStreamingQuery();
                 _ = await QueryWrapper<object>(0, _queryContextScope, "ROLLBACK", queryOptions,
-                    hookPoint: ITestHooks.HOOK_QUERY_ROLLBACK,
+                    hookPoint: DefaultTestHooks.HOOK_QUERY_ROLLBACK,
                     parentSpan: traceSpan.Item,
                     existingErrorCheck: false).CAF();
                 _state = AttemptStates.ROLLED_BACK;
@@ -1749,7 +1748,7 @@ namespace Couchbase.Integrated.Transactions
                 Logger.LogDebug("[{attemptId}] rolling back staged insert for {redactedId}", AttemptId, Redactor.UserData(sm.Doc.FullyQualifiedId));
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_DELETE_INSERTED, sm.Doc.Id);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_DELETE_INSERTED, sm.Doc.Id);
                     await _testHooks.BeforeRollbackDeleteInserted(this, sm.Doc.Id).CAF();
                     await _docs.ClearTransactionMetadata(sm.Doc.Collection, sm.Doc.Id, sm.Doc.Cas, true).CAF();
                     Logger.LogDebug("Rolled back staged {type} for {redactedId}", sm.Type, Redactor.UserData(sm.Doc.Id));
@@ -1790,7 +1789,7 @@ namespace Couchbase.Integrated.Transactions
                 Logger.LogDebug("[{attemptId}] rolling back staged replace or remove for {redactedId}", AttemptId, Redactor.UserData(sm.Doc.FullyQualifiedId));
                 try
                 {
-                    ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ROLLBACK_DOC, sm.Doc.Id);
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_ROLLBACK_DOC, sm.Doc.Id);
                     await _testHooks.BeforeDocRolledBack(this, sm.Doc.Id).CAF();
                     await _docs.ClearTransactionMetadata(sm.Doc.Collection, sm.Doc.Id, sm.Doc.Cas, sm.Doc.IsDeleted).CAF();
                     Logger.LogDebug("Rolled back staged {type} for {redactedId}", sm.Type, Redactor.UserData(sm.Doc.Id));
@@ -1852,7 +1851,15 @@ namespace Couchbase.Integrated.Transactions
         private async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            var atrCollection = _config.MetadataCollection ?? collection.Scope.Bucket.DefaultCollection();
+            ICouchbaseCollection atrCollection;
+            if (_config.MetadataCollection is not null)
+            {
+                atrCollection = await _config.MetadataCollection.GetCollectionAsync(_cluster).CAF();
+            }
+            else
+            {
+                atrCollection = collection.Scope.Bucket.DefaultCollection();
+            }
             var testHookAtrId = await _testHooks.AtrIdForVBucket(this, AtrIds.GetVBucketId(id)).CAF();
             var atrId = AtrIds.GetAtrId(id);
             lock (_initAtrLock)
@@ -1931,7 +1938,7 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
 
             // If the transaction has expired, enter ExpiryOvertimeMode and raise Error(ec=FAIL_EXPIRY, raise=TRANSACTION_EXPIRED).
-            CheckExpiryAndThrow(gr.Id, ITestHooks.HOOK_CHECK_WRITE_WRITE_CONFLICT);
+            CheckExpiryAndThrow(gr.Id, DefaultTestHooks.HOOK_CHECK_WRITE_WRITE_CONFLICT);
 
             var sw = Stopwatch.StartNew();
             await RepeatUntilSuccessOrThrow(async () =>
@@ -1987,9 +1994,7 @@ namespace Couchbase.Integrated.Transactions
 
                 var txn = gr.TransactionXattrs ?? throw new ArgumentNullException(nameof(gr.TransactionXattrs));
                 txn.ValidateMinimum();
-                AtrEntry? otherAtr = _atr == null
-                    ? await AtrRepository.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id!.AttemptId!, _config.KeyValueTimeout).CAF()
-                    : await _atr.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id?.AttemptId).CAF();
+                AtrEntry? otherAtr = await AtrRepository.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id!.AttemptId!).CAF();
 
                 if (otherAtr == null)
                 {
@@ -2144,7 +2149,9 @@ namespace Couchbase.Integrated.Transactions
         private QueryTxData CreateBeginWorkTxData()
         {
             var state = new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
-            var txConfig = new TxDataReportedConfig((long?)_config?.KeyValueTimeout?.TotalMilliseconds ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
+            // TODO: get the cluster KvTimeout value here.
+            long? kvTimeoutMillis = 10_000;
+            var txConfig = new TxDataReportedConfig(kvTimeoutMillis ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
 
             var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
             var txid = new CompositeId()
@@ -2156,14 +2163,12 @@ namespace Couchbase.Integrated.Transactions
             var atrRef = _atr?.AtrRef;
             if (atrRef == null && _config?.MetadataCollection != null)
             {
-                var col = _config.MetadataCollection;
-                var scp = col.Scope;
-                var bkt = scp.Bucket;
+                var ks = _config.MetadataCollection!;
                 atrRef = new AtrRef()
                 {
-                    BucketName = bkt.Name,
-                    ScopeName = scp.Name,
-                    CollectionName = col.Name
+                    BucketName = ks.Bucket,
+                    ScopeName = ks.Scope,
+                    CollectionName = ks.Collection
                 };
             }
 
@@ -2343,7 +2348,7 @@ namespace Couchbase.Integrated.Transactions
                 scope: scope,
                 statement: "BEGIN WORK",
                 options: queryOptions,
-                hookPoint: ITestHooks.HOOK_QUERY_BEGIN_WORK,
+                hookPoint: DefaultTestHooks.HOOK_QUERY_BEGIN_WORK,
                 isBeginWork: true,
                 existingErrorCheck: true,
                 txdata: txdata.ToJson(),
@@ -2381,7 +2386,7 @@ namespace Couchbase.Integrated.Transactions
             if (_config.MetadataCollection != null)
             {
                 var mc = _config.MetadataCollection;
-                queryOptions.Raw("atrcollection", $"`{mc.Scope.Bucket.Name}`.`{mc.Scope.Name}`.`{mc.Name}`");
+                queryOptions.Raw("atrcollection", $"`{mc.Bucket}`.`{mc.Scope}`.`{mc.Collection}`");
             }
 
             return queryOptions;
@@ -2511,7 +2516,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -2526,4 +2531,8 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+

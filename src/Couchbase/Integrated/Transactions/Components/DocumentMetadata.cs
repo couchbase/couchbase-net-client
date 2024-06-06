@@ -1,5 +1,5 @@
-#if NET5_0_OR_GREATER
 #nullable enable
+using Couchbase.Core.Compatibility;
 using Newtonsoft.Json;
 
 namespace Couchbase.Integrated.Transactions.Components
@@ -7,7 +7,8 @@ namespace Couchbase.Integrated.Transactions.Components
     /// <summary>
     /// A POCO to serialize transactions metadata on a document for rollback / unstaging purposes.
     /// </summary>
-    internal class DocumentMetadata
+    [InterfaceStability(Level.Volatile)]
+    public class DocumentMetadata
     {
         /// <summary>
         /// Gets the stringified CAS value.
@@ -39,7 +40,7 @@ namespace Couchbase.Integrated.Transactions.Components
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -54,4 +55,10 @@ namespace Couchbase.Integrated.Transactions.Components
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

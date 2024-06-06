@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -90,7 +89,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             AtrsHandledByThisClient = GetAtrsHandledByThisClient().ToList();
             var handledCount = AtrsHandledByThisClient.Count;
             handledCount = handledCount == 0 ? 1 : handledCount;
-            CheckAtrTimeWindow = cleanupWindow / handledCount;
+            CheckAtrTimeWindow = TimeSpan.FromMilliseconds(cleanupWindow.TotalMilliseconds / handledCount);
         }
 
         private IEnumerable<string> GetAtrsHandledByThisClient()
@@ -117,7 +116,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -132,4 +131,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

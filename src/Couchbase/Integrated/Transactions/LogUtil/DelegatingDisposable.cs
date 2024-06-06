@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 
@@ -33,4 +32,8 @@ namespace Couchbase.Integrated.Transactions.LogUtil
         }
     }
 }
-#endif
+
+
+
+
+

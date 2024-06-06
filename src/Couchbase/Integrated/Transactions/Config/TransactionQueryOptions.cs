@@ -1,7 +1,7 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
 
@@ -10,8 +10,11 @@ namespace Couchbase.Integrated.Transactions.Config
     /// <summary>
     /// A limited subset of <see cref="QueryOptions"/> that are usable in Transactions.
     /// </summary>
-    internal class TransactionQueryOptions
+    [InterfaceStability(Level.Volatile)]
+    public class
+        TransactionQueryOptions
     {
+        // TODO: change this to an immutable record.
         // if you add anything to this section, add a corresponding 'if' block to the Build() method.
         private readonly Dictionary<string, object> _parameters = new();
         private readonly List<object> _arguments = new();
@@ -325,7 +328,7 @@ namespace Couchbase.Integrated.Transactions.Config
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -340,4 +343,10 @@ namespace Couchbase.Integrated.Transactions.Config
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

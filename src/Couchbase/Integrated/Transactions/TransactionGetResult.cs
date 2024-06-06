@@ -1,5 +1,5 @@
-#if NET5_0_OR_GREATER
 #nullable enable
+using Couchbase.Core.Compatibility;
 using Couchbase.Integrated.Transactions.Components;
 using Couchbase.Integrated.Transactions.DataModel;
 using Couchbase.Integrated.Transactions.Internal;
@@ -11,7 +11,8 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// The result of a Get or GetOptional operation an a transaction context."/>
     /// </summary>
-    internal class TransactionGetResult
+    [InterfaceStability(Level.Volatile)]
+    public class TransactionGetResult
     {
         private readonly IContentAsWrapper _content;
 
@@ -195,7 +196,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -210,4 +211,11 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+
+

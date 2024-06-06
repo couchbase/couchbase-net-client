@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 
 // ReSharper disable InconsistentNaming
@@ -21,4 +20,8 @@ namespace Couchbase.Integrated.Transactions.DataModel
         public string? raise { get; }
     }
 }
-#endif
+
+
+
+
+

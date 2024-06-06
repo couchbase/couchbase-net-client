@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
+using Couchbase.Integrated.Transactions;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -250,6 +251,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public IEventingFunctionManager EventingFunctions =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("Eventing Functions", "Protostellar");
+
+    public Transactions Transactions =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Transactions", "Protostellar");
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {

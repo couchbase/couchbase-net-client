@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Threading.Tasks;
@@ -12,21 +11,21 @@ namespace Couchbase.Integrated.Transactions.Config
     /// </summary>
     internal static class Extensions
     {
-        /// <summary>
-        /// Run a single query as a transaction.
-        /// </summary>
-        /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
-        /// <param name="transactions">The transactions object to query from.</param>
-        /// <param name="statement">The statement to execute.</param>
-        /// <param name="configure">An action to configure this transaction.</param>
-        /// <param name="scope">The scope</param>
-        /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
-        public static async Task<SingleQueryTransactionResult<T>> QueryAsync<T>(this Transactions transactions, string statement, Action<SingleQueryTransactionConfigBuilder>? configure = null, IScope? scope = null)
-        {
-            var singleConfig = SingleQueryTransactionConfigBuilder.Create();
-            configure?.Invoke(singleConfig);
-            return await transactions.QueryAsync<T>(statement, singleConfig, scope).CAF();
-        }
+        // /// <summary>
+        // /// Run a single query as a transaction.
+        // /// </summary>
+        // /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
+        // /// <param name="transactions">The transactions object to query from.</param>
+        // /// <param name="statement">The statement to execute.</param>
+        // /// <param name="configure">An action to configure this transaction.</param>
+        // /// <param name="scope">The scope</param>
+        // /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
+        // public static async Task<SingleQueryTransactionResult<T>> QueryAsync<T>(this Transactions transactions, string statement, Action<SingleQueryTransactionConfigBuilder>? configure = null, IScope? scope = null)
+        // {
+        //     var singleConfig = SingleQueryTransactionConfigBuilder.Create();
+        //     configure?.Invoke(singleConfig);
+        //     return await transactions.QueryAsync<T>(statement, singleConfig, scope).CAF();
+        // }
 
         /// <summary>
         /// Run a query in transaction mode.
@@ -45,19 +44,19 @@ namespace Couchbase.Integrated.Transactions.Config
             return await ctx.QueryAsync<T>(statement, options, scope).CAF();
         }
 
-        /// <summary>
-        /// Configuration builder for values related to Query.
-        /// </summary>
-        /// <param name="config">The config builder to modify.</param>
-        /// <param name="configure">An action to invoke the <see cref="TransactionQueryConfigBuilder"/> to configure query options for transactions.</param>
-        /// <returns>The original <see cref="TransactionConfigBuilder"/>.</returns>
-        public static TransactionConfigBuilder QueryConfig(this TransactionConfigBuilder config, Action<TransactionQueryConfigBuilder>? configure)
-        {
-            var queryConfigBuilder = TransactionQueryConfigBuilder.Create();
-            configure?.Invoke(queryConfigBuilder);
-            config.QueryConfig(queryConfigBuilder);
-            return config;
-        }
+        // /// <summary>
+        // /// Configuration builder for values related to Query.
+        // /// </summary>
+        // /// <param name="config">The config builder to modify.</param>
+        // /// <param name="configure">An action to invoke the <see cref="TransactionQueryConfigBuilder"/> to configure query options for transactions.</param>
+        // /// <returns>The original <see cref="TransactionConfigBuilder"/>.</returns>
+        // public static TransactionConfigBuilder QueryConfig(this TransactionConfigBuilder config, Action<TransactionQueryConfigBuilder>? configure)
+        // {
+        //     var queryConfigBuilder = TransactionQueryConfigBuilder.Create();
+        //     configure?.Invoke(queryConfigBuilder);
+        //     config.QueryConfig(queryConfigBuilder);
+        //     return config;
+        // }
     }
 }
 
@@ -65,7 +64,7 @@ namespace Couchbase.Integrated.Transactions.Config
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -80,4 +79,10 @@ namespace Couchbase.Integrated.Transactions.Config
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

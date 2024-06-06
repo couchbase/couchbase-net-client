@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Threading.Tasks;
@@ -17,6 +16,95 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
     [InterfaceStability(Level.Volatile)]
     internal interface ITestHooks
     {
+
+
+        Task<int?> BeforeAtrCommit(AttemptContext self);
+
+        Task<int?> AfterAtrCommit(AttemptContext self);
+
+        Task<int?> BeforeDocCommitted(AttemptContext self, string id);
+
+        Task<int?> BeforeDocRolledBack(AttemptContext self, string id);
+
+        Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id);
+
+        Task<int?> AfterDocCommitted(AttemptContext self, string id);
+
+        Task<int?> AfterDocsCommitted(AttemptContext self);
+
+        Task<int?> BeforeDocRemoved(AttemptContext self, string id);
+
+        Task<int?> AfterDocRemovedPreRetry(AttemptContext self, string id);
+
+        Task<int?> AfterDocRemovedPostRetry(AttemptContext self, string id);
+
+        Task<int?> AfterDocsRemoved(AttemptContext self);
+
+        Task<int?> BeforeAtrPending(AttemptContext self);
+
+        Task<int?> AfterAtrPending(AttemptContext self);
+
+        Task<int?> AfterAtrComplete(AttemptContext self);
+
+        Task<int?> BeforeAtrComplete(AttemptContext self);
+
+        Task<int?> BeforeAtrRolledBack(AttemptContext self);
+
+        Task<int?> AfterGetComplete(AttemptContext self, string id);
+
+        Task<int?> BeforeRollbackDeleteInserted(AttemptContext self, string id);
+
+        Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id);
+
+        Task<int?> AfterStagedRemoveComplete(AttemptContext self, string id);
+
+        Task<int?> BeforeStagedInsert(AttemptContext self, string id);
+
+        Task<int?> BeforeStagedRemove(AttemptContext self, string id);
+
+        Task<int?> BeforeStagedReplace(AttemptContext self, string id);
+
+        Task<int?> AfterStagedInsertComplete(AttemptContext self, string id);
+
+        Task<int?> BeforeGetAtrForAbort(AttemptContext self);
+
+        Task<int?> BeforeAtrAborted(AttemptContext self);
+
+        Task<int?> AfterAtrAborted(AttemptContext self);
+
+        Task<int?> AfterAtrRolledBack(AttemptContext self);
+
+        Task<int?> AfterRollbackReplaceOrRemove(AttemptContext self, string id);
+
+        Task<int?> AfterRollbackDeleteInserted(AttemptContext self, string id);
+
+        Task<int?> BeforeRemovingDocDuringStagedInsert(AttemptContext self, string id);
+
+        Task<int?> BeforeCheckAtrEntryForBlockingDoc(AttemptContext self, string id);
+
+        Task<int?> BeforeDocGet(AttemptContext self, string id);
+
+        Task<int?> BeforeGetDocInExistsDuringStagedInsert(AttemptContext self, string id);
+
+        bool HasExpiredClientSideHook(AttemptContext self, string place, string? docId);
+        Task<int?> BeforeAtrCommitAmbiguityResolution(AttemptContext attemptContext);
+
+        Task<string?> AtrIdForVBucket(AttemptContext self, int vbucketId);
+
+        Task<int?> BeforeQuery(AttemptContext self, string statement);
+        Task<int?> AfterQuery(AttemptContext self, string statement);
+        Task<int?> BeforeOverwritingStagedInsertRemoval(AttemptContext self, string id);
+
+        Task<int?> BeforeRemoveStagedInsert(AttemptContext self, string id);
+        Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id);
+    }
+
+    /// <summary>
+    /// Implementation of ITestHooks that relies on default interface implementation.
+    /// </summary>
+    internal class DefaultTestHooks : ITestHooks
+    {
+        public static readonly ITestHooks Instance = new DefaultTestHooks();
         public const string HOOK_ROLLBACK = "rollback";
         public const string HOOK_GET = "get";
         public const string HOOK_INSERT = "insert";
@@ -47,117 +135,85 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
         public const string HOOK_QUERY_KV_REMOVE = "queryKvRemove";
         public const string HOOK_QUERY_KV_INSERT = "queryKvInsert";
         public const string HOOK_QUERY_ROLLBACK = "queryRollback";
+        public Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeDocRolledBack(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeDocRolledBack(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocsCommitted(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocsCommitted(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeDocRemoved(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeDocRemoved(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocRemovedPreRetry(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocRemovedPreRetry(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocRemovedPostRetry(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocRemovedPostRetry(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterDocsRemoved(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterDocsRemoved(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeAtrPending(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeAtrPending(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterAtrPending(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterAtrPending(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterAtrComplete(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterAtrComplete(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeAtrComplete(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeAtrComplete(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeAtrRolledBack(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeAtrRolledBack(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterGetComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterGetComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeRollbackDeleteInserted(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeRollbackDeleteInserted(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterStagedRemoveComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterStagedRemoveComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeStagedRemove(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeStagedRemove(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeStagedReplace(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeStagedReplace(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterStagedInsertComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterStagedInsertComplete(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeGetAtrForAbort(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeGetAtrForAbort(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeAtrAborted(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeAtrAborted(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterAtrAborted(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterAtrAborted(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterAtrRolledBack(AttemptContext self) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterAtrRolledBack(AttemptContext self) => Task.FromResult<int?>(0);
+        public Task<int?> AfterRollbackReplaceOrRemove(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterRollbackReplaceOrRemove(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterRollbackDeleteInserted(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> AfterRollbackDeleteInserted(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeRemovingDocDuringStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeRemovingDocDuringStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeCheckAtrEntryForBlockingDoc(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeCheckAtrEntryForBlockingDoc(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeDocGet(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeDocGet(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeGetDocInExistsDuringStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeGetDocInExistsDuringStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public bool HasExpiredClientSideHook(AttemptContext self, string place, string? docId) => false;
+        public Task<int?> BeforeAtrCommitAmbiguityResolution(AttemptContext attemptContext) => Task.FromResult<int?>(0);
 
-        bool HasExpiredClientSideHook(AttemptContext self, string place, string? docId) => false;
-        Task<int?> BeforeAtrCommitAmbiguityResolution(AttemptContext attemptContext) => Task.FromResult<int?>(0);
+        public Task<string?> AtrIdForVBucket(AttemptContext self, int vbucketId) => Task.FromResult<string?>(null);
 
-        Task<string?> AtrIdForVBucket(AttemptContext self, int vbucketId) => Task.FromResult<string?>(null);
+        public Task<int?> BeforeQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
+        public Task<int?> AfterQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
+        public Task<int?> BeforeOverwritingStagedInsertRemoval(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
-        Task<int?> BeforeQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
-        Task<int?> AfterQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
-        Task<int?> BeforeOverwritingStagedInsertRemoval(AttemptContext self, string id) => Task.FromResult<int?>(0);
-
-        Task<int?> BeforeRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
-        Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
-    }
-
-    /// <summary>
-    /// Implementation of ITestHooks that relies on default interface implementation.
-    /// </summary>
-    internal class DefaultTestHooks : ITestHooks
-    {
-        public static readonly ITestHooks Instance = new DefaultTestHooks();
-    }
-
-    /// <summary>
-    /// Implementation of ITestHooks that allows individual delegates per hook.
-    /// </summary>
-    internal class DelegateTestHooks : ITestHooks
-    {
-        public Func<AttemptContext, string, Task<int?>> BeforeDocGetImpl { get; set; } = DefaultTestHooks.Instance.BeforeDocGet;
-        public Task<int?> BeforeDocGet(AttemptContext self, string id) => BeforeDocGetImpl(self, id);
-
-        public Func<AttemptContext, string, Task<int?>> BeforeDocCommittedImpl { get; set; } =
-            DefaultTestHooks.Instance.BeforeDocCommitted;
-        public Task<int?> BeforeDocCommitted(AttemptContext self, string id) => BeforeDocCommittedImpl(self, id);
-
-        public Func<AttemptContext, Task<int?>> BeforeAtrCommitImpl { get; set; } =
-            DefaultTestHooks.Instance.BeforeAtrCommit;
-        public Task<int?> BeforeAtrCommit(AttemptContext self) => BeforeAtrCommitImpl(self);
-
-        public Func<AttemptContext, string, Task<int?>> AfterStagedReplaceCompleteImpl { get; set; } =
-            DefaultTestHooks.Instance.AfterStagedReplaceComplete;
-
-        public Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id) =>
-            AfterStagedReplaceCompleteImpl(self, id);
+        public Task<int?> BeforeRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
     }
 }
 
@@ -165,7 +221,7 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -180,4 +236,8 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+

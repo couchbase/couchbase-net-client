@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -23,14 +22,12 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         public static readonly Task NothingToDo = Task.CompletedTask;
 
         private readonly ICluster _cluster;
-        private readonly TimeSpan? _keyValueTimeout;
         private readonly string _creatorName;
         private readonly ILogger<Cleaner> _logger;
 
-        public Cleaner(ICluster cluster, TimeSpan? keyValueTimeout, ILoggerFactory loggerFactory, [CallerMemberName] string creatorName = nameof(Cleaner))
+        public Cleaner(ICluster cluster, ILoggerFactory loggerFactory, [CallerMemberName] string creatorName = nameof(Cleaner))
         {
             _cluster = cluster;
-            _keyValueTimeout = keyValueTimeout;
             _creatorName = creatorName;
             _logger = loggerFactory.CreateLogger<Cleaner>();
         }
@@ -107,8 +104,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                 specs.Add(MutateInSpec.Remove(prefix, isXattr: true));
 
                 var mutateResult = await cleanupRequest.AtrCollection.MutateInAsync(cleanupRequest.AtrId, specs,
-                    opts => opts.Timeout(_keyValueTimeout)
-                                .Durability(cleanupRequest.GetDurabilityLevel())).CAF();
+                    opts => opts.Durability(cleanupRequest.GetDurabilityLevel())).CAF();
 
                 if (mutateResult?.MutationToken.SequenceNumber != 0)
                 {
@@ -151,14 +147,12 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                                 opts => opts.Cas(op.Cas)
                                     .Durability(cleanupRequest.GetDurabilityLevel())
-                                    .AccessDeleted(true)
-                                    .Timeout(_keyValueTimeout)).CAF();
+                                    .AccessDeleted(true)).CAF();
                         }
                         else
                         {
                             await collection.RemoveAsync(dr.Id, opts => opts.Cas(op.Cas)
-                                .Durability(cleanupRequest.GetDurabilityLevel())
-                                .Timeout(_keyValueTimeout)).CAF();
+                                .Durability(cleanupRequest.GetDurabilityLevel())).CAF();
                         }
                     }).CAF();
             }
@@ -174,8 +168,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                         await collection.MutateInAsync(dr.Id, specs =>
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                             opts => opts.Cas(op.Cas)
-                                .AccessDeleted(true)
-                                .Timeout(_keyValueTimeout)).CAF();
+                                .AccessDeleted(true)).CAF();
                     }).CAF();
             }
         }
@@ -204,8 +197,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
                                         .SetDoc(finalDoc)
                                 , opts => opts.Cas(op.Cas)
-                                    .Durability(durabilityLevel)
-                                    .Timeout(_keyValueTimeout)).CAF();
+                                    .Durability(durabilityLevel)).CAF();
                         }
                     }).CAF();
             }
@@ -219,8 +211,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                         var collection = await dr.GetCollection(_cluster).CAF();
 
                         await collection.RemoveAsync(dr.Id, opts => opts.Cas(op.Cas)
-                            .Durability(durabilityLevel)
-                            .Timeout(_keyValueTimeout)).CAF();
+                            .Durability(durabilityLevel)).CAF();
                     }).CAF();
             }
         }
@@ -229,7 +220,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         {
             await TestHooks.BeforeDocGet(dr.Id).CAF();
             var collection = await dr.GetCollection(_cluster).CAF();
-            var docLookupResult = await DocumentRepository.LookupDocumentAsync(collection, dr.Id, _keyValueTimeout, fullDocument: false).CAF();
+            var docLookupResult = await DocumentRepository.LookupDocumentStaticAsync(collection, dr.Id, fullDocument: false).CAF();
 
             if (docLookupResult.TransactionXattrs == null)
             {
@@ -260,7 +251,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -275,4 +266,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

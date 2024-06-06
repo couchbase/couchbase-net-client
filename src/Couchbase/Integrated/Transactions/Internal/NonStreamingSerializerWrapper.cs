@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.IO;
@@ -50,4 +49,8 @@ namespace Couchbase.Integrated.Transactions.Internal
         public ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default) => _serializer.SerializeAsync(stream, obj, cancellationToken);
     }
 }
-#endif
+
+
+
+
+

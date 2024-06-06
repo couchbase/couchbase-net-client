@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -12,24 +11,37 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Integrated.Transactions.DataAccess
 {
-    internal class CleanerRepository : ICleanerRepository
+    internal class CleanerRepository
     {
+        public KeySpace KeySpace { get; }
+        private readonly ICluster _cluster;
         private static readonly int ExpiresSafetyMarginMillis = 20_000;
         private static readonly TimeSpan RemoveClientTimeout = TimeSpan.FromMilliseconds(500);
         private static readonly object PlaceholderEmptyJObject = JObject.Parse("{}");
-        public ICouchbaseCollection Collection { get; }
-        private readonly TimeSpan? _keyValueTimeout;
+        private ICouchbaseCollection? _collection = null;
 
-        public CleanerRepository(ICouchbaseCollection collection, TimeSpan? keyValueTimeout)
+        public CleanerRepository(KeySpace keySpaceToClean, ICluster cluster)
         {
-            Collection = collection;
-            _keyValueTimeout = keyValueTimeout;
+            KeySpace = keySpaceToClean;
+            _cluster = cluster;
+        }
+
+        public async Task<ICouchbaseCollection> GetCollection()
+        {
+            if (_collection is null)
+            {
+                var bkt = await _cluster.BucketAsync(KeySpace.Bucket).CAF();
+                var scp = bkt.Scope(KeySpace.Scope);
+                var col = scp.Collection(KeySpace.Collection);
+                _collection = col;
+            }
+
+            return _collection;
         }
 
         public async Task CreatePlaceholderClientRecord(ulong? cas = null)
         {
             var opts = new MutateInOptions()
-                .Timeout(_keyValueTimeout)
                 .StoreSemantics(StoreSemantics.Insert)
                 .Transcoder(Transactions.MetadataTranscoder);
 
@@ -46,19 +58,21 @@ namespace Couchbase.Integrated.Transactions.DataAccess
                 MutateInSpec.SetDoc(new byte?[] { null }), // ExtBinaryMetadata
             };
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var col = await GetCollection().CAF();
+            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
         public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord()
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(ClientRecordsIndex.FIELD_RECORDS, isXattr: true),
                 LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
             };
 
-            var lookupInResult = await Collection.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var col = await GetCollection().CAF();
+            var lookupInResult = await col.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
             var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
             return (parsedRecord, parsedHlc, lookupInResult.Cas);
@@ -66,14 +80,15 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 
         public async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
                 LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
             };
 
-            var lookupInResult = await Collection.LookupInAsync(atrId, specs, opts).CAF();
+            var col = await GetCollection().CAF();
+            var lookupInResult = await col.LookupInAsync(atrId, specs, opts).CAF();
             var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0);
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
             return (attempts, parsedHlc);
@@ -91,13 +106,14 @@ namespace Couchbase.Integrated.Transactions.DataAccess
                 MutateInSpec.Remove(ClientRecordEntry.PathForEntry(clientUuid), isXattr: true),
             };
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var col = await GetCollection().CAF();
+            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
         public async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds)
         {
             var prefix = ClientRecordEntry.PathForEntry(clientUuid);
-            var opts = new MutateInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new MutateInOptions().Transcoder(Transactions.MetadataTranscoder);
             var specs = new List<MutateInSpec>
             {
                 MutateInSpec.Upsert(ClientRecordEntry.PathForHeartbeat(clientUuid), MutationMacro.Cas, createPath: true),
@@ -113,7 +129,8 @@ namespace Couchbase.Integrated.Transactions.DataAccess
                 specs.Add(spec);
             }
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var col = await GetCollection().CAF();
+            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
     }
 }
@@ -122,7 +139,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -137,4 +154,10 @@ namespace Couchbase.Integrated.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

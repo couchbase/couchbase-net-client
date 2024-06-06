@@ -1,39 +1,37 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
+using Couchbase.Core.Compatibility;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 
 namespace Couchbase.Integrated.Transactions.Config
 {
     /// <summary>
-    /// A class representing a config applied to a single transaction.
+    /// A record representing a config applied to a single transaction.
     /// </summary>
-    internal class PerTransactionConfig
+    [InterfaceStability(Level.Volatile)]
+    public record PerTransactionConfig
     {
-        internal PerTransactionConfig()
-        { }
-
         /// <summary>
         /// Gets an optional value indicating the minimum durability level desired for this transaction.
         /// </summary>
-        public DurabilityLevel? DurabilityLevel { get; set; }
+        public DurabilityLevel? DurabilityLevel { get; init; }
 
         /// <summary>
         /// Gets an optional value indicating the relative expiration time of the transaction for this transaction.
         /// </summary>
-        public TimeSpan? Timeout { get; set; }
+        public TimeSpan? Timeout { get; init; }
 
 
         /// <summary>
         /// Gets an option value indicating the timeout on Couchbase Key/Value operations for this transaction.
         /// </summary>
-        public TimeSpan? KeyValueTimeout { get; set; }
+        public TimeSpan? KeyValueTimeout { get; init; }
 
         /// <summary>
         /// The scan consistency to use for query operations (default: RequestPlus)
         /// </summary>
-        public QueryScanConsistency? ScanConsistency { get; set; }
+        public QueryScanConsistency? ScanConsistency { get; init; }
     }
 }
 
@@ -41,7 +39,7 @@ namespace Couchbase.Integrated.Transactions.Config
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -56,4 +54,10 @@ namespace Couchbase.Integrated.Transactions.Config
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

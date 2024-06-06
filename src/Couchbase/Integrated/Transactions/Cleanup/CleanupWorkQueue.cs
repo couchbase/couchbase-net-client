@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Concurrent;
@@ -35,10 +34,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup
 
         public int QueueLength => _workQueue.Count;
 
-        public CleanupWorkQueue(ICluster cluster, TimeSpan? keyValueTimeout, ILoggerFactory loggerFactory, bool runCleanup)
+        public CleanupWorkQueue(ICluster cluster, ILoggerFactory loggerFactory, bool runCleanup)
         {
             _logger = loggerFactory.CreateLogger<CleanupWorkQueue>();
-            _cleaner = new Cleaner(cluster, keyValueTimeout, loggerFactory, creatorName: nameof(CleanupWorkQueue)) { TestHooks = TestHooks };
+            _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(CleanupWorkQueue)) { TestHooks = TestHooks };
             _consumer = runCleanup ? Task.Run(ConsumeWork) : Task.CompletedTask;
         }
 
@@ -118,7 +117,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -133,4 +132,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+
+
+

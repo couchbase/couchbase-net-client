@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -33,7 +32,7 @@ namespace Couchbase.Integrated.Transactions
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);
 
-        private static Lazy<HashSet<string>> SupportedShortCodes => new Lazy<HashSet<string>>(() => ExtensionsSupported().Select(ext => ext.ShortCode).ToHashSet());
+        private static Lazy<HashSet<string>> SupportedShortCodes => new Lazy<HashSet<string>>(() => new HashSet<string>(ExtensionsSupported().Select(ext => ext.ShortCode)));
 
         internal record ExtensionName(string PascalCase, string ConstantStyle, string ShortCode);
     }
@@ -43,7 +42,7 @@ namespace Couchbase.Integrated.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2024 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -58,4 +57,8 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-#endif
+
+
+
+
+

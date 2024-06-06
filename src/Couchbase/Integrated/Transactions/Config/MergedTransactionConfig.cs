@@ -1,4 +1,3 @@
-#if NET5_0_OR_GREATER
 #nullable enable
 using System;
 using Couchbase.KeyValue;
@@ -13,22 +12,26 @@ namespace Couchbase.Integrated.Transactions.Config
             TimeSpan CleanupWindow,
             DurabilityLevel DurabilityLevel,
             TimeSpan ExpirationTime,
-            TimeSpan? KeyValueTimeout,
             ILoggerFactory? LoggerFactory,
-            ICouchbaseCollection? MetadataCollection,
+            KeySpace? MetadataCollection,
             QueryScanConsistency? ScanConsistency)
     {
         public static MergedTransactionConfig Create(TransactionConfig config, PerTransactionConfig? perConfig) =>
             new(
                 CleanupClientAttempts: config.CleanupClientAttempts,
                 CleanupLostAttempts: config.CleanupLostAttempts,
-                CleanupWindow: config.CleanupWindow,
+                CleanupWindow: config.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow,
                 DurabilityLevel: perConfig?.DurabilityLevel ?? config.DurabilityLevel,
-                ExpirationTime: perConfig?.Timeout ?? config.ExpirationTime,
-                KeyValueTimeout: perConfig?.KeyValueTimeout ?? config.KeyValueTimeout,
+                ExpirationTime: perConfig?.Timeout ?? config.ExpirationTime ?? TransactionConfig.DefaultExpiration,
                 LoggerFactory: config.LoggerFactory,
                 MetadataCollection: config.MetadataCollection,
                 ScanConsistency: perConfig?.ScanConsistency ?? config.ScanConsistency);
     }
 }
-#endif
+
+
+
+
+
+
+
