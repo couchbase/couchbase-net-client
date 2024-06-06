@@ -1,6 +1,6 @@
 #nullable enable
 using Couchbase.Core.Compatibility;
-using Couchbase.Core.Exceptions;
+using Couchbase.Utils;
 using Stj = System.Text.Json.Serialization;
 using NSft = Newtonsoft.Json;
 
@@ -29,6 +29,10 @@ public sealed record VectorQuery(
         init
         {
             IsVectorQueryValid(value, _base64Vector);
+            if (value!.Length == 0)
+            {
+                ThrowHelper.ThrowInvalidArgumentException("The provided Vector cannot be an empty float array.");
+            }
             _vector = value;
         }
     }
@@ -42,6 +46,10 @@ public sealed record VectorQuery(
         init
         {
             IsVectorQueryValid(value, _vector);
+            if (string.IsNullOrEmpty(value))
+            {
+                ThrowHelper.ThrowInvalidArgumentException("The Base64-encoded vector cannot be an empty string.");
+            }
             _base64Vector = value;
         }
     }
@@ -50,7 +58,7 @@ public sealed record VectorQuery(
     {
         if (incomingValue == null || otherProperty != null)
         {
-            throw new InvalidArgumentException("A vector has to provided either as a float[] or a Base64-encoded string, but not both.");
+            ThrowHelper.ThrowInvalidArgumentException("A vector has to provided either as a float[] or a Base64-encoded string, but not both.");
         }
     }
 
@@ -94,7 +102,7 @@ public sealed record VectorQueryOptions(float? Boost = null)
         {
             if (value is < 1)
             {
-                throw new Core.Exceptions.InvalidArgumentException($"{nameof(NumCandidates)} must be >= 1");
+                ThrowHelper.ThrowInvalidArgumentException($"{nameof(NumCandidates)} must be >= 1");
             }
 
             _numCandidates = value;
@@ -103,3 +111,22 @@ public sealed record VectorQueryOptions(float? Boost = null)
     public VectorQueryOptions WithNumCandidates(uint numCandidates) => this with { NumCandidates = numCandidates };
     public VectorQueryOptions WithBoost(float boost) => this with { Boost = boost };
 }
+
+/* ************************************************************
+ *
+ *    @author Couchbase <info@couchbase.com>
+ *    @copyright 2024 Couchbase, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *
+ * ************************************************************/

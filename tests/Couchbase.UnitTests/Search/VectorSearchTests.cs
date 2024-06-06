@@ -26,6 +26,14 @@ public class VectorSearchTests
         {
             _ = new VectorQuery("hello", new VectorQueryOptions()).WithVector(null).WithBase64EncodedVector(null);
         });
+        Assert.Throws<InvalidArgumentException>(() =>
+        {
+            _ = new VectorQuery("hello", new VectorQueryOptions()).WithVector([]);
+        });
+        Assert.Throws<InvalidArgumentException>(() =>
+        {
+            _ = new VectorQuery("hello", new VectorQueryOptions()).WithBase64EncodedVector("");
+        });
     }
 
     [Fact]
