@@ -142,6 +142,7 @@ namespace Couchbase.Query
                 queryOptions.RequestSpanValue = RequestSpanValue;
                 queryOptions.BucketName = BucketName;
                 queryOptions.ScopeName = ScopeName;
+                queryOptions.QueryContext = QueryContext;
                 return queryOptions;
             }
 
