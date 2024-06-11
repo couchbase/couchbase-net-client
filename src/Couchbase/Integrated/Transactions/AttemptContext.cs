@@ -725,14 +725,17 @@ namespace Couchbase.Integrated.Transactions
                                             return (RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
                                         }
 
+                                        //Old Behaviour:
                                         // Else if the doc is not in a transaction
                                         // -> Raise Error(FAIL_DOC_ALREADY_EXISTS, cause=DocumentExistsException).
                                         // There is logic further up the stack that handles this by fast-failing the transaction.
+
+                                        //From ExtInsertExisting (TXNN-131)
+                                        //Fail with DocumentExistsException so users can choose to ignore and continue with the transaction
+                                        //is desired.
                                         if (!docInATransaction)
                                         {
-                                            throw ErrorBuilder.CreateError(this, ErrorClass.FailDocAlreadyExists)
-                                                .Cause(new DocumentExistsException())
-                                                .Build();
+                                            throw ex;
                                         }
                                         else
                                         {
@@ -783,6 +786,7 @@ namespace Couchbase.Integrated.Transactions
                                     }
                                     catch (Exception exDocExists)
                                     {
+                                        if (exDocExists is DocumentExistsException) throw;
                                         var triagedDocExists = _triage.TriageDocExistsOnStagedInsertErrors(exDocExists);
                                         throw _triage.AssertNotNull(triagedDocExists, exDocExists);
                                     }
