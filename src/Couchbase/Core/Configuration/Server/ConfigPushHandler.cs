@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -55,6 +56,7 @@ internal partial class ConfigPushHandler : IDisposable
 
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
+        ConfigVersion lastSkippedVersion = new(0, 0);
         while (!cancellationToken.IsCancellationRequested)
         {
             // Don't release this semaphore, it is released whenever a new config is received.
@@ -62,14 +64,31 @@ internal partial class ConfigPushHandler : IDisposable
             try
             {
                 var attempted = false;
+                var failedConfigFetchNodes = new HashSet<IClusterNode>();
+                ulong sanity = 0;
                 do
                 {
+                    sanity++;
+                    if (sanity > 10_000)
+                    {
+                        // because this process requires an non-deterministic number of loops and catching exceptions
+                        // to keep the overall config push handler operating, we guard against infinite loops
+                        throw new InvalidOperationException("Possible infinite loop detected in ConfigPushHandler");
+                    }
+
                     ConfigVersion pushedVersion;
                     lock (_lock)
                     {
                         // This lock prevents tearing of the ConfigVersion struct
                         pushedVersion = _latestVersion;
+
+                        if (pushedVersion <= lastSkippedVersion)
+                        {
+                            // we already skipped this version once and it hasn't been updated.
+                            break;
+                        }
                     }
+
 
                     LogEnteredSemaphorePush(pushedVersion);
 
@@ -88,13 +107,26 @@ internal partial class ConfigPushHandler : IDisposable
                         // the event was queued on this processing thread
                         if (pushedVersion <= effectiveVersion)
                         {
+                            lastSkippedVersion = pushedVersion;
                             LogSkippingPush2(_redactor.SystemData(_bucket.Name), pushedVersion,
                                 effectiveVersion.GetValueOrDefault());
+                            await Task.Yield();
+
+                            // because of a possible race, we continue here and only break the loop in the locked section
+                            // at the beginning of this loop.
                             continue;
                         }
                     }
 
-                    var node = _bucket.Nodes.RandomOrDefault(x => x.HasKv && !x.IsDead);
+                    var remainingNodes = _bucket.Nodes.Where(n => !failedConfigFetchNodes.Contains(n)).ToList();
+                    if (remainingNodes.Count == 0)
+                    {
+                        // we have tried all nodes we know of, but were unable to retrieve a config.
+                        throw new NodeNotAvailableException(
+                            "No nodes available for fetching config in response to ConfigPush");
+                    }
+
+                    var node = remainingNodes.RandomOrDefault(x => x.HasKv && !x.IsDead);
                     if (node != null)
                     {
                         BucketConfig bucketConfig = null;
@@ -106,6 +138,7 @@ internal partial class ConfigPushHandler : IDisposable
                         }
                         catch (SocketNotAvailableException)
                         {
+                            failedConfigFetchNodes.Add(node);
                             attempted = true;
                             _logger.LogWarning("Socket closed on {EndPoint} retrying on next available node", node.EndPoint);
                             await Task.Yield();
