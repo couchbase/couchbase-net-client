@@ -56,6 +56,7 @@ internal partial class ConfigPushHandler : IDisposable
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
         ConfigVersion lastSkippedVersion = new(0, 0);
+        long skipsWithNoPublish = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
             // Don't release this semaphore, it is released whenever a new config is received.
@@ -143,6 +144,7 @@ internal partial class ConfigPushHandler : IDisposable
                         // therefore, not-null means this is a new config that must be published to all subscribers.
                         LogConfigPublished(_redactor.SystemData(_bucket.Name), fetchedBucketConfig.ConfigVersion,
                             effectiveVersion);
+                        Interlocked.Exchange(ref skipsWithNoPublish, 0);
                         _context.PublishConfig(fetchedBucketConfig);
                     }
                     else if (fetchedVersion < pushedVersion)
@@ -163,6 +165,12 @@ internal partial class ConfigPushHandler : IDisposable
                     {
                         // a new version came in while we were publishing.
                         LogAttemptedButSkipped(nextVersion, fetchedVersion);
+                        var skips = Interlocked.Increment(ref skipsWithNoPublish);
+                        if (skips > 100)
+                        {
+                            await Task.Delay(10).ConfigureAwait(false);
+                        }
+
                         TryReleaseNewVersionSemaphore();
                     }
                 }
