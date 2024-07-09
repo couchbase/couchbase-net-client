@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
@@ -14,7 +16,7 @@ internal partial class ConfigPushHandler : IDisposable
     private readonly ILogger _logger;
     private readonly ClusterContext _context;
     private readonly TypedRedactor _redactor;
-    private readonly CouchbaseBucket _bucket;
+    private readonly BucketBase _bucket;
 
     private readonly CancellationTokenSource _continueLoopingSource = new();
     private readonly object _lock = new();
@@ -24,9 +26,8 @@ internal partial class ConfigPushHandler : IDisposable
     private ConfigVersion _latestVersion;
     private volatile bool _disposed;
 
-    public ConfigPushHandler(CouchbaseBucket bucket, ClusterContext context, ILogger logger, TypedRedactor redactor)
+    public ConfigPushHandler(BucketBase bucket, ClusterContext context, ILogger logger, TypedRedactor redactor)
     {
-        // TODO: inject logger via DI rather than using ClusterNode's logger instance.
         _logger = logger;
         _bucket = bucket;
         _context = context;
@@ -54,101 +55,129 @@ internal partial class ConfigPushHandler : IDisposable
 
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
+        ConfigVersion lastSkippedVersion = new(0, 0);
+        long skipsWithNoPublish = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
             // Don't release this semaphore, it is released whenever a new config is received.
             await _versionReceivedEvent.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var attempted = false;
-                do
+                var failedConfigFetchNodes = new HashSet<IClusterNode>();
+
+                ConfigVersion pushedVersion;
+                lock (_lock)
                 {
-                    ConfigVersion pushedVersion;
-                    lock (_lock)
+                    // This lock prevents tearing of the ConfigVersion struct
+                    pushedVersion = _latestVersion;
+
+                    if (pushedVersion <= lastSkippedVersion)
                     {
-                        // This lock prevents tearing of the ConfigVersion struct
-                        pushedVersion = _latestVersion;
+                        // we already skipped this version once and it hasn't been updated.
+                        break;
                     }
+                }
 
-                    LogEnteredSemaphorePush(pushedVersion);
 
-                    // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
-                    // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
-                    // received is processed here but then on the next loop WaitAsync will immediately return a second time
-                    // due the semaphore being released again by ProcessConfigPush.
-                    ConfigVersion? effectiveVersion = null;
-                    if (_bucket.CurrentConfig != null)
+                LogEnteredSemaphorePush(pushedVersion);
+
+                // Note: There is a slim chance that the same _latestVersion may be processed twice if a new version
+                // is received between the WaitAsync above being triggered and reaching the lock. In this case the second version
+                // received is processed here but then on the next loop WaitAsync will immediately return a second time
+                // due the semaphore being released again by ProcessConfigPush.
+                ConfigVersion? effectiveVersion = null;
+                if (_bucket.CurrentConfig != null)
+                {
+                    BucketConfig effectiveConfig = _bucket.CurrentConfig;
+                    effectiveVersion = effectiveConfig.ConfigVersion;
+
+                    // Recheck to see if this node received the config version from another node since
+                    // the event was queued on this processing thread
+                    if (pushedVersion <= effectiveVersion)
                     {
-                        BucketConfig effectiveConfig = null;
-                        Interlocked.Exchange(ref effectiveConfig, _bucket.CurrentConfig);
-                        effectiveVersion = effectiveConfig.ConfigVersion;
+                        lastSkippedVersion = pushedVersion;
+                        LogSkippingPush2(_redactor.SystemData(_bucket.Name), pushedVersion,
+                            effectiveVersion.GetValueOrDefault());
+                        await Task.Yield();
 
-                        // Recheck to see if this node received the config version from another node since
-                        // the event was queued on this processing thread
-                        if (pushedVersion <= effectiveVersion)
+                        // because of a possible race, we continue here and only break the loop in the locked section
+                        // at the beginning of this loop.
+                        continue;
+                    }
+                }
+
+                var randomNodes = _bucket.Nodes.ToList().Shuffle();
+                BucketConfig fetchedBucketConfig = null;
+                foreach (var node in randomNodes)
+                {
+                    if (node is null) continue;
+                    try
+                    {
+                        fetchedBucketConfig = await node
+                            .GetClusterMap(latestVersionOnClient: effectiveVersion, cancellationToken)
+                            .ConfigureAwait(false);
+                        if (fetchedBucketConfig is not null)
                         {
-                            LogSkippingPush2(_redactor.SystemData(_bucket.Name), pushedVersion,
-                                effectiveVersion.GetValueOrDefault());
-                            continue;
+                            break;
                         }
                     }
-
-                    var node = _bucket.Nodes.FirstOrDefault(x => x.HasKv && !x.IsDead);
-                    if (node != null)
+                    catch (SocketNotAvailableException)
                     {
-                        BucketConfig bucketConfig = null;
-                        try
-                        {
-                            bucketConfig = await node
-                                .GetClusterMap(latestVersionOnClient: effectiveVersion, cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-                        catch (SocketNotAvailableException)
-                        {
-                            attempted = true;
-                            _logger.LogWarning("Socket closed on {EndPoint} retrying on next available node", node.EndPoint);
-                        }
+                        failedConfigFetchNodes.Add(node);
+                        _logger.LogWarning("Socket closed on {EndPoint} retrying on next random node",
+                            node.EndPoint);
+                        await Task.Yield();
+                    }
+                }
 
-                        if (bucketConfig != null)
-                        {
-                            var newVersion = bucketConfig.ConfigVersion;
-                            if (newVersion > effectiveVersion)
-                            {
-                                // GetClusterMap returns null when the config has already been seen by the client
-                                // therefore, not-null means this is a new config that must be published to all subscribers.
-                                LogConfigPublished(_redactor.SystemData(_bucket.Name), bucketConfig.ConfigVersion,
-                                    effectiveVersion);
-                                _context.PublishConfig(bucketConfig);
-                            }
-                            else
-                            {
-                                LogSkippingPush2(_redactor.SystemData(_bucket.Name), newVersion,
-                                    effectiveVersion.GetValueOrDefault());
-                            }
-                            ConfigVersion nextVersion;
-                            ConfigVersion sentVersion;
-                            lock (_lock)
-                            {
-                                nextVersion = _latestVersion;
-                                sentVersion = bucketConfig.ConfigVersion;
-                            }
+                if (failedConfigFetchNodes.Count == randomNodes.Count)
+                {
+                    _logger.LogCritical("All {count} nodes failed to fetch config.", randomNodes.Count);
+                }
 
-                            if (nextVersion > sentVersion)
-                            {
-                                LogAttemptedButSkipped(nextVersion, sentVersion);
-                                attempted = true;
-                            }
-                        }
-                        else
-                        {
-                            LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
-                        }
+                if (fetchedBucketConfig != null)
+                {
+                    var fetchedVersion = fetchedBucketConfig.ConfigVersion;
+                    if (fetchedVersion > effectiveVersion)
+                    {
+                        // GetClusterMap returns null when the config has already been seen by the client
+                        // therefore, not-null means this is a new config that must be published to all subscribers.
+                        LogConfigPublished(_redactor.SystemData(_bucket.Name), fetchedBucketConfig.ConfigVersion,
+                            effectiveVersion);
+                        Interlocked.Exchange(ref skipsWithNoPublish, 0);
+                        _context.PublishConfig(fetchedBucketConfig);
+                    }
+                    else if (fetchedVersion < pushedVersion)
+                    {
+                        LogFetchedConfigOlder(_redactor.SystemData(_bucket.Name), fetchedVersion,
+                        pushedVersion);
                     }
                     else
                     {
-                        LogNodeWasNull(effectiveVersion.GetValueOrDefault());
+                        LogSkippingPush2(_redactor.SystemData(_bucket.Name), fetchedVersion,
+                            effectiveVersion.GetValueOrDefault());
+                        continue;
                     }
-                } while (attempted);
+
+                    ConfigVersion nextVersion = _latestVersion;
+
+                    if (nextVersion > fetchedVersion)
+                    {
+                        // a new version came in while we were publishing.
+                        LogAttemptedButSkipped(nextVersion, fetchedVersion);
+                        var skips = Interlocked.Increment(ref skipsWithNoPublish);
+                        if (skips > 100)
+                        {
+                            await Task.Delay(10).ConfigureAwait(false);
+                        }
+
+                        TryReleaseNewVersionSemaphore();
+                    }
+                }
+                else
+                {
+                    LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
+                }
             }
             catch (Exception ex)
             {
@@ -187,16 +216,21 @@ internal partial class ConfigPushHandler : IDisposable
             LogUpdatedLatestVersion(_latestVersion, configVersion);
             _latestVersion = configVersion;
 
-            try
-            {
-                _versionReceivedEvent.Release();
-            }
-            catch (SemaphoreFullException)
-            {
-                _logger.LogDebug("Tried to release VersionReceivedEvent but we are already waiting on the processing thread");
-                // Ignore this error, it means that we're already waiting on the processing thread
-                // to handle a new config version. When it wakes it will see this new version instead.
-            }
+            TryReleaseNewVersionSemaphore();
+        }
+    }
+
+    private void TryReleaseNewVersionSemaphore()
+    {
+        try
+        {
+            _versionReceivedEvent.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            _logger.LogDebug("Tried to release VersionReceivedEvent but we are already waiting on the processing thread");
+            // Ignore this error, it means that we're already waiting on the processing thread
+            // to handle a new config version. When it wakes it will see this new version instead.
         }
     }
 
@@ -228,14 +262,17 @@ internal partial class ConfigPushHandler : IDisposable
     [LoggerMessage(5, LogLevel.Trace, "Skipping push: {bucket} < {pushedVersion} < {currentVersion}")]
     private partial void LogSkippingPush2(Redacted<string> bucket, ConfigVersion pushedVersion, ConfigVersion currentVersion);
 
-    [LoggerMessage(6, LogLevel.Trace, "Trying again: the next version is {nextVersion} is greater the sent {sentVersion}")]
-    private partial void LogAttemptedButSkipped(ConfigVersion nextVersion, ConfigVersion sentVersion);
+    [LoggerMessage(6, LogLevel.Trace, "Trying again: the next version is {nextVersion} is greater the published {publishedVersion}")]
+    private partial void LogAttemptedButSkipped(ConfigVersion nextVersion, ConfigVersion publishedVersion);
 
     [LoggerMessage(7, LogLevel.Trace,"The server returned null for pushed version {pushedVersion} currentVersion: {effectiveVersion}")]
     private partial void LogServerReturnedNullConfig(ConfigVersion pushedVersion, ConfigVersion effectiveVersion);
 
     [LoggerMessage(8, LogLevel.Trace, "The node was null for {effectiveVersion}")]
     private partial void LogNodeWasNull(ConfigVersion effectiveVersion);
+
+    [LoggerMessage(9, LogLevel.Warning, "Server returned older config than was pushed: {bucket}, fetched={fetchedVersion}, pushed={pushedVersion}")]
+    private partial void LogFetchedConfigOlder(Redacted<string> bucket, ConfigVersion fetchedVersion, ConfigVersion pushedVersion);
 }
 
 /* ************************************************************
