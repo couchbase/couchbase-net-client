@@ -180,7 +180,7 @@ namespace Couchbase.Query
 
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span)
         {
-            using var cts = options.Token.FallbackToTimeout(options.TimeoutValue ?? ClusterOptions.Default.ManagementTimeout);
+            using var cts = options.Token.FallbackToTimeout(options.TimeoutValue ?? ClusterOptions.Default.QueryTimeout);
 
             var currentContextId = options.CurrentContextId ?? DefaultClientContextId;
 
@@ -214,7 +214,7 @@ namespace Couchbase.Query
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);
-                var httpClient = CreateHttpClient();
+                var httpClient = CreateHttpClient(options.TimeoutValue ?? ClusterOptions.Default.QueryTimeout);
                 try
                 {
                     var request = new HttpRequestMessage(HttpMethod.Post, queryUri)
