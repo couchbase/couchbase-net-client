@@ -5,12 +5,13 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
+using Couchbase.Test.Common;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class BucketManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

@@ -8,12 +8,13 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Query;
+using Couchbase.Test.Common;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class QueryIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

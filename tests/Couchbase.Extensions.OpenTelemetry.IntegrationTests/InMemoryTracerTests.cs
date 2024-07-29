@@ -1,20 +1,22 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Extensions.OpenTelemetry.IntegrationTests;
+using Couchbase.Test.Common;
 using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
 {
-    public class OtelTracerTests : IClassFixture<OtelClusterFixture>
+    [Collection(NonParallelDefinition.Name)]
+    public class InMemoryTracerTests : IClassFixture<InMemoryTracingFixture>
     {
-        private readonly OtelClusterFixture _fixture;
+        private readonly InMemoryTracingFixture _fixture;
 
-        public OtelTracerTests(OtelClusterFixture fixture)
+        public InMemoryTracerTests(InMemoryTracingFixture fixture)
         {
             _fixture = fixture;
-
         }
 
         //Collection of basic tests that checks for the right Otel Tags
@@ -89,7 +91,8 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             try
             {
                 // doc doesn't exist, create it and use initial value (1)
-                var result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
+                var result = await collection.Binary.IncrementAsync(key,
+                    new KeyValue.IncrementOptions().Initial(1)).ConfigureAwait(true);
                 Assert.Equal((ulong)1, result.Content);
                 Assert.Equal("increment", _fixture.exportedItems.Last().DisplayName);
 
@@ -106,7 +109,13 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                try
+                {
+                    await collection.RemoveAsync(key).ConfigureAwait(false);
+                }
+                catch (DocumentNotFoundException)
+                {
+                }
             }
         }
 

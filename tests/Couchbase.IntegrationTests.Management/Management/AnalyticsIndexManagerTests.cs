@@ -6,13 +6,14 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Analytics.Link;
+using Couchbase.Test.Common;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class AnalyticsIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

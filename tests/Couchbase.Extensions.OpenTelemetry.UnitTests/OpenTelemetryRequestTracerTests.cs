@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Couchbase.Extensions.Tracing.Otel.Tracing;
+using Couchbase.Test.Common;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Xunit;
 
 namespace Couchbase.Extensions.Tracing.Otel.UnitTests
 {
+    [Collection(NonParallelDefinition.Name)]
     public class OpenTelemetryRequestTracerTests
     {
         private static readonly ActivitySource TestSource = new(nameof(OpenTelemetryRequestTracerTests), "1.0.0");

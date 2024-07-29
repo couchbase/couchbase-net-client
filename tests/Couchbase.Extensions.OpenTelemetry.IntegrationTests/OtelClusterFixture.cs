@@ -1,122 +1,53 @@
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
+using Couchbase.Extensions.Metrics.Otel;
 using Couchbase.Extensions.Tracing.Otel.Tracing;
-using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.KeyValue;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Xunit;
 
 namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
 {
-    public class OtelClusterFixture : IAsyncLifetime
+    public class OtelClusterFixture : BaseClusterFixture
     {
-        private readonly TestSettings _settings;
-        private bool _bucketOpened;
         private readonly TracerProvider _tracerProvider;
-
-        public ClusterOptions ClusterOptions { get; }
-
-        public ICluster Cluster { get; private set; }
-
-        public List<Activity> exportedItems { get; set; }
+        private readonly MeterProvider _meterProvider;
 
         public OtelClusterFixture()
         {
-            _settings = GetSettings();
-            exportedItems = new List<Activity>();
+            var resourceBuilder = ResourceBuilder.CreateDefault()
+                .AddService("couchbase-tests");
 
             _tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("couchbase-tests"))
                 .SetSampler(new AlwaysOnSampler())
-                .AddInMemoryExporter(exportedItems)
+                .AddOtlpExporter(ConfigureOtlpExporter)
                 .AddCouchbaseInstrumentation()
                 .Build();
 
-            ClusterOptions = GetClusterOptions();
+            _meterProvider = Sdk.CreateMeterProviderBuilder()
+                .SetResourceBuilder(resourceBuilder)
+                .AddOtlpExporter(ConfigureOtlpExporter)
+                .AddCouchbaseInstrumentation(options =>
+                {
+                    options.ExcludeLegacyMetrics = true;
+                })
+                .Build();
         }
 
-        public async ValueTask<ICluster> GetCluster()
+        private static void ConfigureOtlpExporter(OtlpExporterOptions options)
         {
-            if (_bucketOpened)
-            {
-                return Cluster;
-            }
-
-            await GetDefaultBucket().ConfigureAwait(false);
-            return Cluster;
+            options.Endpoint = new System.Uri("http://localhost:4317");
+            options.Protocol = OtlpExportProtocol.Grpc;
         }
 
-        public async Task<IBucket> GetDefaultBucket()
+        public override async Task DisposeAsync()
         {
-            var bucket = await Cluster.BucketAsync(_settings.BucketName).ConfigureAwait(false);
+            await base.DisposeAsync();
 
-            _bucketOpened = true;
-
-            return bucket;
-        }
-
-        public async Task<ICouchbaseCollection> GetDefaultCollectionAsync()
-        {
-            var bucket = await GetDefaultBucket().ConfigureAwait(false);
-            return await bucket.DefaultCollectionAsync();
-        }
-
-        public static TestSettings GetSettings()
-        {
-            return new ConfigurationBuilder()
-                .AddJsonFile("config.json")
-                .Build()
-                .GetSection("testSettings")
-                .Get<TestSettings>();
-        }
-
-        public static ClusterOptions GetClusterOptions()
-        {
-            var settings = GetSettings();
-            var options = new ConfigurationBuilder()
-                .AddJsonFile("config.json")
-                .Build()
-                .GetSection("couchbase")
-                .Get<ClusterOptions>();
-
-            if (settings.EnableLogging)
-            {
-                IServiceCollection serviceCollection = new ServiceCollection();
-                serviceCollection.AddLogging(builder => builder
-                    .AddFilter(level => level >= LogLevel.Debug)
-                );
-                var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
-                loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
-                options.WithLogging(loggerFactory);
-            }
-
-            options.WithCompressionAlgorithm<SnappierCompression>();
-
-            options.TracingOptions
-                .WithEnabled(true)
-                .WithTracer(new OpenTelemetryRequestTracer());
-
-            return options;
-        }
-
-        public async Task InitializeAsync()
-        {
-            Cluster = await Couchbase.Cluster.ConnectAsync(
-                    _settings.ConnectionString,
-                    GetClusterOptions())
-                .ConfigureAwait(false);
-        }
-
-        public Task DisposeAsync()
-        {
-            Cluster?.Dispose();
             _tracerProvider.Dispose();
-
-            return Task.CompletedTask;
+            _meterProvider.Dispose();
         }
     }
 }

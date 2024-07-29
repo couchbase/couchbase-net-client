@@ -7,6 +7,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Collections;
 using Couchbase.Query;
+using Couchbase.Test.Common;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;
@@ -14,7 +15,7 @@ using CollectionNotFoundException = Couchbase.Management.Collections.CollectionN
 
 namespace Couchbase.IntegrationTests.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class CollectionManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

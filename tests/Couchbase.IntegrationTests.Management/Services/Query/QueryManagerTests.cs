@@ -3,11 +3,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Query;
+using Couchbase.Test.Common;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Management.Services.Query
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class QueryManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

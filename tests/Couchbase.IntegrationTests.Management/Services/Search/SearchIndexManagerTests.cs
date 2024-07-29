@@ -6,11 +6,12 @@ using Couchbase.Core.Exceptions;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management;
 using Couchbase.Management.Search;
+using Couchbase.Test.Common;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Search
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class SearchIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

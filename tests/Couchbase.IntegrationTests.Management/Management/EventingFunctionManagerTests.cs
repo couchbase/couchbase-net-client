@@ -12,10 +12,11 @@ using Xunit;
 using Xunit.Abstractions;
 using Couchbase.Test.Common.Utils;
 using Xunit.Sdk;
+using Couchbase.Test.Common;
 
 namespace Couchbase.IntegrationTests.Management.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class EventingFunctionManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

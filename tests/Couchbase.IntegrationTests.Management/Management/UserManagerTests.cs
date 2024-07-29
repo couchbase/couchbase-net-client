@@ -3,11 +3,12 @@ using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Users;
+using Couchbase.Test.Common;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Management
 {
-    [Collection("NonParallel")]
+    [Collection(NonParallelDefinition.Name)]
     public class UserManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

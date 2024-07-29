@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Couchbase.Extensions.OpenTelemetry\Couchbase.Extensions.OpenTelemetry.csproj" />
     <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
+    <ProjectReference Include="..\Couchbase.Test.Common\Couchbase.Test.Common.csproj" />
   </ItemGroup>
 
 </Project>
