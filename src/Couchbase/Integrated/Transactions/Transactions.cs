@@ -60,7 +60,7 @@ namespace Couchbase.Integrated.Transactions
         private readonly ILogger<Transactions> _logger;
         private readonly CleanupWorkQueue _cleanupWorkQueue;
         private readonly Cleaner _cleaner;
-        private readonly IAsyncDisposable? _lostTransactionsCleanup;
+        private readonly LostTransactionManager? _lostTransactionsCleanup;
         private readonly IRequestTracer _requestTracer;
 
         /// <summary>
@@ -73,7 +73,6 @@ namespace Couchbase.Integrated.Transactions
         internal ITestHooks TestHooks { get; set; } = DefaultTestHooks.Instance;
         internal DocumentRepository? DocumentRepository { get; set; } = null;
         internal AtrRepository? AtrRepository { get; set; } = null;
-        internal int? CleanupQueueLength => Config.CleanupClientAttempts ?_cleanupWorkQueue?.QueueLength : null;
 
         internal ICleanupTestHooks CleanupTestHooks
         {
@@ -95,10 +94,11 @@ namespace Couchbase.Integrated.Transactions
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
             Config = config ?? throw new ArgumentNullException(nameof(config));
+            Config = config with { CleanupConfig = config.CleanupConfig ?? new() };
             _redactor = _cluster.ClusterServices?.GetService(typeof(IRedactor)) as IRedactor ?? throw new ArgumentNullException(nameof(IRedactor), "Redactor implementation not registered.");
             _requestTracer = cluster.ClusterServices?.GetService(typeof(IRequestTracer)) as IRequestTracer ?? new NoopRequestTracer();
             Interlocked.Increment(ref InstancesCreated);
-            if (config.CleanupLostAttempts)
+            if (config.CleanupConfig!.CleanupLostAttempts)
             {
                 Interlocked.Increment(ref InstancesCreatedDoingBackgroundCleanup);
             }
@@ -108,16 +108,14 @@ namespace Couchbase.Integrated.Transactions
                 ?? NullLoggerFactory.Instance;
             _logger = loggerFactory.CreateLogger<Transactions>();
 
-            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, config.CleanupClientAttempts);
+            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, config.CleanupConfig.CleanupClientAttempts);
 
             _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(Transactions));
 
-            if (config.CleanupLostAttempts)
+            if (config.CleanupConfig.CleanupLostAttempts)
             {
-                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow, metadataCollection: config.MetadataCollection);
+                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupConfig.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow, metadataCollection: config.MetadataCollection);
             }
-
-            // TODO: whatever the equivalent of 'cluster.environment().eventBus().publish(new TransactionsStarted(config));' is.
         }
 
         /// <summary>
@@ -126,7 +124,7 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="cluster">The cluster where your documents will be located.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster) => Create(cluster, new TransactionConfig());
+        internal static Transactions Create(ICluster cluster) => Create(cluster, new TransactionConfig());
 
         /// <summary>
         /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
@@ -135,7 +133,7 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="config">The <see cref="TransactionConfig"/> to use for all transactions against this cluster.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster, TransactionConfig config) => new Transactions(cluster, config);
+        internal static Transactions Create(ICluster cluster, TransactionConfig config) => new Transactions(cluster, config);
 
         // /// <summary>
         // /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
@@ -176,6 +174,8 @@ namespace Couchbase.Integrated.Transactions
                 config: Config,
                 perConfig: perConfig
                 );
+
+            TrackForCleanup(overallContext.Config);
 
             var result = new TransactionResult() { TransactionId =  overallContext.TransactionId };
             var opRetryBackoffMillisecond = 1;
@@ -291,7 +291,7 @@ namespace Couchbase.Integrated.Transactions
 
         private async Task ExecuteApplicationLambda(Func<AttemptContext, Task> transactionLogic,
                                                     TransactionContext overallContext,
-                                                    ILoggerFactory loggerFactory,
+                                                    ILoggerFactory instanceLoggerFactory,
                                                     TransactionResult result,
                                                     IRequestSpan parentSpan,
                                                     bool singleQueryTransactionMode)
@@ -299,7 +299,7 @@ namespace Couchbase.Integrated.Transactions
             var attemptid = Guid.NewGuid().ToString();
             using var traceSpan = parentSpan.ChildSpan(nameof(ExecuteApplicationLambda))
                 .SetAttribute(Support.TransactionFields.AttemptId, attemptid);
-            var delegatingLoggerFactory = new LogUtil.TransactionsLoggerFactory(loggerFactory, overallContext);
+            var delegatingLoggerFactory = new LogUtil.TransactionsLoggerFactory(instanceLoggerFactory, overallContext);
             var memoryLogger = delegatingLoggerFactory.CreateLogger(nameof(ExecuteApplicationLambda));
             var ctx = new AttemptContext(
                 overallContext,
@@ -394,34 +394,52 @@ namespace Couchbase.Integrated.Transactions
             finally
             {
                 result.UnstagingComplete = ctx.UnstagingComplete;
-                memoryLogger.LogInformation("Attempt {attemptId} completed.  CleanupClient={cleanupClientAttempts}, LostCleanup={lostCleanup}", ctx.AttemptId, Config.CleanupClientAttempts, Config.CleanupLostAttempts);
-                if (Config.CleanupClientAttempts)
+                memoryLogger.LogInformation("Attempt {attemptId} completed.  CleanupClient={cleanupClientAttempts}, LostCleanup={lostCleanup}", ctx.AttemptId, Config.CleanupConfig!.CleanupClientAttempts, Config.CleanupConfig!.CleanupLostAttempts);
+                var cleanupRequest = ctx.GetCleanupRequest();
+                if (cleanupRequest is not null)
                 {
-                    memoryLogger.LogInformation("Adding cleanup request for {attemptId}", ctx.AttemptId);
-                    AddCleanupRequest(ctx);
+                    if (Config.CleanupConfig!.CleanupClientAttempts)
+                    {
+                        memoryLogger.LogInformation("Adding cleanup request for {attemptId}", ctx.AttemptId);
+                        AddCleanupRequest(ctx, cleanupRequest);
+                    }
+
+                    TrackCollectionForCleanup(KeySpace.FromCollection(cleanupRequest.AtrCollection));
                 }
 
                 result.Logs = overallContext.Logs;
             }
         }
 
-        private void AddCleanupRequest(AttemptContext ctx)
+        private void AddCleanupRequest(AttemptContext ctx, CleanupRequest cleanupRequest)
         {
-            var cleanupRequest = ctx.GetCleanupRequest();
-            if (cleanupRequest != null)
+            if (!_cleanupWorkQueue.TryAddCleanupRequest(cleanupRequest))
             {
-                if (!_cleanupWorkQueue.TryAddCleanupRequest(cleanupRequest))
-                {
-                    _logger.LogWarning("Failed to add background cleanup request: {req}", cleanupRequest);
-                }
+                _logger.LogWarning("Failed to add background cleanup request: {req}", cleanupRequest);
             }
         }
 
-        internal async IAsyncEnumerable<TransactionCleanupAttempt> CleanupAttempts()
+        internal void TrackCollectionForCleanup(KeySpace collection) =>
+            _lostTransactionsCleanup?.TrackCollectionForCleanup(collection);
+
+        internal void TrackForCleanup(MergedTransactionConfig config)
         {
-            foreach (var cleanupRequest in _cleanupWorkQueue.RemainingCleanupRequests)
+            if (_lostTransactionsCleanup is null)
             {
-                yield return await _cleaner.ProcessCleanupRequest(cleanupRequest).CAF();
+                return;
+            }
+
+            if (config.MetadataCollection is not null)
+            {
+                TrackCollectionForCleanup(config.MetadataCollection);
+            }
+
+            if (config.CleanupConfig.Collections is not null)
+            {
+                foreach (var col in config.CleanupConfig.Collections)
+                {
+                    TrackCollectionForCleanup(col);
+                }
             }
         }
 
@@ -464,9 +482,9 @@ namespace Couchbase.Integrated.Transactions
         /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
-            if (Config.CleanupClientAttempts)
+            if (Config.CleanupConfig!.CleanupClientAttempts)
             {
-                _ = await CleanupAttempts().ToListAsync().CAF();
+                _cleanupWorkQueue.StopProcessing();
             }
 
             if (_lostTransactionsCleanup != null)

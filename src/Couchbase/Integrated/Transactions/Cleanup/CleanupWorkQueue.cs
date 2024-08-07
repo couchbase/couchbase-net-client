@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Couchbase.Integrated.Transactions.Internal.Test;
 using Microsoft.Extensions.Logging;
@@ -15,9 +16,8 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         public const int MaxCleanupQueueDepth = 10_000;
         private readonly CancellationTokenSource _forceFlush = new CancellationTokenSource();
 
-        // TODO: This needs to be bounded, with a circuit breaker.
-        private readonly BlockingCollection<CleanupRequest> _workQueue = new BlockingCollection<CleanupRequest>(MaxCleanupQueueDepth);
-        private readonly Task _consumer;
+        private Channel<CleanupRequest> _workQueue =
+            Channel.CreateBounded<CleanupRequest>(MaxCleanupQueueDepth);
         private readonly ILogger<CleanupWorkQueue> _logger;
         private readonly Cleaner _cleaner;
 
@@ -32,51 +32,52 @@ namespace Couchbase.Integrated.Transactions.Cleanup
             }
         }
 
-        public int QueueLength => _workQueue.Count;
-
         public CleanupWorkQueue(ICluster cluster, ILoggerFactory loggerFactory, bool runCleanup)
         {
             _logger = loggerFactory.CreateLogger<CleanupWorkQueue>();
             _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(CleanupWorkQueue)) { TestHooks = TestHooks };
-            _consumer = runCleanup ? Task.Run(ConsumeWork) : Task.CompletedTask;
+            using (ExecutionContext.SuppressFlow())
+            {
+                _ = ConsumeWork(_workQueue.Reader);
+            }
         }
 
-        public IEnumerable<CleanupRequest> RemainingCleanupRequests => _workQueue.ToArray();
 
-        internal bool TryAddCleanupRequest(CleanupRequest cleanupRequest) => _workQueue.TryAdd(cleanupRequest);
+        internal bool TryAddCleanupRequest(CleanupRequest cleanupRequest) => _workQueue.Writer.TryWrite(cleanupRequest);
 
-        private async Task ConsumeWork()
+        private async ValueTask ConsumeWork(ChannelReader<CleanupRequest> reader)
         {
             _logger.LogDebug("{bg} Beginning background cleanup loop.", nameof(CleanupWorkQueue));
 
-            // Initial, naive implementation.
-            // Single-threaded consumer that assumes cleanupRequests are in order of transaction expiry already
-            foreach (var cleanupRequest in _workQueue.GetConsumingEnumerable(_forceFlush.Token))
+            while (await reader.WaitToReadAsync(_forceFlush.Token).CAF())
             {
-                var delay = cleanupRequest.WhenReadyToBeProcessed - DateTimeOffset.UtcNow;
-                if (delay > TimeSpan.Zero && !_forceFlush.IsCancellationRequested)
+                if (reader.TryRead(out var cleanupRequest))
                 {
+                    var delay = cleanupRequest.WhenReadyToBeProcessed - DateTimeOffset.UtcNow;
+                    if (delay > TimeSpan.Zero && !_forceFlush.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await Task.Delay(delay, _forceFlush.Token).CAF();
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                    }
+
                     try
                     {
-                        await Task.Delay(delay, _forceFlush.Token).CAF();
+                        var cleanupResult = await _cleaner.ProcessCleanupRequest(cleanupRequest).ConfigureAwait(false);
+                        if (!cleanupResult.Success && cleanupResult.FailureReason != null)
+                        {
+                            throw new CleanupFailedException(cleanupResult.FailureReason);
+                        }
                     }
-                    catch (OperationCanceledException)
+                    catch (Exception ex)
                     {
+                        // EXT_REMOVE_COMPLETED: Leave it for the lost cleanup process;  No retry.
+                        cleanupRequest.ProcessingErrors.Enqueue(ex);
                     }
-                }
-
-                try
-                {
-                    var cleanupResult = await _cleaner.ProcessCleanupRequest(cleanupRequest).ConfigureAwait(false);
-                    if (!cleanupResult.Success && cleanupResult.FailureReason != null)
-                    {
-                        throw new CleanupFailedException(cleanupResult.FailureReason);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // EXT_REMOVE_COMPLETED: Leave it for the lost cleanup process;  No retry.
-                    cleanupRequest.ProcessingErrors.Enqueue(ex);
                 }
             }
 
@@ -86,19 +87,12 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         /// <summary>
         /// Call during app shutdown to finish all cleanup request as soon as possible.
         /// </summary>
-        /// <returns>A Task representing asynchronous work.</returns>
-        internal async Task ForceFlushAsync()
-        {
-            StopProcessing();
-            await _consumer.CAF();
-        }
-
-        private void StopProcessing()
+        internal void StopProcessing()
         {
             try
             {
                 _forceFlush.Cancel(throwOnFirstException: false);
-                _workQueue.CompleteAdding();
+                _workQueue.Writer.TryComplete();
             }
             catch (ObjectDisposedException)
             {
@@ -108,7 +102,6 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         public void Dispose()
         {
             StopProcessing();
-            _workQueue.Dispose();
         }
     }
 }

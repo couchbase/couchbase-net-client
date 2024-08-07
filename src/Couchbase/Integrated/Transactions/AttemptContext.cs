@@ -1860,6 +1860,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 atrCollection = collection.Scope.Bucket.DefaultCollection();
             }
+
             var testHookAtrId = await _testHooks.AtrIdForVBucket(this, AtrIds.GetVBucketId(id)).CAF();
             var atrId = AtrIds.GetAtrId(id);
             lock (_initAtrLock)

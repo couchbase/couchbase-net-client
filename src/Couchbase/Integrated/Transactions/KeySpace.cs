@@ -14,6 +14,11 @@ public record KeySpace(string Bucket, string Scope, string Collection)
         var col = scp.Collection(Collection);
         return col;
     }
+
+    public static KeySpace FromCollection(ICouchbaseCollection collection) => new (
+        Bucket: collection.Scope.Bucket.Name,
+        Scope: collection.Scope.Name,
+        Collection: collection.Name);
 }
 
 

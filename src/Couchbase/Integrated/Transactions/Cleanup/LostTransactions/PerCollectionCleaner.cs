@@ -17,14 +17,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
 {
-    internal class PerBucketCleaner : IAsyncDisposable
+    internal class PerCollectionCleaner : IAsyncDisposable
     {
         public string ClientUuid { get; }
 
         private readonly Cleaner _cleaner;
         private readonly CleanerRepository _repository;
         private readonly TimeSpan _cleanupWindow;
-        private readonly ILogger<PerBucketCleaner> _logger;
+        private readonly ILogger<PerCollectionCleaner> _logger;
         private readonly Timer _processCleanupTimer;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly Random _jitter = new Random();
@@ -37,13 +37,13 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         public long RunCount => Interlocked.Read(ref _runCount);
         public bool Running => !_cts.IsCancellationRequested;
 
-        public PerBucketCleaner(string clientUuid, Cleaner cleaner, CleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
+        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
         {
             ClientUuid = clientUuid;
-            _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into ICleanerRepository, and then that should be made a property, eliminating the need for a _repository variable here.
+            _cleaner = cleaner;
             _repository = repository;
             _cleanupWindow = cleanupWindow;
-            _logger = loggerFactory.CreateLogger<PerBucketCleaner>();
+            _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
             _processCleanupTimer = new System.Threading.Timer(
                 callback: TimerCallback,
                 state: null,
@@ -100,7 +100,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             }
             else
             {
-                _logger.LogDebug("PerBucketCleaner for '{bkt}' is already disposed.", FullBucketName);
+                _logger.LogDebug("PerCollectionCleaner for '{bkt}' is already disposed.", FullBucketName);
             }
         }
 

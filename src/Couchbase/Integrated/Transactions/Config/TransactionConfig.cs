@@ -14,11 +14,9 @@ namespace Couchbase.Integrated.Transactions.Config
     public record TransactionConfig(
         DurabilityLevel DurabilityLevel = TransactionConfig.DefaultDurabilityLevel,
         TimeSpan? ExpirationTime = null,
-        TimeSpan? CleanupWindow = null,
-        bool CleanupClientAttempts = true,
-        bool CleanupLostAttempts = true,
         QueryScanConsistency? ScanConsistency = null,
         KeySpace? MetadataCollection = null,
+        TransactionCleanupConfig? CleanupConfig = null,
         ILoggerFactory? LoggerFactory = null)
     {
         /// <summary>
@@ -38,19 +36,19 @@ namespace Couchbase.Integrated.Transactions.Config
         /// <summary>
         /// The default cleanup window, in milliseconds.
         /// </summary>
-        /// <seealso cref="TransactionConfig.CleanupWindow"/>
+        /// <seealso cref="TransactionCleanupConfig.CleanupWindow"/>
         public const int DefaultCleanupWindowMilliseconds = 60_000;
 
         public static readonly TimeSpan DefaultCleanupWindow =
             TimeSpan.FromMilliseconds(DefaultCleanupWindowMilliseconds);
 
         /// <summary>
-        /// The default value of <see cref="TransactionConfig.CleanupLostAttempts"/> (true).
+        /// The default value of <see cref="TransactionCleanupConfig.CleanupLostAttempts"/> (true).
         /// </summary>
         public const bool DefaultCleanupLostAttempts = true;
 
         /// <summary>
-        /// The default value of <see cref="CleanupClientAttempts"/> (true).
+        /// The default value of <see cref="TransactionCleanupConfig.CleanupClientAttempts"/> (true).
         /// </summary>
         public const bool DefaultCleanupClientAttempts = true;
 
