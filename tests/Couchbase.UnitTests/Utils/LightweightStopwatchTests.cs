@@ -75,8 +75,7 @@ namespace Couchbase.UnitTests.Utils
             var result = stopwatch.ElapsedMilliseconds;
 
             // Assert
-
-            Assert.True(Math.Abs(result - 1000) < 250);
+            Assert.InRange(result, 750, 1250);
         }
 
         #endregion
