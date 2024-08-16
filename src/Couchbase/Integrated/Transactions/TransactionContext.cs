@@ -14,7 +14,7 @@ namespace Couchbase.Integrated.Transactions
         public DateTimeOffset StartTime { get; }
         public MergedTransactionConfig Config { get; }
 
-        public DateTimeOffset AbsoluteExpiration => StartTime + Config.ExpirationTime;
+        public DateTimeOffset AbsoluteExpiration => StartTime + Config.Timeout;
         public bool IsExpired => AbsoluteExpiration <= DateTimeOffset.UtcNow;
 
         public TimeSpan RemainingUntilExpiration => AbsoluteExpiration - DateTimeOffset.UtcNow;

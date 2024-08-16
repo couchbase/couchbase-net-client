@@ -13,7 +13,6 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
         public Task<int?> BeforeDocGet(string id);
         public Task<int?> BeforeRemoveDocStagedForRemoval(string id);
         public Task<int?> BeforeRemoveDoc(string id);
-        public Task<int?> BeforeAtrGet(string id);
         public Task<int?> BeforeAtrRemove(string id);
         public Task<int?> BeforeRemoveLinks(string id);
         public Task<int?> BeforeGetRecord(string clientUuid);

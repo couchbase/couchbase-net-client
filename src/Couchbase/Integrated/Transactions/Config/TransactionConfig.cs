@@ -13,7 +13,7 @@ namespace Couchbase.Integrated.Transactions.Config
     [InterfaceStability(Level.Volatile)]
     public record TransactionConfig(
         DurabilityLevel DurabilityLevel = TransactionConfig.DefaultDurabilityLevel,
-        TimeSpan? ExpirationTime = null,
+        TimeSpan? Timeout = null,
         QueryScanConsistency? ScanConsistency = null,
         KeySpace? MetadataCollection = null,
         TransactionCleanupConfig? CleanupConfig = null,
@@ -28,10 +28,10 @@ namespace Couchbase.Integrated.Transactions.Config
         /// <summary>
         /// The default expiration, in milliseconds.
         /// </summary>
-        /// <seealso cref="TransactionConfig.ExpirationTime"/>
-        public const int DefaultExpirationMilliseconds = 15_000;
+        /// <seealso cref="TransactionConfig.Timeout"/>
+        public const int DefaultTimeoutMilliseconds = 15_000;
 
-        public static readonly TimeSpan DefaultExpiration = TimeSpan.FromMilliseconds(DefaultExpirationMilliseconds);
+        public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeoutMilliseconds);
 
         /// <summary>
         /// The default cleanup window, in milliseconds.

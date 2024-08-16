@@ -755,7 +755,6 @@ namespace Couchbase.Integrated.Transactions
                                             {
                                                 try
                                                 {
-                                                    await _testHooks.BeforeOverwritingStagedInsertRemoval(this, id).CAF();
                                                     await _docs.UnstageRemove(collection, id, getResult.Cas).CAF();
                                                 }
                                                 catch (Exception err)
@@ -823,7 +822,7 @@ namespace Couchbase.Integrated.Transactions
                         var t1 = _overallContext.StartTime;
                         var t2 = DateTimeOffset.UtcNow;
                         var tElapsed = t2 - t1;
-                        var tc = _config.ExpirationTime;
+                        var tc = _config.Timeout;
                         var tRemaining = tc - tElapsed;
                         var exp = (ulong)Math.Max(Math.Min(tRemaining.TotalMilliseconds, tc.TotalMilliseconds), 0);
                         await _atr.MutateAtrPending(exp, docDurability).CAF();
@@ -1633,13 +1632,18 @@ namespace Couchbase.Integrated.Transactions
 
         internal async Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryOptions options, bool txImplicit, IScope? scope = null, IRequestSpan? parentSpan = null)
         {
+            var queryOptions = new QueryOptions();
+            if (options.ScanConsistency.HasValue)
+            {
+                queryOptions.ScanConsistency(options.ScanConsistency.Value);
+            }
             var traceSpan = TraceSpan(parent: parentSpan);
             long fixmeStatementId = 0;
             var results = await QueryWrapper<T>(
                 statementId: fixmeStatementId,
                 scope: scope,
                 statement: statement,
-                options: options.Build(txImplicit),
+                options: queryOptions,
                 hookPoint: DefaultTestHooks.HOOK_QUERY,
                 parentSpan: traceSpan.Item,
                 txImplicit: txImplicit

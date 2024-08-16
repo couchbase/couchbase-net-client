@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -28,6 +29,7 @@ namespace Couchbase.Integrated.Transactions
     /// <summary>
     /// A class for running transactional operations against a Couchbase Cluster.
     /// </summary>
+    [InterfaceStability(Level.Volatile)]
     public class Transactions : IDisposable, IAsyncDisposable
     {
         /// <summary>
@@ -84,6 +86,7 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
+        [InterfaceStability(Level.Volatile)]
         internal void ConfigureTestHooks(ITestHooks testHooks, ICleanupTestHooks cleanupHooks)
         {
             TestHooks = testHooks;

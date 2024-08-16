@@ -93,7 +93,6 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
 
         Task<int?> BeforeQuery(AttemptContext self, string statement);
         Task<int?> AfterQuery(AttemptContext self, string statement);
-        Task<int?> BeforeOverwritingStagedInsertRemoval(AttemptContext self, string id);
 
         Task<int?> BeforeRemoveStagedInsert(AttemptContext self, string id);
         Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id);
@@ -210,7 +209,6 @@ namespace Couchbase.Integrated.Transactions.Internal.Test
 
         public Task<int?> BeforeQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
         public Task<int?> AfterQuery(AttemptContext self, string statement) => Task.FromResult<int?>(0);
-        public Task<int?> BeforeOverwritingStagedInsertRemoval(AttemptContext self, string id) => Task.FromResult<int?>(0);
 
         public Task<int?> BeforeRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);

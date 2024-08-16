@@ -27,6 +27,7 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("SdkdConsole")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 [assembly: InternalsVisibleTo("Couchbase.Stellar.CombinationTests")]
+[assembly: InternalsVisibleTo("Couchbase.Transactions.FitPerformer")]
 #endif
 
 /* ************************************************************

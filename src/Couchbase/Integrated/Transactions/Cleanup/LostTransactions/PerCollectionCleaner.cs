@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Integrated.Transactions.Support;
 using Couchbase.Integrated.Transactions.Components;
 using Couchbase.Integrated.Transactions.DataAccess;
 using Couchbase.Integrated.Transactions.DataModel;
@@ -310,7 +309,6 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             ParsedHLC? parsedHlc;
             try
             {
-                await TestHooks.BeforeAtrGet(atrId).CAF();
                 (attempts, parsedHlc) = await _repository.LookupAttempts(atrId).CAF();
             }
             catch (AuthenticationFailureException)

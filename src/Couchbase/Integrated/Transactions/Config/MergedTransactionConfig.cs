@@ -9,7 +9,7 @@ namespace Couchbase.Integrated.Transactions.Config
     internal record MergedTransactionConfig(
             TransactionCleanupConfig CleanupConfig,
             DurabilityLevel DurabilityLevel,
-            TimeSpan ExpirationTime,
+            TimeSpan Timeout,
             ILoggerFactory? LoggerFactory,
             KeySpace? MetadataCollection,
             QueryScanConsistency? ScanConsistency)
@@ -18,7 +18,7 @@ namespace Couchbase.Integrated.Transactions.Config
             new(
                 CleanupConfig: config.CleanupConfig ?? new(),
                 DurabilityLevel: perConfig?.DurabilityLevel ?? config.DurabilityLevel,
-                ExpirationTime: perConfig?.Timeout ?? config.ExpirationTime ?? TransactionConfig.DefaultExpiration,
+                Timeout: perConfig?.Timeout ?? config.Timeout ?? TransactionConfig.DefaultTimeout,
                 LoggerFactory: config.LoggerFactory,
                 MetadataCollection: config.MetadataCollection,
                 ScanConsistency: perConfig?.ScanConsistency ?? config.ScanConsistency);
