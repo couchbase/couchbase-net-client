@@ -53,16 +53,24 @@ namespace Couchbase.Utils
                 return 0;
             }
 
+            var destination = buffer.AsSpan(index, count);
+
             var charsRead = 0;
             if (_holdoverCharacter != null)
             {
-                buffer[index] = _holdoverCharacter.Value;
+                destination[0] = _holdoverCharacter.Value;
                 _holdoverCharacter = null;
-                index += 1;
+                destination = destination.Slice(1);
                 charsRead = 1;
+
+                if (count == 1)
+                {
+                    // Only reading one character
+                    return charsRead;
+                }
             }
 
-            if (_memory.Length == 0 || charsRead >= count)
+            if (_memory.Length == 0)
             {
                 return charsRead;
             }
@@ -70,7 +78,6 @@ namespace Couchbase.Utils
             var span = _memory.Span;
 
 #if SPAN_SUPPORT
-            var destination = buffer.AsSpan(index, count);
             _decoder.Convert(span, destination, false, out var bytesRead, out var converterCharsRead, out var completed);
             charsRead += converterCharsRead;
 
@@ -82,16 +89,16 @@ namespace Couchbase.Utils
 
                 Span<char> tempBuffer = stackalloc char[2];
 
-                _decoder.Convert(span.Slice(bytesRead), tempBuffer, false, out var tempBytesRead, out converterCharsRead,
+                _decoder.Convert(span.Slice(bytesRead), tempBuffer, false, out var tempBytesRead, out var tempCharsRead,
                     out completed);
                 bytesRead += tempBytesRead;
 
-                if (converterCharsRead > 0)
+                if (tempCharsRead > 0)
                 {
-                    buffer[charsRead] = tempBuffer[0];
+                    destination[converterCharsRead] = tempBuffer[0];
                     charsRead++;
                 }
-                if (converterCharsRead == 2)
+                if (tempCharsRead == 2)
                 {
                     _holdoverCharacter = tempBuffer[1];
                 }
@@ -99,11 +106,11 @@ namespace Couchbase.Utils
 #else
             int bytesRead;
 
-            fixed (char* destinationChars = &buffer[index])
+            fixed (char* destinationChars = &MemoryMarshal.GetReference(destination))
             {
                 fixed (byte* sourceBytes = &MemoryMarshal.GetReference(span))
                 {
-                    _decoder.Convert(sourceBytes, span.Length, destinationChars, count, false,
+                    _decoder.Convert(sourceBytes, span.Length, destinationChars, destination.Length, false,
                         out bytesRead, out var converterCharsRead, out var completed);
                     charsRead += converterCharsRead;
 
@@ -119,16 +126,16 @@ namespace Couchbase.Utils
                         fixed (char* tempBufferChars = &tempBuffer[0])
                         {
                             _decoder.Convert(sourceBytes + bytesRead, span.Length - bytesRead, tempBufferChars, tempBuffer.Length, false,
-                                out var tempBytesRead, out converterCharsRead, out completed);
+                                out var tempBytesRead, out var tempCharsRead, out completed);
                             bytesRead += tempBytesRead;
 
-                            if (converterCharsRead > 0)
+                            if (tempCharsRead > 0)
                             {
-                                buffer[charsRead] = tempBuffer[0];
+                                destination[converterCharsRead] = tempBuffer[0];
                                 charsRead++;
                             }
 
-                            if (converterCharsRead == 2)
+                            if (tempCharsRead == 2)
                             {
                                 _holdoverCharacter = tempBuffer[1];
                             }
