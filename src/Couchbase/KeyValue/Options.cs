@@ -2241,6 +2241,12 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
+
         internal bool ExpiryValue { get; private set; }
 
         internal ITypeSerializer? SerializerValue { get; private set; }
@@ -2344,7 +2350,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -2354,12 +2360,13 @@ namespace Couchbase.KeyValue
             accessDeleted = AccessDeletedValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
+            preferReturn = PreferReturn;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn);
+            return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan, PreferReturn: preferReturn);
         }
 
         public record ReadOnly(
@@ -2371,7 +2378,8 @@ namespace Couchbase.KeyValue
             bool AccessDeleted,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            short? ReplicaIndex = null) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
+            short? ReplicaIndex = null,
+            bool PreferReturn = false) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
     }
 
     #endregion

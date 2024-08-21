@@ -843,7 +843,8 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 SName = ScopeName,
                 DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
-                Span = span
+                Span = span,
+                PreferReturns = options.PreferReturn,
             };
             try
             {
