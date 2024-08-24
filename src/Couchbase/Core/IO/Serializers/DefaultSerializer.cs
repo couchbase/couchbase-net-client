@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -19,7 +20,7 @@ namespace Couchbase.Core.IO.Serializers
     /// <summary>
     /// The default serializer for the Couchbase.NET SDK. Uses Newtonsoft.JSON as the the serializer.
     /// </summary>
-    public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer, IProjectableTypeDeserializer
+    public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer, IProjectableTypeDeserializer, IBufferedTypeSerializer
     {
         public const string UnreferencedCodeMessage =
             "The DefaultSerializer uses Newtonsoft.Json which requires unreferenced code and is incompatible with trimming.";
@@ -190,7 +191,13 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         [UnconditionalSuppressMessage("Aot", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
-        public T? Deserialize<T>(ReadOnlyMemory<byte> buffer)
+        public T? Deserialize<T>(ReadOnlyMemory<byte> buffer) =>
+            Deserialize<T>(new ReadOnlySequence<byte>(buffer));
+
+        /// <inheritdoc />
+        [UnconditionalSuppressMessage("Aot", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public T? Deserialize<T>(ReadOnlySequence<byte> buffer)
         {
             var value = default(T);
             if (buffer.Length == 0) return value!;
@@ -199,7 +206,7 @@ namespace Couchbase.Core.IO.Serializers
             try
             {
                 // Strip any leading BOM for backward compatibility
-                reader.SetMemory(Utf8Helpers.TrimBomIfPresent(buffer));
+                reader.SetSequence(Utf8Helpers.TrimBomIfPresent(buffer));
 
                 using var jr = new JsonTextReader(reader)
                 {
@@ -254,6 +261,14 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
+        public void Serialize<T>(IBufferWriter<byte> writer, T obj)
+        {
+            using var stream = new BufferWriterStream(writer);
+
+            Serialize(stream, obj);
+        }
+
+        /// <inheritdoc />
         public ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default)
         {
             Serialize(stream, obj);
@@ -275,6 +290,9 @@ namespace Couchbase.Core.IO.Serializers
                 }
             }
         }
+
+        /// <inheritdoc />
+        public bool CanSerialize(Type type) => true;
 
         /// <inheritdoc />
         /// <remarks>

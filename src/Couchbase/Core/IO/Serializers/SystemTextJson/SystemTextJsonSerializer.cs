@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 #nullable enable
 
@@ -55,7 +57,7 @@ namespace Couchbase.Core.IO.Serializers
     /// </list>
     /// </remarks>
     [InterfaceStability(Level.Volatile)]
-    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer, IStreamingTypeDeserializer
+    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer, IStreamingTypeDeserializer, IBufferedTypeSerializer
     {
         private static readonly SupportedDeserializationOptions SupportedDeserializationOptionsStatic = new();
 
@@ -74,6 +76,9 @@ namespace Couchbase.Core.IO.Serializers
 
         /// <inheritdoc />
         public abstract T? Deserialize<T>(ReadOnlyMemory<byte> buffer);
+
+        /// <inheritdoc />
+        public abstract T? Deserialize<T>(ReadOnlySequence<byte> buffer);
 
         /// <inheritdoc />
         public abstract T? Deserialize<T>(Stream stream);
@@ -112,6 +117,9 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="stream">The stream to receive the serialized object.</param>
         /// <param name="obj">The object to serialize.</param>
         public abstract void Serialize<T>(Stream stream, T obj);
+
+        /// <inheritdoc />
+        public abstract void Serialize<T>(IBufferWriter<byte> writer, T obj);
 
         /// <summary>
         /// Serializes the specified object onto a stream.
@@ -218,10 +226,37 @@ namespace Couchbase.Core.IO.Serializers
         #endregion
 
         /// <inheritdoc />
+        public abstract bool CanSerialize(Type type);
+
+        /// <inheritdoc />
         public abstract IProjectionBuilder CreateProjectionBuilder(ILogger logger);
 
         /// <inheritdoc />
         public abstract IJsonStreamReader CreateJsonStreamReader(Stream stream);
+
+        internal static JsonReaderOptions GetJsonReaderOptions(JsonSerializerOptions options) =>
+            new()
+            {
+                AllowTrailingCommas = options.AllowTrailingCommas,
+                CommentHandling = options.ReadCommentHandling,
+                MaxDepth = GetEffectiveMaxDepth(options.MaxDepth),
+            };
+
+        internal static JsonWriterOptions GetJsonWriterOptions(JsonSerializerOptions options) =>
+            new()
+            {
+                // TODO: Add indent controls when upgraded to STJ 9.0
+                Encoder = options.Encoder,
+                Indented = options.WriteIndented,
+                MaxDepth = GetEffectiveMaxDepth(options.MaxDepth),
+#if !DEBUG
+                SkipValidation = true
+#endif
+            };
+
+        private static int GetEffectiveMaxDepth(int maxDepth) =>
+            // Emulates default behavior of JsonSerializerOptions.MaxDepth using internally by STJ
+            maxDepth == 0 ? 64 : maxDepth;
     }
 }
 

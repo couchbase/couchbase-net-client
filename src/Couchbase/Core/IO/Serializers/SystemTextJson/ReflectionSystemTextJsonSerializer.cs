@@ -1,6 +1,8 @@
 using System;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -16,7 +18,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
     /// <summary>
     /// A JSON serializer which uses reflection.
     /// </summary>
-    internal class ReflectionSystemTextJsonSerializer : SystemTextJsonSerializer
+    internal sealed class ReflectionSystemTextJsonSerializer : SystemTextJsonSerializer
     {
         internal const string SerializationUnreferencedCodeMessage =
             "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonSerializerContext, or make sure all of the required types are preserved.";
@@ -91,6 +93,27 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             }
 
             return JsonSerializer.Deserialize<T>(span, Options);
+        }
+
+        /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public override T? Deserialize<T>(ReadOnlySequence<byte> buffer) where T : default
+        {
+            // Non-stream overloads of JsonSerializer.Deserialize do not trim the BOM automatically, do this for consistency with Newtonsoft.Json
+            buffer = Utf8Helpers.TrimBomIfPresent(buffer);
+
+            if (buffer.Length == 0)
+            {
+                // Replicate the Newtonsoft.Json behavior of returning the default if the buffer is empty
+                return default;
+            }
+
+            var reader = new Utf8JsonReader(buffer, GetJsonReaderOptions(Options));
+
+            return JsonSerializer.Deserialize<T>(ref reader, Options);
         }
 
         /// <inheritdoc />
@@ -174,6 +197,18 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             Justification = "This type may not be constructed without encountering a warning.")]
         [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
+        public override void Serialize<T>(IBufferWriter<byte> writer, T obj)
+        {
+            using var jsonWriter = new Utf8JsonWriter(writer, GetJsonWriterOptions(Options));
+
+            JsonSerializer.Serialize(jsonWriter, obj, Options);
+        }
+
+        /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default)
         {
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, Options, cancellationToken));
@@ -212,6 +247,9 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             new ReflectionSystemTextJsonStreamReader(stream, Options);
 
         #endregion
+
+        /// <inheritdoc />
+        public override bool CanSerialize(Type type) => true;
     }
 }
 

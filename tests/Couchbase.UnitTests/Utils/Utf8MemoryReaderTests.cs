@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Text;
+using Couchbase.Test.Common.Utils;
 using Couchbase.Utils;
 using Xunit;
 
@@ -46,13 +46,24 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(0, readChars);
         }
 
-        [Fact]
-        public void Read_OffsetAndCount_Respected()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Read_OffsetAndCount_Respected(bool splitBuffer)
         {
             // Arrange
 
             var reader = new Utf8MemoryReader();
-            reader.SetMemory("ABCDE"u8.ToArray());
+
+            var source = "ABCDE"u8.ToArray();
+            if (splitBuffer)
+            {
+                reader.SetSequence(SequenceHelpers.CreateSequenceFromSplitIndex(source, 2));
+            }
+            else
+            {
+                reader.SetMemory(source);
+            }
 
             var buffer = new char[10];
 
@@ -66,15 +77,24 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal("\0\0\0ABCD\0\0\0", buffer);
         }
 
-        [Fact]
-        public void Read_MultipleReads_Streams()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Read_MultipleReads_Streams(bool splitBuffer)
         {
             // Arrange
 
             var reader = new Utf8MemoryReader();
 
             var source = "ABCDEFG"u8.ToArray();
-            reader.SetMemory(source.ToArray());
+            if (splitBuffer)
+            {
+                reader.SetSequence(SequenceHelpers.CreateSequenceFromSplitIndex(source, 5));
+            }
+            else
+            {
+                reader.SetMemory(source);
+            }
 
             var buffer = new char[10];
 
@@ -97,8 +117,10 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Encoding.UTF8.GetString(source).PadRight(buffer.Length, '\0'), buffer);
         }
 
-        [Fact]
-        public void Read_SplitSurrogatePair_ReturnedInNextRead()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Read_SplitSurrogatePair_ReturnedInNextRead(bool splitBuffer)
         {
             // Arrange
 
@@ -106,7 +128,14 @@ namespace Couchbase.UnitTests.Utils
 
             // UTF-8 encoding of "🇺🇸🇨🇦" is 16 bytes, consisting of 2 surrogate pairs each, so the total string is 20 bytes
             var source = "AB🇺🇸🇨🇦CD"u8.ToArray();
-            reader.SetMemory(source);
+            if (splitBuffer)
+            {
+                reader.SetSequence(SequenceHelpers.CreateSequenceFromSplitIndex(source, 5));
+            }
+            else
+            {
+                reader.SetMemory(source);
+            }
 
             var buffer = new char[Encoding.UTF8.GetCharCount(source)];
 
@@ -129,8 +158,10 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Encoding.UTF8.GetChars(source), buffer);
         }
 
-        [Fact]
-        public void Read_SplitSurrogatePair_DoesNotOverflowBuffer()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Read_SplitSurrogatePair_DoesNotOverflowBuffer(bool splitBuffer)
         {
             // https://issues.couchbase.com/browse/NCBC-3842
 
@@ -140,7 +171,14 @@ namespace Couchbase.UnitTests.Utils
 
             // UTF-8 encoding of "🇺🇸🇨🇦" is 16 bytes, consisting of 2 surrogate pairs each, so the total string is 20 bytes
             var source = "AB🇺🇸🇨🇦CD"u8.ToArray();
-            reader.SetMemory(source);
+            if (splitBuffer)
+            {
+                reader.SetSequence(SequenceHelpers.CreateSequenceFromSplitIndex(source, 5));
+            }
+            else
+            {
+                reader.SetMemory(source);
+            }
 
             var buffer = new char[Encoding.UTF8.GetCharCount(source)];
 

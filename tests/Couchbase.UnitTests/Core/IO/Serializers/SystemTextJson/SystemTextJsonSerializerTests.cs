@@ -1,10 +1,13 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Utils;
 using Xunit;
 
@@ -87,6 +90,32 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
             // Act
 
             var result = serializer.Deserialize<Person>(memoryStream.ToArray().AsMemory());
+
+            // Assert
+
+            Assert.NotNull(result);
+            Assert.Equal("Emmy-lou Dickerson", result.Name);
+            Assert.Equal(49.282730, result.Attributes.Hobbies[1].Details.Location.Latitude);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Deserialize_FromReadOnlySequence_Success(bool withContext)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\emmy-lou.json");
+            using var memoryStream = new MemoryStream((int) stream.Length);
+            stream.CopyTo(memoryStream);
+
+            var sequence = SequenceHelpers.CreateSequenceWithMaxSegmentSize(memoryStream.ToArray(), 32);
+
+            var serializer = CreateSerializer(withContext);
+
+            // Act
+
+            var result = serializer.Deserialize<Person>(sequence);
 
             // Assert
 
@@ -247,6 +276,37 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
             Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(stream.ToArray()));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Serialize_BufferWriter_Success(bool withContext)
+        {
+            // Arrange
+
+            var serializer = CreateSerializer(withContext);
+
+#if NET6_0_OR_GREATER
+            var writer = new ArrayBufferWriter<byte>();
+#else
+            using var memoryStream = new MemoryStream();
+            var writer = PipeWriter.Create(memoryStream);
+#endif
+
+            // Act
+
+            serializer.Serialize(writer, PersonExample);
+
+            // Assert
+
+#if NET6_0_OR_GREATER
+            Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(writer.WrittenSpan));
+#else
+            writer.FlushAsync().GetAwaiter().GetResult(); // completes synchronously
+
+            Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(memoryStream.ToArray()));
+#endif
+        }
+
         [Fact(Skip = "Skipping until CI agents have the .NET 6 SDK and support source generation")]
         public void Serialize_TypedNotInContext_InvalidOperationException()
         {
@@ -261,7 +321,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
             Assert.Throws<InvalidOperationException>(() => serializer.Serialize(stream, new JsonDocument()));
         }
 
-        #endregion
+#endregion
 
         #region SerializeAsync
 

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,7 +15,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
     /// <summary>
     /// A JSON serializer which uses <see cref="JsonSerializerContext"/> to support higher performance and trimming.
     /// </summary>
-    internal class ContextSystemTextJsonSerializer : SystemTextJsonSerializer
+    internal sealed class ContextSystemTextJsonSerializer : SystemTextJsonSerializer
     {
         /// <inheritdoc />
         public override JsonSerializerOptions Options => Context.Options;
@@ -65,6 +66,25 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             var typeInfo = Context.GetTypeInfo<T>();
 
             return JsonSerializer.Deserialize<T>(span, typeInfo);
+        }
+
+        /// <inheritdoc />
+        public override T? Deserialize<T>(ReadOnlySequence<byte> buffer) where T : default
+        {
+            // Non-stream overloads of JsonSerializer.Deserialize do not trim the BOM automatically, do this for consistency with Newtonsoft.Json
+            buffer = Utf8Helpers.TrimBomIfPresent(buffer);
+
+            if (buffer.Length == 0)
+            {
+                // Replicate the Newtonsoft.Json behavior of returning the default if the buffer is empty
+                return default;
+            }
+
+            var typeInfo = Context.GetTypeInfo<T>();
+
+            var reader = new Utf8JsonReader(buffer, GetJsonReaderOptions(typeInfo.Options));
+
+            return JsonSerializer.Deserialize<T>(ref reader, typeInfo);
         }
 
         /// <inheritdoc />
@@ -126,6 +146,16 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         }
 
         /// <inheritdoc />
+        public override void Serialize<T>(IBufferWriter<byte> writer, T obj)
+        {
+            var typeInfo = Context.GetTypeInfo<T>();
+
+            using var jsonWriter = new Utf8JsonWriter(writer, GetJsonWriterOptions(typeInfo.Options));
+
+            JsonSerializer.Serialize(jsonWriter, obj, typeInfo);
+        }
+
+        /// <inheritdoc />
         public override ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default)
         {
             var typeInfo = Context.GetTypeInfo<T>();
@@ -156,6 +186,9 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             new ContextSystemTextJsonStreamReader(stream, Context);
 
         #endregion
+
+        /// <inheritdoc />
+        public override bool CanSerialize(Type type) => Context.GetTypeInfo(type) is not null;
     }
 }
 

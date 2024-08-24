@@ -1,8 +1,12 @@
 using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Reflection;
 using System.Text;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Core.IO.Transcoders;
 using Couchbase.UnitTests.Fixtures;
 using Couchbase.UnitTests.Utils;
@@ -117,6 +121,32 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         }
 
         [Fact]
+        public void Deserialize_FromReadOnlySequence_Repeated()
+        {
+            // Arrange
+
+            var serializer = new DefaultSerializer();
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\emmy-lou.json")!;
+            var document = new byte[stream.Length];
+            _ = stream.Read(document, 0, document.Length);
+
+            var split = SequenceHelpers.CreateSequenceWithMaxSegmentSize(document, 32);
+
+            // Act
+
+            var result = serializer.Deserialize<JsonTranscoderTests.Person>(split);
+            var result2 = serializer.Deserialize<JsonTranscoderTests.Person>(split);
+            var result3 = serializer.Deserialize<JsonTranscoderTests.Person>(split);
+
+            // Assert
+
+            Assert.NotNull(result);
+            Assert.NotNull(result2);
+            Assert.NotNull(result3);
+        }
+
+        [Fact]
         public void Deserialize_BoundarySurrogatePair_Success()
         {
             // Arrange
@@ -217,6 +247,41 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         }
 
         #endregion
+
+        #region Serialize
+
+        [Fact]
+        public void Serialize_BufferWriter_Valid()
+        {
+            // Arrange
+
+            var serializer = new DefaultSerializer();
+
+#if NET6_0_OR_GREATER
+            var writer = new ArrayBufferWriter<byte>();
+#else
+            using var memoryStream = new MemoryStream();
+            var writer = PipeWriter.Create(memoryStream);
+#endif
+
+            // Act
+
+            serializer.Serialize(writer, PersonExample);
+
+            // Assert
+
+            // Deserializing again ensures that valid JSON was produced
+
+#if NET6_0_OR_GREATER
+            Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(writer.WrittenSpan));
+#else
+            writer.FlushAsync().GetAwaiter().GetResult(); // completes synchronously
+
+            Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(memoryStream.ToArray()));
+#endif
+        }
+
+#endregion
 
         #region GetMemberName
 
@@ -361,6 +426,63 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
                 return new DocumentSubNodeInherited();
             }
         }
+
+        public class Dimensions
+        {
+            public int Height { get; set; }
+            public int Weight { get; set; }
+        }
+
+        public class Location
+        {
+            [JsonProperty("lat")]
+            public double Latitude { get; set; }
+            [JsonProperty("long")]
+            public double Longitude { get; set; }
+        }
+
+        public class Details
+        {
+            public Location Location { get; set; }
+        }
+
+        public class Hobby
+        {
+            public string Type { get; set; }
+            public string Name { get; set; }
+            public Details Details { get; set; }
+        }
+
+        public class Attributes
+        {
+            [JsonProperty("hair")]
+            public string HairColor { get; set; }
+            public Dimensions Dimensions { get; set; }
+            public List<Hobby> Hobbies { get; set; }
+        }
+
+        public class Person
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
+            public List<string> Animals { get; set; }
+            public Attributes Attributes { get; set; }
+        }
+
+        public static readonly Person PersonExample = new()
+        {
+            Name = "Emmy-lou Dickerson",
+            Age = 26,
+            Animals = new() { "cat", "dog", "parrot" },
+            Attributes = new()
+            {
+                HairColor = "brown"
+            }
+        };
+
+        public const string PersonExampleExpectedJson =
+            "{\"name\":\"Emmy-lou Dickerson\",\"age\":26,\"animals\":[\"cat\",\"dog\",\"parrot\"],\"attributes\":{\"hair\":\"brown\",\"dimensions\":null,\"hobbies\":null}}";
+
 
         #endregion
     }

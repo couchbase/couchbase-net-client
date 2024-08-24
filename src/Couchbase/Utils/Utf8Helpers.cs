@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 
 namespace Couchbase.Utils
 {
@@ -10,7 +11,7 @@ namespace Couchbase.Utils
         // Note: This property implementation appears like it allocates a byte[] on every get, but the modern C#
         // compiler optimizes this to a ReadOnlySpan<byte> that directly references the bytes in the resource
         // segment of the DLL.
-        public static ReadOnlySpan<byte> Utf8Bom => new byte[] { 0xEF, 0xBB, 0xBF };
+        public static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
 
         /// <summary>
         /// If the data begins with a UTF-8 Byte Order Mark it is trimmed.
@@ -35,6 +36,54 @@ namespace Couchbase.Utils
         public static ReadOnlyMemory<byte> TrimBomIfPresent(ReadOnlyMemory<byte> data)
         {
             if (data.Span.StartsWith(Utf8Bom))
+            {
+                return data.Slice(Utf8Bom.Length);
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// If the data begins with a UTF-8 Byte Order Mark it is trimmed.
+        /// </summary>
+        /// <param name="data">Data to test and trim.</param>
+        /// <returns>The trimmed data, or the original data if the BOM was not present.</returns>
+        public static ReadOnlySequence<byte> TrimBomIfPresent(ReadOnlySequence<byte> data)
+        {
+#if SPAN_SUPPORT
+            var span = data.FirstSpan;
+#else
+            var span = data.First.Span;
+#endif
+
+            if (span.Length < Utf8Bom.Length)
+            {
+                // It's possible the first span is of insufficient length to store the BOM,
+                // so a more complicated comparison is required.
+
+                if (data.IsSingleSegment)
+                {
+                    // No need to do the more complicated comparison, there is no more data available.
+                    return data;
+                }
+
+#if NET6_0_OR_GREATER
+                var reader = new SequenceReader<byte>(data);
+                if (reader.IsNext(Utf8Bom, advancePast: true))
+                {
+                    return reader.UnreadSequence;
+                }
+#else
+                Span<byte> tempBuffer = stackalloc byte[Utf8Bom.Length];
+                data.Slice(0, Utf8Bom.Length).CopyTo(tempBuffer);
+
+                if (tempBuffer.StartsWith(Utf8Bom))
+                {
+                    return data.Slice(Utf8Bom.Length);
+                }
+#endif
+            }
+            else if (span.StartsWith(Utf8Bom))
             {
                 return data.Slice(Utf8Bom.Length);
             }
