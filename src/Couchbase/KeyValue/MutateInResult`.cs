@@ -9,7 +9,7 @@ namespace Couchbase.KeyValue
     /// <summary>
     /// Wrapper for a <see cref="IMutateInResult"/> which adds a known document type.
     /// </summary>
-    internal class MutateInResult<TDocument> : IMutateInResult<TDocument>
+    internal sealed class MutateInResult<TDocument> : IMutateInResult<TDocument>
     {
         private readonly IMutateInResult _inner;
 

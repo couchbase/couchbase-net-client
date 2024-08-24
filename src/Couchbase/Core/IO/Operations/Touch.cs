@@ -3,7 +3,7 @@ using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Touch : MutationOperationBase
+    internal sealed class Touch : MutationOperationBase
     {
         internal static void WriteExpiry(OperationBuilder builder, uint expires)
         {

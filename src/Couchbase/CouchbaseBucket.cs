@@ -28,7 +28,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Couchbase
 {
-    internal class CouchbaseBucket : BucketBase
+    internal sealed class CouchbaseBucket : BucketBase
     {
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
         private readonly LazyService<IViewClient> _viewClientLazy;

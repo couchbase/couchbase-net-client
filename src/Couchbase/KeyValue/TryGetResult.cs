@@ -10,7 +10,7 @@ namespace Couchbase.KeyValue;
 /// returns a KeyNotFound status, as opposed to throwing a <see cref="DocumentNotFoundException"/>
 /// like in the regular GetAsync methods.
 /// </summary>
-internal class TryGetResult: TryResultBase, ITryGetResult
+internal sealed class TryGetResult: TryResultBase, ITryGetResult
 {
     private readonly IGetResult _getResult;
 

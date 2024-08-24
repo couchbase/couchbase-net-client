@@ -24,7 +24,7 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.Core.IO.Connections
 {
-    internal class MultiplexingConnection : IConnection
+    internal sealed class MultiplexingConnection : IConnection
     {
         private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
 

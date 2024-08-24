@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 {
-    internal class OrphanTraceListener : TraceListener
+    internal sealed class OrphanTraceListener : TraceListener
     {
         private readonly OrphanReporter _responseReporter;
 

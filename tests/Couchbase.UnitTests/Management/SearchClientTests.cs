@@ -24,9 +24,7 @@ namespace Couchbase.UnitTests.Management
         public void When_NotConnected_SearchIndexManager_Throws_NodeUnavailableException()
         {
             var clusterContext = new ClusterContext();
-            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
-
-            var serviceUriProvider = serviceUriProviderMock.Object;
+            var serviceUriProvider = new ServiceUriProvider(clusterContext);
             Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomSearchUri());
         }
 

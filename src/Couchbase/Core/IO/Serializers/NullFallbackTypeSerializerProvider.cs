@@ -5,7 +5,7 @@ namespace Couchbase.Core.IO.Serializers
     /// <summary>
     /// For use with trimming, does not provide a fallback serializer.
     /// </summary>
-    internal class NullFallbackTypeSerializerProvider : IFallbackTypeSerializerProvider
+    internal sealed class NullFallbackTypeSerializerProvider : IFallbackTypeSerializerProvider
     {
         private static NullFallbackTypeSerializerProvider? _instance;
 

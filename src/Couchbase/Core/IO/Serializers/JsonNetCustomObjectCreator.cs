@@ -11,7 +11,7 @@ namespace Couchbase.Core.IO.Serializers
     /// Used by <see cref="DefaultSerializer"/> if an <see cref="ICustomObjectCreator"/> is supplied.
     /// </remarks>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
-    internal class JsonNetCustomObjectCreatorWrapper : JsonConverter
+    internal sealed class JsonNetCustomObjectCreatorWrapper : JsonConverter
     {
         private readonly ICustomObjectCreator _creator;
 

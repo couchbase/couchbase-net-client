@@ -14,7 +14,7 @@ namespace Couchbase.Core.Sharding
     /// <summary>
     /// Provides a means of mapping keys to nodes within a Couchbase Server and a Couchbase Bucket.
     /// </summary>
-    internal class VBucketKeyMapper : IKeyMapper
+    internal sealed class VBucketKeyMapper : IKeyMapper
     {
         private readonly short _mask = 1023;
         private readonly IVBucketFactory _vBucketFactory;

@@ -6,7 +6,7 @@ namespace Couchbase.Utils
     /// <summary>
     /// Implementation of <see cref="IAsyncDisposable"/> which does nothing.
     /// </summary>
-    internal class NullAsyncDisposable : IAsyncDisposable
+    internal sealed class NullAsyncDisposable : IAsyncDisposable
     {
         /// <summary>
         /// Reusable static instance of <see cref="NullAsyncDisposable"/>.

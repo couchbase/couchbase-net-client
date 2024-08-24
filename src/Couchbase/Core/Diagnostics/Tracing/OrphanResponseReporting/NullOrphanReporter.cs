@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 {
-    internal class NullOrphanReporter : IOrphanReporter
+    internal sealed class NullOrphanReporter : IOrphanReporter
     {
         public static IOrphanReporter Instance = new NullOrphanReporter();
 

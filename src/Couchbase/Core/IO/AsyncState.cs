@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO
     /// <summary>
     /// Represents an asynchronous Memcached request in flight.
     /// </summary>
-    internal class AsyncState : AsyncStateBase
+    internal sealed class AsyncState : AsyncStateBase
     {
         public AsyncState(IOperation operation) : base(operation)
         {

@@ -787,15 +787,76 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
         #region Helpers
 
-        private class StoppableDataFlowConnectionPool : DataFlowConnectionPool
+        private class StoppableDataFlowConnectionPool : IConnectionPool
         {
+            private DataFlowConnectionPool _innerPool;
+
             public StoppableDataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
                 IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger,
-                uint kvSendQueueCapacity) : base(connectionInitializer, connectionFactory, scaleController, redactor, logger, kvSendQueueCapacity)
+                uint kvSendQueueCapacity)
             {
+                _innerPool = new(connectionInitializer, connectionFactory, scaleController, redactor, logger, kvSendQueueCapacity);
             }
 
-            public void Stop() => CompleteSendQueue();
+            public HostEndpointWithPort EndPoint => _innerPool.EndPoint;
+
+            public int Size => _innerPool.Size;
+
+            public int MinimumSize
+            {
+                get => _innerPool.MinimumSize;
+                set => _innerPool.MinimumSize = value;
+            }
+
+            public int MaximumSize
+            {
+                get => _innerPool.MaximumSize;
+                set => _innerPool.MaximumSize = value;
+            }
+
+            public int PendingSends => _innerPool.PendingSends;
+
+            public void Dispose()
+            {
+                _innerPool.Dispose();
+            }
+
+            public ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
+            {
+                return _innerPool.FreezePoolAsync(cancellationToken);
+            }
+
+            public IEnumerable<IConnection> GetConnections()
+            {
+                return _innerPool.GetConnections();
+            }
+
+            public Task InitializeAsync(CancellationToken cancellationToken = default)
+            {
+                return _innerPool.InitializeAsync(cancellationToken);
+            }
+
+            public Task ScaleAsync(int delta)
+            {
+                return _innerPool.ScaleAsync(delta);
+            }
+
+            public Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
+            {
+                return _innerPool.SelectBucketAsync(name, cancellationToken);
+            }
+
+            public Task SendAsync(IOperation op, CancellationToken cancellationToken = default)
+            {
+                return _innerPool.SendAsync(op, cancellationToken);
+            }
+
+            public void Stop() => _innerPool.CompleteSendQueue();
+
+            public Task<bool> TrySendImmediatelyAsync(IOperation op, CancellationToken cancellationToken = default)
+            {
+                return _innerPool.TrySendImmediatelyAsync(op, cancellationToken);
+            }
         }
 
         private StoppableDataFlowConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,

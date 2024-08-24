@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Noop : OperationBase
+    internal sealed class Noop : OperationBase
     {
         public override OpCode OpCode => OpCode.NoOp;
 

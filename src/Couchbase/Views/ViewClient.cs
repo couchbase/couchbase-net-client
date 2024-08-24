@@ -17,13 +17,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Views
 {
-    internal class ViewClient : HttpServiceBase, IViewClient
+    internal sealed class ViewClient : HttpServiceBase, IViewClient
     {
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<ViewClient> _logger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
-        protected const string Success = "Success";
+        private const string Success = "Success";
 
         public ViewClient(ICouchbaseHttpClientFactory httpClientFactory,
             ITypeSerializer serializer,
@@ -208,7 +208,7 @@ namespace Couchbase.Views
             return viewResult;
         }
 
-        protected static HttpStatusCode GetStatusCode(string message)
+        private static HttpStatusCode GetStatusCode(string message)
         {
             var httpStatusCode = HttpStatusCode.ServiceUnavailable;
 #if NET6_0_OR_GREATER

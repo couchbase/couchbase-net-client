@@ -15,7 +15,7 @@ namespace Couchbase.Core.DI
     /// In this example, any request for ILogger&lt;T&gt; will hit that factory, regardless of
     /// the specific T requested, unless a more specific factory is also registered.
     /// </remarks>
-    internal class CouchbaseServiceProvider : ICouchbaseServiceProvider
+    internal sealed class CouchbaseServiceProvider : ICouchbaseServiceProvider
     {
         private readonly IReadOnlyDictionary<Type, IServiceFactory> _services;
 

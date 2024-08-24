@@ -186,7 +186,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         internal static XattrFirstComparer ByXattr { get; } = new XattrFirstComparer();
 
-        internal class XattrFirstComparer : IComparer<OperationSpec>
+        internal sealed class XattrFirstComparer : IComparer<OperationSpec>
         {
             public int Compare([AllowNull] OperationSpec a, [AllowNull] OperationSpec b)
             {

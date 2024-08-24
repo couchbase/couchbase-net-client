@@ -3,7 +3,7 @@ using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class GetL<T> : Get<T>
+    internal sealed class GetL<T> : Get<T>
     {
         /// <inheritdoc />
         public override bool IsReadOnly => false;

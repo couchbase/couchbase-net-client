@@ -7,7 +7,7 @@ namespace Couchbase.Core
     /// <summary>
     /// Default implementation of <see cref="IServiceUriProvider"/>.
     /// </summary>
-    internal class ServiceUriProvider : IServiceUriProvider
+    internal sealed class ServiceUriProvider : IServiceUriProvider
     {
         private readonly ClusterContext _clusterContext;
 

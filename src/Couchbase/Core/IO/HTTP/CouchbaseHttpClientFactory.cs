@@ -21,7 +21,7 @@ namespace Couchbase.Core.IO.HTTP
     /// <summary>
     /// Default implementation of <see cref="CouchbaseHttpClientFactory"/>.
     /// </summary>
-    internal class CouchbaseHttpClientFactory : ICouchbaseHttpClientFactory
+    internal sealed class CouchbaseHttpClientFactory : ICouchbaseHttpClientFactory
     {
         private readonly ClusterContext _context;
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;

@@ -18,7 +18,7 @@ namespace Couchbase.Views
     /// <summary>
     /// Implemented as an object that can query a Couchbase View.
     /// </summary>
-    internal class ViewQuery : RequestBase, IViewQuery
+    internal sealed class ViewQuery : RequestBase, IViewQuery
     {
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";

@@ -3,7 +3,7 @@ using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class GetT<T> : MutationOperationBase<T>
+    internal sealed class GetT<T> : MutationOperationBase<T>
     {
         internal GetT(string bucketName, string key) : base(bucketName, key)
         { }

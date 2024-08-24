@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Connections
     /// <summary>
     /// Tracks a set of in-flight operations for <see cref="MultiplexingConnection"/>.
     /// </summary>
-    internal class InFlightOperationSet : IDisposable
+    internal sealed class InFlightOperationSet : IDisposable
     {
         // This approach for storing AsyncState is optimized for a small number of MaximumOperations. It avoids the overhead
         // of a dictionary and allows lock-free operations using Interlocked. However, a ConcurrentDictionary may outperform

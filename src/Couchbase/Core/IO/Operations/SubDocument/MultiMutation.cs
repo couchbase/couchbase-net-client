@@ -13,7 +13,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
-    internal class MultiMutation<T> : OperationBase<T>, IEquatable<MultiMutation<T>>
+    internal sealed class MultiMutation<T> : OperationBase<T>, IEquatable<MultiMutation<T>>
     {
         public ReadOnlyCollection<MutateInSpec> MutateCommands { get; }
 

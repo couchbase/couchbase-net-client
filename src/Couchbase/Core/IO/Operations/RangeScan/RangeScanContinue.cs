@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
+    internal sealed class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
         //To hold the intermediate responses
         private List<SlicedMemoryOwner<byte>> _responses = new();

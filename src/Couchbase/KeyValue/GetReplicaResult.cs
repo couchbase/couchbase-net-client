@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue
 {
-    internal class GetReplicaResult : GetResult, IGetReplicaResult
+    internal sealed class GetReplicaResult : GetResult, IGetReplicaResult
     {
         public bool IsActive { get; internal set; }
 

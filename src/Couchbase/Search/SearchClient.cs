@@ -31,7 +31,7 @@ namespace Couchbase.Search
     /// A client for making FTS <see cref="ISearchQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
     /// </summary>
     /// <seealso cref="ISearchClient" />
-    internal class SearchClient : HttpServiceBase, ISearchClient
+    internal sealed class SearchClient : HttpServiceBase, ISearchClient
     {
         internal const string SearchRequiresUnreferencedMembersWarning =
             "Couchbase FTS might require types that cannot be statically analyzed. Make sure all required types are preserved.";

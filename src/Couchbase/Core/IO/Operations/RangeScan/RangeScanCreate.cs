@@ -3,7 +3,7 @@ using Couchbase.KeyValue.RangeScan;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanCreate : OperationBase<IScanTypeExt>, IPreMappedVBucketOperation
+    internal sealed class RangeScanCreate : OperationBase<IScanTypeExt>, IPreMappedVBucketOperation
     {
         //https://github.com/couchbase/kv_engine/blob/master/docs/range_scans/range_scan_create.md
 

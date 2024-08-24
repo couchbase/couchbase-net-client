@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    internal class ReplicaRead<T> : OperationBase<T>
+    internal sealed class ReplicaRead<T> : OperationBase<T>
     {
         public override OpCode OpCode => OpCode.ReplicaRead;
 

@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Unlock : OperationBase
+    internal sealed class Unlock : OperationBase
     {
         /// <inheritdoc />
         public override bool IsReadOnly => false;

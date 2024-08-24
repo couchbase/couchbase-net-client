@@ -13,7 +13,7 @@ namespace Couchbase.Core.Sharding
      /// <summary>
     /// Represents a VBucket partition in a Couchbase cluster
     /// </summary>
-    internal class VBucket : IVBucket
+    internal sealed class VBucket : IVBucket
     {
         private readonly short[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;

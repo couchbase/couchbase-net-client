@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
     /// <summary>
     /// Connection pool based on queuing operations via the TPL data flows library.
     /// </summary>
-    internal class DataFlowConnectionPool : ConnectionPoolBase
+    internal sealed class DataFlowConnectionPool : ConnectionPoolBase
     {
         private readonly IConnectionPoolScaleController _scaleController;
         private readonly IRedactor _redactor;
@@ -266,7 +266,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <summary>
         /// For UNIT TESTING ONLY. Causes all future operations to fail with <see cref="SendQueueFullException"/>.
         /// </summary>
-        protected internal void CompleteSendQueue()
+        internal void CompleteSendQueue()
         {
             _sendQueue.Complete();
         }

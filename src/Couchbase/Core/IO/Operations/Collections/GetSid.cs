@@ -3,7 +3,7 @@ using System.Runtime.ExceptionServices;
 
 namespace Couchbase.Core.IO.Operations.Collections
 {
-    internal class GetSid : OperationBase<uint?>
+    internal sealed class GetSid : OperationBase<uint?>
     {
         public override bool RequiresVBucketId => false;
 

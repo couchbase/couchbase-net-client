@@ -16,7 +16,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// Note that the metrics may also be consumed without using <see cref="IMeter"/> by using any standard .NET
     /// metric consumer. This may include OpenTelemetry, dotnet-counters, dotnet-monitor, and more.
     /// </remarks>
-    internal class MeterForwarder : IDisposable
+    internal sealed class MeterForwarder : IDisposable
     {
         private readonly IMeter _meter;
         private readonly MeterListener _listener;

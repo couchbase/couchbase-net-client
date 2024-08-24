@@ -9,7 +9,7 @@ namespace Couchbase.Core.IO.Compression
     /// Compression algorithm which does not compress or decompress data.
     /// This is the default if no compression algorithm is registered.
     /// </summary>
-    internal class NullCompressionAlgorithm : ICompressionAlgorithm
+    internal sealed class NullCompressionAlgorithm : ICompressionAlgorithm
     {
         /// <inheritdoc />
         public CompressionAlgorithm Algorithm => CompressionAlgorithm.None;

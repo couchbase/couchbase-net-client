@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Operations
     /// <summary>
     /// Default implementation of <see cref="IOperationConfigurator"/>.
     /// </summary>
-    internal class OperationConfigurator : IOperationConfigurator
+    internal sealed class OperationConfigurator : IOperationConfigurator
     {
         private readonly ITypeTranscoder _typeTranscoder;
         private readonly IOperationCompressor _operationCompressor;

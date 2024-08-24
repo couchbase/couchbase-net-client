@@ -8,7 +8,7 @@ namespace Couchbase.KeyValue
     /// <summary>
     /// Wrapper for a <see cref="ILookupInResult"/> which adds a known document type.
     /// </summary>
-    internal class LookupInResult<TDocument> : ILookupInResult<TDocument>
+    internal sealed class LookupInResult<TDocument> : ILookupInResult<TDocument>
     {
         private readonly ILookupInResult _inner;
 

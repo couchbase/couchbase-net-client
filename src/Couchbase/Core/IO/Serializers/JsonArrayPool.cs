@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Serializers
     /// Maps Newtonsoft.Json <see cref="IArrayPool{T}"/> to the .NET <see cref="ArrayPool{T}"/> so that
     /// the JSON serializer and deserializer can make use of the shared array pool.
     /// </summary>
-    internal class JsonArrayPool : IArrayPool<char>
+    internal sealed class JsonArrayPool : IArrayPool<char>
     {
         /// <summary>
         /// A shared instance of <see cref="JsonArrayPool"/> which uses <see cref="ArrayPool{T}.Shared"/>.

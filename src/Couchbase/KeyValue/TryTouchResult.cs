@@ -10,7 +10,7 @@ namespace Couchbase.KeyValue;
 /// <see cref="DocumentNotFoundException"/> exception if the document key is
 /// not found, allows for the existence to be checked via <see cref="ITryTouchResult.Exists"/>.
 /// </summary>
-internal class TryTouchResult : TryResultBase, ITryTouchResult
+internal sealed class TryTouchResult : TryResultBase, ITryTouchResult
 {
     internal TryTouchResult(ResponseStatus status, IMutationResult? mutationResult)
     {

@@ -10,9 +10,7 @@ namespace Couchbase.UnitTests.Management.Bucket
         public void When_NotConnected_BucketManager_Throws_NodeUnavailableException()
         {
             var clusterContext = new ClusterContext();
-            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
-
-            var serviceUriProvider = serviceUriProviderMock.Object;
+            var serviceUriProvider = new ServiceUriProvider(clusterContext);
             Assert.Throws<ServiceNotAvailableException>(()=>serviceUriProvider.GetRandomManagementUri());
         }
     }

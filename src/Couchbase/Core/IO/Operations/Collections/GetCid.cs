@@ -3,7 +3,7 @@ using System.Runtime.ExceptionServices;
 
 namespace Couchbase.Core.IO.Operations.Collections
 {
-    internal class GetCid : OperationBase<string>
+    internal sealed class GetCid : OperationBase<string>
     {
         /// <summary>
         /// Creates a key either by the Key property or the Content property.

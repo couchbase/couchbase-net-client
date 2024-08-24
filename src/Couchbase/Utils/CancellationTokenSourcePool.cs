@@ -38,7 +38,7 @@ namespace Couchbase.Utils
         // in the pool.
         public void Dispose() => (_pool as IDisposable)?.Dispose();
 
-        private class CancellationTokenSourcePoolPolicy : PooledObjectPolicy<CancellationTokenSource>
+        private sealed class CancellationTokenSourcePoolPolicy : PooledObjectPolicy<CancellationTokenSource>
         {
             public override CancellationTokenSource Create() => new();
 

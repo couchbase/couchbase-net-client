@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.HTTP
 {
-    internal class AuthenticatingHttpMessageHandler : DelegatingHandler
+    internal sealed class AuthenticatingHttpMessageHandler : DelegatingHandler
     {
         private const string BasicScheme = "Basic";
         private readonly string? _headerValue;

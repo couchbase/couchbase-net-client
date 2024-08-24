@@ -3,7 +3,7 @@ using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
-    internal class GetErrorMap : OperationBase<ErrorMapDto>
+    internal sealed class GetErrorMap : OperationBase<ErrorMapDto>
     {
         private const int DefaultVersion = 2; // will be configurable at some point
 

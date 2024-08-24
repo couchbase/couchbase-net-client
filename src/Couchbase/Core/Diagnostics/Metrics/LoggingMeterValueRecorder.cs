@@ -7,7 +7,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// A <see cref="IValueRecorder"/> implementation for collecting latency metrics for a
     /// Couchbase service and conjunction with <see cref="LoggingMeter"/>.
     /// </summary>
-    internal class LoggingMeterValueRecorder(string name) : IValueRecorder
+    internal sealed class LoggingMeterValueRecorder(string name) : IValueRecorder
     {
         public HistogramCollectorSet Histograms { get; } = new(name);
 

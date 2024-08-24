@@ -11,7 +11,7 @@ using Couchbase.Utils;
 
 namespace Couchbase
 {
-    internal class ConnectionString
+    internal sealed class ConnectionString
     {
         private const int KeyValuePort = 11210;
         private const int SecureKeyValuePort = 11207;

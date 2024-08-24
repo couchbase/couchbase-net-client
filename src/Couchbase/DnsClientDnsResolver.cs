@@ -17,7 +17,7 @@ namespace Couchbase
     /// <summary>
     /// Default implementation of <see cref="IDnsResolver"/>.
     /// </summary>
-    internal class DnsClientDnsResolver : IDnsResolver
+    internal sealed class DnsClientDnsResolver : IDnsResolver
     {
         private const string DefaultServicePrefix = "_couchbase._tcp.";
         private const string TlsServicePrefix = "_couchbases._tcp.";

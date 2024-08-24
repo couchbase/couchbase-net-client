@@ -11,7 +11,7 @@ namespace Couchbase.Core.DI
     /// <summary>
     /// Implementation of <see cref="IServiceFactory"/> which always returns the same singleton.
     /// </summary>
-    internal class SingletonServiceFactory : IServiceFactory
+    internal sealed class SingletonServiceFactory : IServiceFactory
     {
         private readonly Func<IServiceProvider, object>? _lambda;
         private IServiceProvider? _serviceProvider;

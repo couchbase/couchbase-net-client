@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Serializers
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
-    internal class NewtonsoftJsonToken : IJsonToken
+    internal sealed class NewtonsoftJsonToken : IJsonToken
     {
         private readonly JToken _token;
         private readonly JsonSerializer _deserializer;

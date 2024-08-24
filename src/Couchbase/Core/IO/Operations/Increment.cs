@@ -3,7 +3,7 @@ using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Increment : MutationOperationBase<ulong>
+    internal sealed class Increment : MutationOperationBase<ulong>
     {
         internal Increment(string bucketName, string key) : base(bucketName, key)
         { }

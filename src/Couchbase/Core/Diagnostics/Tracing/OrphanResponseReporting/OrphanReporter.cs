@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 {
-    internal partial class OrphanReporter : IOrphanReporter
+    internal sealed partial class OrphanReporter : IOrphanReporter
     {
         private readonly ILogger<OrphanReporter> _logger;
         private const int WorkerSleep = 100;

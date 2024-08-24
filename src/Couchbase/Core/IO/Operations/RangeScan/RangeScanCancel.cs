@@ -4,7 +4,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanCancel : OperationBase<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
+    internal sealed class RangeScanCancel : OperationBase<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
         public override OpCode OpCode => OpCode.RangeScanCancel;
 

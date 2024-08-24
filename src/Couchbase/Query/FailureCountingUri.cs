@@ -6,7 +6,7 @@ namespace Couchbase.Query
     /// <summary>
     /// A decorator around a <see cref="Uri"/> that maintains count of the whether the last request failed.
     /// </summary>
-    internal class FailureCountingUri : Uri
+    internal sealed class FailureCountingUri : Uri
     {
         private int _failedCount;
 

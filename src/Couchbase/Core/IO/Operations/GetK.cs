@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    internal class GetK<T> : Get<T>
+    internal sealed class GetK<T> : Get<T>
     {
         public override OpCode OpCode => OpCode.GetK;
     }

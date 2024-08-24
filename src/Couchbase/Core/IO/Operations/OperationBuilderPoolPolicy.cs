@@ -6,7 +6,7 @@ namespace Couchbase.Core.IO.Operations
     /// Policy which handles creating and returning <see cref="OperationBuilder"/> instances to the
     /// <see cref="ObjectPool{T}"/>.
     /// </summary>
-    internal class OperationBuilderPoolPolicy : PooledObjectPolicy<OperationBuilder>
+    internal sealed class OperationBuilderPoolPolicy : PooledObjectPolicy<OperationBuilder>
     {
         /// <summary>
         /// Returned operation builders with a capacity larger than this limit are disposed rather than retained.

@@ -13,7 +13,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
-    internal class MultiLookup<T> : OperationBase<T>, IEquatable<MultiLookup<T>>
+    internal sealed class MultiLookup<T> : OperationBase<T>, IEquatable<MultiLookup<T>>
     {
         public ReadOnlyCollection<LookupInSpec> LookupCommands { get; }
         public SubdocDocFlags DocFlags { get; set; }

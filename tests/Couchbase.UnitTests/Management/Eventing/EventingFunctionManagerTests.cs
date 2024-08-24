@@ -47,9 +47,7 @@ namespace Couchbase.UnitTests.Management.Eventing
         public void When_NotConnected_EventingFunctionManager_Throws_NodeUnavailableException()
         {
             var clusterContext = new ClusterContext();
-            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
-
-            var serviceUriProvider = serviceUriProviderMock.Object;
+            var serviceUriProvider = new ServiceUriProvider(clusterContext);
             Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomEventingUri());
         }
 

@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
-    internal class MemcachedBucket : BucketBase
+    internal sealed class MemcachedBucket : BucketBase
     {
         private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;

@@ -24,7 +24,7 @@ namespace Couchbase.Query
     /// <summary>
     /// A <see cref="QueryClient" /> implementation for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    internal class QueryClient : HttpServiceBase, IQueryClient
+    internal sealed class QueryClient : HttpServiceBase, IQueryClient
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
         internal const string TransactionsBeginWork = "BEGIN WORK";

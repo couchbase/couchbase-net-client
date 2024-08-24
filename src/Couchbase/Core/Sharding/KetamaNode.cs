@@ -3,7 +3,7 @@ namespace Couchbase.Core.Sharding
     /// <summary>
     /// A cluster node mapped to a given Key.
     /// </summary>
-    internal class KetamaNode(HostEndpointWithPort server) : IMappedNode
+    internal sealed class KetamaNode(HostEndpointWithPort server) : IMappedNode
     {
         public HostEndpointWithPort Server { get; } = server;
 

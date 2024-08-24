@@ -9,7 +9,7 @@ namespace Couchbase.KeyValue;
 /// <see cref="DocumentNotFoundException"/> exception if the document key is
 /// not found, allows for the existence to be checked via <see cref="ITryRemoveResult.Exists"/>.
 /// </summary>
-internal class TryRemoveResult : TryResultBase, ITryRemoveResult
+internal sealed class TryRemoveResult : TryResultBase, ITryRemoveResult
 {
     public TryRemoveResult(ResponseStatus status)
     {

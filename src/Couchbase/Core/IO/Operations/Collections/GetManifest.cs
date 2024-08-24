@@ -3,7 +3,7 @@ using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.Core.IO.Operations.Collections
 {
-    internal class GetManifest :  OperationBase<Manifest>
+    internal sealed class GetManifest :  OperationBase<Manifest>
     {
         public override OpCode OpCode  => OpCode.GetCollectionsManifest;
 

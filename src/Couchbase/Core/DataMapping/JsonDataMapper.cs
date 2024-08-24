@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +10,7 @@ namespace Couchbase.Core.DataMapping
     /// <summary>
     /// A class for mapping an input stream of JSON to a Type T using a <see cref="Newtonsoft.Json.JsonTextReader"/> instance.
     /// </summary>
-    internal class JsonDataMapper : IDataMapper
+    internal sealed class JsonDataMapper : IDataMapper
     {
         private readonly ITypeSerializer _serializer;
 

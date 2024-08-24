@@ -12,7 +12,7 @@ namespace Couchbase.Core.DI
     /// Implementation of <see cref="IServiceFactory"/> which creates a transient
     /// service for each request.
     /// </summary>
-    internal class TransientServiceFactory : IServiceFactory
+    internal sealed class TransientServiceFactory : IServiceFactory
     {
         private readonly Func<IServiceProvider, object?> _factory;
 

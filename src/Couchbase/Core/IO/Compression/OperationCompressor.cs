@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Compression
     /// <summary>
     /// Default implementation of <see cref="IOperationCompressor"/>. Applies logic and logging around compression.
     /// </summary>
-    internal class OperationCompressor : IOperationCompressor
+    internal sealed class OperationCompressor : IOperationCompressor
     {
         private static readonly Action<ILogger, int, int, Exception?> LogSkipLength =
             LoggerMessage.Define<int, int>(LogLevel.Trace, 0,

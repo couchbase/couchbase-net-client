@@ -8,7 +8,7 @@ namespace Couchbase.Compression.Snappier.Internal
     /// <summary>
     /// Snappy compression using Snappier.
     /// </summary>
-    internal class SnappierCompression : ICompressionAlgorithm
+    internal sealed class SnappierCompression : ICompressionAlgorithm
     {
         /// <inheritdoc />
         public CompressionAlgorithm Algorithm => CompressionAlgorithm.Snappy;

@@ -8,7 +8,7 @@ namespace Couchbase.KeyValue;
 /// <see cref="DocumentNotFoundException"/> exception if the document key is
 /// not found, allows for the existence to be checked via <see cref="ITryUnlockResult.Exists"/>.
 /// </summary>
-internal class TryUnlockResult : TryResultBase, ITryUnlockResult
+internal sealed class TryUnlockResult : TryResultBase, ITryUnlockResult
 {
     internal TryUnlockResult(ResponseStatus status)
     {

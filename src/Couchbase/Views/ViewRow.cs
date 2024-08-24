@@ -35,7 +35,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
-    internal class ViewRow<TKey, TValue> : IViewRow<TKey, TValue>
+    internal sealed class ViewRow<TKey, TValue> : IViewRow<TKey, TValue>
     {
         /// <inheritdoc />
         public string? Id { get; set; }

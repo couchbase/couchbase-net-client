@@ -13,7 +13,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
+    internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
     {
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;

@@ -37,7 +37,7 @@ using Microsoft.Extensions.ObjectPool;
 namespace Couchbase.Core
 {
     [DebuggerDisplay("{EndPoint}-{_bucketName}-Rev#{NodesAdapter?.ConfigVersion}")]
-    internal partial class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
+    internal sealed partial class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
         private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;

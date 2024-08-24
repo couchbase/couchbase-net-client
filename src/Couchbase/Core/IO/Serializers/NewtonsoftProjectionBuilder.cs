@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Serializers
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
-    internal class NewtonsoftProjectionBuilder : IProjectionBuilder
+    internal sealed class NewtonsoftProjectionBuilder : IProjectionBuilder
     {
         private readonly DefaultSerializer _serializer;
         private readonly ILogger _logger;

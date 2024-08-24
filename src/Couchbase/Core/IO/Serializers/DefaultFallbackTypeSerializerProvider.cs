@@ -9,7 +9,7 @@ namespace Couchbase.Core.IO.Serializers
     /// </summary>
     [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     [RequiresDynamicCode(DefaultSerializer.RequiresDynamicCodeMessage)]
-    internal class DefaultFallbackTypeSerializerProvider : IFallbackTypeSerializerProvider
+    internal sealed class DefaultFallbackTypeSerializerProvider : IFallbackTypeSerializerProvider
     {
         private static DefaultFallbackTypeSerializerProvider? _instance;
 

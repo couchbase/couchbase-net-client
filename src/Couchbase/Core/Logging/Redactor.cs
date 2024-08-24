@@ -11,7 +11,7 @@ namespace Couchbase.Core.Logging
     /// <remarks>
     /// Forwards redaction to a <see cref="TypedRedactor"/>.
     /// </remarks>
-    internal class Redactor : IRedactor
+    internal sealed class Redactor : IRedactor
     {
         private readonly TypedRedactor _typedRedactor;
 

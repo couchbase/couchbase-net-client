@@ -10,7 +10,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Hello : OperationBase<ServerFeatures[]>
+    internal sealed class Hello : OperationBase<ServerFeatures[]>
     {
         public override OpCode OpCode => OpCode.Helo;
 

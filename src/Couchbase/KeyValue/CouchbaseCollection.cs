@@ -28,7 +28,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue
 {
-    internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
+    internal sealed class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
         private readonly string? _preferredServerGroup;

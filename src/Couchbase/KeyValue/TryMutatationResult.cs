@@ -10,7 +10,7 @@ namespace Couchbase.KeyValue;
 /// <see cref="DocumentNotFoundException"/> exception if the document key is
 /// not found, allows for the existence to be checked via <see cref="ITryMutationResult.Exists"/>.
 /// </summary>
-internal class TryMutationResult : TryResultBase, ITryMutationResult
+internal sealed class TryMutationResult : TryResultBase, ITryMutationResult
 {
     private readonly IMutationResult _mutationResult;
 

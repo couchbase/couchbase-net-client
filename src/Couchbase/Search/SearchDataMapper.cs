@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
 {
-    internal class SearchDataMapper  : IDataMapper
+    internal sealed class SearchDataMapper  : IDataMapper
     {
         public T Map<T>(Stream stream) where T : class
         {

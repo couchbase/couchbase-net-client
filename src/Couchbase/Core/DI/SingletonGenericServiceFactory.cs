@@ -33,7 +33,7 @@ namespace Couchbase.Core.DI
     /// See https://github.com/dotnet/runtime/blob/7c00b17be1b2ffb6ed49ad68cf36e9a056323152/src/libraries/Microsoft.Extensions.DependencyInjection/src/ServiceLookup/CallSiteFactory.cs#L94-L98
     /// </para>
     /// </remarks>
-    internal class SingletonGenericServiceFactory : IServiceFactory
+    internal sealed class SingletonGenericServiceFactory : IServiceFactory
     {
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
         private readonly Type _genericType;

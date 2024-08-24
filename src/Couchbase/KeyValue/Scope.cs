@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    internal class Scope : IScope
+    internal sealed class Scope : IScope
     {
         public const string DefaultScopeName = "_default";
         private readonly BucketBase _bucket;

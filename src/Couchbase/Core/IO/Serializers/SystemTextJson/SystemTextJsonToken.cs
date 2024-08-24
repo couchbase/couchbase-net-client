@@ -9,7 +9,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Serializers.SystemTextJson
 {
-    internal class SystemTextJsonToken : IJsonToken
+    internal sealed class SystemTextJsonToken : IJsonToken
     {
         private readonly JsonElement _element;
         private readonly SystemTextJsonStreamReader _streamReader;

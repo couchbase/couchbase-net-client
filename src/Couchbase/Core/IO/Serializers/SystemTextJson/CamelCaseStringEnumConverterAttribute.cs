@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.IO.Serializers.SystemTextJson
 {
-    internal class CamelCaseStringEnumConverter<T> : JsonStringEnumConverter<T> where T : struct, Enum
+    internal sealed class CamelCaseStringEnumConverter<T> : JsonStringEnumConverter<T> where T : struct, Enum
     {
         public CamelCaseStringEnumConverter() : base(JsonNamingPolicy.CamelCase)
         {

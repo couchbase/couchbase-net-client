@@ -9,7 +9,7 @@ namespace Couchbase.Core.DI
     /// References a singleton of a service that isn't instantiated until required.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class LazyService<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : Lazy<T?>
+    internal sealed class LazyService<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T> : Lazy<T?>
         where T : notnull
     {
         public LazyService(IServiceProvider serviceProvider)

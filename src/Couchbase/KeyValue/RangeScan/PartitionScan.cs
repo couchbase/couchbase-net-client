@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue.RangeScan;
 
-internal class PartitionScan
+internal sealed class PartitionScan
 {
     public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, ICouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId)
     {

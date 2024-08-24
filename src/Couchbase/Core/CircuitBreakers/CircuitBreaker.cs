@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Couchbase.Core.CircuitBreakers
 {
-    internal class CircuitBreaker : ICircuitBreaker
+    internal sealed class CircuitBreaker : ICircuitBreaker
     {
         private volatile int _failedCount;
         private volatile int _totalCount;

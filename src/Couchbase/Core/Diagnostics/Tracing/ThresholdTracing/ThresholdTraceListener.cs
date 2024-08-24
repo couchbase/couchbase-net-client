@@ -16,7 +16,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
     /// A <see cref="TraceListener"/> for <see cref="RequestTracer"/>; listens for any span closings and
     /// generates a <see cref="ThresholdSummary"/> if a span exceeds the threshold configured in <see cref="ThresholdOptions"/>.
     /// </summary>
-    internal partial class ThresholdTraceListener : TraceListener
+    internal sealed partial class ThresholdTraceListener : TraceListener
     {
         private readonly IReadOnlyDictionary<string, TimeSpan> _serviceThresholds;
         private readonly Timer _timer;

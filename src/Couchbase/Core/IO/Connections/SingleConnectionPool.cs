@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Connections
     /// <summary>
     /// Legacy implementation of an <see cref="IConnectionPool"/> which only contains a single connection.
     /// </summary>
-    internal class SingleConnectionPool : ConnectionPoolBase
+    internal sealed class SingleConnectionPool : ConnectionPoolBase
     {
         private IConnection? _connection;
 
