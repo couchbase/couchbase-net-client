@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
+    <ProjectReference Include="..\Couchbase.Test.Common\Couchbase.Test.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
