@@ -319,7 +319,6 @@ namespace Couchbase.Core.IO.Operations
                 OpCode = OpCode,
                 Cas = Header.Cas,
                 BodyLength = Header.BodyLength,
-                Key = Key,
                 Status = ResponseStatus.None,
                 Opaque = Opaque
             };
@@ -340,7 +339,6 @@ namespace Couchbase.Core.IO.Operations
                 OpCode = OpCode,
                 Cas = Header.Cas,
                 BodyLength = Header.BodyLength,
-                Key = Key,
                 Status = status,
                 Opaque = Opaque
             };
@@ -358,11 +356,12 @@ namespace Couchbase.Core.IO.Operations
         {
             EnsureNotDisposed();
 
-            Header = buffer.Memory.Span.CreateHeader();
+            var span = buffer.Memory.Span;
+            Header = OperationHeader.Read(span);
             Cas = Header.Cas;
             _data = buffer;
 
-            ReadExtras(_data.Memory.Span);
+            ReadExtras(span);
         }
 
         protected virtual void ReadExtras(ReadOnlySpan<byte> buffer)

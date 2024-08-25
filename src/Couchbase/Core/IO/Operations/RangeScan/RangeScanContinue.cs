@@ -111,8 +111,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
             foreach (var response in _responses)
             {
                 //First we need to process the MCBP header
-                var header = response.Memory.Span.CreateHeader();
-                var opaque = ByteConverter.ToUInt32(response.Memory.Span.Slice(HeaderOffsets.Opaque), false);
+                var header = OperationHeader.Read(response.Memory.Span);
                 var length = header.TotalLength;
                 var processed = header.BodyOffset;
 
@@ -151,8 +150,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
             foreach (var response in _responses)
             {
                 //First we need to process the MCBP header
-                var header = response.Memory.Span.CreateHeader();
-                var opaque = ByteConverter.ToUInt32(response.Memory.Span.Slice(HeaderOffsets.Opaque), false);
+                var header = OperationHeader.Read(response.Memory.Span);
 
                 //HeaderOffsets.ExtrasLength
                 var length = header.TotalLength;

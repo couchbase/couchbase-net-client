@@ -15,7 +15,6 @@ namespace Couchbase.Core.IO
         public const int Datatype = 5;
         public const int Status = 6; // 6-7
         public const int VBucket = 6; // 6-7
-        public const int Body = 8; // 8-11
         public const int BodyLength = 8; // 8-11
         public const int Opaque = 12; // 12-15
         public const int Cas = 16; // 16-23
