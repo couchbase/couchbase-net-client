@@ -419,11 +419,15 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         public void LogOrphaned()
         {
-            if (Span.CanWrite && IsSent && !_isOrphaned)
+            if (IsSent && !_isOrphaned)
             {
                 _isOrphaned = true;//only create attribute once
-                Span.SetAttribute("orphaned", "true");
                 MetricTracker.KeyValue.TrackOrphaned();
+
+                if (Span.CanWrite)
+                {
+                    Span.SetAttribute("orphaned", "true");
+                }
             }
         }
 
