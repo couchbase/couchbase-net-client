@@ -731,6 +731,7 @@ namespace Couchbase.Core
                     }
 
                     LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion, op.IsSent);
+                    MetricTracker.KeyValue.TrackTimeout(op.OpCode);
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
