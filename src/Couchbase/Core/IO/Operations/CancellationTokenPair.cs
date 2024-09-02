@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -19,14 +20,11 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc cref="CancellationTokenPairSource.ExternalToken"/>
         public CancellationToken ExternalToken => _source?.ExternalToken ?? default;
 
-        /// <inheritdoc cref="CancellationTokenPairSource.InternalToken"/>
-        public CancellationToken InternalToken => _source?.InternalToken ?? default;
-
-        /// <inheritdoc cref="CancellationTokenPairSource.GlobalToken"/>
-        public CancellationToken GlobalToken => _source?.GlobalToken ?? default;
+        /// <inheritdoc cref="CancellationTokenSource.Token"/>
+        public CancellationToken Token => _source?.Token ?? default;
 
         /// <inheritdoc cref="CancellationToken.CanBeCanceled" />
-        public bool CanBeCanceled => _source?.CanBeCanceled ?? false;
+        public bool CanBeCanceled => _source is not null;
 
         /// <inheritdoc cref="CancellationToken.IsCancellationRequested" />
         public bool IsCancellationRequested => _source?.IsCancellationRequested ?? false;
@@ -56,26 +54,59 @@ namespace Couchbase.Core.IO.Operations
         }
 
         /// <inheritdoc cref="CancellationToken.ThrowIfCancellationRequested" />
-        public void ThrowIfCancellationRequested() => _source?.ThrowIfCancellationRequested();
+        public void ThrowIfCancellationRequested()
+        {
+            if (IsCancellationRequested)
+            {
+                ThrowOperationCanceledException();
+            }
+        }
+
+        // Do not call unless IsCancellationRequested is true, otherwise _source may be null.
+        // Separated to improve inlining of ThrowIfCancellationRequested.
+        [DoesNotReturn]
+        private void ThrowOperationCanceledException()
+        {
+            throw new OperationCanceledException("The operation was canceled.", _source!.CanceledToken);
+        }
 
         /// <inheritdoc cref="CancellationToken.Register(Action)" />
         public CancellationTokenRegistration Register(Action callback) =>
-            _source?.Register(callback) ?? default;
+            _source?.Token.Register(callback) ?? default;
 
         /// <inheritdoc cref="CancellationToken.Register(Action{object}, object)" />
         public CancellationTokenRegistration Register(Action<object?> callback, object? state) =>
-            _source?.Register(callback, state) ?? default;
+            _source?.Token.Register(callback, state) ?? default;
+
+        /// <inheritdoc cref="CancellationToken.Register(Action{object}, object, bool)" />
+        public CancellationTokenRegistration Register(Action<object?> callback, object? state, bool useSynchronizationContext) =>
+            _source?.Token.Register(callback, state, useSynchronizationContext) ?? default;
 
 #if NETCOREAPP3_1_OR_GREATER
 
         /// <inheritdoc cref="CancellationToken.UnsafeRegister(Action{object}, object)" />
         public CancellationTokenRegistration UnsafeRegister(Action<object?> callback, object? state) =>
-            _source?.UnsafeRegister(callback, state) ?? default;
+            _source?.Token.UnsafeRegister(callback, state) ?? default;
 
 #endif
 
+        /// <summary>
+        /// Prevents external cancellation from affecting the operation.
+        /// </summary>
+        /// <remarks>
+        /// This will affect all subscriptions to the CancellationTokenPair.
+        /// </remarks>
+        public void PreventExternalCancellation()
+        {
+            var source = _source;
+            if (source is not null)
+            {
+                source.ExternalToken = default;
+            }
+        }
+
         public static implicit operator CancellationToken(CancellationTokenPair cancellationTokenPair) =>
-            cancellationTokenPair.GlobalToken;
+            cancellationTokenPair.Token;
     }
 }
 

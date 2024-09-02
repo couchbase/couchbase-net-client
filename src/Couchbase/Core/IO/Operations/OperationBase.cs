@@ -655,6 +655,13 @@ namespace Couchbase.Core.IO.Operations
                     .ConfigureAwait(false);
 
                 _isSent = true;
+
+                if (!IsReadOnly)
+                {
+                    // Once the operation is sent, don't allow it to be cancelled externally if it is a mutation.
+                    // This avoids ambiguity on mutation operations.
+                    TokenPair.PreventExternalCancellation();
+                }
             }
             finally
             {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -1564,9 +1565,30 @@ namespace Couchbase.KeyValue
 
         #region Timeouts
 
-        private CancellationTokenPairSource CreateRetryTimeoutCancellationTokenSource(
-            ITimeoutOptions options, IOperation op) =>
-            CancellationTokenPairSource.FromTimeout(GetTimeout(options.Timeout, op), options.Token);
+        private CancellationTokenPairSourceWrapper CreateRetryTimeoutCancellationTokenSource(ITimeoutOptions options, IOperation op) =>
+            new(GetTimeout(options.Timeout, op), options.Token);
+
+        [StructLayout(LayoutKind.Auto)]
+        private struct CancellationTokenPairSourceWrapper : IDisposable
+        {
+            private CancellationTokenPairSource? _source;
+
+            public readonly CancellationTokenPair TokenPair => _source?.TokenPair ?? default;
+
+            public CancellationTokenPairSourceWrapper(TimeSpan timeout, CancellationToken externalToken)
+            {
+                _source = CancellationTokenPairSourcePool.Shared.Rent(timeout, externalToken);
+            }
+
+            public void Dispose()
+            {
+                if (_source is not null)
+                {
+                    CancellationTokenPairSourcePool.Shared.Return(_source);
+                    _source = null;
+                }
+            }
+        }
 
         #endregion
 

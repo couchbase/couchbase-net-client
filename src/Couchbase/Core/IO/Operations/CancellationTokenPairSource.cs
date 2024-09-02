@@ -1,7 +1,5 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using Couchbase.Utils;
 
 #nullable enable
 
@@ -17,37 +15,33 @@ namespace Couchbase.Core.IO.Operations
     /// may occur if one of the supplied CancellationToken instances is long-lived or if <see cref="FromTimeout"/>
     /// is used to apply a timeout.
     /// </remarks>
-    internal sealed class CancellationTokenPairSource : IDisposable
+    internal sealed class CancellationTokenPairSource : CancellationTokenSource
     {
-        // If required, stores a CancellationTokenSource which combines the internal and external tokens.
-        private readonly CancellationTokenSource? _globalCts;
-
-        // If a timeout was requested for the InternalToken, stores the CTS so we can dispose it.
-        private CancellationTokenSource? _timeoutCts;
+        private CancellationToken _externalToken;
+        private CancellationTokenRegistration _externalRegistration;
+        private int _isExternalCancellation;
 
         /// <summary>
         /// Token which is provided by the SDK consumer to request cancellation.
         /// </summary>
-        public CancellationToken ExternalToken { get; }
-
-        /// <summary>
-        /// Token which is created for internal cancellation reasons such as timeouts.
-        /// </summary>
-        public CancellationToken InternalToken { get; }
-
-        /// <summary>
-        /// Token which combines the <see cref="ExternalToken"/> and <see cref="InternalToken"/>.
-        /// </summary>
-        public CancellationToken GlobalToken
+        public CancellationToken ExternalToken
         {
-            // If we have a global CTS then both external and internal tokens can be canceled and we should
-            // return the token from the global CTS. Otherwise, return whichever token can be canceled. If neither
-            // can be canceled, we can return either since they're both CancellationToken.None.
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _globalCts?.Token ??
-               (ExternalToken.CanBeCanceled
-                   ? ExternalToken
-                   : InternalToken);
+            get => _externalToken;
+            set
+            {
+                // Use a lock to ensure registration cleanup and re-registration are atomic with TryReset.
+                lock (this)
+                {
+                    if (_externalToken != value)
+                    {
+                        // Cleanup the previous registration, if any
+                        _externalRegistration.Dispose();
+
+                        _externalToken = value;
+                        _externalRegistration = RegisterExternalCancellationCallback(value);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -56,88 +50,158 @@ namespace Couchbase.Core.IO.Operations
         // CancellationTokenPair is a simple struct with one field, so this operation is very inexpensive.
         public CancellationTokenPair TokenPair => new(this);
 
-        /// <inheritdoc cref="CancellationToken.CanBeCanceled" />
-        public bool CanBeCanceled => GlobalToken.CanBeCanceled;
-
-        /// <inheritdoc cref="CancellationToken.IsCancellationRequested" />
-        public bool IsCancellationRequested => GlobalToken.IsCancellationRequested;
-
         /// <summary>
         /// Indicates if the pair has been canceled by the <see cref="ExternalToken"/>.
         /// </summary>
-        public bool IsExternalCancellation => ExternalToken.IsCancellationRequested;
+        public bool IsExternalCancellation => Volatile.Read(ref _isExternalCancellation) != 0;
 
         /// <summary>
-        /// Indicates if the pair has been canceled by the <see cref="InternalToken"/>.
+        /// Indicates if the pair has been canceled but not the <see cref="ExternalToken"/>.
         /// </summary>
-        public bool IsInternalCancellation => InternalToken.IsCancellationRequested;
+        public bool IsInternalCancellation => IsCancellationRequested && !IsExternalCancellation;
 
         /// <summary>
         /// Returns the <see cref="CancellationToken"/> which triggered cancellation, or <see cref="CancellationToken.None"/>
         /// if cancellation has not been requested.
         /// </summary>
         public CancellationToken CanceledToken =>
-            IsExternalCancellation
-                ? ExternalToken :
-                IsInternalCancellation
-                    ? InternalToken
-                    : default;
+            IsCancellationRequested
+                ? IsExternalCancellation ? ExternalToken : Token
+                : default;
+
+        public CancellationTokenPairSource() : base()
+        {
+        }
+
+        /// <summary>
+        /// Constructs a CancellationTokenPairSource which will cancel after a set delay.
+        /// </summary>
+        /// <param name="delay">Delay befor the token is canceled.</param>
+        public CancellationTokenPairSource(TimeSpan delay) : base(delay)
+        {
+        }
+
+        /// <summary>
+        /// Constructs a CancellationTokenPairSource which will cancel after a set delay.
+        /// </summary>
+        /// <param name="delay">Delay befor the token is canceled.</param>
+        /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
+        public CancellationTokenPairSource(TimeSpan delay, CancellationToken externalToken) : base(delay)
+        {
+            _externalToken = externalToken;
+            _externalRegistration = RegisterExternalCancellationCallback(externalToken);
+        }
 
         /// <summary>
         /// Constructs a CancellationTokenPairSource.
         /// </summary>
         /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
-        /// <param name="internalToken">Token which combines the <see cref="ExternalToken"/> with additional cancellation reasons, such as timeouts.</param>
-        /// <remarks>
-        /// The global token must also be canceled any time the external token is canceled.
-        /// </remarks>
-        public CancellationTokenPairSource(CancellationToken externalToken, CancellationToken internalToken)
+        public CancellationTokenPairSource(CancellationToken externalToken) : base()
         {
-            ExternalToken = externalToken;
-            InternalToken = internalToken;
+            _externalToken = externalToken;
+            _externalRegistration = RegisterExternalCancellationCallback(externalToken);
+        }
 
-            if (externalToken.CanBeCanceled && internalToken.CanBeCanceled)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                _globalCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken, internalToken);
+                // Cleanup below is not necessary if disposing == false because garbage collection is doing cleanup
+                _externalRegistration.Dispose();
+                _externalRegistration = default;
+                _externalToken = default;
             }
+
+            base.Dispose(disposing);
         }
 
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            _globalCts?.Dispose();
+#if NET6_0_OR_GREATER
 
-            var timeoutCts = Interlocked.Exchange(ref _timeoutCts, null);
-            if (timeoutCts is not null)
+        /// <summary>
+        /// Attempts to reset the <see cref="CancellationTokenPairSource"/> to be used for an unrelated operation.
+        /// </summary>
+        /// <returns>
+        /// true if the <see cref="CancellationTokenPairSource"/> has not had cancellation requested and could
+        /// have its state reset to be reused for a subsequent operation; otherwise, false.
+        /// </returns>
+        public new bool TryReset()
+        {
+            // Use a lock to ensure registration cleanup is atomic with the ExternalToken setter.
+            lock (this)
             {
-                CancellationTokenSourcePool.Shared.Return(timeoutCts);
+                // Cleanup the previous registration, if any
+                _externalRegistration.Dispose();
+                _externalRegistration = default;
+
+                // There's a possible race condition where the current external token has requested
+                // cancellation but the callback hasn't fired yet to cancel our token, but the Dispose above
+                // didn't complete before this started. This could cause a CTPS returned to a pool to be
+                // canceled after it's returned. To protect against this we'll check if the external token
+                // is already canceled and if so return false.
+                if (_externalToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+
+                _externalToken = default;
             }
+
+            // Now try to reset our CTS
+            return base.TryReset();
         }
-
-        /// <inheritdoc cref="CancellationToken.ThrowIfCancellationRequested" />
-        public void ThrowIfCancellationRequested()
-        {
-            // Don't use GlobalToken.ThrowIfCancellationRequested because we want the OperationCanceledException
-            // to have the correct CancellationToken indicating which token requested the cancellation.
-            ExternalToken.ThrowIfCancellationRequested();
-            InternalToken.ThrowIfCancellationRequested();
-        }
-
-        /// <inheritdoc cref="CancellationToken.Register(Action)" />
-        public CancellationTokenRegistration Register(Action callback) =>
-            GlobalToken.Register(callback);
-
-        /// <inheritdoc cref="CancellationToken.Register(Action{object}, object)" />
-        public CancellationTokenRegistration Register(Action<object?> callback, object? state) =>
-            GlobalToken.Register(callback, state);
-
-#if NETCOREAPP3_1_OR_GREATER
-
-        /// <inheritdoc cref="CancellationToken.UnsafeRegister(Action{object}, object)" />
-        public CancellationTokenRegistration UnsafeRegister(Action<object?> callback, object? state) =>
-            GlobalToken.UnsafeRegister(callback, state);
 
 #endif
+
+        private static void ExternalCancellationCallback(object? state)
+        {
+            var localThis = (CancellationTokenPairSource)state!;
+
+            if (!localThis.IsCancellationRequested)
+            {
+                // The CTS is not yet canceled, so we can cancel it now and mark this as an external cancellation.
+                // This isn't always done so that a cancellation of the external token after the CTS cancellation
+                // has already occurred doesn't cause the cancellation to become ambiguous.
+                //
+                // There is a slight race condition here if both tokens cancel simultaneously, it could very
+                // briefly be an internal cancellation and then get marked as external. The solution is to
+                // track a 3-way state of not canceled, internal canceled, and external canceled, but that
+                // requires an additional CTS registration that doesn't seem worth the expense since the
+                // corner case is very rare and not critical.
+
+                Volatile.Write(ref localThis._isExternalCancellation, 1);
+                localThis.Cancel();
+            }
+        }
+
+        private CancellationTokenRegistration RegisterExternalCancellationCallback(CancellationToken externalToken)
+        {
+            // Don't do this registration until after initialization is complete because it could
+            // trigger an immediate callback if the token is already canceled.
+
+            if (externalToken.CanBeCanceled && !IsCancellationRequested)
+            {
+#if NETCOREAPP3_1_OR_GREATER
+                // UnsafeRegister is prefered when available because we do not need to capture the ExecutionContext.
+                var registration = externalToken.UnsafeRegister(ExternalCancellationCallback, this);
+#else
+                var registration = externalToken.Register(
+                    ExternalCancellationCallback, this, useSynchronizationContext: false);
+#endif
+
+                // It's possible another thread canceled us while the registration was in progress, double check for
+                // this scenario and dispose the registration if it happened.
+                if (IsCancellationRequested)
+                {
+                    registration.Dispose();
+                    return default;
+                }
+
+                return registration;
+            }
+
+            // No registration
+            return default;
+        }
 
         /// <summary>
         /// Creates a CancellationTokenPairSource using a single external token.
@@ -145,34 +209,17 @@ namespace Couchbase.Core.IO.Operations
         /// <param name="externalToken">The external token.</param>
         /// <returns>The CancellationTokenPairSource.</returns>
         public static CancellationTokenPairSource FromExternalToken(CancellationToken externalToken) =>
-            new(externalToken, default);
+            new(externalToken);
 
         /// <summary>
-        /// Creates a CancellationTokenPairSource using a single internal token.
+        /// Creates a CancellationTokenPairSource with a timeout.
         /// </summary>
-        /// <param name="internalToken">The internal token.</param>
-        /// <returns>The CancellationTokenPairSource.</returns>
-        public static CancellationTokenPairSource FromInternalToken(CancellationToken internalToken) =>
-            new(default, internalToken);
-
-        /// <summary>
-        /// Creates a CancellationTokenPairSource with a timeout for the <see cref="InternalToken"/>.
-        /// </summary>
-        /// <param name="timeout">Timeout to trigger the <see cref="InternalToken"/>.</param>
+        /// <param name="timeout">Timeout to trigger the cancellation token.</param>
         /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
         /// <returns>The CancellationTokenPairSource.</returns>
         public static CancellationTokenPairSource FromTimeout(TimeSpan timeout,
-            CancellationToken externalToken = default)
-        {
-            var timeoutCts = CancellationTokenSourcePool.Shared.Rent(timeout);
-
-            var source = new CancellationTokenPairSource(externalToken, timeoutCts.Token);
-
-            // Store the timeout CTS on the CancellationTokenPairSource so we do cleanup on Dispose
-            source._timeoutCts = timeoutCts;
-
-            return source;
-        }
+            CancellationToken externalToken = default) =>
+            new(timeout, externalToken);
     }
 }
 

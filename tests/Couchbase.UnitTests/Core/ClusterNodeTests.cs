@@ -67,7 +67,7 @@ namespace Couchbase.UnitTests.Core
             using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cancelled = new CancellationToken(canceled: true);
-            var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: cancelled, internalToken: CancellationToken.None));
+            var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: cancelled));
             await Assert.ThrowsAsync<OperationCanceledException>(() => clusterNode.SendAsync(op, cancellationTokenPair));
         }
 
@@ -76,8 +76,9 @@ namespace Couchbase.UnitTests.Core
         {
             using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
-            var cancelled = new CancellationToken(canceled: true);
-            var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: CancellationToken.None, internalToken: cancelled));
+            var cts = new CancellationTokenPairSource();
+            cts.Cancel();
+            var cancellationTokenPair = new CancellationTokenPair(cts);
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(() => clusterNode.SendAsync(op, cancellationTokenPair));
         }
 

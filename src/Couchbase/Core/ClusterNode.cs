@@ -560,7 +560,7 @@ namespace Couchbase.Core
         {
             Type outcomeErrorType = null;
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(
+            var ctp = CancellationTokenPairSourcePool.Shared.Rent(
                 _context.ClusterOptions.KvTimeout, cancellationToken);
             try
             {
@@ -584,6 +584,7 @@ namespace Couchbase.Core
             finally
             {
                 operation.StopRecording(outcomeErrorType);
+                CancellationTokenPairSourcePool.Shared.Return(ctp);
             }
         }
 

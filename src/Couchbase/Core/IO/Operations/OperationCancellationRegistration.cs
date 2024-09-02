@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Couchbase.Utils;
 
@@ -7,17 +8,13 @@ using Couchbase.Utils;
 namespace Couchbase.Core.IO.Operations
 {
     /// <summary>
-    /// Upon construction, registers with a <see cref="CancellationTokenPair"/> to set the operation to canceled
-    /// while following logic rules regarding external vs internal cancellation. Disposing will release the
-    /// registration and prevent future cancellation of the operation.
+    /// Upon construction, registers with a <see cref="CancellationTokenPair"/> to set the operation to canceled.
+    /// Disposing will release the registration and prevent future cancellation of the operation.
     /// </summary>
-    internal struct OperationCancellationRegistration : IDisposable
+    [StructLayout(LayoutKind.Auto)]
+    internal readonly struct OperationCancellationRegistration : IDisposable
     {
-        private static readonly Action<object?> HandleExternalCancellationAction = HandleExternalCancellation;
-        private static readonly Action<object?> HandleInternalCancellationAction = HandleInternalCancellation;
-
-        private CancellationTokenRegistration _internalRegistration;
-        private CancellationTokenRegistration _externalRegistration;
+        private readonly CancellationTokenRegistration _registration;
 
         /// <summary>
         /// Creates a new OperationCancellationRegistration.
@@ -42,13 +39,10 @@ namespace Couchbase.Core.IO.Operations
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NETCOREAPP2_1
             // useSynchronizationContext: false is the equivalent of awaiting ConfigureAwait(false) for the cancellation callback,
             // it allows the callback to run without synchronizing back to the original context.
-            _externalRegistration = tokenPair.ExternalToken.Register(HandleExternalCancellationAction, operation);
-            _internalRegistration = tokenPair.InternalToken.Register(HandleInternalCancellationAction, operation,
-                useSynchronizationContext: false);
+            _registration = tokenPair.Register(HandleCancellation, operation, useSynchronizationContext: false);
 #else
             // On .NET Core 3 and later we can further optimize by not flowing the ExecutionContext using UnsafeRegister
-            _externalRegistration = tokenPair.ExternalToken.UnsafeRegister(HandleExternalCancellationAction, operation);
-            _internalRegistration = tokenPair.InternalToken.UnsafeRegister(HandleInternalCancellationAction, operation);
+            _registration = tokenPair.UnsafeRegister(HandleCancellation, operation);
 #endif
         }
 
@@ -56,38 +50,18 @@ namespace Couchbase.Core.IO.Operations
         {
             // CancellationTokenRegistration is a value type and Dispose is a noop for the default value,
             // so this is safe in the case where there is no registration.
-            _internalRegistration.Dispose();
-            _externalRegistration.Dispose();
+            _registration.Dispose();
         }
 
         /// <summary>
-        /// Static method for processing external cancellation. By using a static Action instance and passing the
+        /// Static method for processing cancellation. By using a static method and passing the
         /// operation as state we reduce heap allocations.
         /// </summary>
-        private static void HandleExternalCancellation(object? state)
+        private static void HandleCancellation(object? state)
         {
             var operation = (IOperation) state!;
 
-            // We should not cancel if the operation is:
-            // 1. Currently in flight
-            // 2. And a mutation operation
-            // In those cases, we keep waiting for the response to avoid ambiguity on mutations
-
-            if (!operation.IsSent || operation.IsReadOnly)
-            {
-                operation.TrySetCanceled(operation.TokenPair.ExternalToken);
-            }
-        }
-
-        /// <summary>
-        /// Static method for processing internal cancellation. By using a static Action instance and passing the
-        /// operation as state we reduce heap allocations.
-        /// </summary>
-        private static void HandleInternalCancellation(object? state)
-        {
-            var operation = (IOperation) state!;
-
-            operation.TrySetCanceled(operation.TokenPair.InternalToken);
+            operation.TrySetCanceled(operation.TokenPair.CanceledToken);
         }
     }
 }

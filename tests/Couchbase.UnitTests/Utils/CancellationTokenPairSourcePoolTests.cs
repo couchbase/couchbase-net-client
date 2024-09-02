@@ -4,14 +4,14 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Utils
 {
-    public class CancellationTokenSourcePoolTests
+    public class CancellationTokenPairSourcePoolTests
     {
         [Fact]
         public void RentAndReturn_MixedCancellations_NoErrors()
         {
             // Arrange
 
-            using var pool = new CancellationTokenSourcePool();
+            using var pool = new CancellationTokenPairSourcePool();
 
             // Act/Assert
 
