@@ -10,13 +10,20 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[4];
-            ByteConverter.FromUInt32(Expires, extras);
-            builder.Write(extras);
+            Touch.WriteExpiry(builder, Expires);
         }
 
         protected override void WriteBody(OperationBuilder builder)
         {
+        }
+
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
+        {
+            // do not call MutationOperationBase.ReadExtras, as Touch operations do not contain MutationToken
+            if (Touch.TryReadNewExpiry(buffer, Header.ExtrasLength, Header.ExtrasOffset, out var newExpiry))
+            {
+                Expires = newExpiry;
+            }
         }
 
         public override OpCode OpCode => OpCode.GAT;

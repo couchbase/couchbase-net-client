@@ -5,15 +5,42 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class Touch : MutationOperationBase
     {
-        protected override void WriteExtras(OperationBuilder builder)
+        internal static void WriteExpiry(OperationBuilder builder, uint expires)
         {
             Span<byte> extras = stackalloc byte[4];
-            ByteConverter.FromUInt32(Expires, extras);
+            ByteConverter.FromUInt32(expires, extras);
             builder.Write(extras);
+        }
+
+        internal static bool TryReadNewExpiry(ReadOnlySpan<byte> buffer, int extrasLength, int extrasOffset, out uint expiry)
+        {
+            if (extrasLength >= sizeof(uint) && buffer.Length >= extrasOffset + extrasLength)
+            {
+                var expiryInExtras = buffer.Slice(extrasOffset);
+                expiry = ByteConverter.ToUInt32(expiryInExtras);
+                return true;
+            }
+
+            expiry = 0;
+            return false;
+        }
+
+        protected override void WriteExtras(OperationBuilder builder)
+        {
+            WriteExpiry(builder, Expires);
         }
 
         protected override void WriteBody(OperationBuilder builder)
         {
+        }
+
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
+        {
+            // do not call MutationOperationBase.ReadExtras, as Touch operations do not contain MutationToken
+            if (Touch.TryReadNewExpiry(buffer, Header.ExtrasLength, Header.ExtrasOffset, out var newExpiry))
+            {
+                Expires = newExpiry;
+            }
         }
 
         public override OpCode OpCode => OpCode.Touch;

@@ -383,10 +383,15 @@ namespace Couchbase.Core.IO.Operations
 
         protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
         {
-            if (buffer.Length >= 40 && VBucketId.HasValue)
+            var extrasOffset = Header.ExtrasOffset;
+            var extrasLength = Header.ExtrasLength;
+            var bufferMinLength = extrasOffset + extrasLength;
+            if (buffer.Length >= bufferMinLength
+                && VBucketId.HasValue
+                && extrasLength >= (sizeof(Int64)*2))
             {
-                var uuid = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset));
-                var seqno = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset + 8));
+                var uuid = ByteConverter.ToInt64(buffer.Slice(extrasOffset));
+                var seqno = ByteConverter.ToInt64(buffer.Slice(extrasOffset + sizeof(Int64)));
                 MutationToken = new MutationToken(BucketName, VBucketId.Value, uuid, seqno);
             }
         }

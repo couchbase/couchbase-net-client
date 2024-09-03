@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -240,6 +241,34 @@ namespace Couchbase.UnitTests.KeyValue
             {
                 Assert.IsType<InvalidArgumentException>(e);
             }
+        }
+
+        [Fact]
+        public void Test_GetAndTouch_ReadsExpiryNotMutationToken()
+        {
+            // NCBC-3852
+            byte[] responseBytes =
+            [
+                0x18, 0x1d, 0x03, 0x00,
+                0x04, 0x01, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x17,
+                0x1c, 0x00, 0x00, 0x00,
+                0x17, 0xf1, 0xc7, 0xcb,
+                0xf7, 0x9f, 0x00, 0x00,
+                0x02, 0x00, 0x0d, 0x02,
+                0x00, 0x00, 0x01, 0x5b,
+                0x22, 0x41, 0x42, 0x43,
+                0x44, 0x45, 0x31, 0x32,
+                0x33, 0x34, 0x35, 0x36,
+                0x37, 0x22, 0x5d
+            ];
+
+            var getAndTouch = new GetT<byte[]>("default", "Test123");
+            getAndTouch.Expires = 1234567;
+            SlicedMemoryOwner<byte> responsePacket =  new(new FakeMemoryOwner<byte>(new Memory<byte>(responseBytes)));
+            getAndTouch.Read(responsePacket);
+            Assert.NotEqual((uint)1234567, getAndTouch.Expires);
+            Assert.Null(getAndTouch.MutationToken);
         }
     }
 }
