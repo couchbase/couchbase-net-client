@@ -40,8 +40,11 @@ namespace Couchbase.Core.IO.Operations
 
             // Since we're using static actions, register calls below are a fast noop for tokens which cannot be canceled
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NETCOREAPP2_1
+            // useSynchronizationContext: false is the equivalent of awaiting ConfigureAwait(false) for the cancellation callback,
+            // it allows the callback to run without synchronizing back to the original context.
             _externalRegistration = tokenPair.ExternalToken.Register(HandleExternalCancellationAction, operation);
-            _internalRegistration = tokenPair.InternalToken.Register(HandleInternalCancellationAction, operation);
+            _internalRegistration = tokenPair.InternalToken.Register(HandleInternalCancellationAction, operation,
+                useSynchronizationContext: false);
 #else
             // On .NET Core 3 and later we can further optimize by not flowing the ExecutionContext using UnsafeRegister
             _externalRegistration = tokenPair.ExternalToken.UnsafeRegister(HandleExternalCancellationAction, operation);

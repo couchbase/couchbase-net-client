@@ -53,9 +53,7 @@ namespace Couchbase.Utils
         public CancellationTokenSource Rent(TimeSpan delay) =>
             new(delay);
 
-        public void Return(CancellationTokenSource cts)
-        {
-        }
+        public void Return(CancellationTokenSource cts) => cts.Dispose();
 
         public void Dispose()
         {
