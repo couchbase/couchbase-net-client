@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
 using Xunit;
@@ -26,20 +28,22 @@ namespace Couchbase.UnitTests.Utils
         }
 
         [Fact]
-        public async Task Elapsed_AfterSleep_ApproximateValue()
+        public void Elapsed_AfterSleep_ApproximateValue()
         {
             // Arrange
 
+            var oldSw = Stopwatch.StartNew();
             var stopwatch = LightweightStopwatch.StartNew();
 
             // Act
 
-            await Task.Delay(1000);
-            var result = stopwatch.Elapsed;
+            SpinWait.SpinUntil(() => oldSw.ElapsedMilliseconds >= 1000);
+            var result = stopwatch.ElapsedMilliseconds;
+            var oldResult = oldSw.ElapsedMilliseconds;
+            oldSw.Stop();
 
             // Assert
-
-            Assert.True(Math.Abs((result - TimeSpan.FromSeconds(1)).TotalMilliseconds) < 250);
+            Assert.InRange(result, oldResult - 250, oldResult + 250);
         }
 
         #endregion

@@ -49,6 +49,8 @@ public class ConfigPushHandlerTests
         IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
         mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(getClusterMapResult));
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockContext.Nodes.Add(mockNode.Object);
         mockBucket.Nodes.Add(mockNode.Object);
@@ -91,6 +93,8 @@ public class ConfigPushHandlerTests
         IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
         mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(getClusterMapResult));
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockContext.Nodes.Add(mockNode.Object);
         mockBucket.Nodes.Add(mockNode.Object);
