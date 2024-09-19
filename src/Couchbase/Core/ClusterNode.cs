@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.ExceptionServices;
@@ -35,6 +36,7 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace Couchbase.Core
 {
+    [DebuggerDisplay("{EndPoint}-{_bucketName}-Rev#{NodesAdapter?.ConfigVersion}")]
     internal partial class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
         private readonly Guid _id = Guid.NewGuid();
@@ -1011,12 +1013,7 @@ namespace Couchbase.Core
         /// <returns></returns>
         public override string ToString()
         {
-#if DEBUG
-            //Unfortunately, we cannot cache the config revision.
-            return $"{EndPoint}-{_bucketName}-Rev#{NodesAdapter.ConfigVersion}";
-#else
             return _cachedToString;
-#endif
         }
 
         #endregion
