@@ -106,7 +106,15 @@ internal partial class ConfigPushHandler : IDisposable
                     }
                 }
 
-                var randomNodes = _bucket.Nodes.ToList().Shuffle();
+                var randomNodes = _bucket.Nodes
+                    .Where(node => node is { HasKv: true, IsDead: false})
+                    .ToList().Shuffle();
+                if (randomNodes is not { Count: > 0 })
+                {
+                    LogNoLiveKvNodes(pushedVersion);
+                    continue;
+                }
+
                 BucketConfig fetchedBucketConfig = null;
                 foreach (var node in randomNodes)
                 {
@@ -273,6 +281,9 @@ internal partial class ConfigPushHandler : IDisposable
 
     [LoggerMessage(9, LogLevel.Warning, "Server returned older config than was pushed: {bucket}, fetched={fetchedVersion}, pushed={pushedVersion}")]
     private partial void LogFetchedConfigOlder(Redacted<string> bucket, ConfigVersion fetchedVersion, ConfigVersion pushedVersion);
+
+    [LoggerMessage(10, LogLevel.Warning, "No live KV nodes were found while processing {configVersion}")]
+    private partial void LogNoLiveKvNodes(ConfigVersion configVersion);
 }
 
 /* ************************************************************
