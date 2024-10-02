@@ -169,8 +169,12 @@ namespace Couchbase.Integrated.Transactions
             // https://hackmd.io/foGjnSSIQmqfks2lXwNp8w?view#The-Core-Loop
 
             var txId = Guid.NewGuid().ToString();
-            using var rootSpan = _requestTracer.RequestSpan(nameof(RunAsync))
-                .SetAttribute(Support.TransactionFields.TransactionId, txId);
+            using var rootSpan = _requestTracer.RequestSpan(nameof(RunAsync));
+            if (rootSpan.CanWrite)
+            {
+                rootSpan.SetAttribute(Support.TransactionFields.TransactionId, txId);
+                rootSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Transaction);
+            }
             var overallContext = new TransactionContext(
                 transactionId: txId,
                 startTime: DateTimeOffset.UtcNow,
@@ -519,10 +523,3 @@ namespace Couchbase.Integrated.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

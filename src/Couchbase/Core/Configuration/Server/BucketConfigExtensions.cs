@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Couchbase.Management.Analytics;
 using Couchbase.Utils;
@@ -33,6 +34,20 @@ namespace Couchbase.Core.Configuration.Server
                 return true;
             }
             return !(config.NodesExt.AreEqual(other.NodesExt) && config.Nodes.AreEqual(other.Nodes));
+        }
+
+        public static void UpdateClusterLabelsIfNecessary(this BucketConfig newConfig, BucketConfig oldConfig)
+        {
+            if (newConfig.ClusterLabels.Equals(oldConfig.ClusterLabels!)) return;
+            if (newConfig.ClusterLabels.ClusterName is not null)
+            {
+                oldConfig.ClusterLabels.ClusterName = newConfig.ClusterLabels.ClusterName;
+            }
+
+            if (newConfig.ClusterLabels.ClusterUuid is not null)
+            {
+                oldConfig.ClusterLabels.ClusterUuid = newConfig.ClusterLabels.ClusterUuid;
+            }
         }
         public static bool HasConfigChanges(this BucketConfig newConfig, BucketConfig? oldConfig, string bucketName)
         {

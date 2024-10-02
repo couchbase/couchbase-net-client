@@ -23,6 +23,16 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string Service = "db.couchbase.service";
 
             /// <summary>
+            ///     Should be set on every span if the value was provided by the server.
+            /// </summary>
+            public const string ClusterUuid = "db.couchbase.cluster_uuid";
+
+            /// <summary>
+            ///     Should be set on every span if the value was provided by the server.
+            /// </summary>
+            public const string ClusterName = "db.couchbase.cluster_name";
+
+            /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on all operations which are at the bucket
             ///     level or below.
             /// </summary>
@@ -72,6 +82,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string AnalyticsQuery = "analytics";
             public const string SearchQuery = "search";
             public const string Eventing = "eventing";
+            public const string Transaction = "transaction";
 
             public static class Kv
             {

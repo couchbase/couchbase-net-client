@@ -250,7 +250,8 @@ namespace Couchbase.UnitTests
             var services = options.BuildServiceProvider();
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
 
-            Assert.IsAssignableFrom<RequestTracer>(noopRequestTracer);
+            Assert.IsAssignableFrom<RequestTracerWrapper>(noopRequestTracer);
+            Assert.IsAssignableFrom<RequestTracer>(((RequestTracerWrapper)noopRequestTracer).InnerTracer);
         }
 
         [Fact]
@@ -266,7 +267,8 @@ namespace Couchbase.UnitTests
             var services = options.BuildServiceProvider();
             var tracer = services.GetService(typeof(IRequestTracer));
 
-            Assert.IsAssignableFrom<CustomRequestTracer>(tracer);
+            Assert.IsAssignableFrom<RequestTracerWrapper>(tracer);
+            Assert.IsAssignableFrom<CustomRequestTracer>(((RequestTracerWrapper)tracer).InnerTracer);
         }
 
         public class CustomRequestTracer : IRequestTracer

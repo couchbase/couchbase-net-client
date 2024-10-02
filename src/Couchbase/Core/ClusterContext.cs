@@ -886,6 +886,9 @@ namespace Couchbase.Core
             }
 #endif
 
+            // Change ClusterLabels if new ones have been received (can come from either Global or Bucket configs)
+            GlobalConfig?.UpdateClusterLabelsIfNecessary(globalConfig);
+
             if (globalConfig.Name == Name)
             {
                 using var cts = new CancellationTokenSource();

@@ -602,6 +602,9 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
+            // These tags should only be set on the Dispatch span (see below).
+            // To not break user workflows relying on these, we're keeping them
+            // on the Operation's span until further notice.
             connection.AddTags(Span);
 
             //useful for debugging
@@ -645,6 +648,8 @@ namespace Couchbase.Core.IO.Operations
 
                 encodingSpan.Dispose();
                 _dispatchSpan = Span.DispatchSpan(this);
+
+                connection.AddTags(_dispatchSpan);
 
                 await connection.SendAsync(buffer, this, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);

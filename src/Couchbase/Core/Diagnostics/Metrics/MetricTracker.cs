@@ -113,6 +113,8 @@ namespace Couchbase.Core.Diagnostics.Metrics
                     { OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType) },
                 };
 
+                tagList.AddClusterLabelsIfProvided(operation.Span);
+
                 Operations.Record(duration.ToMicroseconds(), tagList);
                 OperationCounts.Add(1, tagList);
             }
@@ -177,11 +179,13 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 var tags = new TagList
                 {
                     new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery),
+                    new(OuterRequestSpans.Attributes.Operation, OuterRequestSpans.ServiceSpan.N1QLQuery),
                     new(OuterRequestSpans.Attributes.BucketName, queryRequest.Options?.BucketName),
                     new(OuterRequestSpans.Attributes.ScopeName, queryRequest.Options?.ScopeName),
                     new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
                 };
 
+                tags.AddClusterLabelsIfProvided(queryRequest.Options?.RequestSpanValue);
                 Operations.Record(duration.ToMicroseconds(), tags);
             }
         }
@@ -202,6 +206,8 @@ namespace Couchbase.Core.Diagnostics.Metrics
                     new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
                 };
 
+                tags.AddClusterLabelsIfProvided(analyticsRequest.Options?.RequestSpanValue);
+
                 Operations.Record(duration.ToMicroseconds(), tags);
             }
         }
@@ -212,11 +218,19 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(FtsSearchRequest searchRequest, TimeSpan duration, Type? errorType) =>
-                Operations.Record(duration.ToMicroseconds(),
+            public static void TrackOperation(FtsSearchRequest searchRequest, TimeSpan duration, Type? errorType)
+            {
+                var tags = new TagList
+                {
                     new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.SearchQuery),
                     new(OuterRequestSpans.Attributes.ScopeName, searchRequest.Options?.ScopeName),
-                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType)));
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+
+                tags.AddClusterLabelsIfProvided(searchRequest.Options?.RequestSpanValue);
+
+                Operations.Record(duration.ToMicroseconds(), tags);
+            }
         }
 
         public static class Views
@@ -225,11 +239,18 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration, Type? errorType) =>
-                Operations.Record(duration.ToMicroseconds(),
+            public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration, Type? errorType)
+            {
+                var tags = new TagList
+                {
                     new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.ViewQuery),
                     new(OuterRequestSpans.Attributes.BucketName, viewQuery.BucketName),
-                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType)));
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+
+                tags.AddClusterLabelsIfProvided(((IViewQuery)viewQuery).RequestSpanValue);
+                Operations.Record(duration.ToMicroseconds(), tags);
+            }
         }
 
         // internal for unit testing

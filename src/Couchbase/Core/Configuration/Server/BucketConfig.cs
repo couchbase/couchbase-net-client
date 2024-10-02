@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
 
@@ -248,6 +249,7 @@ namespace Couchbase.Core.Configuration.Server
         private string _networkResolution = Couchbase.NetworkResolution.Auto;
         private List<string> _bucketCaps = new();
         private Dictionary<string, IEnumerable<string>> _clusterCaps = new();
+        internal ClusterLabels ClusterLabels = new();
 
         public ConfigVersion ConfigVersion { get; private set; }
 
@@ -336,6 +338,20 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("ddocs")] public Ddocs Ddocs { get; set; }
         [JsonPropertyName("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
         [JsonPropertyName("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
+
+        [JsonPropertyName("clusterUUID")]
+        public string ClusterUuid
+        {
+            get => ClusterLabels.ClusterUuid;
+            set => ClusterLabels.ClusterUuid = value;
+        }
+
+        [JsonPropertyName("clusterName")]
+        public string ClusterName
+        {
+            get => ClusterLabels.ClusterName;
+            set => ClusterLabels.ClusterName = value;
+        }
 
         [JsonPropertyName("bucketCapabilities")]
         public List<string> BucketCapabilities

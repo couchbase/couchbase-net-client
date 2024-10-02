@@ -204,6 +204,7 @@ namespace Couchbase.Query
             Uri queryUri = options.LastDispatchedNode ?? _serviceUriProvider.GetRandomQueryUri();
 
             span.WithRemoteAddress(queryUri);
+
             using var encodingSpan = span.EncodingSpan();
             using var content = options.GetRequestBody(serializer, _fallbackTypeSerializerProvider);
             encodingSpan.Dispose();
@@ -213,7 +214,12 @@ namespace Couchbase.Query
             QueryResultBase<T> queryResult;
             try
             {
-                using var dispatchSpan = span.DispatchSpan(options);
+                using var dispatchSpan = span.DispatchSpan(options)
+                    .WithLocalAddress()
+                    .WithRemoteAddress(queryUri)
+                    .WithLocalId(options.CurrentContextId)
+                    .WithLocalPort((uint)queryUri.Port);
+
                 var httpClient = CreateHttpClient(options.TimeoutValue ?? ClusterOptions.Default.QueryTimeout);
                 try
                 {
@@ -228,8 +234,8 @@ namespace Couchbase.Query
                     request.Version = httpClient.DefaultRequestVersion;
     #endif
 
-                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, cts.FallbackToToken(options.Token))
-                        .ConfigureAwait(false);
+                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, cts.FallbackToToken(options.Token)).ConfigureAwait(false);
+
                     dispatchSpan.Dispose();
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

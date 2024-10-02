@@ -105,6 +105,10 @@ namespace Couchbase
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
             _tracer = _context.ServiceProvider.GetRequiredService<IRequestTracer>();
+            if (_tracer is RequestTracerWrapper wrapper)
+            {
+                wrapper.ClusterContext = _context;
+            }
             _retryStrategy = _context.ServiceProvider.GetRequiredService<IRetryStrategy>();
 
             var meter = _context.ServiceProvider.GetRequiredService<IMeter>();

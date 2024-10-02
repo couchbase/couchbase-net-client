@@ -1,7 +1,9 @@
 #nullable enable
 using System;
 using System.Net;
+using System.Runtime.CompilerServices;
 using Couchbase.Analytics;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Core.Utils;
@@ -214,11 +216,31 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return span;
         }
 
+        internal static IRequestSpan WithLocalId(this IRequestSpan span, string? localId)
+        {
+            if (span.CanWrite)
+            {
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, localId ?? Guid.NewGuid().ToString());
+            }
+
+            return span;
+        }
+
         internal static IRequestSpan WithLocalAddress(this IRequestSpan span)
         {
             if (span.CanWrite)
             {
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalHostname, _dnsHostName ??= Dns.GetHostName());
+            }
+
+            return span;
+        }
+
+        internal static IRequestSpan WithLocalPort(this IRequestSpan span, uint localPort)
+        {
+            if (span.CanWrite)
+            {
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalPort, localPort);
             }
 
             return span;
@@ -247,6 +269,20 @@ namespace Couchbase.Core.Diagnostics.Tracing
         internal static IRequestSpan WithOperation(this IRequestSpan span, IViewQuery viewQuery)
         {
             return span.WithOperation($"{viewQuery.DesignDocName}/{viewQuery.ViewName}");
+        }
+
+        internal static IRequestSpan SetClusterLabelsIfProvided(this IRequestSpan span, ClusterLabels? clusterLabels)
+        {
+            if (clusterLabels?.ClusterUuid is not null)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.ClusterUuid, clusterLabels.ClusterUuid);
+            }
+            if (clusterLabels?.ClusterName is not null)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.ClusterName, clusterLabels.ClusterName);
+            }
+
+            return span;
         }
     }
 }

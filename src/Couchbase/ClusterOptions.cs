@@ -941,7 +941,8 @@ namespace Couchbase
             }
 
             //set the tracer to be used
-            this.AddClusterService(TracingOptions.Enabled ? TracingOptions.RequestTracer : NoopRequestTracer.Instance);
+            //If the tracer is not NoopRequestTracer, wrap it in order to add ClusterLabels if provided by the cluster configs
+            this.AddClusterService(TracingOptions is { Enabled: true, RequestTracer: not NoopRequestTracer } ? new RequestTracerWrapper(TracingOptions.RequestTracer, null) : NoopRequestTracer.Instance);
 
             #endregion
 
