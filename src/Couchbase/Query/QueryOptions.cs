@@ -27,7 +27,7 @@ namespace Couchbase.Query
     /// <summary>
     /// Options to control execution of a N1QL query.
     /// </summary>
-    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)}:nq}}")]
+    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
     public class QueryOptions
     {
         private const string GetFormValuesAsJsonUnreferencedCodeMessage =
