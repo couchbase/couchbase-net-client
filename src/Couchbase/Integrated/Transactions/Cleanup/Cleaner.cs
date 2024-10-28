@@ -18,7 +18,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
 {
     internal class Cleaner
     {
-        public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
+        public TestHookMap TestHooks { get; set; } = new();
         public static readonly Task NothingToDo = Task.CompletedTask;
 
         private readonly ICluster _cluster;
@@ -91,7 +91,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
             _logger.LogInformation("Cleaning up atr entry: {atr}/{attemptId}", cleanupRequest.AtrId, cleanupRequest.AttemptId);
             try
             {
-                await TestHooks.BeforeAtrRemove(cleanupRequest.AtrId).CAF();
+                TestHooks.Sync(HookPoint.CleanupBeforeAtrRemove, null, cleanupRequest.AtrId);
                 var prefix = $"{TransactionFields.AtrFieldAttempts}.{cleanupRequest.AttemptId}";
                 var specs = new List<MutateInSpec>();
                 if (cleanupRequest.State == AttemptStates.PENDING)
@@ -138,7 +138,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        await TestHooks.BeforeRemoveDoc(dr.Id).CAF();
+                        TestHooks.Sync(HookPoint.CleanupBeforeAtrRemove, null, dr.Id);
                         var collection = await dr.GetCollection(_cluster).CAF();
                         var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
@@ -163,7 +163,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        await TestHooks.BeforeRemoveLinks(dr.Id).CAF();
+                        TestHooks.Sync(HookPoint.CleanupBeforeRemoveDocLinks, null, dr.Id);
                         var collection = await dr.GetCollection(_cluster).CAF();
                         await collection.MutateInAsync(dr.Id, specs =>
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
@@ -184,7 +184,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                     perDoc: async (op) =>
                     {
                         // TODO: This has significant overlap with UnstageInsertOrReplace.
-                        await TestHooks.BeforeCommitDoc(dr.Id).CAF();
+                        TestHooks.Sync(HookPoint.CleanupBeforeCommitDoc, null, dr.Id);
                         var collection = await dr.GetCollection(_cluster).CAF();
                         var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
@@ -207,7 +207,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: true, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        await TestHooks.BeforeRemoveDocStagedForRemoval(dr.Id).CAF();
+                        TestHooks.Sync(HookPoint.CleanupBeforeRemoveDocStagedForRemoval, null, dr.Id);
                         var collection = await dr.GetCollection(_cluster).CAF();
 
                         await collection.RemoveAsync(dr.Id, opts => opts.Cas(op.Cas)
@@ -218,7 +218,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
 
         public async Task CleanupDoc(DocRecord dr, bool requireCrc32ToMatchStaging, Func<DocumentLookupResult, Task> perDoc, string attemptId)
         {
-            await TestHooks.BeforeDocGet(dr.Id).CAF();
+            TestHooks.Sync(HookPoint.CleanupBeforeDocGet, null, dr.Id);
             var collection = await dr.GetCollection(_cluster).CAF();
             var docLookupResult = await DocumentRepository.LookupDocumentStaticAsync(collection, dr.Id, fullDocument: false).CAF();
 

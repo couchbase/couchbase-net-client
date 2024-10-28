@@ -21,8 +21,8 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         private readonly ILogger<CleanupWorkQueue> _logger;
         private readonly Cleaner _cleaner;
 
-        private ICleanupTestHooks _testHooks = DefaultCleanupTestHooks.Instance;
-        public ICleanupTestHooks TestHooks
+        private TestHookMap _testHooks = new();
+        public TestHookMap TestHooks
         {
             get => _testHooks;
             set

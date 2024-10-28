@@ -72,25 +72,16 @@ namespace Couchbase.Integrated.Transactions
 
         internal ICluster Cluster => _cluster;
 
-        internal ITestHooks TestHooks { get; set; } = DefaultTestHooks.Instance;
+        internal TestHookMap TestHooks { get; set; } = new();
         internal DocumentRepository? DocumentRepository { get; set; } = null;
         internal AtrRepository? AtrRepository { get; set; } = null;
 
-        internal ICleanupTestHooks CleanupTestHooks
-        {
-            get => _cleaner.TestHooks;
-            set
-            {
-                _cleaner.TestHooks = value;
-                _cleanupWorkQueue.TestHooks = value;
-            }
-        }
+
 
         [InterfaceStability(Level.Volatile)]
-        internal void ConfigureTestHooks(ITestHooks testHooks, ICleanupTestHooks cleanupHooks)
+        internal void ConfigureTestHooks(TestHookMap testHooks)
         {
             TestHooks = testHooks;
-            CleanupTestHooks = cleanupHooks;
         }
 
         private Transactions(ICluster cluster, TransactionConfig config)

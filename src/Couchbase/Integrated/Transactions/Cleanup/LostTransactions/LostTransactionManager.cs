@@ -24,7 +24,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         private readonly ConcurrentDictionary<KeySpace, PerCollectionCleaner> _collectionsToClean = new();
 
         public string ClientUuid { get; }
-        public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
+        public TestHookMap TestHooks { get; set; } = new();
 
         public int RunningCount => _collectionsToClean.Where(pbc => pbc.Value.Running).Count();
         public long TotalRunCount => _collectionsToClean.Sum(pbc => pbc.Value.RunCount);

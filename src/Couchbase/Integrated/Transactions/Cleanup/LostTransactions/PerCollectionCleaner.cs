@@ -32,7 +32,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         private readonly object _atrsToCleanLock = new();
         private ConcurrentBag<string> _atrsToClean = new ConcurrentBag<string>();
 
-        public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
+        public TestHookMap TestHooks { get; set; } = new();
         public long RunCount => Interlocked.Read(ref _runCount);
         public bool Running => !_cts.IsCancellationRequested;
 
@@ -221,7 +221,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                 try
                 {
                     // Parse the client record.
-                    await TestHooks.BeforeGetRecord(ClientUuid).CAF();
+                    await TestHooks.Async(HookPoint.CleanupBeforeDocGet, null, ClientUuid).CAF();
                     (ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas) = await _repository.GetClientRecord().CAF();
                     if (clientRecord == null)
                     {
@@ -257,7 +257,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
             }
 
             // NOTE: The RFC says to retry with an exponential backoff, but neither the java implementation nor the FIT tests agree with that.
-            await TestHooks.BeforeUpdateRecord(ClientUuid).CAF();
+            await TestHooks.Async(HookPoint.ClientRecordBeforeUpdate, null, ClientUuid).CAF();
             await _repository.UpdateClientRecord(ClientUuid, _cleanupWindow, ActiveTransactionRecords.AtrIds.NumAtrs, clientRecordDetails.ExpiredClientIds).CAF();
             _logger.LogDebug("Successfully updated Client Record Entry for {clientUuid} on {bkt}", ClientUuid, FullBucketName);
 
@@ -273,7 +273,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                     try
                     {
                         // Client record needs to be created.
-                        await TestHooks.BeforeCreateRecord(ClientUuid).CAF();
+                        await TestHooks.Async(HookPoint.ClientRecordBeforeCreate, null, ClientUuid).CAF();
                         await _repository.CreatePlaceholderClientRecord(pathNotFoundCas).CAF();
                         _logger.LogDebug("Created placeholder Client Record for '{bkt}', cas = {cas}", FullBucketName, pathNotFoundCas);
 
@@ -402,7 +402,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
                 retryDelay = (int)Math.Pow(2, retryCount) + _jitter.Next(10);
                 try
                 {
-                    await TestHooks.BeforeRemoveClient(ClientUuid).CAF();
+                    await TestHooks.Async(HookPoint.ClientRecordBeforeRemoveClient, null, ClientUuid).CAF();
                     await _repository.RemoveClient(ClientUuid).CAF();
                     _logger.LogDebug("Removed client {clientUuid} for {bkt}", ClientUuid, FullBucketName);
                     return;
