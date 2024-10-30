@@ -1,3 +1,5 @@
+using Couchbase.Core.Compatibility;
+
 namespace Couchbase
 {
     internal static class CStringParams
@@ -27,6 +29,9 @@ namespace Couchbase
         public const string CompressionMinSize = "compression_min_size";
         public const string CompressionMinRatio = "compression_min_ratio";
         public const string NetworkResolution = "network";
+
+        [InterfaceStability(Level.Uncommitted)]
+        public const string RandomSeedNodes = "random_seed_nodes";
     }
 }
 

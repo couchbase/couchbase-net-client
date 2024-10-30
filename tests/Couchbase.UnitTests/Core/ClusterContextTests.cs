@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,6 +11,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -87,6 +89,53 @@ namespace Couchbase.UnitTests.Core
             Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Equals(removed));
         }
 
+        [Fact]
+        public async Task Bootstrap_Uses_Random_Seed_Nodes()
+        {
+            // set up a mock that records which node was chosen, then immediately faults
+            ConcurrentDictionary<string, int> chosenNodes = new();
+            var nodeFactoryMock = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            nodeFactoryMock.Setup(f =>
+                    f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .Returns((HostEndpointWithPort host, CancellationToken token) =>
+                {
+                    chosenNodes.AddOrUpdate(host.Host,
+                        addValueFactory: s => 0,
+                        updateValueFactory: (s, count) => count + 1);
+                    throw new CouchbaseException(new KeyValueErrorContext()
+                    {
+                        Status = ResponseStatus.BucketNotConnected
+                    }, "break early");
+                    // return Task.FromResult(CreateMockedNode(host.Host, host.Port));
+                });
+            var options = new ClusterOptions().WithConnectionString("couchbase://node1,node2,node3?random_seed_nodes=true");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
+            using var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, options);
+
+            // call bootstrap enough times for random behavior to become apparent.
+            for (int i = 0; i < 100; i++)
+            {
+                try
+                {
+                    await context.BootstrapGlobalAsync();
+                }
+                catch
+                { }
+            }
+
+            foreach (var kvp in chosenNodes)
+            {
+                _output.WriteLine($"{kvp.Key} = {kvp.Value}");
+            }
+
+            // if nodes are being chosen randomly, there should be more than one entry in the "chosenNodes" list.
+            // before fixing the issue, only "node1" was chosen.
+            Assert.NotEmpty(chosenNodes);
+            Assert.InRange(chosenNodes.Count, 2, 3);
+        }
+
         private IClusterNode CreateMockedNode(string hostname, int port, NodeAdapter nodeAdapter = null)
         {
             var mockConnectionPool = new Mock<IConnectionPool>();
@@ -156,7 +205,8 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async Task BootstrapGlobal_Should_Continue_After_AuthenticationFailureException()
         {
-            var options = new ClusterOptions().WithConnectionString("couchbase://localhost1,localhost2");
+            var options = new ClusterOptions().WithConnectionString("couchbase://localhost1,localhost2?random_seed_nodes=false");
+
             var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Loose);
 
             mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(new HostEndpointWithPort("localhost1", 11210), It.IsAny<CancellationToken>()))

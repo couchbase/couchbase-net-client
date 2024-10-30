@@ -149,10 +149,16 @@ namespace Couchbase
                     {
                         NetworkResolution = networkResolution;
                     }
-                    if (ConnectionStringValue?.Scheme == Scheme.Couchbases)
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.RandomSeedNodes, out bool randomizeSeedNodes))
+                    {
+                        ConnectionStringValue.RandomizeSeedHosts = randomizeSeedNodes;
+                    }
+                    if (ConnectionStringValue.Scheme == Scheme.Couchbases)
                     {
                         EnableTls = true;
                     }
+
+
                 }
             }
         }

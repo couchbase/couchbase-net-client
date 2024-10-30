@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -33,6 +35,13 @@ namespace Couchbase
         public bool IsDnsSrv { get; private set; }
 
         public Uri? DnsSrvUri { get; private set; }
+
+        /// <summary>
+        /// Gets or sets a value that determines whether host names are provided in random order during bootstrapping. (default: false)
+        /// </summary>
+        /// <remarks>The RFC specifies that hosts should be used in random order, but the existing behavior is serial.</remarks>
+        [InterfaceStability(Level.Uncommitted)]
+        public bool RandomizeSeedHosts { get; set; } = false;
 
         private ConnectionString()
         {
@@ -121,7 +130,13 @@ namespace Couchbase
 
         public IEnumerable<HostEndpointWithPort> GetBootstrapEndpoints(bool? overrideTls = null)
         {
-            foreach (var endpoint in Hosts)
+            var hosts = new List<HostEndpoint>(Hosts);
+            if (RandomizeSeedHosts)
+            {
+                hosts = hosts.Shuffle();
+            }
+
+            foreach (var endpoint in hosts)
             {
                 if (endpoint.Port != null)
                 {
