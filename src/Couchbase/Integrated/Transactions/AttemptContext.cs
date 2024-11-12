@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
@@ -32,6 +33,7 @@ using Couchbase.Integrated.Transactions.Internal;
 using Couchbase.Integrated.Transactions.Internal.Test;
 using Couchbase.Integrated.Transactions.LogUtil;
 using Couchbase.Integrated.Transactions.Support;
+using Couchbase.Integrated.Transactions.Util;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
@@ -70,6 +72,10 @@ namespace Couchbase.Integrated.Transactions
         private Uri? _lastDispatchedQueryNode = null;
         private bool _singleQueryTransactionMode = false;
         private IScope? _queryContextScope = null;
+
+        // ExtThreadSafety lock
+        private readonly SemaphoreSlim _mutex = new(1, 1);
+        private readonly WaitGroup _kvOps = new();
 
         /// <summary>
         /// Gets the ID of this individual attempt.
@@ -112,6 +118,112 @@ namespace Couchbase.Integrated.Transactions
             if (atrRepository != null)
             {
                 _atr = atrRepository;
+            }
+        }
+
+        private async Task LockAsync([CallerMemberName] string lockDebug = "")
+        {
+            AssertNotLocked(lockDebug);
+            Logger.LogDebug("Locking ({lockDebug})", lockDebug);
+            var waitTime = _overallContext.RemainingUntilExpiration;
+            if (waitTime < TimeSpan.Zero)
+            {
+                waitTime = TimeSpan.Zero;
+            }
+            var successfullyWaited = await _mutex.WaitAsync(waitTime).CAF();
+            if (!successfullyWaited)
+            {
+                throw Error(ec: ErrorClass.FailExpiry,
+                    err: new AttemptExpiredException(this, $"Expired while under async Lock ({lockDebug})"),
+                    raise: TransactionOperationFailedException.FinalError.TransactionExpired, rollback: false, setStateBits: true);
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private void AssertNotLocked(string lockDebug)
+        {
+            if (_mutex.CurrentCount == 0)
+            {
+                throw new InvalidOperationException($"{lockDebug} tried to lock when already under lock.");
+            }
+        }
+
+        private void Unlock([CallerMemberName] string lockDebug = "")
+        {
+            Logger.LogDebug("Unlocking ({lockDebug})", lockDebug);
+            // per the spec, unlocking needs to neither block nor throw if the mutex is not currently locked.
+            // therefore, the mutex is created using the 2-argument overload of SemaphorSlim(1,1),
+            // as SemaphoreSlim(1) increment the CurrentCount on extra Release()
+            try
+            {
+                _mutex.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+                // ignore this exception, since we Unlock-when-not-locked mutex behavior
+            }
+        }
+
+        private async Task<WaitGroup.Waiter> LockAndAddKvOp(string dbg)
+        {
+            await LockAsync(dbg).CAF();
+            var waiter = _kvOps.Add(dbg);
+            return waiter;
+        }
+
+        private async Task<WaitGroup.Waiter> KvOpInit([CallerMemberName] string stageName = "")
+        {
+            var waiter = await LockAndAddKvOp(stageName).CAF();
+            DoneCheck();
+            BailoutIfInOvertime();
+            return waiter;
+        }
+
+        private async Task WaitForKvAndLock(int depth = 0, [CallerMemberName] string callerName = "")
+        {
+            var initialCount = _kvOps.RunningTotal;
+            Logger.LogDebug("{methodName}, initialCount={initialCount}, depth={depth}",
+                nameof(WaitForKvAndLock),
+                initialCount,
+                depth);
+            var completed = await _kvOps.TryWhenAll(_overallContext.RemainingUntilExpiration).CAF();
+            if (!completed)
+            {
+                Logger.LogWarning("{methodName}: expired while waiting, remaining={remainingCount}\n{waitingOps}",
+                    nameof(WaitForKvAndLock), _kvOps.RunningTotal, _kvOps);
+                Error(
+                    ec: ErrorClass.FailExpiry,
+                    raise: TransactionOperationFailedException.FinalError.TransactionExpired,
+                    rollback: false,
+                    err: new AttemptExpiredException(this, callerName),
+                    setStateBits: true
+                    );
+            }
+
+            await LockAsync($"{callerName}:{nameof(WaitForKvAndLock)}").CAF();
+            var afterWhenAllCount = _kvOps.RunningTotal;
+            if (initialCount != afterWhenAllCount)
+            {
+                Logger.LogDebug("{methodName}: KV ops added while waiting for KV ops to finish. updatedCount={updatedCount}",
+                    nameof(WaitForKvAndLock), afterWhenAllCount);
+                Unlock();
+                await WaitForKvAndLock(depth: ++depth, callerName).CAF();
+            }
+
+            Logger.LogDebug("All KV ops finished, continuing under lock ({callerName})", callerName);
+        }
+
+        private void UnlockOnError([CallerMemberName] string callerName = "")
+        {
+            Logger.LogInformation("[{attemptId}] Unlocking after error ({callerName}).", AttemptId, callerName);
+            Unlock(callerName);
+        }
+
+        private void RemoveKvOp(string operationId)
+        {
+            if (!_kvOps.TryRemoveOp(operationId))
+            {
+                Logger.LogWarning("Failed to remove {operationId}", operationId);
             }
         }
 
@@ -1836,7 +1948,7 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private void BailoutIfInOvertime(bool rollback, [CallerMemberName] string caller = nameof(BailoutIfInOvertime))
+        private void BailoutIfInOvertime(bool rollback = false, [CallerMemberName] string caller = nameof(BailoutIfInOvertime))
         {
             if (_expirationOvertimeMode)
             {
@@ -2496,7 +2608,7 @@ namespace Couchbase.Integrated.Transactions
         private DelegatingDisposable<IRequestSpan> TraceSpan([CallerMemberName] string method = "RootSpan", IRequestSpan? parent = null)
             => new DelegatingDisposable<IRequestSpan>(_requestTracer.RequestSpan(method, parent), Logger.BeginMethodScope(method));
 
-        private Exception Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalError? raise = null)
+        private Exception Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalError? raise = null, bool setStateBits = true)
         {
             var eb = ErrorBuilder.CreateError(this, ec, err);
             if (retry.HasValue && retry.Value)
