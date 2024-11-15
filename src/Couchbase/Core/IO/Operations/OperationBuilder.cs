@@ -1,13 +1,19 @@
 using System;
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -15,9 +21,11 @@ namespace Couchbase.Core.IO.Operations
     /// Provides a forward-only stream for building operations which tracks the size of each segment
     /// as it's being built.
     /// </summary>
-    internal sealed class OperationBuilder : Stream
+    internal sealed class OperationBuilder : Stream, IBufferWriter<byte>
     {
-        private readonly MemoryStream _stream;
+        private const int MinimumBufferSize = 16384;
+
+        private byte[]? _buffer; // null indicates disposed
 
         private int _framingExtrasLength;
         private int _extrasLength;
@@ -40,20 +48,29 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public override bool CanWrite => true;
 
+        private int _length;
         /// <inheritdoc />
-        public override long Length => _stream.Length;
+        public override long Length => _length;
 
+        private int _position;
         /// <inheritdoc />
         public override long Position
         {
-            get => _stream.Position;
+            get => _position;
             set => throw new NotSupportedException();
         }
 
         /// <summary>
         /// Capacity of the underlying stream.
         /// </summary>
-        public long Capacity => _stream.Capacity;
+        public int Capacity
+        {
+            get
+            {
+                EnsureNotDisposed();
+                return _buffer.Length;
+            }
+        }
 
         /// <summary>
         /// The current segment being written.
@@ -65,7 +82,7 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         public OperationBuilder()
         {
-            _stream = MemoryStreamFactory.GetMemoryStream();
+            _buffer = ArrayPool<byte>.Shared.Rent(MinimumBufferSize);
 
             Reset();
         }
@@ -97,15 +114,29 @@ namespace Couchbase.Core.IO.Operations
                 ThrowHelper.ThrowInvalidOperationException("This operation spec is not a mutation");
             }
 
+            EnsureNotDisposed();
             EnsureHeaderNotWritten();
 
             CurrentSegment = segment;
         }
 
+        private void SetLength(int length)
+        {
+            Debug.Assert(_buffer is not null);
+
+            if (length < 0)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(length));
+            }
+
+            EnsureCapacity(length);
+            _length = length;
+        }
+
         /// <inheritdoc />
         public override void Flush()
         {
-            _stream.Flush();
+            EnsureNotDisposed();
         }
 
         /// <summary>
@@ -119,12 +150,13 @@ namespace Couchbase.Core.IO.Operations
         /// </remarks>
         public ReadOnlyMemory<byte> GetBuffer()
         {
+            EnsureNotDisposed();
             if (!_headerWritten)
             {
                 ThrowHelper.ThrowInvalidOperationException("The header has not been written.");
             }
 
-            return _stream.GetBuffer().AsMemory(0, (int) _stream.Length);
+            return _buffer.AsMemory(0, _length);
         }
 
         /// <inheritdoc />
@@ -146,54 +178,33 @@ namespace Couchbase.Core.IO.Operations
         public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <inheritdoc />
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            EnsureHeaderNotWritten();
+        public override void Write(byte[] buffer, int offset, int count) =>
+            Write(buffer.AsSpan(offset, count));
 
-            _stream.Write(buffer, offset, count);
-
-            Advance(count);
-        }
-
-#if SPAN_SUPPORT
         /// <inheritdoc />
-        public override void Write(ReadOnlySpan<byte> buffer)
+        public
+#if SPAN_SUPPORT
+            override
+#endif
+            void Write(ReadOnlySpan<byte> buffer)
         {
+            EnsureNotDisposed();
             EnsureHeaderNotWritten();
 
-            _stream.Write(buffer);
-
+            buffer.CopyTo(GetSpan(buffer.Length));
             Advance(buffer.Length);
         }
-#else
-        /// <summary>
-        /// Writes a span of bytes to the stream.
-        /// </summary>
-        /// <param name="buffer">Bytes to write.</param>
-        public void Write(ReadOnlySpan<byte> buffer)
+
+        /// <inheritdoc />
+        public override void WriteByte(byte value)
         {
+            EnsureNotDisposed();
             EnsureHeaderNotWritten();
 
-            if (buffer.Length == 0)
-            {
-                return;
-            }
-
-            var byteBuffer = ArrayPool<byte>.Shared.Rent(buffer.Length);
-            try
-            {
-                buffer.CopyTo(byteBuffer);
-
-                _stream.Write(byteBuffer, 0, buffer.Length);
-
-                Advance(buffer.Length);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteBuffer);
-            }
+            CheckAndResizeBuffer(1);
+            _buffer[_position] = value;
+            Advance(1);
         }
-#endif
 
         /// <summary>
         /// Writes the header of the operation.
@@ -204,6 +215,7 @@ namespace Couchbase.Core.IO.Operations
         /// </remarks>
         public void WriteHeader(in OperationRequestHeader header)
         {
+            EnsureNotDisposed();
             EnsureHeaderNotWritten();
 
             if (CurrentSegment > OperationSegment.Body)
@@ -212,9 +224,8 @@ namespace Couchbase.Core.IO.Operations
             }
 
             // Make sure we slice this span so the length is known to the JIT compiler.
-            // This allows it to optimize away length checks for calls below.
-            Span<byte> headerBytes = _stream.GetBuffer().AsSpan(0, OperationHeader.Length);
-            headerBytes.Fill(0);
+            // This may allow it to optimize away length checks for calls below.
+            Span<byte> headerBytes = _buffer.AsSpan(0, OperationHeader.Length);
 
             if (_framingExtrasLength > 0)
             {
@@ -256,6 +267,7 @@ namespace Couchbase.Core.IO.Operations
         /// </remarks>
         public void BeginOperationSpec(bool isMutation)
         {
+            EnsureNotDisposed();
             EnsureHeaderNotWritten();
 
             if (CurrentSegment < OperationSegment.Body)
@@ -269,9 +281,8 @@ namespace Couchbase.Core.IO.Operations
 
             var headerSize = isMutation ? 8 : 4;
 
-            _operationSpecStartPosition = (int) _stream.Position;
-            _stream.SetLength(_stream.Length + headerSize);
-            _stream.Position += headerSize;
+            _operationSpecStartPosition = _position;
+            Advance(headerSize);
 
             _operationSpecIsMutation = isMutation;
             _operationSpecPathLength = 0;
@@ -279,11 +290,20 @@ namespace Couchbase.Core.IO.Operations
             CurrentSegment = OperationSegment.OperationSpecPath;
         }
 
+        /// <summary>
+        /// Reset the builder for reuse.
+        /// </summary>
         public void Reset()
         {
+            EnsureNotDisposed();
+
+            // Clear the buffer to avoid leaks between operations
+            // For new OperationBuilder objects _length will be zero here so the clear is a noop
+            _buffer.AsSpan(0, _length).Clear();
+
             // Skip the bytes for the header, which will be written later once lengths are known.
-            _stream.SetLength(OperationHeader.Length);
-            _stream.Position = OperationHeader.Length;
+            _length = OperationHeader.Length;
+            _position = OperationHeader.Length;
 
             _framingExtrasLength = 0;
             _extrasLength = 0;
@@ -303,12 +323,17 @@ namespace Couchbase.Core.IO.Operations
         /// </remarks>
         public void CompleteOperationSpec(OperationSpec spec)
         {
+            EnsureNotDisposed();
             if (CurrentSegment < OperationSegment.Body)
             {
                 ThrowHelper.ThrowInvalidOperationException("An operation spec is not in progress.");
             }
 
-            Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
+            // Temporarily back up to the header for the operation spec
+            _position = _operationSpecStartPosition;
+
+            var headerLength = _operationSpecIsMutation ? 8 : 4;
+            var buffer = GetSpan(headerLength);
             buffer[0] = (byte) spec.OpCode;
             buffer[1] = (byte) spec.PathFlags;
             ByteConverter.FromUInt16((ushort) _operationSpecPathLength, buffer.Slice(2));
@@ -318,9 +343,8 @@ namespace Couchbase.Core.IO.Operations
                 ByteConverter.FromUInt32((uint) _operationSpecFragmentLength, buffer.Slice(4));
             }
 
-            _stream.Position = _operationSpecStartPosition;
-            Write(buffer);
-            _stream.Position = _stream.Length;
+            // Move back to the end of the operation spec
+            _position = _length;
 
             CurrentSegment = OperationSegment.Body;
         }
@@ -333,6 +357,7 @@ namespace Couchbase.Core.IO.Operations
         /// <returns>True if the body was compressed, otherwise false.</returns>
         public bool AttemptBodyCompression(IOperationCompressor operationCompressor, IRequestSpan parentSpan)
         {
+            EnsureNotDisposed();
             if (_bodyLength <= 0)
             {
                 // Fast short circuit for operations with no body..
@@ -340,7 +365,7 @@ namespace Couchbase.Core.IO.Operations
             }
 
             var bodyStart = OperationHeader.Length + _framingExtrasLength + _extrasLength + _keyLength;
-            var body = _stream.GetBuffer().AsMemory(bodyStart, _bodyLength);
+            var body = _buffer.AsMemory(bodyStart, _bodyLength);
 
             using var compressed = operationCompressor.Compress(body, parentSpan);
             if (compressed == null)
@@ -352,45 +377,20 @@ namespace Couchbase.Core.IO.Operations
 
             // Replace the body with the compressed body
             compressedSpan.CopyTo(body.Span);
-            _stream.SetLength(bodyStart + compressedSpan.Length);
+            SetLength(bodyStart + compressedSpan.Length);
             _bodyLength = compressedSpan.Length;
             return true;
         }
 
         /// <summary>
-        /// After writing to the stream, records the number of bytes written to the current segment.
+        /// Throws <see cref="InvalidOperationException"/> if the header has already been written.
         /// </summary>
-        /// <param name="bytes">Number of bytes written.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Advance(int bytes)
+        [MemberNotNull(nameof(_buffer))]
+        private void EnsureNotDisposed()
         {
-            switch (CurrentSegment)
+            if (_buffer is null)
             {
-                case OperationSegment.FramingExtras:
-                    _framingExtrasLength += bytes;
-                    break;
-
-                case OperationSegment.Extras:
-                    _extrasLength += bytes;
-                    break;
-
-                case OperationSegment.Key:
-                    _keyLength += bytes;
-                    break;
-
-                case OperationSegment.Body:
-                    _bodyLength += bytes;
-                    break;
-
-                case OperationSegment.OperationSpecPath:
-                    _bodyLength += bytes;
-                    _operationSpecPathLength += bytes;
-                    break;
-
-                case OperationSegment.OperationSpecFragment:
-                    _bodyLength += bytes;
-                    _operationSpecFragmentLength += bytes;
-                    break;
+                ThrowHelper.ThrowObjectDisposedException(nameof(OperationBuilder));
             }
         }
 
@@ -407,11 +407,130 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (_buffer == null)
             {
-                _stream.Dispose();
+                return;
+            }
+
+            _buffer.AsSpan(0, _length).Clear();
+            ArrayPool<byte>.Shared.Return(_buffer);
+            _buffer = null;
+        }
+
+        #region IBufferWriter
+
+        /// <inheritdoc />
+        public void Advance(int count)
+        {
+            EnsureNotDisposed();
+            EnsureHeaderNotWritten();
+
+            if (count < 0)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
+            }
+            if (_position > _buffer.Length - count)
+            {
+                ThrowHelper.ThrowInvalidOperationException("Cannot advance past the end of the buffer.");
+            }
+
+            _position += count;
+            if (_position > _length)
+            {
+                _length = _position;
+            }
+
+            switch (CurrentSegment)
+            {
+                case OperationSegment.FramingExtras:
+                    _framingExtrasLength += count;
+                    break;
+
+                case OperationSegment.Extras:
+                    _extrasLength += count;
+                    break;
+
+                case OperationSegment.Key:
+                    _keyLength += count;
+                    break;
+
+                case OperationSegment.Body:
+                    _bodyLength += count;
+                    break;
+
+                case OperationSegment.OperationSpecPath:
+                    _bodyLength += count;
+                    _operationSpecPathLength += count;
+                    break;
+
+                case OperationSegment.OperationSpecFragment:
+                    _bodyLength += count;
+                    _operationSpecFragmentLength += count;
+                    break;
             }
         }
+
+        /// <inheritdoc />
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            EnsureNotDisposed();
+            EnsureHeaderNotWritten();
+
+            CheckAndResizeBuffer(sizeHint);
+            return _buffer.AsMemory(_position);
+        }
+
+        /// <inheritdoc />
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            EnsureNotDisposed();
+            EnsureHeaderNotWritten();
+
+            CheckAndResizeBuffer(sizeHint);
+            return _buffer.AsSpan(_position);
+        }
+
+        private void CheckAndResizeBuffer(int sizeHint)
+        {
+            if (sizeHint < 0)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(sizeHint));
+            }
+            if (sizeHint == 0)
+            {
+                sizeHint = MinimumBufferSize;
+            }
+
+            EnsureCapacity(_position + sizeHint);
+        }
+
+        // Internal for unit testing
+        internal void EnsureCapacity(int capacity)
+        {
+            Debug.Assert(_buffer is not null);
+
+            if (_buffer!.Length < capacity)
+            {
+                var oldBuffer = _buffer;
+
+                _buffer = ArrayPool<byte>.Shared.Rent(capacity);
+
+                Debug.Assert(oldBuffer.Length >= _length);
+                Debug.Assert(_buffer.Length >= _length);
+
+                // Copy the previous buffer to the new buffer and clear the portion
+                // of the buffer we've used before returning it to the pool
+                var previousBuffer = oldBuffer.AsSpan(0, _length);
+                previousBuffer.CopyTo(_buffer);
+                previousBuffer.Clear();
+
+                ArrayPool<byte>.Shared.Return(oldBuffer);
+            }
+
+            Debug.Assert(_buffer.Length >= capacity);
+        }
+
+        #endregion
     }
 }
 

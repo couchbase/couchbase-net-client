@@ -280,7 +280,7 @@ namespace Couchbase.Core.IO.Serializers
             };
 
         private static int GetEffectiveMaxDepth(int maxDepth) =>
-            // Emulates default behavior of JsonSerializerOptions.MaxDepth using internally by STJ
+            // Emulates default behavior of JsonSerializerOptions.MaxDepth used internally by STJ
             maxDepth == 0 ? 64 : maxDepth;
 
         private static JsonSerializerOptions CreateDefaultOptions(bool increasedNewtonsoftCompatibility) =>

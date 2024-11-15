@@ -56,14 +56,14 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[8];
+            var extras = builder.GetSpan(8);
 
             Flags = Transcoder.GetFormat(Content!);
             Flags.Write(extras);
 
             ByteConverter.FromUInt32(Expires, extras.Slice(4));
 
-            builder.Write(extras);
+            builder.Advance(8);
         }
     }
 }

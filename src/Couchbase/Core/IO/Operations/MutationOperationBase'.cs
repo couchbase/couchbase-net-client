@@ -40,9 +40,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (PreserveTtl)
             {
-                Span<byte> preserveTtlByte = stackalloc byte[1];
-                preserveTtlByte[0] = 5 << 4;
-                builder.Write(preserveTtlByte);
+                builder.WriteByte(5 << 4);
             }
 
             if (DurabilityLevel == DurabilityLevel.None)
@@ -51,9 +49,9 @@ namespace Couchbase.Core.IO.Operations
             }
 
             // TODO: omit timeout bytes if no timeout provided
-            Span<byte> bytes = stackalloc byte[2];
 
-            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, (byte) (bytes.Length - 1));
+            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, length: 1);
+            var bytes = builder.GetSpan(framingExtra.Length + 1);
             bytes[0] = framingExtra.Byte;
             bytes[1] = (byte) DurabilityLevel;
 
@@ -61,7 +59,7 @@ namespace Couchbase.Core.IO.Operations
             //var timeout = DurabilityTimeout.HasValue ? DurabilityTimeout.Value.TotalMilliseconds : 0;
             //Converter.FromUInt16((ushort)timeout, bytes, 2);
 
-            builder.Write(bytes);
+            builder.Advance(framingExtra.Length + 1);
         }
     }
 }

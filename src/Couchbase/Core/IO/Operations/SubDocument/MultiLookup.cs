@@ -46,10 +46,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (DocFlags != SubdocDocFlags.None)
             {
-                //Add the doc flags
-                Span<byte> buffer = stackalloc byte[sizeof(byte)];
-                buffer[0] = (byte)DocFlags;
-                builder.Write(buffer);
+                builder.WriteByte((byte)DocFlags);
             }
         }
 
@@ -59,39 +56,31 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
-            try
+            foreach (var lookup in LookupCommands)
             {
-                var bufferSpan = buffer.AsSpan();
-
-                foreach (var lookup in LookupCommands)
+                if (lookup.Path.Length > OperationSpec.MaxPathLength)
                 {
-                    if (lookup.Path.Length > OperationSpec.MaxPathLength)
-                    {
-                        throw new InvalidArgumentException(
-                            $"Path length of {lookup.Path.Length} exceeds maximum ({OperationSpec.MaxPathLength}");
-                    }
-
-                    var pathLength = 0;
-                    try
-                    {
-                        pathLength = ByteConverter.FromString(lookup.Path, bufferSpan);
-                    }
-                    catch (ArgumentException e)
-                    {
-                        // the preceding length check will catch most situations, but the "Length" of a UTF8 string does
-                        // not necessarily correspond to its byte encoding length.
-                        throw new InvalidArgumentException("Path is invalid.", e);
-                    }
-
-                    builder.BeginOperationSpec(false);
-                    builder.Write(buffer, 0, pathLength);
-                    builder.CompleteOperationSpec(lookup);
+                    throw new InvalidArgumentException(
+                        $"Path length of {lookup.Path.Length} exceeds maximum ({OperationSpec.MaxPathLength}");
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
+
+                builder.BeginOperationSpec(false);
+                var bufferSpan = builder.GetSpan(OperationSpec.MaxPathLength);
+
+                var pathLength = 0;
+                try
+                {
+                    pathLength = ByteConverter.FromString(lookup.Path, bufferSpan);
+                }
+                catch (ArgumentException e)
+                {
+                    // the preceding length check will catch most situations, but the "Length" of a UTF8 string does
+                    // not necessarily correspond to its byte encoding length.
+                    throw new InvalidArgumentException("Path is invalid.", e);
+                }
+
+                builder.Advance(pathLength);
+                builder.CompleteOperationSpec(lookup);
             }
         }
 

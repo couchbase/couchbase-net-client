@@ -1,5 +1,6 @@
 using Couchbase.Core;
 using System;
+using System.Buffers;
 
 namespace Couchbase.KeyValue.RangeScan
 {
@@ -19,7 +20,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// Converts the instance into a JSON <see cref="byte"/> array.
         /// </summary>
         /// <returns>A JSON <see cref="byte"/> that represents the <see cref="IScanType"/>.</returns>
-        byte[] Serialize(bool keyOnly, TimeSpan timeout, MutationToken? token);
+        void Serialize(bool keyOnly, TimeSpan timeout, MutationToken? token, IBufferWriter<byte> bufferWriter);
 
         /// <summary>
         /// Gets a value indicating whether the operation is a sampling scan.  Affects error handling.

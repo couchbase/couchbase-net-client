@@ -52,7 +52,12 @@ namespace Couchbase.Core.IO.Transcoders
 
             if (value is string strValue)
             {
-                if (strValue.Length <= BufferSize)
+                if (stream is IBufferWriter<byte> bufferWriter)
+                {
+                    // OperationBuilder implements IBufferWriter<byte> which can be used to write directly buffer
+                    bufferWriter.WriteUtf8String(strValue);
+                }
+                else if (strValue.Length <= BufferSize)
                 {
                     // For small strings (less than the buffer size), it is more efficient to avoid the cost of allocating the buffers
                     // within a StreamWriter and serialize directly to a pooled buffer instead.

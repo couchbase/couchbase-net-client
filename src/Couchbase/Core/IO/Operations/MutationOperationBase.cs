@@ -42,10 +42,11 @@ namespace Couchbase.Core.IO.Operations
             }
 
             // TODO: omit timeout bytes if no timeout provided
-            Span<byte> bytes = stackalloc byte[4];
 
-            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, (byte) (bytes.Length - 1));
-            bytes[0] = (byte) (framingExtra.Byte | (byte) 0x03);
+            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, length: 3);
+
+            var bytes = builder.GetSpan(framingExtra.Length + 1);
+            bytes[0] = framingExtra.Byte;
             bytes[1] = (byte) DurabilityLevel;
 
             var userTimeout = DurabilityTimeout.Value.TotalMilliseconds;
@@ -65,7 +66,7 @@ namespace Couchbase.Core.IO.Operations
             }
 
             ByteConverter.FromUInt16(deadline, bytes);
-            builder.Write(bytes);
+            builder.Advance(framingExtra.Length + 1);
         }
     }
 }

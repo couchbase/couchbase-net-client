@@ -7,9 +7,9 @@ namespace Couchbase.Core.IO.Operations
     {
         internal static void WriteExpiry(OperationBuilder builder, uint expires)
         {
-            Span<byte> extras = stackalloc byte[4];
+            var extras = builder.GetSpan(sizeof(uint));
             ByteConverter.FromUInt32(expires, extras);
-            builder.Write(extras);
+            builder.Advance(sizeof(uint));
         }
 
         internal static bool TryReadNewExpiry(ReadOnlySpan<byte> buffer, int extrasLength, int extrasOffset, out uint expiry)

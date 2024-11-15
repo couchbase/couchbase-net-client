@@ -10,9 +10,9 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[4];
+            var extras = builder.GetSpan(sizeof(uint));
             ByteConverter.FromUInt32(Expiry, extras);
-            builder.Write(extras);
+            builder.Advance(sizeof(uint));
         }
 
         protected override void WriteBody(OperationBuilder builder)

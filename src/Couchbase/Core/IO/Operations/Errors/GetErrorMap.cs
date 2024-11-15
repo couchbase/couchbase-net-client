@@ -19,9 +19,9 @@ namespace Couchbase.Core.IO.Operations.Errors
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            Span<byte> body = stackalloc byte[2];
+            var body = builder.GetSpan(sizeof(ushort));
             ByteConverter.FromInt16(DefaultVersion, body);
-            builder.Write(body);
+            builder.Advance(sizeof(ushort));
         }
 
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)

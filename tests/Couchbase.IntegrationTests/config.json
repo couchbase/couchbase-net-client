@@ -3,7 +3,8 @@
     "connectionString": "couchbase://localhost",
     "bucketName": "default",
     "certificatesFilePath": "",
-    "systemTextJson": false
+    "systemTextJson": false,
+    "enableCompression": true
   },
   "couchbase": {
     "connectionString": "couchbase://localhost",

@@ -12,9 +12,7 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[1];
-            extras[0] = 0x02;
-            builder.Write(extras);
+            builder.WriteByte(0x02);
         }
 
         public override MetaData GetValue()

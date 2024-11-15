@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Compression.Snappier;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
@@ -91,6 +92,11 @@ namespace Couchbase.IntegrationTests.Fixtures
             if (settings.SystemTextJson)
             {
                 options.WithSerializer(SystemTextJsonSerializer.Create());
+            }
+
+            if (settings.EnableCompression)
+            {
+                options.WithSnappyCompression();
             }
 
             return options;

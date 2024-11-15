@@ -27,9 +27,8 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            Content.CollectionName = string.Format("{0:x}", Cid);
-            var bytes = Content.Serialize(KeyOnly, Timeout, MutationToken);
-            builder.Write(bytes);
+            Content.CollectionName = Cid?.ToString("x") ?? "";
+            Content.Serialize(KeyOnly, Timeout, MutationToken, builder);
         }
     }
 }

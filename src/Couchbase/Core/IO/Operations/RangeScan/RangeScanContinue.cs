@@ -61,12 +61,12 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[28];
+            var extras = builder.GetSpan(28);
             Uuid.Memory.Span.CopyTo(extras);
             ByteConverter.FromUInt32(ItemLimit, extras.Slice(16)); //write item limit 16
             ByteConverter.FromUInt32(TimeLimit, extras.Slice(20)); //write time limit 20
             ByteConverter.FromUInt32(ByteLimit, extras.Slice(24)); //write byte limit 24
-            builder.Write(extras);
+            builder.Advance(28);
         }
 
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)

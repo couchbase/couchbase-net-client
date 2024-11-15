@@ -16,12 +16,25 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            Span<byte> extras = stackalloc byte[20];
+            const int extrasLength = sizeof(ulong) * 2 + sizeof(uint);
+
+            var extras = builder.GetSpan(extrasLength);
             ByteConverter.FromUInt64(Delta, extras);
-            if (Initial.HasValue) ByteConverter.FromUInt64(Initial.Value, extras.Slice(8));
-            else Expires = 0xFFFFFFFF; //From KV RFC: When the Counter does not exist and no Initial value is provided, the Expiry needs to be all 1 bits for the operation to fail.
-            ByteConverter.FromUInt32(Expires, extras.Slice(16));
-            builder.Write(extras);
+
+            if (Initial.HasValue)
+            {
+                ByteConverter.FromUInt64(Initial.Value, extras.Slice(sizeof(ulong)));
+            }
+            else
+            {
+                ByteConverter.FromUInt64(0, extras.Slice(sizeof(ulong)));
+
+                Expires = 0xFFFFFFFF; //From KV RFC: When the Counter does not exist and no Initial value is provided, the Expiry needs to be all 1 bits for the operation to fail.
+            }
+
+            ByteConverter.FromUInt32(Expires, extras.Slice(sizeof(ulong) * 2));
+
+            builder.Advance(extrasLength);
         }
 
         protected override void WriteBody(OperationBuilder builder)

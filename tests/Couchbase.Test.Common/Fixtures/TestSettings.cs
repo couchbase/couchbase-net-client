@@ -7,5 +7,6 @@ namespace Couchbase.IntegrationTests.Fixtures
         public bool EnableLogging { get; set; }
         public bool SystemTextJson { get; set; }
         public string CertificatesFilePath { get; set; }
+        public bool EnableCompression { get; set; }
     }
 }

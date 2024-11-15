@@ -55,45 +55,38 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            // Lets alloc 1 buffer to hold everything.   Given its max size is just 9
-            // bytes, lets just alloc that each time.
-            Span<byte> buffer = stackalloc byte[sizeof(uint) + Flags.Size + sizeof(byte)];
+            // Lets get 1 buffer to hold everything. Given its max size is just 9
+            // bytes, lets just get that each time.
+            Span<byte> buffer = builder.GetSpan(sizeof(uint) + Flags.Size + sizeof(byte));
             var offset = 0;
 
             // If you are setting the OptionalFlags, you MUST set an
             // expiry, even if it is 0
             if (Expires > 0 || OptionalFlags != null)
             {
-                Span<byte> expiresBuffer = buffer.Slice(0, sizeof(uint));
-                ByteConverter.FromUInt32(Expires, expiresBuffer);
-                builder.Write(expiresBuffer);
+                ByteConverter.FromUInt32(Expires, buffer);
                 offset += sizeof(uint);
             }
-            if (OptionalFlags != null )
+            if (OptionalFlags != null)
             {
-                Span<byte> optFlagBuffer = buffer.Slice(offset, Flags.Size);
-                OptionalFlags?.Write(optFlagBuffer);
-                builder.Write(optFlagBuffer);
+                OptionalFlags.Value.Write(buffer.Slice(offset));
                 offset += Flags.Size;
             }
             if (DocFlags != SubdocDocFlags.None)
             {
                 //Add the doc flags
-                Span<byte> flagsBuffer = buffer.Slice(offset, sizeof(byte));
-                flagsBuffer[0] = (byte)DocFlags;
-                builder.Write(flagsBuffer);
+                buffer[offset] = (byte)DocFlags;
+                offset++;
             }
 
+            builder.Advance(offset);
         }
 
         protected override void WriteFramingExtras(OperationBuilder builder)
         {
-
             if (PreserveTtl)
             {
-                Span<byte> preserveTtlByte = stackalloc byte[1];
-                preserveTtlByte[0] = 5 << 4;
-                builder.Write(preserveTtlByte);
+                builder.WriteByte(5 << 4);
             }
 
             if (DurabilityLevel == DurabilityLevel.None)
@@ -102,9 +95,9 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             }
 
             // TODO: omit timeout bytes if no timeout provided
-            Span<byte> bytes = stackalloc byte[2];
 
-            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, (byte) (bytes.Length - 1));
+            var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, length: 1);
+            var bytes = builder.GetSpan(framingExtra.Length + 1);
             bytes[0] = framingExtra.Byte;
             bytes[1] = (byte) DurabilityLevel;
 
@@ -112,22 +105,21 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             //var timeout = DurabilityTimeout.HasValue ? DurabilityTimeout.Value.TotalMilliseconds : 0;
             //Converter.FromUInt16((ushort)timeout, bytes, 2);
 
-            builder.Write(bytes);
+            builder.Advance(framingExtra.Length + 1);
         }
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
             try
             {
-                var bufferSpan = buffer.AsSpan();
-
                 foreach (var mutate in MutateCommands)
                 {
                     builder.BeginOperationSpec(true);
 
+                    var bufferSpan = builder.GetSpan(OperationSpec.MaxPathLength);
+
                     var pathLength = ByteConverter.FromString(mutate.Path, bufferSpan);
-                    builder.Write(buffer, 0, pathLength);
+                    builder.Advance(pathLength);
 
                     if (mutate.OpCode is not OpCode.SubDelete and not OpCode.Delete and not OpCode.SubReplaceBodyWithXattr)
                     {
@@ -141,10 +133,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             catch (ArgumentException e)
             {
                 throw new InvalidArgumentException("The Path is invalid.", e);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
