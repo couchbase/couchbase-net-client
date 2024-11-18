@@ -2342,7 +2342,7 @@ namespace Couchbase.Transactions
                 ).CAF();
 
             // NOTE: the txid returned is the AttemptId, not the TransactionId.
-            await foreach (var result in results)
+            await foreach (var result in results.ConfigureAwait(false))
             {
                 if (result.txid != AttemptId)
                 {
