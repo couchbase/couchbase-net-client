@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -12,7 +13,7 @@ namespace Couchbase.Core.IO.Operations
     /// </summary>
     /// <remarks>
     /// It is important to <see cref="Dispose"/> this object in order to avoid memory leaks. Such leaks
-    /// may occur if one of the supplied CancellationToken instances is long-lived or if <see cref="FromTimeout"/>
+    /// may occur if one of the supplied CancellationToken instances is long-lived or if <see cref="FromTimeout(TimeSpan, CancellationToken)"/>
     /// is used to apply a timeout.
     /// </remarks>
     internal sealed class CancellationTokenPairSource : CancellationTokenSource
@@ -101,6 +102,34 @@ namespace Couchbase.Core.IO.Operations
             _externalToken = externalToken;
             _externalRegistration = RegisterExternalCancellationCallback(externalToken);
         }
+
+#if NET8_0_OR_GREATER
+
+        // Constructors for .NET 8 and later, which can accept a TimeProvider directly.
+
+        /// <summary>
+        /// Constructs a CancellationTokenPairSource which will cancel after a set delay.
+        /// </summary>
+        /// <param name="delay">Delay befor the token is canceled.</param>
+        /// <param name="timeProvider">The System.TimeProvider with which to interpret the delay.</param>
+        public CancellationTokenPairSource(TimeSpan delay, TimeProvider timeProvider) : base(delay, timeProvider)
+        {
+        }
+
+        /// <summary>
+        /// Constructs a CancellationTokenPairSource which will cancel after a set delay.
+        /// </summary>
+        /// <param name="delay">Delay befor the token is canceled.</param>
+        /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
+        /// <param name="timeProvider">The System.TimeProvider with which to interpret the delay.</param>
+        public CancellationTokenPairSource(TimeSpan delay, CancellationToken externalToken, TimeProvider timeProvider)
+            : base(delay, timeProvider)
+        {
+            _externalToken = externalToken;
+            _externalRegistration = RegisterExternalCancellationCallback(externalToken);
+        }
+
+#endif
 
         protected override void Dispose(bool disposing)
         {
@@ -220,6 +249,17 @@ namespace Couchbase.Core.IO.Operations
         public static CancellationTokenPairSource FromTimeout(TimeSpan timeout,
             CancellationToken externalToken = default) =>
             new(timeout, externalToken);
+
+        /// <summary>
+        /// Creates a CancellationTokenPairSource with a timeout.
+        /// </summary>
+        /// <param name="timeProvider">The System.TimeProvider with which to interpret the delay.</param>
+        /// <param name="timeout">Timeout to trigger the cancellation token.</param>
+        /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
+        /// <returns>The CancellationTokenPairSource.</returns>
+        public static CancellationTokenPairSource FromTimeout(TimeProvider timeProvider, TimeSpan timeout,
+            CancellationToken externalToken = default) =>
+            timeProvider.CreateCancellationTokenPairSource(timeout, externalToken);
     }
 }
 

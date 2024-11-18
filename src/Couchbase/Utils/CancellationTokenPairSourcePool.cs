@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
 using Microsoft.Extensions.ObjectPool;
 
@@ -66,5 +67,19 @@ namespace Couchbase.Utils
         }
 
         #endif
+
+        public CancellationTokenPairSource Rent(TimeProvider timeProvider, TimeSpan delay, CancellationToken externalToken)
+        {
+            if (timeProvider == TimeProvider.System)
+            {
+                // Using system time provider, so we can use the pool and the built-in CancelAfter
+                return Rent(delay, externalToken);
+            }
+
+            // Can't use the pool when unit testing with a custom time provider, it isn't possible
+            // to change the time provider after constructing the CTS. Also, TryReset will always
+            // return false. Just create a new CTS each time.
+            return timeProvider.CreateCancellationTokenPairSource(delay, externalToken);
+        }
     }
 }

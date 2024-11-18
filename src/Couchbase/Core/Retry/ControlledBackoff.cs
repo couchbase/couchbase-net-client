@@ -1,14 +1,26 @@
 using System;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.Core.Retry
 {
     public readonly struct ControlledBackoff : IBackoffCalculator
     {
-        public Task Delay(IRequest request)
+        // Allow null in case this is created using "default" instead of a constructor
+        private readonly TimeProvider? _timeProvider;
+
+        public ControlledBackoff() : this(TimeProvider.System)
         {
-            return Task.Delay(CalculateBackoff(request), request.Token);
         }
+
+        private ControlledBackoff(TimeProvider timeProvider)
+        {
+            _timeProvider = timeProvider;
+        }
+
+        public Task Delay(IRequest request) =>
+            (_timeProvider ?? TimeProvider.System).Delay(CalculateBackoff(request), request.Token);
 
         public TimeSpan CalculateBackoff(IRequest request) => CalculateBackoffCore(request);
 
@@ -31,10 +43,8 @@ namespace Couchbase.Core.Retry
             }
         }
 
-        public static ControlledBackoff Create()
-        {
-            return new ControlledBackoff();
-        }
+        public static ControlledBackoff Create() => new();
+        internal static ControlledBackoff Create(TimeProvider timeProvider) => new(timeProvider);
     }
 }
 

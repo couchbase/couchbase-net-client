@@ -133,7 +133,7 @@ namespace Couchbase.UnitTests.Core
                 connectionPoolFactory: mockConnectionPoolFactory.Object,
                 logger: logger,
                 operationBuilderPool: pool,
-                circuitBreaker: new CircuitBreaker(new CircuitBreakerConfiguration { Enabled = true }),
+                circuitBreaker: new CircuitBreaker(TimeProvider.System, new CircuitBreakerConfiguration { Enabled = true }),
                 saslMechanismFactory: new Mock<Couchbase.Core.DI.ISaslMechanismFactory>().Object,
                 redactor: new(Couchbase.Core.Logging.RedactionLevel.None),
                 endPoint: new(hostname, 8091),

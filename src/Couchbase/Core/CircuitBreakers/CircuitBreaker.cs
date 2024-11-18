@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 
+#nullable enable
+
 namespace Couchbase.Core.CircuitBreakers
 {
     internal sealed class CircuitBreaker : ICircuitBreaker
@@ -10,15 +12,19 @@ namespace Couchbase.Core.CircuitBreakers
         private long _windowStartTime;
         private long _circuitOpenedTime;
         private long _state = (long)CircuitBreakerState.Closed;
+
+        private readonly TimeProvider _timeProvider;
         private readonly CircuitBreakerConfiguration _configuration;
 
-        internal CircuitBreaker() : this(CircuitBreakerConfiguration.Default)
+        internal CircuitBreaker() : this(TimeProvider.System, CircuitBreakerConfiguration.Default)
         {
         }
 
-        public CircuitBreaker(CircuitBreakerConfiguration configuration)
+        public CircuitBreaker(TimeProvider timeProvider, CircuitBreakerConfiguration configuration)
         {
+            _timeProvider = timeProvider;
             _configuration = configuration;
+
             if (_configuration.Enabled)
             {
                 Reset();
@@ -39,7 +45,7 @@ namespace Couchbase.Core.CircuitBreakers
         {
             if (Interlocked.Read(ref _state) == (int)CircuitBreakerState.Closed) return true;
 
-            var now = DateTime.UtcNow.Ticks;
+            var now = _timeProvider.GetUtcNow().Ticks;
             var circuitOpenedTime = Interlocked.Read(ref _circuitOpenedTime);
             var circuitOpenedTimePlusSleep = Interlocked.Add(ref circuitOpenedTime, _configuration.SleepWindow.Ticks);
             var sleepingWindowElasped = circuitOpenedTimePlusSleep < now;
@@ -68,7 +74,7 @@ namespace Couchbase.Core.CircuitBreakers
 
             if (State == CircuitBreakerState.Open)
             {
-                _circuitOpenedTime = DateTime.UtcNow.Ticks;
+                _circuitOpenedTime = _timeProvider.GetUtcNow().Ticks;
             }
             else
             {
@@ -85,7 +91,7 @@ namespace Couchbase.Core.CircuitBreakers
             _failedCount = Interlocked.Exchange(ref _failedCount, 0);
             _totalCount = Interlocked.Exchange(ref _totalCount, 0);
 
-            var now = DateTime.UtcNow.Ticks;
+            var now = _timeProvider.GetUtcNow().Ticks;
             _circuitOpenedTime = now;
             _windowStartTime = now;
         }
@@ -98,10 +104,10 @@ namespace Couchbase.Core.CircuitBreakers
 
         private void CleanRollingWindow()
         {
-            var now = DateTime.UtcNow.Ticks;
+            var now = _timeProvider.GetUtcNow().Ticks;
             if (now - _windowStartTime > _configuration.RollingWindow.Ticks)
             {
-                _windowStartTime = DateTime.UtcNow.Ticks;
+                _windowStartTime = now;
                 Interlocked.Exchange(ref _failedCount, 0);
                 Interlocked.Exchange(ref _totalCount, 0);
                 Interlocked.Exchange(ref _state, (int)CircuitBreakerState.Closed);
@@ -118,7 +124,7 @@ namespace Couchbase.Core.CircuitBreakers
             if (currentThreshold >= percentThreshold)
             {
                 _state = (int)CircuitBreakerState.Open;
-                _circuitOpenedTime = DateTime.UtcNow.Ticks;
+                _circuitOpenedTime = _timeProvider.GetUtcNow().Ticks;
             }
         }
 

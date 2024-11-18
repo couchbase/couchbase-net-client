@@ -1,6 +1,6 @@
 using System;
-using System.Threading;
 using Couchbase.Core.CircuitBreakers;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.CircuitBreakers
@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         public void When_Volume_Exceeded_Circuit_Opens()
         {
             var config = new CircuitBreakerConfiguration();
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(TimeProvider.System, config);
             for (var i = 0; i < config.VolumeThreshold - 1; i++)
             {
                 circuitBreaker.MarkFailure();
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_Threshhold_Exceeded_Circuit_Opens()
         {
-            var circuitBreaker = new CircuitBreaker(new CircuitBreakerConfiguration
+            var circuitBreaker = new CircuitBreaker(TimeProvider.System, new CircuitBreakerConfiguration
             {
                 ErrorThresholdPercentage = 80
             });
@@ -75,20 +75,19 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_Window_Is_Expired_State_Is_Reset()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 RollingWindow = TimeSpan.FromSeconds(10)
             };
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
             for (var i = 0; i < 22; i++)
             {
                 circuitBreaker.MarkFailure();
                 if (i == 20)
                 {
-                    // depending on what else is going on in the system, the asserts may fire
-                    // before the rolling window is updated.
-                    var fudgeFactor = TimeSpan.FromMilliseconds(100);
-                    Thread.Sleep(config.RollingWindow + fudgeFactor);
+                    timeProvider.Advance(config.RollingWindow + TimeSpan.FromMilliseconds(1));
                 }
             }
             circuitBreaker.MarkSuccess();
@@ -130,12 +129,14 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_SleepTime_Complete_Allow_Canary()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 VolumeThreshold = 1,
                 SleepWindow = TimeSpan.FromMilliseconds(50)
             };
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
 
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
             Assert.True(circuitBreaker.AllowsRequest());
@@ -144,7 +145,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
             Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
             Assert.False(circuitBreaker.AllowsRequest());
 
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
 
             Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
             Assert.True(circuitBreaker.AllowsRequest());
@@ -157,15 +158,17 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_Canary_Succeeds_Circuit_Closes()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 VolumeThreshold = 1,
                 SleepWindow = TimeSpan.FromMilliseconds(50)
             };
 
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
             circuitBreaker.MarkFailure();
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
             circuitBreaker.Track();
 
             Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
@@ -179,15 +182,17 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_Canary_Fails_Circuit_Opens()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 VolumeThreshold = 1,
                 SleepWindow = TimeSpan.FromMilliseconds(50)
             };
 
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
             circuitBreaker.MarkFailure();
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
             circuitBreaker.Track();
 
             Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
@@ -197,7 +202,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
             Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
             Assert.False(circuitBreaker.AllowsRequest());
 
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
             Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
             Assert.True(circuitBreaker.AllowsRequest());
         }
@@ -210,7 +215,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
                 VolumeThreshold = 1
             };
 
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(TimeProvider.System, config);
             circuitBreaker.MarkFailure();
             Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
             Assert.False(circuitBreaker.AllowsRequest());
@@ -224,15 +229,17 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_State_is_HalfOpen_Can_Reset()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 VolumeThreshold = 1,
                 SleepWindow = TimeSpan.FromMilliseconds(50)
             };
 
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
             circuitBreaker.MarkFailure();
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
             circuitBreaker.Track();
 
             Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
@@ -246,18 +253,20 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         [Fact]
         public void When_RollingWindow_Completes_State_Is_Closed()
         {
+            var timeProvider = new FakeTimeProvider();
+
             var config = new CircuitBreakerConfiguration
             {
                 VolumeThreshold = 2,
                 RollingWindow = TimeSpan.FromMilliseconds(100)
             };
 
-            var circuitBreaker = new CircuitBreaker(config);
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
             circuitBreaker.MarkFailure();
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
             Assert.True(circuitBreaker.AllowsRequest());
 
-            Thread.Sleep(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
 
             circuitBreaker.MarkFailure();
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);

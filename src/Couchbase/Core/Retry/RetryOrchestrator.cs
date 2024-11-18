@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.Retry
 {
     internal partial class RetryOrchestrator(
+        TimeProvider timeProvider,
         ILogger<RetryOrchestrator> logger,
         TypedRedactor redactor)
         : IRetryOrchestrator
@@ -26,9 +27,14 @@ namespace Couchbase.Core.Retry
         private readonly ILogger<RetryOrchestrator> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly TypedRedactor _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
+        /// <summary>
+        /// Seam for unit testing to change delay behaviors.
+        /// </summary>
+        internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } = timeProvider.Delay;
+
         public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
-            var ctsp = CancellationTokenPairSourcePool.Shared.Rent(request.Timeout, request.Token);
+            var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeProvider, request.Timeout, request.Token);
             var token = ctsp.Token;
 
             Type? outcomeErrorType = null;
@@ -38,7 +44,7 @@ namespace Couchbase.Core.Retry
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                var backoff = ControlledBackoff.Create();
+                var backoff = ControlledBackoff.Create(timeProvider);
                 do
                 {
                     if (token.IsCancellationRequested)
@@ -61,7 +67,9 @@ namespace Couchbase.Core.Retry
                         {
                             LogRetryQuery(request.ClientContextId, _redactor.UserData(request.Statement), reason);
 
-                            await backoff.Delay(request).ConfigureAwait(false);
+                            var retryDelay = backoff.CalculateBackoff(request);
+
+                            await Delay(retryDelay, request.Token).ConfigureAwait(false);
                             request.IncrementAttempts(reason);
                             continue;
                         }
@@ -86,7 +94,7 @@ namespace Couchbase.Core.Retry
 
                                 try
                                 {
-                                    await Task.Delay(cappedDuration, token).ConfigureAwait(false);
+                                    await Delay(cappedDuration, token).ConfigureAwait(false);
                                 }
                                 catch
                                 {
@@ -333,7 +341,7 @@ namespace Couchbase.Core.Retry
                 // Reset first so operation is not marked as sent if canceled during the delay
                 ResetAndIncrementAttempts(operation, reason);
 
-                await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
+                await Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
                     .ConfigureAwait(false);
                 return true;
             }
