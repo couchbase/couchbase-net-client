@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Couchbase.Core.Sharding;
 
 namespace Couchbase.Integrated.Transactions.ActiveTransactionRecords
@@ -18,7 +19,7 @@ namespace Couchbase.Integrated.Transactions.ActiveTransactionRecords
         private const int VBucketPartitionCount = 1024;
         private static readonly short VBucketMask = VBucketMapper.GetMask(VBucketPartitionCount);
 
-        private static readonly List<string> AllAtrIds = new()
+        private static readonly ReadOnlyCollection<string> AllAtrIds = new( new []
         {
             "_txn:atr-0-#14",
             "_txn:atr-1-#10b6",
@@ -1044,7 +1045,7 @@ namespace Couchbase.Integrated.Transactions.ActiveTransactionRecords
             "_txn:atr-1021-#159",
             "_txn:atr-1022-#cb",
             "_txn:atr-1023-#10c2"
-        };
+        });
         public static int NumAtrs => AllAtrIds.Count;
 
         public static string GetAtrId(string key)
