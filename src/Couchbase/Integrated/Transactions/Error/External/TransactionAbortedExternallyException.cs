@@ -1,12 +1,11 @@
 #nullable enable
-using System;
 
 namespace Couchbase.Integrated.Transactions.Error.External
 {
     /// <summary>
     /// Indicates this transaction was aborted due to an outside actor.
     /// </summary>
-    internal class TransactionAbortedExternallyException : Exception
+    internal class TransactionAbortedExternallyException : CouchbaseException
     {
         /// <inheritdoc />
         public TransactionAbortedExternallyException()
@@ -15,7 +14,6 @@ namespace Couchbase.Integrated.Transactions.Error.External
         }
     }
 }
-
 
 /* ************************************************************
  *

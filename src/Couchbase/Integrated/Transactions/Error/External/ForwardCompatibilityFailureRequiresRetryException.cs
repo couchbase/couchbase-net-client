@@ -6,7 +6,7 @@ namespace Couchbase.Integrated.Transactions.Error.External
     /// <summary>
     /// Indicates that an error due to an incompatibility with a later protocol version requires a retry.
     /// </summary>
-    internal class ForwardCompatibilityFailureRequiresRetryException : Exception
+    internal class ForwardCompatibilityFailureRequiresRetryException : CouchbaseException
     {
         /// <inheritdoc />
         public ForwardCompatibilityFailureRequiresRetryException() : base()

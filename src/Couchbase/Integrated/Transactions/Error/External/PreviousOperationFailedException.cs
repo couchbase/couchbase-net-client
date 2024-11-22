@@ -16,7 +16,7 @@ namespace Couchbase.Integrated.Transactions.Error.External
      *    fail and possibly retry point as soon as possible.
      * 2. The application is erroneously catching and not propagating exceptions in the lambda.
      */
-    internal class PreviousOperationFailedException : Exception
+    internal class PreviousOperationFailedException : CouchbaseException
     {
         private IEnumerable<Exception> Causes { get; } = Enumerable.Empty<Exception>();
 

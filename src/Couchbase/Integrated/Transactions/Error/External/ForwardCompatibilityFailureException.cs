@@ -7,7 +7,7 @@ namespace Couchbase.Integrated.Transactions.Error.External
     /// Indicates that this version of the transactions protocol encountered a document with metadata from a later
     /// version which it cannot safely interact with.
     /// </summary>
-    internal class ForwardCompatibilityFailureException : Exception
+    internal class ForwardCompatibilityFailureException : CouchbaseException
     {
         /// <inheritdoc />
         public ForwardCompatibilityFailureException() : base()
