@@ -7,7 +7,7 @@ using Couchbase.Integrated.Transactions.Error.External;
 using Microsoft.Extensions.Logging;
 using static Couchbase.Integrated.Transactions.Error.ErrorBuilder;
 using static Couchbase.Integrated.Transactions.Error.ErrorClass;
-using static Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalError;
+using static Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
 
 namespace Couchbase.Integrated.Transactions.Error.Attempts
 {
@@ -31,7 +31,7 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             (ErrorClass ec, TransactionOperationFailedException? toThrow) triageResult, Exception innerException) =>
             AssertNotNull(triageResult.toThrow, triageResult.ec, innerException);
 
-        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalError? raise = null)
+        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? raise = null)
         {
             var eb = CreateError(_ctx, ec, err);
             if (retry.HasValue && retry.Value)
@@ -132,11 +132,11 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#Creating-Staged-Inserts-Protocol-20-version
             var ec = err.Classify();
             bool defaultRetry = false;
-            TransactionOperationFailedException.FinalError? finalError = null;
+            TransactionOperationFailedException.FinalErrorToRaise? finalError = null;
             if (err is TransactionOperationFailedException tofe)
             {
                 defaultRetry = tofe.RetryTransaction;
-                finalError = tofe.FinalErrorToRaise;
+                finalError = tofe.ToRaise;
             }
 
             ErrorBuilder? toThrow = ec switch
@@ -211,7 +211,7 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
-                FailHard => Error(ec, err, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionFailedPostCommit),
+                FailHard => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit),
                 // Setting the ATR to COMPLETED is purely a cleanup step, there’s no need to retry it until expiry.
                 // Simply return success (leaving state at COMMITTED).
                 _ => null,

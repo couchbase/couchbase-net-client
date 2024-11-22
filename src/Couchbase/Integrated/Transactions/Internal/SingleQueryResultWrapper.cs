@@ -61,11 +61,11 @@ namespace Couchbase.Integrated.Transactions.Internal
                     var converted = _ctx.ConvertQueryError(ex);
                     if (converted is TransactionOperationFailedException err)
                     {
-                        Exception toRaise = err.FinalErrorToRaise switch
+                        Exception toRaise = err.ToRaise switch
                         {
-                            TransactionOperationFailedException.FinalError.TransactionFailed => new TransactionFailedException("Failed during query results streaming", err, null),
-                            TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous => new TransactionCommitAmbiguousException("Ambiguous commit during single query transaction", err, null),
-                            TransactionOperationFailedException.FinalError.TransactionExpired => new UnambiguousTimeoutException("Timeout during query result streaming"),
+                            TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed => new TransactionFailedException("Failed during query results streaming", err, null),
+                            TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous => new TransactionCommitAmbiguousException("Ambiguous commit during single query transaction", err, null),
+                            TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired => new UnambiguousTimeoutException("Timeout during query result streaming"),
                             _ => err
                         };
 

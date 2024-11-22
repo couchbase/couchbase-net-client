@@ -9,7 +9,7 @@ namespace Couchbase.Integrated.Transactions.Error
         public const ErrorBuilder? None = null;
         private readonly AttemptContext? _ctx;
         private readonly ErrorClass _causingErrorClass;
-        private TransactionOperationFailedException.FinalError _toRaise = TransactionOperationFailedException.FinalError.TransactionFailed;
+        private TransactionOperationFailedException.FinalErrorToRaise _toRaise = TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed;
         private bool _rollbackAttempt = true;
         private bool _retryTransaction = false;
         private Exception _cause = new Exception("generic exception cause");
@@ -31,9 +31,9 @@ namespace Couchbase.Integrated.Transactions.Error
             return builder;
         }
 
-        public ErrorBuilder RaiseException(TransactionOperationFailedException.FinalError finalErrorToRaise)
+        public ErrorBuilder RaiseException(TransactionOperationFailedException.FinalErrorToRaise toRaise)
         {
-            _toRaise = finalErrorToRaise;
+            _toRaise = toRaise;
             return this;
         }
 

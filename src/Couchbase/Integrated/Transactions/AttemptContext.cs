@@ -135,7 +135,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 throw Error(ec: ErrorClass.FailExpiry,
                     err: new AttemptExpiredException(this, $"Expired while under async Lock ({lockDebug})"),
-                    raise: TransactionOperationFailedException.FinalError.TransactionExpired, rollback: false, setStateBits: true);
+                    toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired, rollback: false, setStateBits: true);
             }
         }
 
@@ -193,7 +193,7 @@ namespace Couchbase.Integrated.Transactions
                     nameof(WaitForKvAndLock), _kvOps.RunningTotal, _kvOps);
                 Error(
                     ec: ErrorClass.FailExpiry,
-                    raise: TransactionOperationFailedException.FinalError.TransactionExpired,
+                    toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired,
                     rollback: false,
                     err: new AttemptExpiredException(this, callerName),
                     setStateBits: true
@@ -1105,7 +1105,7 @@ namespace Couchbase.Integrated.Transactions
                 throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                     .Cause(new AttemptExpiredException(this, "Expired in 'removeStagedInsert'"))
                     .DoNotRollbackAttempt()
-                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                     .Build();
             }
 
@@ -1218,7 +1218,7 @@ namespace Couchbase.Integrated.Transactions
                 if (ec == ErrorClass.FailExpiry)
                 {
                     throw ErrorBuilder.CreateError(this, ec, err)
-                        .RaiseException(TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous)
+                        .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous)
                         .DoNotRollbackAttempt()
                         .Build();
                 }
@@ -1331,7 +1331,7 @@ namespace Couchbase.Integrated.Transactions
                     {
                         throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry, new AttemptExpiredException(this))
                             .DoNotRollbackAttempt()
-                            .RaiseException(TransactionOperationFailedException.FinalError.TransactionFailedPostCommit)
+                            .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionFailedPostCommit)
                             .Build();
                     }
 
@@ -1403,7 +1403,7 @@ namespace Couchbase.Integrated.Transactions
                     {
                         throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry, new AttemptExpiredException(this))
                             .DoNotRollbackAttempt()
-                            .RaiseException(TransactionOperationFailedException.FinalError.TransactionFailedPostCommit)
+                            .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionFailedPostCommit)
                             .Build();
                     }
 
@@ -1477,11 +1477,11 @@ namespace Couchbase.Integrated.Transactions
                     {
                         if (ambiguityResolutionMode)
                         {
-                            throw Error(ec, new AttemptExpiredException(this, "Attempt expired ambiguously in " + nameof(SetAtrCommit)), rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, new AttemptExpiredException(this, "Attempt expired ambiguously in " + nameof(SetAtrCommit)), rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                         }
                         else
                         {
-                            throw Error(ec, new AttemptExpiredException(this, "Attempt expired in " + nameof(SetAtrCommit)), rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionExpired);
+                            throw Error(ec, new AttemptExpiredException(this, "Attempt expired in " + nameof(SetAtrCommit)), rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired);
                         }
                     }
                     else if (ec == ErrorClass.FailAmbiguous)
@@ -1493,7 +1493,7 @@ namespace Couchbase.Integrated.Transactions
                     {
                         if (ambiguityResolutionMode)
                         {
-                            throw Error(ec, err, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, err, rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                         }
 
                         throw Error(ec, err, rollback: false);
@@ -1541,7 +1541,7 @@ namespace Couchbase.Integrated.Transactions
                         if (ambiguityResolutionMode == true)
                         {
                             // we were unable to attain clarity
-                            throw Error(ec, cause, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, cause, rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                         }
 
                         throw Error(ec, cause, rollback: rollback);
@@ -1569,9 +1569,9 @@ namespace Couchbase.Integrated.Transactions
                     switch (ec)
                     {
                         case ErrorClass.FailExpiry:
-                            throw Error(ec, new AttemptExpiredException(this, "expired resolving commit ambiguity", exAmbiguity), rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, new AttemptExpiredException(this, "expired resolving commit ambiguity", exAmbiguity), rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                         case ErrorClass.FailHard:
-                            throw Error(ec, exAmbiguity, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, exAmbiguity, rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                         case ErrorClass.FailTransient:
                         case ErrorClass.FailOther:
                             return (retry: RepeatAction.RepeatWithDelay, finalVal: RepeatAction.RepeatWithDelay);
@@ -1586,7 +1586,7 @@ namespace Couchbase.Integrated.Transactions
                                 cause = new ActiveTransactionRecordEntryNotFoundException();
                             }
 
-                            throw Error(ec, cause, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous);
+                            throw Error(ec, cause, rollback: false, toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous);
                     }
                 }
 
@@ -1642,7 +1642,7 @@ namespace Couchbase.Integrated.Transactions
                         throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                             .Cause(new AttemptExpiredException(this, "Expired in " + nameof(SetAtrAborted)))
                             .DoNotRollbackAttempt()
-                            .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                            .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                             .Build();
                     }
 
@@ -1958,7 +1958,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 var builder = ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                     .Cause(new AttemptExpiredException(this, "Expired in " + nameof(caller)))
-                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired);
+                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired);
                 if (!rollback)
                 {
                     builder.DoNotRollbackAttempt();
@@ -2006,7 +2006,7 @@ namespace Couchbase.Integrated.Transactions
                 _expirationOvertimeMode = true;
                 throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                     .Cause(new AttemptExpiredException(this, $"Expired in '{hookPoint}'"))
-                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                     .Build();
             }
         }
@@ -2316,7 +2316,7 @@ namespace Couchbase.Integrated.Transactions
                     hookPoint, _overallContext.RemainingUntilExpiration.TotalMilliseconds, ExpiryThreshold.TotalMilliseconds);
 
                 throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
-                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                     .DoNotRollbackAttempt()
                     .Build();
             }
@@ -2334,7 +2334,7 @@ namespace Couchbase.Integrated.Transactions
             if (err is Couchbase.Core.Exceptions.TimeoutException)
             {
                 return ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
-                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                     .Build();
             }
             else if (err is CouchbaseException ce)
@@ -2366,7 +2366,7 @@ namespace Couchbase.Integrated.Transactions
                             case 17010: // TransactionTimeout
                                 return ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                                     .Cause(new AttemptExpiredException(this, "expired during query", err))
-                                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                                    .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                                     .Build();
                             case 17012: // Duplicate key
                                 return new DocumentExistsException(qec);
@@ -2392,13 +2392,13 @@ namespace Couchbase.Integrated.Transactions
                             );
 
                             var builder = ErrorBuilder.CreateError(this, ErrorClass.FailOther, err);
-                            TransactionOperationFailedException.FinalError toRaise = errorCause?.raise switch
+                            TransactionOperationFailedException.FinalErrorToRaise toRaise = errorCause?.raise switch
                             {
-                                "failed_post_commit" => TransactionOperationFailedException.FinalError.TransactionFailedPostCommit,
-                                "commit_ambiguous" => TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous,
-                                "expired" => TransactionOperationFailedException.FinalError.TransactionExpired,
-                                "failed" => TransactionOperationFailedException.FinalError.TransactionFailed,
-                                _ => TransactionOperationFailedException.FinalError.TransactionFailed
+                                "failed_post_commit" => TransactionOperationFailedException.FinalErrorToRaise.TransactionFailedPostCommit,
+                                "commit_ambiguous" => TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous,
+                                "expired" => TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired,
+                                "failed" => TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed,
+                                _ => TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed
                             };
 
                             builder = builder.RaiseException(toRaise);
@@ -2612,7 +2612,7 @@ namespace Couchbase.Integrated.Transactions
         private DelegatingDisposable<IRequestSpan> TraceSpan([CallerMemberName] string method = "RootSpan", IRequestSpan? parent = null)
             => new DelegatingDisposable<IRequestSpan>(_requestTracer.RequestSpan(method, parent), Logger.BeginMethodScope(method));
 
-        private Exception Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalError? raise = null, bool setStateBits = true)
+        private Exception Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
         {
             var eb = ErrorBuilder.CreateError(this, ec, err);
             if (retry.HasValue && retry.Value)
@@ -2625,14 +2625,13 @@ namespace Couchbase.Integrated.Transactions
                 eb.DoNotRollbackAttempt();
             }
 
-            if (raise.HasValue)
+            if (toRaise.HasValue)
             {
-                eb.RaiseException(raise.Value);
+                eb.RaiseException(toRaise.Value);
             }
 
             return eb.Build();
         }
-
     }
 }
 

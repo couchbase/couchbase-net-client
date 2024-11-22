@@ -45,9 +45,9 @@ namespace Couchbase.Integrated.Transactions.Error.External
         /// <summary>
         /// Gets the final error to raise if this is the last attempt in the transaction.
         /// </summary>
-        public FinalError FinalErrorToRaise { get; }
+        public FinalErrorToRaise ToRaise { get; }
 
-        public enum FinalError : byte
+        public enum FinalErrorToRaise : byte
         {
             TransactionSuccess = 0,
             TransactionFailed = TransactionSuccess + 1,
@@ -62,14 +62,14 @@ namespace Couchbase.Integrated.Transactions.Error.External
             bool autoRollbackAttempt,
             bool retryTransaction,
             Exception cause,
-            FinalError finalErrorToRaise)
+            FinalErrorToRaise toRaise)
         {
             ExceptionNumber = Interlocked.Increment(ref ExceptionCount);
             CausingErrorClass = causingErrorClass;
             AutoRollbackAttempt = autoRollbackAttempt;
             RetryTransaction = retryTransaction;
             Cause = cause;
-            FinalErrorToRaise = finalErrorToRaise;
+            ToRaise = toRaise;
         }
     }
 }

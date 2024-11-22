@@ -3,7 +3,7 @@ using System.Linq;
 using Xunit;
 using Couchbase.Integrated.Transactions.Util;
 using BF = Couchbase.Integrated.Transactions.Util.StateBits.BehaviorFlags;
-using FE = Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalError;
+using FE = Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
 namespace Couchbase.UnitTests.Integrated.Transactions;
 public class StateBitsTests
 {

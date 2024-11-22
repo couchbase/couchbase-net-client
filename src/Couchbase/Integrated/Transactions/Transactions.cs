@@ -205,23 +205,23 @@ namespace Couchbase.Integrated.Transactions
                         else
                         {
                             // Otherwise, we are not going to retry. What happens next depends on err.raise
-                            switch (ex.FinalErrorToRaise)
+                            switch (ex.ToRaise)
                             {
                                 //  Failure post-commit may or may not be a failure to the application,
                                 // as the cleanup process should complete the commit soon. It often depends on
                                 // whether the application wants RYOW, e.g. AT_PLUS. So, success will be returned,
                                 // but TransactionResult.unstagingComplete() will be false.
                                 // The application can interpret this as it needs.
-                                case TransactionOperationFailedException.FinalError.TransactionFailedPostCommit:
+                                case TransactionOperationFailedException.FinalErrorToRaise.TransactionFailedPostCommit:
                                     result.UnstagingComplete = false;
                                     return result;
 
                                 // Raise TransactionExpired to application, with a cause of err.cause.
-                                case TransactionOperationFailedException.FinalError.TransactionExpired:
+                                case TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired:
                                     throw new TransactionExpiredException("Transaction Expired", ex.Cause, result);
 
                                 // Raise TransactionCommitAmbiguous to application, with a cause of err.cause.
-                                case TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous:
+                                case TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous:
                                     throw new TransactionCommitAmbiguousException("Transaction may have failed to commit.", ex.Cause, result);
 
                                 default:
@@ -364,7 +364,7 @@ namespace Couchbase.Integrated.Transactions
                         throw ErrorBuilder.CreateError(ctx, ex.CausingErrorClass)
                             .Cause(ex.Cause)
                             .DoNotRollbackAttempt()
-                            .RaiseException(ex.FinalErrorToRaise)
+                            .RaiseException(ex.ToRaise)
                             .Build();
                     }
                 }
@@ -381,12 +381,12 @@ namespace Couchbase.Integrated.Transactions
                     memoryLogger.LogWarning("Transaction is expired.  No more retries or rollbacks.");
                     throw ErrorBuilder.CreateError(ctx, ErrorClass.FailExpiry)
                         .DoNotRollbackAttempt()
-                        .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                        .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                         .Build();
                 }
 
                 // Else if it succeeded or no rollback was performed, propagate err up.
-                memoryLogger.LogDebug("Propagating error up. (ec = {ec}, retry = {retry}, finalError = {finalError})", ex.CausingErrorClass, ex.RetryTransaction, ex.FinalErrorToRaise);
+                memoryLogger.LogDebug("Propagating error up. (ec = {ec}, retry = {retry}, finalError = {finalError})", ex.CausingErrorClass, ex.RetryTransaction, ex.ToRaise);
                 throw;
             }
             finally

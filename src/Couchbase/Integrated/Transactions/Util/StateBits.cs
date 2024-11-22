@@ -3,7 +3,7 @@ using System;
 using System.Threading;
 using Couchbase.Integrated.Transactions.Error;
 using Couchbase.Integrated.Transactions.Error.External;
-using FinalErrorToRaise = Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalError;
+using FinalErrorToRaise = Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
 namespace Couchbase.Integrated.Transactions.Util;
 internal class StateBits
 {
@@ -95,7 +95,7 @@ internal class StateBits
         {
             newFlags |= StateBits.BehaviorFlags.ShouldNotRetry;
         }
-        SetStateBits(newFlags, finalError: err.FinalErrorToRaise);
+        SetStateBits(newFlags, finalError: err.ToRaise);
     }
 }
 
