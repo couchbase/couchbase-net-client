@@ -326,8 +326,9 @@ namespace Couchbase.Integrated.Transactions
             using var traceSpan = TraceSpan(parent: parentSpan);
             try
             {
-                var queryOptions = NonStreamingQuery().Parameter(collection.MakeKeyspace())
-                                                      .Parameter(id);
+                var queryOptions = NonStreamingQuery().Parameter(collection.ToKeySpace().ForQueryParameter())
+                    .Parameter(id);
+
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __get",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_GET,
@@ -554,10 +555,11 @@ namespace Couchbase.Integrated.Transactions
 
             try
             {
-                var queryOptions = NonStreamingQuery().Parameter(doc.Collection.MakeKeyspace())
+                var queryOptions = NonStreamingQuery().Parameter(doc.Collection.ToKeySpace().ForQueryParameter())
                                                .Parameter(doc.Id)
                                                .Parameter(content)
                                                .Parameter(new { });
+
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __update",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_REPLACE,
@@ -721,10 +723,11 @@ namespace Couchbase.Integrated.Transactions
 
             try
             {
-                var queryOptions = NonStreamingQuery().Parameter(collection.MakeKeyspace())
+                var queryOptions = NonStreamingQuery().Parameter(collection.ToKeySpace().ForQueryParameter())
                                                .Parameter(id)
                                                .Parameter(content)
                                                .Parameter(new { });
+                
                 using var queryResult = await QueryWrapper<QueryInsertResult>(0, _queryContextScope, "EXECUTE __insert",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_INSERT,
@@ -1026,9 +1029,10 @@ namespace Couchbase.Integrated.Transactions
 
             try
             {
-                var queryOptions = NonStreamingQuery().Parameter(doc.Collection.MakeKeyspace())
+                var queryOptions = NonStreamingQuery().Parameter(doc.Collection.ToKeySpace().ForQueryParameter())
                                                       .Parameter(doc.Id)
                                                       .Parameter(new { });
+
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __delete",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_REMOVE,

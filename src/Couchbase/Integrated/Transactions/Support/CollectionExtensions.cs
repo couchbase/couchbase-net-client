@@ -46,7 +46,10 @@ namespace Couchbase.Integrated.Transactions.Support
             return opts;
         }
 
-        internal static string MakeKeyspace(this ICouchbaseCollection collection) => $"default:`{collection.Scope.Bucket.Name}`.`{collection.Scope.Name}`.`{collection.Name}`";
+        internal static KeySpace ToKeySpace(this ICouchbaseCollection collection) => new KeySpace(
+            Bucket: collection.Scope.Bucket.Name,
+            Scope: collection.Scope.Name,
+            Collection: collection.Name);
     }
 }
 

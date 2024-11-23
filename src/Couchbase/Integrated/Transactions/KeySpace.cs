@@ -19,6 +19,9 @@ public record KeySpace(string Bucket, string Scope, string Collection)
         Bucket: collection.Scope.Bucket.Name,
         Scope: collection.Scope.Name,
         Collection: collection.Name);
+
+    // TODO:  escape names?
+    internal string ForQueryParameter() => $"default:`{Bucket}`.`{Scope}`.`{Collection}`";
 }
 
 
