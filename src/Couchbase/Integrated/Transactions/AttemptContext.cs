@@ -134,7 +134,7 @@ namespace Couchbase.Integrated.Transactions
             if (!successfullyWaited)
             {
                 throw Error(ec: ErrorClass.FailExpiry,
-                    err: new AttemptExpiredException(this, $"Expired while under async Lock ({lockDebug})"),
+                    cause: new AttemptExpiredException(this, $"Expired while under async Lock ({lockDebug})"),
                     toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired, rollback: false, setStateBits: true);
             }
         }
@@ -195,7 +195,7 @@ namespace Couchbase.Integrated.Transactions
                     ec: ErrorClass.FailExpiry,
                     toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired,
                     rollback: false,
-                    err: new AttemptExpiredException(this, callerName),
+                    cause: new AttemptExpiredException(this, callerName),
                     setStateBits: true
                     );
             }
@@ -727,7 +727,7 @@ namespace Couchbase.Integrated.Transactions
                                                .Parameter(id)
                                                .Parameter(content)
                                                .Parameter(new { });
-                
+
                 using var queryResult = await QueryWrapper<QueryInsertResult>(0, _queryContextScope, "EXECUTE __insert",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_INSERT,
@@ -2612,9 +2612,9 @@ namespace Couchbase.Integrated.Transactions
         private DelegatingDisposable<IRequestSpan> TraceSpan([CallerMemberName] string method = "RootSpan", IRequestSpan? parent = null)
             => new DelegatingDisposable<IRequestSpan>(_requestTracer.RequestSpan(method, parent), Logger.BeginMethodScope(method));
 
-        private Exception Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
+        private Exception Error(ErrorClass ec, Exception cause, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
         {
-            var eb = ErrorBuilder.CreateError(this, ec, err);
+            var eb = ErrorBuilder.CreateError(this, ec, cause);
             if (retry.HasValue && retry.Value)
             {
                 eb.RetryTransaction();
