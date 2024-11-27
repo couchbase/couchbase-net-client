@@ -77,6 +77,10 @@ namespace Couchbase.Integrated.Transactions
         private readonly SemaphoreSlim _mutex = new(1, 1);
         private readonly WaitGroup _kvOps = new();
 
+        internal StateBits StateBits { get; } = new();
+
+        internal TransactionOperationFailedException.FinalErrorToRaise FinalError => StateBits.FinalError;
+
         /// <summary>
         /// Gets the ID of this individual attempt.
         /// </summary>
@@ -257,8 +261,36 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="id">The ID of the document.</param>
         /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A <see cref="TransactionGetResult"/> containing the document, or null if  not found.</returns>
-        public Task<TransactionGetResult?> GetOptionalAsync(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan = null)
-            => _queryMode ? GetWithQuery(collection, id, parentSpan) : GetWithKv(collection, id, parentSpan);
+        public async Task<TransactionGetResult?> GetOptionalAsync(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan = null)
+        {
+            using var waiter = await KvOpInit().CAF();
+            try
+            {
+                if (_queryMode)
+                {
+                    return await GetWithQuery(collection, id, parentSpan).CAF();
+                }
+
+                return await GetWithKv(collection, id, parentSpan).CAF();
+            }
+            catch (TransactionOperationFailedException)
+            {
+                UnlockOnError();
+                throw;
+            }
+            catch (Exception err)
+            {
+                var wrapped = ErrorBuilder.WrapError(this, err);
+                StateBits.SetFromException(wrapped);
+                UnlockOnError();
+                throw wrapped;
+            }
+            finally
+            {
+                Unlock();
+                RemoveKvOp(waiter.OperationId);
+            }
+        }
 
         private async Task<TransactionGetResult?> GetWithKv(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
         {
@@ -305,6 +337,12 @@ namespace Couchbase.Integrated.Transactions
                 catch (Exception ex)
                 {
                     var tr = _triage.TriageGetErrors(ex);
+
+                    if (tr.toThrow is { } err)
+                    {
+                        StateBits.SetFromException(err);
+                    }
+
                     switch (tr.ec)
                     {
                         case ErrorClass.FailDocNotFound:
@@ -314,10 +352,15 @@ namespace Couchbase.Integrated.Transactions
                     }
                 }
             }
-            catch (TransactionOperationFailedException toSave)
+            catch (TransactionOperationFailedException)
             {
-                SaveErrorWrapper(toSave);
                 throw;
+            }
+            catch (Exception err)
+            {
+                var wrapped = ErrorBuilder.WrapError(this, err);
+                StateBits.SetFromException(wrapped);
+                throw wrapped;
             }
         }
 
@@ -1154,20 +1197,31 @@ namespace Couchbase.Integrated.Transactions
         /// Commits the transaction.
         /// </summary>
         /// <param name="parentSpan">(optional) RequestSpan to use as a parent for tracing.</param>
-        public async Task CommitAsync(IRequestSpan? parentSpan = null)
+        internal async Task CommitAsync(IRequestSpan? parentSpan = null)
         {
-            if (!_previousErrors.IsEmpty)
+            try
             {
-                _triage.ThrowIfCommitWithPreviousErrors(_previousErrors.Values);
-            }
+                await WaitForKvAndLock().CAF();
+                if (StateBits.HasFlag(StateBits.BehaviorFlags.CommitNotAllowed))
+                {
+                    throw Error(ec: ErrorClass.FailOther, cause: new CommitNotPermittedException(), rollback: false);
+                }
 
-            if (_queryMode)
-            {
-                await CommitWithQuery(parentSpan).CAF();
+                if (_queryMode)
+                {
+                    await CommitWithQuery(parentSpan).CAF();
+                }
+                else
+                {
+                    await CommitWithKv(parentSpan).CAF();
+                }
+
+                StateBits.SetStateBits(StateBits.BehaviorFlags.CommitNotAllowed |
+                                       StateBits.BehaviorFlags.AppRollbackNotAllowed);
             }
-            else
+            finally
             {
-                await CommitWithKv(parentSpan).CAF();
+                Unlock();
             }
         }
 
@@ -1620,6 +1674,7 @@ namespace Couchbase.Integrated.Transactions
         private async Task SetAtrAborted(bool isAppRollback, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
+            bool setStateBits = isAppRollback;
             Logger.LogInformation("Setting Aborted status.  isAppRollback={isAppRollback}", isAppRollback);
 
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A?view#SetATRAborted
@@ -1639,14 +1694,15 @@ namespace Couchbase.Integrated.Transactions
                 {
                     if (_expirationOvertimeMode)
                     {
-                        throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
-                            .Cause(new AttemptExpiredException(this, "Expired in " + nameof(SetAtrAborted)))
-                            .DoNotRollbackAttempt()
-                            .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
-                            .Build();
+                        throw Error(ec: ErrorClass.FailExpiry,
+                            cause: new AttemptExpiredException(this, nameof(SetAtrAborted)),
+                            rollback: false,
+                            toRaise: TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired,
+                            setStateBits: setStateBits); // ExtSdkIntegration, there is no more AppRollback()
                     }
 
-                    (ErrorClass ec, TransactionOperationFailedException? toThrow) = _triage.TriageSetAtrAbortedErrors(ex);
+                    (ErrorClass ec, TransactionOperationFailedException? toThrow) = _triage.TriageSetAtrAbortedErrors(ex, setStateBits);
+
                     switch (ec)
                     {
                         case ErrorClass.FailExpiry:
@@ -1666,9 +1722,10 @@ namespace Couchbase.Integrated.Transactions
             }).CAF();
         }
 
-        private async Task SetAtrRolledBack(IRequestSpan? parentSpan)
+        private async Task SetAtrRolledBack(IRequestSpan? parentSpan, bool isAppRollback)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
+            bool setStateBits = isAppRollback;
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A?view#SetATRRolledBack
             await RepeatUntilSuccessOrThrow(async () =>
             {
@@ -1689,7 +1746,7 @@ namespace Couchbase.Integrated.Transactions
                 {
                     BailoutIfInOvertime(rollback: false);
 
-                    (ErrorClass ec, TransactionOperationFailedException? toThrow) = _triage.TriageSetAtrRolledBackErrors(ex);
+                    (ErrorClass ec, TransactionOperationFailedException? toThrow) = _triage.TriageSetAtrRolledBackErrors(ex, setStateBits);
                     switch (ec)
                     {
                         case ErrorClass.FailPathNotFound:
@@ -1770,8 +1827,37 @@ namespace Couchbase.Integrated.Transactions
 
         private bool IsDone { get; set; }
 
-        internal Task RollbackInternal(bool isAppRollback, IRequestSpan? parentSpan)
-            => _queryMode ? RollbackWithQuery(isAppRollback, parentSpan) : RollbackWithKv(isAppRollback, parentSpan);
+        internal async Task RollbackInternal(bool isAppRollback, IRequestSpan? parentSpan)
+        {
+            try
+            {
+                await WaitForKvAndLock().CAF();
+                if (StateBits.HasFlag(StateBits.BehaviorFlags.ShouldNotRollback))
+                {
+                    throw Error(ec: ErrorClass.FailOther, cause: new RollbackNotPermittedException(), rollback: false);
+                }
+                DoneCheck();
+                StateBits.SetStateBits(StateBits.BehaviorFlags.ShouldNotRollback | StateBits.BehaviorFlags.CommitNotAllowed);
+
+                if (_queryMode)
+                {
+                    await RollbackWithQuery(isAppRollback, parentSpan).CAF();
+                    return;
+                }
+
+                if (_state == AttemptStates.NOTHING_WRITTEN)
+                {
+                    // skip rollback. There is nothing to do
+                    return;
+                }
+
+                await RollbackWithKv(isAppRollback, parentSpan).CAF();
+            }
+            finally
+            {
+                Unlock();
+            }
+        }
 
         internal async Task RollbackWithKv(bool isAppRollback, IRequestSpan? parentSpan)
         {
@@ -1806,11 +1892,11 @@ namespace Couchbase.Integrated.Transactions
                 switch (sm.Type)
                 {
                     case StagedMutationType.Insert:
-                        await RollbackStagedInsert(sm, traceSpan.Item).CAF();
+                        await RollbackStagedReplaceOrRemove(isAppRollback, sm, traceSpan.Item).CAF();
                         break;
                     case StagedMutationType.Remove:
                     case StagedMutationType.Replace:
-                        await RollbackStagedReplaceOrRemove(sm, traceSpan.Item).CAF();
+                        await RollbackStagedReplaceOrRemove(isAppRollback, sm, traceSpan.Item).CAF();
                         break;
                     default:
                         throw new InvalidOperationException(sm.Type + " is not a supported mutation type for rollback.");
@@ -1818,11 +1904,15 @@ namespace Couchbase.Integrated.Transactions
                 }
             }
 
-            await SetAtrRolledBack(traceSpan.Item).CAF();
+            await SetAtrRolledBack(traceSpan.Item, isAppRollback).CAF();
         }
 
         internal async Task RollbackWithQuery(bool isAppRollback, IRequestSpan? parentSpan)
         {
+            // ExtThreadSafety: a general rule is that the user does not care about errors that occur during auto-rollback
+            // (they care about what _caused_ the rollback).  So, any `TransactionOperationFailed` that are raised during
+            // auto-rollback, do _not_ set internal state bits
+            bool setStateBits = !isAppRollback;
             var traceSpan = TraceSpan(parent: parentSpan);
             try
             {
@@ -1830,6 +1920,7 @@ namespace Couchbase.Integrated.Transactions
                 _ = await QueryWrapper<object>(0, _queryContextScope, "ROLLBACK", queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_ROLLBACK,
                     parentSpan: traceSpan.Item,
+                    updatedInternalState: isAppRollback,
                     existingErrorCheck: false).CAF();
                 _state = AttemptStates.ROLLED_BACK;
             }
@@ -1849,7 +1940,11 @@ namespace Couchbase.Integrated.Transactions
                 var toSave = ErrorBuilder.CreateError(this, err.Classify(), err)
                     .DoNotRollbackAttempt()
                     .Build();
-                SaveErrorWrapper(toSave);
+
+                if (setStateBits)
+                {
+                    StateBits.SetFromException(toSave);
+                }
                 throw toSave;
             }
             finally
@@ -1858,7 +1953,7 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private async Task RollbackStagedInsert(StagedMutation sm, IRequestSpan? parentSpan)
+        private async Task RollbackStagedInsert(bool isAppRollback, StagedMutation sm, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
 
@@ -1880,6 +1975,11 @@ namespace Couchbase.Integrated.Transactions
                     BailoutIfInOvertime(rollback: false);
 
                     (ErrorClass ec, TransactionOperationFailedException? toThrow) = _triage.TriageRollbackStagedInsertErrors(ex);
+                    bool setStateBits = !isAppRollback;
+                    if (setStateBits && toThrow is { } err)
+                    {
+                        StateBits.SetFromException(err);
+                    }
                     switch (ec)
                     {
                         case ErrorClass.FailExpiry:
@@ -1899,7 +1999,7 @@ namespace Couchbase.Integrated.Transactions
             }).CAF();
         }
 
-        private async Task RollbackStagedReplaceOrRemove(StagedMutation sm, IRequestSpan? parentSpan)
+        private async Task RollbackStagedReplaceOrRemove(bool isAppRollback, StagedMutation sm, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
 
@@ -1921,6 +2021,13 @@ namespace Couchbase.Integrated.Transactions
                     BailoutIfInOvertime(rollback: false);
 
                     var tr = _triage.TriageRollbackStagedRemoveOrReplaceErrors(ex);
+                    bool setStateBits = !isAppRollback;
+
+                    if (setStateBits && tr.toThrow is { } err)
+                    {
+                        StateBits.SetFromException(err);
+                    }
+
                     switch (tr.ec)
                     {
                         case ErrorClass.FailExpiry:
@@ -2150,9 +2257,12 @@ namespace Couchbase.Integrated.Transactions
                         redactedId,
                         _overallContext.TransactionId,
                         AttemptId);
-                    throw ErrorBuilder.CreateError(this, ErrorClass.FailWriteWriteConflict)
+
+                    var toThrow = ErrorBuilder.CreateError(this, ErrorClass.FailWriteWriteConflict)
                         .RetryTransaction()
                         .Build();
+                    StateBits.SetFromException(toThrow);
+                    throw toThrow;
                 }
                 else
                 {
@@ -2175,7 +2285,8 @@ namespace Couchbase.Integrated.Transactions
                 bool isBeginWork = false,
                 bool existingErrorCheck = true,
                 JObject? txdata = null,
-                bool txImplicit = false
+                bool txImplicit = false,
+                bool updatedInternalState = false
             )
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
@@ -2184,12 +2295,9 @@ namespace Couchbase.Integrated.Transactions
 
             Logger.LogDebug("[{attemptId}] Executing Query: {hookPoint}: {txdata}", AttemptId, hookPoint, Redactor.UserData(txdata?.ToString()));
 
-            if (!_queryMode && !isBeginWork)
+            if (!txImplicit && !_queryMode && !isBeginWork)
             {
-                if (!txImplicit)
-                {
-                    await QueryBeginWork(traceSpan?.Item, scope).CAF();
-                }
+                await QueryBeginWork(traceSpan?.Item, scope).CAF();
 
                 _queryMode = true;
             }
@@ -2234,9 +2342,8 @@ namespace Couchbase.Integrated.Transactions
 
                     if (results.MetaData?.Status == QueryStatus.Fatal)
                     {
-                        var err = ErrorBuilder.CreateError(this, ErrorClass.FailOther).Build();
-                        SaveErrorWrapper(err);
-                        throw err;
+                        Logger.LogWarning("Query status = {queryStatus}", QueryStatus.Fatal);
+                        throw Error(setStateBits: updatedInternalState);
                     }
 
                     if (results.MetaData?.LastDispatchedToNode != null)
@@ -2246,18 +2353,28 @@ namespace Couchbase.Integrated.Transactions
 
                     return results;
                 }
+                catch (TransactionOperationFailedException err)
+                {
+                    if (updatedInternalState)
+                    {
+                        StateBits.SetFromException(err);
+                    }
+
+                    throw;
+                }
                 catch (Exception exByQuery)
                 {
-                    Logger.LogError("[{attemptId}] query failed at {hookPoint}: {cause}", AttemptId, hookPoint, exByQuery);
+                    Logger.LogError("[{attemptId}] query failed at {place}: {cause}", AttemptId, hookPoint, exByQuery);
                     var converted = ConvertQueryError(exByQuery);
-                    if (converted is TransactionOperationFailedException err)
-                    {
-                        SaveErrorWrapper(err);
-                    }
 
                     if (converted == null)
                     {
                         throw;
+                    }
+
+                    if (updatedInternalState && converted is TransactionOperationFailedException err)
+                    {
+                        StateBits.SetFromException(err);
                     }
 
                     throw converted;
@@ -2265,7 +2382,7 @@ namespace Couchbase.Integrated.Transactions
             }
             catch (TransactionExpiredException err)
             {
-                // ExtSingleQuery: As the very final stage .. If err is a TransactionExpiredException, raise an UnambiguousTimeoutException instead.
+                // ExtSingleQuery: As the very final stage...If err is a TransactionExpiredException, raise an UnambiguousTimeoutException instead.
                 throw new UnambiguousTimeoutException("Single Query Transaction timed out", err);
             }
         }
@@ -2275,7 +2392,15 @@ namespace Couchbase.Integrated.Transactions
             var state = new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
             // TODO: get the cluster KvTimeout value here.
             long? kvTimeoutMillis = 10_000;
-            var txConfig = new TxDataReportedConfig(kvTimeoutMillis ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
+            var durabilityString = _effectiveDurabilityLevel switch
+            {
+                DurabilityLevel.Majority => "MAJORITY",
+                DurabilityLevel.None => "NONE",
+                DurabilityLevel.PersistToMajority => "PERSIST_TO_MAJORITY",
+                DurabilityLevel.MajorityAndPersistToActive => "MAJORITY_AND_PERSIST_TO_ACTIVE",
+                _ => throw new InvalidArgumentException("Transaction Query Durability not supported in Transactions: " + _effectiveDurabilityLevel)
+            };
+            var txConfig = new TxDataReportedConfig(kvTimeoutMillis ?? 10_000, AtrIds.NumAtrs, durabilityString);
 
             var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
             var txid = new CompositeId()
@@ -2335,6 +2460,7 @@ namespace Couchbase.Integrated.Transactions
             {
                 return ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                     .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
+                    .DoNotUpdateStateBits()
                     .Build();
             }
             else if (err is CouchbaseException ce)
@@ -2355,10 +2481,12 @@ namespace Couchbase.Integrated.Transactions
                             case 1065: // Unknown parameter
                                 return ErrorBuilder.CreateError(this, ErrorClass.FailOther)
                                     .Cause(new FeatureNotAvailableException("Unknown query parameter: note that query support in transactions is available from Couchbase Server 7.0 onwards"))
+                                    .DoNotUpdateStateBits()
                                     .Build();
                             case 1197: // Missing tenant
                                 return ErrorBuilder.CreateError(this, ErrorClass.FailOther)
                                     .Cause(new FeatureNotAvailableException("This server requires that a Scope be passed to ctx.query()."))
+                                    .DoNotUpdateStateBits()
                                     .Build();
                             case 17004: // Transaction context error
                                 return new AttemptNotFoundOnQueryException();
@@ -2367,6 +2495,7 @@ namespace Couchbase.Integrated.Transactions
                                 return ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                                     .Cause(new AttemptExpiredException(this, "expired during query", err))
                                     .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
+                                    .DoNotUpdateStateBits()
                                     .Build();
                             case 17012: // Duplicate key
                                 return new DocumentExistsException(qec);
@@ -2412,6 +2541,7 @@ namespace Couchbase.Integrated.Transactions
                             {
                                 builder.DoNotRollbackAttempt();
                             }
+                            builder.DoNotUpdateStateBits();
 
                             return builder.Build();
                         }
@@ -2611,16 +2741,16 @@ namespace Couchbase.Integrated.Transactions
 
         private DelegatingDisposable<IRequestSpan> TraceSpan([CallerMemberName] string method = "RootSpan", IRequestSpan? parent = null)
             => new DelegatingDisposable<IRequestSpan>(_requestTracer.RequestSpan(method, parent), Logger.BeginMethodScope(method));
-
-        private Exception Error(ErrorClass ec, Exception cause, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
+        
+        private Exception Error(ErrorClass ec = ErrorClass.FailOther, Exception? cause = null, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
         {
             var eb = ErrorBuilder.CreateError(this, ec, cause);
-            if (retry.HasValue && retry.Value)
+            if (retry is true)
             {
                 eb.RetryTransaction();
             }
 
-            if (rollback.HasValue && rollback.Value == false)
+            if (rollback is false)
             {
                 eb.DoNotRollbackAttempt();
             }
@@ -2630,11 +2760,26 @@ namespace Couchbase.Integrated.Transactions
                 eb.RaiseException(toRaise.Value);
             }
 
-            return eb.Build();
+            if (!setStateBits)
+            {
+                eb.DoNotUpdateStateBits();
+            }
+
+            var err = eb.Build();
+            return err;
+        }
+
+
+        internal void UpdateStateBits(TransactionOperationFailedException err)
+        {
+            var preStateBits = StateBits.ToString();
+            StateBits.SetFromException(err);
+            Logger.LogDebug("State bits updated. old={preStateBits}, new={stateBits}",
+                preStateBits,
+                StateBits.ToString());
         }
     }
 }
-
 
 /* ************************************************************
  *

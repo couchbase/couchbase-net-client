@@ -12,6 +12,7 @@ namespace Couchbase.Integrated.Transactions.Error
         private TransactionOperationFailedException.FinalErrorToRaise _toRaise = TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed;
         private bool _rollbackAttempt = true;
         private bool _retryTransaction = false;
+        private bool _updateStateBits = true;
         private Exception _cause = new Exception("generic exception cause");
 
         private ErrorBuilder(AttemptContext? ctx, ErrorClass causingErrorClass)
@@ -30,6 +31,7 @@ namespace Couchbase.Integrated.Transactions.Error
 
             return builder;
         }
+        public static TransactionOperationFailedException WrapError(AttemptContext? ctx, Exception err) => CreateError(ctx, err.Classify(), err).Build();
 
         public ErrorBuilder RaiseException(TransactionOperationFailedException.FinalErrorToRaise toRaise)
         {
@@ -40,6 +42,12 @@ namespace Couchbase.Integrated.Transactions.Error
         public ErrorBuilder DoNotRollbackAttempt()
         {
             _rollbackAttempt = false;
+            return this;
+        }
+
+        public ErrorBuilder DoNotUpdateStateBits()
+        {
+            _updateStateBits = false;
             return this;
         }
 
@@ -55,13 +63,23 @@ namespace Couchbase.Integrated.Transactions.Error
             return this;
         }
 
-        public TransactionOperationFailedException Build() =>
-            new TransactionOperationFailedException(
+        public TransactionOperationFailedException Build()
+        {
+            var err = new TransactionOperationFailedException(
                 _causingErrorClass,
                 _rollbackAttempt,
                 _retryTransaction,
                 _cause,
-                _toRaise);
+                _toRaise,
+                _updateStateBits);
+
+            if (_updateStateBits)
+            {
+                _ctx?.UpdateStateBits(err);
+            }
+
+            return err;
+        }
     }
 }
 

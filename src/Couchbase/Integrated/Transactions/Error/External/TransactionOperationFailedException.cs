@@ -47,6 +47,8 @@ namespace Couchbase.Integrated.Transactions.Error.External
         /// </summary>
         public FinalErrorToRaise ToRaise { get; }
 
+        public bool UpdateStateBits { get; }
+
         public enum FinalErrorToRaise : byte
         {
             TransactionSuccess = 0,
@@ -62,7 +64,8 @@ namespace Couchbase.Integrated.Transactions.Error.External
             bool autoRollbackAttempt,
             bool retryTransaction,
             Exception cause,
-            FinalErrorToRaise toRaise)
+            FinalErrorToRaise toRaise,
+            bool updateStateBits)
         {
             ExceptionNumber = Interlocked.Increment(ref ExceptionCount);
             CausingErrorClass = causingErrorClass;
@@ -70,6 +73,7 @@ namespace Couchbase.Integrated.Transactions.Error.External
             RetryTransaction = retryTransaction;
             Cause = cause;
             ToRaise = toRaise;
+            UpdateStateBits = updateStateBits;
         }
     }
 }

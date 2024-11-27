@@ -31,7 +31,7 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             (ErrorClass ec, TransactionOperationFailedException? toThrow) triageResult, Exception innerException) =>
             AssertNotNull(triageResult.toThrow, triageResult.ec, innerException);
 
-        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? raise = null)
+        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? raise = null, bool setStateBits = true)
         {
             var eb = CreateError(_ctx, ec, err);
             if (retry.HasValue && retry.Value)
@@ -47,6 +47,11 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             if (raise.HasValue)
             {
                 eb.RaiseException(raise.Value);
+            }
+
+            if (!setStateBits)
+            {
+                eb.DoNotUpdateStateBits();
             }
 
             return eb;
@@ -264,34 +269,34 @@ namespace Couchbase.Integrated.Transactions.Error.Attempts
             return (ec, toThrow?.Build());
         }
 
-        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrAbortedErrors(Exception err)
+        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrAbortedErrors(Exception err, bool setStateBits)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#SetATRAborted
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
                 FailExpiry => null,
-                FailPathNotFound => Error(ec, new ActiveTransactionRecordEntryNotFoundException(), rollback: false),
-                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false),
-                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrAborted."), rollback: false),
-                FailHard => Error(ec, err, rollback: false),
+                FailPathNotFound => Error(ec, new ActiveTransactionRecordEntryNotFoundException(), rollback: false, setStateBits: setStateBits),
+                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false, setStateBits: setStateBits),
+                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrAborted."), rollback: false, setStateBits: setStateBits),
+                FailHard => Error(ec, err, rollback: false, setStateBits: setStateBits),
                 _ => null
             };
 
             return (ec, toThrow?.Build());
         }
 
-        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrRolledBackErrors(Exception err)
+        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrRolledBackErrors(Exception err, bool setStateBits)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#SetATRRolledBack
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
-                FailExpiry => Error(ec, err, rollback: false, raise: TransactionExpired),
+                FailExpiry => Error(ec, err, rollback: false, raise: TransactionExpired, setStateBits: setStateBits),
                 FailPathNotFound => null,
-                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false),
-                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrRolledBack."), rollback: false),
-                FailHard => Error(ec, err, rollback: false),
+                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false, setStateBits: setStateBits),
+                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrRolledBack."), rollback: false, setStateBits: setStateBits),
+                FailHard => Error(ec, err, rollback: false, setStateBits: setStateBits),
                 _ => null
             };
 
