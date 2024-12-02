@@ -1,8 +1,11 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry;
 using Couchbase.Integrated.Transactions.Components;
 using Couchbase.Integrated.Transactions.DataModel;
 using Couchbase.Integrated.Transactions.Support;
@@ -31,7 +34,17 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             if (_collection is null)
             {
                 var bkt = await _cluster.BucketAsync(KeySpace.Bucket).CAF();
+                if (string.IsNullOrWhiteSpace(KeySpace.Scope))
+                {
+                    return bkt.DefaultCollection();
+                }
+
                 var scp = bkt.Scope(KeySpace.Scope);
+                if (string.IsNullOrWhiteSpace(KeySpace.Collection))
+                {
+                    return scp.Collection("_default");
+                }
+
                 var col = scp.Collection(KeySpace.Collection);
                 _collection = col;
             }
@@ -62,9 +75,11 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord()
+        public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord(CancellationToken token)
         {
-            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder);
+            token.ThrowIfCancellationRequested();
+            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder).CancellationToken(token);
+            opts.PreferReturn = true;
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(ClientRecordsIndex.FIELD_RECORDS, isXattr: true),
@@ -73,25 +88,42 @@ namespace Couchbase.Integrated.Transactions.DataAccess
 
             var col = await GetCollection().CAF();
             var lookupInResult = await col.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
-            var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
-            var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
-            return (parsedRecord, parsedHlc, lookupInResult.Cas);
+            if (lookupInResult is { Cas: > 0 })
+            {
+                var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
+                var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
+                return (parsedRecord, parsedHlc, lookupInResult.Cas);
+            }
+
+            return (null, null, 0);
         }
 
-        public async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
+        private static readonly LookupInSpec[] LookupAttemptsSpec = new LookupInSpec[]
         {
-            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder);
-            var specs = new LookupInSpec[]
-            {
-                LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-                LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
-            };
+            LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
+            LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
+        };
 
+        private static readonly LookupInOptions LookupAttemptsOptions = new LookupInOptions() { PreferReturn = true }
+            .Transcoder(Transactions.MetadataTranscoder).RetryStrategy(new FailFastRetryStrategy());
+
+        public async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc, double[] timingInfo)> LookupAttempts(string atrId)
+        {
+            var sw = Stopwatch.StartNew();
+            var elapsed1 = sw.Elapsed.TotalMilliseconds;
             var col = await GetCollection().CAF();
-            var lookupInResult = await col.LookupInAsync(atrId, specs, opts).CAF();
+            var elapsed2 = sw.Elapsed.TotalMilliseconds;
+            var lookupInResult = await col.LookupInAsync(atrId, LookupAttemptsSpec, LookupAttemptsOptions).CAF();
+            var elapsed3 = sw.Elapsed.TotalMilliseconds;
+            if (lookupInResult is not { Cas: > 0 })
+            {
+                return (null, null, [elapsed1, elapsed2, elapsed3]);
+            }
             var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0);
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
-            return (attempts, parsedHlc);
+            sw.Stop();
+            var elapsed4 = sw.Elapsed.TotalMilliseconds;
+            return (attempts, parsedHlc, [elapsed1, elapsed2, elapsed3, elapsed4]);
         }
 
         public async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None)

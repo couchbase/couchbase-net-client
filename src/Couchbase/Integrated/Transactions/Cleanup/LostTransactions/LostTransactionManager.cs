@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Integrated.Transactions.Config;
 using Couchbase.Integrated.Transactions.Support;
 using Couchbase.Integrated.Transactions.DataAccess;
 using Couchbase.Integrated.Transactions.Internal.Test;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
 {
-    internal class LostTransactionManager : IAsyncDisposable
+    internal class LostTransactionManager : IAsyncDisposable, IDisposable
     {
         private const int DiscoverBucketsPeriodMs = 10_000;
         private readonly ILogger<LostTransactionManager> _logger;
@@ -29,58 +30,91 @@ namespace Couchbase.Integrated.Transactions.Cleanup.LostTransactions
         public int RunningCount => _collectionsToClean.Where(pbc => pbc.Value.Running).Count();
         public long TotalRunCount => _collectionsToClean.Sum(pbc => pbc.Value.RunCount);
 
-        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, string? clientUuid = null, bool startDisabled = false, KeySpace? metadataCollection = null)
+        /// <summary>
+        /// The set of collections currently being monitored for cleaning.
+        /// </summary>
+        /// <remarks>
+        /// The name "cleanupSet" is specified in the RFC, despite the underlying collection being a dictionary.
+        /// </remarks>
+        public IEnumerable<KeySpace> CleanupSet => _collectionsToClean.Keys;
+
+        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TransactionCleanupConfig cleanupConfig, string? clientUuid = null, KeySpace? metadataCollection = null)
         {
             ClientUuid = clientUuid ?? Guid.NewGuid().ToString();
             _logger = loggerFactory.CreateLogger<LostTransactionManager>();
             _loggerFactory = loggerFactory;
             _cluster = cluster;
-            _cleanupWindow = cleanupWindow;
-        }
-
-        public void TrackCollectionForCleanup(KeySpace collection)
-        {
-            _ = _collectionsToClean.GetOrAdd(collection, _ =>
-                CleanerForCollection(collection, startDisabled: false)
-                );
-        }
-
-        public void Start()
-        {
-            foreach (var cleaner in _collectionsToClean.Values)
+            _cleanupWindow = cleanupConfig.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow;
+            TrackCollectionForCleanup(metadataCollection);
+            foreach (var ks in cleanupConfig.Collections ?? [])
             {
-                cleaner.Start();
+                TrackCollectionForCleanup(ks);
+            }
+        }
+
+        public void TrackCollectionForCleanup(KeySpace? collection)
+        {
+            if (collection is not null)
+            {
+                _ = _collectionsToClean.GetOrAdd(collection, _ =>
+                    CleanerForCollection(collection, startDisabled: false, shutdownToken: _overallCancellation.Token)
+                );
             }
         }
 
         public async ValueTask DisposeAsync()
         {
-            _logger.LogDebug("Shutting down.");
+            _logger.LogDebug("{this}: Shutting down.", nameof(LostTransactionManager));
             _overallCancellation.Cancel();
             await RemoveClientEntries().CAF();
         }
 
         private async Task RemoveClientEntries()
         {
-            foreach (var cleaner in _collectionsToClean.Values)
+            while (!_collectionsToClean.IsEmpty)
             {
-                try
+                var toRemove = _collectionsToClean.Keys.ToList();
+                foreach (var ks in toRemove)
                 {
-                    await cleaner.DisposeAsync().CAF();
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Cleaner shutdown failed for " + cleaner.FullBucketName);
+                    if (_collectionsToClean.TryRemove(ks, out var cleaner))
+                    {
+                        try
+                        {
+                            await cleaner.DisposeAsync().CAF();
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Cleaner shutdown failed for " + cleaner.FullClientName);
+                        }
+                    }
                 }
             }
         }
 
-        private PerCollectionCleaner CleanerForCollection(KeySpace collection, bool startDisabled)
+        private PerCollectionCleaner CleanerForCollection(KeySpace collection, bool startDisabled,
+            CancellationToken shutdownToken)
         {
             _logger.LogDebug("New cleaner for {collection}", collection);
             var repository = new CleanerRepository(collection, _cluster);
             var cleaner = new Cleaner(_cluster, _loggerFactory, creatorName: nameof(LostTransactionManager));
-            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled) { TestHooks = TestHooks };
+            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory,
+                shutdownToken, startDisabled) { TestHooks = TestHooks };
+        }
+
+        public void Dispose()
+        {
+            if (_overallCancellation.IsCancellationRequested)
+            {
+                // already disposed
+                return;
+            }
+
+            _logger.LogDebug("{this}: Shutting down synchronously.", nameof(LostTransactionManager));
+            _overallCancellation.Cancel();
+            foreach (var toClean in _collectionsToClean.Values.ToList())
+            {
+                toClean.Dispose();
+            }
         }
     }
 }

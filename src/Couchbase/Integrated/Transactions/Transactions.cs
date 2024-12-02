@@ -88,27 +88,34 @@ namespace Couchbase.Integrated.Transactions
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
             Config = config ?? throw new ArgumentNullException(nameof(config));
-            Config = config with { CleanupConfig = config.CleanupConfig ?? new() };
+            Config = Config with { CleanupConfig = Config.CleanupConfig ?? new TransactionCleanupConfig() };
+            config = Config;
             _redactor = _cluster.ClusterServices?.GetService(typeof(IRedactor)) as IRedactor ?? throw new ArgumentNullException(nameof(IRedactor), "Redactor implementation not registered.");
             _requestTracer = cluster.ClusterServices?.GetService(typeof(IRequestTracer)) as IRequestTracer ?? new NoopRequestTracer();
             Interlocked.Increment(ref InstancesCreated);
-            if (config.CleanupConfig!.CleanupLostAttempts)
+            if (Config.CleanupConfig!.CleanupLostAttempts)
             {
                 Interlocked.Increment(ref InstancesCreatedDoingBackgroundCleanup);
             }
 
-            loggerFactory = config.LoggerFactory
-                ?? _cluster.ClusterServices?.GetService(typeof(ILoggerFactory)) as ILoggerFactory
-                ?? NullLoggerFactory.Instance;
+            loggerFactory = Config.LoggerFactory
+                            ?? _cluster.ClusterServices?.GetService(typeof(ILoggerFactory)) as ILoggerFactory
+                            ?? NullLoggerFactory.Instance;
             _logger = loggerFactory.CreateLogger<Transactions>();
 
-            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, config.CleanupConfig.CleanupClientAttempts);
+            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, Config.CleanupConfig.CleanupClientAttempts);
 
             _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(Transactions));
 
-            if (config.CleanupConfig.CleanupLostAttempts)
+
+            if (Config.CleanupConfig is { CleanupLostAttempts: true } cleanupConfig)
             {
-                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupConfig.CleanupWindow ?? TransactionConfig.DefaultCleanupWindow, metadataCollection: config.MetadataCollection);
+                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, Config.CleanupConfig,
+                    metadataCollection: Config.MetadataCollection);
+                foreach (var ks in cleanupConfig.Collections ?? [])
+                {
+                    TrackCollectionForCleanup(ks);
+                }
             }
         }
 

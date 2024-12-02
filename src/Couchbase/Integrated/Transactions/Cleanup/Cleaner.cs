@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -71,6 +72,10 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                     Request: cleanupRequest,
                     FailureReason: ex);
             }
+            finally
+            {
+                _logger.LogDebug("Cleaner.{creator}: Processed cleanup request: {req}", _creatorName, cleanupRequest.AttemptId);
+            }
         }
 
         private Task CleanupDocs(CleanupRequest cleanupRequest) => cleanupRequest.State switch
@@ -133,12 +138,13 @@ namespace Couchbase.Integrated.Transactions.Cleanup
         private async Task CleanupDocsAborted(CleanupRequest cleanupRequest)
         {
             using var logScope = _logger.BeginMethodScope();
+            var sw = Stopwatch.StartNew();
             foreach (var dr in cleanupRequest.InsertedIds)
             {
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        TestHooks.Sync(HookPoint.CleanupBeforeAtrRemove, null, dr.Id);
+                        await TestHooks.Async(HookPoint.CleanupBeforeRemoveDoc, null, dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
                         var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
@@ -163,7 +169,7 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        TestHooks.Sync(HookPoint.CleanupBeforeRemoveDocLinks, null, dr.Id);
+                        await TestHooks.Async(HookPoint.CleanupBeforeRemoveDocLinks, null, dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
                         await collection.MutateInAsync(dr.Id, specs =>
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
@@ -171,6 +177,8 @@ namespace Couchbase.Integrated.Transactions.Cleanup
                                 .AccessDeleted(true)).CAF();
                     }).CAF();
             }
+            sw.Stop();
+            _logger.LogWarning("{method} took {elapsed}ms", nameof(CleanupDocsAborted), sw.Elapsed.TotalMilliseconds);
         }
 
         private async Task CleanupDocsCommitted(CleanupRequest cleanupRequest)
