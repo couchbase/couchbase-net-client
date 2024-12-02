@@ -21,6 +21,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
+using Couchbase.Integrated.Transactions.Config;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -333,6 +334,8 @@ namespace Couchbase
 
             return this;
         }
+
+        public TransactionConfig TransactionConfig { get; set; } = new();
 
         /// <summary>
         /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.

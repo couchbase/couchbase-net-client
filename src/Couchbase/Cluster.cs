@@ -99,7 +99,7 @@ namespace Couchbase
             LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
-            LazyTransactions = new(() => Integrated.Transactions.Transactions.Create(this));
+            LazyTransactions = new(() => Integrated.Transactions.Transactions.Create(this, clusterOptions.TransactionConfig));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
