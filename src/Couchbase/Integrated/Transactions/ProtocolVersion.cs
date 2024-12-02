@@ -28,13 +28,24 @@ namespace Couchbase.Integrated.Transactions
             yield return new ExtensionName("BfCbd3705", "BF_CBD_3705", "BF3705");
             yield return new ExtensionName("BfCbd3838", "BF_CBD_33838", "BF3838");
             yield return new ExtensionName("ExtUnknownAtrStates", "EXT_UNKNOWN_ATR_STATES", "UA");
-            yield return new ExtensionName("ExtSdkIntegrated", "EXT_SDK_INTEGRATED", "SI");
+            yield return new ExtensionName("ExtSdkIntegration", "EXT_SDK_INTEGRATION", "SI");
+            yield return new ExtensionName("ExtInsertExisting", "EXT_INSERT_EXISTING", "IX");
+
+            // "ExtThreadSafety" in the specs, but "EXT_THREAD_SAFE" in the FIT GRPC.
+            yield return new ExtensionName("ExtThreadSafe", "EXT_THREAD_SAFE", "TS");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);
 
         private static Lazy<HashSet<string>> SupportedShortCodes => new Lazy<HashSet<string>>(() => new HashSet<string>(ExtensionsSupported().Select(ext => ext.ShortCode)));
 
+
+        /// <summary>
+        /// The different ways to represent a Transactions spec extension name.
+        /// </summary>
+        /// <param name="PascalCase">The C#-friendly version for ToString()/Parse()</param>
+        /// <param name="ConstantStyle">The name as found in the GRPC proto files.</param>
+        /// <param name="ShortCode">The two-letter code for the Forward Compatibility check.</param>
         internal record ExtensionName(string PascalCase, string ConstantStyle, string ShortCode);
     }
 }
