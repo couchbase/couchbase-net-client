@@ -40,9 +40,9 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             _userDataTranscoder = new JsonTranscoder(userDataSerializer);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, AtrRepository atr, ulong? cas = null)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, string operationId, AtrRepository atr, ulong? cas = null)
         {
-            List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content);
+            List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content, operationId);
             var opts = GetMutateInOptions(StoreSemantics.Insert)
                 .AccessDeleted(true)
                 .CreateAsDeleted(true);
@@ -60,14 +60,14 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             return (mutateResult.Cas, mutateResult.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, AtrRepository atr, bool accessDeleted)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, string operationId, AtrRepository atr, bool accessDeleted)
         {
             if (doc.Cas == 0)
             {
                 throw new ArgumentOutOfRangeException("Document CAS should not be wildcard or default when replacing.");
             }
 
-            var specs = CreateMutationSpecs(atr, "replace", content, doc.DocumentMetadata);
+            var specs = CreateMutationSpecs(atr, "replace", content,  operationId, doc.DocumentMetadata);
             var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(doc.Cas);
             if (accessDeleted)
             {
@@ -78,14 +78,17 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedRemove(TransactionGetResult doc, AtrRepository atr)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedRemove(
+            TransactionGetResult doc,
+            string operationId,
+            AtrRepository atr)
         {
             // For ExtAllKvCombinations, the Java implementation was updated to write "txn" as one JSON blob instead of multiple MutateInSpecs.
             // Remove is the one where it had to be updated, given that we need to remove the staged data only if it exists.
             var txn = new TransactionXattrs()
             {
                 Operation = new StagedOperation() { Type = "remove" },
-                Id = new CompositeId() { Transactionid = _overallContext.TransactionId, AttemptId = _attemptId },
+                Id = new CompositeId() { TransactionId = _overallContext.TransactionId, AttemptId = _attemptId, OperationUuid = operationId },
                 AtrRef = new AtrRef() { Id = atr.AtrId, ScopeName = atr.ScopeName, BucketName = atr.BucketName, CollectionName = atr.CollectionName },
                 RestoreMetadata = doc.DocumentMetadata
             };
@@ -219,7 +222,8 @@ namespace Couchbase.Integrated.Transactions.DataAccess
             .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
 
-        private List<MutateInSpec> CreateMutationSpecs(AtrRepository atr, string opType, object content, DocumentMetadata? dm = null)
+
+        private List<MutateInSpec> CreateMutationSpecs(AtrRepository atr, string opType, object content, string operationId, DocumentMetadata? dm = null)
         {
             // Round-trip the content through the user's specified serializer.
             object userSerializedContent = content;
@@ -238,6 +242,7 @@ namespace Couchbase.Integrated.Transactions.DataAccess
                     createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AttemptId, _attemptId, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrId, atr.AtrId, createPath: true, isXattr: true),
+                MutateInSpec.Upsert(TransactionFields.OperationId, operationId, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrScopeName, atr.ScopeName, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrBucketName, atr.BucketName, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrCollName, atr.CollectionName, createPath: true, isXattr: true),

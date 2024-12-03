@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.KeyValue;
@@ -7,70 +8,37 @@ namespace Couchbase.Integrated.Transactions.Components
 {
     internal class StagedMutationCollection
     {
-        private readonly Dictionary<string, StagedMutation> _stagedMutations = new();
-        private readonly object _smLock = new();
+        private readonly ConcurrentDictionary<string, StagedMutation> _stagedMutations = new();
+        public bool IsEmpty => _stagedMutations.IsEmpty;
 
-        public bool IsEmpty
-        {
-            get
-            {
-                lock (_smLock)
-                {
-                    return _stagedMutations.Count == 0;
-                }
-            }
-        }
+        public IReadOnlyCollection<StagedMutation> ToList() => _stagedMutations.Values.ToList();
 
-        public IReadOnlyCollection<StagedMutation> ToList()
-        {
-            lock (_smLock)
-            {
-                return _stagedMutations.Values.ToList();
-            }
-        }
+        public void Clear() => _stagedMutations.Clear();
 
         public IEnumerable<StagedMutation> Inserts() => ToList().Where(sm => sm.Type == StagedMutationType.Insert);
         public IEnumerable<StagedMutation> Replaces() => ToList().Where(sm => sm.Type == StagedMutationType.Replace);
         public IEnumerable<StagedMutation> Removes() => ToList().Where(sm => sm.Type == StagedMutationType.Remove);
-        public bool Contains(string fullyQualifiedId)
-        {
-            lock (_smLock)
-            {
-                return _stagedMutations.ContainsKey(fullyQualifiedId);
-            }
-        }
+        public bool Contains(string fullyQualifiedId) => _stagedMutations.ContainsKey(fullyQualifiedId);
         public bool Contains(ICouchbaseCollection collection, string id) => Contains(TransactionGetResult.GetFullyQualifiedId(collection, id));
 
         internal StagedMutation? Find(ICouchbaseCollection collection, string id)
         {
-            lock (_smLock)
+            if (_stagedMutations.TryGetValue(TransactionGetResult.GetFullyQualifiedId(collection, id), out var result))
             {
-                if (_stagedMutations.TryGetValue(TransactionGetResult.GetFullyQualifiedId(collection, id), out var result))
-                {
-                    return result;
-                }
-
-                return null;
+                return result;
             }
+
+            return null;
         }
 
         internal StagedMutation? Find(TransactionGetResult doc) => Find(doc.Collection, doc.Id);
 
         internal void Add(StagedMutation stagedMutation)
         {
-            lock (_smLock)
-            {
-                _stagedMutations[stagedMutation.Doc.FullyQualifiedId] = stagedMutation;
-            }
+            _stagedMutations[stagedMutation.Doc.FullyQualifiedId] = stagedMutation;
         }
         internal void Remove(StagedMutation stagedMutation) => Remove(stagedMutation.Doc);
-        internal void Remove(TransactionGetResult doc)
-        {
-            lock (_smLock)
-            {
-                _stagedMutations.Remove(doc.FullyQualifiedId);
-            }
-        }
+        internal void Remove(TransactionGetResult doc) => _stagedMutations.TryRemove(doc.FullyQualifiedId, out var _);
     }
 }
 

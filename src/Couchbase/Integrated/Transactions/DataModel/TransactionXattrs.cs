@@ -29,7 +29,7 @@ namespace Couchbase.Integrated.Transactions.DataModel
         internal void ValidateMinimum()
         {
             if (Id?.AttemptId == null
-                || Id?.Transactionid == null
+                || Id?.TransactionId == null
                 || AtrRef?.Id == null
                 || AtrRef?.BucketName == null
                 || AtrRef?.CollectionName == null)

@@ -105,7 +105,7 @@ namespace Couchbase.Integrated.Transactions
 
             txn.Id = new CompositeId()
             {
-                Transactionid = transactionId,
+                TransactionId = transactionId,
                 AttemptId = attemptId
             };
 

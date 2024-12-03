@@ -12,9 +12,9 @@ namespace Couchbase.Integrated.Transactions.Components
         public TransactionGetResult Doc { get; }
         public object? Content { get; }
         public StagedMutationType Type { get; }
-        public MutationToken MutationToken { get; }
+        public MutationToken? MutationToken { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken mutationToken)
+        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken? mutationToken)
         {
             Doc = doc;
             Content = content;

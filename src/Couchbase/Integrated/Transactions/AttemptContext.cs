@@ -312,15 +312,20 @@ namespace Couchbase.Integrated.Transactions
                 {
                     case StagedMutationType.Insert:
                     case StagedMutationType.Replace:
-                        // LOGGER.info(attemptId, "found own-write of mutated doc %s", RedactableArgument.redactUser(id));
+                        _testHooks.Sync(HookPoint.BeforeUnlockGet, this, id);
+                        Unlock();
                         return TransactionGetResult.FromOther(staged.Doc, new JObjectContentWrapper(staged.Content));
                     case StagedMutationType.Remove:
-                        // LOGGER.info(attemptId, "found own-write of removed doc %s", RedactableArgument.redactUser(id));
+                        _testHooks.Sync(HookPoint.BeforeUnlockGet, this, id);
+                        Unlock();
                         return null;
                     default:
                         throw new InvalidOperationException($"Document '{Redactor.UserData(id)}' was staged with type {staged.Type}");
                 }
             }
+
+            _testHooks.Sync(HookPoint.BeforeUnlockGet, this, id);
+            Unlock();
 
             try
             {
@@ -386,7 +391,14 @@ namespace Couchbase.Integrated.Transactions
 
                 var getResult = TransactionGetResult.FromQueryGet(collection, id, firstResult);
                 Logger.LogDebug("GetWithQuery found doc (id = {id}, cas = {cas})", id, getResult.Cas);
+
+                Unlock();
                 return getResult;
+            }
+            catch (DocumentNotFoundException)
+            {
+                Unlock();
+                return null;
             }
             catch (TransactionOperationFailedException)
             {
@@ -395,14 +407,7 @@ namespace Couchbase.Integrated.Transactions
             }
             catch (Exception err)
             {
-                if (err is DocumentNotFoundException)
-                {
-                    return null;
-                }
-
-                var classified = ErrorBuilder.CreateError(this, err.Classify(), err).Build();
-                SaveErrorWrapper(classified);
-                throw classified;
+                throw ErrorBuilder.WrapError(this, err);
             }
         }
 
@@ -425,7 +430,7 @@ namespace Couchbase.Integrated.Transactions
 
                 var blockingTxn = docLookupResult?.TransactionXattrs;
                 if (blockingTxn?.Id?.AttemptId == null
-                    || blockingTxn?.Id?.Transactionid == null
+                    || blockingTxn?.Id?.TransactionId == null
                     || blockingTxn?.AtrRef?.BucketName == null
                     || blockingTxn?.AtrRef?.CollectionName == null)
                 {
@@ -563,33 +568,72 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="content">The updated content.</param>
         /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A <see cref="TransactionGetResult"/> reflecting the updated content.</returns>
-        public Task<TransactionGetResult> ReplaceAsync(TransactionGetResult doc, object content, IRequestSpan? parentSpan = null)
-            => _queryMode ? ReplaceWithQuery(doc, content, parentSpan) : ReplaceWithKv(doc, content, parentSpan);
+        public async Task<TransactionGetResult> ReplaceAsync(TransactionGetResult doc, object content,
+            IRequestSpan? parentSpan = null)
+        {
+            using var waiter = await KvOpInit().CAF();
+            try
+            {
+                if (_queryMode)
+                {
+                    return await ReplaceWithQuery(doc, content, parentSpan).CAF();
+                }
 
-        private async Task<TransactionGetResult> ReplaceWithKv(TransactionGetResult doc, object content, IRequestSpan? parentSpan)
+                return await ReplaceWithKv(doc, content, parentSpan, waiter).CAF();
+            }
+            catch (Exception err)
+            {
+                UnlockOnError();
+                if (err is TransactionOperationFailedException)
+                {
+                    throw;
+                }
+
+                throw ErrorBuilder.WrapError(this, err);
+            }
+            finally
+            {
+                Unlock();
+            }
+        }
+
+        private async Task<TransactionGetResult> ReplaceWithKv(TransactionGetResult doc, object content, IRequestSpan? parentSpan, WaitGroup.Waiter waiter)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            DoneCheck();
-            CheckErrors();
-
-            var stagedOld = _stagedMutations.Find(doc);
-            if (stagedOld?.Type == StagedMutationType.Remove)
+            try
             {
-                throw ErrorBuilder.CreateError(this, ErrorClass.FailDocNotFound, new DocumentNotFoundException()).Build();
+                var mayNeedToWriteAtr = _state == AttemptStates.NOTHING_WRITTEN;
+
+                var existingDoc = _stagedMutations.Find(doc);
+                _testHooks.Sync(HookPoint.BeforeUnlockReplace, this, doc.Id);
+                Unlock();
+
+                if (existingDoc?.Type == StagedMutationType.Remove)
+                {
+                    throw ErrorBuilder.CreateError(this, ErrorClass.FailDocNotFound, new DocumentNotFoundException())
+                        .Build();
+                }
+
+                await CheckWriteWriteConflict(doc, ForwardCompatibility.WriteWriteConflictReplacing, traceSpan.Item,
+                    existingDoc).CAF();
+                await InitAtrIfNeeded(doc.Collection, doc.Id, mayNeedToWriteAtr, traceSpan.Item).CAF();
+                await SetAtrPendingIfFirstMutation(doc.Collection, traceSpan.Item).CAF();
+
+                if (existingDoc?.Type == StagedMutationType.Insert)
+                {
+                    return await CreateStagedInsert(doc.Collection, doc.Id, content, existingDoc.Doc.Cas,
+                        waiter.OperationId, traceSpan.Item).CAF();
+                }
+
+                return await CreateStagedReplace(doc, content, accessDeleted: doc.IsDeleted, waiter.OperationId,
+                    parentSpan: traceSpan.Item).CAF();
             }
-
-            CheckExpiryAndThrow(doc.Id, DefaultTestHooks.HOOK_REPLACE);
-            await CheckWriteWriteConflict(doc, ForwardCompatibility.WriteWriteConflictReplacing, traceSpan.Item).CAF();
-            await InitAtrIfNeeded(doc.Collection, doc.Id, traceSpan.Item).CAF();
-            await SetAtrPendingIfFirstMutation(doc.Collection, traceSpan.Item).CAF();
-
-            if (stagedOld?.Type == StagedMutationType.Insert)
+            finally
             {
-                return await CreateStagedInsert(doc.Collection, doc.Id, content, stagedOld.Doc.Cas, traceSpan.Item).CAF();
+                RemoveKvOp(waiter.OperationId);
             }
-
-            return await CreateStagedReplace(doc, content, accessDeleted: doc.IsDeleted, parentSpan: traceSpan.Item).CAF();
         }
+
         private async Task<TransactionGetResult> ReplaceWithQuery(TransactionGetResult doc, object content, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
@@ -658,68 +702,60 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private async Task<TransactionGetResult> CreateStagedReplace(TransactionGetResult doc, object content, bool accessDeleted, IRequestSpan? parentSpan)
+        private async Task<TransactionGetResult> CreateStagedReplace(TransactionGetResult doc, object content, bool accessDeleted, string operationId, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             _ = _atr ?? throw new ArgumentNullException(nameof(_atr), "ATR should have already been initialized");
             try
             {
-                try
+                _testHooks.Sync(HookPoint.BeforeStagedReplace, this, doc.Id);
+                var contentWrapper = new JObjectContentWrapper(content);
+                bool isTombstone = doc.Cas == 0;
+                (var updatedCas, var mutationToken) = await _docs.MutateStagedReplace(doc, content, operationId, _atr, accessDeleted).CAF();
+                Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, preCase={preCas}, postCas={postCas}, accessDeleted={accessDeleted}", nameof(CreateStagedReplace), Redactor.UserData(doc.Id), AttemptId, doc.Cas, updatedCas, accessDeleted);
+                _testHooks.Sync(HookPoint.AfterStagedReplaceComplete, this, doc.Id);
+
+                doc.Cas = updatedCas;
+
+                var stagedOld = _stagedMutations.Find(doc);
+                if (stagedOld != null)
                 {
-                    _testHooks.Sync(HookPoint.BeforeStagedReplace, this, doc.Id);
-                    var contentWrapper = new JObjectContentWrapper(content);
-                    bool isTombstone = doc.Cas == 0;
-                    (var updatedCas, var mutationToken) = await _docs.MutateStagedReplace(doc, content, _atr, accessDeleted).CAF();
-                    Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, preCase={preCas}, postCas={postCas}, accessDeleted={accessDeleted}", nameof(CreateStagedReplace), Redactor.UserData(doc.Id), AttemptId, doc.Cas, updatedCas, accessDeleted);
-                    _testHooks.Sync(HookPoint.AfterStagedReplaceComplete, this, doc.Id);
-
-                    doc.Cas = updatedCas;
-
-                    var stagedOld = _stagedMutations.Find(doc);
-                    if (stagedOld != null)
-                    {
-                        _stagedMutations.Remove(stagedOld);
-                    }
-
-                    if (stagedOld?.Type == StagedMutationType.Insert)
-                    {
-                        // If doc is already in stagedMutations as an INSERT or INSERT_SHADOW, then remove that, and add this op as a new INSERT or INSERT_SHADOW(depending on what was replaced).
-                        _stagedMutations.Add(new StagedMutation(doc, content, StagedMutationType.Insert, mutationToken));
-                    }
-                    else
-                    {
-                        // If doc is already in stagedMutations as a REPLACE, then overwrite it.
-                        _stagedMutations.Add(new StagedMutation(doc, content, StagedMutationType.Replace, mutationToken));
-                    }
-
-                    return TransactionGetResult.FromInsert(
-                        doc.Collection,
-                        doc.Id,
-                        contentWrapper,
-                        _overallContext.TransactionId,
-                        AttemptId,
-                        _atr.AtrId,
-                        _atr.BucketName,
-                        _atr.ScopeName,
-                        _atr.CollectionName,
-                        updatedCas,
-                        isTombstone);
+                    _stagedMutations.Remove(stagedOld);
                 }
-                catch (Exception ex)
+
+                if (stagedOld?.Type == StagedMutationType.Insert)
                 {
-                    var triaged = _triage.TriageCreateStagedRemoveOrReplaceError(ex);
-                    if (triaged.ec == ErrorClass.FailExpiry)
-                    {
-                        _expirationOvertimeMode = true;
-                    }
-
-                    throw _triage.AssertNotNull(triaged, ex);
+                    // If doc is already in stagedMutations as an INSERT or INSERT_SHADOW, then remove that, and add this op as a new INSERT or INSERT_SHADOW(depending on what was replaced).
+                    _stagedMutations.Add(new StagedMutation(doc, content, StagedMutationType.Insert, mutationToken));
                 }
+                else
+                {
+                    // If doc is already in stagedMutations as a REPLACE, then overwrite it.
+                    _stagedMutations.Add(new StagedMutation(doc, content, StagedMutationType.Replace, mutationToken));
+                }
+
+                return TransactionGetResult.FromInsert(
+                    doc.Collection,
+                    doc.Id,
+                    contentWrapper,
+                    _overallContext.TransactionId,
+                    AttemptId,
+                    _atr.AtrId,
+                    _atr.BucketName,
+                    _atr.ScopeName,
+                    _atr.CollectionName,
+                    updatedCas,
+                    isTombstone);
             }
-            catch (TransactionOperationFailedException toSave)
+            catch (Exception ex)
             {
-                SaveErrorWrapper(toSave);
-                throw;
+                var triaged = _triage.TriageCreateStagedRemoveOrReplaceError(ex);
+                if (triaged.ec == ErrorClass.FailExpiry)
+                {
+                    _expirationOvertimeMode = true;
+                }
+
+                throw _triage.AssertNotNull(triaged, ex);
             }
         }
 
@@ -729,35 +765,36 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="collection">The collection to insert the document into.</param>
         /// <param name="id">The ID of the new document.</param>
         /// <param name="content">The content of the new document.</param>
+        /// <param name="operationId">The operation identifier for the transaction.</param>
         /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A <see cref="TransactionGetResult"/> representing the inserted document.</returns>
-        public Task<TransactionGetResult> InsertAsync(ICouchbaseCollection collection, string id, object content, IRequestSpan? parentSpan = null)
-            => _queryMode ? InsertWithQuery(collection, id, content, parentSpan) : InsertWithKv(collection, id, content, parentSpan);
-
-        private async Task<TransactionGetResult> InsertWithKv(ICouchbaseCollection collection, string id, object content, IRequestSpan? parentSpan)
+        private async Task<TransactionGetResult> InsertWithKv(ICouchbaseCollection collection, string id, object content, string operationId, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            using var logScope = Logger.BeginMethodScope();
-            DoneCheck();
-            CheckErrors();
-
-            var stagedOld = _stagedMutations.Find(collection, id);
-            if (stagedOld?.Type == StagedMutationType.Insert || stagedOld?.Type == StagedMutationType.Replace)
+            var mayNeedToWriteAtr = _state == AttemptStates.NOTHING_WRITTEN;
+            var existingDoc = _stagedMutations.Find(collection, id);
+            if (existingDoc?.Type is StagedMutationType.Insert or StagedMutationType.Replace)
             {
                 throw new DocumentExistsException();
             }
 
-            CheckExpiryAndThrow(id, hookPoint: DefaultTestHooks.HOOK_INSERT);
+            // FIXME: spec says not to do this in ExtThreadSafety, but FIT test expiryBefore_KVOperationBeforeQuery requires it
+            CheckExpiryAndThrow(id, DefaultTestHooks.HOOK_INSERT);
 
-            await InitAtrIfNeeded(collection, id, traceSpan.Item).CAF();
-            await SetAtrPendingIfFirstMutation(collection, traceSpan.Item).CAF();
-
-            if (stagedOld?.Type == StagedMutationType.Remove)
+            if (mayNeedToWriteAtr)
             {
-                return await CreateStagedReplace(stagedOld.Doc, content, true, traceSpan.Item).CAF();
+                await InitAtrIfNeeded(collection, id, mayNeedToWriteAtr, traceSpan.Item, alreadyUnderLock: true).CAF();
             }
 
-            return await CreateStagedInsert(collection, id, content, parentSpan: traceSpan.Item).CAF();
+            _testHooks.Sync(HookPoint.BeforeUnlockInsert, this, id);
+            Unlock();
+
+            if (existingDoc?.Type == StagedMutationType.Remove)
+            {
+                return await CreateStagedReplace(existingDoc.Doc, content, true, operationId, traceSpan.Item).CAF();
+            }
+
+            return await CreateStagedInsert(collection, id, content, operationId: operationId, cas: null, parentSpan: traceSpan.Item).CAF();
         }
 
         private async Task<TransactionGetResult> InsertWithQuery(ICouchbaseCollection collection, string id, object content, IRequestSpan? parentSpan)
@@ -806,163 +843,221 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private async Task<TransactionGetResult> CreateStagedInsert(ICouchbaseCollection collection, string id, object content, ulong? cas = null, IRequestSpan? parentSpan = null)
+        private async Task<TransactionGetResult> CreateStagedInsert(ICouchbaseCollection collection, string id, object content, ulong? cas, string operationId, IRequestSpan? parentSpan = null)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            try
+            bool isTombstone = cas == null;
+            var result = await RepeatUntilSuccessOrThrow<TransactionGetResult?>(async () =>
             {
-                bool isTombstone = cas == null;
-                var result = await RepeatUntilSuccessOrThrow<TransactionGetResult?>(async () =>
+                try
                 {
-                    try
+                    // Check expiration again, since insert might be retried.
+                    ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_CREATE_STAGED_INSERT, id);
+
+                    _testHooks.Sync(HookPoint.BeforeStagedInsert, this, id);
+                    var contentWrapper = new JObjectContentWrapper(content);
+                    var (updatedCas, mutationToken) = await _docs.MutateStagedInsert(collection, id, content, operationId, _atr!, cas).CAF();
+                    _testHooks.Sync(HookPoint.AfterStagedInsertComplete, this, id);
+
+                    Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, preCas={preCas}, postCas={postCas}", nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, cas, updatedCas);
+                    _ = _atr ?? throw new ArgumentNullException(nameof(_atr), "ATR should have already been initialized");
+
+                    await LockAsync(nameof(CreateStagedInsert)).CAF();
+                    var getResult = TransactionGetResult.FromInsert(
+                        collection,
+                        id,
+                        contentWrapper,
+                        _overallContext.TransactionId,
+                        AttemptId,
+                        _atr.AtrId,
+                        _atr.BucketName,
+                        _atr.ScopeName,
+                        _atr.CollectionName,
+                        updatedCas,
+                        isTombstone);
+
+                    var stagedMutation = new StagedMutation(getResult, content, StagedMutationType.Insert,
+                        mutationToken);
+                    _stagedMutations.Add(stagedMutation);
+                    Unlock();
+
+                    return new (RepeatAction.NoRepeat, getResult);
+                }
+                catch (Exception ex)
+                {
+                    var triaged = _triage.TriageCreateStagedInsertErrors(ex, _expirationOvertimeMode);
+                    switch (triaged.ec)
                     {
-                        // Check expiration again, since insert might be retried.
-                        ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_CREATE_STAGED_INSERT, id);
-
-                        _testHooks.Sync(HookPoint.BeforeStagedInsert, this, id);
-                        var contentWrapper = new JObjectContentWrapper(content);
-                        (var updatedCas, var mutationToken) = await _docs.MutateStagedInsert(collection, id, content, _atr!, cas).CAF();
-                        Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, preCas={preCas}, postCas={postCas}", nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, cas, updatedCas);
-                        _ = _atr ?? throw new ArgumentNullException(nameof(_atr), "ATR should have already been initialized");
-                        var getResult = TransactionGetResult.FromInsert(
-                            collection,
-                            id,
-                            contentWrapper,
-                            _overallContext.TransactionId,
-                            AttemptId,
-                            _atr.AtrId,
-                            _atr.BucketName,
-                            _atr.ScopeName,
-                            _atr.CollectionName,
-                            updatedCas,
-                            isTombstone);
-
-                        _testHooks.Sync(HookPoint.AfterStagedInsertComplete, this, id);
-
-                        var stagedMutation = new StagedMutation(getResult, content, StagedMutationType.Insert,
-                            mutationToken);
-                        _stagedMutations.Add(stagedMutation);
-
-                        return (RepeatAction.NoRepeat, getResult);
-                    }
-                    catch (Exception ex)
-                    {
-                        var triaged = _triage.TriageCreateStagedInsertErrors(ex, _expirationOvertimeMode);
-                        switch (triaged.ec)
-                        {
-                            case ErrorClass.FailExpiry:
-                                _expirationOvertimeMode = true;
-                                throw _triage.AssertNotNull(triaged, ex);
-                            case ErrorClass.FailAmbiguous:
-                                return (RepeatAction.RepeatWithDelay, null);
-                            case ErrorClass.FailCasMismatch:
-                            case ErrorClass.FailDocAlreadyExists:
-                                TransactionGetResult? docAlreadyExistsResult = null;
-                                var repeatAction = await RepeatUntilSuccessOrThrow<RepeatAction>(async () =>
+                        case ErrorClass.FailExpiry:
+                            _expirationOvertimeMode = true;
+                            throw _triage.AssertNotNull(triaged, ex);
+                        case ErrorClass.FailAmbiguous:
+                            return new (RepeatAction.RepeatWithDelay, null);
+                        case ErrorClass.FailCasMismatch:
+                        case ErrorClass.FailDocAlreadyExists:
+                            TransactionGetResult? docAlreadyExistsResult = null;
+                            // handleDocExistsDuringStagedInsert
+                            var repeatAction = await RepeatUntilSuccessOrThrow<RepeatAction>(async () =>
+                            {
+                                try
                                 {
-                                    try
+                                    Logger.LogDebug(
+                                        "{method}.HandleDocExists for {redactedId}, attemptId={attemptId}, preCas={preCas}",
+                                        nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, 0);
+                                    _testHooks.Sync(HookPoint.BeforeGetDocInExistsDuringStagedInsert, this, id);
+                                    var docWithMeta = await _docs
+                                        .LookupDocumentAsync(collection, id, fullDocument: false).CAF();
+                                    await ForwardCompatibility.Check(this,
+                                        ForwardCompatibility.WriteWriteConflictInsertingGet,
+                                        docWithMeta?.TransactionXattrs?.ForwardCompatibility).CAF();
+
+                                    var docInATransaction =
+                                        docWithMeta?.TransactionXattrs?.Id?.TransactionId != null;
+                                    isTombstone = docWithMeta?.IsDeleted == true;
+
+                                    if (isTombstone && !docInATransaction)
                                     {
-                                        Logger.LogDebug("{method}.HandleDocExists for {redactedId}, attemptId={attemptId}, preCas={preCas}", nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, 0);
-                                        _testHooks.Sync(HookPoint.BeforeGetDocInExistsDuringStagedInsert, this, id);
-                                        var docWithMeta = await _docs.LookupDocumentAsync(collection, id, fullDocument: false).CAF();
-                                        await ForwardCompatibility.Check(this, ForwardCompatibility.WriteWriteConflictInsertingGet, docWithMeta?.TransactionXattrs?.ForwardCompatibility).CAF();
+                                        // If the doc is a tombstone and not in any transaction
+                                        // -> It’s ok to go ahead and overwrite.
+                                        // Perform this algorithm (createStagedInsert) from the top with cas=the cas from the get.
+                                        cas = docWithMeta!.Cas;
 
-                                        var docInATransaction =
-                                            docWithMeta?.TransactionXattrs?.Id?.Transactionid != null;
-                                        isTombstone = docWithMeta?.IsDeleted == true;
+                                        Logger.LogDebug("Doc exists, is a tombstone, and is not in a transaction");
+                                        // (innerRepeat, createStagedInsertRepeat)
+                                        return new(RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
+                                    }
 
-                                        if (isTombstone && !docInATransaction)
+                                    //Old Behaviour:
+                                    // Else if the doc is not in a transaction
+                                    // -> Raise Error(FAIL_DOC_ALREADY_EXISTS, cause=DocumentExistsException).
+                                    // There is logic further up the stack that handles this by fast-failing the transaction.
+
+                                    //From ExtInsertExisting (TXNN-131)
+                                    //Fail with DocumentExistsException so users can choose to ignore and continue with the transaction
+                                    //is desired.
+                                    if (!docInATransaction)
+                                    {
+                                        var msg =
+                                            "Document already exists when creating staged insert, but is not in a transaction";
+                                        Logger.LogDebug(msg);
+                                        var cause = new DocumentExistsException(msg, ex);
+                                        throw Error(ec: ErrorClass.FailDocAlreadyExists, cause: cause);
+                                    }
+                                    else
+                                    {
+                                        if (docWithMeta?.TransactionXattrs?.Id?.AttemptId == AttemptId)
                                         {
-                                            // If the doc is a tombstone and not in any transaction
-                                            // -> It’s ok to go ahead and overwrite.
-                                            // Perform this algorithm (createStagedInsert) from the top with cas=the cas from the get.
-                                            cas = docWithMeta!.Cas;
-
-                                            // (innerRepeat, createStagedInsertRepeat)
-                                            return (RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
-                                        }
-
-                                        //Old Behaviour:
-                                        // Else if the doc is not in a transaction
-                                        // -> Raise Error(FAIL_DOC_ALREADY_EXISTS, cause=DocumentExistsException).
-                                        // There is logic further up the stack that handles this by fast-failing the transaction.
-
-                                        //From ExtInsertExisting (TXNN-131)
-                                        //Fail with DocumentExistsException so users can choose to ignore and continue with the transaction
-                                        //is desired.
-                                        if (!docInATransaction)
-                                        {
-                                            throw ex;
-                                        }
-                                        else
-                                        {
-                                            // TODO: BF-CBD-3787
-                                            var operationType = docWithMeta?.TransactionXattrs?.Operation?.Type;
-                                            if (operationType != "insert")
+                                            if (docWithMeta?.TransactionXattrs?.Id?.OperationUuid == operationId)
                                             {
-                                                Logger.LogWarning("BF-CBD-3787 FAIL_DOC_ALREADY_EXISTS here because type = {operationType}", operationType);
-                                                throw ErrorBuilder.CreateError(this, ErrorClass.FailDocAlreadyExists, new DocumentExistsException()).Build();
+                                                //  we must have successfully resolved a FAIL_AMBIGUOUS that really succeeded. We are done, proceed as success
+                                                await LockAsync(nameof(CreateStagedInsert)).CAF();
+                                                var contentWrapper = new JObjectContentWrapper(content);
+                                                var gr = TransactionGetResult.FromNonTransactionDoc(
+                                                    collection,
+                                                    id,
+                                                    contentWrapper,
+                                                    docWithMeta.Cas,
+                                                    docWithMeta.DocumentMetadata,
+                                                    docWithMeta.IsDeleted,
+                                                    docWithMeta.TransactionXattrs
+                                                );
+                                                _stagedMutations.Add(new StagedMutation(gr, contentWrapper,
+                                                    StagedMutationType.Insert, mutationToken: null));
+                                                Unlock();
+
+                                                docAlreadyExistsResult = gr;
+                                                return new(RepeatAction.NoRepeat, RepeatAction.NoRepeat);
+                                            }
+                                            else
+                                            {
+                                                // we are racing with a concurrent attempt to insert the same document in the same attempt
+                                                Logger.LogWarning(
+                                                    "Racing with concurrent attempt (this={thisAttemptId}, other={otherAttemptId}",
+                                                    AttemptId, docWithMeta?.TransactionXattrs?.Id?.AttemptId);
+                                                throw Error(ec: ErrorClass.FailCasMismatch,
+                                                    cause: new ConcurrentOperationsDetectedOnSameDocumentException(),
+                                                    retry: false);
+                                            }
+                                        }
+
+                                        // TODO: BF-CBD-3787
+                                        var operationType = docWithMeta?.TransactionXattrs?.Operation?.Type;
+                                        if (operationType != "insert")
+                                        {
+                                            Logger.LogWarning(
+                                                "BF-CBD-3787 FAIL_DOC_ALREADY_EXISTS here because type = {operationType}",
+                                                operationType);
+                                            throw new DocumentExistsException(
+                                                "found an existing document when trying to insert from transaction");
+                                            //throw ErrorBuilder.CreateError(this, ErrorClass.FailDocAlreadyExists, new DocumentExistsException()).Build();
+                                        }
+
+                                        // Else call the CheckWriteWriteConflict logic, which conveniently does everything we need to handle the above cases.
+                                        var getResult = docWithMeta!.GetPostTransactionResult();
+                                        await CheckWriteWriteConflict(getResult,
+                                                ForwardCompatibility.WriteWriteConflictInserting, traceSpan.Item,
+                                                null)
+                                            .CAF();
+
+                                        // BF-CBD-3787: If the document is a staged insert but also is not a tombstone (e.g. it is from protocol 1.0), it must be deleted first
+                                        if (operationType == "insert" && !isTombstone)
+                                        {
+                                            try
+                                            {
+                                                await _docs.UnstageRemove(collection, id, getResult.Cas).CAF();
+                                            }
+                                            catch (Exception err)
+                                            {
+                                                var ec = err.Classify();
+                                                switch (ec)
+                                                {
+                                                    case ErrorClass.FailDocNotFound:
+                                                    case ErrorClass.FailCasMismatch:
+                                                        throw ErrorBuilder.CreateError(this, ec, err)
+                                                            .RetryTransaction().Build();
+                                                    default:
+                                                        throw ErrorBuilder.CreateError(this, ec, err).Build();
+                                                }
                                             }
 
-                                            // Else call the CheckWriteWriteConflict logic, which conveniently does everything we need to handle the above cases.
-                                            var getResult = docWithMeta!.GetPostTransactionResult();
-                                            await CheckWriteWriteConflict(getResult, ForwardCompatibility.WriteWriteConflictInserting, traceSpan.Item).CAF();
-
-                                            // BF-CBD-3787: If the document is a staged insert but also is not a tombstone (e.g. it is from protocol 1.0), it must be deleted first
-                                            if (operationType == "insert" && !isTombstone)
-                                            {
-                                                try
-                                                {
-                                                    await _docs.UnstageRemove(collection, id, getResult.Cas).CAF();
-                                                }
-                                                catch (Exception err)
-                                                {
-                                                    var ec = err.Classify();
-                                                    switch (ec)
-                                                    {
-                                                        case ErrorClass.FailDocNotFound:
-                                                        case ErrorClass.FailCasMismatch:
-                                                            throw ErrorBuilder.CreateError(this, ec, err).RetryTransaction().Build();
-                                                        default:
-                                                            throw ErrorBuilder.CreateError(this, ec, err).Build();
-                                                    }
-                                                }
-
-                                                // hack workaround for NCBC-2944
-                                                // Supposed to "retry this (CreateStagedInsert) algorithm with the cas from the Remove", but we don't have a Cas from the Remove.
-                                                // Instead, we just trigger a retry of the entire transaction, since this is such an edge case.
-                                                throw ErrorBuilder.CreateError(this, ErrorClass.FailDocAlreadyExists, ex).RetryTransaction().Build();
-                                            }
-
-                                            // If this logic succeeds, we are ok to overwrite the doc.
-                                            // Perform this algorithm (createStagedInsert) from the top, with cas=the cas from the get.
-                                            cas = docWithMeta.Cas;
-                                            return (RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
+                                            // hack workaround for NCBC-2944
+                                            // Supposed to "retry this (CreateStagedInsert) algorithm with the cas from the Remove", but we don't have a Cas from the Remove.
+                                            // Instead, we just trigger a retry of the entire transaction, since this is such an edge case.
+                                            Logger.LogError("EDGE CASE NCBC-2944");
+                                            throw ErrorBuilder
+                                                .CreateError(this, ErrorClass.FailDocAlreadyExists, ex)
+                                                .RetryTransaction().Build();
                                         }
-                                    }
-                                    catch (Exception exDocExists)
-                                    {
-                                        if (exDocExists is DocumentExistsException) throw;
-                                        var triagedDocExists = _triage.TriageDocExistsOnStagedInsertErrors(exDocExists);
-                                        throw _triage.AssertNotNull(triagedDocExists, exDocExists);
-                                    }
-                                }).CAF();
 
-                                return (repeatAction, docAlreadyExistsResult);
-                        }
+                                        // If this logic succeeds, we are ok to overwrite the doc.
+                                        // Perform this algorithm (createStagedInsert) from the top, with cas=the cas from the get.
+                                        cas = docWithMeta.Cas;
+                                        return new(RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
+                                    }
+                                }
+                                catch (TransactionOperationFailedException)
+                                {
+                                    throw;
+                                }
+                                catch (Exception exDocExists)
+                                {
+                                    // if (exDocExists is DocumentExistsException) throw;
+                                    var triagedDocExists = _triage.TriageDocExistsOnStagedInsertErrors(exDocExists);
+                                    throw _triage.AssertNotNull(triagedDocExists, exDocExists);
+                                }
+                            }).CAF();
 
-                        throw _triage.AssertNotNull(triaged, ex);
+                            return new (repeatAction, docAlreadyExistsResult);
                     }
-                }).CAF();
 
-                return result ?? throw new InvalidOperationException("Final result should not be null");
-            }
-            catch (TransactionOperationFailedException toSave)
-            {
-                SaveErrorWrapper(toSave);
-                throw;
-            }
+                    var toThrow = _triage.AssertNotNull(triaged, ex);
+                    throw toThrow;
+                }
+            }).CAF();
+
+            return result ?? throw new InvalidOperationException("Final result should not be null");
         }
+
 
         private async Task SetAtrPending(IRequestSpan? parentSpan)
         {
@@ -1022,46 +1117,66 @@ namespace Couchbase.Integrated.Transactions
         /// <param name="doc">The <see cref="TransactionGetResult"/> of a document previously looked up in this transaction.</param>
         /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A task representing the asynchronous work.</returns>
-        public Task RemoveAsync(TransactionGetResult doc, IRequestSpan? parentSpan = null)
-            => _queryMode ? RemoveWithQuery(doc, parentSpan) : RemoveWithKv(doc, parentSpan);
+        public async Task RemoveAsync(TransactionGetResult doc, IRequestSpan? parentSpan = null)
+        {
+            using var waiter = await KvOpInit().CAF();
 
-        private async Task RemoveWithKv(TransactionGetResult doc, IRequestSpan? parentSpan = null)
+            try
+            {
+                if (_queryMode)
+                {
+                    await RemoveWithQuery(doc, parentSpan).CAF();
+                    return;
+                }
+
+                await RemoveWithKv(doc, waiter.OperationId, parentSpan).CAF();
+            }
+            catch (TransactionOperationFailedException)
+            {
+                UnlockOnError();
+                throw;
+            }
+            catch (Exception err)
+            {
+                UnlockOnError();
+                throw ErrorBuilder.WrapError(this, err);
+            }
+            finally
+            {
+                Unlock();
+                RemoveKvOp(waiter.OperationId);
+            }
+        }
+
+        private async Task RemoveWithKv(TransactionGetResult doc, string operationId, IRequestSpan? parentSpan = null)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            DoneCheck();
-            CheckErrors();
             CheckExpiryAndThrow(doc.Id, DefaultTestHooks.HOOK_REMOVE);
 
-            var stagedOld = _stagedMutations.Find(doc);
-            if (stagedOld != null)
-            {
-                if (stagedOld != null)
-                {
-                    if (stagedOld.Type == StagedMutationType.Remove)
-                    {
-                        throw ErrorBuilder.CreateError(this, ErrorClass.FailDocNotFound, new DocumentNotFoundException()).Build();
-                    }
-                    else if (stagedOld.Type == StagedMutationType.Insert)
-                    {
-                        try
-                        {
-                            await RemoveStagedInsert(doc, traceSpan.Item).CAF();
-                        }
-                        catch (TransactionOperationFailedException err)
-                        {
-                            SaveErrorWrapper(err);
-                            throw;
-                        }
+            var mayNeedToWriteAtr = _state == AttemptStates.NOTHING_WRITTEN;
+            var existingDoc = _stagedMutations.Find(doc);
 
-                        return;
-                    }
+            Unlock();
+            _testHooks.Sync(HookPoint.BeforeUnlockRemove, this, doc.Id);
+            if (existingDoc != null)
+            {
+                if (existingDoc.Type == StagedMutationType.Remove)
+                {
+                    throw ErrorBuilder.CreateError(this, ErrorClass.FailDocNotFound, new DocumentNotFoundException()).Build();
+                }
+
+                if (existingDoc.Type == StagedMutationType.Insert)
+                {
+                    await RemoveStagedInsert(doc, traceSpan.Item).CAF();
+
+                    return;
                 }
             }
 
-            await CheckWriteWriteConflict(doc, ForwardCompatibility.WriteWriteConflictRemoving, traceSpan.Item).CAF();
-            await InitAtrIfNeeded(doc.Collection, doc.Id, traceSpan.Item).CAF();
+            await CheckWriteWriteConflict(doc, ForwardCompatibility.WriteWriteConflictRemoving, traceSpan.Item, existingDoc).CAF();
+            await InitAtrIfNeeded(doc.Collection, doc.Id, mayNeedToWriteAtr, traceSpan.Item).CAF();
             await SetAtrPendingIfFirstMutation(doc.Collection, traceSpan.Item).CAF();
-            await CreateStagedRemove(doc, traceSpan.Item).CAF();
+            await CreateStagedRemove(doc, operationId, traceSpan.Item).CAF();
         }
 
         private async Task RemoveWithQuery(TransactionGetResult doc, IRequestSpan? parentSpan)
@@ -1103,40 +1218,33 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private async Task CreateStagedRemove(TransactionGetResult doc, IRequestSpan? parentSpan)
+        private async Task CreateStagedRemove(TransactionGetResult doc, string operationId, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             try
             {
-                try
-                {
-                    _testHooks.Sync(HookPoint.BeforeStagedRemove, this, doc.Id);
-                    (var updatedCas, var mutationToken) = await _docs.MutateStagedRemove(doc, _atr!).CAF();
-                    Logger?.LogDebug($"{nameof(CreateStagedRemove)} for {Redactor.UserData(doc.Id)}, attemptId={AttemptId}, preCas={doc.Cas}, postCas={updatedCas}");
-                    _testHooks.Sync(HookPoint.AfterStagedRemoveComplete, this, doc.Id);
+                _testHooks.Sync(HookPoint.BeforeStagedRemove, this, doc.Id);
+                (var updatedCas, var mutationToken) = await _docs.MutateStagedRemove(doc, operationId, _atr!).CAF();
+                Logger?.LogDebug($"{nameof(CreateStagedRemove)} for {Redactor.UserData(doc.Id)}, attemptId={AttemptId}, preCas={doc.Cas}, postCas={updatedCas}");
+                _testHooks.Sync(HookPoint.AfterStagedRemoveComplete, this, doc.Id);
 
-                    doc.Cas = updatedCas;
+                await LockAsync(nameof(CreateStagedRemove)).CAF();
+                doc.Cas = updatedCas;
 
-
-                    var stagedRemove = new StagedMutation(doc, null,
-                        StagedMutationType.Remove, mutationToken);
-                    _stagedMutations.Add(stagedRemove);
-                }
-                catch (Exception ex)
-                {
-                    var triaged = _triage.TriageCreateStagedRemoveOrReplaceError(ex);
-                    if (triaged.ec == ErrorClass.FailExpiry)
-                    {
-                        _expirationOvertimeMode = true;
-                    }
-
-                    throw _triage.AssertNotNull(triaged, ex);
-                }
+                var stagedRemove = new StagedMutation(doc, null,
+                    StagedMutationType.Remove, mutationToken);
+                _stagedMutations.Add(stagedRemove);
+                Unlock();
             }
-            catch (TransactionOperationFailedException toSave)
+            catch (Exception ex)
             {
-                SaveErrorWrapper(toSave);
-                throw;
+                var triaged = _triage.TriageCreateStagedRemoveOrReplaceError(ex);
+                if (triaged.ec == ErrorClass.FailExpiry)
+                {
+                    _expirationOvertimeMode = true;
+                }
+
+                throw _triage.AssertNotNull(triaged, ex);
             }
         }
 
@@ -1400,7 +1508,10 @@ namespace Couchbase.Integrated.Transactions
                 }
             }).CAF();
 
-            _finalMutations.Add(sm.MutationToken);
+            if (sm.MutationToken is not null)
+            {
+                _finalMutations.Add(sm.MutationToken);
+            }
             _testHooks.Sync(HookPoint.AfterDocRemovedPostRetry, this, sm.Doc.Id);
         }
 
@@ -2075,25 +2186,42 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        private async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
+         private async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, bool mayNeedToWrite,
+            IRequestSpan? parentSpan, bool alreadyUnderLock = false)
         {
-            using var traceSpan = TraceSpan(parent: parentSpan);
-            ICouchbaseCollection atrCollection;
-            if (_config.MetadataCollection is not null)
+            if (!mayNeedToWrite)
             {
-                atrCollection = await _config.MetadataCollection.GetCollectionAsync(_cluster).CAF();
-            }
-            else
-            {
-                atrCollection = collection.Scope.Bucket.DefaultCollection();
+                return;
             }
 
-            var vBucketId = AtrIds.GetVBucketId(id);
-            var testHookAtrId = (string?)_testHooks.Sync(HookPoint.AtrIdForVbucket, this,
-                vBucketId.ToStringInvariant());
-            var atrId = AtrIds.GetAtrId(id);
-            lock (_initAtrLock)
+            if (!alreadyUnderLock)
             {
+                await LockAsync().CAF();
+            }
+            try
+            {
+                using var traceSpan = TraceSpan(parent: parentSpan);
+                if (_state != AttemptStates.NOTHING_WRITTEN)
+                {
+                    return;
+                }
+
+                ICouchbaseCollection atrCollection;
+                if (_config.MetadataCollection is not null)
+                {
+                    atrCollection = await _config.MetadataCollection.GetCollectionAsync(_cluster).CAF();
+                }
+                else
+                {
+                    atrCollection = collection.Scope.Bucket.DefaultCollection();
+                }
+
+                _cluster.Transactions.TrackCollectionForCleanup(atrCollection.ToKeySpace());
+
+                var vBucketId = AtrIds.GetVBucketId(id);
+                var testHookAtrId = (string?)_testHooks.Sync(HookPoint.AtrIdForVbucket, this,
+                    vBucketId.ToStringInvariant());
+                var atrId = AtrIds.GetAtrId(id);
                 // TODO: AtrRepository should be built via factory to actually support mocking.
                 _atr ??= new AtrRepository(
                     attemptId: AttemptId,
@@ -2103,6 +2231,15 @@ namespace Couchbase.Integrated.Transactions
                     atrDurability: _config.DurabilityLevel,
                     loggerFactory: _loggerFactory,
                     testHookAtrId: testHookAtrId);
+
+                await SetAtrPending(traceSpan.Item).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (!alreadyUnderLock)
+                {
+                    Unlock();
+                }
             }
         }
 
@@ -2111,10 +2248,11 @@ namespace Couchbase.Integrated.Transactions
             if (HasExpiredClientSide(docId, hookPoint))
             {
                 _expirationOvertimeMode = true;
-                throw ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
+                var toThrow = ErrorBuilder.CreateError(this, ErrorClass.FailExpiry)
                     .Cause(new AttemptExpiredException(this, $"Expired in '{hookPoint}'"))
                     .RaiseException(TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired)
                     .Build();
+                throw toThrow;
             }
         }
 
@@ -2160,7 +2298,7 @@ namespace Couchbase.Integrated.Transactions
             }
         }
 
-        internal async Task CheckWriteWriteConflict(TransactionGetResult gr, string interactionPoint, IRequestSpan? parentSpan)
+        internal async Task CheckWriteWriteConflict(TransactionGetResult gr, string interactionPoint, IRequestSpan? parentSpan, StagedMutation? existingMutation)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#CheckWriteWriteConflict
             // This logic checks and handles a document X previously read inside a transaction, A, being involved in another transaction B.
@@ -2168,35 +2306,71 @@ namespace Couchbase.Integrated.Transactions
 
             using var traceSpan = TraceSpan(parent: parentSpan);
 
-            // If the transaction has expired, enter ExpiryOvertimeMode and raise Error(ec=FAIL_EXPIRY, raise=TRANSACTION_EXPIRED).
-            CheckExpiryAndThrow(gr.Id, DefaultTestHooks.HOOK_CHECK_WRITE_WRITE_CONFLICT);
+            // If gr has no transaction Metadata, it's fine to proceed.
+            var txnMeta = gr.TransactionXattrs;
+            if (txnMeta is null)
+            {
+                return;
+            }
+
+            // Else if the transactionId staged in gr equals the transactionId of this transaction:
+            if (txnMeta.Id?.TransactionId == _overallContext.TransactionId)
+            {
+                // If the attemptId staged in gr equals the attemptId of this attempt:
+                if (txnMeta.Id.AttemptId == AttemptId)
+                {
+                    if (existingMutation is not null)
+                    {
+                        if (existingMutation.Doc.Cas != gr.Cas)
+                        {
+                            Logger.LogInformation("[{attemptId}] concurrent op race detected on doc {hookParam1}: have read a document before a concurrent op wrote its stagedMutation",
+                                AttemptId,
+                                Redactor.UserData(gr.Id));
+                            throw Error(ec: ErrorClass.FailCasMismatch,
+                                cause: new ConcurrentOperationsDetectedOnSameDocumentException());
+                        }
+                    }
+                    else
+                    {
+                        // Else: The same document is being concurrently modified by the same attempt
+                        Logger.LogInformation(
+                            "[{attemptId}] concurrent op race detected on doc {hookParam1}: can see the KV result of another op, but stagedMutation not yet written",
+                            AttemptId,
+                            Redactor.UserData(gr.Id));
+                        throw Error(ec: ErrorClass.FailCasMismatch,
+                            cause: new ConcurrentOperationsDetectedOnSameDocumentException());
+                    }
+                }
+
+                // If we reach here (ExtThreadSafety or not), it's fine to overwrite.
+                // E.g. return success from this method and allow the document's staged data to be overwritten.
+                return;
+            }
+
+            // Else there's a write-write conflict.
 
             var sw = Stopwatch.StartNew();
             await RepeatUntilSuccessOrThrow(async () =>
             {
+                // the algo:
                 var method = nameof(CheckWriteWriteConflict);
                 var redactedId = Redactor.UserData(gr.FullyQualifiedId);
                 Logger.LogDebug("{method}@{interactionPoint} for {redactedId}, attempt={attemptId}", method, interactionPoint, redactedId, AttemptId);
                 await ForwardCompatibility.Check(this, interactionPoint, gr.TransactionXattrs?.ForwardCompatibility).CAF();
-                var otherAtrFromDocMeta = gr.TransactionXattrs?.AtrRef;
-                if (otherAtrFromDocMeta == null)
+                // If the transaction has expired, enter ExpiryOvertimeMode and raise Error(ec=FAIL_EXPIRY, raise=TRANSACTION_EXPIRED).
+                CheckExpiryAndThrow(gr.Id, DefaultTestHooks.HOOK_CHECK_WRITE_WRITE_CONFLICT);
+
+                // ATR entry for B
+                var otherAtrFromDocMeta = txnMeta.AtrRef;
+                if (otherAtrFromDocMeta is null)
                 {
-                    Logger.LogDebug("{method} no other txn for {redactedId}, attempt={attemptId}", method, redactedId, AttemptId);
-
-                    // If gr has no transaction Metadata, it’s fine to proceed.
-                    return RepeatAction.NoRepeat;
-                }
-
-                if (gr.TransactionXattrs?.Id?.Transactionid == _overallContext.TransactionId)
-                {
-                    Logger.LogDebug("{method} same txn for {redactedId}, attempt={attemptId}", method, redactedId, AttemptId);
-
-                    // Else, if transaction A == transaction B, it’s fine to proceed
+                    // OK to proceed
                     return RepeatAction.NoRepeat;
                 }
 
                 // Do a lookupIn call to fetch the ATR entry for B.
                 ICouchbaseCollection ? otherAtrCollection = null;
+                AtrEntry? otherAtr = null;
                 try
                 {
                     _testHooks.Sync(HookPoint.BeforeCheckAtrEntryForBlockingDoc, this, _atr?.AtrId ?? string.Empty);
@@ -2204,28 +2378,29 @@ namespace Couchbase.Integrated.Transactions
                     otherAtrCollection = _atr == null
                         ? await AtrRepository.GetAtrCollection(otherAtrFromDocMeta, gr.Collection).CAF()
                         : await _atr.GetAtrCollection(otherAtrFromDocMeta).CAF();
+
+                    if (otherAtrCollection == null)
+                    {
+                        // we couldn't get the ATR collection, which means that the entry was bad
+                        // --OR-- the bucket/collection/scope was deleted/locked/rebalanced
+                        throw ErrorBuilder.CreateError(this, ErrorClass.FailHard)
+                            .Cause(new Exception(
+                                $"ATR entry '{Redactor.UserData(gr?.TransactionXattrs?.AtrRef?.ToString())}' could not be read.",
+                                new DocumentNotFoundException()))
+                            .Build();
+                    }
+
+                    var txn = gr.TransactionXattrs ?? throw new ArgumentNullException(nameof(gr.TransactionXattrs));
+                    txn.ValidateMinimum();
+                    otherAtr = await AtrRepository.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id!.AttemptId!).CAF();
                 }
                 catch (Exception err)
                 {
-                    throw ErrorBuilder.CreateError(this, ErrorClass.FailWriteWriteConflict, err)
-                        .RetryTransaction()
-                        .Build();
+                    // b) any error cause occurs during the lookup: raise
+                    throw Error(ec: ErrorClass.FailWriteWriteConflict,
+                        cause: err,
+                        retry: true);
                 }
-
-                if (otherAtrCollection == null)
-                {
-                    // we couldn't get the ATR collection, which means that the entry was bad
-                    // --OR-- the bucket/collection/scope was deleted/locked/rebalanced
-                    throw ErrorBuilder.CreateError(this, ErrorClass.FailHard)
-                        .Cause(new Exception(
-                            $"ATR entry '{Redactor.UserData(gr?.TransactionXattrs?.AtrRef?.ToString())}' could not be read.",
-                            new DocumentNotFoundException()))
-                        .Build();
-                }
-
-                var txn = gr.TransactionXattrs ?? throw new ArgumentNullException(nameof(gr.TransactionXattrs));
-                txn.ValidateMinimum();
-                AtrEntry? otherAtr = await AtrRepository.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id!.AttemptId!).CAF();
 
                 if (otherAtr == null)
                 {
@@ -2238,7 +2413,7 @@ namespace Couchbase.Integrated.Transactions
 
                 await ForwardCompatibility.Check(this, ForwardCompatibility.WriteWriteConflictReadingAtr, otherAtr.ForwardCompatibility).CAF();
 
-                if (otherAtr.State == AttemptStates.COMPLETED || otherAtr.State == AttemptStates.ROLLED_BACK)
+                if (otherAtr.State is AttemptStates.COMPLETED or AttemptStates.ROLLED_BACK)
                 {
                     Logger.LogInformation("[{attemptId}] ATR entry state of {attemptState} indicates we can proceed to overwrite", AttemptId, otherAtr.State);
 
@@ -2257,7 +2432,6 @@ namespace Couchbase.Integrated.Transactions
                         redactedId,
                         _overallContext.TransactionId,
                         AttemptId);
-
                     var toThrow = ErrorBuilder.CreateError(this, ErrorClass.FailWriteWriteConflict)
                         .RetryTransaction()
                         .Build();
@@ -2405,7 +2579,7 @@ namespace Couchbase.Integrated.Transactions
             var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
             var txid = new CompositeId()
             {
-                Transactionid = _overallContext.TransactionId,
+                TransactionId = _overallContext.TransactionId,
                 AttemptId = AttemptId
             };
 
@@ -2590,7 +2764,7 @@ namespace Couchbase.Integrated.Transactions
             // TODO: handle customMetadataCollection and uninitialized ATR (AtrRef with no Id)
             var txid = new CompositeId()
             {
-                Transactionid = _overallContext.TransactionId,
+                TransactionId = _overallContext.TransactionId,
                 AttemptId = AttemptId
             };
 
@@ -2741,7 +2915,7 @@ namespace Couchbase.Integrated.Transactions
 
         private DelegatingDisposable<IRequestSpan> TraceSpan([CallerMemberName] string method = "RootSpan", IRequestSpan? parent = null)
             => new DelegatingDisposable<IRequestSpan>(_requestTracer.RequestSpan(method, parent), Logger.BeginMethodScope(method));
-        
+
         private Exception Error(ErrorClass ec = ErrorClass.FailOther, Exception? cause = null, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? toRaise = null, bool setStateBits = true)
         {
             var eb = ErrorBuilder.CreateError(this, ec, cause);

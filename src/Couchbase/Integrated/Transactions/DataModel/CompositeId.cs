@@ -5,14 +5,16 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Integrated.Transactions.DataModel
 {
-    // TODO: this class should be made internal.
     internal class CompositeId
     {
         [JsonProperty("txn")]
-        public string? Transactionid { get; set; }
+        public string? TransactionId { get; set; }
 
         [JsonProperty("atmpt")]
         public string? AttemptId { get; set; }
+
+        [JsonProperty("op")]
+        public string? OperationUuid { get; internal set; }
     }
 }
 
