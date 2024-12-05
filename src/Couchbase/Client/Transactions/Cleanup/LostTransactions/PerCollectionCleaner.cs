@@ -95,7 +95,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         {
             if (!_cts.IsCancellationRequested)
             {
-                _logger.LogDebug("Disposing {bkt}", FullClientName);
+                _logger.LogDebug("Disposing PerCollectionCleaner {fullClientName}", FullClientName);
                 await RemoveClient().CAF();
                 Dispose();
                 _timerCallbackMutex.Release();
@@ -136,7 +136,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             catch (AuthenticationFailureException)
             {
                 // BF-CBD-3794
-                _logger.LogWarning("Exiting cleanup of '{clientName}' due to access error", FullClientName);
+                _logger.LogWarning("Exiting cleanup of '{fullClientName}' due to access error", FullClientName);
                 await DisposeAsync().CAF();
             }
             catch (ObjectDisposedException ode)
@@ -160,7 +160,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         internal async Task<ClientRecordDetails> ProcessClient(bool cleanupAtrs = true)
         {
             var swProcessClient = Stopwatch.StartNew();
-            _logger.LogDebug("Looking for lost transactions on bucket '{clientName}'", FullClientName);
+            _logger.LogDebug("Looking for lost transactions on bucket '{fullClientName}'", FullClientName);
 
             ClientRecordDetails clientRecordDetails = await EnsureClientRecordIsUpToDate().CAF();
             if (clientRecordDetails.OverrideActive)
@@ -169,9 +169,6 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 return clientRecordDetails;
             }
 
-            var elapsed1 = swProcessClient.Elapsed.TotalMilliseconds;
-
-            var sw = Stopwatch.StartNew();
             using var boundedCleanup = new CancellationTokenSource(_cleanupWindow);
             using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(boundedCleanup.Token, _cts.Token);
 
@@ -187,7 +184,6 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     return clientRecordDetails;
                 }
 
-                var elapsed2 = swProcessClient.Elapsed.TotalMilliseconds;
                 long checkEveryNMillis = (long)(_cleanupWindow.TotalMilliseconds / numAtrsHandledByThisClient);
                 if (!_atrsToClean.TryPeek(out var atrId))
                 {
@@ -200,10 +196,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                             return clientRecordDetails;
                         }
 
-                        _logger.LogDebug("Refilled bag with {totalAtrs} ATRids to process for on {clientName}", numAtrsHandledByThisClient, FullClientName);
+                        _logger.LogDebug("Refilled bag with {totalAtrs} ATRids to process for on {fullClientName}", numAtrsHandledByThisClient, FullClientName);
                     }
                 }
-
 
 #if NET5_0_OR_GREATER
                 await Parallel.ForEachAsync(EnumerateAndTake(_atrsToClean, linkedSource.Token), linkedSource.Token, CleanupAtr).ConfigureAwait(false);
@@ -226,7 +221,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private async Task<ClientRecordDetails> EnsureClientRecordIsUpToDate()
         {
             ClientRecordDetails? clientRecordDetails = null;
-            bool repeat;
+            bool repeat = false;
             do
             {
                 ulong? pathnotFoundCas = null;
@@ -243,13 +238,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
                     if (clientRecord == null)
                     {
-                        _logger.LogDebug("No client record found on '{clientName}', cas = {cas}", this, cas);
+                        _logger.LogDebug("No client record found on '{fullClientName}', cas = {cas}", this, cas);
                         pathnotFoundCas = cas;
                         throw new LostCleanupFailedException("No existing Client Record.") { CausingErrorClass = ErrorClass.FailDocNotFound };
                     }
 
                     clientRecordDetails = new ClientRecordDetails(clientRecord, parsedHlc!, ClientUuid, _cleanupWindow);
-                    _logger.LogDebug("Found client record for '{clientName}':\n{clientRecordDetails}\n{clientRecord}", FullClientName, clientRecordDetails, Newtonsoft.Json.Linq.JObject.FromObject(clientRecord).ToString());
+                    _logger.LogDebug("Found client record for '{fullClientName}':\n{clientRecordDetails}\n{clientRecord}", FullClientName, clientRecordDetails, Newtonsoft.Json.Linq.JObject.FromObject(clientRecord).ToString());
                     break;
                 }
                 catch (Exception ex)
@@ -260,10 +255,6 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     if (!handled)
                     {
                         throw;
-                    }
-                    else
-                    {
-                        continue;
                     }
                 }
             }
@@ -307,7 +298,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                                 // continue as success
                                 return (handled: true, repeatProcessClient: false);
                             case ErrorClass.FailCasMismatch:
-                                _logger.LogWarning("Should not have hit CasMismatch for case FailDocNotFound when creating placeholder client record for {clientName}", FullClientName);
+                                _logger.LogWarning("Should not have hit CasMismatch for case FailDocNotFound when creating placeholder client record for {fullClientName}", FullClientName);
                                 throw;
                             // TODO: Else if BF-CBD-3794, and err indicates a NO_ACCESS
                             default:
@@ -420,7 +411,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
         }
 
-       private async Task RemoveClient()
+        private async Task RemoveClient()
         {
             var retryDelay = 1;
             for (int retryCount = 1; retryDelay <= 250; retryCount++)
@@ -430,18 +421,18 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 {
                     await TestHooks.Async(HookPoint.ClientRecordBeforeRemoveClient, null, ClientUuid).CAF();
                     await _repository.RemoveClient(ClientUuid).CAF();
-                    _logger.LogDebug("Removed client {clientUuid} for {clientName}", ClientUuid, FullClientName);
+                    _logger.LogDebug("Removed client {clientUuid} for {fullClientName}", ClientUuid, FullClientName);
                     return;
                 }
                 catch (ObjectDisposedException)
                 {
-                    _logger.LogDebug("Cannot continue cleanup after underlying data access has been disposed for {clientName}", FullClientName);
+                    _logger.LogDebug("Cannot continue cleanup after underlying data access has been disposed for {fullClientName}", FullClientName);
                     return;
                 }
                 catch (AuthenticationFailureException)
                 {
                     // BF-CBD-3794
-                    _logger.LogWarning("Failed to remove client for '{clientName}' due to auth error", FullClientName);
+                    _logger.LogWarning("Failed to remove client for '{fullClientName}' due to auth error", FullClientName);
                     break;
                 }
                 catch (Exception ex)
@@ -452,10 +443,10 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                         case ErrorClass.FailDocNotFound:
                         case ErrorClass.FailPathNotFound:
                             // treat as success
-                            _logger.LogInformation("{ec} ignored during Remove Lost Transaction Client: {clientName}.", ec, FullClientName);
+                            _logger.LogInformation("{ec} ignored during Remove Lost Transaction Client: {fullClientName}.", ec, FullClientName);
                             return;
                         default:
-                            _logger.LogWarning("{ec} during Remove Lost Transaction Client, retryCount = {rc}, err = {err}, client={clientName}", ec, retryCount, ex.Message, FullClientName);
+                            _logger.LogWarning("{ec} during Remove Lost Transaction Client, retryCount = {rc}, err = {err}, client={fullClientName}", ec, retryCount, ex.Message, FullClientName);
                             _logger.LogDebug("err = {err}", ex);
                             await Task.Delay(retryDelay).CAF();
                             break;

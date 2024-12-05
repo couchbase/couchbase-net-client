@@ -93,7 +93,7 @@ namespace Couchbase.Client.Transactions.Cleanup
         private async Task CleanupAtrEntry(CleanupRequest cleanupRequest)
         {
             using var logScope = _logger.BeginMethodScope();
-            _logger.LogInformation("Cleaning up atr entry: {atr}/{attemptId}", cleanupRequest.AtrId, cleanupRequest.AttemptId);
+            _logger.LogInformation("Cleaning up atr entry: {atr}/{attemptId} on {collection}", cleanupRequest.AtrId, cleanupRequest.AttemptId, cleanupRequest.AtrCollection.ToKeySpace());
             try
             {
                 TestHooks.Sync(HookPoint.CleanupBeforeAtrRemove, null, cleanupRequest.AtrId);
@@ -177,6 +177,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 .AccessDeleted(true)).CAF();
                     }).CAF();
             }
+
             sw.Stop();
             _logger.LogWarning("{method} took {elapsed}ms", nameof(CleanupDocsAborted), sw.Elapsed.TotalMilliseconds);
         }

@@ -83,7 +83,6 @@ namespace Couchbase.Client.Transactions.Error
     }
 }
 
-
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>

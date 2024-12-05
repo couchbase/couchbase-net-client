@@ -11,6 +11,7 @@ using Couchbase.Client.Transactions.DataAccess;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
 using Couchbase.Client.Transactions.Internal.Test;
+using Couchbase.Client.Transactions.Util;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
@@ -70,13 +71,19 @@ namespace Couchbase.Client.Transactions
         /// </summary>
         public TransactionConfig Config { get; }
 
+        /// <summary>
+        /// The set of collections currently being monitored for cleaning.
+        /// </summary>
+        /// <remarks>
+        /// The name "cleanupSet" is specified in the RFC, despite the underlying collection being a dictionary.
+        /// </remarks>
+        public IEnumerable<KeySpace> CleanupSet => _lostTransactionsCleanup?.CleanupSet ?? Enumerable.Empty<KeySpace>();
+
         internal ICluster Cluster => _cluster;
 
         internal TestHookMap TestHooks { get; set; } = new();
         internal DocumentRepository? DocumentRepository { get; set; } = null;
         internal AtrRepository? AtrRepository { get; set; } = null;
-
-
 
         [InterfaceStability(Level.Volatile)]
         internal void ConfigureTestHooks(TestHookMap testHooks)
@@ -106,7 +113,6 @@ namespace Couchbase.Client.Transactions
             _cleanupWorkQueue = new CleanupWorkQueue(_cluster, loggerFactory, Config.CleanupConfig.CleanupClientAttempts);
 
             _cleaner = new Cleaner(cluster, loggerFactory, creatorName: nameof(Transactions));
-
 
             if (Config.CleanupConfig is { CleanupLostAttempts: true } cleanupConfig)
             {
@@ -186,13 +192,34 @@ namespace Couchbase.Client.Transactions
             var opRetryBackoffMillisecond = 1;
             var randomJitter = new Random();
 
+            // The Core Loop https://hackmd.io/foGjnSSIQmqfks2lXwNp8w?view#The-Core-Loop
             while (true)
             {
+                if (_disposedValue)
+                {
+                    throw new OperationCanceledException("Exiting core loop from disposed transaction");
+                }
+
+                var attemptId = Guid.NewGuid().ToString();
+                var delegatingLoggerFactory = new LogUtil.TransactionsLoggerFactory(loggerFactory, overallContext);
+                var ctx = new AttemptContext(
+                    overallContext,
+                    attemptId,
+                    TestHooks,
+                    _redactor,
+                    delegatingLoggerFactory,
+                    _cluster,
+                    DocumentRepository,
+                    AtrRepository,
+                    requestTracer: _requestTracer
+                );
+
                 try
                 {
                     try
                     {
-                        await ExecuteApplicationLambda(transactionLogic, overallContext, loggerFactory, result, rootSpan, singleQueryTransactionMode).CAF();
+                        await ExecuteApplicationLambda(ctx, transactionLogic, overallContext, delegatingLoggerFactory,
+                            result, rootSpan, singleQueryTransactionMode).CAF();
                         return result;
                     }
                     catch (TransactionOperationFailedException ex)
@@ -294,29 +321,17 @@ namespace Couchbase.Client.Transactions
             };
         }
 
-        private async Task ExecuteApplicationLambda(Func<AttemptContext, Task> transactionLogic,
-                                                    TransactionContext overallContext,
-                                                    ILoggerFactory instanceLoggerFactory,
-                                                    TransactionResult result,
-                                                    IRequestSpan parentSpan,
-                                                    bool singleQueryTransactionMode)
+        private async Task ExecuteApplicationLambda(AttemptContext ctx, Func<AttemptContext, Task> transactionLogic,
+            TransactionContext overallContext,
+            ILoggerFactory delegatingLoggerFactory,
+            TransactionResult result,
+            IRequestSpan parentSpan,
+            bool singleQueryTransactionMode)
         {
-            var attemptid = Guid.NewGuid().ToString();
             using var traceSpan = parentSpan.ChildSpan(nameof(ExecuteApplicationLambda))
-                .SetAttribute(Support.TransactionFields.AttemptId, attemptid);
-            var delegatingLoggerFactory = new LogUtil.TransactionsLoggerFactory(instanceLoggerFactory, overallContext);
+                .SetAttribute(Support.TransactionFields.AttemptId, ctx.AttemptId);
+
             var memoryLogger = delegatingLoggerFactory.CreateLogger(nameof(ExecuteApplicationLambda));
-            var ctx = new AttemptContext(
-                overallContext,
-                attemptid,
-                TestHooks,
-                _redactor,
-                delegatingLoggerFactory,
-                _cluster,
-                DocumentRepository,
-                AtrRepository,
-                requestTracer: _requestTracer
-            );
 
             try
             {
@@ -325,7 +340,10 @@ namespace Couchbase.Client.Transactions
                     await transactionLogic(ctx).CAF();
                     if (!singleQueryTransactionMode)
                     {
-                        await ctx.AutoCommit(traceSpan).CAF();
+                        if (ctx.StateBits.HasFlag(StateBits.BehaviorFlags.CommitNotAllowed) is false)
+                        {
+                            await ctx.CommitAsync(traceSpan).CAF();
+                        }
                     }
                 }
                 catch (TransactionOperationFailedException)
@@ -350,30 +368,45 @@ namespace Couchbase.Client.Transactions
                         error.RetryTransaction();
                     }
 
-                    throw error.Build();
+                    var toThrow =  error.Build();
+                    ctx.UpdateStateBits(toThrow);
+                    throw toThrow;
                 }
             }
             catch (TransactionOperationFailedException ex)
             {
-                // If err.rollback is true (it generally will be), auto-rollback the attempt by calling rollbackInternal with appRollback=false.
-                if (ex.AutoRollbackAttempt && !singleQueryTransactionMode)
+                var shouldRollback = ctx.StateBits.HasFlag(StateBits.BehaviorFlags.ShouldNotRollback) is false
+                                     && ctx.FinalError != TransactionOperationFailedException.FinalErrorToRaise.TransactionSuccess;
+
+                if (ex.AutoRollbackAttempt != shouldRollback)
                 {
-                    try
-                    {
-                        memoryLogger.LogWarning("Attempt failed, attempting automatic rollback...");
-                        await ctx.RollbackInternal(isAppRollback: false, parentSpan: traceSpan).CAF();
-                    }
-                    catch (Exception rollbackEx)
-                    {
-                        memoryLogger.LogWarning("Rollback failed due to {reason}", rollbackEx.Message);
-                        // if rollback failed, raise the original error, but with retry disabled:
-                        // Error(ec = err.ec, cause = err.cause, raise = err.raise
-                        throw ErrorBuilder.CreateError(ctx, ex.CausingErrorClass)
-                            .Cause(ex.Cause)
-                            .DoNotRollbackAttempt()
-                            .RaiseException(ex.ToRaise)
-                            .Build();
-                    }
+                    memoryLogger.LogWarning("Rollback logic mismatch. ex={exRollback}, stateBits={sbRollback}",
+                        ex.AutoRollbackAttempt,
+                        shouldRollback);
+                }
+
+                shouldRollback = shouldRollback && !singleQueryTransactionMode;
+                if (!shouldRollback)
+                {
+                    memoryLogger.LogDebug("Skipping rollback.");
+                    return;
+                }
+
+                try
+                {
+                    memoryLogger.LogWarning("Attempt failed, attempting automatic rollback...");
+                    await ctx.RollbackInternal(isAppRollback: false, parentSpan: traceSpan).CAF();
+                }
+                catch (Exception rollbackEx)
+                {
+                    memoryLogger.LogWarning("Rollback failed due to {reason}", rollbackEx.Message);
+                    // if rollback failed, raise the original error, but with retry disabled:
+                    // Error(ec = err.ec, cause = err.cause, raise = err.raise
+                    throw ErrorBuilder.CreateError(ctx, ex.CausingErrorClass)
+                        .Cause(ex.Cause)
+                        .DoNotRollbackAttempt()
+                        .RaiseException(ex.ToRaise)
+                        .Build();
                 }
 
                 // If the transaction has expired, raised Error(ec = FAIL_EXPIRY, rollback=false, raise = TRANSACTION_EXPIRED)
@@ -474,17 +507,26 @@ namespace Couchbase.Client.Transactions
         //     Dispose(disposing: false);
         // }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Clean up unmanaged resources and request stoppage of background threads.
+        /// </summary>
+        /// <remarks>Safe to call multiple times.</remarks>
         public void Dispose()
         {
             _cleanupWorkQueue.Dispose();
+            _lostTransactionsCleanup?.Dispose();
 
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Clean up unmanaged resources, request background threads such as cleanup to stop, and wait for background threads to finish.
+        /// </summary>
+        /// <remarks>
+        /// Safe to call multiple times.
+        /// </remarks>
         public async ValueTask DisposeAsync()
         {
             if (Config.CleanupConfig!.CleanupClientAttempts)

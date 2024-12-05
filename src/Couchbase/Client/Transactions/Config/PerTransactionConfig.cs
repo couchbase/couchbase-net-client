@@ -22,12 +22,6 @@ namespace Couchbase.Client.Transactions.Config
         /// </summary>
         public TimeSpan? Timeout { get; init; }
 
-
-        /// <summary>
-        /// Gets an option value indicating the timeout on Couchbase Key/Value operations for this transaction.
-        /// </summary>
-        public TimeSpan? KeyValueTimeout { get; init; }
-
         /// <summary>
         /// The scan consistency to use for query operations (default: RequestPlus)
         /// </summary>

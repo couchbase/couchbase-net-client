@@ -30,7 +30,6 @@ namespace Couchbase.Client.Transactions.DataAccess
             _durability = durability;
             _attemptId = attemptId;
 
-
             var metadataSerializerSettings = new JsonSerializerSettings()
             {
                 NullValueHandling = NullValueHandling.Ignore
@@ -222,7 +221,6 @@ namespace Couchbase.Client.Transactions.DataAccess
             .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
 
-
         private List<MutateInSpec> CreateMutationSpecs(AtrRepository atr, string opType, object content, string operationId, DocumentMetadata? dm = null)
         {
             // Round-trip the content through the user's specified serializer.
@@ -241,8 +239,8 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Upsert(TransactionFields.TransactionId, _overallContext.TransactionId,
                     createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AttemptId, _attemptId, createPath: true, isXattr: true),
-                MutateInSpec.Upsert(TransactionFields.AtrId, atr.AtrId, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.OperationId, operationId, createPath: true, isXattr: true),
+                MutateInSpec.Upsert(TransactionFields.AtrId, atr.AtrId, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrScopeName, atr.ScopeName, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrBucketName, atr.BucketName, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AtrCollName, atr.CollectionName, createPath: true, isXattr: true),

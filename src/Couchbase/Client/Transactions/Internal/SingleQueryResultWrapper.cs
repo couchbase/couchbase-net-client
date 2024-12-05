@@ -61,6 +61,8 @@ namespace Couchbase.Client.Transactions.Internal
                     var converted = _ctx.ConvertQueryError(ex);
                     if (converted is TransactionOperationFailedException err)
                     {
+                        _ctx?.UpdateStateBits(err);
+
                         Exception toRaise = err.ToRaise switch
                         {
                             TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed => new TransactionFailedException("Failed during query results streaming", err, null),

@@ -147,7 +147,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             ErrorBuilder? toThrow = ec switch
             {
                 FailDocNotFound => Error(ec, err, retry: true),
-                FailPathNotFound => Error(ec, err, retry:true),
+                FailPathNotFound => Error(ec, err, retry: true),
                 FailTransient => Error(ec, err, retry: true),
                 _ => Error(ec, err, defaultRetry)
             };
@@ -260,7 +260,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             ErrorBuilder? toThrow = ec switch
             {
                 FailAmbiguous => null, // retry
-                FailCasMismatch => Error(ec, err, rollback:false, raise:TransactionFailedPostCommit),
+                FailCasMismatch => Error(ec, err, rollback:false, raise: TransactionFailedPostCommit),
                 FailDocNotFound => null, // retry
                 FailDocAlreadyExists => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit),
                 _ => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit)

@@ -4,7 +4,9 @@ using System.Threading;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
 using FinalErrorToRaise = Couchbase.Client.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
+
 namespace Couchbase.Client.Transactions.Util;
+
 internal class StateBits
 {
     // the spec calls for statebits to be 8 bits
@@ -15,7 +17,8 @@ internal class StateBits
     private long _state64 = 0;
     private const long PosBehaviorFlags = 1;
     private const long PosFinalError = 2;
-    public TransactionOperationFailedException.FinalErrorToRaise FinalError
+
+    public FinalErrorToRaise FinalError
     {
         get
         {
@@ -25,6 +28,7 @@ internal class StateBits
             return finalError;
         }
     }
+
     public bool HasFlag(params BehaviorFlags[] anyFlag)
     {
         BehaviorFlags combinedFlags = BehaviorFlags.NotSet;
@@ -32,14 +36,17 @@ internal class StateBits
         {
             combinedFlags |= flag;
         }
+
         return HasFlag(combinedFlags);
     }
+
     public bool HasFlag(BehaviorFlags flags)
     {
         // NOTE:  HasFlag(NotSet) will always return true
         var currentFlags = ExtractBehaviorFlags();
         return currentFlags.HasFlag(flags);
     }
+
     private BehaviorFlags ExtractBehaviorFlags()
     {
         long stateBits64 = Interlocked.Read(ref _state64);
@@ -47,6 +54,7 @@ internal class StateBits
         BehaviorFlags currentFlags = (BehaviorFlags)bytes[PosBehaviorFlags];
         return currentFlags;
     }
+
     public void SetStateBits(BehaviorFlags newBehaviorFlags,
         TransactionOperationFailedException.FinalErrorToRaise finalError = TransactionOperationFailedException.FinalErrorToRaise.TransactionSuccess)
     {
@@ -56,19 +64,25 @@ internal class StateBits
             long oldState64 = Interlocked.Read(ref _state64);
             var bytes = BitConverter.GetBytes(oldState64);
             BehaviorFlags oldBehaviorFlags = (BehaviorFlags)bytes[PosBehaviorFlags];
-            TransactionOperationFailedException.FinalErrorToRaise oldFinalError = (TransactionOperationFailedException.FinalErrorToRaise)bytes[PosFinalError];
+            FinalErrorToRaise oldFinalError = (FinalErrorToRaise)bytes[PosFinalError];
+
             // merge the behavior flags
             bytes[PosBehaviorFlags] = (byte)(newBehaviorFlags | oldBehaviorFlags);
+
             if (finalError > oldFinalError)
             {
                 bytes[PosFinalError] = (byte)finalError;
             }
+
             long newState64 = BitConverter.ToInt64(bytes, 0);
+
             var finalStateBits = Interlocked.CompareExchange(ref _state64, newState64, oldState64);
             atomicWriteFailed = finalStateBits != newState64;
         } while (atomicWriteFailed);
     }
+
     public override string ToString() => $"{ExtractBehaviorFlags()}::{FinalError}";
+
     [Flags]
     internal enum BehaviorFlags : byte
     {
@@ -78,6 +92,7 @@ internal class StateBits
         ShouldNotRollback = 0x4,
         ShouldNotRetry = 0x8,
     }
+
     public void SetFromException(TransactionOperationFailedException err)
     {
         if (err is { Cause: ConcurrentOperationsDetectedOnSameDocumentException, CausingErrorClass: ErrorClass.FailCasMismatch })
@@ -86,15 +101,18 @@ internal class StateBits
             // in a transaction
             return;
         }
+
         var newFlags = StateBits.BehaviorFlags.NotSet;
         if (!err.AutoRollbackAttempt)
         {
             newFlags |= StateBits.BehaviorFlags.ShouldNotRollback;
         }
+
         if (!err.RetryTransaction)
         {
             newFlags |= StateBits.BehaviorFlags.ShouldNotRetry;
         }
+
         SetStateBits(newFlags, finalError: err.ToRaise);
     }
 }

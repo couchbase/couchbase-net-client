@@ -39,7 +39,6 @@ namespace Couchbase.Client.Transactions
 
         private static Lazy<HashSet<string>> SupportedShortCodes => new Lazy<HashSet<string>>(() => new HashSet<string>(ExtensionsSupported().Select(ext => ext.ShortCode)));
 
-
         /// <summary>
         /// The different ways to represent a Transactions spec extension name.
         /// </summary>

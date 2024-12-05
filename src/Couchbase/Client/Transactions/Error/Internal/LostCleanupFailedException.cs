@@ -3,7 +3,7 @@ using System;
 
 namespace Couchbase.Client.Transactions.Error.Internal
 {
-    internal class LostCleanupFailedException : Exception, IClassifiedTransactionError
+    internal class LostCleanupFailedException : CouchbaseException, IClassifiedTransactionError
     {
         public LostCleanupFailedException(string message, Exception innerException)
             : base(message, innerException)
