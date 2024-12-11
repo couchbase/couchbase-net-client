@@ -29,7 +29,7 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
-using Couchbase.Integrated.Transactions;
+using Couchbase.Client.Transactions;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
@@ -72,7 +72,7 @@ namespace Couchbase
         internal LazyService<IEventingFunctionManagerFactory> LazyEventingFunctionManagerFactory;
 
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
-        internal Lazy<Integrated.Transactions.Transactions> LazyTransactions;
+        internal Lazy<Client.Transactions.Transactions> LazyTransactions;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -99,7 +99,7 @@ namespace Couchbase
             LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
-            LazyTransactions = new(() => Integrated.Transactions.Transactions.Create(this, clusterOptions.TransactionConfig));
+            LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionConfig));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -490,7 +490,7 @@ namespace Couchbase
         #endregion
 
         #region Transactions
-        public  Integrated.Transactions.Transactions Transactions => LazyTransactions.Value;
+        public  Client.Transactions.Transactions Transactions => LazyTransactions.Value;
         #endregion
 
         #region Misc

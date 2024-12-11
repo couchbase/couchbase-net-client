@@ -97,7 +97,7 @@ namespace Couchbase
 
         #region Transactions
         [InterfaceStability(Level.Volatile)]
-        public Integrated.Transactions.Transactions Transactions { get; }
+        public Client.Transactions.Transactions Transactions { get; }
         #endregion
     }
 }

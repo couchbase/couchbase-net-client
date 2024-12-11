@@ -15,7 +15,7 @@ using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
-using Couchbase.Integrated.Transactions;
+using Couchbase.Client.Transactions;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;

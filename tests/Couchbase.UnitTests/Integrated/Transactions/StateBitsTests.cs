@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Couchbase.Integrated.Transactions.Util;
-using BF = Couchbase.Integrated.Transactions.Util.StateBits.BehaviorFlags;
-using FE = Couchbase.Integrated.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
+using Couchbase.Client.Transactions.Util;
+using BF = Couchbase.Client.Transactions.Util.StateBits.BehaviorFlags;
+using FE = Couchbase.Client.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
 namespace Couchbase.UnitTests.Integrated.Transactions;
 public class StateBitsTests
 {
