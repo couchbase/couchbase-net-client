@@ -143,23 +143,65 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
                     return false;
                 }
 
-#if NET5_0_OR_GREATER
-                chain.ChainPolicy.TrustMode = System.Security.Cryptography.X509Certificates.X509ChainTrustMode.CustomRootTrust;
-                foreach (var defaultCert in certs)
+                if (certificate is X509Certificate2 cert2)
                 {
-                    chain.ChainPolicy.CustomTrustStore.Add(defaultCert);
-                }
-#else
-            // There doesn't seem to be a functional way to make this work on earlier versions.
-            // The user will have to add the cert to their personal store manually.
-#endif
-                if (certificate is System.Security.Cryptography.X509Certificates.X509Certificate2 cert2)
-                {
-                    chain.Reset();
+                    // first attempt - validation from system trust store plus whatever certs have been provided
+                    // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
+                    foreach (var defaultCert in certs)
+                    {
+                        MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
+                        chain.ChainPolicy.ExtraStore.Add(defaultCert);
+                    }
+
+                    MaybeLogChainElements("X509 chain element cert is", chain, logger);
+
                     var built = chain.Build(cert2);
+                    if (!built &&
+                        (chain.ChainStatus.First().Status ==
+                         X509ChainStatusFlags.UntrustedRoot /* probably Capella self-signed KV */ ||
+                         chain.ChainStatus.First().Status ==
+                         X509ChainStatusFlags.PartialChain /* probably Capella self-signed http */))
+                    {
+#if NET5_0_OR_GREATER
+                        if (logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            logger.LogDebug(
+                                "X509 validation using system truststore failed with UntrustedRoot or PartialChain, will try CustomRootTrust with Capella CA Cert");
+                            foreach (var status in chain.ChainStatus)
+                            {
+                                logger.LogDebug("{status}: {statusInformation}", status.Status,
+                                    status.StatusInformation);
+                            }
+                        }
+
+                        // second attempt - using only the certs that have been provided in CustomRootTrust
+                        if (chain.ChainElements.Count > 1)
+                        {
+                            logger?.LogTrace("chain had intermediate CAs, but not adding them to CustomTrustStore");
+                        }
+                        chain.Reset();
+                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+
+                        // user supplied or Capella. If self-signed, they *will* be sufficient for CustomTrustMode
+                        foreach (var defaultCert in certs)
+                        {
+                            MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
+                            chain.ChainPolicy.CustomTrustStore.Add(defaultCert);
+                        }
+
+                        MaybeLogChainElements("X509 Retry chain element cert is ", chain, logger);
+
+                        built = chain.Build(cert2);
+#else
+                        // There doesn't seem to be a functional way to make this work on earlier versions.
+                        // The user will have to add the cert to their personal store manually.
+                        // built will remain false, validation fails
+#endif
+                    }
+
                     if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
                     {
-                        logger.LogDebug("X509 validation failed");
+                        logger.LogDebug("X509 validation failed for " + cert2.Subject + " " + cert2.Thumbprint);
                         foreach (var status in chain.ChainStatus)
                         {
                             logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
@@ -177,6 +219,11 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
                             }
                         }
                     }
+                    else
+                    {
+                        logger?.LogDebug("X509 validation succeeded for " + cert2.Subject);
+                    }
+
                     return built;
                 }
                 return false;
@@ -184,10 +231,32 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
 
         private static readonly X509Certificate2Collection DefaultCertificatesCollection = new X509Certificate2Collection(DefaultCertificates.ToArray());
         internal static RemoteCertificateValidationCallback GetValidatorWithDefaultCertificates(ILogger? logger, IRedactor? redactor) => GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection, logger, redactor);
+
+        private static void MaybeLogChainElements(string message, X509Chain chain, ILogger? logger = null)
+        {
+            if (logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                int i = 0;
+                foreach (var el in chain.ChainElements)
+                {
+                    MaybeLogCert(message + " [" + i + "]", el.Certificate, logger);
+                    i++;
+                }
+            }
+        }
+
+        private static void MaybeLogCert(string message, X509Certificate2 cert, ILogger? logger = null)
+        {
+            if (logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                logger.LogTrace(message + " " + cert.Subject + " " + cert.Thumbprint);
+            }
+        }
     }
 }
 
 #region [ License information          ]
+
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
