@@ -282,10 +282,11 @@ namespace Couchbase.Transactions
 
                 if (resolveMissingAtrEntry == blockingTxn.Id?.AttemptId)
                 {
-                    // This is our second attempt getting the document, and it’s in the same state as before
+                    // This is our second attempt getting the document, and it’s in the same state as before, meaning
+                    // the transaction that staged things here is lost, and never committed.
                     return docLookupResult!.IsDeleted
                         ? TransactionGetResult.Empty
-                        : docLookupResult.GetPostTransactionResult();
+                        : docLookupResult.GetPreTransactionResult();
                 }
 
                 resolveMissingAtrEntry = blockingTxn.Id?.AttemptId;
