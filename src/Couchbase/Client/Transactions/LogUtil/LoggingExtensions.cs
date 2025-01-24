@@ -1,5 +1,4 @@
-#nullable enable
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +24,7 @@ namespace Couchbase.Client.Transactions.LogUtil
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -40,8 +39,3 @@ namespace Couchbase.Client.Transactions.LogUtil
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -3,17 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
-using Couchbase.Client.Transactions.Support;
 using Couchbase.Client.Transactions.LogUtil;
-using Couchbase.KeyValue;
+using Couchbase.Client.Transactions.Support;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
-    internal class AtrRepository
+    internal class AtrRepository : IAtrRepository
     {
         private readonly string _attemptId;
         private readonly TransactionContext _overallContext;
@@ -33,34 +33,16 @@ namespace Couchbase.Client.Transactions.DataAccess
         private readonly DurabilityLevel? _atrDurability;
         private readonly ILogger _logger;
 
-        public string AtrId { get; }
 
         private readonly string _atrRoot;
 
-        public ICouchbaseCollection Collection { get; }
-
-        public string ScopeName => Collection.Scope.Name;
-        public string BucketName => Collection.Scope.Bucket.Name;
-        public string CollectionName => Collection.Name;
-
-        public string FullPath => $"{BucketName}.{ScopeName}.{CollectionName}::{AtrId}";
-
-        public AtrRef AtrRef => new AtrRef()
-        {
-            BucketName = BucketName,
-            ScopeName = ScopeName,
-            CollectionName = CollectionName,
-            Id = AtrId
-        };
 
         public AtrRepository(string attemptId, TransactionContext overallContext, ICouchbaseCollection atrCollection, string atrId, DurabilityLevel? atrDurability, ILoggerFactory loggerFactory, string? testHookAtrId = null)
-        {
+        : base(atrCollection, testHookAtrId ?? atrId) {
             // Ugly test hook handling.
-            AtrId = testHookAtrId ?? atrId;
             _atrRoot = $"{TransactionFields.AtrFieldAttempts}.{attemptId}";
             _attemptId = attemptId;
             _overallContext = overallContext;
-            Collection = atrCollection;
             _prefixedAtrFieldDocsInserted = $"{_atrRoot}.{TransactionFields.AtrFieldDocsInserted}";
             _prefixedAtrFieldDocsRemoved = $"{_atrRoot}.{TransactionFields.AtrFieldDocsRemoved}";
             _prefixedAtrFieldDocsReplaced = $"{_atrRoot}.{TransactionFields.AtrFieldDocsReplaced}";
@@ -79,10 +61,14 @@ namespace Couchbase.Client.Transactions.DataAccess
             _atrDurability = atrDurability ?? DurabilityLevel.Majority;
         }
 
+        public override Task<AtrEntry?> FindEntryForTransaction(ICouchbaseCollection atrCollection, string atrId, string? attemptId = null)
+            => FindEntryForTransaction(atrCollection, atrId, attemptId ?? _attemptId, _overallContext?.Config?.KeyValueTimeout);
+
         public static async Task<AtrEntry?> FindEntryForTransaction(
             ICouchbaseCollection atrCollection,
             string atrId,
-            string attemptId
+            string attemptId,
+            TimeSpan? keyValueTimeout = null
             )
         {
             _ = atrCollection ?? throw new ArgumentNullException(nameof(atrCollection));
@@ -90,7 +76,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 
             var lookupInResult = await atrCollection.LookupInAsync(atrId,
                 specs => specs.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-                opts => opts.Defaults().AccessDeleted(true)).CAF();
+                opts => opts.Defaults(keyValueTimeout).AccessDeleted(true)).CAF();
 
             if (!lookupInResult.Exists(0))
             {
@@ -137,9 +123,9 @@ namespace Couchbase.Client.Transactions.DataAccess
             return scp.Collection(atrRef.CollectionName);
         }
 
-        public Task<ICouchbaseCollection?> GetAtrCollection(AtrRef atrRef) => GetAtrCollection(atrRef, Collection);
+        public override Task<ICouchbaseCollection?> GetAtrCollection(AtrRef atrRef) => GetAtrCollection(atrRef, Collection);
 
-        public async Task MutateAtrComplete()
+        public override async Task MutateAtrComplete()
         {
             using var logScope = _logger.BeginMethodScope();
             var specs = new[]
@@ -148,10 +134,10 @@ namespace Couchbase.Client.Transactions.DataAccess
             };
 
             _ = await Collection.MutateInAsync(AtrId, specs, GetMutateOpts(StoreSemantics.Replace)).CAF();
-            _logger.LogInformation("Removed ATR {atr}/{atrRoot} on {atrCollection} ", AtrId, _atrRoot, Collection.ToKeySpace());
+            _logger.LogInformation("Removed ATR {atr}/{atrRoot} on {atrCollection} ", AtrId, _atrRoot, Collection.MakeKeyspace());
         }
 
-        public async Task MutateAtrPending(ulong exp, DurabilityLevel documentDurability)
+        public override async Task MutateAtrPending(ulong exp, DurabilityLevel documentDurability)
         {
             using var logScope = _logger.BeginMethodScope();
             var shortDurability = new ShortStringDurabilityLevel(documentDurability).ToString();
@@ -172,7 +158,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _logger.LogInformation("Upserted ATR to PENDING {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
-        public async Task MutateAtrCommit(IEnumerable<StagedMutation> stagedMutations)
+        public override async Task MutateAtrCommit(IEnumerable<StagedMutation> stagedMutations)
         {
             using var logScope = _logger.BeginMethodScope();
             (var inserts, var replaces, var removes) = SplitMutationsForStaging(stagedMutations);
@@ -196,7 +182,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _logger.LogDebug("Updated to COMMITTED ATR {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
-        public async Task MutateAtrAborted(IEnumerable<StagedMutation> stagedMutations)
+        public override async Task MutateAtrAborted(IEnumerable<StagedMutation> stagedMutations)
         {
             using var logScope = _logger.BeginMethodScope();
             (var inserts, var replaces, var removes) = SplitMutationsForStaging(stagedMutations);
@@ -214,7 +200,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _logger.LogDebug("Updated to ABORTED ATR {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
-        public async Task MutateAtrRolledBack()
+        public override async Task MutateAtrRolledBack()
         {
             using var logScope = _logger.BeginMethodScope();
             var specs = new MutateInSpec[]
@@ -226,7 +212,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _logger.LogDebug("Removed ATR {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
-        public async Task<string?> LookupAtrState()
+        public override async Task<string?> LookupAtrState()
         {
             var lookupInResult = await Collection!.LookupInAsync(AtrId,
                     specs => specs.Get(_prefixedAtrFieldStatus, isXattr: true),
@@ -249,10 +235,10 @@ namespace Couchbase.Client.Transactions.DataAccess
         }
 
         private LookupInOptions GetLookupOpts() => new LookupInOptions()
-            .Defaults().Serializer(Transactions.MetadataSerializer);
+            .Defaults(_overallContext.Config.KeyValueTimeout).Serializer(Transactions.MetadataSerializer);
 
         private MutateInOptions GetMutateOpts(StoreSemantics storeSemantics) => new MutateInOptions()
-            .Defaults(_atrDurability)
+            .Defaults(_atrDurability, _overallContext.Config.KeyValueTimeout)
             .Transcoder(Transactions.MetadataTranscoder)
             .StoreSemantics(storeSemantics);
     }
@@ -262,7 +248,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -277,10 +263,3 @@ namespace Couchbase.Client.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

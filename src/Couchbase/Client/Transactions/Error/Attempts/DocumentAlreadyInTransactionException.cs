@@ -1,12 +1,11 @@
-#nullable enable
-using Couchbase.Core.Retry;
+﻿using Couchbase.Core.Retry;
 
 namespace Couchbase.Client.Transactions.Error.Attempts
 {
     /// <summary>
     /// Indicates a document being modified is already being modified in the same transaction.
     /// </summary>
-    internal class DocumentAlreadyInTransactionException : AttemptException, IRetryable
+    public class DocumentAlreadyInTransactionException : AttemptException, IRetryable
     {
         /// <summary>
         /// Gets the document in question.
@@ -39,7 +38,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -54,8 +53,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

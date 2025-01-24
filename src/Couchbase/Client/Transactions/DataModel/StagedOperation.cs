@@ -1,12 +1,11 @@
-#nullable enable
+﻿#nullable enable
 using Newtonsoft.Json;
-
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.DataModel
 {
     // TODO: this class should be made internal
-    internal class StagedOperation
+    public class StagedOperation
     {
         [JsonProperty("type")]
         public string? Type { get; set; }
@@ -26,7 +25,7 @@ namespace Couchbase.Client.Transactions.DataModel
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -41,8 +40,3 @@ namespace Couchbase.Client.Transactions.DataModel
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

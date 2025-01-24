@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using Couchbase.Client.Transactions.Error.Internal;
 
@@ -7,7 +7,7 @@ namespace Couchbase.Client.Transactions.Error
     /// <summary>
     /// Indicates that a transaction ran past its overall allotted time.
     /// </summary>
-    internal class TransactionExpiredException : TransactionFailedException, IClassifiedTransactionError
+    public class TransactionExpiredException : TransactionFailedException, IClassifiedTransactionError
     {
         /// <inheritdoc />
         public TransactionExpiredException(string message, Exception innerException, TransactionResult result) : base(message, innerException, result)
@@ -23,7 +23,7 @@ namespace Couchbase.Client.Transactions.Error
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -38,8 +38,3 @@ namespace Couchbase.Client.Transactions.Error
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,5 +1,4 @@
-#nullable enable
-using System;
+﻿using System;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 
@@ -9,13 +8,18 @@ namespace Couchbase.Client.Transactions.DataAccess
     {
         public static IRetryStrategy RetryStrategy = new BestEffortRetryStrategy();
 
-        public static LookupInOptions Defaults(this LookupInOptions opts)
+        public static LookupInOptions Defaults(this LookupInOptions opts, TimeSpan? timeout)
         {
             opts = opts.RetryStrategy(RetryStrategy);
+            if (timeout.HasValue)
+            {
+                opts = opts.Timeout(timeout.Value);
+            }
+
             return opts;
         }
 
-        public static MutateInOptions Defaults(this MutateInOptions opts, DurabilityLevel? durability)
+        public static MutateInOptions Defaults(this MutateInOptions opts, DurabilityLevel? durability, TimeSpan? timeout)
         {
             opts = new MutateInOptions().RetryStrategy(RetryStrategy);
             if (durability.HasValue)
@@ -23,10 +27,15 @@ namespace Couchbase.Client.Transactions.DataAccess
                 opts = opts.Durability(durability.Value);
             }
 
+            if (timeout.HasValue)
+            {
+                opts = opts.Timeout(timeout.Value);
+            }
+
             return opts;
         }
 
-        public static InsertOptions Defaults(this InsertOptions opts, DurabilityLevel? durability)
+        public static InsertOptions Defaults(this InsertOptions opts, DurabilityLevel? durability, TimeSpan? timeout)
         {
             opts = new InsertOptions().RetryStrategy(RetryStrategy);
             if (durability.HasValue)
@@ -34,15 +43,25 @@ namespace Couchbase.Client.Transactions.DataAccess
                 opts = opts.Durability(durability.Value);
             }
 
+            if (timeout.HasValue)
+            {
+                opts = opts.Timeout(timeout.Value);
+            }
+
             return opts;
         }
 
-        public static RemoveOptions Defaults(this RemoveOptions opts, DurabilityLevel? durability)
+        public static RemoveOptions Defaults(this RemoveOptions opts, DurabilityLevel? durability, TimeSpan? timeout)
         {
             opts = new RemoveOptions().RetryStrategy(RetryStrategy);
             if (durability.HasValue)
             {
                 opts = opts.Durability(durability.Value);
+            }
+
+            if (timeout.HasValue)
+            {
+                opts = opts.Timeout(timeout.Value);
             }
 
             return opts;
@@ -53,7 +72,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -68,10 +87,3 @@ namespace Couchbase.Client.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

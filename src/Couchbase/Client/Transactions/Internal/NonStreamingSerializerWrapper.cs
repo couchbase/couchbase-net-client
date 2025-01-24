@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.IO;
 using System.Threading;
@@ -49,8 +49,3 @@ namespace Couchbase.Client.Transactions.Internal
         public ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default) => _serializer.SerializeAsync(stream, obj, cancellationToken);
     }
 }
-
-
-
-
-

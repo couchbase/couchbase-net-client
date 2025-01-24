@@ -1,4 +1,5 @@
 #nullable enable
+
 using System;
 
 namespace Couchbase.Client.Transactions.Error
@@ -6,7 +7,7 @@ namespace Couchbase.Client.Transactions.Error
     /// <summary>
     /// A generic exception thrown internally that indicates that a transaction failed.
     /// </summary>
-    internal class TransactionFailedException : CouchbaseException
+    public class TransactionFailedException : CouchbaseException
     {
         /// <summary>
         /// Gets the final result of the transaction.
@@ -25,7 +26,7 @@ namespace Couchbase.Client.Transactions.Error
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -40,8 +41,3 @@ namespace Couchbase.Client.Transactions.Error
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

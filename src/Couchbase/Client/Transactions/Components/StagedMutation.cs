@@ -1,8 +1,8 @@
-#nullable enable
+﻿#nullable enable
 using System.Globalization;
+using Couchbase.Core;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
-using Couchbase.Core;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Components
@@ -12,9 +12,9 @@ namespace Couchbase.Client.Transactions.Components
         public TransactionGetResult Doc { get; }
         public object? Content { get; }
         public StagedMutationType Type { get; }
-        public MutationToken? MutationToken { get; }
+        public MutationToken MutationToken { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken? mutationToken)
+        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken mutationToken)
         {
             Doc = doc;
             Content = content;
@@ -58,7 +58,7 @@ namespace Couchbase.Client.Transactions.Components
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -73,10 +73,3 @@ namespace Couchbase.Client.Transactions.Components
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

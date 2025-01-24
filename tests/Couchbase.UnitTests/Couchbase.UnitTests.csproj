@@ -70,4 +70,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Integrated\Transactions\" />
+  </ItemGroup>
+
 </Project>

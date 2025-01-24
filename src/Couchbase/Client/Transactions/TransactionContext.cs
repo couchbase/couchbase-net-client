@@ -14,7 +14,7 @@ namespace Couchbase.Client.Transactions
         public DateTimeOffset StartTime { get; }
         public MergedTransactionConfig Config { get; }
 
-        public DateTimeOffset AbsoluteExpiration => StartTime + Config.Timeout;
+        public DateTimeOffset AbsoluteExpiration => StartTime + Config.ExpirationTime;
         public bool IsExpired => AbsoluteExpiration <= DateTimeOffset.UtcNow;
 
         public TimeSpan RemainingUntilExpiration => AbsoluteExpiration - DateTimeOffset.UtcNow;
@@ -40,7 +40,7 @@ namespace Couchbase.Client.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -55,8 +55,3 @@ namespace Couchbase.Client.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

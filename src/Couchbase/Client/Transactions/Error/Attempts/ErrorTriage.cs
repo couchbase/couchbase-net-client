@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Couchbase.Client.Transactions.Error.External;
 using Couchbase.Core.Exceptions;
+using Couchbase.Client.Transactions.Error.External;
 using Microsoft.Extensions.Logging;
 using static Couchbase.Client.Transactions.Error.ErrorBuilder;
 using static Couchbase.Client.Transactions.Error.ErrorClass;
-using static Couchbase.Client.Transactions.Error.External.TransactionOperationFailedException.FinalErrorToRaise;
+using static Couchbase.Client.Transactions.Error.External.TransactionOperationFailedException.FinalError;
 
 namespace Couchbase.Client.Transactions.Error.Attempts
 {
@@ -31,7 +31,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             (ErrorClass ec, TransactionOperationFailedException? toThrow) triageResult, Exception innerException) =>
             AssertNotNull(triageResult.toThrow, triageResult.ec, innerException);
 
-        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalErrorToRaise? raise = null, bool setStateBits = true)
+        private ErrorBuilder Error(ErrorClass ec, Exception err, bool? retry = null, bool? rollback = null, TransactionOperationFailedException.FinalError? raise = null)
         {
             var eb = CreateError(_ctx, ec, err);
             if (retry.HasValue && retry.Value)
@@ -47,11 +47,6 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             if (raise.HasValue)
             {
                 eb.RaiseException(raise.Value);
-            }
-
-            if (!setStateBits)
-            {
-                eb.DoNotUpdateStateBits();
             }
 
             return eb;
@@ -137,17 +132,17 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#Creating-Staged-Inserts-Protocol-20-version
             var ec = err.Classify();
             bool defaultRetry = false;
-            TransactionOperationFailedException.FinalErrorToRaise? finalError = null;
+            TransactionOperationFailedException.FinalError? finalError = null;
             if (err is TransactionOperationFailedException tofe)
             {
                 defaultRetry = tofe.RetryTransaction;
-                finalError = tofe.ToRaise;
+                finalError = tofe.FinalErrorToRaise;
             }
 
             ErrorBuilder? toThrow = ec switch
             {
                 FailDocNotFound => Error(ec, err, retry: true),
-                FailPathNotFound => Error(ec, err, retry: true),
+                FailPathNotFound => Error(ec, err, retry:true),
                 FailTransient => Error(ec, err, retry: true),
                 _ => Error(ec, err, defaultRetry)
             };
@@ -216,7 +211,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
-                FailHard => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit),
+                FailHard => Error(ec, err, rollback: false, raise: TransactionOperationFailedException.FinalError.TransactionFailedPostCommit),
                 // Setting the ATR to COMPLETED is purely a cleanup step, there’s no need to retry it until expiry.
                 // Simply return success (leaving state at COMMITTED).
                 _ => null,
@@ -260,7 +255,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             ErrorBuilder? toThrow = ec switch
             {
                 FailAmbiguous => null, // retry
-                FailCasMismatch => Error(ec, err, rollback:false, raise: TransactionFailedPostCommit),
+                FailCasMismatch => Error(ec, err, rollback:false, raise:TransactionFailedPostCommit),
                 FailDocNotFound => null, // retry
                 FailDocAlreadyExists => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit),
                 _ => Error(ec, err, rollback: false, raise: TransactionFailedPostCommit)
@@ -269,34 +264,34 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             return (ec, toThrow?.Build());
         }
 
-        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrAbortedErrors(Exception err, bool setStateBits)
+        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrAbortedErrors(Exception err)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#SetATRAborted
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
                 FailExpiry => null,
-                FailPathNotFound => Error(ec, new ActiveTransactionRecordEntryNotFoundException(), rollback: false, setStateBits: setStateBits),
-                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false, setStateBits: setStateBits),
-                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrAborted."), rollback: false, setStateBits: setStateBits),
-                FailHard => Error(ec, err, rollback: false, setStateBits: setStateBits),
+                FailPathNotFound => Error(ec, new ActiveTransactionRecordEntryNotFoundException(), rollback: false),
+                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false),
+                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrAborted."), rollback: false),
+                FailHard => Error(ec, err, rollback: false),
                 _ => null
             };
 
             return (ec, toThrow?.Build());
         }
 
-        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrRolledBackErrors(Exception err, bool setStateBits)
+        public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageSetAtrRolledBackErrors(Exception err)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#SetATRRolledBack
             var ec = err.Classify();
             ErrorBuilder? toThrow = ec switch
             {
-                FailExpiry => Error(ec, err, rollback: false, raise: TransactionExpired, setStateBits: setStateBits),
+                FailExpiry => Error(ec, err, rollback: false, raise: TransactionExpired),
                 FailPathNotFound => null,
-                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false, setStateBits: setStateBits),
-                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrRolledBack."), rollback: false, setStateBits: setStateBits),
-                FailHard => Error(ec, err, rollback: false, setStateBits: setStateBits),
+                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException(), rollback: false),
+                FailAtrFull => Error(ec, new ActiveTransactionRecordsFullException(_ctx, "ATR Full during SetAtrRolledBack."), rollback: false),
+                FailHard => Error(ec, err, rollback: false),
                 _ => null
             };
 
@@ -358,7 +353,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -373,8 +368,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

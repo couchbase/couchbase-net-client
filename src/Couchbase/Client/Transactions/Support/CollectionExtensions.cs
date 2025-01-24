@@ -1,5 +1,4 @@
-#nullable enable
-using System;
+﻿using System;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Client.Transactions.Support
@@ -46,10 +45,7 @@ namespace Couchbase.Client.Transactions.Support
             return opts;
         }
 
-        internal static KeySpace ToKeySpace(this ICouchbaseCollection collection) => new KeySpace(
-            Bucket: collection.Scope.Bucket.Name,
-            Scope: collection.Scope.Name,
-            Collection: collection.Name);
+        internal static string MakeKeyspace(this ICouchbaseCollection collection) => $"default:`{collection.Scope.Bucket.Name}`.`{collection.Scope.Name}`.`{collection.Name}`";
     }
 }
 
@@ -57,7 +53,7 @@ namespace Couchbase.Client.Transactions.Support
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -72,8 +68,3 @@ namespace Couchbase.Client.Transactions.Support
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

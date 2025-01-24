@@ -1,6 +1,4 @@
-#nullable enable
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
 using Couchbase.Core.Sharding;
 
 namespace Couchbase.Client.Transactions.ActiveTransactionRecords
@@ -19,7 +17,7 @@ namespace Couchbase.Client.Transactions.ActiveTransactionRecords
         private const int VBucketPartitionCount = 1024;
         private static readonly short VBucketMask = VBucketMapper.GetMask(VBucketPartitionCount);
 
-        private static readonly ReadOnlyCollection<string> AllAtrIds = new( new []
+        private static readonly List<string> AllAtrIds = new()
         {
             "_txn:atr-0-#14",
             "_txn:atr-1-#10b6",
@@ -1045,7 +1043,7 @@ namespace Couchbase.Client.Transactions.ActiveTransactionRecords
             "_txn:atr-1021-#159",
             "_txn:atr-1022-#cb",
             "_txn:atr-1023-#10c2"
-        });
+        };
         public static int NumAtrs => AllAtrIds.Count;
 
         public static string GetAtrId(string key)
@@ -1074,7 +1072,7 @@ namespace Couchbase.Client.Transactions.ActiveTransactionRecords
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -1089,11 +1087,3 @@ namespace Couchbase.Client.Transactions.ActiveTransactionRecords
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-
-

@@ -1,5 +1,4 @@
-#nullable enable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,7 +15,7 @@ namespace Couchbase.Client.Transactions.Error.External
      *    fail and possibly retry point as soon as possible.
      * 2. The application is erroneously catching and not propagating exceptions in the lambda.
      */
-    internal class PreviousOperationFailedException : CouchbaseException
+    public class PreviousOperationFailedException : Exception
     {
         private IEnumerable<Exception> Causes { get; } = Enumerable.Empty<Exception>();
 
@@ -37,7 +36,7 @@ namespace Couchbase.Client.Transactions.Error.External
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -52,8 +51,3 @@ namespace Couchbase.Client.Transactions.Error.External
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

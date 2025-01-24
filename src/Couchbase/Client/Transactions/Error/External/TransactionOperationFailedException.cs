@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Client.Transactions.Error.Internal;
@@ -8,7 +8,7 @@ namespace Couchbase.Client.Transactions.Error.External
     /// <summary>
     /// Indicates an operation in a transaction failed.
     /// </summary>
-    internal class TransactionOperationFailedException : CouchbaseException, IClassifiedTransactionError
+    public class TransactionOperationFailedException : CouchbaseException, IClassifiedTransactionError
     {
         /// <summary>
         /// Placeholder for "no failure".
@@ -45,17 +45,32 @@ namespace Couchbase.Client.Transactions.Error.External
         /// <summary>
         /// Gets the final error to raise if this is the last attempt in the transaction.
         /// </summary>
-        public FinalErrorToRaise ToRaise { get; }
+        public FinalError FinalErrorToRaise { get; }
 
-        public bool UpdateStateBits { get; }
-
-        public enum FinalErrorToRaise : byte
+        /// <summary>
+        /// An enumeration of the final error types that can fail a transaction.
+        /// </summary>
+        public enum FinalError
         {
-            TransactionSuccess = 0,
-            TransactionFailed = TransactionSuccess + 1,
-            TransactionExpired = TransactionSuccess + 2,
-            TransactionCommitAmbiguous = TransactionSuccess + 3,
-            TransactionFailedPostCommit = TransactionSuccess + 4,
+            /// <summary>
+            /// Generic failure.
+            /// </summary>
+            TransactionFailed = 0,
+
+            /// <summary>
+            /// The transaction expired.
+            /// </summary>
+            TransactionExpired = 1,
+
+            /// <summary>
+            /// An error occured in a way that the client cannot know whether the commit was successful or not.
+            /// </summary>
+            TransactionCommitAmbiguous = 2,
+
+            /**
+             * This will currently result in returning success to the application, but unstagingCompleted() will be false.
+             */
+            TransactionFailedPostCommit = 3
         }
 
         /// <inheritdoc />
@@ -64,16 +79,14 @@ namespace Couchbase.Client.Transactions.Error.External
             bool autoRollbackAttempt,
             bool retryTransaction,
             Exception cause,
-            FinalErrorToRaise toRaise,
-            bool updateStateBits)
+            FinalError finalErrorToRaise)
         {
             ExceptionNumber = Interlocked.Increment(ref ExceptionCount);
             CausingErrorClass = causingErrorClass;
             AutoRollbackAttempt = autoRollbackAttempt;
             RetryTransaction = retryTransaction;
             Cause = cause;
-            ToRaise = toRaise;
-            UpdateStateBits = updateStateBits;
+            FinalErrorToRaise = finalErrorToRaise;
         }
     }
 }
@@ -82,7 +95,7 @@ namespace Couchbase.Client.Transactions.Error.External
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -97,8 +110,3 @@ namespace Couchbase.Client.Transactions.Error.External
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,10 +1,8 @@
-#nullable enable
 using System;
-using Couchbase.Client.Transactions.Error.Attempts;
-using Couchbase.Client.Transactions.Error.Internal;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
-
+using Couchbase.Client.Transactions.Error.Attempts;
+using Couchbase.Client.Transactions.Error.Internal;
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.Error
@@ -165,7 +163,7 @@ namespace Couchbase.Client.Transactions.Error
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -180,8 +178,3 @@ namespace Couchbase.Client.Transactions.Error
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

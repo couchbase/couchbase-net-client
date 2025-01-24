@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using Couchbase.Client.Transactions.Error.External;
 
@@ -6,13 +6,12 @@ namespace Couchbase.Client.Transactions.Error
 {
     internal class ErrorBuilder
     {
-        public const ErrorBuilder? None = null;
+        public const ErrorBuilder None = null;
         private readonly AttemptContext? _ctx;
         private readonly ErrorClass _causingErrorClass;
-        private TransactionOperationFailedException.FinalErrorToRaise _toRaise = TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed;
+        private TransactionOperationFailedException.FinalError _toRaise = TransactionOperationFailedException.FinalError.TransactionFailed;
         private bool _rollbackAttempt = true;
         private bool _retryTransaction = false;
-        private bool _updateStateBits = true;
         private Exception _cause = new Exception("generic exception cause");
 
         private ErrorBuilder(AttemptContext? ctx, ErrorClass causingErrorClass)
@@ -31,23 +30,16 @@ namespace Couchbase.Client.Transactions.Error
 
             return builder;
         }
-        public static TransactionOperationFailedException WrapError(AttemptContext? ctx, Exception err) => CreateError(ctx, err.Classify(), err).Build();
 
-        public ErrorBuilder RaiseException(TransactionOperationFailedException.FinalErrorToRaise toRaise)
+        public ErrorBuilder RaiseException(TransactionOperationFailedException.FinalError finalErrorToRaise)
         {
-            _toRaise = toRaise;
+            _toRaise = finalErrorToRaise;
             return this;
         }
 
         public ErrorBuilder DoNotRollbackAttempt()
         {
             _rollbackAttempt = false;
-            return this;
-        }
-
-        public ErrorBuilder DoNotUpdateStateBits()
-        {
-            _updateStateBits = false;
             return this;
         }
 
@@ -63,30 +55,21 @@ namespace Couchbase.Client.Transactions.Error
             return this;
         }
 
-        public TransactionOperationFailedException Build()
-        {
-            var err = new TransactionOperationFailedException(
+        public TransactionOperationFailedException Build() =>
+            new TransactionOperationFailedException(
                 _causingErrorClass,
                 _rollbackAttempt,
                 _retryTransaction,
                 _cause,
-                _toRaise,
-                _updateStateBits);
-
-            if (_updateStateBits)
-            {
-                _ctx?.UpdateStateBits(err);
-            }
-
-            return err;
-        }
+                _toRaise);
     }
 }
+
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -101,8 +84,3 @@ namespace Couchbase.Client.Transactions.Error
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

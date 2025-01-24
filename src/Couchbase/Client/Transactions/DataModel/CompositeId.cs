@@ -1,20 +1,17 @@
-#nullable enable
+﻿#nullable enable
 using Newtonsoft.Json;
-
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.DataModel
 {
-    internal class CompositeId
+    // TODO: this class should be made internal.
+    public class CompositeId
     {
         [JsonProperty("txn")]
-        public string? TransactionId { get; set; }
+        public string? Transactionid { get; set; }
 
         [JsonProperty("atmpt")]
         public string? AttemptId { get; set; }
-
-        [JsonProperty("op")]
-        public string? OperationUuid { get; internal set; }
     }
 }
 
@@ -22,7 +19,7 @@ namespace Couchbase.Client.Transactions.DataModel
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -37,8 +34,3 @@ namespace Couchbase.Client.Transactions.DataModel
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

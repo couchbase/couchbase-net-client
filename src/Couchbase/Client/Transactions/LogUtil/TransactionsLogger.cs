@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using Microsoft.Extensions.Logging;
 
@@ -7,7 +7,7 @@ namespace Couchbase.Client.Transactions.LogUtil
     /// <summary>
     /// A logger that records results in-memory.
     /// </summary>
-    internal class TransactionsLogger : ILogger
+    public class TransactionsLogger : ILogger
     {
         private readonly ILogger _otherLogger;
         private readonly TransactionContext _overallContext;
@@ -42,7 +42,7 @@ namespace Couchbase.Client.Transactions.LogUtil
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -57,8 +57,3 @@ namespace Couchbase.Client.Transactions.LogUtil
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
@@ -28,7 +28,7 @@ namespace Couchbase.Client.Transactions.DataModel
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -43,8 +43,3 @@ namespace Couchbase.Client.Transactions.DataModel
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

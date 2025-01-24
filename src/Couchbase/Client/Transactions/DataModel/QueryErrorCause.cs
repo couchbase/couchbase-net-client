@@ -1,5 +1,4 @@
-#nullable enable
-
+﻿#nullable enable
 // ReSharper disable InconsistentNaming
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -20,8 +19,3 @@ namespace Couchbase.Client.Transactions.DataModel
         public string? raise { get; }
     }
 }
-
-
-
-
-

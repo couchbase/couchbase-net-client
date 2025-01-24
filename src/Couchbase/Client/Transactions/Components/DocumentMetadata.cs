@@ -1,37 +1,40 @@
-#nullable enable
-using Couchbase.Core.Compatibility;
+﻿#nullable enable
 using Newtonsoft.Json;
+using Stj = System.Text.Json.Serialization;
 
 namespace Couchbase.Client.Transactions.Components
 {
     /// <summary>
     /// A POCO to serialize transactions metadata on a document for rollback / unstaging purposes.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
     public class DocumentMetadata
     {
         /// <summary>
         /// Gets the stringified CAS value.
         /// </summary>
         [JsonProperty("CAS")]
+        [Stj.JsonPropertyName("CAS")]
         public string? Cas { get; internal set; }
 
         /// <summary>
         /// Gets the Revision ID.
         /// </summary>
         [JsonProperty("revid")]
+        [Stj.JsonPropertyName("revid")]
         public string? RevId { get; internal set; }
 
         /// <summary>
         /// Gets the expiration time
         /// </summary>
         [JsonProperty("exptime")]
+        [Stj.JsonPropertyName("exptime")]
         public ulong? ExpTime { get; internal set; }
 
         /// <summary>
         /// Gets the CRC32 checksum.
         /// </summary>
         [JsonProperty("value_crc32c")]
+        [Stj.JsonPropertyName("value_crc32c")]
         public string? Crc32c { get; internal set; }
     }
 }
@@ -40,7 +43,7 @@ namespace Couchbase.Client.Transactions.Components
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -55,10 +58,3 @@ namespace Couchbase.Client.Transactions.Components
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

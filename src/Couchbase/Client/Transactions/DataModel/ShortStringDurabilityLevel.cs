@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using Couchbase.KeyValue;
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -28,8 +28,3 @@ namespace Couchbase.Client.Transactions.DataModel
         };
     }
 }
-
-
-
-
-

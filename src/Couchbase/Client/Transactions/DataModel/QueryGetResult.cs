@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -12,8 +12,3 @@ namespace Couchbase.Client.Transactions.DataModel
     }
     internal record QueryInsertResult(string scas);
 }
-
-
-
-
-

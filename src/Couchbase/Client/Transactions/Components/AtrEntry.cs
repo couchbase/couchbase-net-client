@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using Couchbase.Client.Transactions.Support;
@@ -106,7 +106,7 @@ namespace Couchbase.Client.Transactions.Components
             for (int octetIndex = 7; octetIndex >= 0; octetIndex -= 1)
             {
                 char char1 = casString![offsetIndex + (octetIndex * 2)];
-                char char2 = casString[offsetIndex + (octetIndex * 2) + 1];
+                char char2 = casString![offsetIndex + (octetIndex * 2) + 1];
 
                 long octet1 = 0;
                 long octet2 = 0;
@@ -157,7 +157,7 @@ namespace Couchbase.Client.Transactions.Components
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -172,10 +172,3 @@ namespace Couchbase.Client.Transactions.Components
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

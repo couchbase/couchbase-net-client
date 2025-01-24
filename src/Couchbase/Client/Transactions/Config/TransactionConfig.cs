@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using Couchbase.Core.Compatibility;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
@@ -10,14 +9,7 @@ namespace Couchbase.Client.Transactions.Config
     /// <summary>
     /// The configuration to use for each transaction against a given cluster.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public record TransactionConfig(
-        DurabilityLevel DurabilityLevel = TransactionConfig.DefaultDurabilityLevel,
-        TimeSpan? Timeout = null,
-        QueryScanConsistency? ScanConsistency = null,
-        KeySpace? MetadataCollection = null,
-        TransactionCleanupConfig? CleanupConfig = null,
-        ILoggerFactory? LoggerFactory = null)
+    public class TransactionConfig
     {
         /// <summary>
         /// The default durability level.
@@ -28,27 +20,22 @@ namespace Couchbase.Client.Transactions.Config
         /// <summary>
         /// The default expiration, in milliseconds.
         /// </summary>
-        /// <seealso cref="TransactionConfig.Timeout"/>
-        public const int DefaultTimeoutMilliseconds = 15_000;
-
-        public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeoutMilliseconds);
+        /// <seealso cref="TransactionConfig.ExpirationTime"/>
+        public const int DefaultExpirationMilliseconds = 15_000;
 
         /// <summary>
         /// The default cleanup window, in milliseconds.
         /// </summary>
-        /// <seealso cref="TransactionCleanupConfig.CleanupWindow"/>
+        /// <seealso cref="TransactionConfig.CleanupWindow"/>
         public const int DefaultCleanupWindowMilliseconds = 60_000;
 
-        public static readonly TimeSpan DefaultCleanupWindow =
-            TimeSpan.FromMilliseconds(DefaultCleanupWindowMilliseconds);
-
         /// <summary>
-        /// The default value of <see cref="TransactionCleanupConfig.CleanupLostAttempts"/> (true).
+        /// The default value of <see cref="TransactionConfig.CleanupLostAttempts"/> (true).
         /// </summary>
         public const bool DefaultCleanupLostAttempts = true;
 
         /// <summary>
-        /// The default value of <see cref="TransactionCleanupConfig.CleanupClientAttempts"/> (true).
+        /// The default value of <see cref="CleanupClientAttempts"/> (true).
         /// </summary>
         public const bool DefaultCleanupClientAttempts = true;
 
@@ -57,40 +44,69 @@ namespace Couchbase.Client.Transactions.Config
         /// </summary>
         public const Severity DefaultLogOnFailure = Severity.Error;
 
-        // /// <summary>
-        // /// Gets a value indicating whether to run the background thread to clean up lost/abandoned transactions from other clients.
-        // /// </summary>
-        // public bool CleanupLostAttempts { get; init; }
-        //
-        // /// <summary>
-        // /// Gets a value indicating whether to run the background thread to clean up failed attempts from this transactions instance.
-        // /// </summary>
-        // public bool CleanupClientAttempts { get; init; }
-        //
-        // /// <summary>
-        // /// Gets a value indicating the period between runs of the cleanup thread.
-        // /// </summary>
-        // public TimeSpan CleanupWindow { get; init; }
-        //
-        // /// <summary>
-        // /// Gets a value indicating the timeout on Couchbase Key/Value operations.
-        // /// </summary>
-        // public TimeSpan? KeyValueTimeout { get; init; }
-        //
-        // /// <summary>
-        // /// Gets a <see cref="ILoggerFactory"/> that transactions will use for internal logging.
-        // /// </summary>
-        // public ILoggerFactory? LoggerFactory { get; init; }
-        //
-        // /// <summary>
-        // /// Gets the <see cref="KeySpace"/> to use for Active Transaction Record metadata.
-        // /// </summary>
-        // public KeySpace? MetadataCollection { get; init; }
-        //
-        // /// <summary>
-        // /// Gets the <see cref="QueryScanConsistency"/> to use for transaction query operations.
-        // /// </summary>
-        // public QueryScanConsistency? ScanConsistency { get; init; }
+        /// <summary>
+        /// Gets a value indicating the time before a transaction expires and no more attempts will be made.
+        /// </summary>
+        public TimeSpan ExpirationTime { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating whether to run the background thread to clean up lost/abandoned transactions from other clients.
+        /// </summary>
+        public bool CleanupLostAttempts { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating whether to run the background thread to clean up failed attempts from this transactions instance.
+        /// </summary>
+        public bool CleanupClientAttempts { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating the period between runs of the cleanup thread.
+        /// </summary>
+        public TimeSpan CleanupWindow { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating the timeout on Couchbase Key/Value operations.
+        /// </summary>
+        public TimeSpan? KeyValueTimeout { get; internal set; }
+
+        /// <summary>
+        /// Gets a value for the minimum durability level to use for modification operations.
+        /// </summary>
+        public DurabilityLevel DurabilityLevel { get; internal set; }
+
+        /// <summary>
+        /// Gets a <see cref="ILoggerFactory"/> that transactions will use for internal logging.
+        /// </summary>
+        public ILoggerFactory? LoggerFactory { get; internal set; }
+
+        /// <summary>
+        /// Gets the <see cref="ICouchbaseCollection"/> to use for Active Transaction Record metadata.
+        /// </summary>
+        public ICouchbaseCollection? MetadataCollection { get; internal set; }
+
+        /// <summary>
+        /// Gets the <see cref="QueryScanConsistency"/> to use for transaction query operations.
+        /// </summary>
+        public QueryScanConsistency? ScanConsistency { get; internal set; }
+
+        internal TransactionConfig(
+            DurabilityLevel durabilityLevel = DefaultDurabilityLevel,
+            TimeSpan? expirationTime = null,
+            TimeSpan? cleanupWindow = null,
+            TimeSpan? keyValueTimeout = null,
+            bool cleanupClientAttempts = DefaultCleanupClientAttempts,
+            bool cleanupLostAttempts = DefaultCleanupLostAttempts,
+            QueryScanConsistency? scanConsistency = null
+        )
+        {
+            ExpirationTime = expirationTime ?? TimeSpan.FromMilliseconds(DefaultExpirationMilliseconds);
+            CleanupLostAttempts = cleanupLostAttempts;
+            CleanupClientAttempts = cleanupClientAttempts;
+            CleanupWindow = cleanupWindow ?? TimeSpan.FromMilliseconds(DefaultCleanupWindowMilliseconds);
+            KeyValueTimeout = keyValueTimeout;
+            DurabilityLevel = durabilityLevel;
+            ScanConsistency = scanConsistency;
+        }
     }
 }
 
@@ -98,7 +114,7 @@ namespace Couchbase.Client.Transactions.Config
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -113,10 +129,3 @@ namespace Couchbase.Client.Transactions.Config
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

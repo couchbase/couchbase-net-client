@@ -1,11 +1,11 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
-using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Cleanup
@@ -32,7 +32,7 @@ namespace Couchbase.Client.Transactions.Cleanup
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -47,10 +47,3 @@ namespace Couchbase.Client.Transactions.Cleanup
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

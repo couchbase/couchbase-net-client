@@ -1,10 +1,10 @@
-#nullable enable
+﻿#nullable enable
 namespace Couchbase.Client.Transactions.Error.Attempts
 {
     /// <summary>
     /// An error indicating that an Active Transaction Record is full.  This suggests that one or more transactions clients are not cleaning up properly.
     /// </summary>
-    internal class ActiveTransactionRecordsFullException : AttemptException
+    public class ActiveTransactionRecordsFullException : AttemptException
     {
         internal ActiveTransactionRecordsFullException(AttemptContext ctx, string? msg = null) : base(ctx, msg ?? "Active Transaction Record full")
         {
@@ -16,7 +16,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -31,8 +31,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,9 +1,8 @@
-#nullable enable
+﻿#nullable enable
+using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Internal;
-using Couchbase.Core.Compatibility;
-using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions
@@ -11,7 +10,6 @@ namespace Couchbase.Client.Transactions
     /// <summary>
     /// The result of a Get or GetOptional operation an a transaction context."/>
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
     public class TransactionGetResult
     {
         private readonly IContentAsWrapper _content;
@@ -105,7 +103,7 @@ namespace Couchbase.Client.Transactions
 
             txn.Id = new CompositeId()
             {
-                TransactionId = transactionId,
+                Transactionid = transactionId,
                 AttemptId = attemptId
             };
 
@@ -196,7 +194,7 @@ namespace Couchbase.Client.Transactions
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -211,11 +209,3 @@ namespace Couchbase.Client.Transactions
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-
-

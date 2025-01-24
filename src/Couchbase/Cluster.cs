@@ -29,7 +29,6 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
-using Couchbase.Client.Transactions;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
@@ -72,7 +71,7 @@ namespace Couchbase
         internal LazyService<IEventingFunctionManagerFactory> LazyEventingFunctionManagerFactory;
 
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
-        internal Lazy<Client.Transactions.Transactions> LazyTransactions;
+        internal Lazy<Couchbase.Client.Transactions.Transactions> LazyTransactions;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -490,7 +489,7 @@ namespace Couchbase
         #endregion
 
         #region Transactions
-        public  Client.Transactions.Transactions Transactions => LazyTransactions.Value;
+        public  Couchbase.Client.Transactions.Transactions Transactions => LazyTransactions.Value;
         #endregion
 
         #region Misc

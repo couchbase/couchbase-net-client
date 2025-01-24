@@ -1,4 +1,5 @@
-#nullable enable
+﻿#nullable enable
+
 using System;
 
 namespace Couchbase.Client.Transactions.Error.Attempts
@@ -6,7 +7,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
     /// <summary>
     /// Indicates an attempt exceeded the allotted time.
     /// </summary>
-    internal class AttemptExpiredException : AttemptException
+    public class AttemptExpiredException : AttemptException
     {
         /// <summary>
         /// Initializes a new instance of the AttemptExpiredException class.
@@ -35,7 +36,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -50,8 +51,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,5 +1,4 @@
-#nullable enable
-using System;
+﻿using System;
 
 namespace Couchbase.Client.Transactions.Error.External
 {
@@ -7,7 +6,7 @@ namespace Couchbase.Client.Transactions.Error.External
     /// Indicates that this version of the transactions protocol encountered a document with metadata from a later
     /// version which it cannot safely interact with.
     /// </summary>
-    internal class ForwardCompatibilityFailureException : CouchbaseException
+    public class ForwardCompatibilityFailureException : Exception
     {
         /// <inheritdoc />
         public ForwardCompatibilityFailureException() : base()
@@ -30,7 +29,7 @@ namespace Couchbase.Client.Transactions.Error.External
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -45,8 +44,3 @@ namespace Couchbase.Client.Transactions.Error.External
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

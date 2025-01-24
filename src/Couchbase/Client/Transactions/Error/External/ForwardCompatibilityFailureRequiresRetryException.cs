@@ -1,12 +1,11 @@
-#nullable enable
-using System;
+﻿using System;
 
 namespace Couchbase.Client.Transactions.Error.External
 {
     /// <summary>
     /// Indicates that an error due to an incompatibility with a later protocol version requires a retry.
     /// </summary>
-    internal class ForwardCompatibilityFailureRequiresRetryException : CouchbaseException
+    public class ForwardCompatibilityFailureRequiresRetryException : Exception
     {
         /// <inheritdoc />
         public ForwardCompatibilityFailureRequiresRetryException() : base()
@@ -29,7 +28,7 @@ namespace Couchbase.Client.Transactions.Error.External
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -44,8 +43,3 @@ namespace Couchbase.Client.Transactions.Error.External
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

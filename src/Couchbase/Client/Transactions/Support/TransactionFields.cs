@@ -1,5 +1,4 @@
-#nullable enable
-using System.Text;
+﻿using System.Text;
 
 namespace Couchbase.Client.Transactions.Support
 {
@@ -34,7 +33,6 @@ namespace Couchbase.Client.Transactions.Support
         public const string TransactionRestorePrefix = TransactionRestorePrefixOnly + ".";
         public const string TransactionId = TransactionInterfacePrefix + "id.txn";
         public const string AttemptId = TransactionInterfacePrefix + "id.atmpt";
-        public const string OperationId = TransactionInterfacePrefix + "id.op";
         public const string AtrId = TransactionInterfacePrefix + "atr.id";
         public const string AtrBucketName = TransactionInterfacePrefix + "atr.bkt";
 
@@ -61,7 +59,7 @@ namespace Couchbase.Client.Transactions.Support
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -76,8 +74,3 @@ namespace Couchbase.Client.Transactions.Support
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

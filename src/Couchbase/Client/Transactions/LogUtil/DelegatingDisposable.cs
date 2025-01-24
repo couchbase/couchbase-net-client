@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 
 namespace Couchbase.Client.Transactions.LogUtil
@@ -32,8 +32,3 @@ namespace Couchbase.Client.Transactions.LogUtil
         }
     }
 }
-
-
-
-
-

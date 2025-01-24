@@ -1,4 +1,3 @@
-#nullable enable
 using System.Text.Json.Serialization;
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -12,8 +11,3 @@ namespace Couchbase.Client.Transactions.DataModel
     {
     }
 }
-
-
-
-
-

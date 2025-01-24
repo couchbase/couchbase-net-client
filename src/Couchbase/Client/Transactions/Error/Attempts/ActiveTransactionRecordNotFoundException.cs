@@ -1,10 +1,9 @@
-#nullable enable
-namespace Couchbase.Client.Transactions.Error.Attempts
+﻿namespace Couchbase.Client.Transactions.Error.Attempts
 {
     /// <summary>
     /// Indicates an Active Transaction Record was not found when expected.
     /// </summary>
-    internal class ActiveTransactionRecordNotFoundException : CouchbaseException
+    public class ActiveTransactionRecordNotFoundException : CouchbaseException
     {
     }
 }
@@ -13,7 +12,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -28,8 +27,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

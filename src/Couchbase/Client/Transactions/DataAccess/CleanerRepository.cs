@@ -1,60 +1,32 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
-using Couchbase.Core.Retry;
-using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
-    internal class CleanerRepository
+    internal class CleanerRepository : ICleanerRepository
     {
-        public KeySpace KeySpace { get; }
-        private readonly ICluster _cluster;
         private static readonly int ExpiresSafetyMarginMillis = 20_000;
         private static readonly TimeSpan RemoveClientTimeout = TimeSpan.FromMilliseconds(500);
         private static readonly object PlaceholderEmptyJObject = JObject.Parse("{}");
-        private ICouchbaseCollection? _collection = null;
+        private readonly TimeSpan? _keyValueTimeout;
 
-        public CleanerRepository(KeySpace keySpaceToClean, ICluster cluster)
+        public CleanerRepository(ICouchbaseCollection collection, TimeSpan? keyValueTimeout): base(collection)
         {
-            KeySpace = keySpaceToClean;
-            _cluster = cluster;
+            _keyValueTimeout = keyValueTimeout;
         }
 
-        public async Task<ICouchbaseCollection> GetCollection()
-        {
-            if (_collection is null)
-            {
-                var bkt = await _cluster.BucketAsync(KeySpace.Bucket).CAF();
-                if (string.IsNullOrWhiteSpace(KeySpace.Scope))
-                {
-                    return bkt.DefaultCollection();
-                }
-
-                var scp = bkt.Scope(KeySpace.Scope);
-                if (string.IsNullOrWhiteSpace(KeySpace.Collection))
-                {
-                    return scp.Collection("_default");
-                }
-
-                var col = scp.Collection(KeySpace.Collection);
-                _collection = col;
-            }
-
-            return _collection;
-        }
-
-        public async Task CreatePlaceholderClientRecord(ulong? cas = null)
+        public override async Task CreatePlaceholderClientRecord(ulong? cas = null)
         {
             var opts = new MutateInOptions()
+                .Timeout(_keyValueTimeout)
                 .StoreSemantics(StoreSemantics.Insert)
                 .Transcoder(Transactions.MetadataTranscoder);
 
@@ -71,62 +43,40 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.SetDoc(new byte?[] { null }), // ExtBinaryMetadata
             };
 
-            var col = await GetCollection().CAF();
-            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord(CancellationToken token)
+        public override async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord()
         {
-            token.ThrowIfCancellationRequested();
-            var opts = new LookupInOptions().Transcoder(Transactions.MetadataTranscoder).CancellationToken(token);
-            opts.PreferReturn = true;
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(ClientRecordsIndex.FIELD_RECORDS, isXattr: true),
                 LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
             };
 
-            var col = await GetCollection().CAF();
-            var lookupInResult = await col.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
-            if (lookupInResult is { Cas: > 0 })
-            {
-                var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
-                var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
-                return (parsedRecord, parsedHlc, lookupInResult.Cas);
-            }
-
-            return (null, null, 0);
+            var lookupInResult = await Collection.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
+            var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
+            return (parsedRecord, parsedHlc, lookupInResult.Cas);
         }
 
-        private static readonly LookupInSpec[] LookupAttemptsSpec = new LookupInSpec[]
+        public override async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
         {
-            LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-            LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
-        };
-
-        private static readonly LookupInOptions LookupAttemptsOptions = new LookupInOptions() { PreferReturn = true }
-            .Transcoder(Transactions.MetadataTranscoder).RetryStrategy(new FailFastRetryStrategy());
-
-        public async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc, double[] timingInfo)> LookupAttempts(string atrId)
-        {
-            var sw = Stopwatch.StartNew();
-            var elapsed1 = sw.Elapsed.TotalMilliseconds;
-            var col = await GetCollection().CAF();
-            var elapsed2 = sw.Elapsed.TotalMilliseconds;
-            var lookupInResult = await col.LookupInAsync(atrId, LookupAttemptsSpec, LookupAttemptsOptions).CAF();
-            var elapsed3 = sw.Elapsed.TotalMilliseconds;
-            if (lookupInResult is not { Cas: > 0 })
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var specs = new LookupInSpec[]
             {
-                return (null, null, [elapsed1, elapsed2, elapsed3]);
-            }
+                LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
+                LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
+            };
+
+            var lookupInResult = await Collection.LookupInAsync(atrId, specs, opts).CAF();
             var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0);
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
-            sw.Stop();
-            var elapsed4 = sw.Elapsed.TotalMilliseconds;
-            return (attempts, parsedHlc, [elapsed1, elapsed2, elapsed3, elapsed4]);
+            return (attempts, parsedHlc);
         }
 
-        public async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None)
+        public override async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None)
         {
             var opts = new MutateInOptions()
                 .Timeout(RemoveClientTimeout)
@@ -138,14 +88,13 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Remove(ClientRecordEntry.PathForEntry(clientUuid), isXattr: true),
             };
 
-            var col = await GetCollection().CAF();
-            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds)
+        public override async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds)
         {
             var prefix = ClientRecordEntry.PathForEntry(clientUuid);
-            var opts = new MutateInOptions().Transcoder(Transactions.MetadataTranscoder);
+            var opts = new MutateInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
             var specs = new List<MutateInSpec>
             {
                 MutateInSpec.Upsert(ClientRecordEntry.PathForHeartbeat(clientUuid), MutationMacro.Cas, createPath: true),
@@ -161,8 +110,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 specs.Add(spec);
             }
 
-            var col = await GetCollection().CAF();
-            _ = await col.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
     }
 }
@@ -171,7 +119,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -186,10 +134,3 @@ namespace Couchbase.Client.Transactions.DataAccess
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

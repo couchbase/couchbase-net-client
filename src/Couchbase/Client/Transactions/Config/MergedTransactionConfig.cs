@@ -1,33 +1,32 @@
 #nullable enable
-using System;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Couchbase.Client.Transactions.Config
 {
     internal record MergedTransactionConfig(
-            TransactionCleanupConfig CleanupConfig,
+            bool CleanupClientAttempts,
+            bool CleanupLostAttempts,
+            TimeSpan CleanupWindow,
             DurabilityLevel DurabilityLevel,
-            TimeSpan Timeout,
+            TimeSpan ExpirationTime,
+            TimeSpan? KeyValueTimeout,
             ILoggerFactory? LoggerFactory,
-            KeySpace? MetadataCollection,
+            ICouchbaseCollection? MetadataCollection,
             QueryScanConsistency? ScanConsistency)
     {
         public static MergedTransactionConfig Create(TransactionConfig config, PerTransactionConfig? perConfig) =>
             new(
-                CleanupConfig: config.CleanupConfig ?? new(),
+                CleanupClientAttempts: config.CleanupClientAttempts,
+                CleanupLostAttempts: config.CleanupLostAttempts,
+                CleanupWindow: config.CleanupWindow,
                 DurabilityLevel: perConfig?.DurabilityLevel ?? config.DurabilityLevel,
-                Timeout: perConfig?.Timeout ?? config.Timeout ?? TransactionConfig.DefaultTimeout,
+                ExpirationTime: perConfig?.Timeout ?? config.ExpirationTime,
+                KeyValueTimeout: perConfig?.KeyValueTimeout ?? config.KeyValueTimeout,
                 LoggerFactory: config.LoggerFactory,
                 MetadataCollection: config.MetadataCollection,
                 ScanConsistency: perConfig?.ScanConsistency ?? config.ScanConsistency);
     }
 }
-
-
-
-
-
-
-

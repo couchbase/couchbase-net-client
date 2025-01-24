@@ -1,10 +1,11 @@
-#nullable enable
+﻿#nullable enable
+
 namespace Couchbase.Client.Transactions.Error.Attempts
 {
     /// <summary>
     /// An exception indicating that a specific entry in an Active Transaction Record was not found when it should have existd.
     /// </summary>
-    internal class ActiveTransactionRecordEntryNotFoundException : CouchbaseException
+    public class ActiveTransactionRecordEntryNotFoundException : CouchbaseException
     {
         /// <summary>
         /// Gets the ID of the entry that was supposed to exist.
@@ -17,7 +18,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,8 +33,3 @@ namespace Couchbase.Client.Transactions.Error.Attempts
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

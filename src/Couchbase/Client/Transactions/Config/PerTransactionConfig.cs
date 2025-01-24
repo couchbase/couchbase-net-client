@@ -1,31 +1,37 @@
-#nullable enable
 using System;
-using Couchbase.Core.Compatibility;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 
 namespace Couchbase.Client.Transactions.Config
 {
     /// <summary>
-    /// A record representing a config applied to a single transaction.
+    /// A class representing a config applied to a single transaction.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public record PerTransactionConfig
+    public class PerTransactionConfig
     {
+        internal PerTransactionConfig()
+        { }
+
         /// <summary>
         /// Gets an optional value indicating the minimum durability level desired for this transaction.
         /// </summary>
-        public DurabilityLevel? DurabilityLevel { get; init; }
+        public DurabilityLevel? DurabilityLevel { get; set; }
 
         /// <summary>
         /// Gets an optional value indicating the relative expiration time of the transaction for this transaction.
         /// </summary>
-        public TimeSpan? Timeout { get; init; }
+        public TimeSpan? Timeout { get; set; }
+
+
+        /// <summary>
+        /// Gets an option value indicating the timeout on Couchbase Key/Value operations for this transaction.
+        /// </summary>
+        public TimeSpan? KeyValueTimeout { get; set; }
 
         /// <summary>
         /// The scan consistency to use for query operations (default: RequestPlus)
         /// </summary>
-        public QueryScanConsistency? ScanConsistency { get; init; }
+        public QueryScanConsistency? ScanConsistency { get; set; }
     }
 }
 
@@ -33,7 +39,7 @@ namespace Couchbase.Client.Transactions.Config
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -48,10 +54,3 @@ namespace Couchbase.Client.Transactions.Config
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

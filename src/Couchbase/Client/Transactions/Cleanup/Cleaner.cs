@@ -1,34 +1,34 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataAccess;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Internal.Test;
-using Couchbase.Client.Transactions.Support;
 using Couchbase.Client.Transactions.LogUtil;
-using Couchbase.KeyValue;
+using Couchbase.Client.Transactions.Support;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Cleanup
 {
     internal class Cleaner
     {
-        public TestHookMap TestHooks { get; set; } = new();
+        public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
         public static readonly Task NothingToDo = Task.CompletedTask;
 
         private readonly ICluster _cluster;
+        private readonly TimeSpan? _keyValueTimeout;
         private readonly string _creatorName;
         private readonly ILogger<Cleaner> _logger;
 
-        public Cleaner(ICluster cluster, ILoggerFactory loggerFactory, [CallerMemberName] string creatorName = nameof(Cleaner))
+        public Cleaner(ICluster cluster, TimeSpan? keyValueTimeout, ILoggerFactory loggerFactory, [CallerMemberName] string creatorName = nameof(Cleaner))
         {
             _cluster = cluster;
+            _keyValueTimeout = keyValueTimeout;
             _creatorName = creatorName;
             _logger = loggerFactory.CreateLogger<Cleaner>();
         }
@@ -72,10 +72,6 @@ namespace Couchbase.Client.Transactions.Cleanup
                     Request: cleanupRequest,
                     FailureReason: ex);
             }
-            finally
-            {
-                _logger.LogDebug("Cleaner.{creator}: Processed cleanup request: {req}", _creatorName, cleanupRequest.AttemptId);
-            }
         }
 
         private Task CleanupDocs(CleanupRequest cleanupRequest) => cleanupRequest.State switch
@@ -93,10 +89,10 @@ namespace Couchbase.Client.Transactions.Cleanup
         private async Task CleanupAtrEntry(CleanupRequest cleanupRequest)
         {
             using var logScope = _logger.BeginMethodScope();
-            _logger.LogInformation("Cleaning up atr entry: {atr}/{attemptId} on {collection}", cleanupRequest.AtrId, cleanupRequest.AttemptId, cleanupRequest.AtrCollection.ToKeySpace());
+            _logger.LogInformation("Cleaning up atr entry: {atr}/{attemptId}", cleanupRequest.AtrId, cleanupRequest.AttemptId);
             try
             {
-                TestHooks.Sync(HookPoint.CleanupBeforeAtrRemove, null, cleanupRequest.AtrId);
+                await TestHooks.BeforeAtrRemove(cleanupRequest.AtrId).CAF();
                 var prefix = $"{TransactionFields.AtrFieldAttempts}.{cleanupRequest.AttemptId}";
                 var specs = new List<MutateInSpec>();
                 if (cleanupRequest.State == AttemptStates.PENDING)
@@ -109,7 +105,8 @@ namespace Couchbase.Client.Transactions.Cleanup
                 specs.Add(MutateInSpec.Remove(prefix, isXattr: true));
 
                 var mutateResult = await cleanupRequest.AtrCollection.MutateInAsync(cleanupRequest.AtrId, specs,
-                    opts => opts.Durability(cleanupRequest.GetDurabilityLevel())).CAF();
+                    opts => opts.Timeout(_keyValueTimeout)
+                                .Durability(cleanupRequest.GetDurabilityLevel())).CAF();
 
                 if (mutateResult?.MutationToken.SequenceNumber != 0)
                 {
@@ -138,13 +135,12 @@ namespace Couchbase.Client.Transactions.Cleanup
         private async Task CleanupDocsAborted(CleanupRequest cleanupRequest)
         {
             using var logScope = _logger.BeginMethodScope();
-            var sw = Stopwatch.StartNew();
             foreach (var dr in cleanupRequest.InsertedIds)
             {
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        await TestHooks.Async(HookPoint.CleanupBeforeRemoveDoc, null, dr.Id).CAF();
+                        await TestHooks.BeforeRemoveDoc(dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
                         var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
@@ -153,12 +149,14 @@ namespace Couchbase.Client.Transactions.Cleanup
                                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                                 opts => opts.Cas(op.Cas)
                                     .Durability(cleanupRequest.GetDurabilityLevel())
-                                    .AccessDeleted(true)).CAF();
+                                    .AccessDeleted(true)
+                                    .Timeout(_keyValueTimeout)).CAF();
                         }
                         else
                         {
                             await collection.RemoveAsync(dr.Id, opts => opts.Cas(op.Cas)
-                                .Durability(cleanupRequest.GetDurabilityLevel())).CAF();
+                                .Durability(cleanupRequest.GetDurabilityLevel())
+                                .Timeout(_keyValueTimeout)).CAF();
                         }
                     }).CAF();
             }
@@ -169,17 +167,15 @@ namespace Couchbase.Client.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: false, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        await TestHooks.Async(HookPoint.CleanupBeforeRemoveDocLinks, null, dr.Id).CAF();
+                        await TestHooks.BeforeRemoveLinks(dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
                         await collection.MutateInAsync(dr.Id, specs =>
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                             opts => opts.Cas(op.Cas)
-                                .AccessDeleted(true)).CAF();
+                                .AccessDeleted(true)
+                                .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
             }
-
-            sw.Stop();
-            _logger.LogWarning("{method} took {elapsed}ms", nameof(CleanupDocsAborted), sw.Elapsed.TotalMilliseconds);
         }
 
         private async Task CleanupDocsCommitted(CleanupRequest cleanupRequest)
@@ -193,7 +189,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                     perDoc: async (op) =>
                     {
                         // TODO: This has significant overlap with UnstageInsertOrReplace.
-                        TestHooks.Sync(HookPoint.CleanupBeforeCommitDoc, null, dr.Id);
+                        await TestHooks.BeforeCommitDoc(dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
                         var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
@@ -206,7 +202,8 @@ namespace Couchbase.Client.Transactions.Cleanup
                                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
                                         .SetDoc(finalDoc)
                                 , opts => opts.Cas(op.Cas)
-                                    .Durability(durabilityLevel)).CAF();
+                                    .Durability(durabilityLevel)
+                                    .Timeout(_keyValueTimeout)).CAF();
                         }
                     }).CAF();
             }
@@ -216,20 +213,21 @@ namespace Couchbase.Client.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: true, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        TestHooks.Sync(HookPoint.CleanupBeforeRemoveDocStagedForRemoval, null, dr.Id);
+                        await TestHooks.BeforeRemoveDocStagedForRemoval(dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
 
                         await collection.RemoveAsync(dr.Id, opts => opts.Cas(op.Cas)
-                            .Durability(durabilityLevel)).CAF();
+                            .Durability(durabilityLevel)
+                            .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
             }
         }
 
         public async Task CleanupDoc(DocRecord dr, bool requireCrc32ToMatchStaging, Func<DocumentLookupResult, Task> perDoc, string attemptId)
         {
-            TestHooks.Sync(HookPoint.CleanupBeforeDocGet, null, dr.Id);
+            await TestHooks.BeforeDocGet(dr.Id).CAF();
             var collection = await dr.GetCollection(_cluster).CAF();
-            var docLookupResult = await DocumentRepository.LookupDocumentStaticAsync(collection, dr.Id, fullDocument: false).CAF();
+            var docLookupResult = await DocumentRepository.LookupDocumentAsync(collection, dr.Id, _keyValueTimeout, fullDocument: false).CAF();
 
             if (docLookupResult.TransactionXattrs == null)
             {
@@ -260,7 +258,7 @@ namespace Couchbase.Client.Transactions.Cleanup
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -275,10 +273,3 @@ namespace Couchbase.Client.Transactions.Cleanup
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-
-
-

@@ -1,10 +1,9 @@
-#nullable enable
-namespace Couchbase.Client.Transactions.Error.Internal
+﻿namespace Couchbase.Client.Transactions.Error.Internal
 {
     /// <summary>
     /// An error with a clear classification.
     /// </summary>
-    internal interface IClassifiedTransactionError
+    public interface IClassifiedTransactionError
     {
         /// <summary>
         /// The class of error that caused the failure.
@@ -17,7 +16,7 @@ namespace Couchbase.Client.Transactions.Error.Internal
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2024 Couchbase, Inc.
+ *    @copyright 2021 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,8 +31,3 @@ namespace Couchbase.Client.Transactions.Error.Internal
  *    limitations under the License.
  *
  * ************************************************************/
-
-
-
-
-

@@ -1,13 +1,13 @@
 #nullable enable
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Retry;
+using Couchbase.Query;
+using Couchbase.Client.Transactions.Error;
+using Couchbase.Client.Transactions.Error.External;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Client.Transactions.Error;
-using Couchbase.Client.Transactions.Error.External;
-using Couchbase.Core.Exceptions;
-using Couchbase.Core.Retry;
-using Couchbase.Query;
 
 namespace Couchbase.Client.Transactions.Internal
 {
@@ -61,13 +61,11 @@ namespace Couchbase.Client.Transactions.Internal
                     var converted = _ctx.ConvertQueryError(ex);
                     if (converted is TransactionOperationFailedException err)
                     {
-                        _ctx?.UpdateStateBits(err);
-
-                        Exception toRaise = err.ToRaise switch
+                        Exception toRaise = err.FinalErrorToRaise switch
                         {
-                            TransactionOperationFailedException.FinalErrorToRaise.TransactionFailed => new TransactionFailedException("Failed during query results streaming", err, null),
-                            TransactionOperationFailedException.FinalErrorToRaise.TransactionCommitAmbiguous => new TransactionCommitAmbiguousException("Ambiguous commit during single query transaction", err, null),
-                            TransactionOperationFailedException.FinalErrorToRaise.TransactionExpired => new UnambiguousTimeoutException("Timeout during query result streaming"),
+                            TransactionOperationFailedException.FinalError.TransactionFailed => new TransactionFailedException("Failed during query results streaming", err, null),
+                            TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous => new TransactionCommitAmbiguousException("Ambiguous commit during single query transaction", err, null),
+                            TransactionOperationFailedException.FinalError.TransactionExpired => new UnambiguousTimeoutException("Timeout during query result streaming"),
                             _ => err
                         };
 
@@ -85,8 +83,3 @@ namespace Couchbase.Client.Transactions.Internal
         }
     }
 }
-
-
-
-
-
