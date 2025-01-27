@@ -14,9 +14,60 @@ namespace Couchbase.Client.Transactions.Internal.Test
     /// </summary>
     /// <remarks>All methods have default no-op implementations.</remarks>
     [InterfaceStability(Level.Volatile)]
-    // TODO: change name (not an interface anymore) as part of FIT updates.
-    public abstract class ITestHooks
+    internal interface ITestHooks
     {
+
+
+        public Task<int?> BeforeAtrCommit(AttemptContext self);
+        public Task<int?> AfterAtrCommit(AttemptContext self);
+        public Task<int?> BeforeDocCommitted(AttemptContext self, string id);
+        public Task<int?> BeforeDocRolledBack(AttemptContext self, string id);
+        public Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id);
+        public Task<int?> AfterDocCommitted(AttemptContext self, string id);
+        public Task<int?> AfterDocsCommitted( AttemptContext self);
+        public Task<int?> BeforeDocRemoved(AttemptContext self, string id);
+        public Task<int?> AfterDocRemovedPreRetry( AttemptContext self, string id);
+        public Task<int?> AfterDocRemovedPostRetry(AttemptContext self, string id);
+        public Task<int?> AfterDocsRemoved(AttemptContext self);
+        public Task<int?> BeforeAtrPending(AttemptContext self);
+        public Task<int?> AfterAtrPending(AttemptContext self);
+        public Task<int?> BeforeAtrComplete(AttemptContext self);
+        public Task<int?> AfterAtrComplete(AttemptContext self);
+        public Task<int?> BeforeAtrRolledBack(AttemptContext self);
+        public Task<int?> AfterAtrRolledBack(AttemptContext self);
+        public Task<int?> AfterGetComplete(AttemptContext self, string id);
+        public Task<int?> BeforeRollbackDeleteInserted(AttemptContext self, string id);
+        public Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id);
+        public Task<int?> AfterStagedRemoveComplete(AttemptContext self, string id);
+        public Task<int?> BeforeStagedInsert(AttemptContext self, string id);
+        public Task<int?> BeforeStagedRemove(AttemptContext self, string id);
+        public Task<int?> BeforeStagedReplace(AttemptContext self, string id);
+        public Task<int?> AfterStagedInsertComplete(AttemptContext self, string id);
+        public Task<int?> BeforeGetAtrForAbort( AttemptContext self);
+        public Task<int?> BeforeAtrAborted(AttemptContext self);
+        public Task<int?> AfterAtrAborted(AttemptContext self);
+        public Task<int?> AfterRollbackReplaceOrRemove( AttemptContext self, string id);
+        public Task<int?> AfterRollbackDeleteInserted(AttemptContext self, string id);
+        public Task<int?> BeforeRemovingDocDuringStagedInsert(AttemptContext self);
+        public Task<int?> BeforeCheckAtrEntryForBlockingDoc(AttemptContext self, string id);
+        public Task<int?> BeforeDocGet(AttemptContext self, string id);
+        public Task<int?> BeforeGetDocInExistsDuringStagedInsert(AttemptContext self, string id);
+        public Task<int?> BeforeAtrCommitAmbiguityResolution(AttemptContext self);
+        public Task<int?> BeforeQuery(AttemptContext self, string statement);
+        public Task<int?> AfterQuery(AttemptContext self, string statement);
+        public Task<int?> BeforeOverwritingStagedInsertRemoval( AttemptContext self, string id);
+        public Task<int?> BeforeRemoveStagedInsert( AttemptContext self, string id);
+        public Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id);
+        public bool HasExpiredClientSideHook(AttemptContext self, string place, string? docId);
+        public Task<string?> AtrIdForVBucket(AttemptContext self, int vBucketId);
+    }
+
+    /// <summary>
+    /// Implementation of ITestHooks that relies on default interface implementation.
+    /// </summary>
+    internal class DefaultTestHooks : ITestHooks
+    {
+        public static readonly ITestHooks Instance = new DefaultTestHooks();
         public const string HOOK_ROLLBACK = "rollback";
         public const string HOOK_GET = "get";
         public const string HOOK_INSERT = "insert";
@@ -28,7 +79,6 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public const string HOOK_DELETE_INSERTED = "deleteInserted";
         public const string HOOK_CREATE_STAGED_INSERT = "createdStagedInsert";
         public const string HOOK_INSERT_QUERY = "insertQuery";
-        public const string HOOK_REMOVE_DOC = "removeDoc";
         public const string HOOK_COMMIT_DOC = "commitDoc";
         public const string HOOK_QUERY = "query";
         public const string HOOK_ATR_COMMIT = "atrCommit";
@@ -46,9 +96,8 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public const string HOOK_QUERY_KV_REPLACE = "queryKvReplace";
         public const string HOOK_QUERY_KV_REMOVE = "queryKvRemove";
         public const string HOOK_QUERY_KV_INSERT = "queryKvInsert";
-        public const string HOOK_QUERY_ROLLBACK = "queryRollback";
-
-        public virtual Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
+        public const string HOOK_REMOVE_DOC = "removeDoc";
+        public const string HOOK_QUERY_ROLLBACK = "queryRollback";    public virtual Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeDocRolledBack(AttemptContext self, string id) => Task.FromResult<int?>(0);
@@ -88,36 +137,26 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public virtual Task<int?> BeforeOverwritingStagedInsertRemoval( AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeRemoveStagedInsert( AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterRemoveStagedInsert(AttemptContext self, string id) => Task.FromResult<int?>(0);
-        public virtual Task<int?> AfterRemoveStagedInsert(AttemptContext self, string place, string? docId) => Task.FromResult<int?>(0);
         public virtual bool HasExpiredClientSideHook(AttemptContext self, string place, string? docId) => false;
-        public virtual Task<string?> AtrIdForVBucket(AttemptContext self, int vBucketId) => Task.FromResult<string?>(null);
-    }
-
-    /// <summary>
-    /// Implementation of ITestHooks that relies on default interface implementation.
-    /// </summary>
-    internal class DefaultTestHooks : ITestHooks
-    {
-        public static readonly ITestHooks Instance = new DefaultTestHooks();
-    }
+        public virtual Task<string?> AtrIdForVBucket(AttemptContext self, int vBucketId) => Task.FromResult<string?>(null); }
 
     /// <summary>
     /// Implementation of ITestHooks that allows individual delegates per hook.
     /// </summary>
-    public class DelegateTestHooks : ITestHooks
+    internal class DelegateTestHooks : DefaultTestHooks
     {
-        public Func<AttemptContext, string, Task<int?>> BeforeDocGetImpl { get; set; } = DefaultTestHooks.Instance.BeforeDocGet;
+        private Func<AttemptContext, string, Task<int?>> BeforeDocGetImpl { get; set; } = DefaultTestHooks.Instance.BeforeDocGet;
         public override Task<int?> BeforeDocGet(AttemptContext self, string id) => BeforeDocGetImpl(self, id);
 
-        public Func<AttemptContext, string, Task<int?>> BeforeDocCommittedImpl { get; set; } =
+        private Func<AttemptContext, string, Task<int?>> BeforeDocCommittedImpl { get; set; } =
             DefaultTestHooks.Instance.BeforeDocCommitted;
         public override Task<int?>  BeforeDocCommitted(AttemptContext self, string id) => BeforeDocCommittedImpl(self, id);
 
-        public Func<AttemptContext, Task<int?>> BeforeAtrCommitImpl { get; set; } =
+        private Func<AttemptContext, Task<int?>> BeforeAtrCommitImpl { get; set; } =
             DefaultTestHooks.Instance.BeforeAtrCommit;
         public override Task<int?> BeforeAtrCommit(AttemptContext self) => BeforeAtrCommitImpl(self);
 
-        public Func<AttemptContext, string, Task<int?>> AfterStagedReplaceCompleteImpl { get; set; } =
+        private Func<AttemptContext, string, Task<int?>> AfterStagedReplaceCompleteImpl { get; set; } =
             DefaultTestHooks.Instance.AfterStagedReplaceComplete;
 
         public override Task<int?> AfterStagedReplaceComplete(AttemptContext self, string id) =>

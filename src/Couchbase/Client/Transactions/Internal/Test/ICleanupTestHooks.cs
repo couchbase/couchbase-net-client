@@ -7,8 +7,24 @@ namespace Couchbase.Client.Transactions.Internal.Test
 {
     [InterfaceStability(Level.Volatile)]
     // TODO: change name (not an interface anymore) as part of FIT updates.
-    public abstract class ICleanupTestHooks
+    internal interface ICleanupTestHooks
     {
+        public Task<int?> BeforeCommitDoc(string id);
+        public Task<int?> BeforeDocGet(string id);
+        public Task<int?> BeforeRemoveDocStagedForRemoval(string id);
+        public Task<int?> BeforeRemoveDoc(string id);
+        public Task<int?> BeforeAtrGet(string id);
+        public Task<int?> BeforeAtrRemove(string id);
+        public Task<int?> BeforeRemoveLinks(string id);
+        public Task<int?> BeforeGetRecord(string clientUuid);
+        public Task<int?> BeforeUpdateRecord(string clientUuid);
+        public Task<int?> BeforeCreateRecord(string clientUuid);
+        public Task<int?> BeforeRemoveClient(string clientUuid);
+    }
+
+    internal class DefaultCleanupTestHooks : ICleanupTestHooks
+    {
+        public static readonly ICleanupTestHooks Instance = new DefaultCleanupTestHooks();
         public virtual Task<int?> BeforeCommitDoc(string id) => Task.FromResult((int?)1);
         public virtual Task<int?> BeforeDocGet(string id) => Task.FromResult((int?)1);
         public virtual Task<int?> BeforeRemoveDocStagedForRemoval(string id) => Task.FromResult((int?)1);
@@ -19,13 +35,7 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public virtual Task<int?> BeforeGetRecord(string clientUuid) => Task.FromResult<int?>(1);
         public virtual Task<int?> BeforeUpdateRecord(string clientUuid) => Task.FromResult<int?>(1);
         public virtual Task<int?> BeforeCreateRecord(string clientUuid) => Task.FromResult<int?>(1);
-        public virtual Task<int?> BeforeRemoveClient(string clientUuid) => Task.FromResult<int?>(1);
-    }
-
-    internal class DefaultCleanupTestHooks : ICleanupTestHooks
-    {
-        public static readonly ICleanupTestHooks Instance = new DefaultCleanupTestHooks();
-    }
+        public virtual Task<int?> BeforeRemoveClient(string clientUuid) => Task.FromResult<int?>(1);}
 }
 
 
