@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -32,6 +33,7 @@ namespace Couchbase.Management.Collections
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<CollectionManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
 
         /// <summary>
         /// REST endpoint path definitions.
@@ -39,18 +41,29 @@ namespace Couchbase.Management.Collections
         // ReSharper disable once MemberCanBePrivate.Global
         internal static class RestApi
         {
-            public static string GetScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
+            public static string GetScope(string bucketName, string scopeName) =>
+                $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
+
             public static string GetScopes(string bucketName) => $"pools/default/buckets/{bucketName}/scopes";
             public static string CreateScope(string bucketName) => $"pools/default/buckets/{bucketName}/scopes";
-            public static string DeleteScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
-            public static string CreateCollections(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections";
-            public static string DeleteCollections(string bucketName, string scopeName, string collectionName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
-            public static string UpdateCollection(string bucketName, string scopeName, string collectionName) => $"/pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
+
+            public static string DeleteScope(string bucketName, string scopeName) =>
+                $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
+
+            public static string CreateCollections(string bucketName, string scopeName) =>
+                $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections";
+
+            public static string DeleteCollections(string bucketName, string scopeName, string collectionName) =>
+                $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
+
+            public static string UpdateCollection(string bucketName, string scopeName, string collectionName) =>
+                $"/pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
 
         }
 
-        public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<CollectionManager> logger, IRedactor redactor)
+        public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider,
+            ICouchbaseHttpClientFactory httpClientFactory,
+            ILogger<CollectionManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _bucketConfig = bucketConfig ?? throw new ArgumentNullException(nameof(bucketConfig));
@@ -58,25 +71,28 @@ namespace Couchbase.Management.Collections
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _appTelemetryCollector =
+                appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
-        internal Uri GetUri(string path)
+        internal (IClusterNode, Uri) GetUri(string path)
         {
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var managementNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(managementNode.ManagementUri)
             {
                 Path = path
             };
 
-            return builder.Uri;
+            return (managementNode, builder.Uri);
         }
 
         public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions? options = null)
         {
             options ??= CollectionExistsOptions.Default;
-            var uri = GetUri(RestApi.GetScope(_bucketName, spec.ScopeName));
+            var (_, uri) = GetUri(RestApi.GetScope(_bucketName, spec.ScopeName));
             _logger.LogInformation(
-                "Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}", spec.ScopeName,
+                "Attempting to verify if scope/collection {ScopeName}/{Name} exists - {Uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
 
             try
@@ -93,7 +109,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to verify if collection {spec.ScopeName}/{spec.Name} exists - {uri}", spec.ScopeName,
+                _logger.LogError(exception,
+                    "Failed to verify if collection {ScopeName}/{Name} exists - {Uri}", spec.ScopeName,
                     spec.Name, _redactor.SystemData(uri));
                 throw;
             }
@@ -102,9 +119,10 @@ namespace Couchbase.Management.Collections
         public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions? options = null)
         {
             options ??= ScopeExistsOptions.Default;
-            var uri = GetUri(RestApi.GetScope(_bucketName, scopeName));
-            _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
+            var (_, uri) = GetUri(RestApi.GetScope(_bucketName, scopeName));
+            _logger.LogInformation("Attempting to verify if scope {ScopeName} exists - {Uri}", scopeName,
                 _redactor.SystemData(uri));
+
             try
             {
                 // get all scopes
@@ -117,7 +135,7 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to verify if scope {scopeName} exists - {uri}", scopeName,
+                _logger.LogError(exception, "Failed to verify if scope {ScopeName} exists - {Uri}", scopeName,
                     _redactor.SystemData(uri));
                 throw;
             }
@@ -127,8 +145,8 @@ namespace Couchbase.Management.Collections
         public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null)
         {
             options ??= GetScopeOptions.Default;
-            var uri = GetUri(RestApi.GetScope(_bucketName, scopeName));
-            _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
+            var (_, uri) = GetUri(RestApi.GetScope(_bucketName, scopeName));
+            _logger.LogInformation("Attempting to verify if scope {ScopeName} exists - {Uri}", scopeName,
                 _redactor.SystemData(uri));
 
             try
@@ -150,8 +168,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to verify if scope {scopeName} exists - {uri}",scopeName,
-                _redactor.SystemData(uri));
+                _logger.LogError(exception, "Failed to verify if scope {ScopeName} exists - {Uri}", scopeName,
+                    _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -159,16 +177,22 @@ namespace Couchbase.Management.Collections
         public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null)
         {
             options ??= GetAllScopesOptions.Default;
-            var uri = GetUri(RestApi.GetScopes(_bucketName));
-            _logger.LogInformation("Attempting to get all scopes - {uri}", _redactor.SystemData(uri));
+            var (mgmtNode, uri) = GetUri(RestApi.GetScopes(_bucketName));
+            _logger.LogInformation("Attempting to get all scopes - {Uri}", _redactor.SystemData(uri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
                 // get manifest
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -192,8 +216,17 @@ namespace Couchbase.Management.Collections
                 using var jsonReader = new JsonTextReader(new StreamReader(stream, Encoding.UTF8));
 
                 // check scope & collection exists in manifest
-                var json = await JToken.ReadFromAsync(jsonReader, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                var json = await JToken.ReadFromAsync(jsonReader, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
                 var scopes = json.SelectToken("scopes")!;
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 return scopes.Select(scope => new ScopeSpec(scope["name"]?.Value<string>())
                 {
@@ -201,7 +234,7 @@ namespace Couchbase.Management.Collections
                         new CollectionSpec(scope["name"]?.Value<string>(), collection["name"]?.Value<string>())
                         {
                             MaxExpiry = collection["maxTTL"] == null
-                                ? (TimeSpan?) null
+                                ? (TimeSpan?)null
                                 : TimeSpan.FromSeconds(collection["maxTTL"]!.Value<long>()),
                             History = collection["history"] == null ? null : collection["history"]!.Value<bool>()
                         }
@@ -210,37 +243,47 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to get all scopes - {uri}", _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to get all scopes - {Uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
 
-        public async Task CreateCollectionAsync(string scopeName, string collectionName, CreateCollectionSettings settings, CreateCollectionOptions? options)
+        public async Task CreateCollectionAsync(string scopeName, string collectionName,
+            CreateCollectionSettings settings, CreateCollectionOptions? options)
         {
             if (settings.History.HasValue &&
                 !_bucketConfig.BucketCapabilities.Contains(BucketCapabilities.NON_DEDUPED_HISTORY))
             {
-                throw new FeatureNotAvailableException("CreateCollectionAsync with History parameter is only supported from Server version 7.2");
+                throw new FeatureNotAvailableException(
+                    "CreateCollectionAsync with History parameter is only supported from Server version 7.2");
             }
+
             options ??= CreateCollectionOptions.Default;
-            var uri = GetUri(RestApi.CreateCollections(_bucketName, scopeName));
-            _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {uri}", scopeName,
+            var (mgmtNode, uri) = GetUri(RestApi.CreateCollections(_bucketName, scopeName));
+            _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 // create collection
                 var keys = new Dictionary<string, string>
                 {
-                    {"name", collectionName}
+                    { "name", collectionName }
                 };
 
                 if (settings.MaxExpiry.HasValue)
                 {
-                    keys.Add("maxTTL", ((int)settings.MaxExpiry.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture));
+                    keys.Add("maxTTL",
+                        ((int)settings.MaxExpiry.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture));
                 }
+
                 if (settings.History.HasValue)
                 {
                     keys.Add("history", settings.History.Value.ToLowerString());
@@ -248,7 +291,10 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                using var createResult = await httpClient
+                    .PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -274,16 +320,27 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                     if (contentBody.Contains("The value must be in range from -1 to 2147483647"))
                     {
-                        throw new InvalidArgumentException(contentBody) { Context = ctx};
+                        throw new InvalidArgumentException(contentBody) { Context = ctx };
                     }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}", scopeName,
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to create collection {ScopeName}/{Name} - {Uri}",
+                    scopeName,
                     collectionName, _redactor.SystemData(uri));
                 throw;
             }
@@ -295,19 +352,27 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
                 new CreateCollectionSettings(spec.MaxExpiry, spec.History), options);
         }
 
-        public async Task DropCollectionAsync(string scopeName, string collectionName, DropCollectionOptions? options = null)
+        public async Task DropCollectionAsync(string scopeName, string collectionName,
+            DropCollectionOptions? options = null)
         {
             options ??= DropCollectionOptions.Default;
-            var uri = GetUri(RestApi.DeleteCollections(_bucketName, scopeName, collectionName));
+            var (mgmtNode, uri) = GetUri(RestApi.DeleteCollections(_bucketName, scopeName, collectionName));
             _logger.LogInformation("Attempting drop collection {Scope}/{Collection} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
+
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -330,9 +395,19 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to drop collection {Scope}/{Collection} - {Uri}", scopeName,
                     collectionName, _redactor.SystemData(uri));
                 throw;
@@ -343,17 +418,18 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
         public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null)
         {
             options ??= DropCollectionOptions.Default;
-            var uri = GetUri(RestApi.DeleteCollections(_bucketName, spec.ScopeName, spec.Name));
-            _logger.LogInformation("Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+            var (_, uri) = GetUri(RestApi.DeleteCollections(_bucketName, spec.ScopeName, spec.Name));
+            _logger.LogInformation("Attempting drop collection {ScopeName}/{Name} - {Uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 // drop collection
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -379,7 +455,8 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+                _logger.LogError(exception, "Failed to drop collection {ScopeName}/{Name} - {Uri}",
+                    spec.ScopeName,
                     spec.Name, _redactor.SystemData(uri));
                 throw;
             }
@@ -394,21 +471,25 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
         public async Task CreateScopeAsync(string scopeName, CreateScopeOptions? options = null)
         {
             options ??= CreateScopeOptions.Default;
-            var uri = GetUri(RestApi.CreateScope(_bucketName));
-            _logger.LogInformation("Attempting create scope {spec.Name} - {uri}", scopeName, _redactor.SystemData(uri));
-
+            var (mgmtNode, uri) = GetUri(RestApi.CreateScope(_bucketName));
+            _logger.LogInformation("Attempting create scope {Name} - {Uri}", scopeName, _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
             // create scope
             var content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                {"name", scopeName}
+                { "name", scopeName }
             }!);
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                using var createResult = await httpClient
+                    .PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -424,17 +505,27 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                     if (contentBody.Contains("already exists"))
                         throw new ScopeExistsException(scopeName)
-                    {
-                        Context = ctx
-                    };
+                        {
+                            Context = ctx
+                        };
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to create scope {spec.Name} - {uri}", scopeName,
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to create scope {Name} - {Uri}", scopeName,
                     _redactor.SystemData(uri));
                 throw;
             }
@@ -456,16 +547,21 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
         public async Task DropScopeAsync(string scopeName, DropScopeOptions? options = null)
         {
             options ??= DropScopeOptions.Default;
-            var uri = GetUri(RestApi.DeleteScope(_bucketName, scopeName));
-            _logger.LogInformation("Attempting drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
+            var (mgmtNode, uri) = GetUri(RestApi.DeleteScope(_bucketName, scopeName));
+            _logger.LogInformation("Attempting drop scope {ScopeName} - {Uri}", scopeName, _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 // drop scope
                 using var httpClient = _httpClientFactory.Create();
-                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -489,24 +585,37 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to drop scope {ScopeName} - {Uri}", scopeName,
+                    _redactor.SystemData(uri));
                 throw;
             }
         }
 
-        public async Task UpdateCollectionAsync(string scopeName, string collectionName, UpdateCollectionSettings settings, UpdateCollectionOptions? options = null)
+        public async Task UpdateCollectionAsync(string scopeName, string collectionName,
+            UpdateCollectionSettings settings, UpdateCollectionOptions? options = null)
         {
             if (settings.History.HasValue &&
                 !_bucketConfig.BucketCapabilities.Contains(BucketCapabilities.NON_DEDUPED_HISTORY))
             {
-                throw new FeatureNotAvailableException("UpdateCollectionAsync with History parameter is only supported on Server version 7.2+");
+                throw new FeatureNotAvailableException(
+                    "UpdateCollectionAsync with History parameter is only supported on Server version 7.2+");
             }
 
             options ??= UpdateCollectionOptions.Default;
-            var uri = GetUri(RestApi.UpdateCollection(_bucketName, scopeName, collectionName));
+            var (mgmtNode, uri) = GetUri(RestApi.UpdateCollection(_bucketName, scopeName, collectionName));
             var dict = new Dictionary<string, string>();
 
             if (settings.MaxExpiry.HasValue)
@@ -518,16 +627,25 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
             {
                 dict.Add("history", settings.History.Value.ToLowerString());
             }
-            _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName,
+                _redactor.SystemData(uri));
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
                 var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
                 request.Content = new FormUrlEncodedContent(dict);
-                using var updateResult = await httpClient.SendAsync(request, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                using var updateResult = await httpClient.SendAsync(request, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
+
                 if (updateResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await updateResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -549,15 +667,26 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                     if (contentBody.Contains("The value must be in range from -1 to 2147483647"))
                     {
-                        throw new InvalidArgumentException(contentBody) { Context = ctx};
+                        throw new InvalidArgumentException(contentBody) { Context = ctx };
                     }
 
                     updateResult.ThrowOnError(ctx);
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}", collectionName, _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}", collectionName,
+                    _redactor.SystemData(uri));
                 throw;
             }
         }

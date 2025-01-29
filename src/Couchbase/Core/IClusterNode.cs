@@ -14,9 +14,14 @@ namespace Couchbase.Core
 {
     internal interface IClusterNode : IDisposable
     {
+
         IBucket Owner { get; set; }
         NodeAdapter NodesAdapter { get; set; }
         HostEndpointWithPort EndPoint { get; }
+        /// <summary>
+        /// The Node's GUID, internal to the SDK.
+        /// </summary>
+        string NodeUuid { get; }
         BucketType BucketType { get; }
         string BucketName { get; }
 

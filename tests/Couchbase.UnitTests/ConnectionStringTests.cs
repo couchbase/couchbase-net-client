@@ -96,7 +96,9 @@ namespace Couchbase.UnitTests
                           "&enable_tcp_keepalives=true&force_ipv4=true&config_poll_interval=1008&config_poll_floor_interval=1000" +
                           "&config_idle_redial_timeout=1009&num_kv_connections=10&max_kv_connections=20&max_http_connections=5"+
                           "&idle_http_connection_timeout=1000&enable_config_polling=true&compression=off&compression_min_size=512" +
-                          $"&compression_min_ratio=0.50&network={networkResolution}&bucket=default";
+                          $"&compression_min_ratio=0.50&network={networkResolution}&bucket=default" +
+                          "&app_telemetry_endpoint=ws://localhost:9090/app_telemetry&app_telemetry_backoff=5000" +
+                          "&app_telemetry_ping_interval=12300&app_telemetry_ping_timeout=12300";
 
             var options = new ClusterOptions
             {
@@ -128,6 +130,10 @@ namespace Couchbase.UnitTests
             Assert.Equal(512, options.CompressionMinSize);
             Assert.Equal(0.50f, options.CompressionMinRatio);
             Assert.Equal(networkResolution, options.NetworkResolution);
+            Assert.Equal(new Uri("ws://localhost:9090/app_telemetry"), options.AppTelemetry.Endpoint);
+            Assert.Equal(TimeSpan.FromMilliseconds(5000), options.AppTelemetry.Backoff);
+            Assert.Equal(TimeSpan.FromMilliseconds(12300), options.AppTelemetry.PingInterval);
+            Assert.Equal(TimeSpan.FromMilliseconds(12300), options.AppTelemetry.PingTimeout);
             Assert.True(options.TryGetRawParameter("bucket", out var bucket));
             Assert.Equal("default", bucket!.ToString());
         }

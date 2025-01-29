@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -7,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
@@ -39,6 +41,7 @@ namespace Couchbase.Query
         private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
         internal bool EnhancedPreparedStatementsEnabled;
         internal bool UseReplicaEnabled;
 
@@ -48,7 +51,8 @@ namespace Couchbase.Query
             ITypeSerializer serializer,
             IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             ILogger<QueryClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IAppTelemetryCollector appTelemetryCollector)
             : base(clientFactory)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
@@ -79,6 +83,7 @@ namespace Couchbase.Query
             _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider;
             _logger = logger;
             _tracer = tracer;
+            _appTelemetryCollector = appTelemetryCollector;
         }
 
         /// <inheritdoc />
@@ -201,7 +206,11 @@ namespace Couchbase.Query
             }
 
             // try get Query node
-            Uri queryUri = options.LastDispatchedNode ?? _serviceUriProvider.GetRandomQueryUri();
+            var queryNode = _serviceUriProvider.GetRandomQueryNode();
+            var queryUri = options.LastDispatchedNode ?? queryNode.QueryUri;
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             span.WithRemoteAddress(queryUri);
 
@@ -234,11 +243,17 @@ namespace Couchbase.Query
                     request.Version = httpClient.DefaultRequestVersion;
     #endif
 
+                    requestStopwatch?.Restart();
+
                     var response = await httpClient.SendAsync(request,
                         options.StreamResultsInternal
                             ? HttpCompletionOption.ResponseHeadersRead
                             : HttpClientFactory.DefaultCompletionOption,
                         cts.FallbackToToken(options.Token)).ConfigureAwait(false);
+
+                    operationElapsed = requestStopwatch?.Elapsed;
+
+                    dispatchSpan.Dispose();
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
@@ -282,6 +297,14 @@ namespace Couchbase.Query
 
                         if (queryResult.MetaData?.Status == QueryStatus.Timeout)
                         {
+                            _appTelemetryCollector.IncrementMetrics(
+                                operationElapsed,
+                                queryNode.NodesAdapter.CanonicalHostname,
+                                queryNode.NodesAdapter.AlternateHostname,
+                                queryNode.NodeUuid,
+                                AppTelemetryServiceType.Query,
+                                AppTelemetryCounterType.TimedOut);
+
                             if (options.IsReadOnly)
                             {
                                 throw new AmbiguousTimeoutException
@@ -316,8 +339,17 @@ namespace Couchbase.Query
             }
             catch (OperationCanceledException e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 //treat as an orphaned response
                 span.LogOrphaned();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    queryNode.NodesAdapter.CanonicalHostname,
+                    queryNode.NodesAdapter.AlternateHostname,
+                    queryNode.NodeUuid,
+                    AppTelemetryServiceType.Query,
+                    AppTelemetryCounterType.TimedOut);
 
                 var context = new QueryErrorContext
                 {
@@ -343,10 +375,19 @@ namespace Couchbase.Query
             }
             catch (HttpRequestException e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
 
                 //treat as an orphaned response
                 span.LogOrphaned();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    queryNode.NodesAdapter.CanonicalHostname,
+                    queryNode.NodesAdapter.AlternateHostname,
+                    queryNode.NodeUuid,
+                    AppTelemetryServiceType.Query,
+                    AppTelemetryCounterType.Canceled);
 
                 var context = new QueryErrorContext
                 {
@@ -362,6 +403,14 @@ namespace Couchbase.Query
                     Context = context
                 };
             }
+
+            _appTelemetryCollector.IncrementMetrics(
+                operationElapsed,
+                queryNode.NodesAdapter.CanonicalHostname,
+                queryNode.NodesAdapter.AlternateHostname,
+                queryNode.NodeUuid,
+                AppTelemetryServiceType.Query,
+                AppTelemetryCounterType.Total);
 
             _logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");
             return queryResult;

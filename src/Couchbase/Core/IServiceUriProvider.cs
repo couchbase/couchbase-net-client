@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
@@ -45,6 +46,51 @@ namespace Couchbase.Core
         /// </summary>
         /// <returns>The base <see cref="Uri"/>.</returns>
         Uri GetRandomEventingUri();
+
+        #region AppTelemetry Utils
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Analytics service.
+        /// </summary>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomAnalyticsNode();
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Query service.
+        /// </summary>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomQueryNode();
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Search service.
+        /// </summary>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomSearchNode();
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Management service.
+        /// </summary>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomManagementNode();
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a bucket with the View service.
+        /// </summary>
+        /// <param name="bucketName">The name of the bucket.</param>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomViewsNode(string bucketName);
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node's with the Eventing service.
+        /// </summary>
+        /// <returns>The base <see cref="IClusterNode"/>.</returns>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomEventingNode();
+        #endregion
     }
 }
 

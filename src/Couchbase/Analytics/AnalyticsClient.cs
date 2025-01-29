@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -29,6 +31,7 @@ namespace Couchbase.Analytics
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         [RequiresUnreferencedCode(AnalyticsRequiresUnreferencedMembersWarning)]
@@ -38,13 +41,15 @@ namespace Couchbase.Analytics
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
             ILogger<AnalyticsClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IAppTelemetryCollector appTelemetryCollector)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
+            _appTelemetryCollector = appTelemetryCollector;
         }
 
         /// <inheritdoc />
@@ -61,7 +66,11 @@ namespace Couchbase.Analytics
                 .WithLocalAddress();
 
             // try get Analytics node
-            var analyticsUri = _serviceUriProvider.GetRandomAnalyticsUri();
+            var analyticsNode = _serviceUriProvider.GetRandomAnalyticsNode();
+            var analyticsUri = analyticsNode.AnalyticsUri;
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+
             rootSpan.WithRemoteAddress(analyticsUri);
 
             _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
@@ -91,8 +100,10 @@ namespace Couchbase.Analytics
                     var httpClient = CreateHttpClient(options.TimeoutValue);
                     try
                     {
+                        requestStopwatch?.Restart();
                         var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
                             .ConfigureAwait(false);
+                        operationElapsed = requestStopwatch?.Elapsed;
                         dispatchSpan.Dispose();
 
                         var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -135,6 +146,14 @@ namespace Couchbase.Analytics
                             CouchbaseException? ex = CreateExceptionForError(result, context, false);
                             if (ex != null) { throw ex; }
                         }
+
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            analyticsNode.NodesAdapter.CanonicalHostname,
+                            analyticsNode.NodesAdapter.AlternateHostname,
+                            analyticsNode.NodeUuid,
+                            AppTelemetryServiceType.Analytics,
+                            AppTelemetryCounterType.Total);
                     }
                     catch
                     {
@@ -148,8 +167,17 @@ namespace Couchbase.Analytics
                 }
                 catch (OperationCanceledException e)
                 {
+                    operationElapsed = requestStopwatch?.Elapsed;
                     //treat as an orphaned response
                     rootSpan.LogOrphaned();
+
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        analyticsNode.NodesAdapter.CanonicalHostname,
+                        analyticsNode.NodesAdapter.AlternateHostname,
+                        analyticsNode.NodeUuid,
+                        AppTelemetryServiceType.Analytics,
+                        AppTelemetryCounterType.TimedOut);
 
                     var context = new AnalyticsErrorContext
                     {
@@ -174,8 +202,17 @@ namespace Couchbase.Analytics
                 }
                 catch (HttpRequestException e)
                 {
+                    operationElapsed = requestStopwatch?.Elapsed;
                     //treat as an orphaned response
                     rootSpan.LogOrphaned();
+
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        analyticsNode.NodesAdapter.CanonicalHostname,
+                        analyticsNode.NodesAdapter.AlternateHostname,
+                        analyticsNode.NodeUuid,
+                        AppTelemetryServiceType.Analytics,
+                        AppTelemetryCounterType.Canceled);
 
                     var context = new AnalyticsErrorContext
                     {

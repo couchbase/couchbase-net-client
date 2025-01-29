@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
@@ -20,17 +22,38 @@ namespace Couchbase.Management.Eventing
         private readonly ILogger<EventingFunctionManager> _logger;
         private readonly IRequestTracer _tracer;
         private readonly EventingFunctionKeyspace? _managementScope;
+        private readonly IServiceUriProvider _serviceUriProvider;
+        private IAppTelemetryCollector _appTelemetryCollector;
 
-        public EventingFunctionManager(IEventingFunctionService service, ILogger<EventingFunctionManager> logger, IRequestTracer tracer, EventingFunctionKeyspace? managementScope = null)
+        public EventingFunctionManager(IEventingFunctionService service, ILogger<EventingFunctionManager> logger, IRequestTracer tracer, IServiceUriProvider serviceUriProvider, IAppTelemetryCollector appTelemetryCollector, EventingFunctionKeyspace? managementScope = null)
         {
             _service = service;
             _logger = logger;
             _tracer = tracer;
             _managementScope = managementScope;
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
+            _appTelemetryCollector = appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
         }
 
         private CancellationTokenPairSource CreateRetryTimeoutCancellationTokenSource(FunctionOptionsBase options) =>
             CancellationTokenPairSource.FromTimeout(options.Timeout, options.Token);
+
+        internal (IClusterNode, Uri) GetUri(string path)
+        {
+            var eventingNode = _serviceUriProvider.GetRandomEventingNode();
+            var builder = new UriBuilder(eventingNode.EventingUri)
+            {
+                Path = path
+            };
+            var isGlobal = _managementScope is null or { Bucket: "*", Scope: "*" };
+            if (!isGlobal)
+            {
+                builder.Query =
+                    $"bucket={Uri.EscapeDataString(_managementScope!.Bucket)}&scope={Uri.EscapeDataString(_managementScope!.Scope)}";
+            }
+
+            return (eventingNode, builder.Uri);
+        }
 
         /// <inheritdoc />
         public async Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions? options = null)
@@ -39,6 +62,9 @@ namespace Couchbase.Management.Eventing
             options ??= UpsertFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(function.Name)}";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -50,9 +76,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.Token, function, managementScope: _managementScope)
-                        .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    requestStopwatch?.Restart();
+                    using var response = await _service.PostAsync(uri, rootSpan, encodeSpan, tokenPair.Token, function,
+                        managementScope: _managementScope).ConfigureAwait(false);
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -78,6 +116,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while upserting event function {function.Name}.");
                 throw;
             }
@@ -90,6 +130,9 @@ namespace Couchbase.Management.Eventing
             options ??= DropFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -101,9 +144,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.DeleteAsync(uri, rootSpan, encodeSpan, tokenPair.Token)
                         .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -125,6 +180,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, "An error occurred while dropping eventing function '{function}'.", Uri.EscapeDataString(name));
                 throw;
             }
@@ -137,6 +194,9 @@ namespace Couchbase.Management.Eventing
             options ??= GetAllFunctionOptions.Default;
 
             const string path = "/api/v1/functions";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -148,9 +208,19 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.GetAsync(uri, rootSpan, encodeSpan, tokenPair.Token)
                         .ConfigureAwait(false);
+                    operationElapsed = requestStopwatch?.Elapsed;
                     response.EnsureSuccessStatusCode();
+
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        eventingNode.NodesAdapter.CanonicalHostname,
+                        eventingNode.NodesAdapter.AlternateHostname,
+                        eventingNode.NodeUuid,
+                        AppTelemetryServiceType.Eventing,
+                        AppTelemetryCounterType.Total);
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                     var allFunctions = await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunctionList)
@@ -182,6 +252,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, "An error occurred while getting all eventing functions.");
                 throw;
             }
@@ -194,6 +266,9 @@ namespace Couchbase.Management.Eventing
             options ??= GetFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -205,11 +280,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                   using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                   using var response = await _service.GetAsync(uri, rootSpan, encodeSpan, tokenPair.Token)
                         .ConfigureAwait(false);
+                   operationElapsed = requestStopwatch?.Elapsed;
 
                     if (response.IsSuccessStatusCode)
                     {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+
                         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                         var deserialized = await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunction)
                             .ConfigureAwait(false);
@@ -237,6 +322,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while getting event function {name}.");
                 throw;
             }
@@ -249,6 +336,9 @@ namespace Couchbase.Management.Eventing
             options ??= PauseFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/pause";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -260,9 +350,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.PostAsync(uri, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
                         .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -284,6 +386,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while pausing eventing function '{name}'.");
                 throw;
             }
@@ -296,6 +400,9 @@ namespace Couchbase.Management.Eventing
             options ??= ResumeFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/resume";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -307,9 +414,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.PostAsync(uri, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
                         .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -329,6 +448,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while resume eventing function '{name}'.");
                 throw;
             }
@@ -341,6 +462,9 @@ namespace Couchbase.Management.Eventing
             options ??= DeployFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/deploy";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -352,9 +476,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.PostAsync(uri, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
                         .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -374,6 +510,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while pausing eventing function '{name}'.");
                 throw;
             }
@@ -386,6 +524,9 @@ namespace Couchbase.Management.Eventing
             options ??= UndeployFunctionOptions.Default;
 
             var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/undeploy";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -397,9 +538,21 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.PostAsync(uri, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
                         .ConfigureAwait(false);
-                    if (response.IsSuccessStatusCode) return;
+                    operationElapsed = requestStopwatch?.Elapsed;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _appTelemetryCollector.IncrementMetrics(
+                            operationElapsed,
+                            eventingNode.NodesAdapter.CanonicalHostname,
+                            eventingNode.NodesAdapter.AlternateHostname,
+                            eventingNode.NodeUuid,
+                            AppTelemetryServiceType.Eventing,
+                            AppTelemetryCounterType.Total);
+                        return;
+                    }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
@@ -419,6 +572,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, $"An error occurred while un-deploying eventing function '{name}'.");
                 throw;
             }
@@ -431,6 +586,9 @@ namespace Couchbase.Management.Eventing
             options ??= FunctionsStatusOptions.Default;
 
             var path = $"/api/v1/status";
+            var (eventingNode, uri) = GetUri(path);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             try
             {
@@ -442,9 +600,19 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.Token, managementScope: _managementScope)
+                    requestStopwatch?.Restart();
+                    using var response = await _service.GetAsync(uri, rootSpan, encodeSpan, tokenPair.Token)
                         .ConfigureAwait(false);
+                    operationElapsed = requestStopwatch?.Elapsed;
                     response.EnsureSuccessStatusCode();
+
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        eventingNode.NodesAdapter.CanonicalHostname,
+                        eventingNode.NodesAdapter.AlternateHostname,
+                        eventingNode.NodeUuid,
+                        AppTelemetryServiceType.Eventing,
+                        AppTelemetryCounterType.Total);
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
@@ -455,6 +623,8 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Eventing, e, options.Timeout, operationElapsed, eventingNode.NodesAdapter.CanonicalHostname, eventingNode.NodesAdapter.AlternateHostname, eventingNode.NodeUuid);
                 _logger.LogError(e, "An error occurred while getting the eventing function status.");
                 throw;
             }

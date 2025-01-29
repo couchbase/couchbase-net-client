@@ -135,6 +135,7 @@ namespace Couchbase.UnitTests.Diagnostics
             public IBucket Owner { get; set; }
             public NodeAdapter NodesAdapter { get; set; }
             public HostEndpointWithPort EndPoint { get; }
+            public string NodeUuid { get; }
             public BucketType BucketType { get; }
             public string BucketName { get; }
             public IReadOnlyCollection<HostEndpointWithPort> KeyEndPoints { get; }

@@ -14,6 +14,9 @@ namespace Couchbase.Core.IO.Operations
         ushort SyncReplicationTimeoutFloorMs = 1500;
 
         public DurabilityLevel DurabilityLevel { get; set; }
+
+        public override bool HasDurability => DurabilityLevel != DurabilityLevel.None;
+
         public TimeSpan? DurabilityTimeout { get; set; }
 
         /// <inheritdoc />

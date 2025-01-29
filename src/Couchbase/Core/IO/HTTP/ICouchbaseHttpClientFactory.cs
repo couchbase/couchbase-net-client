@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 
 #nullable enable
 
@@ -27,6 +28,12 @@ namespace Couchbase.Core.IO.HTTP
         /// Default response streaming behavior for HTTP requests. Controlled by <see cref="TuningOptions.StreamHttpResponseBodies"/>.
         /// </summary>
         HttpCompletionOption DefaultCompletionOption { get; }
+
+        /// <summary>
+        /// Shared HttpMessageHandler for all HttpClients created by this factory.
+        /// This is also used by the <see cref="WebSocketClientHandler"/> to handle secure authentication.
+        /// </summary>
+        HttpMessageHandler Handler { get; }
     }
 }
 

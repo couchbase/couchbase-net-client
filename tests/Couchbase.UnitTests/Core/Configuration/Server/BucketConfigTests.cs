@@ -527,6 +527,46 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Fact]
+        public void Test_AppTelemetryPath_Included()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-path.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var node1 = config.NodesExt[0];
+            var node2 = config.NodesExt[1];
+            var node3 = config.NodesExt[2];
+            Assert.Equal("/_appTelemetry", node1.AppTelemetryPath);
+            Assert.Null(node2.AppTelemetryPath);
+            Assert.Null(node3.AppTelemetryPath);
+        }
+
+        [Fact]
+        public void Test_AppTelemetryPath_Random_Round_Robin()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var node1 = config.GetAppTelemetryPath(0);
+            var node2 = config.GetAppTelemetryPath(1);
+            Assert.NotEqual(node1, node2);
+
+            var node3 = config.GetAppTelemetryPath(2);
+            Assert.NotEqual(node1, node3);
+            Assert.NotEqual(node2, node3);
+
+            var node4 = config.GetAppTelemetryPath(3);
+            Assert.Equal(node1, node4);
+
+
+            var node5 = config.GetAppTelemetryPath(4, true);
+            var node6 = config.GetAppTelemetryPath(5, true);
+            Assert.NotEqual(node5, node6);
+
+            var node7 = config.GetAppTelemetryPath(6, true);
+            Assert.NotEqual(node5, node7);
+            Assert.NotEqual(node6, node7);
+        }
+
+        [Fact]
         public void Filter_ServerGroups_and_Indexes()
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json", InternalSerializationContext.Default.BucketConfig);

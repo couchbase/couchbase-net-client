@@ -66,6 +66,8 @@ namespace Couchbase.Core.IO.Operations
 
         #region IOperation Properties
 
+        public bool IsDurable => false;
+
         public bool PreferReturns { get; internal set; }
 
         public virtual bool PreserveTtl { get; set; } = false;

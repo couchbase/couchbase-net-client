@@ -9,6 +9,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;

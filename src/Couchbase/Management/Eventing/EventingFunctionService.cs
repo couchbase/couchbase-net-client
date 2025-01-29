@@ -27,28 +27,9 @@ namespace Couchbase.Management.Eventing
             _redactor = redactor;
         }
 
-        private Uri GetUri(string path, EventingFunctionKeyspace? managementScope)
-        {
-            var uri = _serviceUriProvider.GetRandomEventingUri();
-            var ub = new UriBuilder(uri)
-            {
-                Path = path
-            };
-
-            var isGlobal = managementScope is null or { Bucket: "*", Scope: "*" };
-            if (!isGlobal)
-            {
-                ub.Query =
-                    $"bucket={Uri.EscapeDataString(managementScope!.Bucket)}&scope={Uri.EscapeDataString(managementScope!.Scope)}";
-            }
-
-            return ub.Uri;
-        }
-
         /// <inheritdoc />
-        public Task<HttpResponseMessage> GetAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null)
+        public Task<HttpResponseMessage> GetAsync(Uri requestUri, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token)
         {
-            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             encodeSpan.Dispose();
@@ -58,9 +39,8 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseMessage> PostAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction? eventingFunction = null, EventingFunctionKeyspace? managementScope = null)
+        public Task<HttpResponseMessage> PostAsync(Uri requestUri, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunction? eventingFunction = null, EventingFunctionKeyspace? managementScope = null)
         {
-            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             var content = eventingFunction != null ?
@@ -74,9 +54,8 @@ namespace Couchbase.Management.Eventing
         }
 
         /// <inheritdoc />
-        public Task<HttpResponseMessage> DeleteAsync(string path, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token, EventingFunctionKeyspace? managementScope = null)
+        public Task<HttpResponseMessage> DeleteAsync(Uri requestUri, IRequestSpan parentSpan, IRequestSpan encodeSpan, CancellationToken token)
         {
-            var requestUri = GetUri(path, managementScope);
             parentSpan.WithRemoteAddress(requestUri);
 
             encodeSpan.Dispose();

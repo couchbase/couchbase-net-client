@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -7,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -22,19 +25,23 @@ namespace Couchbase.Management.Users
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<UserManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
 
         public UserManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<UserManager> logger, IRedactor redactor)
+            ILogger<UserManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _appTelemetryCollector =
+                appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
         }
 
-        private Uri GetUsersUri(string domain, string? username = null)
+        private (IClusterNode, Uri) GetUsersUri(string domain, string? username = null)
         {
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var managementNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(managementNode.ManagementUri)
             {
                 Path = $"settings/rbac/users/{domain}"
             };
@@ -44,22 +51,24 @@ namespace Couchbase.Management.Users
                 builder.Path += $"/{username}";
             }
 
-            return builder.Uri;
+            return (managementNode, builder.Uri);
         }
 
-        private Uri GetRolesUri()
+        private (IClusterNode, Uri) GetRolesUri()
         {
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var managementNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(managementNode.ManagementUri)
             {
                 Path = "settings/rbac/roles"
             };
 
-            return builder.Uri;
+            return (managementNode, builder.Uri);
         }
 
-        private Uri GetGroupsUri(string? groupName = null)
+        private (IClusterNode, Uri) GetGroupsUri(string? groupName = null)
         {
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var managementNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(managementNode.ManagementUri)
             {
                 Path = "settings/rbac/groups"
             };
@@ -69,20 +78,20 @@ namespace Couchbase.Management.Users
                 builder.Path += $"/{groupName}";
             }
 
-            return builder.Uri;
+            return (managementNode, builder.Uri);
         }
 
         private static IEnumerable<KeyValuePair<string, string?>> GetGroupFormValues(Group group)
         {
             return new Dictionary<string, string?>
             {
-                {"description", group.Description},
-                {"ldap_group_ref", group.LdapGroupReference},
+                { "description", group.Description },
+                { "ldap_group_ref", group.LdapGroupReference },
                 {
                     "roles", string.Join(",", group.Roles?.Select(
-                        role => string.IsNullOrWhiteSpace(role.Bucket)
-                            ? role.Name
-                            : $"{role.Name}[{role.Bucket}]") ?? Enumerable.Empty<string>()
+                            role => string.IsNullOrWhiteSpace(role.Bucket)
+                                ? role.Name
+                                : $"{role.Name}[{role.Bucket}]") ?? Enumerable.Empty<string>()
                     )
                 }
             };
@@ -91,9 +100,11 @@ namespace Couchbase.Management.Users
         public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions? options = null)
         {
             options ??= GetUserOptions.Default;
-            var uri = GetUsersUri(options.DomainNameValue, username);
-            _logger.LogInformation("Attempting to get user with username {username} - {uri}",
+            var (mgmtNode, uri) = GetUsersUri(options.DomainNameValue, username);
+            _logger.LogInformation("Attempting to get user with username {Username} - {Uri}",
                 _redactor.UserData(username), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -101,7 +112,10 @@ namespace Couchbase.Management.Users
             {
                 // check user exists before trying to read content
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -109,16 +123,27 @@ namespace Couchbase.Management.Users
 
                 result.EnsureSuccessStatusCode();
 
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 // get user from result
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var dto = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.UserAndMetadataDto)
+                var dto = (await JsonSerializer
+                    .DeserializeAsync(stream, UserManagementSerializerContext.Default.UserAndMetadataDto)
                     .ConfigureAwait(false))!;
 
                 return UserAndMetaData.FromJson(dto);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to get user with username {username} - {uri}",
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to get user with username {Username} - {Uri}",
                     _redactor.UserData(username), _redactor.SystemData(uri));
                 throw;
             }
@@ -127,8 +152,10 @@ namespace Couchbase.Management.Users
         public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions? options = null)
         {
             options ??= GetAllUsersOptions.Default;
-            var uri = GetUsersUri(options.DomainNameValue);
-            _logger.LogInformation("Attempting to get all users - {uri}", _redactor.SystemData(uri));
+            var (mgmtNode, uri) = GetUsersUri(options.DomainNameValue);
+            _logger.LogInformation("Attempting to get all users - {Uri}", _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -136,19 +163,33 @@ namespace Couchbase.Management.Users
             {
                 // get all users
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 result.EnsureSuccessStatusCode();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 // get users from result
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var dtos = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListUserAndMetadataDto)
+                var dtos = (await JsonSerializer
+                    .DeserializeAsync(stream, UserManagementSerializerContext.Default.ListUserAndMetadataDto)
                     .ConfigureAwait(false))!;
 
                 return dtos.Select(UserAndMetaData.FromJson);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to get all users - {uri}", _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to get all users - {Uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -156,9 +197,11 @@ namespace Couchbase.Management.Users
         public async Task UpsertUserAsync(User user, UpsertUserOptions? options = null)
         {
             options ??= UpsertUserOptions.Default;
-            var uri = GetUsersUri(options.DomainNameValue, user.Username);
-            _logger.LogInformation("Attempting to create user with username {user.Username} - {uri}",
+            var (mgmtNode, uri) = GetUsersUri(options.DomainNameValue, user.Username);
+            _logger.LogInformation("Attempting to create user with username {Username} - {Uri}",
                 _redactor.UserData(user.Username), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -167,12 +210,25 @@ namespace Couchbase.Management.Users
                 // upsert user
                 var content = new FormUrlEncodedContent(user.GetUserFormValues());
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 result.EnsureSuccessStatusCode();
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to upsert user - {uri}", _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to upsert user - {Uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -180,9 +236,11 @@ namespace Couchbase.Management.Users
         public async Task DropUserAsync(string username, DropUserOptions? options = null)
         {
             options ??= DropUserOptions.Default;
-            var uri = GetUsersUri(options.DomainNameValue, username);
-            _logger.LogInformation("Attempting to drop user with username {username} - {uri}",
+            var (mgmtNode, uri) = GetUsersUri(options.DomainNameValue, username);
+            _logger.LogInformation("Attempting to drop user with username {Username} - {Uri}",
                 _redactor.UserData(username), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -190,17 +248,30 @@ namespace Couchbase.Management.Users
             {
                 // drop user
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
                 }
 
                 result.EnsureSuccessStatusCode();
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}",
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to drop user with username {Username} - {Uri}",
                     _redactor.UserData(username), _redactor.SystemData(uri));
                 throw;
             }
@@ -208,34 +279,53 @@ namespace Couchbase.Management.Users
 
         private IEnumerable<KeyValuePair<string, string>> FormatPassword(string newPassword)
         {
-            return new Dictionary<string, string>{{"password", newPassword}};
+            return new Dictionary<string, string> { { "password", newPassword } };
         }
 
         public async Task ChangeUserPasswordAsync(string newPassword, ChangePasswordOptions? options = null)
         {
             options ??= ChangePasswordOptions.Default;
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var mgmtNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(mgmtNode.ManagementUri)
             {
                 Path = "controller/changePassword"
             };
 
             var content = new FormUrlEncodedContent(FormatPassword(newPassword)!);
 
+            _logger.LogInformation("Attempting to change current user password");
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(builder.Uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.PostAsync(builder.Uri, content, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
                 if (!result.IsSuccessStatusCode)
                 {
-                    throw new HttpRequestException($"Error when attempting to change user password. HTTP Error: {(int)result.StatusCode} - {result.StatusCode}.");
+                    throw new HttpRequestException(
+                        $"Error when attempting to change user password. HTTP Error: {(int)result.StatusCode} - {result.StatusCode}.");
                 }
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Unknown error while attempting to change user password.");
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Unknown error while attempting to change user password");
                 throw;
             }
         }
@@ -243,26 +333,43 @@ namespace Couchbase.Management.Users
         public async Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions? options = null)
         {
             options ??= AvailableRolesOptions.Default;
-            var uri = GetRolesUri();
-            _logger.LogInformation("Attempting to get all available roles - {uri}", _redactor.MetaData(uri));
+            var (mgmtNode, uri) = GetRolesUri();
+            _logger.LogInformation("Attempting to get all available roles - {Uri}", _redactor.MetaData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
-        using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 // get roles
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 result.EnsureSuccessStatusCode();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 // get roles from result
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                return (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListRoleAndDescription)
+                return (await JsonSerializer
+                    .DeserializeAsync(stream, UserManagementSerializerContext.Default.ListRoleAndDescription)
                     .ConfigureAwait(false))!;
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to get all available roles - {uri}", _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to get all available roles - {Uri}",
+                    _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -270,9 +377,12 @@ namespace Couchbase.Management.Users
         public async Task<Group> GetGroupAsync(string groupName, GetGroupOptions? options = null)
         {
             options ??= GetGroupOptions.Default;
-            var uri = GetGroupsUri(groupName);
-            _logger.LogInformation("Attempting to get group with name {groupName} - {uri}", _redactor.UserData(groupName),
+            var (mgmtNode, uri) = GetGroupsUri(groupName);
+            _logger.LogInformation("Attempting to get group with name {GroupName} - {Uri}",
+                _redactor.UserData(groupName),
                 _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -280,7 +390,10 @@ namespace Couchbase.Management.Users
             {
                 // get group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);
@@ -288,16 +401,27 @@ namespace Couchbase.Management.Users
 
                 result.EnsureSuccessStatusCode();
 
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 // get group from result
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var dto = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.GroupDto)
+                var dto = (await JsonSerializer
+                    .DeserializeAsync(stream, UserManagementSerializerContext.Default.GroupDto)
                     .ConfigureAwait(false))!;
 
                 return Group.FromJson(dto);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to get group with name {groupName} - {uri}",
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to get group with name {GroupName} - {Uri}",
                     _redactor.UserData(groupName), _redactor.SystemData(uri));
                 throw;
             }
@@ -306,8 +430,10 @@ namespace Couchbase.Management.Users
         public async Task<IEnumerable<Group>> GetAllGroupsAsync(GetAllGroupsOptions? options = null)
         {
             options ??= GetAllGroupsOptions.Default;
-            var uri = GetGroupsUri();
-            _logger.LogInformation("Attempting to get all groups - {uri}", _redactor.SystemData(uri));
+            var (mgmtNode, uri) = GetGroupsUri();
+            _logger.LogInformation("Attempting to get all groups - {Uri}", _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -315,19 +441,33 @@ namespace Couchbase.Management.Users
             {
                 // get group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 result.EnsureSuccessStatusCode();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 // get groups from results
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var dtos = (await JsonSerializer.DeserializeAsync(stream, UserManagementSerializerContext.Default.ListGroupDto)
+                var dtos = (await JsonSerializer
+                    .DeserializeAsync(stream, UserManagementSerializerContext.Default.ListGroupDto)
                     .ConfigureAwait(false))!;
 
                 return dtos.Select(Group.FromJson);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to get all groups - {uri}", _redactor.SystemData(uri));
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to get all groups - {Uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -335,9 +475,11 @@ namespace Couchbase.Management.Users
         public async Task UpsertGroupAsync(Group group, UpsertGroupOptions? options = null)
         {
             options ??= UpsertGroupOptions.Default;
-            var uri = GetGroupsUri(group.Name);
-            _logger.LogInformation("Attempting to upsert group with name {group.Name} - {uri}",
+            var (mgmtNode, uri) = GetGroupsUri(group.Name);
+            _logger.LogInformation("Attempting to upsert group with name {Name} - {Uri}",
                 _redactor.UserData(group.Name), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -346,12 +488,24 @@ namespace Couchbase.Management.Users
                 // upsert group
                 var content = new FormUrlEncodedContent(GetGroupFormValues(group)!);
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.PutAsync(uri, content, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 result.EnsureSuccessStatusCode();
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to upsert group with name {group.Name} - {uri}",
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to upsert group with name {GroupName} - {Uri}",
                     _redactor.UserData(group.Name), _redactor.SystemData(uri));
                 throw;
             }
@@ -360,9 +514,11 @@ namespace Couchbase.Management.Users
         public async Task DropGroupAsync(string groupName, DropGroupOptions? options = null)
         {
             options ??= DropGroupOptions.Default;
-            var uri = GetGroupsUri(groupName);
-            _logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}",
+            var (mgmtNode, uri) = GetGroupsUri(groupName);
+            _logger.LogInformation("Attempting to drop group with name {GroupName} - {Uri}",
                 _redactor.UserData(groupName), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -370,17 +526,29 @@ namespace Couchbase.Management.Users
             {
                 // drop group
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                requestStopwatch?.Restart();
+                var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
+                    .ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);
                 }
 
                 result.EnsureSuccessStatusCode();
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error trying to drop group with name {groupName} - {uri}",
+                operationElapsed = requestStopwatch?.Elapsed;
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Error trying to drop group with name {GroupName} - {Uri}",
                     _redactor.UserData(groupName), _redactor.SystemData(uri));
                 throw;
             }

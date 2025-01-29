@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -50,14 +52,27 @@ namespace Couchbase.UnitTests.Analytics
             };
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.AnalyticsUri)
+                .Returns(new Uri("http://localhost:8096"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsNode())
+                .Returns(nodeMock.Object);
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new AnalyticsOptions());
 
@@ -88,14 +103,27 @@ namespace Couchbase.UnitTests.Analytics
             );
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.AnalyticsUri)
+                .Returns(new Uri("http://localhost:8096"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsNode())
+                .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions().Priority(priority));
         }
@@ -111,14 +139,27 @@ namespace Couchbase.UnitTests.Analytics
             );
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.AnalyticsUri)
+                .Returns(new Uri("http://localhost:8096"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsNode())
+                .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             Assert.Null(client.LastActivity);
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
@@ -151,14 +192,27 @@ namespace Couchbase.UnitTests.Analytics
                 })) ;
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.AnalyticsUri)
+                .Returns(new Uri("http://localhost:8096"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsNode())
+                .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {

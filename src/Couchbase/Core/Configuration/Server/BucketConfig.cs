@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -202,8 +204,10 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("hostname")] public string Hostname { get; set; }
         [JsonPropertyName("serverGroup")] public string ServerGroup { get; set; }
         [JsonPropertyName("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
+        [JsonPropertyName("appTelemetryPath")] public string AppTelemetryPath { get; set; }
+        [JsonPropertyName("nodeUUID")] public string NodeUuid { get; set; }
 
-        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Any();
+        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Count != 0;
 
         public bool Equals(NodesExt other)
         {
@@ -223,7 +227,8 @@ namespace Couchbase.Core.Configuration.Server
         {
             unchecked
             {
-                return ((Services != null ? Services.GetHashCode() : 0) * 397);
+                return ((Services != null ? Services.GetHashCode() : 0) * 397) ^
+                       ((Hostname != null ? Hostname.GetHashCode() : 0) * 397);
             }
         }
 
@@ -251,6 +256,31 @@ namespace Couchbase.Core.Configuration.Server
         private List<string> _bucketCaps = new();
         private Dictionary<string, IEnumerable<string>> _clusterCaps = new();
         internal ClusterLabels ClusterLabels = new();
+        private List<NodesExt> _nodesExt = new();
+        private List<NodesExt> NodesWithAppTelemetry => NodesExt
+            .Where(n => !string.IsNullOrEmpty(n.AppTelemetryPath))
+            .ToList();
+
+        internal Uri GetAppTelemetryPath(int attempt, bool? tlsEnabled = false)
+        {
+            if (NodesWithAppTelemetry is null || NodesWithAppTelemetry.Count == 0) return null;
+
+            var targetIndex = attempt % NodesWithAppTelemetry.Count;
+            var node = NodesWithAppTelemetry.ElementAt(targetIndex);
+
+            if (node == null) return null;
+
+            if (!node.HasAlternateAddress) return ConstructAppTelemetryUri(tlsEnabled, node.Hostname, node.Services, node.AppTelemetryPath);
+            var alt = node.AlternateAddresses.FirstOrDefault().Value;
+            return ConstructAppTelemetryUri(tlsEnabled, alt.Hostname, alt.Ports, node.AppTelemetryPath);
+        }
+
+        private static Uri ConstructAppTelemetryUri(bool? tlsEnabled, string hostname, Services services, string appTelemetryPath)
+        {
+            return tlsEnabled.HasValue && tlsEnabled.Value
+                ? new Uri("wss://" + hostname + ":" + services.MgmtSsl + appTelemetryPath)
+                : new Uri("ws://" + hostname + ":" + services.Mgmt + appTelemetryPath);
+        }
 
         public ConfigVersion ConfigVersion { get; private set; }
 

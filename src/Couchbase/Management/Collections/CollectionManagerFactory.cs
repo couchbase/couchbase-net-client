@@ -2,9 +2,11 @@ using System;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -30,9 +32,10 @@ namespace Couchbase.Management.Collections
         /// <inheritdoc />
         public ICouchbaseCollectionManager Create(string bucketName, BucketConfig bucketConfig) =>
             new CollectionManager(bucketName, bucketConfig,
-                _serviceProvider.GetRequiredService<IServiceUriProvider>(),
-                _serviceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
-                _serviceProvider.GetRequiredService<ILogger<CollectionManager>>(),
-                _serviceProvider.GetRequiredService<IRedactor>());
+                CouchbaseServiceProviderExtensions.GetRequiredService<IServiceUriProvider>(_serviceProvider),
+                CouchbaseServiceProviderExtensions.GetRequiredService<ICouchbaseHttpClientFactory>(_serviceProvider),
+                CouchbaseServiceProviderExtensions.GetRequiredService<ILogger<CollectionManager>>(_serviceProvider),
+                CouchbaseServiceProviderExtensions.GetRequiredService<IRedactor>(_serviceProvider),
+                ServiceProviderServiceExtensions.GetRequiredService<IAppTelemetryCollector>(_serviceProvider));
     }
 }

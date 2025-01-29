@@ -27,7 +27,7 @@ namespace Couchbase.Core.IO.HTTP
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;
         private readonly IRedactor _redactor;
 
-        private readonly HttpMessageHandler _sharedHandler;
+        internal readonly HttpMessageHandler _sharedHandler;
 
         public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor)
         {
@@ -61,6 +61,8 @@ namespace Couchbase.Core.IO.HTTP
 
         /// <inheritdoc />
         public HttpCompletionOption DefaultCompletionOption { get; }
+
+        public HttpMessageHandler Handler => _sharedHandler;
 
         /// <inheritdoc />
         public HttpClient Create()
@@ -224,7 +226,7 @@ namespace Couchbase.Core.IO.HTTP
 #else
         private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
-        private static X509Certificate2? GetClientCertificate(X509Certificate2Collection candidateCerts) =>
+        internal static X509Certificate2? GetClientCertificate(X509Certificate2Collection candidateCerts) =>
             candidateCerts.Cast<X509Certificate2>()
                 .FirstOrDefault(cert => cert.HasPrivateKey && IsValidClientCertificate(cert));
 

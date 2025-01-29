@@ -6,6 +6,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
@@ -38,13 +40,21 @@ namespace Couchbase.UnitTests.Search
             var httpClient = new HttpClient(handler);
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.SearchUri)
+                .Returns(new Uri("http://localhost:8093"));
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomSearchUri())
-                .Returns(new Uri("http://localhost:8094"));
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomSearchNode())
+                .Returns(nodeMock.Object);
 
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<AppTelemetryCollector>().Object);
 
             await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(indexName, new FtsSearchRequest {Index = indexName}, null, null, CancellationToken.None));
         }
@@ -64,13 +74,27 @@ namespace Couchbase.UnitTests.Search
             var httpClient = new HttpClient(handler);
             var httpClientFactory = new MockHttpClientFactory(httpClient);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.SearchUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomSearchUri())
-                .Returns(new Uri("http://localhost:8094"));
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomSearchNode())
+                .Returns(nodeMock.Object);
 
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             var response =  await client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, null, CancellationToken.None);
             Assert.Equal(6, response.MetaData.ErrorCount);

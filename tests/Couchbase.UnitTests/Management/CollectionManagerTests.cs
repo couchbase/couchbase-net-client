@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Collections;
 using Couchbase.UnitTests.Helpers;
@@ -32,12 +33,16 @@ namespace Couchbase.UnitTests.Management
             var logger = new Mock<ILogger<CollectionManager>>().Object;
             var redactor = new Mock<IRedactor>().Object;
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.ManagementUri).Returns(BaseUri);
             var serviceUriProviderMock = new Mock<IServiceUriProvider>();
             serviceUriProviderMock.Setup(x => x.GetRandomManagementUri()).Returns(BaseUri);
+            serviceUriProviderMock.Setup(x => x.GetRandomManagementNode()).Returns(nodeMock.Object);
             var serviceProvider = serviceUriProviderMock.Object;
             var bucketConfig = new Mock<BucketConfig>().Object;
+            var appTelemetryCollector = new Mock<IAppTelemetryCollector>().Object;
 
-            _collectionManager = new CollectionManager(BucketName, bucketConfig, serviceProvider, httpClientFactory, logger, redactor);
+            _collectionManager = new CollectionManager(BucketName, bucketConfig, serviceProvider, httpClientFactory, logger, redactor, appTelemetryCollector);
         }
 
         #region Uris
@@ -55,7 +60,7 @@ namespace Couchbase.UnitTests.Management
         {
             var expected = new Uri(BaseUri + $"pools/default/buckets/{BucketName}/scopes");
 
-            var actual =  _collectionManager.GetUri(CollectionManager.RestApi.GetScopes(BucketName));
+            var (_, actual) =  _collectionManager.GetUri(CollectionManager.RestApi.GetScopes(BucketName));
 
             Assert.Equal(expected, actual);
         }
@@ -65,7 +70,7 @@ namespace Couchbase.UnitTests.Management
         {
             var expected = new Uri(BaseUri + $"pools/default/buckets/{BucketName}/scopes");
 
-            var actual = _collectionManager.GetUri(CollectionManager.RestApi.CreateScope(BucketName));
+            var (_, actual) = _collectionManager.GetUri(CollectionManager.RestApi.CreateScope(BucketName));
 
             Assert.Equal(expected, actual);
         }
@@ -75,7 +80,7 @@ namespace Couchbase.UnitTests.Management
         {
             var expected = new Uri(BaseUri + $"pools/default/buckets/{BucketName}/scopes/{ScopeName}");
 
-            var actual = _collectionManager.GetUri(CollectionManager.RestApi.DeleteScope(BucketName, ScopeName));
+            var (_, actual) = _collectionManager.GetUri(CollectionManager.RestApi.DeleteScope(BucketName, ScopeName));
 
             Assert.Equal(expected, actual);
         }
@@ -86,7 +91,7 @@ namespace Couchbase.UnitTests.Management
             var expected = new Uri(BaseUri +
                                    $"pools/default/buckets/{BucketName}/scopes/{ScopeName}/collections");
 
-            var actual = _collectionManager.GetUri(CollectionManager.RestApi.CreateCollections(BucketName, ScopeName));
+            var (_, actual) = _collectionManager.GetUri(CollectionManager.RestApi.CreateCollections(BucketName, ScopeName));
 
             Assert.Equal(expected, actual);
         }
@@ -97,7 +102,7 @@ namespace Couchbase.UnitTests.Management
             var expected = new Uri(BaseUri +
                                    $"pools/default/buckets/{BucketName}/scopes/{ScopeName}/collections/{CollectionName}");
 
-            var actual = _collectionManager.GetUri(CollectionManager.RestApi.DeleteCollections(BucketName, ScopeName, CollectionName));
+            var (_, actual) = _collectionManager.GetUri(CollectionManager.RestApi.DeleteCollections(BucketName, ScopeName, CollectionName));
 
             Assert.Equal(expected, actual);
         }

@@ -217,6 +217,7 @@ namespace Couchbase.KeyValue
                 {
                     Key = id,
                     Cid = Cid,
+                    BucketName = _bucket.Name,
                     CName = Name,
                     SName = ScopeName,
                     Span = rootSpan,
@@ -311,6 +312,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = rootSpan
@@ -353,6 +355,7 @@ namespace Couchbase.KeyValue
             {
                 Content = content,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 SName = ScopeName,
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
@@ -400,6 +403,7 @@ namespace Couchbase.KeyValue
                 Content = content,
                 Cas = options.CasValue,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
@@ -438,6 +442,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cas = options.CasValue,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 DurabilityLevel = options.DurabilityLevel,
@@ -476,6 +481,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
@@ -507,6 +513,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
@@ -549,6 +556,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 SName = ScopeName,
                 CName = Name,
                 Expires = expiry.ToTtl(),
@@ -588,6 +596,7 @@ namespace Couchbase.KeyValue
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expires = expiry.ToTtl(),
@@ -631,6 +640,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expiry = lockTime.ToTtl(),
@@ -683,6 +693,7 @@ namespace Couchbase.KeyValue
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
                 Content = content,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cid = Cid,
@@ -907,6 +918,7 @@ namespace Couchbase.KeyValue
             var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
@@ -1054,6 +1066,7 @@ namespace Couchbase.KeyValue
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Content = value,
@@ -1089,6 +1102,7 @@ namespace Couchbase.KeyValue
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Content = value,
@@ -1124,6 +1138,7 @@ namespace Couchbase.KeyValue
             using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Delta = options.DeltaValue,
@@ -1161,6 +1176,7 @@ namespace Couchbase.KeyValue
             using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Delta = options.DeltaValue,
@@ -1337,6 +1353,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = childSpan
@@ -1372,6 +1389,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = childSpan
