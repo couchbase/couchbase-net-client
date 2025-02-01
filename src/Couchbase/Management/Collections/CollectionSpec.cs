@@ -3,7 +3,7 @@ using Couchbase.Core.Compatibility;
 
 namespace Couchbase.Management.Collections
 {
-    public class CollectionSpec
+    public class CollectionSpec : IEquatable<CollectionSpec>
     {
         /// <summary>
         /// The Collection name.
@@ -30,6 +30,36 @@ namespace Couchbase.Management.Collections
         {
             ScopeName = scopeName;
             Name = name;
+        }
+
+        public bool Equals(CollectionSpec other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name && ScopeName == other.ScopeName;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((CollectionSpec)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name, ScopeName);
+        }
+
+        public static bool operator ==(CollectionSpec left, CollectionSpec right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(CollectionSpec left, CollectionSpec right)
+        {
+            return !Equals(left, right);
         }
     }
 }

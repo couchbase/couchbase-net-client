@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Management.Collections
 {
-    public class ScopeSpec
+    public class ScopeSpec : IEquatable<ScopeSpec>
     {
         public string Name { get; }
         public IEnumerable<CollectionSpec> Collections { get; set; }
@@ -10,6 +11,36 @@ namespace Couchbase.Management.Collections
         public ScopeSpec(string name)
         {
             Name = name;
+        }
+
+        public bool Equals(ScopeSpec other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Name == other.Name;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((ScopeSpec)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name);
+        }
+
+        public static bool operator ==(ScopeSpec left, ScopeSpec right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(ScopeSpec left, ScopeSpec right)
+        {
+            return !Equals(left, right);
         }
     }
 }
