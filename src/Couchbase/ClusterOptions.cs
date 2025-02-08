@@ -164,6 +164,20 @@ namespace Couchbase
             }
         }
 
+        public bool TryGetRawParameter(string key, out object? value)
+        {
+            if (ConnectionStringValue != null)
+            {
+                if (ConnectionStringValue.TryGetParameter(key, out value))
+                {
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
         /// <summary>
         /// Applies pre-set configuration values based on a named configuration profile.  Values defined in the named profile are applied and overwrite existing values.
         /// Values <em>not</em> defined in the profile do not overwrite existing values.

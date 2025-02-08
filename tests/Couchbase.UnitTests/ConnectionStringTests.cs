@@ -96,7 +96,7 @@ namespace Couchbase.UnitTests
                           "&enable_tcp_keepalives=true&force_ipv4=true&config_poll_interval=1008&config_poll_floor_interval=1000" +
                           "&config_idle_redial_timeout=1009&num_kv_connections=10&max_kv_connections=20&max_http_connections=5"+
                           "&idle_http_connection_timeout=1000&enable_config_polling=true&compression=off&compression_min_size=512" +
-                          $"&compression_min_ratio=0.50&network={networkResolution}";
+                          $"&compression_min_ratio=0.50&network={networkResolution}&bucket=default";
 
             var options = new ClusterOptions
             {
@@ -128,6 +128,8 @@ namespace Couchbase.UnitTests
             Assert.Equal(512, options.CompressionMinSize);
             Assert.Equal(0.50f, options.CompressionMinRatio);
             Assert.Equal(networkResolution, options.NetworkResolution);
+            Assert.True(options.TryGetRawParameter("bucket", out var bucket));
+            Assert.Equal("default", bucket!.ToString());
         }
         #endregion
 

@@ -195,6 +195,18 @@ namespace Couchbase
             return Hosts.Single().Port == null;
         }
 
+        public bool TryGetParameter(string key, out object parameter)
+        {
+            if (Parameters.TryGetValue(key, out var value))
+            {
+                parameter = value;
+                return true;
+            }
+
+            parameter = string.Empty;
+            return false;
+        }
+
         public bool TryGetParameter(string key, out string parameter)
         {
             if (Parameters.TryGetValue(key, out var value))
