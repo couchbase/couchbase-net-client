@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Client.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
@@ -98,7 +99,7 @@ namespace Couchbase
             LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
-            LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionConfig));
+            LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionsConfig));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -607,6 +608,7 @@ namespace Couchbase
             lock (_syncObject)
             {
                 if (_disposed) return;
+                LazyTransactions.Value?.Dispose();
                 _disposed = true;
                 _bootstrapper.Dispose();
                 _context.Dispose();
@@ -615,16 +617,21 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
             try
             {
+                if (LazyTransactions.IsValueCreated)
+                {
+                    _logger.LogDebug("Cluster is disposing of the Transactions...");
+                    await LazyTransactions.Value.DisposeAsync().CAF();
+                    _logger.LogDebug("Transactions are disposed.");
+                }
                 Dispose();
-                return default;
             }
             catch (Exception ex)
             {
-                return new ValueTask(Task.FromException(ex));
+                 _logger.LogError($"Error in DisposeAsync: ${ex}");
             }
         }
 

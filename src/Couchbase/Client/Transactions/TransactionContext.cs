@@ -22,7 +22,7 @@ namespace Couchbase.Client.Transactions
         public TransactionContext(
             string transactionId,
             DateTimeOffset startTime,
-            TransactionConfig config,
+            TransactionsConfig config,
             PerTransactionConfig? perConfig)
         {
             TransactionId = transactionId;

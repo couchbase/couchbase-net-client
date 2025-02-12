@@ -349,7 +349,7 @@ namespace Couchbase
             return this;
         }
 
-        public TransactionConfig TransactionConfig { get; set; } = new();
+        public TransactionsConfig TransactionsConfig { get; set; } = new();
 
         /// <summary>
         /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.

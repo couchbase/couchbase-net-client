@@ -9,35 +9,19 @@ namespace Couchbase.Client.Transactions.Config
     /// <summary>
     /// The configuration to use for each transaction against a given cluster.
     /// </summary>
-    public class TransactionConfig
+    public class TransactionsConfig
     {
         /// <summary>
         /// The default durability level.
         /// </summary>
-        /// <seealso cref="TransactionConfig.DurabilityLevel"/>
+        /// <seealso cref="TransactionsConfig.DurabilityLevel"/>
         public const DurabilityLevel DefaultDurabilityLevel = DurabilityLevel.Majority;
 
         /// <summary>
         /// The default expiration, in milliseconds.
         /// </summary>
-        /// <seealso cref="TransactionConfig.ExpirationTime"/>
+        /// <seealso cref="TransactionsConfig.ExpirationTime"/>
         public const int DefaultExpirationMilliseconds = 15_000;
-
-        /// <summary>
-        /// The default cleanup window, in milliseconds.
-        /// </summary>
-        /// <seealso cref="TransactionConfig.CleanupWindow"/>
-        public const int DefaultCleanupWindowMilliseconds = 60_000;
-
-        /// <summary>
-        /// The default value of <see cref="TransactionConfig.CleanupLostAttempts"/> (true).
-        /// </summary>
-        public const bool DefaultCleanupLostAttempts = true;
-
-        /// <summary>
-        /// The default value of <see cref="CleanupClientAttempts"/> (true).
-        /// </summary>
-        public const bool DefaultCleanupClientAttempts = true;
 
         /// <summary>
         /// The default log level for failures.
@@ -48,21 +32,6 @@ namespace Couchbase.Client.Transactions.Config
         /// Gets a value indicating the time before a transaction expires and no more attempts will be made.
         /// </summary>
         public TimeSpan ExpirationTime { get; internal set; }
-
-        /// <summary>
-        /// Gets a value indicating whether to run the background thread to clean up lost/abandoned transactions from other clients.
-        /// </summary>
-        public bool CleanupLostAttempts { get; internal set; }
-
-        /// <summary>
-        /// Gets a value indicating whether to run the background thread to clean up failed attempts from this transactions instance.
-        /// </summary>
-        public bool CleanupClientAttempts { get; internal set; }
-
-        /// <summary>
-        /// Gets a value indicating the period between runs of the cleanup thread.
-        /// </summary>
-        public TimeSpan CleanupWindow { get; internal set; }
 
         /// <summary>
         /// Gets a value indicating the timeout on Couchbase Key/Value operations.
@@ -80,32 +49,37 @@ namespace Couchbase.Client.Transactions.Config
         public ILoggerFactory? LoggerFactory { get; internal set; }
 
         /// <summary>
-        /// Gets the <see cref="ICouchbaseCollection"/> to use for Active Transaction Record metadata.
+        /// Gets the <see cref="Keyspace"/> to use for Active Transaction Record metadata.
+        /// If null, then we put the record in the collection of the first document that gets modified,
+        /// removed or inserted in the transaction.
         /// </summary>
-        public ICouchbaseCollection? MetadataCollection { get; internal set; }
+        public Keyspace? MetadataCollection { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="QueryScanConsistency"/> to use for transaction query operations.
         /// </summary>
         public QueryScanConsistency? ScanConsistency { get; internal set; }
 
-        internal TransactionConfig(
+        /// <summary>
+        /// Gets the <see cref="TransactionCleanupConfig" /> which is used to configure the cleanup.
+        /// </summary>
+        public TransactionCleanupConfig CleanupConfig { get; internal set; }
+
+        internal TransactionsConfig(
             DurabilityLevel durabilityLevel = DefaultDurabilityLevel,
             TimeSpan? expirationTime = null,
-            TimeSpan? cleanupWindow = null,
             TimeSpan? keyValueTimeout = null,
-            bool cleanupClientAttempts = DefaultCleanupClientAttempts,
-            bool cleanupLostAttempts = DefaultCleanupLostAttempts,
-            QueryScanConsistency? scanConsistency = null
+            QueryScanConsistency? scanConsistency = null,
+            Keyspace? metadataCollection = null,
+            TransactionCleanupConfig? cleanupConfig = null
         )
         {
             ExpirationTime = expirationTime ?? TimeSpan.FromMilliseconds(DefaultExpirationMilliseconds);
-            CleanupLostAttempts = cleanupLostAttempts;
-            CleanupClientAttempts = cleanupClientAttempts;
-            CleanupWindow = cleanupWindow ?? TimeSpan.FromMilliseconds(DefaultCleanupWindowMilliseconds);
             KeyValueTimeout = keyValueTimeout;
             DurabilityLevel = durabilityLevel;
             ScanConsistency = scanConsistency;
+            MetadataCollection = metadataCollection;
+            CleanupConfig = cleanupConfig ?? new TransactionCleanupConfig();
         }
     }
 }

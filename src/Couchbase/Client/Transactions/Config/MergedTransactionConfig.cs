@@ -14,19 +14,19 @@ namespace Couchbase.Client.Transactions.Config
             TimeSpan ExpirationTime,
             TimeSpan? KeyValueTimeout,
             ILoggerFactory? LoggerFactory,
-            ICouchbaseCollection? MetadataCollection,
+            Keyspace? MetadataCollection,
             QueryScanConsistency? ScanConsistency)
     {
-        public static MergedTransactionConfig Create(TransactionConfig config, PerTransactionConfig? perConfig) =>
+        public static MergedTransactionConfig Create(TransactionsConfig config, PerTransactionConfig? perConfig) =>
             new(
-                CleanupClientAttempts: config.CleanupClientAttempts,
-                CleanupLostAttempts: config.CleanupLostAttempts,
-                CleanupWindow: config.CleanupWindow,
+                CleanupClientAttempts: config.CleanupConfig.CleanupClientAttempts,
+                CleanupLostAttempts: config.CleanupConfig.CleanupLostAttempts,
+                CleanupWindow: config.CleanupConfig.CleanupWindow,
                 DurabilityLevel: perConfig?.DurabilityLevel ?? config.DurabilityLevel,
                 ExpirationTime: perConfig?.Timeout ?? config.ExpirationTime,
                 KeyValueTimeout: perConfig?.KeyValueTimeout ?? config.KeyValueTimeout,
                 LoggerFactory: config.LoggerFactory,
-                MetadataCollection: config.MetadataCollection,
+                MetadataCollection: perConfig?.MetadataCollection ?? config.MetadataCollection,
                 ScanConsistency: perConfig?.ScanConsistency ?? config.ScanConsistency);
     }
 }

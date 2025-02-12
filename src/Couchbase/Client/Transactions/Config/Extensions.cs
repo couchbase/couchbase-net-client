@@ -49,8 +49,8 @@ namespace Couchbase.Client.Transactions.Config
         /// </summary>
         /// <param name="config">The config builder to modify.</param>
         /// <param name="configure">An action to invoke the <see cref="TransactionQueryConfigBuilder"/> to configure query options for transactions.</param>
-        /// <returns>The original <see cref="TransactionConfigBuilder"/>.</returns>
-        public static TransactionConfigBuilder QueryConfig(this TransactionConfigBuilder config, Action<TransactionQueryConfigBuilder>? configure)
+        /// <returns>The original <see cref="TransactionsConfigBuilder"/>.</returns>
+        public static TransactionsConfigBuilder QueryConfig(this TransactionsConfigBuilder config, Action<TransactionQueryConfigBuilder>? configure)
         {
             var queryConfigBuilder = TransactionQueryConfigBuilder.Create();
             configure?.Invoke(queryConfigBuilder);

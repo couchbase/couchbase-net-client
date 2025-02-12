@@ -20,6 +20,7 @@ using Couchbase.KeyValue;
 using Couchbase.Query;
 using Couchbase.Client.Transactions.ActiveTransactionRecords;
 using Couchbase.Client.Transactions.Cleanup;
+using Couchbase.Client.Transactions.Cleanup.LostTransactions;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.Config;
 using Couchbase.Client.Transactions.DataAccess;
@@ -1841,24 +1842,43 @@ namespace Couchbase.Client.Transactions
                 throw builder.Build();
             }
         }
-
         private async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            var atrCollection = _config.MetadataCollection ?? collection.Scope.Bucket.DefaultCollection();
             var testHookAtrId = await _testHooks.AtrIdForVBucket(this, AtrIds.GetVBucketId(id)).CAF();
             var atrId = AtrIds.GetAtrId(id);
+            // This is called with collection being the collection of the first document that we are modifying
+            // in the txn.  We default to default collection in the bucket of this document, unless the
+            // metadata collection is specified in the config.
+            var atrCollection = collection.Scope.Bucket.DefaultCollection();
+            // We read the TransactionKeyspace specified in metadata collection, and get an ICollection from it
+            // while unlocked, as we cannot await in the lock below.  Note: we should probably store the metadata
+            // collection as an ICouchbaseCollection and not bother having to do this.
+            if (_atr == null && _config.MetadataCollection != null)
+            {
+                atrCollection = await _config.MetadataCollection!.ToCouchbaseCollection(_cluster).CAF();
+            }
             lock (_initAtrLock)
             {
                 // TODO: AtrRepository should be built via factory to actually support mocking.
-                _atr ??= new AtrRepository(
-                    attemptId: AttemptId,
-                    overallContext: _overallContext,
-                    atrCollection: atrCollection,
-                    atrId: atrId,
-                    atrDurability: _config.DurabilityLevel,
-                    loggerFactory: _loggerFactory,
-                    testHookAtrId: testHookAtrId);
+                if (_atr == null)
+                {
+                    _atr = new AtrRepository(
+                        attemptId: AttemptId,
+                        overallContext: _overallContext,
+                        atrCollection: atrCollection,
+                        atrId: atrId,
+                        atrDurability: _config.DurabilityLevel,
+                        loggerFactory: _loggerFactory,
+                        testHookAtrId: testHookAtrId);
+
+                    // Inform the LostTransactionCleanup that we may need to clean this collection
+                    if (_cluster.Transactions
+                            ?._lostTransactionsCleanup is LostTransactionManager lostTransactionManager)
+                    {
+                        lostTransactionManager.AddCollection(atrCollection);
+                    }
+                }
             }
         }
 
@@ -2149,14 +2169,11 @@ namespace Couchbase.Client.Transactions
             var atrRef = _atr?.AtrRef;
             if (atrRef == null && _config?.MetadataCollection != null)
             {
-                var col = _config.MetadataCollection;
-                var scp = col.Scope;
-                var bkt = scp.Bucket;
                 atrRef = new AtrRef()
                 {
-                    BucketName = bkt.Name,
-                    ScopeName = scp.Name,
-                    CollectionName = col.Name
+                    BucketName = _config.MetadataCollection.BucketName,
+                    ScopeName = _config.MetadataCollection.ScopeName,
+                    CollectionName = _config?.MetadataCollection.CollectionName,
                 };
             }
 
@@ -2374,7 +2391,7 @@ namespace Couchbase.Client.Transactions
             if (_config.MetadataCollection != null)
             {
                 var mc = _config.MetadataCollection;
-                queryOptions.Raw("atrcollection", $"`{mc.Scope.Bucket.Name}`.`{mc.Scope.Name}`.`{mc.Name}`");
+                queryOptions.Raw("atrcollection", $"`{mc.BucketName}`.`{mc.ScopeName}`.`{mc.CollectionName}`");
             }
 
             return queryOptions;

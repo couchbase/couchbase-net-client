@@ -27,6 +27,7 @@ namespace Couchbase.Client.Transactions
             yield return new ExtensionName("BfCbd3705", "BF_CBD_3705", "BF3705");
             yield return new ExtensionName("BfCbd3838", "BF_CBD_33838", "BF3838");
             yield return new ExtensionName("ExtUnknownAtrStates", "EXT_UNKNOWN_ATR_STATES", "UA");
+            yield return new ExtensionName("ExtSdkIntegration", "EXT_SDK_INTEGRATION", "SI");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);

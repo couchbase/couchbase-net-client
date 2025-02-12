@@ -23,7 +23,7 @@ namespace Couchbase.Client.Transactions.DataAccess
         public abstract Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None);
         public abstract Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds);
 
-        public abstract Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId);
+        public abstract Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId);
     }
 }
 

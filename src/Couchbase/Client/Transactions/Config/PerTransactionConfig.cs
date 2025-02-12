@@ -32,6 +32,14 @@ namespace Couchbase.Client.Transactions.Config
         /// The scan consistency to use for query operations (default: RequestPlus)
         /// </summary>
         public QueryScanConsistency? ScanConsistency { get; set; }
+
+        /// <summary>
+        /// Set the collection where the transaction metadata will be located.   This adds the collection
+        /// to the list of collections to be periodically cleaned of this metadata when no longer needed.
+        /// Otherwise, the metadata goes in the collection associated with the first document which is modified or
+        /// added in the transaction.
+        /// </summary>
+        public Keyspace MetadataCollection { get; set; }
     }
 }
 

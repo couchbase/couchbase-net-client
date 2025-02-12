@@ -51,29 +51,32 @@ namespace Couchbase.Client.Transactions
 
         internal static readonly ITypeTranscoder MetadataTranscoder = new JsonTranscoder(MetadataSerializer);
 
-        private static long InstancesCreated = 0;
-        private static long InstancesCreatedDoingBackgroundCleanup = 0;
+        private static long InstancesCreated;
+        private static long InstancesCreatedDoingBackgroundCleanup;
         private readonly ICluster _cluster;
-        private bool _disposedValue;
         private readonly IRedactor _redactor;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger<Transactions> _logger;
         private readonly CleanupWorkQueue _cleanupWorkQueue;
         private readonly Cleaner _cleaner;
-        private readonly IAsyncDisposable? _lostTransactionsCleanup;
+        internal readonly IAsyncDisposable? _lostTransactionsCleanup;
         private readonly IRequestTracer _requestTracer;
+        private readonly object _syncObject = new();
+        private bool _disposed = false;
+
+
 
         /// <summary>
-        /// Gets the <see cref="TransactionConfig"/> to apply to all transaction runs from this instance.
+        /// Gets the <see cref="TransactionsConfig"/> to apply to all transaction runs from this instance.
         /// </summary>
-        public TransactionConfig Config { get; }
+        public TransactionsConfig Config { get; }
 
         internal ICluster Cluster => _cluster;
 
         internal ITestHooks TestHooks { get; set; } = DefaultTestHooks.Instance;
         internal IDocumentRepository? DocumentRepository { get; set; } = null;
         internal IAtrRepository? AtrRepository { get; set; } = null;
-        internal int? CleanupQueueLength => Config.CleanupClientAttempts ?_cleanupWorkQueue?.QueueLength : null;
+        internal int? CleanupQueueLength => Config.CleanupConfig.CleanupClientAttempts ?_cleanupWorkQueue.QueueLength : null;
 
         internal ICleanupTestHooks CleanupTestHooks
         {
@@ -91,31 +94,36 @@ namespace Couchbase.Client.Transactions
             CleanupTestHooks = cleanupHooks;
         }
 
-        private Transactions(ICluster cluster, TransactionConfig config)
+        private Transactions(ICluster cluster, TransactionsConfig config)
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
             Config = config ?? throw new ArgumentNullException(nameof(config));
-            _redactor = _cluster.ClusterServices?.GetService(typeof(IRedactor)) as IRedactor ?? throw new ArgumentNullException(nameof(IRedactor), "Redactor implementation not registered.");
-            _requestTracer = cluster.ClusterServices?.GetService(typeof(IRequestTracer)) as IRequestTracer ?? new NoopRequestTracer();
+            _redactor = _cluster.ClusterServices.GetService(typeof(IRedactor)) as IRedactor ?? throw new ArgumentNullException(nameof(IRedactor), "Redactor implementation not registered.");
+            _requestTracer = cluster.ClusterServices.GetService(typeof(IRequestTracer)) as IRequestTracer ?? new NoopRequestTracer();
             Interlocked.Increment(ref InstancesCreated);
-            if (config.CleanupLostAttempts)
+            if (config.CleanupConfig.CleanupLostAttempts)
             {
                 Interlocked.Increment(ref InstancesCreatedDoingBackgroundCleanup);
             }
 
             loggerFactory = config.LoggerFactory
-                ?? _cluster.ClusterServices?.GetService(typeof(ILoggerFactory)) as ILoggerFactory
+                ?? _cluster.ClusterServices.GetService(typeof(ILoggerFactory)) as ILoggerFactory
                 ?? NullLoggerFactory.Instance;
             _logger = loggerFactory.CreateLogger<Transactions>();
 
-            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, Config.KeyValueTimeout,loggerFactory, config.CleanupClientAttempts);
+            _cleanupWorkQueue = new CleanupWorkQueue(_cluster, Config.KeyValueTimeout,loggerFactory, config.CleanupConfig.CleanupClientAttempts);
 
             _cleaner = new Cleaner(cluster, Config.KeyValueTimeout, loggerFactory, creatorName: nameof(Transactions));
 
-            if (config.CleanupLostAttempts)
+            _logger.LogInformation($"Creating new Transactions instance, {InstancesCreated} created");
+            if (!config.CleanupConfig.CleanupLostAttempts) return;
+            _logger.LogInformation($"Transactions creating new LostTransactionManager");
+            var collections = config.CleanupConfig.CollectionsList;
+            if (config.MetadataCollection != null)
             {
-                _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupWindow, config.KeyValueTimeout, metadataCollection: config.MetadataCollection);
+                collections.Add(config.MetadataCollection);
             }
+            _lostTransactionsCleanup = new LostTransactionManager(_cluster, loggerFactory, config.CleanupConfig.CleanupWindow, config.KeyValueTimeout, collections: collections);
 
             // TODO: whatever the equivalent of 'cluster.environment().eventBus().publish(new TransactionsStarted(config));' is.
         }
@@ -126,29 +134,29 @@ namespace Couchbase.Client.Transactions
         /// <param name="cluster">The cluster where your documents will be located.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster) => Create(cluster, TransactionConfigBuilder.Create().Build());
+        public static Transactions Create(ICluster cluster) => Create(cluster, TransactionsConfigBuilder.Create().Build());
 
         /// <summary>
         /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
         /// </summary>
         /// <param name="cluster">The cluster where your documents will be located.</param>
-        /// <param name="config">The <see cref="TransactionConfig"/> to use for all transactions against this cluster.</param>
+        /// <param name="config">The <see cref="TransactionsConfig"/> to use for all transactions against this cluster.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster, TransactionConfig config) => new Transactions(cluster, config);
+        public static Transactions Create(ICluster cluster, TransactionsConfig config) => new Transactions(cluster, config);
 
         /// <summary>
         /// Create a <see cref="Transactions"/> instance for running transactions against the specified <see cref="ICluster">Cluster</see>.
         /// </summary>
         /// <param name="cluster">The cluster where your documents will be located.</param>
-        /// <param name="configBuilder">The <see cref="TransactionConfigBuilder"/> to generate a <see cref="TransactionConfig"/> to use for all transactions against this cluster.</param>
+        /// <param name="configBuilder">The <see cref="TransactionsConfigBuilder"/> to generate a <see cref="TransactionsConfig"/> to use for all transactions against this cluster.</param>
         /// <returns>A <see cref="Transactions"/> instance.</returns>
         /// <remarks>The instance returned from this method should be kept for the lifetime of your application and used like a singleton per Couchbase cluster you will be accessing.</remarks>
-        public static Transactions Create(ICluster cluster, TransactionConfigBuilder configBuilder) =>
+        public static Transactions Create(ICluster cluster, TransactionsConfigBuilder configBuilder) =>
             Create(cluster, configBuilder.Build());
 
         /// <summary>
-        /// Run a transaction agains the cluster.
+        /// Run a transaction against the cluster.
         /// </summary>
         /// <param name="transactionLogic">A func representing the transaction logic. All data operations should use the methods on the <see cref="AttemptContext"/> provided.  Do not mix and match non-transactional data operations.</param>
         /// <returns>The result of the transaction.</returns>
@@ -156,7 +164,7 @@ namespace Couchbase.Client.Transactions
             RunAsync(transactionLogic, PerTransactionConfigBuilder.Create().Build());
 
         /// <summary>
-        /// Run a transaction agains the cluster.
+        /// Run a transaction against the cluster.
         /// </summary>
         /// <param name="transactionLogic">A func representing the transaction logic. All data operations should use the methods on the <see cref="AttemptContext"/> provided.  Do not mix and match non-transactional data operations.</param>
         /// <param name="perConfig">A config with values unique to this specific transaction.</param>
@@ -204,31 +212,29 @@ namespace Couchbase.Client.Transactions
                             //    Go back to the start of this loop, e.g.a new attempt.
                             continue;
                         }
-                        else
+
+                        // Otherwise, we are not going to retry. What happens next depends on err.raise
+                        switch (ex.FinalErrorToRaise)
                         {
-                            // Otherwise, we are not going to retry. What happens next depends on err.raise
-                            switch (ex.FinalErrorToRaise)
-                            {
-                                //  Failure post-commit may or may not be a failure to the application,
-                                // as the cleanup process should complete the commit soon. It often depends on
-                                // whether the application wants RYOW, e.g. AT_PLUS. So, success will be returned,
-                                // but TransactionResult.unstagingComplete() will be false.
-                                // The application can interpret this as it needs.
-                                case TransactionOperationFailedException.FinalError.TransactionFailedPostCommit:
-                                    result.UnstagingComplete = false;
-                                    return result;
+                            //  Failure post-commit may or may not be a failure to the application,
+                            // as the cleanup process should complete the commit soon. It often depends on
+                            // whether the application wants RYOW, e.g. AT_PLUS. So, success will be returned,
+                            // but TransactionResult.unstagingComplete() will be false.
+                            // The application can interpret this as it needs.
+                            case TransactionOperationFailedException.FinalError.TransactionFailedPostCommit:
+                                result.UnstagingComplete = false;
+                                return result;
 
-                                // Raise TransactionExpired to application, with a cause of err.cause.
-                                case TransactionOperationFailedException.FinalError.TransactionExpired:
-                                    throw new TransactionExpiredException("Transaction Expired", ex.Cause, result);
+                            // Raise TransactionExpired to application, with a cause of err.cause.
+                            case TransactionOperationFailedException.FinalError.TransactionExpired:
+                                throw new TransactionExpiredException("Transaction Expired", ex.Cause, result);
 
-                                // Raise TransactionCommitAmbiguous to application, with a cause of err.cause.
-                                case TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous:
-                                    throw new TransactionCommitAmbiguousException("Transaction may have failed to commit.", ex.Cause, result);
+                            // Raise TransactionCommitAmbiguous to application, with a cause of err.cause.
+                            case TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous:
+                                throw new TransactionCommitAmbiguousException("Transaction may have failed to commit.", ex.Cause, result);
 
-                                default:
-                                    throw new TransactionFailedException("Transaction failed.", ex.Cause ?? ex, result);
-                            }
+                            default:
+                                throw new TransactionFailedException("Transaction failed.", ex.Cause ?? ex, result);
                         }
                     }
                     catch (Exception notWrapped)
@@ -254,8 +260,6 @@ namespace Couchbase.Client.Transactions
                     throw new Core.Exceptions.UnambiguousTimeoutException("Timed out during single query transaction (L3)", err);
                 }
             }
-
-            throw new InvalidOperationException("Loop should not have exited without expiration.");
         }
 
         /// <summary>
@@ -396,8 +400,8 @@ namespace Couchbase.Client.Transactions
             finally
             {
                 result.UnstagingComplete = ctx.UnstagingComplete;
-                memoryLogger.LogInformation("Attempt {attemptId} completed.  CleanupClient={cleanupClientAttempts}, LostCleanup={lostCleanup}", ctx.AttemptId, Config.CleanupClientAttempts, Config.CleanupLostAttempts);
-                if (Config.CleanupClientAttempts)
+                memoryLogger.LogInformation("Attempt {attemptId} completed.  CleanupClient={cleanupClientAttempts}, LostCleanup={lostCleanup}", ctx.AttemptId, Config.CleanupConfig.CleanupClientAttempts, Config.CleanupConfig.CleanupLostAttempts);
+                if (Config.CleanupConfig.CleanupClientAttempts)
                 {
                     memoryLogger.LogInformation("Adding cleanup request for {attemptId}", ctx.AttemptId);
                     AddCleanupRequest(ctx);
@@ -427,59 +431,57 @@ namespace Couchbase.Client.Transactions
             }
         }
 
-        /// <summary>
-        /// Dispose with the Disposing pattern.
-        /// </summary>
-        /// <param name="disposing">The Disposing pattern.</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects)
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                _disposedValue = true;
-            }
-        }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~Transactions()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
-
-        /// <inheritdoc />
-        public void Dispose()
+        private void DisposeCommon()
         {
             _cleanupWorkQueue.Dispose();
+        }
 
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+        public void Dispose()
+        {
+            lock (_syncObject)
+            {
+                if (_disposed) return;
+                _disposed = true;
+            }
+
+            DisposeCommon();
         }
 
         /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
-            if (Config.CleanupClientAttempts)
+            lock (_syncObject)
+            {
+                if (_disposed) return;
+                _disposed = true;
+            }
+
+            _logger.LogInformation("Transactions DisposeAsync called...");
+            if (Config.CleanupConfig.CleanupClientAttempts)
             {
                 _ = await CleanupAttempts().ToListAsync().CAF();
+                _logger.LogInformation("Cleanup Client attempt disposed.");
             }
 
             if (_lostTransactionsCleanup != null)
             {
                 await _lostTransactionsCleanup.DisposeAsync().CAF();
+                _logger.LogInformation("Lost Transaction Cleanup disposed.");
             }
-
-            Dispose();
+            DisposeCommon();
+        }
+        internal void AddCollectionToCleanup(ICouchbaseCollection couchbaseCollection)
+        {
+            // just call AddCollection if there is a lost transaction manager...
+            if (_lostTransactionsCleanup is LostTransactionManager ltm)
+            {
+                ltm.AddCollection(couchbaseCollection);
+            }
         }
     }
 }
+
+
 
 
 /* ************************************************************

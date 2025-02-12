@@ -61,7 +61,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             return (parsedRecord, parsedHlc, lookupInResult.Cas);
         }
 
-        public override async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
+        public override async Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
         {
             var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
             var specs = new LookupInSpec[]
@@ -71,7 +71,9 @@ namespace Couchbase.Client.Transactions.DataAccess
             };
 
             var lookupInResult = await Collection.LookupInAsync(atrId, specs, opts).CAF();
-            var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0);
+            // insure an empty dictionary if we can't serialize to one...
+            var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0) ?? new Dictionary<string, AtrEntry>();
+            // HLC can be nil so that's ok
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
             return (attempts, parsedHlc);
         }

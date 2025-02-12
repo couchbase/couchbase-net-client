@@ -17,40 +17,42 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 {
-    internal class PerBucketCleaner : IAsyncDisposable
+    internal class PerCollectionCleaner : IAsyncDisposable
     {
         public string ClientUuid { get; }
 
         private readonly Cleaner _cleaner;
         private readonly ICleanerRepository _repository;
         private readonly TimeSpan _cleanupWindow;
-        private readonly ILogger<PerBucketCleaner> _logger;
+        private readonly ILogger<PerCollectionCleaner> _logger;
         private readonly Timer _processCleanupTimer;
-        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly Random _jitter = new Random();
-        private readonly SemaphoreSlim _timerCallbackMutex = new SemaphoreSlim(1);
-        private long _runCount = 0;
+        private readonly SemaphoreSlim _timerCallbackMutex = new (1);
+        private long _runCount;
         private readonly object _atrsToCleanLock = new();
         private ConcurrentBag<string> _atrsToClean = new ConcurrentBag<string>();
+        private readonly CancellationTokenSource _cancelToken = new ();
+
 
         public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
         public long RunCount => Interlocked.Read(ref _runCount);
-        public bool Running => !_cts.IsCancellationRequested;
+        private bool Running => !_cancelToken.IsCancellationRequested;
 
-        public PerBucketCleaner(string clientUuid, Cleaner cleaner, ICleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
+        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, ICleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
         {
             ClientUuid = clientUuid;
             _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into ICleanerRepository, and then that should be made a property, eliminating the need for a _repository variable here.
             _repository = repository;
             _cleanupWindow = cleanupWindow;
-            _logger = loggerFactory.CreateLogger<PerBucketCleaner>();
-            _processCleanupTimer = new System.Threading.Timer(
+            _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
+            _processCleanupTimer = new Timer(
                 callback: TimerCallback,
                 state: null,
                 dueTime: startDisabled ? -1 : 0,
                 period: (int)cleanupWindow.TotalMilliseconds);
 
             FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
+            _logger.LogInformation("Started PerCollectionCleaner on '{coll}'", new Keyspace(repository.Collection));
         }
 
         public void Start()
@@ -60,7 +62,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public void Stop()
         {
-            _processCleanupTimer.Change(-1, (int)_cleanupWindow.TotalMilliseconds);
+            _processCleanupTimer.Change(-1, -1);
+            _cancelToken.Cancel();
+            _logger.LogDebug($"Cancelling per collection cleaner for '{ClientUuid}'");
         }
 
         public string BucketName => _repository.BucketName;
@@ -78,12 +82,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public void Dispose()
         {
-            if (!_cts.IsCancellationRequested)
+            if (!_cancelToken.IsCancellationRequested)
             {
                 Stop();
-                _processCleanupTimer.Change(-1, -1);
-                _processCleanupTimer.Dispose();
-                _cts.Cancel();
             }
             else
             {
@@ -94,23 +95,34 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public async ValueTask DisposeAsync()
         {
-            if (!_cts.IsCancellationRequested)
+            if (!_cancelToken.IsCancellationRequested)
             {
-                _logger.LogDebug("Disposing {bkt}", FullBucketName);
+                _logger.LogDebug("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
                 Dispose();
+                // at this point, there will be no more timer callbacks triggered, so lets
+                // wait for the mutex, at which point the current ProcessClient (if any) is
+                // done (and there will be no more).
+                _logger.LogDebug("waiting for cleanup Task on {bkt}", FullBucketName);
+                await  _timerCallbackMutex.WaitAsync().CAF();
+                _logger.LogDebug("cleanup Task stopped for {bkt}", FullBucketName);
+                _processCleanupTimer.Dispose();
+                _logger.LogDebug("cleanup Timer stopped for {bkt}", FullBucketName);
                 await RemoveClient().CAF();
+                _logger.LogDebug("removed ClientRecord for {bkt}", FullBucketName);
+                _cancelToken.Dispose();
             }
             else
             {
-                _logger.LogDebug("PerBucketCleaner for '{bkt}' is already disposed.", FullBucketName);
+                _logger.LogDebug("PerCollectionCleaner for '{bkt}' is already disposed.", FullBucketName);
             }
         }
 
         private async void TimerCallback(object? state)
         {
-            if (_cts.IsCancellationRequested)
+            if (_cancelToken.IsCancellationRequested)
             {
-                _logger.LogDebug("TimerCallback after already disposed.");
+                _logger.LogDebug($"{ClientUuid} TimerCallback after already disposed.");
+                // could be we notice this before setting the task completion token so set it here just in case
                 return;
             }
 
@@ -124,20 +136,19 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             try
             {
                 _ = await ProcessClient().CAF();
+                _timerCallbackMutex.Release();
             }
             catch (AuthenticationFailureException)
             {
                 // BF-CBD-3794
-                _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", FullBucketName);
+                _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", new Keyspace(_repository.Collection));
+                // must release the mutex before disposing (because we acquire it in DisposeAsync)
+                _timerCallbackMutex.Release();
                 await DisposeAsync().CAF();
-                return;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning("Processing of bucket '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
-            }
-            finally
-            {
                 _timerCallbackMutex.Release();
             }
         }
@@ -147,6 +158,11 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         {
             _logger.LogDebug("Looking for lost transactions on bucket '{bkt}'", FullBucketName);
             ClientRecordDetails clientRecordDetails = await EnsureClientRecordIsUpToDate().CAF();
+            if (_cancelToken.IsCancellationRequested)
+            {
+                _logger.LogDebug($"{ClientUuid} Process Client cancelled.");
+                return clientRecordDetails;
+            }
             if (clientRecordDetails.OverrideActive)
             {
                 _logger.LogInformation("Cleanup of '{bkt}' is currently disabled by another actor.", FullBucketName);
@@ -154,8 +170,6 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
 
             var sw = Stopwatch.StartNew();
-            using var boundedCleanup = new CancellationTokenSource(_cleanupWindow);
-            using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(boundedCleanup.Token, _cts.Token);
 
             // for fit tests, we may want to manipulate the client records without actually bothering with cleanup.
             if (cleanupAtrs)
@@ -183,7 +197,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                         }
                     }
 
-                    if (linkedSource.IsCancellationRequested)
+                    if (_cancelToken.IsCancellationRequested)
                     {
                         sw.Stop();
                         _logger.LogDebug("Exiting cleanup of ATR {atr} on {bkt} early due to cancellation after {elapsedMs}ms and {cleanedThisCycle}/{totalAtrs} processed.", atrId, FullBucketName, sw.Elapsed.TotalMilliseconds, cleanedThisCycle, atrsHandledByThisClient);
@@ -191,11 +205,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     }
 
                     // Every checkAtrEveryNMillis, handle an ATR with id atrId
-                    await CleanupAtr(atrId, linkedSource.Token).CAF();
+                    await CleanupAtr(atrId, _cancelToken.Token).CAF();
                     Interlocked.Increment(ref _runCount);
                     Interlocked.Increment(ref cleanedThisCycle);
+                    sw.Stop();
+                    _logger.LogDebug($"Cleanup of ATR {atrId} complete in {sw.Elapsed.TotalMilliseconds}ms");
                     var necessaryDelay = (int)Math.Max(0, Math.Min(_cleanupWindow.TotalMilliseconds, (clientRecordDetails.CheckAtrTimeWindow - checkAtrLimitWatch.Elapsed).TotalMilliseconds));
-
+                    if (_cancelToken.IsCancellationRequested) break;
                     // under normal circumstances, the cleanup window will be 60 seconds, the delay will be significant,
                     // and Task.Delay is appropriate and efficient
                     if (necessaryDelay >= 10)
@@ -210,7 +226,6 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     }
                 }
             }
-
             return clientRecordDetails;
         }
 
@@ -239,26 +254,21 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 }
                 catch (Exception ex)
                 {
-                    (var handled, var repeatAfterGetRecord) = await HandleGetRecordFailure(ex, pathnotFoundCas).CAF();
+                    var (handled, repeatAfterGetRecord) = await HandleGetRecordFailure(ex, pathnotFoundCas).CAF();
                     repeat = repeatAfterGetRecord;
 
                     if (!handled)
                     {
                         throw;
                     }
-                    else
-                    {
-                        continue;
-                    }
                 }
             }
-            while (repeat && !_cts.Token.IsCancellationRequested);
+            while (repeat);
 
             if (clientRecordDetails == null)
             {
                 throw new InvalidOperationException(nameof(clientRecordDetails) + " should have been assigned by this point.");
             }
-
             // NOTE: The RFC says to retry with an exponential backoff, but neither the java implementation nor the FIT tests agree with that.
             await TestHooks.BeforeUpdateRecord(ClientUuid).CAF();
             await _repository.UpdateClientRecord(ClientUuid, _cleanupWindow, ActiveTransactionRecords.AtrIds.NumAtrs, clientRecordDetails.ExpiredClientIds).CAF();
@@ -309,7 +319,8 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private async Task CleanupAtr(string atrId, CancellationToken cancellationToken)
         {
             Dictionary<string, AtrEntry> attempts;
-            ParsedHLC parsedHlc;
+            ParsedHLC? parsedHlc;
+            _logger.LogDebug("{clientUUID} Attempting to cleanup {atrId}",ClientUuid, atrId);
             try
             {
                 await TestHooks.BeforeAtrGet(atrId).CAF();
@@ -328,11 +339,11 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     case ErrorClass.FailDocNotFound:
                     case ErrorClass.FailPathNotFound:
                         // If the ATR is not present, continue as success.
-                        _logger.LogTrace("ATR {atrId} not present on {collection}: {ec}", atrId,_repository.Collection.MakeKeyspace(), ec);
+                        _logger.LogTrace("{clientUUID} ATR {atrId} not present on {collection}: {ec}", ClientUuid, atrId,_repository.Collection.MakeKeyspace(), ec);
                         return;
                     default:
                         // Else if there’s an error, continue as success.
-                        _logger.LogWarning("Failed to look up attempts on ATR {atrId}: {ex}", atrId, ex);
+                        _logger.LogWarning("{clientUUID} Failed to look up attempts on ATR {atrId}: {ex}", ClientUuid, atrId, ex);
                         return;
                 }
             }
@@ -345,49 +356,47 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     return;
                 }
 
-                (var attemptId, var attempt) = (kvp.Key, kvp.Value);
+                var (attemptId, attempt) = (kvp.Key, kvp.Value);
                 if (attempt == null)
                 {
                     continue;
                 }
 
-                var isExpired = attempt?.TimestampStartMsecs.HasValue == true
-                    && attempt?.ExpiresAfterMsecs.HasValue == true
-                    && attempt.TimestampStartMsecs!.Value.AddMilliseconds(attempt.ExpiresAfterMsecs!.Value) < parsedHlc.NowTime;
-                if (isExpired)
+                var isExpired = attempt is { TimestampStartMsecs: not null, ExpiresAfterMsecs: not null }
+                                && parsedHlc != null
+                                && attempt.TimestampStartMsecs!.Value.AddMilliseconds(attempt.ExpiresAfterMsecs!.Value) < parsedHlc.NowTime;
+                if (!isExpired) continue;
+                var atrCollection = await AtrRepository.GetAtrCollection(new AtrRef()
                 {
-                    var atrCollection = await AtrRepository.GetAtrCollection(new AtrRef()
-                    {
-                        BucketName = BucketName,
-                        ScopeName = ScopeName,
-                        CollectionName = CollectionName,
-                        Id = atrId
-                    }, _repository.Collection).CAF();
+                    BucketName = BucketName,
+                    ScopeName = ScopeName,
+                    CollectionName = CollectionName,
+                    Id = atrId
+                }, _repository.Collection).CAF();
 
-                    if (atrCollection == null)
-                    {
-                        continue;
-                    }
-
-                    var cleanupRequest = new CleanupRequest(
-                        AttemptId: attemptId,
-                        AtrId: atrId,
-                        AtrCollection: atrCollection,
-                        InsertedIds: attempt!.InsertedIds.ToList(),
-                        RemovedIds: attempt.RemovedIds.ToList(),
-                        ReplacedIds: attempt.ReplacedIds.ToList(),
-                        State: attempt.State,
-                        WhenReadyToBeProcessed: DateTimeOffset.UtcNow,
-                        ProcessingErrors: new ConcurrentQueue<Exception>(),
-                        ForwardCompatibility: kvp.Value.ForwardCompatibility);
-
-                    if (_cts.IsCancellationRequested)
-                    {
-                        return;
-                    }
-
-                    await _cleaner.ProcessCleanupRequest(cleanupRequest, isRegular: false).CAF();
+                if (atrCollection == null)
+                {
+                    continue;
                 }
+
+                var cleanupRequest = new CleanupRequest(
+                    AttemptId: attemptId,
+                    AtrId: atrId,
+                    AtrCollection: atrCollection,
+                    InsertedIds: attempt.InsertedIds.ToList(),
+                    RemovedIds: attempt.RemovedIds.ToList(),
+                    ReplacedIds: attempt.ReplacedIds.ToList(),
+                    State: attempt.State,
+                    WhenReadyToBeProcessed: DateTimeOffset.UtcNow,
+                    ProcessingErrors: new ConcurrentQueue<Exception>(),
+                    ForwardCompatibility: kvp.Value.ForwardCompatibility);
+
+                if (_cancelToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await _cleaner.ProcessCleanupRequest(cleanupRequest, isRegular: false).CAF();
             }
         }
 

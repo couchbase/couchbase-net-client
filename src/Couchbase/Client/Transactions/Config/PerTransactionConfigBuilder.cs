@@ -66,6 +66,18 @@ namespace Couchbase.Client.Transactions.Config
         }
 
         /// <summary>
+        /// Sets the collection where the transactional metadata will be placed.   This is then added to the set
+        /// of collections that Transactions will clean periodically.
+        /// </summary>
+        /// <param name="metadataCollection">The collection to use to store the transaction metadata</param>
+        /// <returns>The continued instance of this builder</returns>
+        public PerTransactionConfigBuilder MetadataCollection(Keyspace metadataCollection)
+        {
+            _config.MetadataCollection = metadataCollection;
+            return this;
+        }
+
+    /// <summary>
         /// Build a <see cref="PerTransactionConfig"/> from this builder.
         /// </summary>
         /// <returns>A completed config.</returns>
