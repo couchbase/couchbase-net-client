@@ -24,7 +24,12 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private readonly ILogger<LostTransactionManager> _logger;
         private readonly ILoggerFactory _loggerFactory;
 
-        private static readonly ConcurrentDictionary<Keyspace, PerCollectionCleaner>
+        // Why Lazy<T> and not just T?  Turns out, we _never_ want our function which creates a
+        // PerCollectionCleaner to be called more than once for the same key.  GetOrAdd actually calls the
+        // generating function for the value under contention when it doesn't actually end up doing an insert
+        // because someone else got there first.   The Lazy<T> insures the actual initialization of the lazy is
+        // only done once.   You can see tests fail when this isn't the case.
+        private static readonly ConcurrentDictionary<Keyspace, Lazy<PerCollectionCleaner>>
             CollectionsToClean = new();
 
         private readonly ICluster _cluster;
@@ -42,7 +47,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             // we need to add _only_ if the collection isn't already being cleaned...
             _logger.LogInformation($"AddCollection called, currently cleaning {CollectionsToClean.Count} collections");
             // We have to get the value of the lazy, and assign to a variable (even though unused) to insure the lazy actually gets instantiated
-            CollectionsToClean.GetOrAdd(new Keyspace(collection), _ => CleanerForCollection(collection, false));
+            var perCollectionCleanerWeDontUse = CollectionsToClean.GetOrAdd(new Keyspace(collection), _ => new Lazy<PerCollectionCleaner> (() => CleanerForCollection(collection, false))).Value;
         }
 
         private async Task AddCollection(Keyspace? collection = null)
@@ -108,7 +113,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 foreach (var bkt in buckets)
                 {
                     _logger.LogDebug("Shutting down cleaner for '{bkt}", bkt.Value);
-                    disposeTasks.Add(bkt.Value.DisposeAsync());
+                    disposeTasks.Add(bkt.Value.Value.DisposeAsync());
                 }
                 try
                 {

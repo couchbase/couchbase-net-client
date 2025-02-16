@@ -141,7 +141,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             catch (AuthenticationFailureException)
             {
                 // BF-CBD-3794
-                _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", new Keyspace(_repository.Collection));
+                _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", FullBucketName);
                 // must release the mutex before disposing (because we acquire it in DisposeAsync)
                 _timerCallbackMutex.Release();
                 await DisposeAsync().CAF();

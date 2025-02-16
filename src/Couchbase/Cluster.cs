@@ -72,7 +72,7 @@ namespace Couchbase
         internal LazyService<IEventingFunctionManagerFactory> LazyEventingFunctionManagerFactory;
 
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
-        internal Lazy<Couchbase.Client.Transactions.Transactions> LazyTransactions;
+        internal Lazy<Transactions> LazyTransactions;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -184,6 +184,14 @@ namespace Couchbase
             var cluster = new Cluster(options);
             await ((IBootstrappable)cluster).BootStrapAsync().ConfigureAwait(false);
             cluster.StartBootstrapper();
+
+            // We can re-ify the Transactions now that we are bootstrapped.  We need
+            // to do this because extSDKIntegration means we may configure the cleanup
+            // to clean one or several collections when creating the cluster, and intend
+            // for this to happen even in absence of this instance creating transactions.
+            // Also, if we don't configure transactions cleanup, by default no cleanup
+            // tasks are launched, so it does nothing until you start making transactions.
+            var unusedTransactionsJustToCreateIt = cluster.LazyTransactions.Value;
             return cluster;
         }
 
