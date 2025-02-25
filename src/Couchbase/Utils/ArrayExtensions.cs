@@ -58,9 +58,9 @@ namespace Couchbase.Utils
             var count = 0;
             foreach (var element in source)
             {
-                if (count == 0)
+                if (++count == 1)
                 {
-                    item = element;
+                    item = element; // 1st matching.
                 }
                 else
                 {
@@ -69,13 +69,16 @@ namespace Couchbase.Utils
                     // of the first 3 items. We should therefore have a 1 in 4 chance of selecting
                     // the current item, otherwise leave the previous random selection from the
                     // first 3 items.
+                    // the argument to GetRandomInt32 is the exclusive upper-bound
+                    // 2nd matching, count==2, 1/2  GetRandomInt32(2) → (0..1) 1/2
+                    // 3rd matching, count==3, 1/3  GetRandomInt32(3) → (0..2) 1/3
+                    // 4th matching, count==4, 1/4  GetRandomInt32(4) → (0..3) 1/4
+
                     if (GetRandomInt32(count) == 0)
                     {
                         item = element;
                     }
                 }
-
-                count++;
             }
 
             return item;
@@ -94,9 +97,9 @@ namespace Couchbase.Utils
             {
                 if (predicate(element))
                 {
-                    if (count == 0)
+                    if (++count == 1)
                     {
-                        item = element;
+                        item = element; // 1st matching
                     }
                     else
                     {
@@ -105,13 +108,16 @@ namespace Couchbase.Utils
                         // of the first 3 items. We should therefore have a 1 in 4 chance of selecting
                         // the current item, otherwise leave the previous random selection from the
                         // first 3 items.
+                        // the argument to GetRandomInt32 is the exclusive upper-bound
+                        // 2nd matching, count==2, 1/2  GetRandomInt32(2) → (0..1) 1/2
+                        // 3rd matching, count==3, 1/3  GetRandomInt32(3) → (0..2) 1/3
+                        // 4th matching, count==4, 1/4  GetRandomInt32(4) → (0..3) 1/4
+
                         if (GetRandomInt32(count) == 0)
                         {
                             item = element;
                         }
                     }
-
-                    count++;
                 }
             }
 

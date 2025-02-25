@@ -13,6 +13,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -119,6 +120,81 @@ namespace Couchbase.UnitTests.Utils
             var node = dict.RandomOrDefault(x => x.Value.HasAnalytics);
 
             Assert.Null(node.Value);
+        }
+
+        [Fact]
+        public void RandomOrDefault_Where_Distribution()
+        {
+            // select half of 6 nodes
+            RandomDistribution( 6, dict =>
+                dict.RandomOrDefault(x => String.Compare(x.Value.NodesAdapter.Hostname,(dict.Count/2).ToString("D3")) <0 ));
+        }
+
+        [Fact]
+        public void RandomOrDefault_Distribution()
+        {
+            // all of 3 nodes
+            RandomDistribution(3, dict => dict.RandomOrDefault());
+        }
+
+        private void RandomDistribution(int numNodes,  Func<Dictionary<string,ClusterNode>, KeyValuePair<string,ClusterNode>> func){
+        IServiceCollection serviceCollection = new ServiceCollection();
+            serviceCollection.AddLogging(builder => builder
+                .AddFilter(level => level >= LogLevel.Debug)
+            );
+            var loggerFactory = ServiceProviderServiceExtensions.GetService<ILoggerFactory>(serviceCollection.BuildServiceProvider());
+            loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+            var logger = loggerFactory.CreateLogger<ArrayExtensionsTests>();
+
+            // conduct 100 tests, each test will produce hits on 3 nodes,
+            // use a sample size of 1000 for each test
+            // We collect pass/fail of 0.05 confidence (5%) the chi-squared 3-1=2 df chi-squared test.
+            // Of the 100 tess, if we find they are failing at 20% or more, we fail the randomness.
+            // I conducted 10,000 runs, there were none with with failures of 20%.
+            var nTests = 100;
+            var sampleSize = 1000;
+
+            var dict = new Dictionary<string, ClusterNode> { };
+            for (int i = 0; i < numNodes; i++)
+            {
+                // hostnames are 000, 001, 002, ...
+                var node = MakeFakeClusterNode( i.ToString("D3"));
+                dict[node.NodesAdapter.Hostname] = node;
+            }
+
+            var fails = 0;
+            for (int t = 0; t < nTests; t++)
+            {
+                var histo = new Dictionary<string, Int32> { };
+                for (int i = 0; i < sampleSize; i++)
+                {
+                    var kvPair = func(dict); //dict.RandomOrDefault(x => x.Value.HasViews);
+                    int count;
+                    histo.TryGetValue(kvPair.Key, out count);
+                    histo[kvPair.Key] = count + 1;
+                }
+
+                if (histo.Count != 3)
+                {
+                    throw new Exception("test should have three (filtered) nodes with hits on each of them. nodes: "+numNodes+", hits: "+histo.Count);
+                }
+
+                var chi = Chi2FromFreqs(histo.Values.ToArray(), sampleSize / histo.Count);
+                // degrees of freedom = (histo.Count - 1)
+                // df = 2, probability 0.95/0.05 -> 5.991
+                // https://www.itl.nist.gov/div898/handbook/eda/section3/eda3674.htm
+                logger.LogTrace("chi2: " + chi);
+                if (chi > 5.991)
+                {
+                    ++fails;
+                }
+            }
+
+            logger.LogDebug("fails/nTests: " + (float)fails / nTests);
+            if ((float)fails / nTests > 0.2) // 0.05 fails are expected, 0.20 is not.
+            {
+                throw new Exception("random failed random test " + ((float)fails / nTests));
+            }
         }
 
         #endregion
@@ -264,7 +340,7 @@ namespace Couchbase.UnitTests.Utils
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new TypedRedactor(RedactionLevel.None),
-                new HostEndpointWithPort("127.0.0.1", 11210),
+                new HostEndpointWithPort(hostname, 11210),
                 new NodeAdapter
                 {
                     Hostname = hostname,
@@ -275,5 +351,16 @@ namespace Couchbase.UnitTests.Utils
         }
 
         #endregion
+
+        public static double Chi2FromFreqs(int[] observed, double expected)
+        {
+            double sum = 0.0;
+            for (int i = 0; i < observed.Length; ++i)
+            {
+                sum += ((observed[i] - expected) *
+                        (observed[i] - expected)) / expected;
+            }
+            return sum;
+        }
     }
 }
