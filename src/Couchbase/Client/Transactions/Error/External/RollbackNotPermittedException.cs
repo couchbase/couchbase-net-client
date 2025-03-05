@@ -1,28 +1,18 @@
-﻿#nullable enable
-using Newtonsoft.Json;
-#pragma warning disable CS1591
+#nullable enable
+using System;
+namespace Couchbase.Client.Transactions.Error.External;
 
-namespace Couchbase.Client.Transactions.DataModel
+public class RollbackNotPermittedException : Exception
 {
-    // TODO: this class should be made internal.
-    internal class CompositeId
+    public RollbackNotPermittedException(string? message = null) :
+        base(message ?? "Attempt to rollback a transaction that has already been aborted or committed.")
     {
-        [JsonProperty("txn")]
-        public string? Transactionid { get; set; }
-
-        [JsonProperty("atmpt")]
-        public string? AttemptId { get; set; }
-
-        [JsonProperty("op")]
-        public string? OperationId { get; set; }
     }
 }
-
-
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2025 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

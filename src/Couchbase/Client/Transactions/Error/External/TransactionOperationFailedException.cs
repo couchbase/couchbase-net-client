@@ -50,27 +50,31 @@ namespace Couchbase.Client.Transactions.Error.External
         /// <summary>
         /// An enumeration of the final error types that can fail a transaction.
         /// </summary>
-        public enum FinalError
+        public enum FinalError: byte // we need a defined size as we will put this in StateFlags, byte is plenty.
         {
+            /// <summary>
+            /// No error has been set
+            /// </summary>
+            None = 0,
             /// <summary>
             /// Generic failure.
             /// </summary>
-            TransactionFailed = 0,
+            TransactionFailed = 1,
 
             /// <summary>
             /// The transaction expired.
             /// </summary>
-            TransactionExpired = 1,
+            TransactionExpired = 2,
 
             /// <summary>
             /// An error occured in a way that the client cannot know whether the commit was successful or not.
             /// </summary>
-            TransactionCommitAmbiguous = 2,
+            TransactionCommitAmbiguous = 3,
 
             /**
              * This will currently result in returning success to the application, but unstagingCompleted() will be false.
              */
-            TransactionFailedPostCommit = 3
+            TransactionFailedPostCommit = 4,
         }
 
         /// <inheritdoc />

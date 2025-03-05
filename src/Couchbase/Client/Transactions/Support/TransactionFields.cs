@@ -33,6 +33,7 @@ namespace Couchbase.Client.Transactions.Support
         public const string TransactionRestorePrefix = TransactionRestorePrefixOnly + ".";
         public const string TransactionId = TransactionInterfacePrefix + "id.txn";
         public const string AttemptId = TransactionInterfacePrefix + "id.atmpt";
+        public const string OperationId = TransactionInterfacePrefix + "id.op";
         public const string AtrId = TransactionInterfacePrefix + "atr.id";
         public const string AtrBucketName = TransactionInterfacePrefix + "atr.bkt";
 

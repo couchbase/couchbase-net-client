@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using Couchbase.Client.Transactions.Error.External;
+using Couchbase.Client.Transactions.Support;
 
 namespace Couchbase.Client.Transactions.Error
 {
@@ -51,17 +52,33 @@ namespace Couchbase.Client.Transactions.Error
 
         public ErrorBuilder Cause(Exception cause)
         {
-            _cause = cause ?? new Exception("UnknownCause");
+            _cause = cause;
             return this;
         }
 
-        public TransactionOperationFailedException Build() =>
-            new TransactionOperationFailedException(
+        public TransactionOperationFailedException Build()
+        {
+            // we are making the assumption we call Build() and throw it too
+            var behaviorFlags = StateFlags.BehaviorFlags.NotSet;
+            if (!_retryTransaction)
+            {
+                behaviorFlags &= StateFlags.BehaviorFlags.ShouldNotRetry;
+            }
+            if (!_rollbackAttempt)
+            {
+                behaviorFlags &= StateFlags.BehaviorFlags.ShouldNotRollback;
+            }
+
+            // set the state flags if we have context
+            _ctx?.StateFlags.SetFlags(behaviorFlags, _toRaise);
+
+            return new(
                 _causingErrorClass,
                 _rollbackAttempt,
                 _retryTransaction,
                 _cause,
                 _toRaise);
+        }
     }
 }
 

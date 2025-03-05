@@ -30,7 +30,7 @@ namespace Couchbase.Client.Transactions.DataModel
 
         public string Id { get; }
 
-        public TransactionXattrs? TransactionXattrs { get; set; } = null;
+        internal TransactionXattrs? TransactionXattrs { get; set; } = null;
 
         public DocumentMetadata? DocumentMetadata { get; }
 
