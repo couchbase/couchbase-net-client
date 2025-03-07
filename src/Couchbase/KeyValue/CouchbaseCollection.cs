@@ -724,6 +724,8 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted); //Transcoder is set by OperationConfigurator
         }
 
+
+
         public async Task<ILookupInReplicaResult> LookupInAnyReplicaAsync(string id,
             IEnumerable<LookupInSpec> specs,
             LookupInAnyReplicaOptions? options = null)

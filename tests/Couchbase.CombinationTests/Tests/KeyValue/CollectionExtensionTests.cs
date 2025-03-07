@@ -1,7 +1,5 @@
 
 using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.CombinationTests.Fixtures;
 using Couchbase.KeyValue;
@@ -29,7 +27,37 @@ public class CollectionExtensionTests
         var col = await _fixture.GetDefaultCollection();
         var doc1 = Guid.NewGuid().ToString();
         var getResult = await col.TryGetAsync(doc1);
-        Assert.False(getResult.Exists);
+        Assert.False(getResult.DocumentExists);
+    }
+
+    [Fact]
+    public async Task Test_TryLookupInAsync_KeyNotFound()
+    {
+        var col = await _fixture.GetDefaultCollection();
+        var doc1 = Guid.NewGuid().ToString();
+        var lookupInResult = await col.TryLookupInAsync(doc1, [LookupInSpec.Exists("foo", false),]);
+        Assert.False(lookupInResult.DocumentExists);
+    }
+
+    [Fact]
+    public async Task Test_TryLookupIn_KeyFound()
+    {
+        var col = await _fixture.GetDefaultCollection();
+        var doc1 = Guid.NewGuid().ToString();
+        try
+        {
+            await col.UpsertAsync(doc1, new { DocThatExists = true });
+
+            var lookupInResult = await col.TryLookupInAsync(doc1, [LookupInSpec.Exists("DocThatExists", false),]);
+            Assert.True(lookupInResult.DocumentExists);
+            Assert.True(lookupInResult.Exists(0));
+            var content = lookupInResult.ContentAs<bool>(0);
+            Assert.NotNull(content);
+        }
+        finally
+        {
+            await col.TryRemoveAsync(doc1);
+        }
     }
 
     [Fact]
@@ -58,7 +86,7 @@ public class CollectionExtensionTests
         var col = await _fixture.GetDefaultCollection();
         var doc1 = Guid.NewGuid().ToString();
         var getResult = await col.TryRemoveAsync(doc1);
-        Assert.False(getResult.Exists);
+        Assert.False(getResult.DocumentExists);
     }
 
     [Fact]
@@ -72,7 +100,7 @@ public class CollectionExtensionTests
             await col.UpsertAsync(doc1, new { DocThatExists = true });
             var removeResult = await col.TryRemoveAsync(doc1);
 
-            Assert.True(removeResult.Exists);
+            Assert.True(removeResult.DocumentExists);
         }
         finally
         {
@@ -88,7 +116,7 @@ public class CollectionExtensionTests
 
         var unlockResult = await col.TryUnlockAsync(doc1, 1);
 
-        Assert.False(unlockResult.Exists);
+        Assert.False(unlockResult.DocumentExists);
     }
 
     [Fact]
@@ -102,7 +130,7 @@ public class CollectionExtensionTests
             await col.UpsertAsync(doc1, new { DocThatExists = true }).ConfigureAwait(false);
             var getResult = await col.GetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
             var unlockResult = await col.TryUnlockAsync(doc1, getResult.Cas).ConfigureAwait(false);
-            Assert.True(unlockResult.Exists);
+            Assert.True(unlockResult.DocumentExists);
         }
         finally
         {
@@ -117,7 +145,7 @@ public class CollectionExtensionTests
         var doc1 = Guid.NewGuid().ToString();
 
         var unlockResult = await col.TryGetAndLockAsync(doc1, TimeSpan.FromSeconds(1));
-        Assert.False(unlockResult.Exists);
+        Assert.False(unlockResult.DocumentExists);
     }
 
     [Fact]
@@ -130,7 +158,7 @@ public class CollectionExtensionTests
         {
             await col.UpsertAsync(doc1, new {DocThatExists = true}).ConfigureAwait(false);
             var getResult = await col.TryGetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            Assert.True(getResult.Exists);
+            Assert.True(getResult.DocumentExists);
             await col.UnlockAsync(doc1, getResult.Cas);
         }
         finally
@@ -150,13 +178,13 @@ public class CollectionExtensionTests
         Assert.True(upsertResult.Exists);
 
         var tryTouchResult = await col.TryTouchAsync(doc1, TimeSpan.FromSeconds(2));
-        Assert.True(tryTouchResult.Exists);
+        Assert.True(tryTouchResult.DocumentExists);
         Assert.NotEqual(0ul, tryTouchResult?.MutationResult?.Cas);
         await Task.Delay(TimeSpan.FromSeconds(3));
         var tryTouchExistsResult = await col.ExistsAsync(doc1);
         Assert.False(tryTouchExistsResult.Exists);
 
         var tryTouchNegativeResult = await col.TryTouchAsync(doc1 + "fake", TimeSpan.FromSeconds(2));
-        Assert.False(tryTouchNegativeResult.Exists);
+        Assert.False(tryTouchNegativeResult.DocumentExists);
     }
 }

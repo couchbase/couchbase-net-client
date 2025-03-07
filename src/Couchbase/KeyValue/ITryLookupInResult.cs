@@ -1,21 +1,14 @@
-using System;
 using Couchbase.Core.Exceptions.KeyValue;
 
 namespace Couchbase.KeyValue;
 
 /// <summary>
 /// Provides an interface for supporting the state of a document if the server
-/// returns a KeyNotFound status, as opposed to throwing a <see cref="DocumentNotFoundException"/>
+/// returns a PathNotFound status, as opposed to throwing a <see cref="PathNotFoundException"/>
 /// like in the regular GetAsync methods.
 /// </summary>
-public interface ITryGetResult : IGetResult
+public interface ITryLookupInResult : ILookupInResult
 {
-    /// <summary>
-    /// If false, the document does not exist on the server for a given key.
-    /// </summary>
-    [Obsolete("Use DocumentExists instead")]
-    bool Exists { get; }
-
     /// <summary>
     /// If false, the document does not exist on the server for a given key.
     /// </summary>

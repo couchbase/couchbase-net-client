@@ -33,7 +33,7 @@ internal class TryGetResult: TryResultBase, ITryGetResult
     /// <inheritdoc />
     public T ContentAs<T>()
     {
-        if (!Exists) throw new DocumentNotFoundException();
+        if (!DocumentExists) throw new DocumentNotFoundException();
         return _getResult.ContentAs<T>();
     }
 

@@ -13,14 +13,16 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider
+    internal class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
     {
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
         private readonly ITypeTranscoder _transcoder;
         private IDisposable? _bufferCleanup;
+        private ResponseStatus _status;
         public ITypeSerializer Serializer { get; }
 
+        ResponseStatus IResponseStatus.Status => _status;
         internal LookupInResult(MultiLookup<byte[]> lookup, bool isDeleted = false, bool? isReplica = false, TimeSpan? expiry = null)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
@@ -44,6 +46,7 @@ namespace Couchbase.KeyValue
             Serializer = _transcoder.Serializer;
             IsDeleted = isDeleted;
             IsReplica = isReplica;
+            _status = lookup.Header.Status;
         }
 
         public ulong Cas { get; }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Couchbase.Client.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
@@ -41,14 +42,54 @@ namespace Couchbase.KeyValue
             PreferReturn = true
         };
 
+        private static readonly LookupInOptions LookupInOptionsPreferReturns = new LookupInOptions
+        {
+            PreferReturn = true
+        };
 
         /// <summary>
-        /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
-        /// will be returned with the Exists property set to false; otherwise true.
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">The <see cref="LookupInOptions"/> to be passed into the server.</param>
+        /// <returns>An asynchronous <see cref="Task"/> containing the results of the lookup as an <see cref="ITryLookupInResult"/> object with its DocumentExists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/></returns>
+        public static async Task<ITryLookupInResult> TryLookupInAsync(this ICouchbaseCollection collection, string id, IEnumerable<LookupInSpec> specs, Action<LookupInOptions> configureOptions)
+        {
+            var options = new LookupInOptions();
+            configureOptions.Invoke(options);
+            options.PreferReturn = true;
+
+            var lookupInResult = await collection.LookupInAsync(id, specs, options).CAF();
+            return new TryLookupInResult(lookupInResult);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// If the document is not found, a <see cref="ITryLookupInResult"/> will be returned with the DocumentExists property set
+        /// to false; otherwise true.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <returns>An asynchronous <see cref="Task"/> containing the results of the lookup as an <see cref="ITryLookupInResult"/> object with its DocumentExists property set; note that if false and
+        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/></returns>
+        public static async Task<ITryLookupInResult> TryLookupInAsync(this ICouchbaseCollection collection, string id, IEnumerable<LookupInSpec> specs)
+        {
+            var lookupResult = await collection.LookupInAsync(id, specs, LookupInOptionsPreferReturns).CAF();
+            return new TryLookupInResult(lookupResult);
+        }
+
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// If the document is not found, a <see cref="ITryLookupInResult"/> will be returned with the DocumentExists property set
+        /// to false; otherwise true.
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAsync(this ICouchbaseCollection collection, string id)
         {
@@ -58,11 +99,11 @@ namespace Couchbase.KeyValue
 
         /// <summary>
         /// Given an id, gets a document from the database. If the key is not found, a <see cref="ITryGetResult"/>
-        /// will be returned with the Exists property set to false; otherwise true.
+        /// will be returned with the DocumentExists property set to false; otherwise true.
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
         /// <returns></returns>
@@ -85,9 +126,7 @@ namespace Couchbase.KeyValue
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
         /// <param name="expires"></param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
-        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expires)
         {
@@ -102,11 +141,9 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
-        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
         /// <param name="expires"></param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, Action<GetAndLockOptions> configureOptions)
         {
@@ -125,10 +162,8 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
-        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         /// <param name="expires"></param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires)
         {
@@ -143,11 +178,9 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
-        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         /// <param name="expires"></param>
         /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, GetAndTouchOptions? configureOptions = null)
         {
@@ -165,11 +198,9 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
-        /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         /// <param name="expires"></param>
         /// <param name="configureOptions">The <see cref="KeyValue.GetOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryGetResult"/> with its Exists property set; note that if false and
+        /// <returns>A <see cref="ITryGetResult"/> with its DocumentExists property set; note that if false and
         /// ContentAs() is called, a <see cref="DocumentNotFoundException"/> will be thrown.</returns>
         public static async Task<ITryGetResult> TryGetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expires, Action<GetAndTouchOptions> configureOptions)
         {
@@ -191,7 +222,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The identifier for the document.</param>
         /// <param name="expiry">A <see cref="TimeSpan"/> with the duration of the expiry.</param>
         /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryTouchResult"/> with its Exists property set to true if the server returns success
+        /// <returns>A <see cref="ITryTouchResult"/> with its DocumentExists property set to true if the server returns success
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryTouchResult> TryTouchAsync(this ICouchbaseCollection collection, string id,
             TimeSpan expiry, Action<TouchOptions> configureOptions)
@@ -212,7 +243,7 @@ namespace Couchbase.KeyValue
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
         /// <param name="expiry">A <see cref="TimeSpan"/> with the duration of the expiry.</param>
-        /// <returns>A <see cref="ITryTouchResult"/> with its Exists property set to true if the server returns success
+        /// <returns>A <see cref="ITryTouchResult"/> with its DocumentExists property set to true if the server returns success
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryTouchResult> TryTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
@@ -232,7 +263,7 @@ namespace Couchbase.KeyValue
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
         /// <param name="content">The document or content to store in the database.</param>
-        /// <returns>A <see cref="ITryMutationResult"/> with its Exists property set to true if the server replaces the document
+        /// <returns>A <see cref="ITryMutationResult"/> with its DocumentExists property set to true if the server replaces the document
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryMutationResult> TryReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
@@ -249,7 +280,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The identifier for the document.</param>
         /// <param name="content">The document or content to store in the database.</param>
         /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryMutationResult"/> with its Exists property set to true if the server replaces the document
+        /// <returns>A <see cref="ITryMutationResult"/> with its DocumentExists property set to true if the server replaces the document
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryMutationResult> TryReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content, Action<ReplaceOptions> configureOptions)
         {
@@ -268,7 +299,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
-        /// <returns>A <see cref="ITryRemoveResult"/> with its Exists property set to true if the document was removed
+        /// <returns>A <see cref="ITryRemoveResult"/> with its DocumentExists property set to true if the document was removed
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryRemoveResult> TryRemoveAsync(this ICouchbaseCollection collection, string id)
         {
@@ -292,7 +323,7 @@ namespace Couchbase.KeyValue
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
         /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryRemoveResult"/> with its Exists property set to true if the document was removed
+        /// <returns>A <see cref="ITryRemoveResult"/> with its DocumentExists property set to true if the document was removed
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryRemoveResult> TryRemoveAsync(this ICouchbaseCollection collection, string id, Action<RemoveOptions> configureOptions )
         {
@@ -313,7 +344,7 @@ namespace Couchbase.KeyValue
         /// <param name="collection">The <see cref="ICouchbaseCollection"/> where the key is found.</param>
         /// <param name="id">The identifier for the document.</param>
         /// <param name="cas">The Compare And Swap (CAS) of the document.</param>
-        /// <returns>A <see cref="ITryUnlockResult"/> with its Exists property set to true if the server returns success
+        /// <returns>A <see cref="ITryUnlockResult"/> with its DocumentExists property set to true if the server returns success
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryUnlockResult> TryUnlockAsync(this ICouchbaseCollection collection, string id, ulong cas)
         {
@@ -336,7 +367,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The identifier for the document.</param>
         /// <param name="cas">The Compare And Swap (CAS) of the document.</param>
         /// <param name="configureOptions">The <see cref="RemoveOptions"/> to be passed to the server.</param>
-        /// <returns>A <see cref="ITryUnlockResult"/> with its Exists property set to true if the server returns success
+        /// <returns>A <see cref="ITryUnlockResult"/> with its DocumentExists property set to true if the server returns success
         /// and false if the server returns KeyNotFound.</returns>
         public static async Task<ITryUnlockResult> TryUnlockAsync(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
         {

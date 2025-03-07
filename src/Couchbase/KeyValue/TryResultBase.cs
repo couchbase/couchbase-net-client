@@ -16,21 +16,30 @@ internal abstract class TryResultBase
     internal ResponseStatus Status { get; init; }
 
     /// <summary>
-    /// If false, the document does not exist on the server for a given key.
+    /// If false, the document does not exist on the server for a given key.  Use this and not the Exists property which
+    /// will be deprecated in the future.
     /// </summary>
-    public virtual bool Exists
+    public virtual bool DocumentExists
     {
         get
         {
             return Status switch
             {
                 ResponseStatus.Success => true,
+                ResponseStatus.SubdocMultiPathFailureDeleted => true,
+                ResponseStatus.SubDocMultiPathFailure => true,
+                ResponseStatus.None => false,
                 ResponseStatus.KeyNotFound => false,
                 _ => throw new InvalidOperationException(
                     $"Only Success or KeyNotFound expected, {Status} was received.")
             };
         }
     }
+    ///<summary>Exists collides with Exists in ITryLookupInResult, so DocExists is a synonym for this.   We will
+    /// deprecate this eventually.</summary>
+   /// [Obsolete("Use DocumentExists instead.")]
+    public virtual bool Exists => DocumentExists;
+
 }
 /* ************************************************************
  *

@@ -1,3 +1,4 @@
+using System;
 using Couchbase.Core.Exceptions.KeyValue;
 
 namespace Couchbase.KeyValue;
@@ -12,7 +13,13 @@ public interface ITryMutationResult : IMutationResult
     /// <summary>
     /// If false, the document does not exist on the server for a given key.
     /// </summary>
+    [Obsolete("Use DocumentExists instead")]
     bool Exists { get; }
+
+    /// <summary>
+    /// If false, the document does not exist on the server for a given key.
+    /// </summary>
+    bool DocumentExists { get; }
 }
 
 /* ************************************************************
