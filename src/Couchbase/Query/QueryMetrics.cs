@@ -18,7 +18,17 @@ namespace Couchbase.Query
 
         public uint ResultCount { get; set; }
 
-        public uint ResultSize { get; set; }
+        [Obsolete("Use ResultSizeLong instead, this can overflow")]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public uint ResultSize {
+            get => checked((uint)ResultSizeLong);
+            set => ResultSizeLong = value;
+        }
+
+        [Newtonsoft.Json.JsonProperty("resultSize")]
+        [System.Text.Json.Serialization.JsonPropertyName("resultSize")]
+        public ulong ResultSizeLong { get; set; }
 
         public uint MutationCount { get; set; }
 
@@ -34,7 +44,7 @@ namespace Couchbase.Query
         public string ElapsedTime { get; set; }
         public string ExecutionTime { get; set; }
         public uint ResultCount { get; set; }
-        public uint ResultSize { get; set; }
+        public ulong ResultSize { get; set; }
         public uint MutationCount { get; set; }
         public uint ErrorCount { get; set; }
         public uint WarningCount { get; set; }
@@ -47,7 +57,7 @@ namespace Couchbase.Query
                 ElapsedTime = ElapsedTime,
                 ExecutionTime = ExecutionTime,
                 ResultCount = ResultCount,
-                ResultSize = ResultSize,
+                ResultSizeLong = ResultSize,
                 MutationCount = MutationCount,
                 ErrorCount = ErrorCount,
                 WarningCount = WarningCount,

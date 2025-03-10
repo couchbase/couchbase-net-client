@@ -108,13 +108,23 @@ namespace Couchbase.Query
 
             // Read isn't complete, so the stream is currently waiting to deserialize the results
 
-            // Yield the first result, which we already advanced to when we checked to see if the array was empty
-            yield return _resultEnumerator.Current;
+            // Yield the first result, which we already advanced to when we checked to see if the a
+            // array was empty
+            var row = _resultEnumerator.Current;
+            yield return row;
+            // Note: we have to set the row to default(T) to insure it is GC'd quickly enough to
+            // not have OOM issues later.
+            row = default(T);
 
             // Yield the remaining results
             while (await _resultEnumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
             {
-                yield return _resultEnumerator.Current;
+                row = _resultEnumerator.Current;
+                yield return row;
+
+                // Note: we set the row to default(T) after we yield (like above) as we do this
+                // in a tight loop, and can OOM when returning very large result sets.
+                row = default(T);
             }
 
             await _resultEnumerator.DisposeAsync().ConfigureAwait(false);
