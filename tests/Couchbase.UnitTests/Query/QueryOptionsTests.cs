@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Query
 
         public static IEnumerable<object[]> TypeSerializers()
         {
-            yield return new object[] {new ReflectionSystemTextJsonSerializer(new JsonSerializerOptions()
+            yield return new object[] {SystemTextJsonSerializer.Create(new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             })};

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -63,7 +65,61 @@ namespace Couchbase.UnitTests.Query
                     .Setup(m => m.GetRandomQueryUri())
                     .Returns(new Uri("http://localhost:8093"));
 
-                var serializer = new DefaultSerializer();
+                var serializer = DefaultSerializer.Instance;
+
+                var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+                    NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
+
+                try
+                {
+                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Assert.Equal(errorType, e.GetType());
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData("query-badrequest-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
+        [InlineData("query-n1ql-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
+        [InlineData("query-notfound-response-404.json", HttpStatusCode.NotFound, typeof(PreparedStatementException))]
+        [InlineData("query-service-error-response-503.json", HttpStatusCode.ServiceUnavailable, typeof(InternalServerFailureException))]
+        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(UnambiguousTimeoutException))]
+        [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
+        public async Task Test_SystemTextJson(string file, HttpStatusCode httpStatusCode, Type errorType)
+        {
+            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file))
+            {
+                var buffer = new byte[response.Length];
+                response.Read(buffer, 0, buffer.Length);
+
+                var handlerMock = new Mock<HttpMessageHandler>();
+                handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
+                    {
+                        StatusCode = httpStatusCode,
+                        Content = new ByteArrayContent(buffer)
+                    });
+
+                var httpClient = new HttpClient(handlerMock.Object)
+                {
+                    BaseAddress = new Uri("http://localhost:8091")
+                };
+                var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+                var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+                mockServiceUriProvider
+                    .Setup(m => m.GetRandomQueryUri())
+                    .Returns(new Uri("http://localhost:8093"));
+
+                // Do not use JsonPropertyNaming.CamelCase here to confirm that non-standard
+                // options still deserialize errors correctly.
+                var serializer = SystemTextJsonSerializer.Create(new JsonSerializerOptions());
+
                 var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                     NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 

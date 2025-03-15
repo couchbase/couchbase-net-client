@@ -1,23 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization.Metadata;
+using Couchbase.Utils;
 
 #nullable enable
 
 namespace Couchbase.Core.IO.Serializers.SystemTextJson
 {
-    internal abstract class SystemTextJsonProjectionBuilder : IProjectionBuilder
+    internal sealed class SystemTextJsonProjectionBuilder : IProjectionBuilder
     {
-        protected JsonSerializerOptions Options { get; }
-        protected ILogger Logger { get; }
-        protected JsonObject RootNode { get; }
+        private JsonSerializerOptions Options { get; }
+        private JsonObject RootNode { get; }
 
-        protected SystemTextJsonProjectionBuilder(JsonSerializerOptions options, ILogger logger)
+        public SystemTextJsonProjectionBuilder(JsonSerializerOptions options)
         {
-            Options = options ?? throw new ArgumentNullException(nameof(options));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            if (options is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(options));
+            }
+
+            Options = options;
 
             RootNode = new JsonObject(new JsonNodeOptions
             {
@@ -63,10 +68,20 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         }
 
         /// <inheritdoc />
-        public abstract T? ToObject<T>();
+        public T? ToObject<T>()
+        {
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
+
+            return RootNode.Deserialize(typeInfo);
+        }
 
         /// <inheritdoc />
-        public abstract T? ToPrimitive<T>();
+        public T? ToPrimitive<T>()
+        {
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
+
+            return RootNode.First().Value.Deserialize(typeInfo);
+        }
 
         private void AddChild(string path, JsonElement element)
         {

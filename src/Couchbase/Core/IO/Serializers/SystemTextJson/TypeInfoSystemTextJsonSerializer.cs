@@ -3,6 +3,7 @@ using System.Buffers;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
@@ -13,38 +14,37 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.IO.Serializers.SystemTextJson
 {
     /// <summary>
-    /// A JSON serializer which uses <see cref="JsonSerializerContext"/> to support higher performance and trimming.
+    /// A JSON serializer which uses <see cref="JsonSerializerOptions.GetTypeInfo(Type)"/> to support
+    /// serialization and deserialization. This can work with constructed <see cref="JsonSerializerOptions"/> with
+    /// a custom <see cref="JsonSerializerOptions.TypeInfoResolver"/> or with options directly from a
+    /// <see cref="JsonSerializerContext"/>.
     /// </summary>
-    internal sealed class ContextSystemTextJsonSerializer : SystemTextJsonSerializer
+    /// <remarks>
+    /// When using a constructed <see cref="JsonSerializerOptions"/>, by default it has a <c>null</c>
+    /// <see cref="JsonSerializerOptions.TypeInfoResolver"/>. <see cref="JsonSerializerOptions.MakeReadOnly(bool)"/>
+    /// should be called before passing the options to this class to ensure the <see cref="DefaultJsonTypeInfoResolver"/>
+    /// is registered.
+    /// </remarks>
+    internal sealed class TypeInfoSystemTextJsonSerializer : SystemTextJsonSerializer
     {
         /// <inheritdoc />
-        public override JsonSerializerOptions Options => Context.Options;
-
-        /// <summary>
-        /// <see cref="JsonSerializerContext"/> provided during construction.
-        /// </summary>
-        public JsonSerializerContext Context { get; }
+        public override JsonSerializerOptions Options { get; }
 
         #region ctor
 
         /// <summary>
-        /// Create a new SystemTextJsonSerializer using a supplied <see cref="JsonSerializerContext"/>.
+        /// Create a new SystemTextJsonSerializer using a supplied <see cref="JsonSerializerOptions"/>.
         /// </summary>
-        /// <param name="context"><see cref="JsonSerializerOptions"/> to use for serialization and deserialization.</param>
-        /// <remarks>
-        /// This overload should be used to supply custom serializers on a per-request basis that are optimized for the particular
-        /// type being serialized or deserialized. Any type which isn't registered in the <see cref="JsonSerializerContext"/>
-        /// will be handled using the <see cref="JsonSerializerContext.Options"/>.
-        /// </remarks>
-        public ContextSystemTextJsonSerializer(JsonSerializerContext context)
+        /// <param name="options"><see cref="JsonSerializerOptions"/> to use for serialization and deserialization.</param>
+        public TypeInfoSystemTextJsonSerializer(JsonSerializerOptions options)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (context == null)
+            if (options == null)
             {
-                ThrowHelper.ThrowArgumentNullException(nameof(context));
+                ThrowHelper.ThrowArgumentNullException(nameof(options));
             }
 
-            Context = context;
+            Options = options;
         }
 
         #endregion
@@ -63,7 +63,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 return default;
             }
 
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
 
             return JsonSerializer.Deserialize<T>(span, typeInfo);
         }
@@ -80,7 +80,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 return default;
             }
 
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
 
             var reader = new Utf8JsonReader(buffer, GetJsonReaderOptions(typeInfo.Options));
 
@@ -96,7 +96,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 return default;
             }
 
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
 
             return JsonSerializer.Deserialize<T>(stream, typeInfo);
         }
@@ -110,7 +110,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 return default;
             }
 
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
 
             return JsonSerializer.DeserializeAsync<T>(stream, typeInfo, cancellationToken);
         }
@@ -122,25 +122,31 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         public override void Serialize(Stream stream, object? obj)
         {
-            JsonSerializer.Serialize(stream, obj, obj?.GetType() ?? typeof(object), Context);
+            var typeInfo = Options.GetTypeInfo(obj?.GetType() ?? typeof(object));
+
+            JsonSerializer.Serialize(stream, obj, typeInfo);
         }
 
         /// <inheritdoc />
         public override ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default)
         {
-            return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, obj?.GetType() ?? typeof(object), Context, cancellationToken));
+            var typeInfo = Options.GetTypeInfo(obj?.GetType() ?? typeof(object));
+
+            return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, typeInfo, cancellationToken));
         }
 
         /// <inheritdoc />
         public override void Serialize(Utf8JsonWriter writer, object? obj)
         {
-            JsonSerializer.Serialize(writer, obj, obj?.GetType() ?? typeof(object), Context);
+            var typeInfo = Options.GetTypeInfo(obj?.GetType() ?? typeof(object));
+
+            JsonSerializer.Serialize(writer, obj, typeInfo);
         }
 
         /// <inheritdoc />
         public override void Serialize<T>(Stream stream, T obj)
         {
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
 
             JsonSerializer.Serialize(stream, obj, typeInfo);
         }
@@ -148,7 +154,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         public override void Serialize<T>(IBufferWriter<byte> writer, T obj)
         {
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
 
             using var jsonWriter = new Utf8JsonWriter(writer, GetJsonWriterOptions(typeInfo.Options));
 
@@ -158,7 +164,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         public override ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default)
         {
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
 
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, typeInfo, cancellationToken));
         }
@@ -166,7 +172,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         public override void Serialize<T>(Utf8JsonWriter writer, T obj)
         {
-            var typeInfo = Context.GetTypeInfo<T>();
+            var typeInfo = (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
 
             JsonSerializer.Serialize(writer, obj, typeInfo);
         }
@@ -176,19 +182,19 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         #region Projection
 
         public override IProjectionBuilder CreateProjectionBuilder(ILogger logger) =>
-            new ContextSystemTextJsonProjectionBuilder(Context, logger);
+            new SystemTextJsonProjectionBuilder(Options);
 
         #endregion
 
         #region Streaming
 
         public override IJsonStreamReader CreateJsonStreamReader(Stream stream) =>
-            new ContextSystemTextJsonStreamReader(stream, Context);
+            new SystemTextJsonStreamReader(stream, Options);
 
         #endregion
 
         /// <inheritdoc />
-        public override bool CanSerialize(Type type) => Context.GetTypeInfo(type) is not null;
+        public override bool CanSerialize(Type type) => Options.TryGetTypeInfo(type, out _);
     }
 }
 

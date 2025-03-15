@@ -679,16 +679,17 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
 
         #region Helpers
 
-        private static SystemTextJsonStreamReader CreateStreamReader(Stream stream, bool withContext) =>
-            withContext
-                ? new ContextSystemTextJsonStreamReader(stream, PersonContext.Default)
-                : new ReflectionSystemTextJsonStreamReader(stream, CreateDefaultOptions());
+        private static SystemTextJsonStreamReader CreateStreamReader(Stream stream, bool withContext)
+        {
+            var serializer = withContext
+                ? SystemTextJsonSerializer.Create(PersonContext.Default)
+                : SystemTextJsonSerializer.Create(new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
 
-        private static JsonSerializerOptions CreateDefaultOptions() =>
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            return (SystemTextJsonStreamReader) serializer.CreateJsonStreamReader(stream);
+        }
 
         #endregion
     }

@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
@@ -133,11 +131,26 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
         };
 
         // TODO: Use context for tests once CI agents have the .NET 6 SDK and support source generation
-        private static SystemTextJsonProjectionBuilder CreateProjectionBuilder(bool withContext) =>
-            new ReflectionSystemTextJsonProjectionBuilder(new JsonSerializerOptions {PropertyNamingPolicy = JsonNamingPolicy.CamelCase}, Mock.Of<ILogger>());
-            /*withContext
-                ? new ContextSystemTextJsonProjectionBuilder(PersonContext.Default, Mock.Of<ILogger>())
-                : new ReflectionSystemTextJsonProjectionBuilder(Options, Mock.Of<ILogger>());*/
+        private static SystemTextJsonProjectionBuilder CreateProjectionBuilder(bool withContext)
+        {
+            JsonSerializerOptions options;
+
+            if (withContext)
+            {
+                options = PersonContext.Default.Options;
+            }
+            else
+            {
+                options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                options.MakeReadOnly(populateMissingResolver: true);
+            }
+
+            return new SystemTextJsonProjectionBuilder(options);
+        }
 
         public class ProjectionWrapper
         {

@@ -2,21 +2,27 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Query;
 using Couchbase.Utils;
 
 #nullable enable
 
 namespace Couchbase.Core.IO.Serializers.SystemTextJson
 {
-    internal abstract class SystemTextJsonStreamReader : IJsonStreamReader
+    internal sealed class SystemTextJsonStreamReader : IJsonStreamReader
     {
         private const byte Utf8DecimalChar = 0x2e;
+
+        private static readonly Assembly CouchbaseAssembly = typeof(SystemTextJsonStreamReader).Assembly;
 
         private readonly Stream _stream;
 
@@ -31,7 +37,9 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         public int Depth { get; private set; }
 
-        protected SystemTextJsonStreamReader(Stream stream, JsonSerializerOptions options)
+        private JsonSerializerOptions Options { get; }
+
+        public SystemTextJsonStreamReader(Stream stream, JsonSerializerOptions options)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (stream is null)
@@ -52,6 +60,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 MaxDepth = options.MaxDepth
             });
             _buffer = new JsonBuffer(options.DefaultBufferSize);
+
+            Options = options;
         }
 
         #region Initialize
@@ -363,9 +373,45 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             return false;
         }
 
-        public abstract T? Deserialize<T>(JsonElement element);
+        /// <inheritdoc />
+        public T? Deserialize<T>(JsonElement element) =>
+            element.Deserialize(GetTypeInfo<T>());
 
-        protected abstract T? Deserialize<T>(ref Utf8JsonReader reader);
+        private T? Deserialize<T>(ref Utf8JsonReader reader) =>
+            JsonSerializer.Deserialize(ref reader, GetTypeInfo<T>());
+
+        public JsonTypeInfo<T> GetTypeInfo<T>()
+        {
+            // We don't want to require the consumer to include our internal types used by the
+            // query system in their JsonSerializerContext. So we test for them and pull them
+            // from our internal serializer contexts. This also ensures they are deserialized
+            // using our standard options, such as camel cased property names.
+
+            if (typeof(T).Assembly == CouchbaseAssembly &&
+                TryGetInternalTypeInfo<T>(out var typeInfo))
+            {
+                return typeInfo;
+            }
+
+            // For other types, use the type info from the consumer-provided inner resolver
+
+            return (JsonTypeInfo<T>) Options.GetTypeInfo(typeof(T));
+        }
+
+        private static bool TryGetInternalTypeInfo<T>([NotNullWhen(true)] out JsonTypeInfo<T>? typeInfo)
+        {
+            if (QuerySerializerContext.Default.TryGetTypeInfo(out typeInfo))
+            {
+                return true;
+            }
+
+            if (InternalSerializationContext.Default.TryGetTypeInfo(out typeInfo))
+            {
+                return true;
+            }
+
+            return false;
+        }
 
         #endregion
 
@@ -597,7 +643,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
                 }
             }
 
-            public void Dispose()
+            public readonly void Dispose()
             {
                 if (Buffer != null)
                 {

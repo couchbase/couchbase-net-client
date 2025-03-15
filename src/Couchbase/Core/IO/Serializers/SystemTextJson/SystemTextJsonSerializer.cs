@@ -10,8 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 #nullable enable
 
@@ -59,6 +59,11 @@ namespace Couchbase.Core.IO.Serializers
     [InterfaceStability(Level.Volatile)]
     public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer, IStreamingTypeDeserializer, IBufferedTypeSerializer
     {
+        private const string SerializationUnreferencedCodeMessage =
+            "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonSerializerContext, or make sure all of the required types are preserved.";
+        private const string SerializationDynamicCodeMessage =
+            "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonSerializerContext.";
+
         private static readonly SupportedDeserializationOptions SupportedDeserializationOptionsStatic = new();
 
         /// <summary>
@@ -195,20 +200,33 @@ namespace Couchbase.Core.IO.Serializers
         /// https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-migrate-from-newtonsoft-how-to
         /// </remarks>
         /// <returns>A new SystemTextJsonSerializer.</returns>
-        [RequiresUnreferencedCode(ReflectionSystemTextJsonSerializer.SerializationUnreferencedCodeMessage)]
-        [RequiresDynamicCode(ReflectionSystemTextJsonSerializer.SerializationDynamicCodeMessage)]
+        [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(SerializationDynamicCodeMessage)]
         public static SystemTextJsonSerializer Create(bool increasedNewtonsoftCompatibility = false) =>
-            new ReflectionSystemTextJsonSerializer(increasedNewtonsoftCompatibility);
+            Create(CreateDefaultOptions(increasedNewtonsoftCompatibility));
 
         /// <summary>
         /// Create a new SystemTextJsonSerializer with supplied <see cref="JsonSerializerOptions"/>.
         /// </summary>
         /// <param name="options"><see cref="JsonSerializerOptions"/> to control serialization and deserialization.</param>
         /// <returns>A new SystemTextJsonSerializer.</returns>
-        [RequiresUnreferencedCode(ReflectionSystemTextJsonSerializer.SerializationUnreferencedCodeMessage)]
-        [RequiresDynamicCode(ReflectionSystemTextJsonSerializer.SerializationDynamicCodeMessage)]
-        public static SystemTextJsonSerializer Create(JsonSerializerOptions options) =>
-            new ReflectionSystemTextJsonSerializer(options);
+        [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(SerializationDynamicCodeMessage)]
+        public static SystemTextJsonSerializer Create(JsonSerializerOptions options)
+        {
+            if (options == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(options));
+            }
+
+            // Ensure that the options are read only and the TypeInfoResolver is populated in a thread-safe manner.
+            // Typically, this is done internally by System.Text.Json on the first serialization or deserialization.
+            // This ensures that JsonSerializerOptions.GetTypeInfo will work without requiring the options to be used
+            // in a serialization or deserialization first.
+            options.MakeReadOnly(populateMissingResolver: true);
+
+            return new TypeInfoSystemTextJsonSerializer(options);
+        }
 
         /// <summary>
         /// Create a new SystemTextJsonSerializer using a supplied <see cref="JsonSerializerContext"/>.
@@ -220,8 +238,15 @@ namespace Couchbase.Core.IO.Serializers
         /// will be handled using the <see cref="JsonSerializerContext.Options"/>.
         /// </remarks>
         /// <returns>A new SystemTextJsonSerializer.</returns>
-        public static SystemTextJsonSerializer Create(JsonSerializerContext context) =>
-            new ContextSystemTextJsonSerializer(context);
+        public static SystemTextJsonSerializer Create(JsonSerializerContext context)
+        {
+            if (context == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(context));
+            }
+
+            return new TypeInfoSystemTextJsonSerializer(context.Options);
+        }
 
         #endregion
 
@@ -257,6 +282,17 @@ namespace Couchbase.Core.IO.Serializers
         private static int GetEffectiveMaxDepth(int maxDepth) =>
             // Emulates default behavior of JsonSerializerOptions.MaxDepth using internally by STJ
             maxDepth == 0 ? 64 : maxDepth;
+
+        private static JsonSerializerOptions CreateDefaultOptions(bool increasedNewtonsoftCompatibility) =>
+            new()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // This setting is always on by default
+                AllowTrailingCommas = increasedNewtonsoftCompatibility,
+                IncludeFields = increasedNewtonsoftCompatibility,
+                NumberHandling = increasedNewtonsoftCompatibility ? JsonNumberHandling.AllowReadingFromString : JsonNumberHandling.Strict,
+                PropertyNameCaseInsensitive = increasedNewtonsoftCompatibility,
+                ReadCommentHandling = increasedNewtonsoftCompatibility ? JsonCommentHandling.Skip : JsonCommentHandling.Disallow
+            };
     }
 }
 
