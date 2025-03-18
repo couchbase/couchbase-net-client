@@ -2579,7 +2579,7 @@ namespace Couchbase.Client.Transactions
                 {
                     DurabilityLevel.None => "none",
                     DurabilityLevel.Majority => "majority",
-                    DurabilityLevel.MajorityAndPersistToActive => "majorityAndPersistToActive",
+                    DurabilityLevel.MajorityAndPersistToActive => "majorityAndPersistActive",
                     DurabilityLevel.PersistToMajority => "persistToMajority",
                     _ => _effectiveDurabilityLevel.ToString()
                 })
