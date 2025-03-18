@@ -99,7 +99,7 @@ namespace Couchbase.KeyValue
             if (!_rangeScanSupported)
             {
                 throw new FeatureNotAvailableException(
-                    "The cluster does not support the scan operation (Only supported with Couchbase Server 7.5 and later).");
+                    "This Cluster version does not support the scan operation (Only supported with Couchbase Server 7.6 and later).");
             }
 
             //sanity check for deferred bootstrapping errors
