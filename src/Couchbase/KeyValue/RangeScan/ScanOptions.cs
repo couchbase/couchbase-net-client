@@ -44,9 +44,9 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal Dictionary<short, MutationToken>? ConsistencyTokens => ConsistentWithValue?.GroupBy(x => x.VBucketId).ToDictionary(x => x.Key, x => x.OrderByDescending(x => x.SequenceNumber).First());
 
-        internal uint BatchItemLimit { get; set; } = 0;
+        internal uint BatchItemLimit { get; set; } = 50;
 
-        internal uint BatchByteLimit { get; set; } = 0;
+        internal uint BatchByteLimit { get; set; } = 15_000;
 
         internal uint BatchTimeLimit { get; set; } = 0;
 
