@@ -31,6 +31,7 @@ namespace Couchbase.Client.Transactions
             yield return new ExtensionName("ExtSerialization", "EXT_SERIALIZATION", "SZ");
             yield return new ExtensionName("ExtQueryContext", "EXT_QUERY_CONTEXT", "QC");
             yield return new ExtensionName("ExtThreadSafe", "EXT_THREAD_SAFE", "TS");
+            yield return new ExtensionName("ExtInsertExisting", "EXT_INSERT_EXISTING", "IX");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);

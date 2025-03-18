@@ -770,74 +770,87 @@ namespace Couchbase.Client.Transactions
                                     {
                                         Logger.LogDebug(
                                             "{method}.HandleDocExists for {redactedId}, attemptId={attemptId}, preCas={preCas}",
-                                            nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, 0);
-                                        await _testHooks.BeforeGetDocInExistsDuringStagedInsert(this, id).CAF();
+                                            nameof(CreateStagedInsert), Redactor.UserData(id),
+                                            AttemptId, 0);
+                                        await _testHooks
+                                            .BeforeGetDocInExistsDuringStagedInsert(this, id).CAF();
                                         var docWithMeta = await _docs
-                                            .LookupDocumentAsync(collection, id, fullDocument: false).CAF();
+                                            .LookupDocumentAsync(collection, id,
+                                                fullDocument: false).CAF();
                                         await ForwardCompatibility.Check(this,
-                                            ForwardCompatibility.WriteWriteConflictInsertingGet,
-                                            docWithMeta?.TransactionXattrs?.ForwardCompatibility).CAF();
-                                        if (docWithMeta?.TransactionXattrs?.Id?.AttemptId == AttemptId)
+                                                ForwardCompatibility.WriteWriteConflictInsertingGet,
+                                                docWithMeta?.TransactionXattrs
+                                                    ?.ForwardCompatibility)
+                                            .CAF();
+                                        if (docWithMeta?.TransactionXattrs?.Id?.AttemptId ==
+                                            AttemptId)
                                         {
-                                            if (docWithMeta?.TransactionXattrs?.Id.OperationId == opId)
+                                            if (docWithMeta?.TransactionXattrs?.Id.OperationId ==
+                                                opId)
                                             {
-                                                Logger.LogDebug("update cas as we are only resolving ambiguity");
-                                                docAlreadyExistsResult = docWithMeta.GetPostTransactionResult();
+                                                Logger.LogDebug(
+                                                    "update cas as we are only resolving ambiguity");
+                                                docAlreadyExistsResult =
+                                                    docWithMeta.GetPostTransactionResult();
                                                 docAlreadyExistsResult.Cas = docWithMeta!.Cas;
-                                                return (RepeatAction.NoRepeat, RepeatAction.NoRepeat);
+                                                return (RepeatAction.NoRepeat,
+                                                    RepeatAction.NoRepeat);
                                             }
-                                            Logger.LogWarning("concurrent insert of #{id}", id);
-                                            throw CreateError(this, ErrorClass.FailOther, new DocumentExistsException()).Build();
-                                        }
-                                        var docInATransaction =
-                                            docWithMeta?.TransactionXattrs?.Id?.Transactionid != null;
-                                        isTombstone = docWithMeta?.IsDeleted == true;
 
-                                        if (isTombstone && !docInATransaction)
+                                            Logger.LogWarning("concurrent insert of #{id}", id);
+                                            throw CreateError(this, ErrorClass.FailOther,
+                                                new DocumentExistsException()).Build();
+                                        }
+
+                                        var docInATransaction =
+                                            docWithMeta?.TransactionXattrs?.Id?.Transactionid !=
+                                            null;
+                                        isTombstone = docWithMeta?.IsDeleted == true;
+                                        if (!docInATransaction)
                                         {
+                                            if (!isTombstone)
+                                                throw new DocumentExistsException(
+                                                    $"Document with key {id} already exists");
+
                                             // If the doc is a tombstone and not in any transaction
                                             // -> It’s ok to go ahead and overwrite.
                                             // Perform this algorithm (createStagedInsert) from the top with cas=the cas from the get.
                                             cas = docWithMeta!.Cas;
 
                                             // (innerRepeat, createStagedInsertRepeat)
-                                            return (RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
+                                            return (RepeatAction.NoRepeat,
+                                                RepeatAction.RepeatNoDelay);
                                         }
-
                                         // Else if the doc is not in a transaction
                                         // -> Raise Error(FAIL_DOC_ALREADY_EXISTS, cause=DocumentExistsException).
                                         // There is logic further up the stack that handles this by fast-failing the transaction.
-                                        if (!docInATransaction)
-                                        {
-                                            throw CreateError(this, ErrorClass.FailDocAlreadyExists)
-                                                .Cause(new DocumentExistsException())
-                                                .Build();
-                                        }
-
                                         // TODO: BF-CBD-3787
-                                        var operationType = docWithMeta?.TransactionXattrs?.Operation?.Type;
+                                        var operationType = docWithMeta?.TransactionXattrs
+                                            ?.Operation?.Type;
                                         if (operationType != "insert")
                                         {
                                             Logger.LogWarning(
                                                 "BF-CBD-3787 FAIL_DOC_ALREADY_EXISTS here because type = {operationType}",
                                                 operationType);
-                                            throw CreateError(this, ErrorClass.FailDocAlreadyExists,
-                                                new DocumentExistsException()).Build();
+                                            throw new DocumentExistsException($"Document with key {id} already exists");
                                         }
 
                                         // Else call the CheckWriteWriteConflict logic, which conveniently does everything we need to handle the above cases.
                                         var getResult = docWithMeta!.GetPostTransactionResult();
                                         await CheckWriteWriteConflict(getResult,
-                                            ForwardCompatibility.WriteWriteConflictInserting, traceSpan.Item).CAF();
+                                            ForwardCompatibility.WriteWriteConflictInserting,
+                                            traceSpan.Item).CAF();
 
                                         // BF-CBD-3787: If the document is a staged insert but also is not a tombstone (e.g. it is from protocol 1.0), it must be deleted first
                                         if (operationType == "insert" && !isTombstone)
                                         {
                                             try
                                             {
-                                                await _testHooks.BeforeOverwritingStagedInsertRemoval(this, id)
+                                                await _testHooks
+                                                    .BeforeOverwritingStagedInsertRemoval(this, id)
                                                     .CAF();
-                                                await _docs.UnstageRemove(collection, id, getResult.Cas).CAF();
+                                                await _docs.UnstageRemove(collection, id,
+                                                    getResult.Cas).CAF();
                                             }
                                             catch (Exception err)
                                             {
@@ -846,7 +859,8 @@ namespace Couchbase.Client.Transactions
                                                 {
                                                     case ErrorClass.FailDocNotFound:
                                                     case ErrorClass.FailCasMismatch:
-                                                        throw CreateError(this, ec, err).RetryTransaction().Build();
+                                                        throw CreateError(this, ec, err)
+                                                            .RetryTransaction().Build();
                                                     default:
                                                         throw CreateError(this, ec, err).Build();
                                                 }
@@ -855,7 +869,8 @@ namespace Couchbase.Client.Transactions
                                             // hack workaround for NCBC-2944
                                             // Supposed to "retry this (CreateStagedInsert) algorithm with the cas from the Remove", but we don't have a Cas from the Remove.
                                             // Instead, we just trigger a retry of the entire transaction, since this is such an edge case.
-                                            throw CreateError(this, ErrorClass.FailDocAlreadyExists, ex)
+                                            throw CreateError(this, ErrorClass.FailDocAlreadyExists,
+                                                    ex)
                                                 .RetryTransaction().Build();
                                         }
 
@@ -865,10 +880,16 @@ namespace Couchbase.Client.Transactions
                                         return (RepeatAction.NoRepeat, RepeatAction.RepeatNoDelay);
 
                                     }
-                                    catch (Exception exDocExists)
+                                    catch(DocumentExistsException)
                                     {
-                                        var triagedDocExists = _triage.TriageDocExistsOnStagedInsertErrors(exDocExists);
-                                        throw _triage.AssertNotNull(triagedDocExists, exDocExists);
+                                        Logger.LogInformation(
+                                            "CreateStagedInsert raising ignorable DocumentExistsException");
+                                        throw;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var triagedDocExists = _triage.TriageDocExistsOnStagedInsertErrors(ex);
+                                        throw _triage.AssertNotNull(triagedDocExists, ex);
                                     }
                                 }).CAF();
 
