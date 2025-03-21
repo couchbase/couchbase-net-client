@@ -200,6 +200,7 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("thisNode")] public bool ThisNode { get; set; }
         [JsonPropertyName("services")] public Services Services { get; set; }
         [JsonPropertyName("hostname")] public string Hostname { get; set; }
+        [JsonPropertyName("serverGroup")] public string ServerGroup { get; set; }
         [JsonPropertyName("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
 
         public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Any();
@@ -402,6 +403,35 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
+        /// <summary>
+        /// Maps each Hostname to its index in <see cref="VBucketServerMap"/>'s ServerList.
+        /// Example: { "10.0.0.1": 0, "10.0.0.2": 1, ... }
+        /// </summary>
+        public Dictionary<string, int> HostnamesAndIndex => VBucketServerMap.ServerList
+            .Select((hostname, index) => new { hostname, index })
+            .ToDictionary(item => item.hostname.Split(':')[0], item => item.index);
+
+        /// <summary>
+        /// Maps each Hostname to which ServerGroup it belongs to.
+        /// Example: { "10.0.0.1": "group_1", "10.0.0.2": "group_1", ... }
+        /// </summary>
+        public Dictionary<string, string> HostnameAndServerGroup => NodesExt
+            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup))
+            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.ServerGroup })
+            .ToDictionary(item => item.Hostname, item => item.ServerGroup);
+
+        /// <summary>
+        /// Maps each unique ServerGroup to the indexes of the nodes it contains, in <see cref="VBucketServerMap"/>'s ServerList.
+        /// Example: { "group_1": [0, 1, 2], "group_2": [3, 4, 5], ... }
+        /// </summary>
+        public Dictionary<string, int[]> ServerGroupNodeIndexes =>
+            HostnameAndServerGroup
+                .GroupBy(x => x.Value)
+                .Where(group => !string.IsNullOrEmpty(group.Key))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(kvp => HostnamesAndIndex[kvp.Key]).ToArray()
+                );
 
         public bool HasBucketCap(string capability) => _bucketCapsSet?.Contains(capability) == true;
         internal void AssertBucketCap(string bucketCap, string message = null)

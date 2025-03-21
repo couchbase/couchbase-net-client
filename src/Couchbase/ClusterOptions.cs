@@ -154,6 +154,10 @@ namespace Couchbase
                     {
                         ConnectionStringValue.RandomizeSeedHosts = randomizeSeedNodes;
                     }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.PreferredServerGroup, out string serverGroup))
+                    {
+                        PreferredServerGroup = serverGroup;
+                    }
                     if (ConnectionStringValue.Scheme == Scheme.Couchbases)
                     {
                         EnableTls = true;
@@ -394,6 +398,28 @@ namespace Couchbase
         {
             _services[typeof(ICompressionAlgorithm)] = new SingletonServiceFactory(typeof(TImplementation));
 
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a preferred server group to target for operations that support this feature.
+        /// Currently, these are: GetAnyReplica, GetAllReplicas, LookupInAnyReplica, LookupInAllReplicas.
+        ///
+        /// Note that while Server Groups have been available for a long time,
+        /// this SDK feature is only available using Couchbase Server 7.6.2 and later.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        public string? PreferredServerGroup { get; set; }
+
+        /// <summary>
+        /// Sets the <see cref="PreferredServerGroup"/>.
+        /// </summary>
+        /// <param name="serverGroup">The server group to prioritise</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithPreferredServerGroup(string serverGroup)
+        {
+            PreferredServerGroup = serverGroup;
             return this;
         }
 

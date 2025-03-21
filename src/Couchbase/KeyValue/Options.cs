@@ -9,6 +9,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.KeyValue.ZoneAware;
 
 #nullable enable
 
@@ -177,6 +178,8 @@ namespace Couchbase.KeyValue
 
     #endregion
 
+    #region ReplicaReadsOptions
+
     #region GetAnyReplicaOptions
 
     /// <summary>
@@ -198,8 +201,21 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
+        /// </summary>
+        /// <param name="readPreference">The read preference.</param>
+        /// <returns>This for method chaining.</returns>
+        public GetAllReplicasOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
@@ -261,25 +277,27 @@ namespace Couchbase.KeyValue
 
         public static GetAllReplicasOptions Default { get; } = new();
 
-        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
         {
             token = TokenValue;
             transcoder = TranscoderValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
+            readPreference = ReadPreferenceValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new ReadOnly(token, transcoder, retryStrategy, requestSpan);
+            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
         public record ReadOnly(
             CancellationToken Token,
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
-            IRequestSpan? RequestSpan);
+            IRequestSpan? RequestSpan,
+            ReadPreference ReadPreference);
     }
 
     #endregion
@@ -301,6 +319,19 @@ namespace Couchbase.KeyValue
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+
+        /// <summary>
+        /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
+        /// </summary>
+        /// <param name="readPreference">The read preference.</param>
+        /// <returns>This for method chaining.</returns>
+        public GetAnyReplicaOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference;
+            return this;
+        }
 
         public GetAnyReplicaOptions RequestSpan(IRequestSpan span)
         {
@@ -363,26 +394,282 @@ namespace Couchbase.KeyValue
 
         public static GetAnyReplicaOptions Default { get; } = new();
 
-        public void Deconstruct(out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out CancellationToken token)
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
         {
+            token = TokenValue;
             transcoder = TranscoderValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
-            token = TokenValue;
+            readPreference = ReadPreferenceValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out CancellationToken token);
-            return new ReadOnly(transcoder, retryStrategy, requestSpan, token);
+            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
         public record ReadOnly(
+            CancellationToken Token,
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            CancellationToken Token);
+            ReadPreference ReadPreference);
     }
+
+    #endregion
+
+    #region LookupInAnyReplicaOptions
+
+    public class LookupInAnyReplicaOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
+    {
+        internal static LookupInAnyReplicaOptions Default { get; } = new();
+        public static readonly LookupInOptions.ReadOnly DefaultReadOnly = Default.AsReadOnly();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
+
+        internal CancellationToken TokenValue { get; private set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
+
+        internal ITypeSerializer? SerializerValue { get; private set; }
+
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+
+        /// <summary>
+        /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
+        /// </summary>
+        /// <param name="readPreference">The read preference.</param>
+        /// <returns>This for method chaining.</returns>
+        public LookupInAnyReplicaOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
+        /// <summary>
+        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
+        /// </summary>
+        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions Serializer(ITypeSerializer? serializer)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            SerializerValue = serializer;
+            return this;
+        }
+
+        /// <summary>
+        /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
+        /// Not exposed for public consumption.
+        /// </summary>
+        public LookupInAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TranscoderValue = transcoder;
+            return this;
+        }
+
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions Timeout(TimeSpan? timeout)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions CancellationToken(CancellationToken token)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TokenValue = token;
+            return this;
+        }
+
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        {
+            timeout = TimeoutValue;
+            token = TokenValue;
+            serializer = SerializerValue;
+            transcoder = TranscoderValue;
+            retryStrategy = RetryStrategyValue;
+            requestSpan = RequestSpanValue;
+            readPreference = ReadPreferenceValue;
+        }
+
+        public LookupInOptions.ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
+        }
+    }
+
+    #endregion
+
+    #region LookupInAllReplicasOptions
+
+    public class LookupInAllReplicasOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
+    {
+        internal static LookupInAllReplicasOptions Default { get; } = new();
+        public static readonly LookupInOptions.ReadOnly DefaultReadOnly = Default.AsReadOnly();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
+
+        internal CancellationToken TokenValue { get; private set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
+
+        internal ITypeSerializer? SerializerValue { get; private set; }
+
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+
+        /// <summary>
+        /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
+        /// </summary>
+        /// <param name="readPreference">The read preference.</param>
+        /// <returns>This for method chaining.</returns>
+        public LookupInAllReplicasOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAllReplicasOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAllReplicasOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
+        /// <summary>
+        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
+        /// </summary>
+        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAllReplicasOptions Serializer(ITypeSerializer? serializer)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            SerializerValue = serializer;
+            return this;
+        }
+
+        /// <summary>
+        /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
+        /// Not exposed for public consumption.
+        /// </summary>
+        public LookupInAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TranscoderValue = transcoder;
+            return this;
+        }
+
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAllReplicasOptions Timeout(TimeSpan? timeout)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAllReplicasOptions CancellationToken(CancellationToken token)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TokenValue = token;
+            return this;
+        }
+
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        {
+            timeout = TimeoutValue;
+            token = TokenValue;
+            serializer = SerializerValue;
+            transcoder = TranscoderValue;
+            retryStrategy = RetryStrategyValue;
+            requestSpan = RequestSpanValue;
+            readPreference = ReadPreferenceValue;
+        }
+
+        public LookupInOptions.ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
+        }
+    }
+
+    #endregion
 
     #endregion
 
@@ -2261,6 +2548,21 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+
+        /// <summary>
+        /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
+        /// </summary>
+        /// <param name="readPreference">The read preference.</param>
+        /// <returns>This for method chaining.</returns>
+        public LookupInOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference;
+            return this;
+        }
+
+
+
         /// <summary>
         /// Inject an external span which will the be the parent span of the internal span(s).
         /// </summary>
@@ -2350,7 +2652,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out ReadPreference readPreference)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -2361,12 +2663,13 @@ namespace Couchbase.KeyValue
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
             preferReturn = PreferReturn;
+            readPreference = ReadPreferenceValue;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn);
-            return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan, PreferReturn: preferReturn);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out ReadPreference readPreference);
+            return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan, PreferReturn: preferReturn, ReadPreferenceValue: readPreference);
         }
 
         public record ReadOnly(
@@ -2379,230 +2682,12 @@ namespace Couchbase.KeyValue
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
             short? ReplicaIndex = null,
-            bool PreferReturn = false) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
+            bool PreferReturn = false,
+            ReadPreference ReadPreferenceValue = ZoneAware.ReadPreference.NoPreference) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
     }
 
     #endregion
 
-    #region LookupInReplicaOptions
-
-       public class LookupInAnyReplicaOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
-    {
-        internal static LookupInAnyReplicaOptions Default { get; } = new();
-        public static readonly LookupInOptions.ReadOnly DefaultReadOnly = Default.AsReadOnly();
-
-        internal TimeSpan? TimeoutValue { get; private set; }
-        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
-
-        internal CancellationToken TokenValue { get; private set; }
-        CancellationToken ITimeoutOptions.Token => TokenValue;
-
-        internal ITypeSerializer? SerializerValue { get; private set; }
-
-        internal ITypeTranscoder? TranscoderValue { get; private set; }
-        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
-
-        internal IRetryStrategy? RetryStrategyValue { get; private set; }
-        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
-
-        internal IRequestSpan? RequestSpanValue { get; private set; }
-
-        /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
-        /// </summary>
-        /// <param name="span">An <see cref="IRequestSpan"/></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAnyReplicaOptions RequestSpan(IRequestSpan span)
-        {
-            RequestSpanValue = span;
-            return this;
-        }
-
-        /// <summary>
-        /// Inject a custom <see cref="IRetryStrategy"/>.
-        /// </summary>
-        /// <param name="retryStrategy"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAnyReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            RetryStrategyValue = retryStrategy;
-            return this;
-        }
-
-        /// <summary>
-        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
-        /// </summary>
-        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAnyReplicaOptions Serializer(ITypeSerializer? serializer)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            SerializerValue = serializer;
-            return this;
-        }
-
-        /// <summary>
-        /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
-        /// Not exposed for public consumption.
-        /// </summary>
-        public LookupInAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TranscoderValue = transcoder;
-            return this;
-        }
-
-        /// <summary>
-        /// The time in which the operation will timeout if it does not complete.
-        /// </summary>
-        /// <param name="timeout"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAnyReplicaOptions Timeout(TimeSpan? timeout)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TimeoutValue = timeout;
-            return this;
-        }
-
-        /// <summary>
-        /// A <see cref="CancellationToken"/> for cooperative cancellation.
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAnyReplicaOptions CancellationToken(CancellationToken token)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TokenValue = token;
-            return this;
-        }
-
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
-        {
-            timeout = TimeoutValue;
-            token = TokenValue;
-            serializer = SerializerValue;
-            transcoder = TranscoderValue;
-            retryStrategy = RetryStrategyValue;
-            requestSpan = RequestSpanValue;
-        }
-
-        public LookupInOptions.ReadOnly AsReadOnly()
-        {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null);
-        }
-    }
-
-    public class LookupInAllReplicasOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
-    {
-        internal static LookupInAllReplicasOptions Default { get; } = new();
-        public static readonly LookupInOptions.ReadOnly DefaultReadOnly = Default.AsReadOnly();
-
-        internal TimeSpan? TimeoutValue { get; private set; }
-        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
-
-        internal CancellationToken TokenValue { get; private set; }
-        CancellationToken ITimeoutOptions.Token => TokenValue;
-
-        internal ITypeSerializer? SerializerValue { get; private set; }
-
-        internal ITypeTranscoder? TranscoderValue { get; private set; }
-        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
-
-        internal IRetryStrategy? RetryStrategyValue { get; private set; }
-        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
-
-        internal IRequestSpan? RequestSpanValue { get; private set; }
-
-        /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
-        /// </summary>
-        /// <param name="span">An <see cref="IRequestSpan"/></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAllReplicasOptions RequestSpan(IRequestSpan span)
-        {
-            RequestSpanValue = span;
-            return this;
-        }
-
-        /// <summary>
-        /// Inject a custom <see cref="IRetryStrategy"/>.
-        /// </summary>
-        /// <param name="retryStrategy"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAllReplicasOptions RetryStrategy(IRetryStrategy retryStrategy)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            RetryStrategyValue = retryStrategy;
-            return this;
-        }
-
-        /// <summary>
-        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
-        /// </summary>
-        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAllReplicasOptions Serializer(ITypeSerializer? serializer)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            SerializerValue = serializer;
-            return this;
-        }
-
-        /// <summary>
-        /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
-        /// Not exposed for public consumption.
-        /// </summary>
-        public LookupInAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TranscoderValue = transcoder;
-            return this;
-        }
-
-        /// <summary>
-        /// The time in which the operation will timeout if it does not complete.
-        /// </summary>
-        /// <param name="timeout"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAllReplicasOptions Timeout(TimeSpan? timeout)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TimeoutValue = timeout;
-            return this;
-        }
-
-        /// <summary>
-        /// A <see cref="CancellationToken"/> for cooperative cancellation.
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns>An options instance for chaining.</returns>
-        public LookupInAllReplicasOptions CancellationToken(CancellationToken token)
-        {
-            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
-            TokenValue = token;
-            return this;
-        }
-
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
-        {
-            timeout = TimeoutValue;
-            token = TokenValue;
-            serializer = SerializerValue;
-            transcoder = TranscoderValue;
-            retryStrategy = RetryStrategyValue;
-            requestSpan = RequestSpanValue;
-        }
-
-        public LookupInOptions.ReadOnly AsReadOnly()
-        {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null);
-        }
-    }
-
-    #endregion
 
     #region MutateInOptions
 

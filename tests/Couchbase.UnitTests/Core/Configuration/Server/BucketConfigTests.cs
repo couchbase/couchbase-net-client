@@ -24,11 +24,19 @@ using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
 {
     public class BucketConfigTests
     {
+        private readonly ITestOutputHelper _outputHelper;
+
+        public BucketConfigTests(ITestOutputHelper outputHelper)
+        {
+            _outputHelper = outputHelper;
+        }
+
         [Fact]
         public void When_NetworkResolution_Is_External_Tls_Ports_Exist()
         {
@@ -516,6 +524,32 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             {
                 Assert.Equal(2, p.Length);
             });
+        }
+
+        [Fact]
+        public void Filter_ServerGroups_and_Indexes()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json", InternalSerializationContext.Default.BucketConfig);
+
+            var hostnamesAndIndex = config.HostnamesAndIndex;
+            var hostnamesAndGroup = config.HostnameAndServerGroup;
+            var groupAndIndexes = config.ServerGroupNodeIndexes;
+
+            Assert.Equal(4, hostnamesAndIndex.Count);
+            Assert.Equal(0, hostnamesAndIndex["192.168.56.102"]);
+            Assert.Equal(1, hostnamesAndIndex["192.168.56.101"]);
+            Assert.Equal(2, hostnamesAndIndex["192.168.56.103"]);
+            Assert.Equal(3, hostnamesAndIndex["192.168.56.104"]);
+
+            Assert.Equal(4, hostnamesAndGroup.Count);
+            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.102"]);
+            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.101"]);
+            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.103"]);
+            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.104"]);
+
+            Assert.Equal(2, groupAndIndexes.Count);
+            Assert.Equal([0, 1], groupAndIndexes["group_1"]);
+            Assert.Equal([2, 3], groupAndIndexes["group_2"]);
         }
     }
 }

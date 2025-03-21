@@ -11,6 +11,13 @@ namespace Couchbase.Core.Exceptions.KeyValue
         {
             InnerExceptions = aggregate.InnerExceptions;
         }
+
+        public DocumentUnretrievableException(string message) : base(message){}
+
+        public DocumentUnretrievableException(string message, AggregateException aggregate) : base(message)
+        {
+            InnerExceptions = aggregate.InnerExceptions;
+        }
     }
 }
 
