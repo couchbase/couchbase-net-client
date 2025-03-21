@@ -156,6 +156,11 @@ namespace Couchbase.KeyValue
             return CreateSpec(OpCode.SubCounter, path, -(long)delta, createPath, isXattr, removeBrackets);
         }
 
+        public static MutateInSpec ReplaceBodyWithXattr(string path)
+        {
+            return CreateSpec(OpCode.SubReplaceBodyWithXattr, path, false, true, false);
+        }
+
         /// <summary>
         /// Serializes the <see cref="OperationSpec.Value" /> to the <see cref="OperationBuilder"/> using the <see cref="ITypeTranscoder"/>.
         /// </summary>

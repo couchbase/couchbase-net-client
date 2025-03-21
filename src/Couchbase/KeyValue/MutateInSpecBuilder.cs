@@ -243,6 +243,12 @@ namespace Couchbase.KeyValue
             Specs.Add(MutateInSpec.Decrement(path, delta, createPath, isXattr));
             return this;
         }
+
+        public MutateInSpecBuilder ReplaceBodyWithXattr(string path)
+        {
+            Specs.Add(MutateInSpec.ReplaceBodyWithXattr(path));
+            return this;
+        }
     }
 }
 

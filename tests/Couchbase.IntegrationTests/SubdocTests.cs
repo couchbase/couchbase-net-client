@@ -542,6 +542,33 @@ namespace Couchbase.IntegrationTests
             //Assert.Equal("foo", result.ContentAs<string>(1));
         }
 
+        [Fact]
+        public async Task MutateIn_ReplaceBodyWithXattr_Succeeds()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_ReplaceBodyWithXattr_Succeeds);
+            await collection.UpsertAsync(documentKey, new { foo = "bar", bar = "foo", xxx = 0 }).ConfigureAwait(false);
+            var newDocBody = new { bar = "foo2", foo = "bar2", xxx = 3 };
+
+            // put the newDocBody in test_attr xattr...
+            using (await collection.MutateInAsync(documentKey, builder =>
+            {
+                builder.Upsert("test_attr", newDocBody, isXattr: true, createPath: true);
+            }));
+
+            using (await collection.MutateInAsync(documentKey, builder =>
+            {
+                builder.ReplaceBodyWithXattr("test_attr");
+            }));
+
+            // verify the document body changed.  NOTE: by comparing as strings, we run the risk
+            // of having the order change though the key/value pairs are all equal. If you change
+            // the newDocBody (or the old one), you may need to adjust the order of one or the
+            // other to match.
+            var getResult = await collection.GetAsync(documentKey, options => options.Transcoder(new LegacyTranscoder())).ConfigureAwait(false);
+            Assert.Equal(getResult.ContentAs<string>(), JsonConvert.SerializeObject(newDocBody));
+        }
+
         #region Helpers
 
         private class TestDoc
