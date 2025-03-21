@@ -182,6 +182,8 @@ namespace Couchbase.Core.IO
                     return new DocumentTooDeepException { Context = ctx };
                 case ResponseStatus.SubDocInvalidCombo:
                     return new InvalidArgumentException { Context = ctx };
+                case ResponseStatus.SubdocCanOnlyReviveDeletedDocuments:
+                    return new DocumentAlreadyAliveException { Context = ctx };
                 case ResponseStatus.DocumentMutationDetected: //maps to nothing
                 case ResponseStatus.NoReplicasFound: //maps to nothing
                 case ResponseStatus.InvalidRange: //maps to nothing

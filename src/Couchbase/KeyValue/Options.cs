@@ -2629,6 +2629,8 @@ namespace Couchbase.KeyValue
 
         internal bool CreateAsDeletedValue { get; private set; }
 
+        internal bool ReviveDocumentValue { get; private set; }
+
         internal bool AccessDeletedValue { get; private set; }
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
@@ -2791,6 +2793,13 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        public MutateInOptions ReviveDocument(bool reviveDocument)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            ReviveDocumentValue = reviveDocument;
+            return this;
+        }
+
         public MutateInOptions CreateAsDeleted(bool createAsDeleted)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -2809,7 +2818,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
+        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
         {
             expiry = ExpiryValue;
             storeSemantics = StoreSemanticsValue;
@@ -2820,6 +2829,7 @@ namespace Couchbase.KeyValue
             token = TokenValue;
             serializer = TranscoderValue?.Serializer;
             createAsDeleted = CreateAsDeletedValue;
+            reviveDocument = ReviveDocumentValue;
             accessDeleted = AccessDeletedValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
@@ -2829,8 +2839,8 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
-            return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, retryStrategy, requestSpan, preserveTtl, transcoder);
+            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
+            return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, reviveDocument, retryStrategy, requestSpan, preserveTtl, transcoder);
         }
 
         public record ReadOnly(
@@ -2844,6 +2854,7 @@ namespace Couchbase.KeyValue
             ITypeSerializer? Serializer,
             bool CreateAsDeleted,
             bool AccessDeleted,
+            bool ReviveDocument,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
             bool PreserveTtl,

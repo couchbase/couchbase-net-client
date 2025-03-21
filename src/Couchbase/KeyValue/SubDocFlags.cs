@@ -37,6 +37,13 @@ namespace Couchbase.KeyValue
         CreateAsDeleted = 0x08,
 
         /// <summary>
+        /// This will allow the document to no longer be a tombstone.   Note that the server
+        /// will respond with "ReviveDocument cannot be used without AccessDeletec", so we should
+        /// always send AccessDeleted as well.
+        ///</summary>
+        ReviveDocument = 0x10,
+
+        /// <summary>
         /// Specifies that the request is being sent to a replica.
         /// </summary>
         ReplicaRead = 0x20,

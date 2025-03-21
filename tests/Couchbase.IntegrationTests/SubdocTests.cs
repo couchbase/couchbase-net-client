@@ -569,6 +569,55 @@ namespace Couchbase.IntegrationTests
             Assert.Equal(getResult.ContentAs<string>(), JsonConvert.SerializeObject(newDocBody));
         }
 
+        [Fact]
+        public async Task MutateIn_ReviveDocument_Succeeds()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_ReviveDocument_Succeeds) + Guid.NewGuid();
+            // first, lets create a tombstone
+            using (await collection.MutateInAsync(documentKey, builder =>
+                {
+                    builder.Upsert("test_attr", "foo", isXattr: true);
+                }, options => options.StoreSemantics(StoreSemantics.Upsert).CreateAsDeleted(true))
+                .ConfigureAwait(false));
+
+            // verify it is a tombstone
+            var lookupInResult = await collection.LookupInAsync(documentKey, builder =>
+            {
+                builder.GetFull();
+            }, options => options.AccessDeleted(true)).ConfigureAwait(false);
+            Assert.True(lookupInResult.IsDeleted);
+
+            // now revive (we can use the ReplaceBodyWithXattr since we do that with txns)...
+            using (await collection.MutateInAsync(documentKey, builder =>
+                   {
+                       builder.ReplaceBodyWithXattr("test_attr");
+                   }, options => options.ReviveDocument(true)).ConfigureAwait(false));
+            // verify not a tombstone
+            var lookupInResult2 = await collection.LookupInAsync(documentKey, builder =>
+            {
+                builder.GetFull();
+            }, options => options.AccessDeleted(true)).ConfigureAwait(false);
+            Assert.False(lookupInResult2.IsDeleted);
+        }
+
+        [Fact]
+        public async Task  MutateIn_ReviveDocument_FailsIfDocumentExists()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_ReviveDocument_FailsIfDocumentExists);
+
+            // regular old non-tombstone document
+            await collection.UpsertAsync(documentKey, new { foo = "bar" }).ConfigureAwait(false);
+
+            using var task = collection.MutateInAsync(documentKey, builder =>
+            {
+                builder.Upsert("test_attr", "foo", isXattr: true);
+            }, options => options.ReviveDocument(true));
+
+            await Assert.ThrowsAsync<DocumentAlreadyAliveException>(async () => await task.ConfigureAwait(false));
+        }
+
         #region Helpers
 
         private class TestDoc

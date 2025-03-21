@@ -917,6 +917,13 @@ namespace Couchbase.KeyValue
 
                 docFlags |= SubdocDocFlags.CreateAsDeleted;
             }
+            if (options.ReviveDocumentValue)
+            {
+                // We insist on AccessDeleted being set whenever we set ReviveDocument.
+                if (!_bucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities.SUBDOC_REVIVE_DOCUMENT) == true)
+                    throw new FeatureNotAvailableException(nameof(BucketCapabilities.SUBDOC_REVIVE_DOCUMENT));
+                docFlags |= SubdocDocFlags.ReviveDocument | SubdocDocFlags.AccessDeleted;
+            }
 
             if (options.AccessDeletedValue) docFlags |= SubdocDocFlags.AccessDeleted;
 

@@ -28,7 +28,8 @@ namespace Couchbase.KeyValue
         /// Allows access to a deleted document's attributes section.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
-        AccessDeleted = OpCode.Delete
+        AccessDeleted = OpCode.Delete,
+
     }
 }
 

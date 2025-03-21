@@ -303,6 +303,11 @@ namespace Couchbase.Core.IO.Operations
         SubdocInvalidXattrOrder = 0xd4,
 
         /// <summary>
+        /// Attempted to ReviveDocument on a document which was not currently a tombstone.
+        /// </summary>
+        SubdocCanOnlyReviveDeletedDocuments = 0xd6,
+
+        /// <summary>
         /// Collection does not exist/Collection Outdated
         /// </summary>
         UnknownCollection = 0x88,
