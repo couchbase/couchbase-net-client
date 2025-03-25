@@ -26,6 +26,7 @@ namespace Couchbase.Client.Transactions.Config
         private bool? _adhoc = null;
         private TimeSpan? _timeout = null;
         private ITypeSerializer? _serializer = null;
+        private QueryProfile? _profile = null;
 
         /// <summary>
         /// Build a new instance of QueryOptions based on these TransactionQueryOptions.
@@ -110,7 +111,10 @@ namespace Couchbase.Client.Transactions.Config
             {
                 opts.Serializer = _serializer;
             }
-
+            if (_profile != null)
+            {
+                opts.Profile(_profile.Value);
+            }
             return opts;
         }
 
@@ -291,6 +295,12 @@ namespace Couchbase.Client.Transactions.Config
         public TransactionQueryOptions AdHoc(bool adhoc)
         {
             _adhoc = adhoc;
+            return this;
+        }
+
+        public TransactionQueryOptions Profile(QueryProfile profile)
+        {
+            _profile = profile;
             return this;
         }
 
