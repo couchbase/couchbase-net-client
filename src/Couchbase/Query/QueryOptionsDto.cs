@@ -79,7 +79,6 @@ namespace Couchbase.Query
         public int? PipelineCapacity { get; set; }
 
         [JsonPropertyName("profile")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         [JsonConverter(typeof(EnumDescriptionJsonConverter<QueryProfile>))]
         public QueryProfile Profile { get; set; }
 
