@@ -1350,6 +1350,8 @@ namespace Couchbase.Client.Transactions
             return Task.FromResult((sm.Doc.Cas, sm.Content));
         }
 
+
+
         private async Task UnstageInsertOrReplace(StagedMutation sm, ulong cas, object content, bool insertMode = false,
             bool ambiguityResolutionMode = false, IRequestSpan? parentSpan = null)
         {
@@ -1407,38 +1409,68 @@ namespace Couchbase.Client.Transactions
                             ambiguityResolutionMode = true;
                             return RepeatAction.RepeatWithDelay;
                         case ErrorClass.FailCasMismatch:
-                            if (ambiguityResolutionMode)
-                            {
-                                throw _triage.AssertNotNull(triaged, ex);
-                            }
-                            else
-                            {
-                                cas = 0;
-                                return RepeatAction.RepeatWithDelay;
-                            }
+                            RepeatAction returnVal;
+                            (returnVal, cas) = await HandleDocChangedDuringCommit(sm, cas).CAF();
+                            return returnVal;
                         case ErrorClass.FailDocNotFound:
                             // TODO: publish IllegalDocumentState event to the application.
                             Logger?.LogError("IllegalDocumentState: " + triaged.ec);
                             insertMode = true;
                             return RepeatAction.RepeatWithDelay;
                         case ErrorClass.FailDocAlreadyExists:
+                            // we just move on if it is a replace
+                            if (!insertMode)
+                                return RepeatAction.NoRepeat;
                             if (ambiguityResolutionMode)
                             {
                                 throw _triage.AssertNotNull(triaged, ex);
                             }
-                            else
-                            {
-                                // TODO: publish an IllegalDocumentState event to the application.
-                                Logger?.LogError("IllegalDocumentState: " + triaged.ec);
-                                insertMode = false;
-                                cas = 0;
-                                return RepeatAction.RepeatWithDelay;
-                            }
+                            // now consider it a replace
+                            insertMode = false;
+                            cas = 0;
+                            return RepeatAction.RepeatWithDelay;
                     }
 
                     throw _triage.AssertNotNull(triaged, ex);
                 }
             }).CAF();
+        }
+
+        private async Task<(RepeatAction, ulong)> HandleDocChangedDuringCommit(StagedMutation sm, ulong cas)
+        {
+            Logger.LogDebug("handling doc changed during commit");
+            if (HasExpiredClientSide(sm.Doc.Id, DefaultTestHooks.HOOK_BEFORE_DOC_CHANGED_DURING_COMMIT))
+            {
+                throw CreateError(this, ErrorClass.FailExpiry)
+                    .DoNotRollbackAttempt()
+                    .Cause(new AttemptExpiredException(this,
+                        "Commit expired in HandleDocChangedDuringCommit"))
+                    .Build();
+            }
+            try
+            {
+                await _testHooks.BeforeDocChangedDuringCommit(this, sm.Doc.Id).CAF();
+                var doc = await this.GetWithMav(sm.Doc.Collection, sm.Doc.Id).CAF();
+                if (doc?.TransactionXattrs?.Id?.Transactionid != TransactionId ||
+                    (doc?.TransactionXattrs == null)) {
+                    return (RepeatAction.NoRepeat, cas);
+                }
+                // Same txn/attempt, so let's just retry with the new cas
+                cas = doc.Cas;
+                return (RepeatAction.RepeatNoDelay, cas);
+            } catch (Exception ex)
+            {
+                var triaged = _triage.TriageUnstageInsertOrReplaceErrors(ex, _expirationOvertimeMode);
+                Logger.LogDebug("handling doc changed during commit got {ec}", triaged.ec);
+                return triaged.ec switch
+                {
+                    ErrorClass.FailTransient => (RepeatAction.RepeatWithDelay, cas),
+                    ErrorClass.TransactionOperationFailed => throw new
+                        TransactionOperationFailedException(ErrorClass.FailCasMismatch, false, true,
+                            ex, TransactionOperationFailedException.FinalError.TransactionFailed),
+                    _ => throw _triage.AssertNotNull(triaged, ex)
+                };
+            }
         }
 
         private async Task SetAtrCommit(IRequestSpan? parentSpan)

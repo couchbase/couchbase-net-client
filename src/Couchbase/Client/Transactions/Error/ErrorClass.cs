@@ -89,6 +89,11 @@ namespace Couchbase.Client.Transactions.Error
                 return ErrorClass.FailCasMismatch;
             }
 
+            if (ex is DocumentAlreadyAliveException)
+            {
+                return ErrorClass.FailDocAlreadyExists;
+            }
+
             if (ex.IsFailTransient())
             {
                 return ErrorClass.FailTransient;

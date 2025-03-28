@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Threading.Tasks;
+using Couchbase.Client.Transactions.Components;
 using Couchbase.Core.Compatibility;
 
 #pragma warning disable CS1591
@@ -23,6 +24,7 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public Task<int?> BeforeDocCommitted(AttemptContext self, string id);
         public Task<int?> BeforeDocRolledBack(AttemptContext self, string id);
         public Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id);
+        public Task <int?> BeforeDocChangedDuringCommit(AttemptContext self, string id);
         public Task<int?> AfterDocCommitted(AttemptContext self, string id);
         public Task<int?> AfterDocsCommitted( AttemptContext self);
         public Task<int?> BeforeDocRemoved(AttemptContext self, string id);
@@ -97,11 +99,14 @@ namespace Couchbase.Client.Transactions.Internal.Test
         public const string HOOK_QUERY_KV_REMOVE = "queryKvRemove";
         public const string HOOK_QUERY_KV_INSERT = "queryKvInsert";
         public const string HOOK_REMOVE_DOC = "removeDoc";
-        public const string HOOK_QUERY_ROLLBACK = "queryRollback";    public virtual Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
+        public const string HOOK_BEFORE_DOC_CHANGED_DURING_COMMIT = "beforeDocChangedDuringCommit";
+        public const string HOOK_QUERY_ROLLBACK = "queryRollback";
+        public virtual Task<int?> BeforeAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterAtrCommit(AttemptContext self) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeDocRolledBack(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterDocCommittedBeforeSavingCas(AttemptContext self, string id) => Task.FromResult<int?>(0);
+        public virtual Task<int?> BeforeDocChangedDuringCommit(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterDocCommitted(AttemptContext self, string id) => Task.FromResult<int?>(0);
         public virtual Task<int?> AfterDocsCommitted( AttemptContext self) => Task.FromResult<int?>(0);
         public virtual Task<int?> BeforeDocRemoved(AttemptContext self, string id) => Task.FromResult<int?>(0);

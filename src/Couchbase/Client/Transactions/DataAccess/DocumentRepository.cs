@@ -11,6 +11,7 @@ using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Internal;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Core.Configuration.Server;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
@@ -113,8 +114,43 @@ namespace Couchbase.Client.Transactions.DataAccess
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
 
+        public bool SupportsReplaceBodyWithXattr(ICouchbaseCollection collection)
+        {
+            var bucket = collection.Scope.Bucket;
+            if (bucket is CouchbaseBucket couchBucket)
+            {
+                // NOTE: we look for SUBDOC_REVIVE_DOCUMENT as this came slightly later than
+                // ReplaceBodyWithXattr, and both are needed.
+                return couchBucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities
+                    .SUBDOC_REVIVE_DOCUMENT) == true;
+            }
+
+            return false;
+        }
+
         public async Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode)
         {
+            if (SupportsReplaceBodyWithXattr(collection))
+            {
+                MutateInOptions opts;
+                if (insertMode) {
+                    opts = GetMutateInOptions(StoreSemantics.AccessDeleted)
+                        .ReviveDocument(true);
+                } else
+                {
+                    opts = GetMutateInOptions(StoreSemantics.Replace)
+                        .Cas(cas);
+                }
+                var mutateResult = await collection.MutateInAsync(docId, specs =>
+                        specs.ReplaceBodyWithXattr(TransactionFields.StagedData)
+                            .Upsert(TransactionFields.TransactionInterfacePrefixOnly, string.Empty,
+                                isXattr: true, createPath: true)
+                            .Remove(TransactionFields.TransactionInterfacePrefixOnly,
+                                isXattr: true),
+                    opts).CAF();
+                return (mutateResult.Cas, mutateResult.MutationToken);
+            }
+            // if bucket doesn't support ReplaceBodyWithXattr (and ReviveDocument)
             if (insertMode)
             {
                 var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout);
@@ -127,10 +163,10 @@ namespace Couchbase.Client.Transactions.DataAccess
                     .Cas(cas)
                     .Transcoder(_userDataTranscoder);
                 var mutateResult = await collection.MutateInAsync(docId, specs =>
-                            specs.Upsert(TransactionFields.TransactionInterfacePrefixOnly, string.Empty,
-                                    isXattr: true, createPath: true)
-                                .Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
-                                .SetDoc(finalDoc), opts).CAF();
+                    specs.Upsert(TransactionFields.TransactionInterfacePrefixOnly, string.Empty,
+                            isXattr: true, createPath: true)
+                        .Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
+                        .SetDoc(finalDoc), opts).CAF();
                 return (mutateResult.Cas, mutateResult.MutationToken);
             }
         }
