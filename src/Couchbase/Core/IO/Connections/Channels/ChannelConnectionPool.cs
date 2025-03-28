@@ -31,6 +31,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly Channel<ChannelQueueItem> _sendQueue;
 
         private bool _initialized;
+        private bool _disposed;
 
         /// <inheritdoc />
         public override int Size => _connections.Count;
@@ -108,6 +109,7 @@ namespace Couchbase.Core.IO.Connections.Channels
             InitializedConnectionPool(_redactor.SystemData(EndPoint), MinimumSize);
 
             _initialized = true;
+            _disposed = false;
         }
 
 
@@ -230,13 +232,14 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         public override void Dispose()
         {
-            LogDisposeConnectionPool(EndPoint);
-
-            if (_cts.IsCancellationRequested)
+            if (_disposed)
             {
+                LogAlreadyDisposedConnectionPool(EndPoint);
                 return;
             }
 
+            LogDisposeConnectionPool(EndPoint);
+            _disposed = true;
             _scaleController.Dispose();
             _cts.Cancel(false);
 
@@ -369,6 +372,9 @@ namespace Couchbase.Core.IO.Connections.Channels
 
         [LoggerMessage(101, LogLevel.Debug, "Disposing pool for {endpoint}.")]
         private partial void LogDisposeConnectionPool(HostEndpointWithPort endpoint);
+
+        [LoggerMessage(102, LogLevel.Debug, "Disposing pool for {endpoint} that was already disposed")]
+        private partial void LogAlreadyDisposedConnectionPool(HostEndpointWithPort endpoint);
 
         #endregion
     }
