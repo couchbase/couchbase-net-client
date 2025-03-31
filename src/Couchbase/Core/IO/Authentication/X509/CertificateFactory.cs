@@ -83,7 +83,7 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
         /// <remarks>
         /// This in-memory certificate does not work on .NET Framework (legacy) clients.
         /// </remarks>
-        [Compatibility.InterfaceStability(Compatibility.Level.Volatile)]
+        [InterfaceStability(Level.Volatile)]
         internal static readonly X509Certificate2 CapellaCaCert = new X509Certificate2(
             rawData: System.Text.Encoding.ASCII.GetBytes(CapellaCaCertPem),
             password: (string?)null);
@@ -91,28 +91,11 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
         /// <summary>
         /// Default CA Certificates included with the SDK.
         /// </summary>
-        [Compatibility.InterfaceStability(Compatibility.Level.Volatile)]
+        [InterfaceStability(Level.Volatile)]
         public static readonly IReadOnlyList<X509Certificate2> DefaultCertificates = new List<X509Certificate2>()
         {
             CapellaCaCert,
         };
-
-        [InterfaceStability(Level.Volatile)]
-        public static bool ValidatorWithIgnoreNameMismatch(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors, ILogger? logger = null, IRedactor? redactor = null)
-        {
-            sslPolicyErrors = WithoutNameMismatch(sslPolicyErrors, logger);
-
-            if (sslPolicyErrors == SslPolicyErrors.None)
-            {
-                logger?.LogDebug("X509 Validation passed with ignore name mismatch.");
-                return true;
-            }
-            else
-            {
-                logger?.LogWarning("X509 Validation failed: {errors}", sslPolicyErrors);
-                return false;
-            }
-        }
 
         [InterfaceStability(Level.Volatile)]
         public static SslPolicyErrors WithoutNameMismatch(SslPolicyErrors errors, ILogger? logger = null)
@@ -122,7 +105,6 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
                 // clear the name mismatch
                 logger?.LogDebug("Clearing certificate name mismatch error.");
                 errors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
-                errors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
             }
 
             return errors;

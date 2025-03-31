@@ -131,23 +131,9 @@ namespace Couchbase.Core.IO.Connections
                 RemoteCertificateValidationCallback? certValidationCallback = _clusterOptions.KvCertificateCallbackValidation;
                 if (certValidationCallback == null)
                 {
-                    certValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                    {
-                        if (_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
-                            && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors, _sslLogger, _redactor))
-                        {
-                            return true;
-                        }
-
-                        if (certs != null)
-                        {
-                            var customCertsCallback = CertificateFactory.GetValidatorWithPredefinedCertificates(certs, _sslLogger, _redactor);
-                            return customCertsCallback(sender, certificate, chain, sslPolicyErrors);
-                        }
-
-                        var defaultCallback = CertificateFactory.GetValidatorWithDefaultCertificates(_sslLogger, _redactor);
-                        return defaultCallback(sender, certificate, chain, sslPolicyErrors);
-                    };
+                    CallbackCreator callbackCreator = new CallbackCreator(_clusterOptions.KvIgnoreRemoteCertificateNameMismatch, _sslLogger, _redactor, certs);
+                    certValidationCallback = (__sender,__certificate, __chain, __sslPolicyErrors) =>
+                        callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
                 }
 
                 var sslStream = new SslStream(new NetworkStream(socket, true), false,

@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -151,23 +152,9 @@ namespace Couchbase.Core.IO.HTTP
             RemoteCertificateValidationCallback? certValidationCallback = _context.ClusterOptions.HttpCertificateCallbackValidation;
             if (certValidationCallback == null)
             {
-                certValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                {
-                    if (_context.ClusterOptions.HttpIgnoreRemoteCertificateMismatch
-                        && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors))
-                    {
-                        return true;
-                    }
-
-                    if (certs != null)
-                    {
-                        var customCertsCallback = CertificateFactory.GetValidatorWithPredefinedCertificates(certs, _logger, _redactor);
-                        return customCertsCallback(sender, certificate, chain, sslPolicyErrors);
-                    }
-
-                    var callback = CertificateFactory.GetValidatorWithDefaultCertificates(_logger, _redactor);
-                    return callback(sender, certificate, chain, sslPolicyErrors);
-                };
+                CallbackCreator callbackCreator = new CallbackCreator( _context.ClusterOptions.HttpIgnoreRemoteCertificateMismatch, _logger, _redactor, certs);
+                certValidationCallback = certValidationCallback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
+                    callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
             }
 
             handler.SslOptions.RemoteCertificateValidationCallback = certValidationCallback;
@@ -216,7 +203,7 @@ namespace Couchbase.Core.IO.HTTP
         }
 
 #if !NETCOREAPP3_1_OR_GREATER
-        private static Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool>
+        private Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool>
             CreateCertificateValidator(ClusterOptions clusterOptions)
         {
             bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
@@ -225,14 +212,10 @@ namespace Couchbase.Core.IO.HTTP
                 var callback = clusterOptions.HttpCertificateCallbackValidation;
                 if (callback == null)
                 {
-                    if (clusterOptions.HttpIgnoreRemoteCertificateMismatch)
-                    {
-                        return CertificateFactory.ValidatorWithIgnoreNameMismatch(request, certificate, chain, sslPolicyErrors);
-                    }
-
-                    return sslPolicyErrors == SslPolicyErrors.None;
+                    CallbackCreator callbackCreator = new CallbackCreator(clusterOptions.HttpIgnoreRemoteCertificateMismatch, _logger, _redactor, null);
+                    callback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
+                        callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
                 }
-
                 return callback(request, certificate, chain, sslPolicyErrors);
             }
 
