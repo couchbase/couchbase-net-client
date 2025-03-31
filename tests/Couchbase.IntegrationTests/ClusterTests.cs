@@ -1,6 +1,9 @@
+
 using System;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
@@ -253,6 +256,70 @@ namespace Couchbase.IntegrationTests
                     new QueryOptions().Parameter("African Swallows")
                 ));
             }*/
+        }
+
+        [Fact (Skip = "Certificate tests Need manual setup and running. Comment out the Skip() to run")]
+        public async Task Test_Certificates()
+        {
+            // Taken from the code given in the Capella UI for connecting with the SDK.
+            // This example should work without ignoring certificate name mismatches.
+            // to cause it to fail, use a hostname different from that in the certificate
+            // i.e. if the name in the certificate is IP:127.0.0.1, use localhost instead.
+            // Log at Debug and search the log file for X509
+            /// tail -f ./tests/Couchbase.IntegrationTests/bin/Debug/net8.0/Logs/myapp-20250401.txt  | grep X509
+
+            // Update this to your cluster
+            var endpoint = "127.0.0.1";
+            var bucketName = "travel-sample";
+
+            // In the cloud dashboard, go to Clusters -> <your cluster> -> Connect -> Database Access -> Manage Credentials
+            var username = "clientuser";
+            var password = "password";
+            // User Input ends here.
+
+            // default without overriding any callbacks.
+            {
+                // Initialize the Connection
+                var opts = new ClusterOptions().WithCredentials(username, password);
+                opts.EnableTls = true;
+                opts.ForceIpAsTargetHost = false;
+                opts.KvIgnoreRemoteCertificateNameMismatch = false;
+                opts.HttpIgnoreRemoteCertificateMismatch = false;
+                X509Certificate2[] certs = new X509Certificate2[1];
+                const string capemPath = "/Users/michaelreiche/ca.pem";
+                certs[0] = new X509Certificate2(capemPath);
+                opts.WithX509CertificateFactory(CertificateFactory.FromCertificates(certs));
+
+                IServiceCollection serviceCollection = new ServiceCollection();
+                serviceCollection.AddLogging(builder => builder
+                    .AddFilter(level => level >= LogLevel.Trace)
+                );
+
+                var loggerFactory = serviceCollection.BuildServiceProvider()
+                    .GetService<ILoggerFactory>();
+                loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+                opts.WithLogging(loggerFactory);
+
+                var cluster =
+                    await Couchbase.Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(5));
+                var bucket = await cluster.BucketAsync(bucketName);
+                var collection = bucket.DefaultCollection();
+
+
+                // Store a Document
+                var upsertResult = await collection.UpsertAsync("king_arthur", new
+                {
+                    Name = "Arthur",
+                    Email = "kingarthur@couchbase.com",
+                    Interests = new[] { "Holy Grail", "African Swallows" }
+                });
+
+                // Load the Document and print it
+                var getResult = await collection.GetAsync("king_arthur");
+                Console.WriteLine(getResult.ContentAs<dynamic>());
+            }
         }
 
         [Fact]
