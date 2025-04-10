@@ -707,6 +707,7 @@ namespace Couchbase.Core.IO.Operations
                 if (status == ResponseStatus.Success
                     || status == ResponseStatus.VBucketBelongsToAnotherServer
                     || status == ResponseStatus.AuthenticationContinue
+                    || status == ResponseStatus.AuthenticationError
                     || status == ResponseStatus.SubDocMultiPathFailure
                     || status == ResponseStatus.SubdocMultiPathFailureDeleted
                     || status == ResponseStatus.SubDocSuccessDeletedDocument

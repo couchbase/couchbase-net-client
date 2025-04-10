@@ -100,7 +100,7 @@ namespace Couchbase.Core.IO.Authentication
             if (status != ResponseStatus.Success && status != ResponseStatus.AuthenticationContinue)
             {
                 throw new AuthenticationFailureException(
-                    $"Cannot authenticate the user. Reason: {status}");
+                    $"Cannot authenticate the user. Reason: {status}, Context: {op.GetValue()}");
             }
 
             if (status == ResponseStatus.Success)

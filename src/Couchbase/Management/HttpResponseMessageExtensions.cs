@@ -54,6 +54,10 @@ namespace Couchbase.Management
             {
                 throw new IndexNotFoundException(ctx);
             }
+            if (msg.StatusCode == HttpStatusCode.Forbidden && ctx.Message.Contains("Password expired"))
+            {
+                throw new AuthenticationFailureException(ctx);
+            }
 
             if (msg.StatusCode == HttpStatusCode.BadRequest &&
                 ctx.Message.Contains("Number of vbuckets cannot be modified"))

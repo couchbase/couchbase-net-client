@@ -125,6 +125,11 @@ namespace Couchbase.Query
                 //query_context *was* included in the request, but the server doesn't support it
                 if (error.Code == 1065 && error.Message.Contains("query_context"))
                     return new FeatureNotAvailableException("query_context not available on this server version");
+
+                if (error.Code == 2120 && error.Message.Contains("Failure to authenticate user"))
+                {
+                    return new AuthenticationFailureException(context);
+                }
             }
 
             return new CouchbaseException(context);
