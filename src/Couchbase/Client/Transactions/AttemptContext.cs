@@ -792,7 +792,10 @@ namespace Couchbase.Client.Transactions
                                                     "update cas as we are only resolving ambiguity");
                                                 docAlreadyExistsResult =
                                                     docWithMeta.GetPostTransactionResult();
-                                                docAlreadyExistsResult.Cas = docWithMeta!.Cas;
+                                                var stagedMutation =
+                                                    new StagedMutation(docAlreadyExistsResult,
+                                                        content, StagedMutationType.Insert);
+                                                _stagedMutations.Add(stagedMutation);
                                                 return (RepeatAction.NoRepeat,
                                                     RepeatAction.NoRepeat);
                                             }
@@ -1445,6 +1448,7 @@ namespace Couchbase.Client.Transactions
                     .DoNotRollbackAttempt()
                     .Cause(new AttemptExpiredException(this,
                         "Commit expired in HandleDocChangedDuringCommit"))
+                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionFailedPostCommit)
                     .Build();
             }
             try
@@ -2392,12 +2396,28 @@ namespace Couchbase.Client.Transactions
             }
         }
 
+        private static string DurabilityLevelToString(DurabilityLevel durabilityLevel)
+        {
+            return durabilityLevel switch
+            {
+                DurabilityLevel.None => "NONE",
+                DurabilityLevel.Majority => "MAJORITY",
+                DurabilityLevel.MajorityAndPersistToActive => "MAJORITY_AND_PERSIST_TO_ACTIVE",
+                DurabilityLevel.PersistToMajority => "PERSIST_TO_MAJORITY",
+                _ => durabilityLevel.ToString()
+            };
+        }
+
         private QueryTxData CreateBeginWorkTxData()
         {
-            var state = new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
-            var txConfig = new TxDataReportedConfig((long?)_config?.KeyValueTimeout?.TotalMilliseconds ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
+            var state =
+                new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
+            var txConfig = new TxDataReportedConfig(
+                (long?)_config?.KeyValueTimeout?.TotalMilliseconds ?? 10_000, AtrIds.NumAtrs,
+                DurabilityLevelToString(_effectiveDurabilityLevel));
 
-            var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
+            var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ??
+                            Array.Empty<TxDataMutation>();
             var txid = new CompositeId()
             {
                 Transactionid = _overallContext.TransactionId,
@@ -2628,14 +2648,6 @@ namespace Couchbase.Client.Transactions
         {
             queryOptions
                 .ScanConsistency(_config.ScanConsistency ?? QueryScanConsistency.RequestPlus)
-                .Raw("durability_level", _effectiveDurabilityLevel switch
-                {
-                    DurabilityLevel.None => "none",
-                    DurabilityLevel.Majority => "majority",
-                    DurabilityLevel.MajorityAndPersistToActive => "majorityAndPersistActive",
-                    DurabilityLevel.PersistToMajority => "persistToMajority",
-                    _ => _effectiveDurabilityLevel.ToString()
-                })
                 .Raw("txtimeout", $"{_overallContext.RemainingUntilExpiration.TotalMilliseconds}ms");
 
             if (_config.MetadataCollection != null)

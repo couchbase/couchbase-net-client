@@ -191,8 +191,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             var previousErrors = previousErrorOperations.ToList();
             var retryTransaction = previousErrors.All(ex => ex.RetryTransaction);
             var rollback = previousErrors.All(ex => ex.AutoRollbackAttempt);
-            var cause = new PreviousOperationFailedException(previousErrors);
-            var builder = CreateError(_ctx, FailOther, cause);
+            var builder = CreateError(_ctx, FailOther);
             if (retryTransaction)
             {
                 builder.RetryTransaction();

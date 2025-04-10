@@ -14,12 +14,12 @@ namespace Couchbase.Client.Transactions.Components
         public StagedMutationType Type { get; }
         public MutationToken MutationToken { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken mutationToken)
+        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken? mutationToken = null)
         {
             Doc = doc;
             Content = content;
             Type = type;
-            MutationToken = mutationToken;
+            MutationToken = mutationToken ?? MutationToken.Empty;
         }
 
         public JObject ForAtr() => new JObject(
