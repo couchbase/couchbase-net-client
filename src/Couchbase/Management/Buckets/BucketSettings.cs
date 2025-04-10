@@ -84,19 +84,26 @@ namespace Couchbase.Management.Buckets
         public StorageBackend? StorageBackend { get; set; }
 
         /// <summary>
+        /// The number of vBuckets the bucket should have. If not set, the server default will be used.
+        /// Refer to the Server documentation for the <see cref="StorageBackend"/> for more information on valid numVBuckets values.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        public uint? NumVBuckets { get; set; }
+
+        /// <summary>
         /// Whether to enable history retention on collections by default.
         /// </summary>
-        public bool? HistoryRetentionCollectionDefault { get; init; }
+        public bool? HistoryRetentionCollectionDefault { get; set; }
 
         /// <summary>
         /// The maximum size, in bytes, of the change history that is written to disk for all collections in this bucket.
         /// </summary>
-        public ulong? HistoryRetentionBytes { get; init; }
+        public ulong? HistoryRetentionBytes { get; set; }
 
         /// <summary>
         /// The maximum duration of history each vBucket should aim to retain on disk.
         /// </summary>
-        public TimeSpan? HistoryRetentionDuration { get; init; }
+        public TimeSpan? HistoryRetentionDuration { get; set; }
 
         /// <summary>
         /// Validates the settings and creates a list of name value pairs to send to the server as form values.
@@ -195,6 +202,11 @@ namespace Couchbase.Management.Buckets
             if (settings.StorageBackend.HasValue)
             {
                 values.Add("storageBackend", settings.StorageBackend.GetDescription());
+            }
+
+            if (settings.NumVBuckets.HasValue)
+            {
+                values.Add("numVBuckets", settings.NumVBuckets.Value.ToStringInvariant());
             }
 
             return values;

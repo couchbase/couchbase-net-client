@@ -54,6 +54,12 @@ namespace Couchbase.Management
             {
                 throw new IndexNotFoundException(ctx);
             }
+
+            if (msg.StatusCode == HttpStatusCode.BadRequest &&
+                ctx.Message.Contains("Number of vbuckets cannot be modified"))
+            {
+                throw new InvalidArgumentException(ctx);
+            }
             throw new CouchbaseException
             {
                 Context = ctx

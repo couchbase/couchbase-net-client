@@ -167,6 +167,8 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
+                    _logger.LogError("Unable to drop bucket with name {bucketName} because it does not exist",
+                        _redactor.MetaData(bucketName));
                     throw new BucketNotFoundException(bucketName);
                 }
 
@@ -183,11 +185,6 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
-            }
-            catch (BucketNotFoundException)
-            {
-                _logger.LogError("Unable to drop bucket with name {bucketName} because it does not exist",
-                    _redactor.MetaData(bucketName));
             }
             catch (Exception exception)
             {

@@ -86,6 +86,22 @@ namespace Couchbase.Management.Buckets
                     case "controllers":
                         settings.FlushEnabled = ReadFlushEnabled(ref reader);
                         break;
+
+                    case "historyRetentionCollectionDefault":
+                        settings.HistoryRetentionCollectionDefault = reader.GetBoolean();
+                        break;
+
+                    case "historyRetentionBytes":
+                        settings.HistoryRetentionBytes = reader.GetUInt64();
+                        break;
+
+                    case "historyRetentionSeconds":
+                        settings.HistoryRetentionDuration = TimeSpan.FromSeconds(reader.GetInt64());
+                        break;
+
+                    case "numVBuckets":
+                        settings.NumVBuckets = reader.GetUInt32();
+                        break;
                 }
 
                 if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
@@ -136,7 +152,7 @@ namespace Couchbase.Management.Buckets
 
                 if (propertyName == "rawRAM")
                 {
-                    ramQuota = reader.GetInt64();
+                    ramQuota = reader.GetInt64() / 1024 / 1024;
                 }
 
                 if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
