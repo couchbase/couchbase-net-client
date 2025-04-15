@@ -59,6 +59,7 @@ namespace Couchbase.Query
         private volatile bool _isUsed;
         private bool _preserveExpiry;
         private bool? _useReplica;
+        private bool _streamResults;
 
         internal QueryOptions CloneIfUsedAlready()
         {
@@ -154,6 +155,11 @@ namespace Couchbase.Query
         /// </summary>
         public QueryOptions()
         {
+#if NET5_0_OR_GREATER
+            _streamResults = true;
+#else
+            _streamResults = false;
+#endif
         }
 
         /// <summary>
@@ -799,6 +805,25 @@ namespace Couchbase.Query
             _flexIndex = flexIndex;
             return this;
         }
+
+        /// <summary>
+        /// If .NET5 or greater, this has no effect, we always stream the results.   However in
+        /// older .NET, we default to false, limiting the size of the results to 2Gb.   If you are
+        /// using .NET Framework 4.8, for instance, and need to return result sets of >2Gb, set
+        /// this to true.   However, you _must_ Dispose of the returned QueryResult, or you will
+        /// leak HTTP connections.
+        /// </summary>
+        /// <param name="streamResults"></param> Setting to true will make the underlying HTTP
+        /// connection block only while reading the headers, then will stream the rest of the body
+        /// of the response.
+        /// <returns></returns>
+        public QueryOptions StreamResults(bool streamResults)
+        {
+            _streamResults = streamResults;
+            return this;
+        }
+
+        internal bool StreamResultsInternal => _streamResults;
 
         /// <summary>
         ///The alias for the namespace:bucket:scope:collection

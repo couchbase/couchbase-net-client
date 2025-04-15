@@ -234,9 +234,11 @@ namespace Couchbase.Query
                     request.Version = httpClient.DefaultRequestVersion;
     #endif
 
-                    var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, cts.FallbackToToken(options.Token)).ConfigureAwait(false);
-
-                    dispatchSpan.Dispose();
+                    var response = await httpClient.SendAsync(request,
+                        options.StreamResultsInternal
+                            ? HttpCompletionOption.ResponseHeadersRead
+                            : HttpClientFactory.DefaultCompletionOption,
+                        cts.FallbackToToken(options.Token)).ConfigureAwait(false);
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
