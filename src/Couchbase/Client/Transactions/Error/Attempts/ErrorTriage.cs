@@ -95,7 +95,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
         public (ErrorClass ec, TransactionOperationFailedException? toThrow) TriageCreateStagedInsertErrors(Exception err, in bool expirationOvertimeMode)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#Creating-Staged-Inserts-Protocol-20-version
-            _logger?.LogDebug("{method} called for {err}, with expirationOvertimeMode={otMode}", nameof(TriageCreateStagedInsertErrors), err, expirationOvertimeMode);
+            _logger?.LogDebug("{method} called for {err}, with expirationOvertimeMode={otMode}", nameof(TriageCreateStagedInsertErrors), err.Message, expirationOvertimeMode);
             if (err is FeatureNotAvailableException)
             {
                 // If err is FeatureNotFoundException, then this cluster does not support creating shadow
