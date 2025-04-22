@@ -460,7 +460,7 @@ namespace Couchbase.Client.Transactions
             var opId = Guid.NewGuid().ToString();
             if (stagedOld?.Type == StagedMutationType.Insert)
             {
-                return await CreateStagedInsert(doc.Collection, doc.Id, content, opId, stagedOld.Doc.Cas, traceSpan.Item)
+                return await CreateStagedInsert(doc.Collection, doc.Id, content, opId, doc.Cas, traceSpan.Item)
                     .CAF();
             }
 
@@ -746,7 +746,7 @@ namespace Couchbase.Client.Transactions
                     catch (Exception ex)
                     {
                         Logger.LogDebug("{method} got {ex} attempting to write staged insert",
-                            nameof(CreateStagedInsert), ex);
+                            nameof(CreateStagedInsert), ex.Message);
                         var triaged = _triage.TriageCreateStagedInsertErrors(ex, _expirationOvertimeMode);
                         switch (triaged.ec)
                         {
@@ -800,7 +800,7 @@ namespace Couchbase.Client.Transactions
                                                     RepeatAction.NoRepeat);
                                             }
 
-                                            Logger.LogWarning("concurrent insert of #{id}", id);
+                                            Logger.LogWarning("concurrent insert of #{redacted_id}", Redactor.UserData(id));
                                             throw CreateError(this, ErrorClass.FailOther,
                                                 new DocumentExistsException()).Build();
                                         }
@@ -820,7 +820,6 @@ namespace Couchbase.Client.Transactions
                                             // Perform this algorithm (createStagedInsert) from the top with cas=the cas from the get.
                                             cas = docWithMeta!.Cas;
 
-                                            // (innerRepeat, createStagedInsertRepeat)
                                             return (RepeatAction.NoRepeat,
                                                 RepeatAction.RepeatNoDelay);
                                         }
@@ -949,6 +948,7 @@ namespace Couchbase.Client.Transactions
                                 _expirationOvertimeMode = true;
                                 break;
                             case ErrorClass.FailAmbiguous:
+                            case ErrorClass.FailTransient:
                                 return RepeatAction.RepeatWithDelay;
                             case ErrorClass.FailPathAlreadyExists:
                                 // proceed as though op was successful.
@@ -1414,6 +1414,8 @@ namespace Couchbase.Client.Transactions
                         case ErrorClass.FailCasMismatch:
                             RepeatAction returnVal;
                             (returnVal, cas) = await HandleDocChangedDuringCommit(sm, cas).CAF();
+                            if (returnVal !=  RepeatAction.NoRepeat)
+                                ambiguityResolutionMode = true;
                             return returnVal;
                         case ErrorClass.FailDocNotFound:
                             // TODO: publish IllegalDocumentState event to the application.
@@ -1454,13 +1456,8 @@ namespace Couchbase.Client.Transactions
             try
             {
                 await _testHooks.BeforeDocChangedDuringCommit(this, sm.Doc.Id).CAF();
-                var doc = await this.GetWithMav(sm.Doc.Collection, sm.Doc.Id).CAF();
-                if (doc?.TransactionXattrs?.Id?.Transactionid != TransactionId ||
-                    (doc?.TransactionXattrs == null)) {
-                    return (RepeatAction.NoRepeat, cas);
-                }
                 // Same txn/attempt, so let's just retry with the new cas
-                cas = doc.Cas;
+                cas = 0;
                 return (RepeatAction.RepeatNoDelay, cas);
             } catch (Exception ex)
             {
@@ -2058,7 +2055,6 @@ namespace Couchbase.Client.Transactions
                     {
                         atrCollection = await _config.MetadataCollection!.ToCouchbaseCollection(_cluster).CAF();
                     }
-                    Logger.LogDebug("Setting _atr!!!");
                     _atr = new AtrRepository(
                         attemptId: AttemptId,
                         overallContext: _overallContext,

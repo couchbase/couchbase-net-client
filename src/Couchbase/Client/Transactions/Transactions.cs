@@ -90,8 +90,15 @@ namespace Couchbase.Client.Transactions
 
         internal void ConfigureTestHooks(ITestHooks testHooks, ICleanupTestHooks cleanupHooks)
         {
+            // always set the TestHooks
             TestHooks = testHooks;
-            CleanupTestHooks = cleanupHooks;
+
+
+            // only set the cleanup hooks once
+            if (CleanupTestHooks == DefaultCleanupTestHooks.Instance)
+            {
+                CleanupTestHooks = cleanupHooks;
+            }
         }
 
         private Transactions(ICluster cluster, TransactionsConfig config)
