@@ -53,6 +53,7 @@ namespace Couchbase.Client.Transactions
         private readonly TransactionContext _overallContext;
         private readonly MergedTransactionConfig _config;
         private readonly ITestHooks _testHooks;
+        private readonly int _unstagingConcurrency = 100;
         internal IRedactor Redactor { get; }
         internal AttemptStates AttemptState = AttemptStates.NOTHING_WRITTEN;
         private readonly ErrorTriage _triage;
@@ -1272,8 +1273,19 @@ namespace Couchbase.Client.Transactions
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             var allStagedMutations = _stagedMutations.ToList();
-            foreach (var sm in allStagedMutations)
+            var sem = new SemaphoreSlim(_unstagingConcurrency);
+            var tasks = allStagedMutations.Select(async sm =>
             {
+                await UnstageDoc(sm, sem).CAF();
+            });
+            await Task.WhenAll(tasks).CAF();
+        }
+
+        private async Task UnstageDoc(StagedMutation sm, SemaphoreSlim sem)
+        {
+            try
+            {
+                await sem.WaitAsync().CAF();
                 (var cas, var content) = await FetchIfNeededBeforeUnstage(sm).CAF();
                 switch (sm.Type)
                 {
@@ -1281,7 +1293,8 @@ namespace Couchbase.Client.Transactions
                         await UnstageRemove(sm).CAF();
                         break;
                     case StagedMutationType.Insert:
-                        await UnstageInsertOrReplace(sm, cas, content, insertMode: true, ambiguityResolutionMode: false)
+                        await UnstageInsertOrReplace(sm, cas, content, insertMode: true,
+                                ambiguityResolutionMode: false)
                             .CAF();
                         break;
                     case StagedMutationType.Replace:
@@ -1289,8 +1302,13 @@ namespace Couchbase.Client.Transactions
                             ambiguityResolutionMode: false).CAF();
                         break;
                     default:
-                        throw new InvalidOperationException($"Cannot un-stage transaction mutation of type {sm.Type}");
+                        throw new InvalidOperationException(
+                            $"Cannot un-stage transaction mutation of type {sm.Type}");
                 }
+            }
+            finally
+            {
+                sem.Release();
             }
         }
 
@@ -1848,24 +1866,33 @@ namespace Couchbase.Client.Transactions
 
             await SetAtrAborted(isAppRollback, traceSpan.Item).CAF();
             var allMutations = _stagedMutations.ToList();
-            foreach (var sm in allMutations)
+            var sem = new SemaphoreSlim(_unstagingConcurrency);
+            var tasks = allMutations.Select(async sm =>
             {
-                switch (sm.Type)
+                try
                 {
-                    case StagedMutationType.Insert:
-                        await RollbackStagedInsert(sm, traceSpan.Item).CAF();
-                        break;
-                    case StagedMutationType.Remove:
-                    case StagedMutationType.Replace:
-                        await RollbackStagedReplaceOrRemove(sm, traceSpan.Item).CAF();
-                        break;
-                    default:
-                        throw new InvalidOperationException(sm.Type +
-                                                            " is not a supported mutation type for rollback.");
+                    await sem.WaitAsync().CAF();
+                    switch (sm.Type)
+                    {
+                        case StagedMutationType.Insert:
+                            await RollbackStagedInsert(sm, traceSpan.Item).CAF();
+                            break;
+                        case StagedMutationType.Remove:
+                        case StagedMutationType.Replace:
+                            await RollbackStagedReplaceOrRemove(sm, traceSpan.Item).CAF();
+                            break;
+                        default:
+                            throw new InvalidOperationException(sm.Type +
+                                                                " is not a supported mutation type for rollback.");
 
+                    }
                 }
-            }
-
+                finally
+                {
+                    sem.Release();
+                }
+            });
+            await  Task.WhenAll(tasks).CAF();
             await SetAtrRolledBack(traceSpan.Item).CAF();
         }
 
