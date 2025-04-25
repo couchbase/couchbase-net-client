@@ -18,6 +18,8 @@ namespace Couchbase.Client.Transactions.DataAccess
         Task ClearTransactionMetadata(ICouchbaseCollection collection, string docId, ulong cas, bool isDeleted);
 
         Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true);
+        bool SupportsReplaceBodyWithXattr(ICouchbaseCollection collection);
+
     }
 }
 

@@ -179,7 +179,7 @@ namespace Couchbase.Client.Transactions
                If the doc already exists in there as a REPLACE or INSERT return its post-transaction content in a TransactionGetResult.
                 Protocol 2.0 amendment: and TransactionGetResult::links().isDeleted() reflecting whether it is a tombstone or not.
                Else if the doc already exists in there as a remove, return empty.
-             */
+            */
             var staged = _stagedMutations.Find(collection, id);
             if (staged != null)
             {
@@ -187,17 +187,17 @@ namespace Couchbase.Client.Transactions
                 {
                     case StagedMutationType.Insert:
                     case StagedMutationType.Replace:
-                        // LOGGER.info(attemptId, "found own-write of mutated doc %s", RedactableArgument.redactUser(id));
-                        return TransactionGetResult.FromOther(staged.Doc, new JObjectContentWrapper(staged.Content));
+                        // we will go ahead and read the doc from the server below in this case
+                        break;
                     case StagedMutationType.Remove:
-                        // LOGGER.info(attemptId, "found own-write of removed doc %s", RedactableArgument.redactUser(id));
+                        // if we staged a Remove, then we will not read the doc from the server
+                        // as even if it changed, we still want this txn to remove it.
                         return null;
                     default:
                         throw new InvalidOperationException(
                             $"Document '{Redactor.UserData(id)}' was staged with type {staged.Type}");
                 }
             }
-
             try
             {
                 try
@@ -1445,6 +1445,11 @@ namespace Couchbase.Client.Transactions
                             if (!insertMode)
                                 return RepeatAction.NoRepeat;
                             if (ambiguityResolutionMode)
+                            {
+                                throw _triage.AssertNotNull(triaged, ex);
+                            }
+
+                            if (_docs.SupportsReplaceBodyWithXattr(sm.Doc.Collection))
                             {
                                 throw _triage.AssertNotNull(triaged, ex);
                             }
