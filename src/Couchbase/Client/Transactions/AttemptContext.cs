@@ -948,8 +948,9 @@ namespace Couchbase.Client.Transactions
                             case ErrorClass.FailExpiry:
                                 _expirationOvertimeMode = true;
                                 break;
-                            case ErrorClass.FailAmbiguous:
                             case ErrorClass.FailTransient:
+                                throw _triage.AssertNotNull(triaged, ex);
+                            case ErrorClass.FailAmbiguous:
                                 return RepeatAction.RepeatWithDelay;
                             case ErrorClass.FailPathAlreadyExists:
                                 // proceed as though op was successful.
