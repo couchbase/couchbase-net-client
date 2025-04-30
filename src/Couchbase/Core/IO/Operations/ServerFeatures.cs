@@ -135,7 +135,13 @@ namespace Couchbase.Core.IO.Operations
         /// socket connection, so a response with a NotMyVbucket status will only have a body if the
         /// pushed version is older than the active configuration.
         /// </summary>
-        DedupeNotMyVbucketClustermap = 0x1e
+        DedupeNotMyVbucketClustermap = 0x1e,
+
+        /// <summary>
+        /// Once this flag is negotiated, the node will accept binary xattr data.   This allows the
+        /// transactions to stage binary data, enabling transactions on binary documents.
+        /// </summary>
+        SubdocBinaryXattr = 0x21
     }
 }
 

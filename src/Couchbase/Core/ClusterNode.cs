@@ -296,6 +296,7 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.PreserveTtl,
                 IO.Operations.ServerFeatures.JSON,
                 IO.Operations.ServerFeatures.SubDocReplicaRead,
+                IO.Operations.ServerFeatures.SubdocBinaryXattr,
             };
 
             if (_context.ClusterOptions.Experiments.EnablePushConfig)

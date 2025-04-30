@@ -105,6 +105,8 @@ namespace Couchbase.Core
 
         public bool SupportsPreserveTtl { get; internal set; }
 
+        public bool SupportsBinaryXattr { get; internal set; }
+
         public CancellationToken CancellationToken => _tokenSource.Token;
 
         public void Start()
@@ -433,6 +435,7 @@ namespace Couchbase.Core
                                 if (node.ServerFeatures != null)
                                 {
                                     SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
+                                    SupportsBinaryXattr = node.ServerFeatures.SubdocBinaryXattr;
                                 }
 
                                 AddNode(node);
@@ -450,6 +453,7 @@ namespace Couchbase.Core
                                 if (newNode.ServerFeatures != null)
                                 {
                                     SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
+                                    SupportsBinaryXattr = newNode.ServerFeatures.SubdocBinaryXattr;
                                 }
 
                                 AddNode(newNode);
@@ -752,6 +756,7 @@ namespace Couchbase.Core
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                                 await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                                SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
 
                             Nodes.Add(clusterNode);
@@ -769,6 +774,7 @@ namespace Couchbase.Core
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                                 await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                                SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
                         }
 
@@ -796,6 +802,7 @@ namespace Couchbase.Core
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                            SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
                     }
                     else
@@ -816,6 +823,7 @@ namespace Couchbase.Core
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                            SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
 
                         AddNode(clusterNode);
@@ -913,6 +921,7 @@ namespace Couchbase.Core
                                     CancellationToken).ConfigureAwait(false);
 
                             SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
+                            SupportsBinaryXattr = newNode.ServerFeatures.SubdocBinaryXattr;
                             AddNode(newNode);
 
                             //if the global config is updated replace it

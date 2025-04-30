@@ -91,6 +91,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.DedupeNotMyVbucketClustermap"/>
         public bool DedupeNotMyVbucketClustermap { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.SubdocBinaryXattr"/>
+        public bool SubdocBinaryXattr { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -216,6 +219,9 @@ namespace Couchbase.Core
 
                     case ServerFeatures.DedupeNotMyVbucketClustermap:
                         DedupeNotMyVbucketClustermap = true;
+                        break;
+                    case ServerFeatures.SubdocBinaryXattr:
+                        SubdocBinaryXattr = true;
                         break;
                 }
             }
