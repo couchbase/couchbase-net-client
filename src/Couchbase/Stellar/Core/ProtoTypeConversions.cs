@@ -93,7 +93,7 @@ internal static class TypeConversionExtensions
         {
             CoreOpCode.Get => throw new ArgumentOutOfRangeException(nameof(opCode),
                 "value is for KV Get, not SubDoc"),
-
+            CoreOpCode.Set => ProtoMutateInOpCode.Replace,
             // taken from https://github.com/couchbase/couchbase-jvm-clients/blob/master/core-io/src/main/java/com/couchbase/client/core/protostellar/kv/CoreProtostellarKeyValueRequests.java
             CoreOpCode.SubCounter => ProtoMutateInOpCode.Counter,
             CoreOpCode.SubReplace => ProtoMutateInOpCode.Replace,
