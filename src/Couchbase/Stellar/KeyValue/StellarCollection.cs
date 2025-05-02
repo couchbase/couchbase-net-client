@@ -238,7 +238,7 @@ internal class StellarCollection : ICouchbaseCollection
             {
                 Path = spec.Path,
                 Operation = spec.OpCode.ToProtoLookupInCode(),
-                Flags = spec.PathFlags.ToProtoLookupInFlags(),
+                Flags = spec.PathFlags.ToProtoLookupInFlags()
             });
         }
 
@@ -294,16 +294,16 @@ internal class StellarCollection : ICouchbaseCollection
 
         foreach (var spec in specs)
         {
-            var newSpec = new MutateInRequest.Types.Spec()
+            var newSpec = new MutateInRequest.Types.Spec
             {
                 Path = spec.Path,
                 Operation = spec.OpCode.ToProtoMutateInCode(),
-                Flags = spec.PathFlags.ToProtoMutateInFlags(),
+                Flags = spec.PathFlags.ToProtoMutateInFlags()
             };
 
             if (spec.Value is not null)
             {
-                newSpec.Content = await SerializeToByteString(spec.Value, _stellarCluster.TypeSerializer, opts.Token).ConfigureAwait(false);
+                newSpec.Content = await SerializeToByteString(spec.Value, _stellarCluster.TypeSerializer, opts.Token, spec.RemoveBrackets).ConfigureAwait(false);
             }
 
             request.Specs.Add(newSpec);
@@ -486,16 +486,16 @@ internal class StellarCollection : ICouchbaseCollection
         }
     }
 
-
     private static async Task<ByteString> SerializeToByteString<T>(T content, ITypeSerializer serializer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool removeBrackets = false)
     {
         using var ms = new MemoryStream();
         await serializer.SerializeAsync(ms, content, cancellationToken).ConfigureAwait(false);
-        ms.Position = 0;
-        var serializedContent =
-            await ByteString.FromStreamAsync(ms, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return serializedContent;
+        ReadOnlyMemory<byte> bytes = ms.GetBuffer().AsMemory(0, (int) ms.Length);
+        // The .NET API uses a removeBrackets bool to handle multi-value array operations.
+        // Therefore, we need to handle this here.
+        if (removeBrackets) bytes = bytes.StripBrackets();
+        return ByteString.CopyFrom(bytes.ToArray());
     }
 
     private T KeyedRequest<T>(string key) where T : IKeySpec, new()
