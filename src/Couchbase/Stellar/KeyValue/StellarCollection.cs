@@ -287,11 +287,7 @@ internal class StellarCollection : ICouchbaseCollection
         {
             request.ExpiryTime = expiryTimestamp;
         }
-        var durability = opts.DurabilityLevel.ToProto();
-        if (durability.HasValue)
-        {
-            request.DurabilityLevel = durability.Value;
-        }
+        if (opts.DurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
         request.StoreSemantic = opts.StoreSemantics.ToProto();
 
@@ -565,11 +561,7 @@ internal class StellarCollection : ICouchbaseCollection
             request.ExpiryTime = expiryTimestamp;
         }
 
-        var durabilityLevel = kvDurabilityLevel.ToProto();
-        if (durabilityLevel.HasValue)
-        {
-            request.DurabilityLevel = durabilityLevel.Value;
-        }
+        if (kvDurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
         request.Content = await SerializeToByteString(content, serializer, cancellationToken).ConfigureAwait(false);
         return request;

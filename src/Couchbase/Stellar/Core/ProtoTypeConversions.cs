@@ -13,6 +13,7 @@ using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
+using Newtonsoft.Json;
 using BucketType = Couchbase.Protostellar.Admin.Bucket.V1.BucketType;
 using CompressionMode = Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode;
 using ConflictResolutionType = Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType;
@@ -40,16 +41,26 @@ namespace Couchbase.Stellar.Core;
 
 internal static class TypeConversionExtensions
 {
-    public static ProtoKv.DurabilityLevel? ToProto(this CoreKv.DurabilityLevel durabilityLevel) =>
-        durabilityLevel switch
+    public static bool TryConvertToProto(this CoreKv.DurabilityLevel durabilityLevel, out ProtoKv.DurabilityLevel protoDurability)
+    {
+        protoDurability = default;
+
+        switch (durabilityLevel)
         {
-            CoreKv.DurabilityLevel.None => null,
-            CoreKv.DurabilityLevel.Majority => ProtoKv.DurabilityLevel.Majority,
-            CoreKv.DurabilityLevel.PersistToMajority => ProtoKv.DurabilityLevel.PersistToMajority,
-            CoreKv.DurabilityLevel.MajorityAndPersistToActive => ProtoKv.DurabilityLevel.MajorityAndPersistToActive,
-            _ => throw new ArgumentOutOfRangeException(
-                $"{nameof(CoreKv.DurabilityLevel)} '{durabilityLevel}' is not supported using Protostellar")
-        };
+            case CoreKv.DurabilityLevel.Majority :
+                protoDurability = ProtoKv.DurabilityLevel.Majority;
+                return true;
+            case CoreKv.DurabilityLevel.PersistToMajority:
+                protoDurability = ProtoKv.DurabilityLevel.PersistToMajority;
+                return true;
+            case CoreKv.DurabilityLevel.MajorityAndPersistToActive:
+                protoDurability = ProtoKv.DurabilityLevel.MajorityAndPersistToActive;
+                return true;
+            case CoreKv.DurabilityLevel.None:
+            default:
+                return false;
+        }
+    }
 
     public static ProtoKv.MutateInRequest.Types.StoreSemantic ToProto(this CoreKv.StoreSemantics storeSemantics) =>
         storeSemantics switch
@@ -187,6 +198,57 @@ internal static class TypeConversionExtensions
             CoreQuery.QueryProfile.Timings => ProtoQuery.QueryRequest.Types.ProfileMode.Timings,
             _ => throw new ArgumentOutOfRangeException(paramName: nameof(coreProfile),
                 message: $"Not a supported QueryProfile: {coreProfile}")
+        };
+
+    public static Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode ToProto(this EvictionPolicyType evictionPolicy) =>
+        evictionPolicy switch
+        {
+            EvictionPolicyType.FullEviction => EvictionMode.Full,
+            EvictionPolicyType.ValueOnly => EvictionMode.ValueOnly,
+            EvictionPolicyType.NotRecentlyUsed => EvictionMode.NotRecentlyUsed,
+            EvictionPolicyType.NoEviction => EvictionMode.None,
+            _ => throw new ArgumentOutOfRangeException(nameof(evictionPolicy),
+                $"Not a supported EvictionPolicyType: {evictionPolicy}")
+        };
+
+    public static Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode ToProto(
+        this Couchbase.Management.Buckets.CompressionMode compressionMode) =>
+        compressionMode switch
+        {
+            Couchbase.Management.Buckets.CompressionMode.Off => CompressionMode.Off,
+            Couchbase.Management.Buckets.CompressionMode.Active => CompressionMode.Active,
+            Couchbase.Management.Buckets.CompressionMode.Passive => CompressionMode.Passive,
+            _ => throw new ArgumentOutOfRangeException(nameof(compressionMode),
+                $"Not a supported CompressionMode: {compressionMode}")
+        };
+
+    public static Couchbase.Protostellar.Admin.Bucket.V1.BucketType ToProto(
+        this Couchbase.Management.Buckets.BucketType bucketType) =>
+        bucketType switch
+        {
+            Couchbase.Management.Buckets.BucketType.Couchbase => BucketType.Couchbase,
+            Couchbase.Management.Buckets.BucketType.Ephemeral => BucketType.Ephemeral,
+            _ => throw new ArgumentOutOfRangeException(nameof(bucketType),
+                $"Not a supported BucketType: {bucketType}")
+        };
+
+    public static Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend ToProto(this Couchbase.Management.Buckets.StorageBackend storageBackend) =>
+        storageBackend switch
+    {
+        Couchbase.Management.Buckets.StorageBackend.Magma => StorageBackend.Magma,
+        Couchbase.Management.Buckets.StorageBackend.Couchstore => StorageBackend.Couchstore,
+        _ => throw new ArgumentOutOfRangeException(nameof(storageBackend),
+            $"Not a supported StorageBackend: {storageBackend}")
+    };
+
+    public static Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType ToProto(this Couchbase.Management.Buckets.ConflictResolutionType conflictResolutionType) =>
+        conflictResolutionType switch
+        {
+            Couchbase.Management.Buckets.ConflictResolutionType.Custom => ConflictResolutionType.Custom,
+            Couchbase.Management.Buckets.ConflictResolutionType.Timestamp => ConflictResolutionType.Timestamp,
+            Couchbase.Management.Buckets.ConflictResolutionType.SequenceNumber => ConflictResolutionType.SequenceNumber,
+            _ => throw new ArgumentOutOfRangeException(nameof(conflictResolutionType),
+                $"Not a supported ConflictResolutionType: {conflictResolutionType}")
         };
 
     public static ProtoFacet ToProto(this ISearchFacet coreFacet)
