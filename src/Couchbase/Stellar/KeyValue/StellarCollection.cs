@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -194,6 +195,8 @@ internal class StellarCollection : ICouchbaseCollection
     {
         _stellarCluster.ThrowIfBootStrapFailed();
 
+        if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
+
         var opts = options?.AsReadOnly() ?? InsertOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, opts.RequestSpan);
@@ -353,6 +356,8 @@ internal class StellarCollection : ICouchbaseCollection
     {
         _stellarCluster.ThrowIfBootStrapFailed();
 
+        if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
+
         var opts = options?.AsReadOnly() ?? ReplaceOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, opts.RequestSpan);
@@ -454,6 +459,8 @@ internal class StellarCollection : ICouchbaseCollection
     public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
     {
         _stellarCluster.ThrowIfBootStrapFailed();
+
+        if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
 
         var opts = options?.AsReadOnly() ?? UpsertOptions.DefaultReadOnly;
         var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
