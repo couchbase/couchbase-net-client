@@ -367,7 +367,7 @@ internal class StellarCollection : ICouchbaseCollection
             serializer: serializer,
             cancellationToken: opts.Token).ConfigureAwait(false);
 
-        if (request.Cas > 0)
+        if (opts.Cas > 0)
         {
             request.Cas = opts.Cas;
         }
@@ -518,7 +518,7 @@ internal class StellarCollection : ICouchbaseCollection
         if (preserveTtl)
         {
             // following behavior defined in Go and implied by protostellar
-            if (expiry != default)
+            if (expiry != TimeSpan.Zero)
             {
                 throw new NotSupportedException("Cannot mix Expiry and PreserveTtl = true");
             }
@@ -530,7 +530,7 @@ internal class StellarCollection : ICouchbaseCollection
 #pragma warning restore CS8625
         }
 
-        if (expiry != default)
+        if (expiry != TimeSpan.Zero)
         {
             return (null, Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow.Add(expiry)));
         }
