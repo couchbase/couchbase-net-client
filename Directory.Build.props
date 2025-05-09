@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- update this after a release-->
-    <CouchbaseNetClientReleasedVersion>3.7.0</CouchbaseNetClientReleasedVersion>
+    <CouchbaseNetClientReleasedVersion>3.8.0</CouchbaseNetClientReleasedVersion>
   </PropertyGroup>
   <PropertyGroup>
     <!-- libraries typically include NetStandardTargets for widest use cases -->
