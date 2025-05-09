@@ -47,7 +47,9 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
                 ConnectionString = _settings.Scheme + "://" + _settings.Hostname,
                 EnableDnsSrvResolution = _settings.EnableDnsSrvResolution,
                 HttpIgnoreRemoteCertificateMismatch = true,
-                KvIgnoreRemoteCertificateNameMismatch = true
+                KvIgnoreRemoteCertificateNameMismatch = true,
+                KvCertificateCallbackValidation = (_, _, _, _) => true,
+                HttpCertificateCallbackValidation = (_, _, _, _) => true
             };
 
             IServiceCollection serviceCollection = new ServiceCollection();

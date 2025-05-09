@@ -21,6 +21,7 @@ using Couchbase.Utils;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using DurabilityLevel = Couchbase.Protostellar.KV.V1.DurabilityLevel;
 using ExistsRequest = Couchbase.Protostellar.KV.V1.ExistsRequest;
 using GetAndLockRequest = Couchbase.Protostellar.KV.V1.GetAndLockRequest;
 using GetAndTouchRequest = Couchbase.Protostellar.KV.V1.GetAndTouchRequest;
@@ -38,7 +39,7 @@ namespace Couchbase.Stellar.KeyValue;
 
 #nullable enable
 
-internal class StellarCollection : ICouchbaseCollection
+internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 {
     private readonly StellarCollectionQueryIndexManager _stellarCollectionQueryIndexes;
     private readonly StellarScope _stellarScope;
@@ -70,8 +71,7 @@ internal class StellarCollection : ICouchbaseCollection
 
     public IScope Scope => _stellarScope;
 
-    public IBinaryCollection Binary =>
-        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(Binary), "Protostellar");
+    public IBinaryCollection Binary => this;
 
     public bool IsDefaultCollection { get; }
 
@@ -487,6 +487,132 @@ internal class StellarCollection : ICouchbaseCollection
         {
             return await _kvClient.UpsertAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
         }
+    }
+
+    public async Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions? options = null)
+    {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        var opts = options?.AsReadOnly() ?? AppendOptions.DefaultReadOnly;
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        var request = new AppendRequest()
+        {
+            BucketName = _bucketName,
+            ScopeName = _scopeName,
+            CollectionName = Name,
+            Key = id,
+            Content = ByteString.CopyFrom(value)
+        };
+        if (opts.Cas > 0) request.Cas = opts.Cas;
+
+        async Task<AppendResponse> GrpcCall()
+        {
+            return await _kvClient.AppendAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+        return new MutationResult(response.Cas, Expiry: null)
+        {
+            MutationToken = response.MutationToken
+        };
+    }
+
+    public async Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions? options = null)
+    {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        var opts = options?.AsReadOnly() ?? PrependOptions.DefaultReadOnly;
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        var request = new PrependRequest()
+        {
+            BucketName = _bucketName,
+            ScopeName = _scopeName,
+            CollectionName = Name,
+            Key = id,
+            Content = ByteString.CopyFrom(value)
+        };
+        if (opts.Cas > 0) request.Cas = opts.Cas;
+
+        async Task<PrependResponse> GrpcCall()
+        {
+            return await _kvClient.PrependAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+        return new MutationResult(response.Cas, Expiry: null)
+        {
+            MutationToken = response.MutationToken
+        };
+    }
+
+    public async Task<ICounterResult> IncrementAsync(string id, IncrementOptions? options = null)
+    {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        var opts = options?.AsReadOnly() ?? IncrementOptions.DefaultReadOnly;
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        var request = new IncrementRequest
+        {
+            BucketName = _bucketName,
+            ScopeName = _scopeName,
+            CollectionName = Name,
+            Key = id,
+            Delta = opts.Delta,
+            ExpirySecs = opts.Expiry.ToTtl()
+        };
+        if (opts.DurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
+        if (opts.Initial.HasValue) request.Initial = (long)opts.Initial.Value;
+
+        async Task<IncrementResponse> GrpcCall()
+        {
+            return await _kvClient.IncrementAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+        return new CounterResult((ulong)response.Content, response.Cas, null, response.MutationToken);
+    }
+
+    public async Task<ICounterResult> DecrementAsync(string id, DecrementOptions? options = null)
+    {
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        var opts = options?.AsReadOnly() ?? DecrementOptions.DefaultReadOnly;
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        var request = new DecrementRequest
+        {
+            BucketName = _bucketName,
+            ScopeName = _scopeName,
+            CollectionName = Name,
+            Key = id,
+            Delta = opts.Delta,
+            ExpirySecs = opts.Expiry.ToTtl()
+        };
+        if (opts.DurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
+        if (opts.Initial.HasValue) request.Initial = (long)opts.Initial.Value;
+
+        async Task<DecrementResponse> GrpcCall()
+        {
+            return await _kvClient.DecrementAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+        }
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = false,
+            Token = opts.Token
+        };
+        var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+        return new CounterResult((ulong)response.Content, response.Cas, null, response.MutationToken);
     }
 
     private static async Task<ByteString> SerializeToByteString<T>(T content, ITypeSerializer serializer,

@@ -265,6 +265,26 @@ namespace Couchbase.Protostellar.KV.V1
             (long)token.VbucketUuid,
             (long)token.SeqNo);
     }
+
+    partial class AppendResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class PrependResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class IncrementResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class DecrementResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
 }
 #endregion
 
