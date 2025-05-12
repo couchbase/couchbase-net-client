@@ -57,9 +57,7 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Snappier" />
-    <PackageReference Include="System.IO.Pipelines" />
     <PackageReference Include="System.Linq.Async" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
@@ -67,10 +65,15 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net9.0'))">
+    <PackageReference Include="System.IO.Pipelines" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
