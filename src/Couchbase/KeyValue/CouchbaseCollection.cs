@@ -1071,7 +1071,8 @@ namespace Couchbase.KeyValue
                 SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Cas = options.CasValue
             };
             _operationConfigurator.Configure(op, options);
 
@@ -1107,7 +1108,8 @@ namespace Couchbase.KeyValue
                 SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Cas = options.CasValue
             };
             _operationConfigurator.Configure(op, options);
 
