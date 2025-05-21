@@ -1015,10 +1015,11 @@ namespace Couchbase
         /// <summary>
         /// If <see cref="ForceIpAsTargetHost"/> is true, send the IP as the target host during TLS authentication. If <see cref="ForceIpAsTargetHost"/> is false,
         /// then mimic the default SDK2 behavior; the hostname or IP as defined by the server will be sent as the target host during TLS authentication.
+        /// Note: Setting this to true will cause a certificate name mismatch when connecting to Capella, since the TLS certificate is tied to the hostname.
         /// </summary>
         /// <remarks>Only applies when <see cref="EnableTls"/> is true.</remarks>
-        /// <remarks>The default is true and the IP Address will be sent as the target host.</remarks>
-        public bool ForceIpAsTargetHost { get; set; } = true;
+        /// <remarks>The default is false and the Hostname will be sent as the target host.</remarks>
+        public bool ForceIpAsTargetHost { get; set; } = false;
 
 #if NET6_0_OR_GREATER
         /// <summary>
