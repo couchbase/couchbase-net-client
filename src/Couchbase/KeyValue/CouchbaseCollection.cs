@@ -1015,6 +1015,7 @@ namespace Couchbase.KeyValue
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
+                OptionalFlags = options.FlagsValue,
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };

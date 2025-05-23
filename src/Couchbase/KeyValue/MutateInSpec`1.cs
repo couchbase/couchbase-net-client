@@ -46,7 +46,7 @@ namespace Couchbase.KeyValue
             if (!RemoveBrackets)
             {
                 // We can serialize directly
-                if (this is { OpCode: OpCode.Set, Path.Length: 0 })
+                if (this is { OpCode: OpCode.Set, Path.Length: 0 } || PathFlags.HasFlag(SubdocPathFlags.BinaryValue))
                 {
                     // We're writing the entire document, this should pass through the transcoder not just the serializer.
                     // This allows the use of XATTRs with non-JSON documents.

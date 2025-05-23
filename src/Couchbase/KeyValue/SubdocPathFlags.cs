@@ -27,7 +27,14 @@ namespace Couchbase.KeyValue
         /// Indicates that the server should expand any macros before storing the value. Infers <see cref="F:SubdocDocFlags.Xattr"/>.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
-        ExpandMacroValues = 0x010
+        ExpandMacroValues = 0x010,
+
+        /// <summary>
+        /// Indicates this field is binary.   This is used in conjunction with ReplaceBodyWithXattr
+        /// in the transactions to properly re-encode (on the server side) the base64 encoded
+        /// xattr, so it shows up as a decoded base64 document body.
+        /// </summary>
+        BinaryValue = 0x020,
     }
 }
 

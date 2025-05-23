@@ -27,7 +27,7 @@ namespace Couchbase.KeyValue
             Path = path;
         }
 
-        private static MutateInSpec CreateSpec(OpCode opCode, string path, bool createPath, bool isXattr, bool removeBrackets)
+        private static MutateInSpec CreateSpec(OpCode opCode, string path, bool createPath, bool isXattr, bool removeBrackets, bool isBinary = false)
         {
             var pathFlags = SubdocPathFlags.None;
             if (createPath)
@@ -37,6 +37,11 @@ namespace Couchbase.KeyValue
             if (isXattr)
             {
                 pathFlags |= SubdocPathFlags.Xattr;
+            }
+
+            if (isBinary)
+            {
+                pathFlags |= SubdocPathFlags.BinaryValue;
             }
 
             return new MutateInSpec(opCode, path)
@@ -46,7 +51,7 @@ namespace Couchbase.KeyValue
             };
         }
 
-        private static MutateInSpec CreateSpec<T>(OpCode opCode, string path, T value, bool createPath, bool isXattr, bool removeBrackets)
+        private static MutateInSpec CreateSpec<T>(OpCode opCode, string path, T value, bool createPath, bool isXattr, bool removeBrackets, bool isBinary = false)
         {
             var pathFlags = SubdocPathFlags.None;
             if (createPath)
@@ -56,6 +61,11 @@ namespace Couchbase.KeyValue
             if (isXattr)
             {
                 pathFlags |= SubdocPathFlags.Xattr;
+            }
+
+            if (isBinary)
+            {
+                pathFlags |= SubdocPathFlags.BinaryValue;
             }
 
             if (value is IMutationMacro)
@@ -77,6 +87,12 @@ namespace Couchbase.KeyValue
         public static MutateInSpec Insert<T>(string path, T value, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
         {
             return CreateSpec(OpCode.SubDictAdd, path, value, createPath, isXattr, removeBrackets);
+        }
+
+        internal static MutateInSpec Upsert<T>(string path, T value, bool createPath, bool isXattr,
+            bool removeBrackets, bool isBinary)
+        {
+            return CreateSpec(OpCode.SubDictUpsert, path, value, createPath, isXattr, removeBrackets,  isBinary);
         }
 
         public static MutateInSpec Upsert<T>(string path, T value, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
@@ -156,9 +172,14 @@ namespace Couchbase.KeyValue
             return CreateSpec(OpCode.SubCounter, path, -(long)delta, createPath, isXattr, removeBrackets);
         }
 
+        internal static MutateInSpec ReplaceBodyWithXattr(string path, bool isBinary)
+        {
+            return CreateSpec(OpCode.SubReplaceBodyWithXattr, path, createPath: false, isXattr: true, removeBrackets: false, isBinary: isBinary );
+        }
+
         public static MutateInSpec ReplaceBodyWithXattr(string path)
         {
-            return CreateSpec(OpCode.SubReplaceBodyWithXattr, path, false, true, false);
+            return ReplaceBodyWithXattr(path, isBinary: false);
         }
 
         /// <summary>

@@ -2718,6 +2718,8 @@ namespace Couchbase.KeyValue
 
         internal bool AccessDeletedValue { get; private set; }
 
+        internal Flags? FlagsValue { get; private set; }
+
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
@@ -2903,7 +2905,13 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
+        internal MutateInOptions Flags(Flags flags)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            FlagsValue = flags;
+            return this;
+        }
+        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out Flags? flags, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl)
         {
             expiry = ExpiryValue;
             storeSemantics = StoreSemanticsValue;
@@ -2916,6 +2924,26 @@ namespace Couchbase.KeyValue
             createAsDeleted = CreateAsDeletedValue;
             reviveDocument = ReviveDocumentValue;
             accessDeleted = AccessDeletedValue;
+            flags = FlagsValue;
+            retryStrategy = RetryStrategyValue;
+            requestSpan = RequestSpanValue;
+            preserveTtl = PreserveTtlValue;
+        }
+
+        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out Flags? flags, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
+        {
+            expiry = ExpiryValue;
+            storeSemantics = StoreSemanticsValue;
+            cas = CasValue;
+            durability = DurabilityValue;
+            durabilityLevel = DurabilityLevel;
+            timeout = TimeoutValue;
+            token = TokenValue;
+            serializer = TranscoderValue?.Serializer;
+            createAsDeleted = CreateAsDeletedValue;
+            reviveDocument = ReviveDocumentValue;
+            accessDeleted = AccessDeletedValue;
+            flags = FlagsValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
             preserveTtl = PreserveTtlValue;
@@ -2924,8 +2952,8 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
-            return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, reviveDocument, retryStrategy, requestSpan, preserveTtl, transcoder);
+            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool reviveDocument, out bool accessDeleted, out Flags? flags, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
+            return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, reviveDocument, flags, retryStrategy, requestSpan, preserveTtl, transcoder);
         }
 
         public record ReadOnly(
@@ -2940,6 +2968,7 @@ namespace Couchbase.KeyValue
             bool CreateAsDeleted,
             bool AccessDeleted,
             bool ReviveDocument,
+            Flags? Flags,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
             bool PreserveTtl,

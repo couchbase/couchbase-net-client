@@ -15,11 +15,15 @@ namespace Couchbase.KeyValue
 {
     internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
     {
+
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
         private readonly ITypeTranscoder _transcoder;
         private IDisposable? _bufferCleanup;
         private ResponseStatus _status;
+
+        internal IList<LookupInSpec> Specs => _specs;
+        internal Flags Flags => _flags;
         public ITypeSerializer Serializer { get; }
 
         ResponseStatus IResponseStatus.Status => _status;
@@ -75,8 +79,11 @@ namespace Couchbase.KeyValue
 
             if (spec.Status == ResponseStatus.Success)
             {
-                // Only use the transcoder when reading entire documents, otherwise the content should be JSON
-                return spec is { OpCode: OpCode.Get, Path.Length: 0}
+                var isBinary = (spec.PathFlags & SubdocPathFlags.BinaryValue) != 0x00;
+
+                // Only use the transcoder when reading entire documents, or binary xattrs,
+                // otherwise the content should be JSON
+                return spec is { OpCode: OpCode.Get, Path.Length: 0} || isBinary
                     ? _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode)
                     : _transcoder.Serializer!.Deserialize<T>(spec.Bytes);
             }

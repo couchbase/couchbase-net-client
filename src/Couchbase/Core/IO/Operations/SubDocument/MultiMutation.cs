@@ -23,6 +23,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public SubdocDocFlags DocFlags { get; set; }
 
+        // Optionally, we can set the user flags on the doc.  This should only
+        // be used in servers that support ReplaceBodyWithXattr.
+        public Flags? OptionalFlags { get; set; }
+
+
         /// <inheritdoc />
         public override bool IsReadOnly => false;
 
@@ -50,20 +55,35 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            if (Expires > 0)
-            {
-                Span<byte> buffer = stackalloc byte[sizeof(uint)];
-                ByteConverter.FromUInt32(Expires, buffer);
-                builder.Write(buffer);
-            }
+            // Lets alloc 1 buffer to hold everything.   Given its max size is just 9
+            // bytes, lets just alloc that each time.
+            Span<byte> buffer = stackalloc byte[sizeof(uint) + Flags.Size + sizeof(byte)];
+            var offset = 0;
 
+            // If you are setting the OptionalFlags, you MUST set an
+            // expiry, even if it is 0
+            if (Expires > 0 || OptionalFlags != null)
+            {
+                Span<byte> expiresBuffer = buffer.Slice(0, sizeof(uint));
+                ByteConverter.FromUInt32(Expires, expiresBuffer);
+                builder.Write(expiresBuffer);
+                offset += sizeof(uint);
+            }
+            if (OptionalFlags != null )
+            {
+                Span<byte> optFlagBuffer = buffer.Slice(offset, Flags.Size);
+                OptionalFlags?.Write(optFlagBuffer);
+                builder.Write(optFlagBuffer);
+                offset += Flags.Size;
+            }
             if (DocFlags != SubdocDocFlags.None)
             {
                 //Add the doc flags
-                Span<byte> buffer = stackalloc byte[sizeof(byte)];
-                buffer[0] = (byte)DocFlags;
-                builder.Write(buffer);
+                Span<byte> flagsBuffer = buffer.Slice(offset, sizeof(byte));
+                flagsBuffer[0] = (byte)DocFlags;
+                builder.Write(flagsBuffer);
             }
+
         }
 
         protected override void WriteFramingExtras(OperationBuilder builder)
