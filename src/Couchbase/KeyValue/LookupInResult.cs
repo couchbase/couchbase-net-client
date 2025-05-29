@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Client.Transactions.Components;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -13,7 +14,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
+    internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus, ILookupInResultInternal
     {
 
         private readonly IList<LookupInSpec> _specs;
@@ -22,8 +23,8 @@ namespace Couchbase.KeyValue
         private IDisposable? _bufferCleanup;
         private ResponseStatus _status;
 
-        internal IList<LookupInSpec> Specs => _specs;
-        internal Flags Flags => _flags;
+        IList<LookupInSpec> ILookupInResultInternal.Specs => _specs;
+        Flags ILookupInResultInternal.Flags => _flags;
         public ITypeSerializer Serializer { get; }
 
         ResponseStatus IResponseStatus.Status => _status;

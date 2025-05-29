@@ -19,6 +19,21 @@ namespace Couchbase.Client.Transactions.Forwards
         public const string GetsReadingAtr = "G_A";
         public const string CleanupEntry = "CL_E";
 
+        public static readonly JArray extBinSupportActions = new(new JObject()
+        {
+            ["b"] = "f",
+            ["e"] = "BS",
+        });
+
+        public static readonly JObject extBinSupport = new JObject()
+        {
+            [CleanupEntry] = extBinSupportActions,
+            [Gets] = extBinSupportActions,
+            [WriteWriteConflictInserting] = extBinSupportActions,
+            [WriteWriteConflictInsertingGet] = extBinSupportActions,
+        };
+
+
         public static async Task Check(AttemptContext? ctx, string interactionPoint, JObject? fc)
         {
             if (fc == null)

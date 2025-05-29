@@ -3,6 +3,8 @@ using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Internal;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions
@@ -40,7 +42,11 @@ namespace Couchbase.Client.Transactions
 
         internal bool IsDeleted { get; }
 
+        internal Flags Flags => _content.Flags;
+
         internal TransactionXattrs? TransactionXattrs { get; }
+
+        internal ITypeTranscoder Transcoder { set  => _content.Transcoder = value; }
 
         /// <summary>
         /// Gets the ID of the document.

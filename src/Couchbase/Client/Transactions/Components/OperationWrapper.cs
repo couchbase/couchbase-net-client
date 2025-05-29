@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
 using Couchbase.Client.Transactions.Support;
-using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Components;
@@ -108,6 +108,14 @@ internal class OperationWrapper
     // with this.  We should be able to safely call this within the WrapOperation call.
     public async Task<T> WrapQueryOperationAsync<T>(Func<Task<T>> operation)
     {
+        // if there are binary docs in txn already, then nope!
+        if (_attemptContext.StagedMutations.ContainsBinaryContent())
+        {
+            throw ErrorBuilder.CreateError(_attemptContext,
+                ErrorClass.FailOther,
+                new FeatureNotAvailableException(
+                    "No queries are allowed in transactions with binary documents")).Build();
+        }
         try
         {
             // We only do one query at a time so get the lock
@@ -146,7 +154,15 @@ internal class OperationWrapper
         try
         {
             await StartTaskAsync().CAF();
-            if (_isQueryMode) return await queryOperation().CAF();
+            if (_isQueryMode)
+            {
+                if (_attemptContext.StagedMutations.ContainsBinaryContent())
+                {
+                    throw ErrorBuilder.CreateError(_attemptContext, ErrorClass.FailOther,
+                        new  FeatureNotAvailableException("Queries are disallowed when binary documents are part of the transaction")).Build();
+                }
+                return await queryOperation().CAF();
+            }
             return await kvOperation().CAF();
         }
         finally {

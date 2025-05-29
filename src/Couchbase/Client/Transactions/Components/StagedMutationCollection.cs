@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Client.Transactions.Components
@@ -41,6 +42,14 @@ namespace Couchbase.Client.Transactions.Components
         }
         public bool Contains(ICouchbaseCollection collection, string id) => Contains(TransactionGetResult.GetFullyQualifiedId(collection, id));
 
+        public bool ContainsBinaryContent()
+        {
+            // iterate over the staged mutations, look at the flags
+            lock (_smLock)
+            {
+                return _stagedMutations.Values.Any(sm => sm.Flags?.DataFormat == DataFormat.Binary);
+            }
+        }
         internal StagedMutation? Find(ICouchbaseCollection collection, string id)
         {
             lock (_smLock)
@@ -72,6 +81,7 @@ namespace Couchbase.Client.Transactions.Components
             }
         }
     }
+
 }
 
 /* ************************************************************

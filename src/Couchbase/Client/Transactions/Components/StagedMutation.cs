@@ -3,6 +3,7 @@ using System.Globalization;
 using Couchbase.Core;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Core.IO.Operations;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Components
@@ -14,12 +15,15 @@ namespace Couchbase.Client.Transactions.Components
         public StagedMutationType Type { get; }
         public MutationToken MutationToken { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, StagedMutationType type, MutationToken? mutationToken = null)
+        public Flags? Flags { get; }
+
+        public StagedMutation(TransactionGetResult doc, object? content, Flags? flags, StagedMutationType type, MutationToken? mutationToken = null)
         {
             Doc = doc;
             Content = content;
             Type = type;
             MutationToken = mutationToken ?? MutationToken.Empty;
+            Flags = flags;
         }
 
         public JObject ForAtr() => new JObject(

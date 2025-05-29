@@ -3,6 +3,8 @@ using System;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.Internal;
+using Couchbase.Core.IO.Transcoders;
+
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -51,7 +53,8 @@ namespace Couchbase.Client.Transactions.DataModel
                 cas: Cas,
                 documentMetadata: DocumentMetadata,
                 isDeleted: IsDeleted,
-                transactionXattrs: TransactionXattrs);
+                transactionXattrs: TransactionXattrs
+                );
 
         public TransactionGetResult GetPostTransactionResult() => TransactionGetResult.FromStaged(
                 DocumentCollection,
