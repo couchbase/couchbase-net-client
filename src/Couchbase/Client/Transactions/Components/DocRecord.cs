@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
@@ -8,18 +9,23 @@ namespace Couchbase.Client.Transactions.Components
     internal class DocRecord
     {
         [JsonProperty("bkt")]
+        [JsonPropertyName("bkt")]
         public string BucketName { get; }
 
         [JsonProperty("scp")]
+        [JsonPropertyName("scp")]
         public string ScopeName { get; }
 
         [JsonProperty("col")]
+        [JsonPropertyName("col")]
         public string CollectionName { get; }
 
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; }
 
-        [JsonConstructor]
+        [Newtonsoft.Json.JsonConstructor]
+        [System.Text.Json.Serialization.JsonConstructor]
         public DocRecord(string bkt, string scp, string col, string id)
         {
             BucketName = bkt ?? throw new ArgumentNullException(nameof(bkt));

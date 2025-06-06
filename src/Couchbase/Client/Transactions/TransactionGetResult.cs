@@ -72,7 +72,7 @@ namespace Couchbase.Client.Transactions
         /// <summary>
         /// Gets the transactional metadata of the document.
         /// </summary>
-        internal JObject? TxnMeta { get; set; } = null;
+        internal object? TxnMeta { get; set; } = null;
 
         /// <summary>
         /// Deserialize the content of the document.

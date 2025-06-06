@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 #pragma warning disable CS1591
 
@@ -8,12 +9,15 @@ namespace Couchbase.Client.Transactions.DataModel
     internal class CompositeId
     {
         [JsonProperty("txn")]
+        [JsonPropertyName("txn")]
         public string? Transactionid { get; set; }
 
         [JsonProperty("atmpt")]
+        [JsonPropertyName("atmpt")]
         public string? AttemptId { get; set; }
 
         [JsonProperty("op")]
+        [JsonPropertyName("op")]
         public string? OperationId { get; set; }
     }
 }

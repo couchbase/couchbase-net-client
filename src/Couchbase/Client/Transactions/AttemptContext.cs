@@ -263,7 +263,7 @@ namespace Couchbase.Client.Transactions
                 using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __get",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_GET,
-                    txdata: JObject.FromObject(new { kv = true }),
+                    txdata: new { kv = true },
                     parentSpan: traceSpan.Item).CAF();
 
                 var firstResult = await queryResult.FirstOrDefaultAsync().CAF();
@@ -519,7 +519,7 @@ namespace Couchbase.Client.Transactions
         {
             using var traceSpan = TraceSpan(parent: options.Span);
 
-            JObject txdata = TxDataForReplaceAndRemove(doc);
+            var txdata = TxDataForReplaceAndRemove(doc);
             try
             {
                 CheckForBinaryContent(content, options.Transcoder);
@@ -561,14 +561,14 @@ namespace Couchbase.Client.Transactions
             }
         }
 
-        private static JObject TxDataForReplaceAndRemove(TransactionGetResult doc)
+        private static object TxDataForReplaceAndRemove(TransactionGetResult doc)
         {
-            var txdata = new JObject(
-                new JProperty("kv", true),
-                new JProperty("scas", doc.Cas.ToString(CultureInfo.InvariantCulture)));
+            var txdata = new Dictionary<string, object?>();
+            txdata["kv"] = true;
+            txdata["scas"] = doc.Cas.ToString(CultureInfo.InvariantCulture);
             if (doc.TxnMeta != null)
             {
-                txdata.Add(new JProperty("txnMeta", doc.TxnMeta));
+                txdata["txnMeta"] = doc.TxnMeta;
             }
 
             return txdata;
@@ -1089,7 +1089,7 @@ namespace Couchbase.Client.Transactions
         {
             _ = doc ?? throw new ArgumentNullException(nameof(doc));
             using var traceSpan = TraceSpan(parent: parentSpan);
-            JObject txdata = TxDataForReplaceAndRemove(doc);
+            var txdata = TxDataForReplaceAndRemove(doc);
 
             try
             {
@@ -2373,7 +2373,7 @@ namespace Couchbase.Client.Transactions
             IRequestSpan? parentSpan,
             bool isBeginWork = false,
             bool existingErrorCheck = true,
-            JObject? txdata = null,
+            object? txdata = null,
             bool txImplicit = false
         )
         {
@@ -2397,7 +2397,7 @@ namespace Couchbase.Client.Transactions
                 IRequestSpan? parentSpan,
                 bool isBeginWork = false,
                 bool existingErrorCheck = true,
-                JObject? txdata = null,
+                object? txdata = null,
                 bool txImplicit = false
             )
         {
@@ -2436,7 +2436,7 @@ namespace Couchbase.Client.Transactions
             if (txImplicit)
             {
                 options = options.Raw("tximplicit", true);
-                QueryTxData txdataSingleQuery = CreateBeginWorkTxData();
+                var txdataSingleQuery = CreateBeginWorkTxData().ToDictionary();
                 options = InitializeBeginWorkQueryOptions(options);
                 options = options.Raw("txdata", txdataSingleQuery);
             }
@@ -2693,16 +2693,6 @@ namespace Couchbase.Client.Transactions
 
                 Logger.LogInformation("[{attemptId}] Entering query mode", AttemptId);
 
-                // TODO: create and populate txdata fully from existing KV ops
-                // TODO: state.timeLeftms
-                // TODO: config
-                // TODO: handle customMetadataCollection and uninitialized ATR (AtrRef with no Id)
-                var txid = new CompositeId()
-                {
-                    Transactionid = _overallContext.TransactionId,
-                    AttemptId = AttemptId
-                };
-
                 var txdata = CreateBeginWorkTxData();
                 QueryOptions queryOptions = InitializeBeginWorkQueryOptions(NonStreamingQuery());
 
@@ -2714,7 +2704,7 @@ namespace Couchbase.Client.Transactions
                     hookPoint: DefaultTestHooks.HOOK_QUERY_BEGIN_WORK,
                     isBeginWork: true,
                     existingErrorCheck: true,
-                    txdata: txdata.ToJson(),
+                    txdata: txdata.ToDictionary(),
                     parentSpan: traceSpan.Item
                 ).CAF();
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using Couchbase.Client.Transactions.Components;
 using Newtonsoft.Json;
 
@@ -19,18 +20,23 @@ namespace Couchbase.Client.Transactions.DataModel
         public static string PathForNumAtrs(string clientUuid) => $"{PathForEntry(clientUuid)}.{FIELD_NUM_ATRS}";
 
         [JsonProperty(FIELD_HEARTBEAT)]
+        [JsonPropertyName(FIELD_HEARTBEAT)]
         public string HeartbeatMutationCas { get; set; } = "${Mutation.CAS}";
 
         [JsonProperty(FIELD_EXPIRES)]
+        [JsonPropertyName(FIELD_EXPIRES)]
         public long ExpiresMilliseconds { get; set; }
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public DateTimeOffset? ParsedMutationCas => AtrEntry.ParseMutationCasFieldNoThrow(HeartbeatMutationCas);
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public DateTimeOffset? Expires => ParsedMutationCas?.AddMilliseconds(ExpiresMilliseconds);
 
         [JsonProperty(FIELD_NUM_ATRS)]
+        [JsonPropertyName(FIELD_NUM_ATRS)]
         public int NumAtrs { get; set; }
     }
 }

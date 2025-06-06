@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
@@ -108,15 +109,19 @@ namespace Couchbase.Client.Transactions.Forwards
         public const char CheckBehaviorRetry = 'r';
 
         [JsonProperty("p")]
+        [JsonPropertyName("p")]
         public decimal? ProtocolVersion { get; set; } = null;
 
         [JsonProperty("b")]
+        [JsonPropertyName("b")]
         public char? Behavior { get; set; } = null;
 
         [JsonProperty("e")]
+        [JsonPropertyName("e")]
         public string? ExtensionCheck { get; set; } = null;
 
         [JsonProperty("ra")]
+        [JsonPropertyName("ra")]
         public int? RetryDelay { get; set; } = null;
     }
 }
