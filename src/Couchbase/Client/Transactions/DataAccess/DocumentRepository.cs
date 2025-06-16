@@ -14,6 +14,7 @@ using Couchbase.Client.Transactions.Internal;
 using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
+using Couchbase.KeyValue.ZoneAware;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
@@ -217,8 +218,8 @@ namespace Couchbase.Client.Transactions.DataAccess
             _ = await collection.MutateInAsync(docId, specs, opts).CAF();
         }
 
-        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder).CAF();
-        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? transcoder = null)
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder, allowReplica).CAF();
+        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false)
         {
             var specs = new List<LookupInSpec>()
             {
@@ -227,33 +228,52 @@ namespace Couchbase.Client.Transactions.DataAccess
                 LookupInSpec.Get(TransactionFields.StagedData, isXattr: true),
                 LookupInSpec.Get(TransactionFields.BinStagedData, isXattr: true, isBinary: true),
             };
-
-            var opts = new LookupInOptions().Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer));
-
-            int? txnIndex = 0;
-            int docMetaIndex = 1;
-            int? stagedDataIndex = 2;
-            int? stagedBinDataIndex = 3;
-
             int? fullDocIndex = null;
             if (fullDocument)
             {
                 specs.Add(LookupInSpec.GetFull());
                 fullDocIndex = specs.Count - 1;
             }
+            ILookupInResult? lookupInResult;
+            if (allowReplica)
+            {
+                var opts = new LookupInAnyReplicaOptions()
+                    .Timeout(keyValueTimeout)
+                    .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer))
+                    .ReadPreference(ReadPreference.SelectedServerGroup);
+                lookupInResult = await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
 
-            var lookupInResult = await collection.LookupInAsync(docId, specs, opts).CAF();
+            }
+            else
+            {
+                var opts = new LookupInOptions().Defaults(keyValueTimeout)
+                    .AccessDeleted(true)
+                    .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer));
+                lookupInResult = await collection.LookupInAsync(docId, specs, opts).CAF();
+            }
+
+            int txnIndex = 0;
+            int docMetaIndex = 1;
+            int stagedDataIndex = 2;
+            int stagedBinDataIndex = 3;
 
             var docMeta = lookupInResult.ContentAs<DocumentMetadata>(docMetaIndex);
-
-            // only StageData or BinStagedData - figure out which...
-            var dataIdx = lookupInResult.Exists(stagedDataIndex.Value) ? stagedDataIndex.Value : stagedBinDataIndex.Value;
-
-            // several possibilities for the transcoder...
-            if (dataIdx == stagedBinDataIndex.Value && transcoder == null)
+            int dataIdx = stagedDataIndex; // just need a default
+            if (lookupInResult.Exists(txnIndex))
             {
-                transcoder = new RawBinaryTranscoder();
+                // only StageData or BinStagedData - figure out which...
+                dataIdx = lookupInResult.Exists(stagedDataIndex)
+                    ? stagedDataIndex
+                    : stagedBinDataIndex;
+
+                // several possibilities for the transcoder...
+                if (dataIdx == stagedBinDataIndex && transcoder == null)
+                {
+                    transcoder = new RawBinaryTranscoder();
+                }
+
             }
+
             transcoder ??= new JsonTranscoder(
                 NonStreamingSerializerWrapper.FromCluster(collection.Scope.Bucket.Cluster));
 
@@ -272,9 +292,9 @@ namespace Couchbase.Client.Transactions.DataAccess
                 docMeta,
                 collection);
 
-            if (txnIndex.HasValue && lookupInResult.Exists(txnIndex.Value))
+            if (lookupInResult.Exists(txnIndex))
             {
-                result.TransactionXattrs = lookupInResult.ContentAs<TransactionXattrs>(txnIndex.Value);
+                result.TransactionXattrs = lookupInResult.ContentAs<TransactionXattrs>(txnIndex);
             }
 
             return result;

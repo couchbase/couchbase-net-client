@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -187,9 +188,24 @@ namespace Couchbase.Client.Transactions
             return  GetOptionalAsync(collection, id, options);
         }
 
+        public async Task<TransactionGetResult?> GetReplicaFromPreferredServerGroup(
+            ICouchbaseCollection collection, string id,
+            TransactionGetOptionsBuilder? options = null)
+        {
+            var opt = (options ??= TransactionGetOptionsBuilder.Default).Build();
+
+            return await _opWrapper.WrapOperationAsync(
+                () => GetWithKv(collection, id, opt, allowReplica: true),
+                () => throw CreateError(this, ErrorClass.FailOther,
+                        new FeatureNotAvailableException(
+                            "GetReplicaFromPreferredServerGroup cannot be mixed with query operations"))
+                    .Build()).CAF();
+
+        }
+
 
         private async Task<TransactionGetResult?> GetWithKv(ICouchbaseCollection collection, string id,
-            TransactionGetOptions options)
+            TransactionGetOptions options, bool allowReplica = false)
         {
             using var traceSpan = TraceSpan(parent: options.Span);
             DoneCheck();
@@ -226,12 +242,18 @@ namespace Couchbase.Client.Transactions
                 {
                     await _testHooks.BeforeDocGet(this, id).CAF();
 
-                    var result = await GetWithMav(collection, id, options.Transcoder, parentSpan: traceSpan.Item).CAF();
+                    var result = await GetWithMav(collection, id, options.Transcoder,
+                        parentSpan: traceSpan.Item, allowReplica: allowReplica).CAF();
 
                     await _testHooks.AfterGetComplete(this, id).CAF();
                     await ForwardCompatibility.Check(this, ForwardCompatibility.Gets,
                         result?.TransactionXattrs?.ForwardCompatibility).CAF();
                     return result;
+                }
+                catch (Exception ex) when (ex is FeatureNotAvailableException ||
+                                           ex is DocumentUnretrievableException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -295,7 +317,8 @@ namespace Couchbase.Client.Transactions
         }
 
         private async Task<TransactionGetResult?> GetWithMav(ICouchbaseCollection collection, string id,
-            ITypeTranscoder? transcoder, string? resolveMissingAtrEntry = null, IRequestSpan? parentSpan = null)
+            ITypeTranscoder? transcoder, string? resolveMissingAtrEntry = null, IRequestSpan? parentSpan = null,
+            bool allowReplica = false)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
 
@@ -304,7 +327,7 @@ namespace Couchbase.Client.Transactions
             {
                 // Do a Sub-Document lookup, getting all transactional metadata, the “$document” virtual xattr,
                 // and the document’s body. Timeout is set as in Timeouts.
-                var docLookupResult = await _docs.LookupDocumentAsync(collection, id, fullDocument: true, transcoder: transcoder).CAF();
+                var docLookupResult = await _docs.LookupDocumentAsync(collection, id, fullDocument: true, transcoder: transcoder, allowReplica: allowReplica).CAF();
                 Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, postCas={postCas}",
                     nameof(GetWithMav), Redactor.UserData(id), AttemptId, docLookupResult.Cas);
                 if (docLookupResult == null)
@@ -360,8 +383,17 @@ namespace Couchbase.Client.Transactions
                 catch (ActiveTransactionRecordEntryNotFoundException)
                 {
                     // Recursively call this section from the top, passing resolvingMissingATREntry set to the attemptId of the blocking transaction.
-                    return await GetWithMav(collection, id, transcoder, resolveMissingAtrEntry = blockingTxn.Id!.AttemptId,
+                    return await GetWithMav(collection, id, transcoder,
+                        resolveMissingAtrEntry = blockingTxn.Id!.AttemptId,
                         traceSpan.Item).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is FeatureNotAvailableException ||
+                                           ex is DocumentUnretrievableException)
+                {
+                    // seems you did a zone-aware get and it failed, we don't make TransactionOperationFailed
+                    // exceptions for these, they go back to the lambda directly.
+                    Logger.LogInformation("Got {ex} during GetWithMav", ex);
+                    throw;
                 }
                 catch (Exception atrLookupException)
                 {
