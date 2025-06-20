@@ -437,6 +437,7 @@ namespace Couchbase.Core.Configuration.Server
         /// Maps each Hostname to its index in <see cref="VBucketServerMap"/>'s ServerList.
         /// Example: { "10.0.0.1": 0, "10.0.0.2": 1, ... }
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, int> HostnamesAndIndex => VBucketServerMap.ServerList
             .Select((hostname, index) => new { hostname, index })
             .ToDictionary(item => item.hostname.Split(':')[0], item => item.index);
@@ -445,6 +446,7 @@ namespace Couchbase.Core.Configuration.Server
         /// Maps each Hostname to which ServerGroup it belongs to.
         /// Example: { "10.0.0.1": "group_1", "10.0.0.2": "group_1", ... }
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, string> HostnameAndServerGroup => NodesExt
             .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup))
             .Select(nodeExt => new { nodeExt.Hostname, nodeExt.ServerGroup })
@@ -454,6 +456,7 @@ namespace Couchbase.Core.Configuration.Server
         /// Maps each unique ServerGroup to the indexes of the nodes it contains, in <see cref="VBucketServerMap"/>'s ServerList.
         /// Example: { "group_1": [0, 1, 2], "group_2": [3, 4, 5], ... }
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, int[]> ServerGroupNodeIndexes =>
             HostnameAndServerGroup
                 .GroupBy(x => x.Value)
