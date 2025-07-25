@@ -435,22 +435,25 @@ namespace Couchbase.Core.Configuration.Server
 
         /// <summary>
         /// Maps each Hostname to its index in <see cref="VBucketServerMap"/>'s ServerList.
-        /// Example: { "10.0.0.1": 0, "10.0.0.2": 1, ... }
+        /// Example: { "10.0.0.1:kvport": 0, "10.0.0.2:kvport": 1, ... }
+        /// Note that the server map is written like this - we just accept the entire hostname,
+        /// including port.
         /// </summary>
         [JsonIgnore]
         public Dictionary<string, int> HostnamesAndIndex => VBucketServerMap.ServerList
             .Select((hostname, index) => new { hostname, index })
-            .ToDictionary(item => item.hostname.Split(':')[0], item => item.index);
+            .ToDictionary(item => item.hostname, item => item.index);
 
         /// <summary>
         /// Maps each Hostname to which ServerGroup it belongs to.
-        /// Example: { "10.0.0.1": "group_1", "10.0.0.2": "group_1", ... }
+        /// Example: { "10.0.0.1:kv_port": "group_1", "10.0.0.2:kv_port": "group_1", ... }
+        /// We use the kv port in services to match with the vBucketServerMap.
         /// </summary>
         [JsonIgnore]
         public Dictionary<string, string> HostnameAndServerGroup => NodesExt
-            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup))
-            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.ServerGroup })
-            .ToDictionary(item => item.Hostname, item => item.ServerGroup);
+            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup) && nodeExt.Services.Kv > 0)
+            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.Services.Kv, nodeExt.ServerGroup })
+            .ToDictionary(item => $"{item.Hostname}:{item.Kv}", item => item.ServerGroup);
 
         /// <summary>
         /// Maps each unique ServerGroup to the indexes of the nodes it contains, in <see cref="VBucketServerMap"/>'s ServerList.
