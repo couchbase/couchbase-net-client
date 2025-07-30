@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Couchbase.Client.Transactions.Support;
 using Newtonsoft.Json;
@@ -169,6 +170,8 @@ namespace Couchbase.Client.Transactions.Components
             }
         }
 
+        internal IList<DocRecord> AllDocRecords =>
+            InsertedIds.Concat(ReplacedIds).Concat(RemovedIds).ToList();
     }
 }
 

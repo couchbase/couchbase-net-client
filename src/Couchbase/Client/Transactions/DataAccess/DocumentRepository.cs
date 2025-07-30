@@ -218,6 +218,17 @@ namespace Couchbase.Client.Transactions.DataAccess
             _ = await collection.MutateInAsync(docId, specs, opts).CAF();
         }
 
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
+            string docId, DateTimeOffset deadline, ITypeTranscoder? transcoder = null,
+            bool allowReplica = false)
+        {
+            var timeout = deadline - DateTimeOffset.UtcNow;
+            if (_keyValueTimeout != null && timeout > _keyValueTimeout)
+                timeout = _keyValueTimeout.Value;
+            return await LookupDocumentAsync(collection, docId, timeout, true, transcoder,
+                allowReplica).CAF();
+        }
+
         public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder, allowReplica).CAF();
         internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false)
         {
@@ -237,12 +248,15 @@ namespace Couchbase.Client.Transactions.DataAccess
             ILookupInResult? lookupInResult;
             if (allowReplica)
             {
+                // TODO: check capabilities - 8.0+ will be able to support AccessDeleted
+                //   with replica reads.
                 var opts = new LookupInAnyReplicaOptions()
                     .Timeout(keyValueTimeout)
-                    .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer))
-                    .ReadPreference(ReadPreference.SelectedServerGroup);
-                lookupInResult = await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
-
+                    .Transcoder(transcoder ??
+                                new JsonTranscoder(Transactions.MetadataSerializer))
+                    .ReadPreference(ReadPreference.SelectedServerGroupWithFallback);
+                lookupInResult =
+                    await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
             }
             else
             {

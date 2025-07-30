@@ -1,11 +1,11 @@
 ﻿#nullable enable
+using System;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Internal;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase.Client.Transactions.DataAccess
@@ -21,6 +21,9 @@ namespace Couchbase.Client.Transactions.DataAccess
 
         Task ClearTransactionMetadata(ICouchbaseCollection collection, string docId, ulong cas, bool isDeleted);
 
+        Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
+            string docId, DateTimeOffset deadline, ITypeTranscoder? transcoder = null,
+            bool allowReplica = false);
         Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
             string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null,
             bool allowReplica = false);

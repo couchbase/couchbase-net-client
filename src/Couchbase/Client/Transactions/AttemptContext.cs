@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -53,7 +52,7 @@ namespace Couchbase.Client.Transactions
     {
         private static readonly TimeSpan ExpiryThreshold = TimeSpan.FromMilliseconds(10);
         private static readonly TimeSpan WriteWriteConflictTimeLimit = TimeSpan.FromSeconds(1);
-        private readonly TransactionContext _overallContext;
+        internal readonly TransactionContext _overallContext;
         private readonly MergedTransactionConfig _config;
         private readonly ITestHooks _testHooks;
         private readonly int _unstagingConcurrency = 100;
@@ -62,8 +61,8 @@ namespace Couchbase.Client.Transactions
         private readonly ErrorTriage _triage;
 
         private readonly StagedMutationCollection _stagedMutations = new();
-        private volatile IAtrRepository? _atr;
-        private readonly IDocumentRepository _docs;
+        internal volatile IAtrRepository? _atr;
+        internal readonly IDocumentRepository _docs;
         private readonly DurabilityLevel _effectiveDurabilityLevel;
         private readonly List<MutationToken> _finalMutations = [];
 
@@ -187,7 +186,17 @@ namespace Couchbase.Client.Transactions
             }
             return  GetOptionalAsync(collection, id, options);
         }
-
+        /// <summary>
+        /// This gets from the preferred group, assuming one was set when configuring the cluster
+        /// this transaction is using.
+        /// </summary>
+        /// <param name="collection">Collection where the document should reside.</param>
+        /// <param name="id">The ID of the document you wish to get.</param>
+        /// <param name="options">Options to use when getting <see cref="TransactionGetOptionsBuilder"/> </param>
+        /// <returns>TransactionGetResult representing the document.</returns>
+        /// <exception cref="TransactionOperationFailedException"></exception>
+        /// <exception cref="FeatureNotAvailableException"> Raised when the cluster doesn't support this feature. </exception>
+        /// <exception cref="DocumentUnretrievableException"> Raised when the document was not found in the replicas. </exception>
         public async Task<TransactionGetResult?> GetReplicaFromPreferredServerGroup(
             ICouchbaseCollection collection, string id,
             TransactionGetOptionsBuilder? options = null)
@@ -203,6 +212,48 @@ namespace Couchbase.Client.Transactions
 
         }
 
+        [InterfaceStability(Level.Volatile)]
+        public async Task<TransactionGetMultiResult> GetMulti(List<TransactionGetMultiSpec> specs, TransactionGetMultiOptionsBuilder? options = null)
+        {
+            return await _opWrapper.WrapOperationAsync(
+                () => GetMultiInternal(specs, (options ?? TransactionGetMultiOptionsBuilder.Default).Build()),
+                () => throw
+                        new FeatureNotAvailableException(
+                            "GetMulti cannot be mixed with query operations")).CAF();
+        }
+
+        [InterfaceStability(Level.Volatile)]
+        public async Task<TransactionGetMultiReplicaFromPreferredServerGroupResult>
+            GetMultiReplicaFromPreferredServerGroup(
+                List<TransactionGetMultiReplicaFromPreferredServerGroupSpec> specs,
+                TransactionGetMultiReplicaFromPreferredServerGroupOptionsBuilder? options = null)
+        {
+            return await _opWrapper.WrapOperationAsync(
+                () => GetMultiInternal(specs, (options ?? TransactionGetMultiReplicaFromPreferredServerGroupOptionsBuilder.Default).Build()),
+                () => throw
+                    new FeatureNotAvailableException(
+                        "GetMulti cannot be mixed with query operations")).CAF();
+        }
+
+        private async Task<TransactionGetMultiResult> GetMultiInternal(
+            List<TransactionGetMultiSpec> specs, TransactionGetMultiOptions options)
+        {
+            var mgr = new GetMultiManager<TransactionGetMultiSpec, TransactionGetMultiResult>(this,
+                _loggerFactory, _config.KeyValueTimeout, specs, options);
+            return await mgr.RunAsync().CAF();
+        }
+
+        private async Task<TransactionGetMultiReplicaFromPreferredServerGroupResult>
+            GetMultiInternal(
+                List<TransactionGetMultiReplicaFromPreferredServerGroupSpec> specs,
+                TransactionGetMultiReplicaFromPreferredServerGroupOptions options)
+        {
+            var mgr =
+                new GetMultiManager<TransactionGetMultiReplicaFromPreferredServerGroupSpec,
+                    TransactionGetMultiReplicaFromPreferredServerGroupResult>(this, _loggerFactory,
+                    _config.KeyValueTimeout, specs, options);
+            return await mgr.RunAsync().CAF();
+        }
 
         private async Task<TransactionGetResult?> GetWithKv(ICouchbaseCollection collection, string id,
             TransactionGetOptions options, bool allowReplica = false)
@@ -1373,19 +1424,17 @@ namespace Couchbase.Client.Transactions
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             var allStagedMutations = _stagedMutations.ToList();
-            var sem = new SemaphoreSlim(_unstagingConcurrency);
-            var tasks = allStagedMutations.Select(async sm =>
+            var taskLimiter = new TaskLimiter(_unstagingConcurrency);
+            foreach (var sm in allStagedMutations)
             {
-                await UnstageDoc(sm, sem).CAF();
-            });
-            await Task.WhenAll(tasks).CAF();
+                taskLimiter.Run(sm, UnstageDoc);
+            }
+
+            await taskLimiter.WaitAllAsync().CAF();
         }
 
-        private async Task UnstageDoc(StagedMutation sm, SemaphoreSlim sem)
+        private async Task UnstageDoc(StagedMutation sm)
         {
-            try
-            {
-                await sem.WaitAsync().CAF();
                 (var cas, var content) = await FetchIfNeededBeforeUnstage(sm).CAF();
                 switch (sm.Type)
                 {
@@ -1405,11 +1454,6 @@ namespace Couchbase.Client.Transactions
                         throw new InvalidOperationException(
                             $"Cannot un-stage transaction mutation of type {sm.Type}");
                 }
-            }
-            finally
-            {
-                sem.Release();
-            }
         }
 
         private async Task UnstageRemove(StagedMutation sm, bool ambiguityResolutionMode = false,
@@ -2213,7 +2257,7 @@ namespace Couchbase.Client.Transactions
             }
         }
 
-        private void CheckExpiryAndThrow(string? docId, string hookPoint)
+        internal void CheckExpiryAndThrow(string? docId, string hookPoint)
         {
             if (HasExpiredClientSide(docId, hookPoint))
             {

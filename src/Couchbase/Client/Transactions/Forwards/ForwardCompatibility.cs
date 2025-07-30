@@ -17,6 +17,7 @@ namespace Couchbase.Client.Transactions.Forwards
         public const string WriteWriteConflictInserting = "WW_I";
         public const string WriteWriteConflictInsertingGet = "WW_IG";
         public const string Gets = "G";
+        public const string GetMulti = "GM_G";
         public const string GetsReadingAtr = "G_A";
         public const string CleanupEntry = "CL_E";
 

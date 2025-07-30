@@ -771,9 +771,24 @@ namespace Couchbase.KeyValue
                 }
                 else
                 {
-                    throw new DocumentUnretrievableException($"Either neither the primary or replicas for Document: {id}" +
-                                                             $" live in the selected Server Group: {_preferredServerGroup}," +
-                                                             $" or no node/group matches could be made from the config.");
+                    if (opts.ReadPreferenceValue != ReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        throw new DocumentUnretrievableException(
+                            $"Either neither the primary or replicas for Document: {id}" +
+                            $" live in the selected Server Group: {_preferredServerGroup}," +
+                            $" or no node/group matches could be made from the config.");
+                    }
+                    // We did ask for the fallback, so fallback to LookupIn...
+                    Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
+                    tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
+                    if (vBucket.HasReplicas)
+                    {
+                        tasks.AddRange(vBucket.Replicas.Select(replica =>
+                        {
+                            var replicaOpts = opts with { ReplicaIndex = replica };
+                            return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
+                        }));
+                    }
                 }
             }
             else
@@ -836,6 +851,19 @@ namespace Couchbase.KeyValue
                 if (TryExecuteZoneAwareLookupInReplica(vBucket, id, enumeratedSpecs, rootSpan, opts, out var zoneAwareTasks))
                 {
                     tasks.AddRange(zoneAwareTasks);
+                } else if (opts.ReadPreferenceValue ==
+                           ReadPreference.SelectedServerGroupWithFallback)
+                {
+                    Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
+                    tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
+                    if (vBucket.HasReplicas)
+                    {
+                        tasks.AddRange(vBucket.Replicas.Select(replica =>
+                        {
+                            var replicaOpts = opts with { ReplicaIndex = replica };
+                            return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
+                        }));
+                    }
                 }
             }
             else
@@ -1228,9 +1256,17 @@ namespace Couchbase.KeyValue
                 }
                 else
                 {
-                    throw new DocumentUnretrievableException($"Either neither the primary or replicas for Document: {id}" +
-                                                             $" live in the selected Server Group: {_preferredServerGroup}," +
-                                                             $" or no node/group matches could be made from the config.");
+                    if (options.ReadPreferenceValue !=
+                        ReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        throw new DocumentUnretrievableException(
+                            $"Either neither the primary or replicas for Document: {id}" +
+                            $" live in the selected Server Group: {_preferredServerGroup}," +
+                            $" or no node/group matches could be made from the config.");
+                    }
+                    // Fallback when TryGetZoneAwareReplica fails, if asked.
+                    Logger.LogDebug("Falling back to GetPrimary for {id}", Redactor.UserData(id));
+                    tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
                 }
             }
             else
@@ -1291,6 +1327,16 @@ namespace Couchbase.KeyValue
                 if (TryGetZoneAwareReplicas(vBucket, id, rootSpan, options.TokenValue, options, out var zoneAwareTasks))
                 {
                     tasks.AddRange(zoneAwareTasks);
+                }
+                else
+                {
+                    if (options.ReadPreferenceValue ==
+                        ReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        Logger.LogDebug("Falling back to GetPrimary for {id}",
+                            Redactor.UserData(id));
+                        tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+                    }
                 }
             }
             else

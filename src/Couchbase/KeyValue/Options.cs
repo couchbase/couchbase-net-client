@@ -442,7 +442,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
@@ -568,7 +568,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
