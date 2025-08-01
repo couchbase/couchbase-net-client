@@ -591,5 +591,19 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.Equal([0, 1], groupAndIndexes["group_1"]);
             Assert.Equal([2, 3], groupAndIndexes["group_2"]);
         }
+
+        [Fact]
+        public void Test_BucketConfig_With_Product()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-with-analytics-prod.json", InternalSerializationContext.Default.BucketConfig);
+            Assert.Equal("analytics", config.Product);
+        }
+
+        [Fact]
+        public void Test_BucketConfig_Without_Product()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json", InternalSerializationContext.Default.BucketConfig);
+            Assert.Null(config.Product);
+        }
     }
 }

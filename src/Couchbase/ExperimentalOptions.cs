@@ -29,6 +29,12 @@ namespace Couchbase
         /// Enables push config notification if supported by the server version, otherwise, polling is used as before.
         /// </summary>
         [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = true;
+
+        /// <summary>
+        /// This is an internal setting to bypass product validation when doing Analytics queries against
+        /// an EA cluster.
+        /// </summary>
+        internal bool EnableEnterpriseAnalytics { get; set; } = false;
     }
 }
 

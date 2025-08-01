@@ -111,7 +111,7 @@ namespace Couchbase.Utils
                 Context = context
             };
         }
-        
+
         [DoesNotReturn]
         public static void ThrowUnsupportedException(string? message)
         {
@@ -132,6 +132,16 @@ namespace Couchbase.Utils
         }
         public static FeatureNotAvailableException ThrowFeatureNotAvailableException(string featureName, string productName)
             => new($"The feature {featureName} is not supported when using {productName}.");
+
+        internal static void ThrowIfIsEnterpriseAnalytics(string? productName)
+        {
+            if (productName is not null && string.Equals(productName, "analytics"))
+            {
+                throw new CouchbaseException(
+                    "This SDK is for Couchbase Server (operational) clusters, but the remote cluster is an Enterprise Analytics cluster. " +
+                    "Please use the Enterprise Analytics SDK to access this cluster");
+            }
+        }
     }
 }
 

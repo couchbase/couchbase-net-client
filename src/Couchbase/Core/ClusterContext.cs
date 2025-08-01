@@ -235,6 +235,12 @@ namespace Couchbase.Core
                 throw new ServiceNotAvailableException(service);
             }
 
+            // If a node was found but the server is an Enterprise Analytics cluster, throw
+            if (!_clusterOptions.Experiments.EnableEnterpriseAnalytics && service is ServiceType.Analytics)
+            {
+                ThrowHelper.ThrowIfIsEnterpriseAnalytics(GlobalConfig.Product);
+            }
+
             return node;
         }
 
