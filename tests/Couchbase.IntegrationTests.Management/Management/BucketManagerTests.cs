@@ -252,8 +252,7 @@ namespace Couchbase.IntegrationTests.Management
         {
             Assert.Equal(expected.Name, actual.Name);
             Assert.Equal(expected.BucketType, actual.BucketType);
-            var ramQuotaInBytes = expected.RamQuotaMB * 1024 * 1024; // returned value is in bytes, not mb :|
-            Assert.Equal(ramQuotaInBytes, actual.RamQuotaMB);
+            Assert.Equal(expected.RamQuotaMB, actual.RamQuotaMB);
             Assert.Equal(expected.MaxTtl, actual.MaxTtl);
             Assert.Equal(expected.ReplicaIndexes, actual.ReplicaIndexes);
             Assert.Equal(expected.NumReplicas, actual.NumReplicas);
