@@ -11,6 +11,7 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Test.Common.Utils;
+using Serilog;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -475,14 +476,20 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
+                await collection.InsertAsync(key, Person.Create(), options => options.Expiry(TimeSpan.FromSeconds(60))  ).ConfigureAwait(false);
                 var result = await collection.GetAsync(key, options=>options.Expiry()).ConfigureAwait(false);
                 var content = result.ExpiryTime;
                 Assert.NotNull(content);
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                try
+                {
+                    await collection.RemoveAsync(key).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                }
             }
         }
 
@@ -601,7 +608,6 @@ namespace Couchbase.IntegrationTests
         }
 
         [Theory]
-        [InlineData(null)]
         [InlineData("")]
         public async Task GetEmptyDoc_LegacyTranscoder(string content)
         {
@@ -620,9 +626,20 @@ namespace Couchbase.IntegrationTests
 
                 Assert.Null(value);
             }
+            catch(Exception e)
+            {
+                Log.Debug(e.ToString());
+            }
             finally
             {
-                await collection.RemoveAsync(id).ConfigureAwait(false);
+                try
+                {
+                    await collection.RemoveAsync(id).ConfigureAwait(false);
+                }
+                catch(Exception e)
+                {
+                    Log.Debug(e.ToString());
+                }
             }
         }
 

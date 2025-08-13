@@ -149,19 +149,19 @@ namespace Couchbase.IntegrationTests
 #else
         //[Fact(Skip = "X509ChainPolicy.TrustMode not supported in older versions of .NET")]
 #endif
-        [Fact]
+        [CouchbaseHasCapellaFact()]
         public async Task Test_Cloud_Default()
         {
             // Taken from the code given in the Capella UI for connecting with the SDK.
             // This example should work without ignoring certificate name mismatches.
 
             // Update this to your cluster
-            var endpoint = "cb.3nakwwqp5hwkuek.nonprod-project-avengers.com";
-            var bucketName = "travel-sample";
+            var endpoint = _fixture.GetCapellaSettings().ConnectionString;
+            var bucketName = _fixture.GetCapellaSettings().BucketName;
 
             // In the cloud dashboard, go to Clusters -> <your cluster> -> Connect -> Database Access -> Manage Credentials
-            var username = "myelixirtest01";
-            var password = "!Salmon2";
+            var username = _fixture.GetCapellaSettings().UserName;
+            var password = _fixture.GetCapellaSettings().Password;
             // User Input ends here.
 
             // default without overriding any callbacks.
@@ -180,18 +180,27 @@ namespace Couchbase.IntegrationTests
                 loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
                 opts.WithLogging(loggerFactory);
 
-                var cluster = await Couchbase.Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var cluster = await Couchbase.Cluster.ConnectAsync( endpoint, opts);
 
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(49));
                 var bucket = await cluster.BucketAsync(bucketName);
                 var collection = bucket.DefaultCollection();
 
-                var scan = collection.ScanAsync(new RangeScan(ScanTerm.Minimum, ScanTerm.Maximum));
-
-                await foreach(var i in scan)
+                /*  This is a valid test, but it takes 5-10 minutes.
                 {
+                    var scan = collection.ScanAsync(
+                        new RangeScan(ScanTerm.Minimum, ScanTerm.Maximum),
+                        ScanOptions.Default.Timeout(TimeSpan.FromMinutes(10)));
 
+                    int count = 0;
+                    await foreach (var i in scan)
+                    {
+                        if (count++ % 1000 == 0)
+                            _outputHelper.WriteLine(count + " " + i.Id);
+                    }
                 }
+                */
+
                 // Store a Document
                 var upsertResult = await collection.UpsertAsync("king_arthur", new
                 {
@@ -212,16 +221,17 @@ namespace Couchbase.IntegrationTests
             }
 
             // If a callback is specified, default certificates should not be used.
-          /*  {
+           {
                 // Initialize the Connection
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
                 opts.KvCertificateCallbackValidation = (a, b, c, d) => false;
 
-                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var cluster = await Cluster.ConnectAsync( endpoint, opts);
 
                 // this will fail due to certificate validation failing.
-                var ex = await Assert.ThrowsAsync<Couchbase.Management.Buckets.BucketNotFoundException>(async () => await cluster.BucketAsync(bucketName));
+                //var ex = await Assert.ThrowsAsync<Couchbase.Management.Buckets.BucketNotFoundException>(async () => await cluster.BucketAsync(bucketName));
+                var ex = await Assert.ThrowsAsync<AggregateException>(async () => await cluster.BucketAsync(bucketName));
 
                 // this will fail because the cluster bootstraps with KV validation.
                 var queryResultEx = await Assert.ThrowsAsync<ServiceNotAvailableException>(() => cluster.QueryAsync<dynamic>(
@@ -237,7 +247,7 @@ namespace Couchbase.IntegrationTests
                 opts.EnableTls = true;
                 opts.HttpCertificateCallbackValidation = (a, b, c, d) => false;
 
-                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var cluster = await Cluster.ConnectAsync( endpoint, opts);
                 var bucket = await cluster.BucketAsync(bucketName);
                 var collection = bucket.DefaultCollection();
 
@@ -255,7 +265,7 @@ namespace Couchbase.IntegrationTests
                     String.Format("SELECT name FROM `{0}` WHERE $1 IN interests", bucketName),
                     new QueryOptions().Parameter("African Swallows")
                 ));
-            }*/
+            }
         }
 
         [Fact (Skip = "Certificate tests Need manual setup and running. Comment out the Skip() to run")]

@@ -115,10 +115,10 @@ namespace Couchbase.Core.IO.Connections
                     if (_sslLogger.IsEnabled(LogLevel.Debug))
                     {
                         foreach (var cert in certs)
-                            _sslLogger.LogDebug("Cert sent {cert.FriendlyName} - Thumbprint {cert.Thumbprint}",
+                            _sslLogger.LogDebug("Using cert {FriendlyName} - Thumbprint {Thumbprint}",
                                 cert.FriendlyName, cert.Thumbprint);
 
-                        _sslLogger.LogDebug("Sending {certs.Count} certificates to the server.", certs.Count);
+                        _sslLogger.LogDebug("Using {Count} certificates.", certs.Count);
                     }
                 }
 

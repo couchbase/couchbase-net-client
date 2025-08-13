@@ -15,7 +15,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [CouchbaseVersionDependentTheory(MinVersion = "6.5.0")]
+        [CouchbaseHasReplicasTheory(ExplicitAllow = [3,5])]
         [InlineData(DurabilityLevel.None)]
         [InlineData(DurabilityLevel.Majority)]
         [InlineData(DurabilityLevel.MajorityAndPersistToActive)]

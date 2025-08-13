@@ -1,13 +1,21 @@
 {
   "testSettings": {
-    "connectionString": "couchbase://localhost",
+    "connectionString": "couchbase://127.0.0.1",
     "bucketName": "default",
-    "certificatesFilePath": "",
+    // "certificatesFilePath": "root.pem",
+    "systemTextJson": false,
+    "enableCompression": true
+  },
+  "capellaSettings": {
+    "connectionString": "couchbases://cb.grixsip3rnsvxcl0.cloud.couchbase.com",
+    "bucketName": "travel-sample",
+    "userName": "clientuser",
+    "password": "xxxxxxxxxxxxx",
     "systemTextJson": false,
     "enableCompression": true
   },
   "couchbase": {
-    "connectionString": "couchbase://localhost",
+    "connectionString": "couchbase://127.0.0.1",
     "username": "Administrator",
     "password": "password",
     "experiments": {
@@ -15,7 +23,7 @@
     }
   },
   "couchbaseSsl": {
-    "connectionString": "couchbases://localhost",
+    "connectionString": "couchbases://127.0.0.1",
     "username": "Administrator",
     "password": "password",
     "ignoreRemoteCertificateNameMismatch":  true
