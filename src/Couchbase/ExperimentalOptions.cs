@@ -35,6 +35,13 @@ namespace Couchbase
         /// an EA cluster.
         /// </summary>
         internal bool EnableEnterpriseAnalytics { get; set; } = false;
+
+        /// <summary>
+        /// We disambiguate between a Timeout and an OperationCanceled exception using a heuristic -
+        /// if the elapsed time for an operation is >95% of the Timeout, we consider it a timeout -
+        /// when this is enabled.
+        /// </summary>
+        internal bool EnableTimeoutThresholdHeuristic { get; set; } = true;
     }
 }
 

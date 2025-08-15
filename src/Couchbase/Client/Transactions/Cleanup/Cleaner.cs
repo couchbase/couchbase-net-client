@@ -233,14 +233,14 @@ namespace Couchbase.Client.Transactions.Cleanup
             }
             else
             {
-
                 await coll.MutateInAsync(op.Id, specs =>
                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
                         .SetDoc(content), opts =>
                     opts.Durability(durabilityLevel)
                         .Transcoder(op.StagedContent?.Transcoder)
                         .Flags(op.StagedContent!.Transcoder.GetFormat(content))
-                        .Timeout(_keyValueTimeout)).CAF();
+                        .Timeout(_keyValueTimeout)
+                        .Cas(op.Cas)).CAF();
             }
         }
 
