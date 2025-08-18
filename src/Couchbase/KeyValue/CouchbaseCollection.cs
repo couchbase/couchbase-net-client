@@ -747,7 +747,7 @@ namespace Couchbase.KeyValue
             _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+            var opts = options?.AsReadOnly() ?? LookupInAnyReplicaOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -760,7 +760,7 @@ namespace Couchbase.KeyValue
             var vBucket = VBucketForReplicas(id);
             var enumeratedSpecs = specs.ToList();
 
-            var readWithPreference = opts.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<MultiLookup<byte[]>>>();
 
             if (readWithPreference)
@@ -771,7 +771,7 @@ namespace Couchbase.KeyValue
                 }
                 else
                 {
-                    if (opts.ReadPreferenceValue != ReadPreference.SelectedServerGroupWithFallback)
+                    if (opts.ReadPreferenceValue != InternalReadPreference.SelectedServerGroupWithFallback)
                     {
                         throw new DocumentUnretrievableException(
                             $"Either neither the primary or replicas for Document: {id}" +
@@ -830,7 +830,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
             if (specs.Count() > 16) throw new InvalidArgumentException("Too many specs in Lookup operation (Limited to 16)");
-            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+            var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -843,7 +843,7 @@ namespace Couchbase.KeyValue
             var vBucket = VBucketForReplicas(id);
             var enumeratedSpecs = specs.ToList();
 
-            var readWithPreference = opts.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<MultiLookup<byte[]>>>();
 
             if (readWithPreference)
@@ -851,22 +851,31 @@ namespace Couchbase.KeyValue
                 if (TryExecuteZoneAwareLookupInReplica(vBucket, id, enumeratedSpecs, rootSpan, opts, out var zoneAwareTasks))
                 {
                     tasks.AddRange(zoneAwareTasks);
-                } else if (opts.ReadPreferenceValue ==
-                           ReadPreference.SelectedServerGroupWithFallback)
+                }
+                else if (opts.ReadPreferenceValue ==
+                           InternalReadPreference.SelectedServerGroupWithFallback)
                 {
-                    Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
-                    tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
-                    if (vBucket.HasReplicas)
-                    {
-                        tasks.AddRange(vBucket.Replicas.Select(replica =>
-                        {
-                            var replicaOpts = opts with { ReplicaIndex = replica };
-                            return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
-                        }));
-                    }
+                    Logger.LogDebug("Falling back to LookupInAllReplica with no server group preference for {id}", Redactor.UserData(id));
+                    AddLookupInAllReplicaTasks();
                 }
             }
             else
+            {
+                AddLookupInAllReplicaTasks();
+            }
+
+            foreach (var lookupTask in tasks)
+            {
+                var lookup = await lookupTask.ConfigureAwait(false);
+                var responseStatus = lookup.Header.Status;
+                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
+                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+            }
+
+            yield break;
+
+            void AddLookupInAllReplicaTasks()
             {
                 //LookupIn on primary
                 tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
@@ -880,15 +889,6 @@ namespace Couchbase.KeyValue
                     }));
                 }
             }
-
-            foreach (var lookupTask in tasks)
-            {
-                var lookup = await lookupTask.ConfigureAwait(false);
-                var responseStatus = lookup.Header.Status;
-                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
-                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
-            }
         }
 
         private bool TryExecuteZoneAwareLookupInReplica(VBucket vBucket, string id, List<LookupInSpec> enumeratedSpecs, IRequestSpan rootSpan, LookupInOptions.ReadOnly options, out List<Task<MultiLookup<byte[]>>> tasks)
@@ -899,8 +899,11 @@ namespace Couchbase.KeyValue
             // 1 - The preferred server group is not set
             // 2 - No Node/ServerGroup pairs could be made from the config
             // 3 - The preferred group does not have an entry in the above, or if it does but is null/empty
-            if (_preferredServerGroup is null ||
-                _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
+            if (_preferredServerGroup is null)
+            {
+                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+            }
+            if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
                 !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
                 indexesInGroup is null || indexesInGroup.Length == 0)
             {
@@ -1245,7 +1248,7 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
             var vBucket = VBucketForReplicas(id);
 
-            var readWithPreference = options.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<IGetReplicaResult>>();
 
             if (readWithPreference)
@@ -1257,7 +1260,7 @@ namespace Couchbase.KeyValue
                 else
                 {
                     if (options.ReadPreferenceValue !=
-                        ReadPreference.SelectedServerGroupWithFallback)
+                        InternalReadPreference.SelectedServerGroupWithFallback)
                     {
                         throw new DocumentUnretrievableException(
                             $"Either neither the primary or replicas for Document: {id}" +
@@ -1319,7 +1322,7 @@ namespace Couchbase.KeyValue
                 Logger.LogWarning(
                     $"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
 
-            var readWithPreference = options.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<IGetReplicaResult>>();
 
             if (readWithPreference)
@@ -1331,27 +1334,26 @@ namespace Couchbase.KeyValue
                 else
                 {
                     if (options.ReadPreferenceValue ==
-                        ReadPreference.SelectedServerGroupWithFallback)
+                        InternalReadPreference.SelectedServerGroupWithFallback)
                     {
-                        Logger.LogDebug("Falling back to GetPrimary for {id}",
-                            Redactor.UserData(id));
-                        tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+                        AddAllReplicaTasks();
                     }
                 }
             }
             else
             {
-                //get a list of replica indexes
-                var replicas = GetReplicaIndexes(vBucket);
-
-                // get the primary
-                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
-
-                // get the replicas
-                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+                AddAllReplicaTasks();
             }
 
             return tasks;
+
+            // local function to capture variables
+            void AddAllReplicaTasks()
+            {
+                var replicas = GetReplicaIndexes(vBucket);
+                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+            }
         }
 
         private static List<short> GetReplicaIndexes(VBucket vBucket)
@@ -1368,10 +1370,13 @@ namespace Couchbase.KeyValue
             // 1 - The preferred server group is not set
             // 2 - No Node/ServerGroup pairs could be made from the config
             // 3, 4 - The preferred group does not have an entry in the above, or if it does but is null/empty
-            if (_preferredServerGroup is null ||
-                _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
-                !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
-                indexesInGroup is null || indexesInGroup.Length == 0)
+            if (_preferredServerGroup is null)
+            {
+                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+            }
+            if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
+                     !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
+                     indexesInGroup is null || indexesInGroup.Length == 0)
             {
                 return false;
             }

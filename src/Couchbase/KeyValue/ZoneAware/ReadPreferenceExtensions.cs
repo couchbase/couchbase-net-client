@@ -1,15 +1,16 @@
+using System;
+
 namespace Couchbase.KeyValue.ZoneAware;
 
-public enum ReadPreference
+internal static class ReadPreferenceExtensions
 {
-    /// <summary>
-    /// Performs the operation on all server groups.
-    /// </summary>
-    NoPreference,
-    /// <summary>
-    /// Performs the zone-aware operation on the preferred server group only.
-    /// </summary>
-    SelectedServerGroup
+    public static InternalReadPreference ToInternal(this ReadPreference readPreference) =>
+        readPreference switch
+        {
+            ReadPreference.NoPreference => InternalReadPreference.NoPreference,
+            ReadPreference.SelectedServerGroup => InternalReadPreference.SelectedServerGroup,
+            _ => throw new ArgumentOutOfRangeException(nameof(readPreference))
+        };
 }
 
 /* ************************************************************

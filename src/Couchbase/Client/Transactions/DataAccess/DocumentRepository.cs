@@ -254,7 +254,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                     .Timeout(keyValueTimeout)
                     .Transcoder(transcoder ??
                                 new JsonTranscoder(Transactions.MetadataSerializer))
-                    .ReadPreference(ReadPreference.SelectedServerGroupWithFallback);
+                    .ReadPreference(InternalReadPreference.SelectedServerGroupWithFallback);
                 lookupInResult =
                     await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
             }

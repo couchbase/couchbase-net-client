@@ -96,7 +96,7 @@ namespace Couchbase.KeyValue.RangeScan
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="parentSpan">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>

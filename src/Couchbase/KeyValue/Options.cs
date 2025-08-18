@@ -59,7 +59,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
@@ -201,7 +201,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
@@ -209,6 +209,17 @@ namespace Couchbase.KeyValue
         /// <param name="readPreference">The read preference.</param>
         /// <returns>This for method chaining.</returns>
         public GetAllReplicasOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference.ToInternal();
+            return this;
+        }
+
+        /// <summary>
+        /// Internal setter to use when the read preference is already an <see cref="InternalReadPreference"/>.
+        /// </summary>
+        /// <param name="readPreference">The internal read preference</param>
+        /// <returns>This for method chaining</returns>
+        internal GetAllReplicasOptions ReadPreference(InternalReadPreference readPreference)
         {
             ReadPreferenceValue = readPreference;
             return this;
@@ -277,7 +288,7 @@ namespace Couchbase.KeyValue
 
         public static GetAllReplicasOptions Default { get; } = new();
 
-        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
             token = TokenValue;
             transcoder = TranscoderValue;
@@ -288,7 +299,7 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
             return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
@@ -297,7 +308,7 @@ namespace Couchbase.KeyValue
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            ReadPreference ReadPreference);
+            InternalReadPreference ReadPreference);
     }
 
     #endregion
@@ -320,7 +331,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
@@ -328,6 +339,17 @@ namespace Couchbase.KeyValue
         /// <param name="readPreference">The read preference.</param>
         /// <returns>This for method chaining.</returns>
         public GetAnyReplicaOptions ReadPreference(ReadPreference readPreference)
+        {
+            ReadPreferenceValue = readPreference.ToInternal();
+            return this;
+        }
+
+        /// <summary>
+        /// Internal setter to use when the read preference is already an <see cref="InternalReadPreference"/>.
+        /// </summary>
+        /// <param name="readPreference">The internal read preference</param>
+        /// <returns>This for method chaining</returns>
+        internal GetAnyReplicaOptions ReadPreference(InternalReadPreference readPreference)
         {
             ReadPreferenceValue = readPreference;
             return this;
@@ -394,7 +416,7 @@ namespace Couchbase.KeyValue
 
         public static GetAnyReplicaOptions Default { get; } = new();
 
-        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
             token = TokenValue;
             transcoder = TranscoderValue;
@@ -405,7 +427,7 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
             return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
@@ -414,7 +436,7 @@ namespace Couchbase.KeyValue
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            ReadPreference ReadPreference);
+            InternalReadPreference ReadPreference);
     }
 
     #endregion
@@ -442,7 +464,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        internal ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
@@ -451,12 +473,23 @@ namespace Couchbase.KeyValue
         /// <returns>This for method chaining.</returns>
         public LookupInAnyReplicaOptions ReadPreference(ReadPreference readPreference)
         {
+            ReadPreferenceValue = readPreference.ToInternal();
+            return this;
+        }
+
+        /// <summary>
+        /// Internal setter to use when the read preference is already an <see cref="InternalReadPreference"/>.
+        /// </summary>
+        /// <param name="readPreference">The internal read preference</param>
+        /// <returns>This for method chaining</returns>
+        internal LookupInAnyReplicaOptions ReadPreference(InternalReadPreference readPreference)
+        {
             ReadPreferenceValue = readPreference;
             return this;
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -525,7 +558,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -538,7 +571,7 @@ namespace Couchbase.KeyValue
 
         public LookupInOptions.ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
             return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
         }
     }
@@ -568,7 +601,7 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        internal ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
@@ -577,12 +610,23 @@ namespace Couchbase.KeyValue
         /// <returns>This for method chaining.</returns>
         public LookupInAllReplicasOptions ReadPreference(ReadPreference readPreference)
         {
+            ReadPreferenceValue = readPreference.ToInternal();
+            return this;
+        }
+
+        /// <summary>
+        /// Internal setter to use when the read preference is already an <see cref="InternalReadPreference"/>.
+        /// </summary>
+        /// <param name="readPreference">The internal read preference</param>
+        /// <returns>This for method chaining</returns>
+        internal LookupInAllReplicasOptions ReadPreference(InternalReadPreference readPreference)
+        {
             ReadPreferenceValue = readPreference;
             return this;
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -651,7 +695,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -664,7 +708,7 @@ namespace Couchbase.KeyValue
 
         public LookupInOptions.ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out ReadPreference readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
             return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
         }
     }
@@ -695,7 +739,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="ExistsOptions"/> instance for chaining.</returns>
@@ -802,7 +846,7 @@ namespace Couchbase.KeyValue
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
@@ -1152,7 +1196,7 @@ namespace Couchbase.KeyValue
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>A <see cref="ExistsOptions"/> instance for chaining.</returns>
@@ -1333,7 +1377,7 @@ namespace Couchbase.KeyValue
         internal ResponseStatus Status { get; set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -1475,7 +1519,7 @@ namespace Couchbase.KeyValue
         internal ResponseStatus Status { get; set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -1571,7 +1615,7 @@ namespace Couchbase.KeyValue
         internal ResponseStatus Status { get; set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -1667,7 +1711,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2040,7 +2084,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2183,7 +2227,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2321,7 +2365,7 @@ namespace Couchbase.KeyValue
         internal bool PreferReturn { get; set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2432,7 +2476,7 @@ namespace Couchbase.KeyValue
         internal bool PreferReturn { get; set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2548,23 +2592,21 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
-        public ReadPreference ReadPreferenceValue { get; private set; } = ZoneAware.ReadPreference.NoPreference;
+        internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
         /// </summary>
         /// <param name="readPreference">The read preference.</param>
         /// <returns>This for method chaining.</returns>
-        public LookupInOptions ReadPreference(ReadPreference readPreference)
+        internal LookupInOptions ReadPreference(ReadPreference readPreference)
         {
-            ReadPreferenceValue = readPreference;
+            ReadPreferenceValue = readPreference.ToInternal();
             return this;
         }
 
-
-
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2652,7 +2694,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out ReadPreference readPreference)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out InternalReadPreference readPreference)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -2668,7 +2710,7 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out ReadPreference readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn, out InternalReadPreference readPreference);
             return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan, PreferReturn: preferReturn, ReadPreferenceValue: readPreference);
         }
 
@@ -2683,7 +2725,7 @@ namespace Couchbase.KeyValue
             IRequestSpan? RequestSpan,
             short? ReplicaIndex = null,
             bool PreferReturn = false,
-            ReadPreference ReadPreferenceValue = ZoneAware.ReadPreference.NoPreference) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
+            InternalReadPreference ReadPreferenceValue = InternalReadPreference.NoPreference) : IKeyValueOptions, ITranscoderOverrideOptions, ITimeoutOptions;
     }
 
     #endregion
@@ -2745,7 +2787,7 @@ namespace Couchbase.KeyValue
         }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
@@ -2989,7 +3031,7 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
-        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// Inject an external span which will be the parent span of the internal span(s).
         /// </summary>
         /// <param name="span">An <see cref="IRequestSpan"/></param>
         /// <returns>An options instance for chaining.</returns>
