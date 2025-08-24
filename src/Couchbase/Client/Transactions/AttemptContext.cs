@@ -1586,14 +1586,9 @@ namespace Couchbase.Client.Transactions
                             insertMode = true;
                             return RepeatAction.RepeatWithDelay;
                         case ErrorClass.FailDocAlreadyExists:
-                            // we just move on if it is a replace
-                            if (!insertMode)
+                            // if resolving ambiguity, or if this is a replace, then this is ok
+                            if (ambiguityResolutionMode || !insertMode)
                                 return RepeatAction.NoRepeat;
-                            if (ambiguityResolutionMode)
-                            {
-                                throw _triage.AssertNotNull(triaged, ex);
-                            }
-
                             if (_docs.SupportsReplaceBodyWithXattr(sm.Doc.Collection))
                             {
                                 throw _triage.AssertNotNull(triaged, ex);
@@ -1985,6 +1980,16 @@ namespace Couchbase.Client.Transactions
             else
             {
                 await RollbackWithKv(isAppRollback, parentSpan).CAF();
+            }
+            // if we make it here, lets be sure to create an exception if none was raised.  This is
+            // strictly for the testing - it expects an exception when rollback is called.  We could
+            // trigger a rollback by raising an exception, but _that_ exception will be the one that
+            // gets raised which breaks a couple other tests.  Non-internal users cannot get here without
+            // an exception, so this _only_ is for tests.
+            if (this.StateFlags.GetFinalError() ==
+                TransactionOperationFailedException.FinalError.None)
+            {
+                throw ErrorBuilder.CreateError(this, ErrorClass.FailOther).DoNotRollbackAttempt().Build();
             }
         }
 

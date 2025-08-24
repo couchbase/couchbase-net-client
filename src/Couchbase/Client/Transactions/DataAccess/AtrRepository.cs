@@ -8,8 +8,11 @@ using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Protostellar.KV.V1;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using DurabilityLevel = Couchbase.KeyValue.DurabilityLevel;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
@@ -141,6 +144,8 @@ namespace Couchbase.Client.Transactions.DataAccess
         {
             using var logScope = _logger.BeginMethodScope();
             var shortDurability = new ShortStringDurabilityLevel(documentDurability).ToString();
+            var content = new byte?[] { 0 };
+
             var specs = new[]
             {
                 MutateInSpec.Insert(_prefixedAtrFieldTransactionId,
@@ -151,10 +156,11 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Insert(_prefixedAtrFieldExpiresAfterMsecs, exp,
                             createPath: false, isXattr: true),
                 MutateInSpec.Insert(_prefixedAtrFieldDurability, shortDurability, isXattr: true),
-                MutateInSpec.SetDoc(new byte?[] { null }), // ExtBinaryMetadata
+                MutateInSpec.SetDoc(content), // ExtBinaryMetadata
             };
+            var userFlags = new Flags { Compression = Core.IO.Operations.Compression.None, DataFormat = DataFormat.Binary, TypeCode = TypeCode.Object};
 
-            var mutateResult = await Collection.MutateInAsync(AtrId, specs, GetMutateOpts(StoreSemantics.Upsert)).CAF();
+            var mutateResult = await Collection.MutateInAsync(AtrId, specs, GetMutateOpts(StoreSemantics.Upsert).Flags(userFlags)).CAF();
             _logger.LogInformation("Upserted ATR to PENDING {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
