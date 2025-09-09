@@ -9,6 +9,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Stellar.Core;
+using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.Core;
 
@@ -40,6 +41,11 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         }
     }
 
+    private bool ProfileIsNull(ByteString profile)
+    {
+        return  profile.IsEmpty || profile.ToStringUtf8() == "null";
+    }
+
     internal async Task InitializeAsync(CancellationToken cancellationToken)
     {
         if (!_hasReadHeader)
@@ -49,9 +55,8 @@ internal class StellarQueryResult<T> : IQueryResult<T>
             if (_streamReader.Current.MetaData != null)
             {
                 var responseMetaData = _streamReader.Current.MetaData;
-                if (responseMetaData.HasProfile) MetaData!.Profile = responseMetaData.Profile;
+                if (responseMetaData.HasProfile && !ProfileIsNull(responseMetaData.Profile)) MetaData!.Profile = responseMetaData.Profile.ToStringUtf8();
                 if (responseMetaData.Metrics != null) MetaData!.Metrics = ConvertQueryMetrics(responseMetaData.Metrics);
-                if (responseMetaData.Profile != null) MetaData!.Profile = responseMetaData.Profile.ToStringUtf8();
                 if (responseMetaData.Signature != null) MetaData!.Signature = responseMetaData.Signature.ToStringUtf8();
                 if (responseMetaData.Warnings != null)
                     MetaData!.Warnings = ConvertQueryWarnings(responseMetaData.Warnings);
@@ -141,8 +146,10 @@ internal class StellarQueryResult<T> : IQueryResult<T>
             SortCount = (uint)protoMetrics.SortCount,
             WarningCount = (uint)protoMetrics.WarningCount
         };
-        if (protoMetrics.ElapsedTime != null) coreMetrics.ElapsedTime = protoMetrics.ElapsedTime.ToTimeSpan().ToString(); //TODO: Is this the expected string format?
-        if (protoMetrics.ExecutionTime != null) coreMetrics.ExecutionTime = protoMetrics.ExecutionTime.ToTimeSpan().ToString();
+        if (protoMetrics.ElapsedTime != null)
+            coreMetrics.ElapsedTime = protoMetrics.ElapsedTime.ToString().Trim('"'); //TODO: Is this the expected string format?
+        if (protoMetrics.ExecutionTime != null)
+            coreMetrics.ExecutionTime = protoMetrics.ExecutionTime.ToString().Trim('"');
         return coreMetrics;
     }
 
