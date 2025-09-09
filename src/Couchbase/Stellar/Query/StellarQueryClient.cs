@@ -1,5 +1,7 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Serializers;
@@ -8,6 +10,8 @@ using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
+using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.WellKnownTypes;
 
 #nullable enable
@@ -52,12 +56,32 @@ internal class StellarQueryClient : IQueryClient
         if (opts.CurrentContextId != null) request.ClientContextId = opts.CurrentContextId;
 
         var tuningOptions = new QueryRequest.Types.TuningOptions();
-        if (opts.MaxServerParallelism.HasValue) tuningOptions.MaxParallelism = (uint)opts.MaxServerParallelism.Value;
-        if (opts.PipelineBatch.HasValue) tuningOptions.PipelineBatch = (uint)opts.PipelineBatch.Value;
-        if (opts.PipelineCapacity.HasValue) tuningOptions.PipelineCap = (uint)opts.PipelineCapacity.Value;
-        if (opts.ScanWait.HasValue) tuningOptions.ScanWait = Duration.FromTimeSpan(opts.ScanWait.Value);
+        if (opts.MaxServerParallelism.HasValue)
+            tuningOptions.MaxParallelism = (uint)opts.MaxServerParallelism.Value;
+        if (opts.PipelineBatch.HasValue)
+            tuningOptions.PipelineBatch = (uint)opts.PipelineBatch.Value;
+        if (opts.PipelineCapacity.HasValue)
+            tuningOptions.PipelineCap = (uint)opts.PipelineCapacity.Value;
+        if (opts.ScanWait.HasValue)
+            tuningOptions.ScanWait = Duration.FromTimeSpan(opts.ScanWait.Value);
         if (opts.ScanCapacity.HasValue) tuningOptions.ScanCap = (uint)opts.ScanCapacity.Value;
         if (opts.IncludeMetrics == false) tuningOptions.DisableMetrics = true;
+        if (opts.Parameters.Values.Any()){
+            foreach (var (key, value) in opts.Parameters)
+            {
+                request.NamedParameters[key] =
+                    ByteString.CopyFrom(_typeSerializer.Serialize(value));
+            }
+        }
+        if (opts.Arguments.Any())
+        {
+            foreach (var arg in opts.Arguments)
+            {
+                request.PositionalParameters.Add(
+                    ByteString.CopyFrom(_typeSerializer.Serialize(arg)));
+            }
+        }
+
         request.TuningOptions = tuningOptions;
         request.ProfileMode = opts.Profile.ToProto();
 
