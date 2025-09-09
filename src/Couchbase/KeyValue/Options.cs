@@ -466,6 +466,8 @@ namespace Couchbase.KeyValue
 
         internal InternalReadPreference ReadPreferenceValue { get; private set; } = InternalReadPreference.NoPreference;
 
+        internal bool AccessDeletedValue { get; set; }
+
         /// <summary>
         /// Sets whether the operation should only target Nodes in the server group specified in the <see cref="ClusterOptions"/>.
         /// </summary>
@@ -558,7 +560,19 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
+        /// <summary>
+        /// Use AccessDeleted flag if supported
+        /// </summary>
+        /// <param name="accessDeleted"></param>
+        /// <returns>An options instance for chaining.</returns>
+        public LookupInAnyReplicaOptions AccessDeleted(bool accessDeleted)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            AccessDeletedValue = accessDeleted;
+            return this;
+        }
+
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
             timeout = TimeoutValue;
             token = TokenValue;
@@ -567,12 +581,13 @@ namespace Couchbase.KeyValue
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
             readPreference = ReadPreferenceValue;
+            accessDeleted = AccessDeletedValue;
         }
 
         public LookupInOptions.ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
-            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, false, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
+            return new LookupInOptions.ReadOnly(timeout, token, false, serializer, transcoder, accessDeleted, retryStrategy, requestSpan, null, ReadPreferenceValue: readPreference);
         }
     }
 

@@ -39,6 +39,11 @@ namespace Couchbase.KeyValue
         /// </summary>
         bool IsDefaultCollection { get; }
 
+        /// <summary>
+        /// Returns true if the bucket supports accessDeleted.
+        /// </summary>
+        public bool AccessDeleted  { get; }
+
         #region Basic
 
         /// <summary>

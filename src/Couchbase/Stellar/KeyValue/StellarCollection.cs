@@ -75,6 +75,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
     public bool IsDefaultCollection { get; }
 
+    public bool AccessDeleted => false;
+
     public ICollectionQueryIndexManager QueryIndexes => _stellarCollectionQueryIndexes;
 
     public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)

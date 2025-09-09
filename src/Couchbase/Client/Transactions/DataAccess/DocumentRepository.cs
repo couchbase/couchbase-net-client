@@ -248,20 +248,19 @@ namespace Couchbase.Client.Transactions.DataAccess
             ILookupInResult? lookupInResult;
             if (allowReplica)
             {
-                // TODO: check capabilities - 8.0+ will be able to support AccessDeleted
-                //   with replica reads.
                 var opts = new LookupInAnyReplicaOptions()
                     .Timeout(keyValueTimeout)
                     .Transcoder(transcoder ??
                                 new JsonTranscoder(Transactions.MetadataSerializer))
-                    .ReadPreference(InternalReadPreference.SelectedServerGroupWithFallback);
+                    .ReadPreference(InternalReadPreference.SelectedServerGroupWithFallback)
+                    .AccessDeleted(true); // apply if supported
                 lookupInResult =
                     await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
             }
             else
             {
                 var opts = new LookupInOptions().Defaults(keyValueTimeout)
-                    .AccessDeleted(true)
+                    .AccessDeleted(true) // apply if supported
                     .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer));
                 lookupInResult = await collection.LookupInAsync(docId, specs, opts).CAF();
             }

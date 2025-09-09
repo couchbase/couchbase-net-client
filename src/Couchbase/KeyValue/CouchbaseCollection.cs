@@ -69,6 +69,12 @@ namespace Couchbase.KeyValue
             }
             _preferredServerGroup = _bucket.Context.ClusterOptions.PreferredServerGroup;
             _lazyQueryIndexManagerFactory = new LazyService<ICollectionQueryIndexManagerFactory>(serviceProvider);
+
+            if (_bucket is CouchbaseBucket couchBucket)
+            {
+                AccessDeleted = couchBucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities
+                    .SUBDOC_ACCESS_DELETED) == true;
+            }
         }
 
         internal IRedactor Redactor { get; }
@@ -92,6 +98,9 @@ namespace Couchbase.KeyValue
 
         /// <inheritdoc />
         public bool IsDefaultCollection { get; }
+
+        /// <inheritdoc />
+        public bool AccessDeleted { get; }
 
         #region KV Range Scan
 
@@ -952,7 +961,7 @@ namespace Couchbase.KeyValue
                 BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
-                DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
+                DocFlags = options.AccessDeleted && AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
                 Span = span,
                 PreferReturns = options.PreferReturn,
             };
@@ -1012,7 +1021,10 @@ namespace Couchbase.KeyValue
                     docFlags |= SubdocDocFlags.InsertDocument;
                     break;
                 case StoreSemantics.AccessDeleted:
-                    docFlags |= SubdocDocFlags.AccessDeleted;
+                    if (AccessDeleted)
+                    {
+                        docFlags |= SubdocDocFlags.AccessDeleted;
+                    }
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -1033,7 +1045,7 @@ namespace Couchbase.KeyValue
                 docFlags |= SubdocDocFlags.ReviveDocument | SubdocDocFlags.AccessDeleted;
             }
 
-            if (options.AccessDeletedValue) docFlags |= SubdocDocFlags.AccessDeleted;
+            if (options.AccessDeletedValue && AccessDeleted) docFlags |= SubdocDocFlags.AccessDeleted;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)
