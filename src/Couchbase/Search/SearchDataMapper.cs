@@ -91,7 +91,7 @@ namespace Couchbase.Search
             }
             if (reader.Path == "max_score")
             {
-                var maxScore = reader.ReadAsDecimal();
+                var maxScore = reader.ReadAsDouble();
                 if (maxScore != null)
                 {
                     response.MetaData.MaxScore = (double)maxScore;
