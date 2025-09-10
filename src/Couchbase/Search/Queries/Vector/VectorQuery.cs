@@ -74,6 +74,7 @@ public sealed record VectorQuery(
     private const string PropBase64Vector = "vector_base64";
     private const string PropNumCandidates = "k";
     private const string PropBoost = "boost";
+    private const string PropFilter = "filter";
 
     [Stj.JsonPropertyName(PropNumCandidates)]
     [NSft.JsonProperty(PropNumCandidates)]
@@ -84,6 +85,13 @@ public sealed record VectorQuery(
     [NSft.JsonProperty(PropBoost, NullValueHandling = NSft.NullValueHandling.Ignore)]
     public float? Boost => Options?.Boost;
 
+    [Stj.JsonPropertyName(PropFilter)]
+    [Stj.JsonIgnore(Condition = Stj.JsonIgnoreCondition.WhenWritingNull)]
+    [NSft.JsonProperty(PropFilter, NullValueHandling = NSft.NullValueHandling.Ignore)]
+    [Stj.JsonConverter(typeof(Serialization.SearchQuerySystemTextJsonConverter))]
+    [NSft.JsonConverter(typeof(Serialization.SearchQueryNewtonsoftConverter))]
+    public ISearchQuery? Filter => Options?.Filter;
+
     public VectorQuery WithVector(float[] vector) => this with { Vector = vector };
     public VectorQuery WithBase64EncodedVector(string vector) => this with { Base64EncodedVector = vector };
 
@@ -91,7 +99,7 @@ public sealed record VectorQuery(
 }
 
 [InterfaceStability(Level.Committed)]
-public sealed record VectorQueryOptions(float? Boost = null)
+public sealed record VectorQueryOptions(float? Boost = null, ISearchQuery? Filter = null)
 {
     private readonly uint? _numCandidates = null;
 
@@ -110,6 +118,7 @@ public sealed record VectorQueryOptions(float? Boost = null)
     }
     public VectorQueryOptions WithNumCandidates(uint numCandidates) => this with { NumCandidates = numCandidates };
     public VectorQueryOptions WithBoost(float boost) => this with { Boost = boost };
+    public VectorQueryOptions WithFilter(ISearchQuery filter) => this with { Filter = filter };
 }
 
 /* ************************************************************
