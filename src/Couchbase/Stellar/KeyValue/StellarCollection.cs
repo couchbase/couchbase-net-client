@@ -182,6 +182,10 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Idempotent = true,
             Token = opts.Token
         };
+        if (opts.ProjectList.Count > 0)
+        {
+            request.Project.Add(opts.ProjectList);
+        }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return response.AsGetResult(serializer);
 
@@ -278,15 +282,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             request.Cas = opts.Cas;
         }
 
-        var (expirySecs, expiryTimestamp) = StellarCollection.CalculateExpiry(opts.Expiry, opts.PreserveTtl);
-        if (expirySecs.HasValue)
-        {
-            request.ExpirySecs = expirySecs.Value;
-        }
-        else if (expiryTimestamp != null)
-        {
-            request.ExpiryTime = expiryTimestamp;
-        }
+        HandleExpiry(request, opts.Expiry, opts.PreserveTtl);
+
         if (opts.DurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
         request.StoreSemantic = opts.StoreSemantics.ToProto();
@@ -639,29 +636,49 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return request;
     }
 
-    private static (uint? expirySecs, Timestamp? grpcExpiry) CalculateExpiry(TimeSpan expiry, bool preserveTtl)
+    private static void HandleExpiry<TRequest>(TRequest request, TimeSpan expiry, bool preserveTtl)
+        where TRequest : IKeySpec, IExpiryRequest
     {
-        if (preserveTtl)
+        // UpsertRequest can mix the Expiry with preserveTTL because upsert may insert,
+        // with the expiry given, or Replace, which can preserve the existing TTL
+        if (request is UpsertRequest upsertRequest)
         {
-            // following behavior defined in Go and implied by protostellar
+            // always have to set this.
+            upsertRequest.PreserveExpiryOnExisting = preserveTtl;
+
+            // we are given an expiry, so we set it.
             if (expiry != TimeSpan.Zero)
             {
-                throw new NotSupportedException("Cannot mix Expiry and PreserveTtl = true");
+                request.ExpiryTime =
+                    Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow.Add(expiry));
+                return;
             }
 
-
-#pragma warning disable CS8625
-            // TODO: default value not friendly with proto-defined types.
-            return (0, null);
-#pragma warning restore CS8625
+            // ok expiry is 0, so if preserveTTL is true, we set nothing, otherwise
+            // we set the ExpirySec (not time...) to 0
+            if (!preserveTtl) request.ExpirySecs = 0;
+            return;
         }
-
+        // We are not an upsert request, so lets handle all other types here:
+        if (preserveTtl) {
+            // Only the UpsertRequest can mix Expiry with PreserveTtl
+            // TODO: what about MutateIn with Upsert store semantics??
+            if (expiry != TimeSpan.Zero)
+            {
+                throw new NotSupportedException("Cannot mix Expiry and PreserveTtl");
+            }
+            return;
+        }
+        // so we are not preserving the TTL, we either were given one, or we default to 0 seconds
+        // which is forever.
         if (expiry != TimeSpan.Zero)
         {
-            return (null, Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow.Add(expiry)));
+            request.ExpiryTime = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow.Add(expiry));
         }
-
-        return (null, null);
+        else
+        {
+            request.ExpirySecs = 0;
+        }
     }
 
     private async Task<TRequest> ContentRequest<TRequest, TContent>(
@@ -673,19 +690,11 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         Couchbase.KeyValue.DurabilityLevel kvDurabilityLevel,
         ITypeSerializer serializer,
         CancellationToken cancellationToken)
-        where TRequest : IKeySpec, IContentRequest, new()
+        where TRequest : IKeySpec, IContentRequest, IExpiryRequest, new()
     {
         var request = KeyedRequest<TRequest>(key);
         request.ContentFlags = contentFlags;
-        var (expirySecs, expiryTimestamp) = CalculateExpiry(expiry, preserveTtl);
-        if (expirySecs.HasValue)
-        {
-            request.ExpirySecs = expirySecs.Value;
-        }
-        else if (expiryTimestamp != null)
-        {
-            request.ExpiryTime = expiryTimestamp;
-        }
+        HandleExpiry(request, expiry, preserveTtl);
 
         if (kvDurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
