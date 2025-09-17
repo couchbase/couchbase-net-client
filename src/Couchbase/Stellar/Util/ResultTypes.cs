@@ -3,14 +3,18 @@ using System;
 using System.Text;
 using Couchbase;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.KV.V1;
+using Couchbase.Protostellar.Query.V1;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Google.Rpc;
+using Grpc.Core;
 using LookupInRequest = Couchbase.Protostellar.KV.V1.LookupInRequest;
 using MutateInRequest = Couchbase.Protostellar.KV.V1.MutateInRequest;
 using MutationToken = Couchbase.Core.MutationToken;
@@ -63,6 +67,11 @@ namespace Couchbase.Stellar.KeyValue
                 return false;
             }
 
+            if (spec.Status != null && spec.Status.Code != (int)StatusCode.OK)
+            {
+                return false;
+            }
+
             var originalSpec = OriginalRequest.Specs[index];
             if (originalSpec.Operation == LookupInRequest.Types.Spec.Types.Operation.Exists)
             {
@@ -81,14 +90,29 @@ namespace Couchbase.Stellar.KeyValue
             }
 
             // if the original spec was NOT an exists request, then any successful status is a 'true' result.
-            return spec.Status == null;
+            return spec.Status == null || spec.Status.Code == (int)StatusCode.OK;
         }
 
         public T? ContentAs<T>(int index)
         {
+
             var spec = SpecOrInvalid(index);
-            var contentWrapper = new GrpcContentWrapper(spec.Content, 0, this.Serializer);
-            return contentWrapper.ContentAs<T>();
+            if (spec.Status == null || spec.Status.Code == (int)StatusCode.OK)
+            {
+                var contentWrapper = new GrpcContentWrapper(spec.Content, 0, this.Serializer);
+                return contentWrapper.ContentAs<T>();
+            }
+            switch (spec.Status.Code)
+            {
+                case (int)StatusCode.InvalidArgument:
+                    throw new InvalidArgumentException(spec.Status.Message);
+                case (int)StatusCode.NotFound:
+                    throw new PathNotFoundException();
+                case (int)StatusCode.FailedPrecondition:
+                    throw new PathMismatchException();
+                default:
+                    throw new CouchbaseException(spec.Status.Message);
+            }
         }
 
         public int IndexOf(string path)
