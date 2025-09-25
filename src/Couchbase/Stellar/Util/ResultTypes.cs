@@ -1,19 +1,16 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Text;
-using Couchbase;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.KV.V1;
-using Couchbase.Protostellar.Query.V1;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Google.Rpc;
 using Grpc.Core;
 using LookupInRequest = Couchbase.Protostellar.KV.V1.LookupInRequest;
 using MutateInRequest = Couchbase.Protostellar.KV.V1.MutateInRequest;

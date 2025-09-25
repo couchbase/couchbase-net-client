@@ -4,6 +4,7 @@ public static class StellarRetryStrings
 {
     public const string CasMismatch = "CAS_MISMATCH";
     public const string Locked = "LOCKED";
+    public const string Unlocked = "NOT_LOCKED";
     public const string DocTooDeep = "DOC_TOO_DEEP";
     public const string DocNotJson = "DOC_NOT_JSON";
     public const string PathMismatch = "PATH_MISMATCH";

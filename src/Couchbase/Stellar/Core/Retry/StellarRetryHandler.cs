@@ -154,6 +154,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
                                 context.RetryReasons.Add(RetryReason.KvLocked);
                                 throw new DocumentLockedException(context);
                             }
+                            case StellarRetryStrings.Unlocked:
+                                throw new DocumentNotLockedException();
                             case StellarRetryStrings.PreconditionPathMismatch:
                                 throw new PathMismatchException(context);
                             case StellarRetryStrings.PreconditionDocNotJson:

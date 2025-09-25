@@ -29,6 +29,7 @@ using GetRequest = Couchbase.Protostellar.KV.V1.GetRequest;
 using InsertRequest = Couchbase.Protostellar.KV.V1.InsertRequest;
 using LookupInRequest = Couchbase.Protostellar.KV.V1.LookupInRequest;
 using MutateInRequest = Couchbase.Protostellar.KV.V1.MutateInRequest;
+using MutationToken = Couchbase.Core.MutationToken;
 using RemoveRequest = Couchbase.Protostellar.KV.V1.RemoveRequest;
 using ReplaceRequest = Couchbase.Protostellar.KV.V1.ReplaceRequest;
 using TouchRequest = Couchbase.Protostellar.KV.V1.TouchRequest;
@@ -415,7 +416,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new MutationResult(response.Cas, null)
         {
-            MutationToken = response.MutationToken
+            MutationToken = response.MutationToken ?? MutationToken.Empty
         };
 
         async Task<TouchResponse> GrpcCall()
@@ -447,7 +448,9 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         async Task<UnlockResponse> GrpcCall()
         {
-            return await _kvClient.UnlockAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+            return await _kvClient
+                .UnlockAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token))
+                .ConfigureAwait(false);
         }
     }
 
@@ -484,7 +487,9 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         async Task<UpsertResponse> GrpcCall()
         {
-            return await _kvClient.UpsertAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token)).ConfigureAwait(false);
+            return await _kvClient
+                .UpsertAsync(request, _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token))
+                .ConfigureAwait(false);
         }
     }
 
