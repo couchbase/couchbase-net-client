@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Couchbase.Core;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
 
@@ -38,6 +39,19 @@ namespace Couchbase
             sb.AppendLine("-----------------------Context Info---------------------------");
             sb.AppendLine(Context?.ToString());
             return sb.ToString();
+        }
+
+        internal string ToJsonString()
+        {
+            // we only use this for serializing this for FIT tests, so
+            // keep this internal.
+            var obj = new
+            {
+                Context,
+                Message,
+                Type = GetType().FullName,
+            };
+            return JsonSerializer.Serialize(obj);
         }
     }
 }
