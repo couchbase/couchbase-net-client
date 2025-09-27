@@ -152,7 +152,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                             case StellarRetryStrings.PreconditionLocked:
                             {
                                 context.RetryReasons.Add(RetryReason.KvLocked);
-                                throw new DocumentLockedException(context);
+                                throw new UnambiguousTimeoutException("Document is locked", context);
                             }
                             case StellarRetryStrings.Unlocked:
                                 throw new DocumentNotLockedException();
