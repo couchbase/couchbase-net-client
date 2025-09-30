@@ -1,6 +1,10 @@
 using System;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
@@ -44,14 +48,17 @@ namespace Couchbase
         internal string ToJsonString()
         {
             // we only use this for serializing this for FIT tests, so
-            // keep this internal.
+            // keep this internal.  And creating a serializer for this
+            // call is ok, since it is test time only.
             var obj = new
             {
                 Context,
                 Message,
                 Type = GetType().FullName,
             };
-            return JsonSerializer.Serialize(obj);
+            var opts = new JsonSerializerOptions();
+            opts.Converters.Add(new InterfaceRuntimeTypeConverter<IErrorContext>());
+            return JsonSerializer.Serialize(obj, opts);
         }
     }
 }
