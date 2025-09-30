@@ -117,7 +117,7 @@ namespace Couchbase.Query
             row = default(T);
 
             // Yield the remaining results
-            while (await _resultEnumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+            while (await _resultEnumerator.MoveNextAsync().ConfigureAwait(false))
             {
                 row = _resultEnumerator.Current;
                 yield return row;

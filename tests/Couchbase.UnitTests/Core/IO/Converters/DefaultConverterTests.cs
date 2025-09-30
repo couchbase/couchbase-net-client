@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes =  BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToBoolean(bytes.AsSpan(), useNbo);
@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToDouble(bytes.AsSpan(), useNbo);
@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToSingle(bytes.AsSpan(), useNbo);
@@ -73,7 +73,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value.ToBinary());
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToDateTime(bytes.AsSpan(), useNbo);
@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToInt16(bytes.AsSpan(), useNbo);
@@ -105,7 +105,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         public void Test_ToInt16_NoNboSpecified(short value)
         {
             var bytes = BitConverter.GetBytes(value);
-            bytes = bytes.Reverse().ToArray();
+            bytes = Enumerable.Reverse(bytes).ToArray();
 
             var actual = ByteConverter.ToInt16(bytes.AsSpan());
 
@@ -122,7 +122,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToUInt16(bytes.AsSpan(), useNbo);
@@ -136,7 +136,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         public void Test_ToUInt16_NoNboSpecified(ushort value)
         {
             var bytes = BitConverter.GetBytes(value);
-            bytes = bytes.Reverse().ToArray();
+            bytes = Enumerable.Reverse(bytes).ToArray();
 
             var actual = ByteConverter.ToUInt16(bytes.AsSpan());
 
@@ -155,7 +155,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToInt32(bytes.AsSpan(), useNbo);
@@ -170,7 +170,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         public void Test_ToInt32_NoNboSpecified(int value)
         {
             var bytes = BitConverter.GetBytes(value);
-            bytes = bytes.Reverse().ToArray();
+            bytes = Enumerable.Reverse(bytes).ToArray();
 
             var actual = ByteConverter.ToInt32(bytes.AsSpan());
 
@@ -189,7 +189,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var bytes = BitConverter.GetBytes(value);
             if (useNbo)
             {
-                bytes = bytes.Reverse().ToArray();
+                bytes = Enumerable.Reverse(bytes).ToArray();
             }
 
             var actual = ByteConverter.ToUInt32(bytes.AsSpan(), useNbo);
@@ -204,7 +204,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         public void Test_ToUInt32_NoNboSpecified(uint value)
         {
             var bytes = BitConverter.GetBytes(value);
-            bytes = bytes.Reverse().ToArray();
+            bytes = Enumerable.Reverse(bytes).ToArray();
 
             var actual = ByteConverter.ToUInt32(bytes.AsSpan());
 

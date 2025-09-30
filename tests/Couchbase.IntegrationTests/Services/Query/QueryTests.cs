@@ -59,7 +59,13 @@ namespace Couchbase.IntegrationTests.Services.Query
             }).ConfigureAwait(false);
 
             // Non-streaming approach in C# 7
+#if NET8_0_OR_GREATER
+            foreach (var o in result.ToBlockingEnumerable())
+#else
+//This is a breaking change in .NET10, but cannot resolve System.Linq.Async on .net48
+//This will need to be investigated further as I don't understand why I cannot conditional find ToEnumerable
             foreach (var o in result.ToEnumerable())
+#endif
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
@@ -218,7 +224,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             var type = "hotel";
             var limit = 1;
 
-            var options = new QueryOptions().AdHoc(false); // This can be done inline, but we do it here so we can assert afterwards
+            var options = new QueryOptions().AdHoc(false); // This can be done inline, but we do it here so we can assert afterward
             using var result = await cluster.QueryInterpolatedAsync<dynamic>(options, $"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
                 .ConfigureAwait(false);
 

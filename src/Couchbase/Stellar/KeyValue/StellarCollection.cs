@@ -113,7 +113,11 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
 
-        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream.ReadAllAsync().Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(transcoder))).ToEnumerable();
+        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
+            .ReadAllAsync()
+            .Select(replicaResult =>
+                Task.FromResult(replicaResult.AsGetReplicaResult(transcoder)))
+            .ToBlockingEnumerable();
 
         return results;
     }

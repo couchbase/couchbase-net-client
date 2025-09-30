@@ -112,12 +112,11 @@ namespace Couchbase.Core.IO.Authentication
             //and SHA512 - given caveat emptor!
             // TODO: Update to investigate modernizing this to SHA256
             #if NET8_0_OR_GREATER
-            using var bytes =
-                new Rfc2898DeriveBytes(password, salt, iterationCount, hashAlgorithm: HashAlgorithmName.SHA1);
+                return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterationCount, HashAlgorithmName.SHA1, ShaByteLength);
             #else
             using var bytes = new Rfc2898DeriveBytes(password, salt, iterationCount);
-            #endif
             return bytes.GetBytes(ShaByteLength);
+            #endif
         }
 
         /// <summary>

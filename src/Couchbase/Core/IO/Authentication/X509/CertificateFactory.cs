@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Logging;
@@ -84,9 +85,15 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
         /// This in-memory certificate does not work on .NET Framework (legacy) clients.
         /// </remarks>
         [InterfaceStability(Level.Volatile)]
-        internal static readonly X509Certificate2 CapellaCaCert = new X509Certificate2(
-            rawData: System.Text.Encoding.ASCII.GetBytes(CapellaCaCertPem),
-            password: (string?)null);
+        #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET8_0
+         internal static readonly X509Certificate2 CapellaCaCert = new X509Certificate2(
+              rawData: System.Text.Encoding.ASCII.GetBytes(CapellaCaCertPem),
+              password: (string?)null);
+        #else
+        internal static X509Certificate2 CapellaCaCert =
+            X509CertificateLoader.LoadCertificate(
+                System.Text.Encoding.ASCII.GetBytes(CapellaCaCertPem));
+        #endif
 
         /// <summary>
         /// Default CA Certificates included with the SDK.
