@@ -76,7 +76,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
     public bool IsDefaultCollection { get; }
 
-    public bool AccessDeleted => false;
+    public bool SubdocAccessDeleted => false;
 
     public ICollectionQueryIndexManager QueryIndexes => _stellarCollectionQueryIndexes;
 

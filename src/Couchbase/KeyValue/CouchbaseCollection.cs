@@ -72,7 +72,7 @@ namespace Couchbase.KeyValue
 
             if (_bucket is CouchbaseBucket couchBucket)
             {
-                AccessDeleted = couchBucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities
+                SubdocAccessDeleted = couchBucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities
                     .SUBDOC_ACCESS_DELETED) == true;
             }
         }
@@ -100,7 +100,7 @@ namespace Couchbase.KeyValue
         public bool IsDefaultCollection { get; }
 
         /// <inheritdoc />
-        public bool AccessDeleted { get; }
+        public bool SubdocAccessDeleted { get; }
 
         #region KV Range Scan
 
@@ -954,6 +954,14 @@ namespace Couchbase.KeyValue
                     }
                 });
             }
+            // if we are a replica read _and_ wanting access deleted, we have to be sure to
+            // check that AccessDeleted is "fully" supported...
+            var docFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None;
+            docFlags |= options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None;
+            if (options is { AccessDeleted: true, ReplicaIndex: not null } && !SubdocAccessDeleted)
+            {
+                docFlags &= ~SubdocDocFlags.AccessDeleted;
+            }
 
             var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
@@ -961,7 +969,7 @@ namespace Couchbase.KeyValue
                 BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
-                DocFlags = options.AccessDeleted && AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
+                DocFlags = docFlags,
                 Span = span,
                 PreferReturns = options.PreferReturn,
             };
@@ -1021,10 +1029,7 @@ namespace Couchbase.KeyValue
                     docFlags |= SubdocDocFlags.InsertDocument;
                     break;
                 case StoreSemantics.AccessDeleted:
-                    if (AccessDeleted)
-                    {
-                        docFlags |= SubdocDocFlags.AccessDeleted;
-                    }
+                    docFlags |= SubdocDocFlags.AccessDeleted;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -1045,7 +1050,7 @@ namespace Couchbase.KeyValue
                 docFlags |= SubdocDocFlags.ReviveDocument | SubdocDocFlags.AccessDeleted;
             }
 
-            if (options.AccessDeletedValue && AccessDeleted) docFlags |= SubdocDocFlags.AccessDeleted;
+            if (options.AccessDeletedValue ) docFlags |= SubdocDocFlags.AccessDeleted;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)

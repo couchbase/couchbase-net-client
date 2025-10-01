@@ -42,7 +42,7 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// Returns true if the bucket supports accessDeleted.
         /// </summary>
-        public bool AccessDeleted  { get; }
+        public bool SubdocAccessDeleted  { get; }
 
         #region Basic
 
