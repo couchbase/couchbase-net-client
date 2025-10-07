@@ -705,7 +705,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         if (kvDurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
-        request.Content = await SerializeToByteString(content, serializer, cancellationToken).ConfigureAwait(false);
+        request.ContentUncompressed = await SerializeToByteString(content, serializer, cancellationToken).ConfigureAwait(false);
         return request;
     }
 
