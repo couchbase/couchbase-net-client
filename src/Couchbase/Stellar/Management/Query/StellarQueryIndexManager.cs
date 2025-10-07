@@ -7,8 +7,6 @@ using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Management.Query;
 using Couchbase.Stellar.Core.Retry;
-using Couchbase.Stellar.Util;
-using Couchbase.Utils;
 using IndexType = Couchbase.Management.Views.IndexType;
 
 namespace Couchbase.Stellar.Management.Query;
@@ -183,8 +181,28 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
 
-    public Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames,
-        WatchQueryIndexOptions? options = null)=>
-        throw ThrowHelper.ThrowFeatureNotAvailableException("WatchIndexesAsync", "Protostellar");
+    public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames,
+        WatchQueryIndexOptions? options = null)
+    {
+        var opts = options?.AsReadOnly() ?? WatchQueryIndexOptions.DefaultReadOnly;
+        var tasks = indexNames.Select(name =>
+        {
+            var protoRequest = new WaitForIndexOnlineRequest
+            {
+                BucketName = bucketName, Name = name,
+                CollectionName = opts.CollectionNameValue ?? "_default",
+                ScopeName = opts.ScopeNameValue ?? "_default"
+            };
+            async Task<WaitForIndexOnlineResponse> GrpcCall() =>
+                await _stellarQueryAdminClient.WaitForIndexOnlineAsync(protoRequest,
+                        _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.TokenValue))
+                    .ConfigureAwait(false);
+
+            var request = new StellarRequest { Idempotent = false, Token = opts.TokenValue };
+            return _retryHandler.RetryAsync((Func<Task<WaitForIndexOnlineResponse>>?)GrpcCall,
+                request);
+        });
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
 }
 #endif

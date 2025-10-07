@@ -199,7 +199,7 @@ namespace Couchbase.Stellar.KeyValue
     internal interface IContentResult
     {
         Timestamp Expiry { get; }
-        ByteString Content { get; }
+        ByteString ContentUncompressed { get; }
         uint ContentFlags { get; }
         ulong Cas { get; }
     }
@@ -466,6 +466,11 @@ namespace Couchbase.Protostellar.Admin.Query.V1
     }
 
     partial class BuildDeferredIndexesResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class WaitForIndexOnlineResponse : IServiceResult
     {
         public RetryReason RetryReason { get; }
     }

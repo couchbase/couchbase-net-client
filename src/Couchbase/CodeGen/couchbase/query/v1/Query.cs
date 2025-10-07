@@ -98,6 +98,7 @@ namespace Couchbase.Protostellar.Query.V1 {
 
   }
   #region Messages
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class QueryRequest : pb::IMessage<QueryRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -159,11 +160,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "bucket_name" field.</summary>
     public const int BucketNameFieldNumber = 1;
+    private readonly static string BucketNameDefaultValue = "";
+
     private string bucketName_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string BucketName {
-      get { return bucketName_ ?? ""; }
+      get { return bucketName_ ?? BucketNameDefaultValue; }
       set {
         bucketName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
@@ -183,11 +186,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "scope_name" field.</summary>
     public const int ScopeNameFieldNumber = 2;
+    private readonly static string ScopeNameDefaultValue = "";
+
     private string scopeName_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string ScopeName {
-      get { return scopeName_ ?? ""; }
+      get { return scopeName_ ?? ScopeNameDefaultValue; }
       set {
         scopeName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
@@ -219,11 +224,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "read_only" field.</summary>
     public const int ReadOnlyFieldNumber = 4;
+    private readonly static bool ReadOnlyDefaultValue = false;
+
     private bool readOnly_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool ReadOnly {
-      get { if ((_hasBits0 & 1) != 0) { return readOnly_; } else { return false; } }
+      get { if ((_hasBits0 & 1) != 0) { return readOnly_; } else { return ReadOnlyDefaultValue; } }
       set {
         _hasBits0 |= 1;
         readOnly_ = value;
@@ -244,11 +251,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "prepared" field.</summary>
     public const int PreparedFieldNumber = 5;
+    private readonly static bool PreparedDefaultValue = false;
+
     private bool prepared_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool Prepared {
-      get { if ((_hasBits0 & 2) != 0) { return prepared_; } else { return false; } }
+      get { if ((_hasBits0 & 2) != 0) { return prepared_; } else { return PreparedDefaultValue; } }
       set {
         _hasBits0 |= 2;
         prepared_ = value;
@@ -281,11 +290,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "client_context_id" field.</summary>
     public const int ClientContextIdFieldNumber = 7;
+    private readonly static string ClientContextIdDefaultValue = "";
+
     private string clientContextId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public string ClientContextId {
-      get { return clientContextId_ ?? ""; }
+      get { return clientContextId_ ?? ClientContextIdDefaultValue; }
       set {
         clientContextId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
@@ -305,11 +316,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "scan_consistency" field.</summary>
     public const int ScanConsistencyFieldNumber = 8;
+    private readonly static global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ScanConsistency ScanConsistencyDefaultValue = global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ScanConsistency.NotBounded;
+
     private global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ScanConsistency scanConsistency_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ScanConsistency ScanConsistency {
-      get { if ((_hasBits0 & 4) != 0) { return scanConsistency_; } else { return global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ScanConsistency.NotBounded; } }
+      get { if ((_hasBits0 & 4) != 0) { return scanConsistency_; } else { return ScanConsistencyDefaultValue; } }
       set {
         _hasBits0 |= 4;
         scanConsistency_ = value;
@@ -352,11 +365,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "flex_index" field.</summary>
     public const int FlexIndexFieldNumber = 11;
+    private readonly static bool FlexIndexDefaultValue = false;
+
     private bool flexIndex_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool FlexIndex {
-      get { if ((_hasBits0 & 8) != 0) { return flexIndex_; } else { return false; } }
+      get { if ((_hasBits0 & 8) != 0) { return flexIndex_; } else { return FlexIndexDefaultValue; } }
       set {
         _hasBits0 |= 8;
         flexIndex_ = value;
@@ -377,11 +392,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "preserve_expiry" field.</summary>
     public const int PreserveExpiryFieldNumber = 12;
+    private readonly static bool PreserveExpiryDefaultValue = false;
+
     private bool preserveExpiry_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool PreserveExpiry {
-      get { if ((_hasBits0 & 16) != 0) { return preserveExpiry_; } else { return false; } }
+      get { if ((_hasBits0 & 16) != 0) { return preserveExpiry_; } else { return PreserveExpiryDefaultValue; } }
       set {
         _hasBits0 |= 16;
         preserveExpiry_ = value;
@@ -413,11 +430,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
     /// <summary>Field number for the "profile_mode" field.</summary>
     public const int ProfileModeFieldNumber = 14;
+    private readonly static global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ProfileMode ProfileModeDefaultValue = global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ProfileMode.Off;
+
     private global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ProfileMode profileMode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ProfileMode ProfileMode {
-      get { if ((_hasBits0 & 32) != 0) { return profileMode_; } else { return global::Couchbase.Protostellar.Query.V1.QueryRequest.Types.ProfileMode.Off; } }
+      get { if ((_hasBits0 & 32) != 0) { return profileMode_; } else { return ProfileModeDefaultValue; } }
       set {
         _hasBits0 |= 32;
         profileMode_ = value;
@@ -694,7 +713,7 @@ namespace Couchbase.Protostellar.Query.V1 {
         ScanConsistency = other.ScanConsistency;
       }
       positionalParameters_.Add(other.positionalParameters_);
-      namedParameters_.Add(other.namedParameters_);
+      namedParameters_.MergeFrom(other.namedParameters_);
       if (other.HasFlexIndex) {
         FlexIndex = other.FlexIndex;
       }
@@ -716,7 +735,11 @@ namespace Couchbase.Protostellar.Query.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -790,7 +813,11 @@ namespace Couchbase.Protostellar.Query.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -874,6 +901,7 @@ namespace Couchbase.Protostellar.Query.V1 {
         [pbr::OriginalName("PROFILE_MODE_TIMINGS")] Timings = 2,
       }
 
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class TuningOptions : pb::IMessage<TuningOptions>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -927,11 +955,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "max_parallelism" field.</summary>
         public const int MaxParallelismFieldNumber = 1;
+        private readonly static uint MaxParallelismDefaultValue = 0;
+
         private uint maxParallelism_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public uint MaxParallelism {
-          get { if ((_hasBits0 & 1) != 0) { return maxParallelism_; } else { return 0; } }
+          get { if ((_hasBits0 & 1) != 0) { return maxParallelism_; } else { return MaxParallelismDefaultValue; } }
           set {
             _hasBits0 |= 1;
             maxParallelism_ = value;
@@ -952,11 +982,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "pipeline_batch" field.</summary>
         public const int PipelineBatchFieldNumber = 2;
+        private readonly static uint PipelineBatchDefaultValue = 0;
+
         private uint pipelineBatch_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public uint PipelineBatch {
-          get { if ((_hasBits0 & 2) != 0) { return pipelineBatch_; } else { return 0; } }
+          get { if ((_hasBits0 & 2) != 0) { return pipelineBatch_; } else { return PipelineBatchDefaultValue; } }
           set {
             _hasBits0 |= 2;
             pipelineBatch_ = value;
@@ -977,11 +1009,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "pipeline_cap" field.</summary>
         public const int PipelineCapFieldNumber = 3;
+        private readonly static uint PipelineCapDefaultValue = 0;
+
         private uint pipelineCap_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public uint PipelineCap {
-          get { if ((_hasBits0 & 4) != 0) { return pipelineCap_; } else { return 0; } }
+          get { if ((_hasBits0 & 4) != 0) { return pipelineCap_; } else { return PipelineCapDefaultValue; } }
           set {
             _hasBits0 |= 4;
             pipelineCap_ = value;
@@ -1014,11 +1048,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "scan_cap" field.</summary>
         public const int ScanCapFieldNumber = 5;
+        private readonly static uint ScanCapDefaultValue = 0;
+
         private uint scanCap_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public uint ScanCap {
-          get { if ((_hasBits0 & 8) != 0) { return scanCap_; } else { return 0; } }
+          get { if ((_hasBits0 & 8) != 0) { return scanCap_; } else { return ScanCapDefaultValue; } }
           set {
             _hasBits0 |= 8;
             scanCap_ = value;
@@ -1039,11 +1075,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "disable_metrics" field.</summary>
         public const int DisableMetricsFieldNumber = 6;
+        private readonly static bool DisableMetricsDefaultValue = false;
+
         private bool disableMetrics_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public bool DisableMetrics {
-          get { if ((_hasBits0 & 16) != 0) { return disableMetrics_; } else { return false; } }
+          get { if ((_hasBits0 & 16) != 0) { return disableMetrics_; } else { return DisableMetricsDefaultValue; } }
           set {
             _hasBits0 |= 16;
             disableMetrics_ = value;
@@ -1244,7 +1282,11 @@ namespace Couchbase.Protostellar.Query.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -1286,7 +1328,11 @@ namespace Couchbase.Protostellar.Query.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -1329,6 +1375,7 @@ namespace Couchbase.Protostellar.Query.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class QueryResponse : pb::IMessage<QueryResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1505,7 +1552,11 @@ namespace Couchbase.Protostellar.Query.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1531,7 +1582,11 @@ namespace Couchbase.Protostellar.Query.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1556,6 +1611,7 @@ namespace Couchbase.Protostellar.Query.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class MetaData : pb::IMessage<MetaData>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -1667,11 +1723,13 @@ namespace Couchbase.Protostellar.Query.V1 {
 
         /// <summary>Field number for the "profile" field.</summary>
         public const int ProfileFieldNumber = 6;
+        private readonly static pb::ByteString ProfileDefaultValue = pb::ByteString.Empty;
+
         private pb::ByteString profile_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public pb::ByteString Profile {
-          get { return profile_ ?? pb::ByteString.Empty; }
+          get { return profile_ ?? ProfileDefaultValue; }
           set {
             profile_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
           }
@@ -1889,7 +1947,11 @@ namespace Couchbase.Protostellar.Query.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -1935,7 +1997,11 @@ namespace Couchbase.Protostellar.Query.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -1993,6 +2059,7 @@ namespace Couchbase.Protostellar.Query.V1 {
             [pbr::OriginalName("STATUS_UNKNOWN")] Unknown = 9,
           }
 
+          [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
           public sealed partial class Warning : pb::IMessage<Warning>
           #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
               , pb::IBufferMessage
@@ -2177,7 +2244,11 @@ namespace Couchbase.Protostellar.Query.V1 {
             #else
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                     break;
@@ -2200,7 +2271,11 @@ namespace Couchbase.Protostellar.Query.V1 {
             void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                     break;
@@ -2219,6 +2294,7 @@ namespace Couchbase.Protostellar.Query.V1 {
 
           }
 
+          [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
           public sealed partial class Metrics : pb::IMessage<Metrics>
           #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
               , pb::IBufferMessage
@@ -2583,7 +2659,11 @@ namespace Couchbase.Protostellar.Query.V1 {
             #else
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                     break;
@@ -2636,7 +2716,11 @@ namespace Couchbase.Protostellar.Query.V1 {
             void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                     break;

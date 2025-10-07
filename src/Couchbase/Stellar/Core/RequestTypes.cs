@@ -20,7 +20,7 @@ internal interface IKeySpec
 internal interface IContentRequest
 {
     public uint ContentFlags { get; set; }
-    public ByteString Content { get; set; }
+    public ByteString ContentUncompressed { get; set; }
     public DurabilityLevel DurabilityLevel { get; set; }
 }
 

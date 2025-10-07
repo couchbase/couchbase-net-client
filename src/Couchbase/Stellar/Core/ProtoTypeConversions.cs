@@ -13,7 +13,6 @@ using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
-using Newtonsoft.Json;
 using BucketType = Couchbase.Protostellar.Admin.Bucket.V1.BucketType;
 using CompressionMode = Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode;
 using ConflictResolutionType = Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType;
@@ -389,7 +388,7 @@ internal static class TypeConversionExtensions
     public static Couchbase.KeyValue.IGetResult AsGetResult(this IContentResult contentResult, ITypeSerializer serializer) => new GetResult(
         ExpiryTime: contentResult.Expiry?.ToDateTime(),
         Cas: contentResult.Cas,
-        GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, serializer)
+        GrpcContentWrapper: new GrpcContentWrapper(contentResult.ContentUncompressed, contentResult.ContentFlags, serializer)
     );
 
     public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeSerializer serializer) => new GetReplicaResult(
