@@ -202,6 +202,12 @@ namespace Couchbase.Core.IO.Serializers
             var value = default(T);
             if (buffer.Length == 0) return value!;
 
+            // handle binary-friendly types
+            if (typeof(T) == typeof(byte[])) return (T)(object)buffer.ToArray();
+            if (typeof(T) == typeof(ReadOnlyMemory<byte>)) return (T)(object) new ReadOnlyMemory<byte>(buffer.ToArray());
+            if (typeof(T) == typeof(Memory<byte>)) return (T)(object)buffer.ToArray().AsMemory();
+            if (typeof(T) == typeof(ReadOnlySequence<byte>)) return (T)(object)new ReadOnlySequence<byte>(buffer.ToArray());
+
             var reader = Utf8MemoryReader.InstancePool.Get();
             try
             {

@@ -80,11 +80,9 @@ namespace Couchbase.KeyValue
 
             if (spec.Status == ResponseStatus.Success)
             {
-                var isBinary = (spec.PathFlags & SubdocPathFlags.BinaryValue) != 0x00;
-
-                // Only use the transcoder when reading entire documents, or binary xattrs,
+                // Only use the transcoder when reading entire documents
                 // otherwise the content should be JSON
-                return spec is { OpCode: OpCode.Get, Path.Length: 0} || isBinary
+                return spec is { OpCode: OpCode.Get, Path.Length: 0}
                     ? _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode)
                     : _transcoder.Serializer!.Deserialize<T>(spec.Bytes);
             }
