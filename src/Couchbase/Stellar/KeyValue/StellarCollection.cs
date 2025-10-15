@@ -1,13 +1,14 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
@@ -21,7 +22,6 @@ using Couchbase.Utils;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using DurabilityLevel = Couchbase.Protostellar.KV.V1.DurabilityLevel;
 using ExistsRequest = Couchbase.Protostellar.KV.V1.ExistsRequest;
 using GetAndLockRequest = Couchbase.Protostellar.KV.V1.GetAndLockRequest;
 using GetAndTouchRequest = Couchbase.Protostellar.KV.V1.GetAndTouchRequest;
@@ -109,11 +109,11 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
 
-        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream.ReadAllAsync().Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(serializer))).ToEnumerable();
+        IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream.ReadAllAsync().Select(replicaResult => Task.FromResult(replicaResult.AsGetReplicaResult(transcoder))).ToEnumerable();
 
         return results;
     }
@@ -124,7 +124,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var opts = options?.AsReadOnly() ?? GetAndLockOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock, opts.RequestSpan);
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var request = KeyedRequest<GetAndLockRequest>(id);
         request.LockTime = expiry.ToTtl();
@@ -140,7 +140,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         };
 
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(serializer);
+        return response.AsGetResult(transcoder);
     }
 
     public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
@@ -148,7 +148,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? GetAndTouchOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
+
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, opts.RequestSpan);
 
         var request = KeyedRequest<GetAndTouchRequest>(id);
@@ -160,7 +161,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(serializer);
+        return response.AsGetResult(transcoder);
 
         async Task<GetAndTouchResponse> GrpcCall()
         {
@@ -177,7 +178,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var opts = options?.AsReadOnly() ?? GetOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Get, opts.RequestSpan);
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var request = KeyedRequest<GetRequest>(id);
         var stellarRequest = new StellarRequest
@@ -190,7 +191,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             request.Project.Add(opts.ProjectList);
         }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(serializer);
+        return response.AsGetResult(transcoder);
 
         async Task<GetResponse> GrpcCall()
         {
@@ -205,18 +206,17 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
 
         var opts = options?.AsReadOnly() ?? InsertOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = opts.Transcoder ??
+                         _stellarCluster.TypeTranscoder;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, opts.RequestSpan);
-
-        var request = await ContentRequest<InsertRequest, T>(
-            key: id,
-            contentFlags: 0, // FIXME:  This probably needs to be left off ContentRequest and used to set up the serializer instead.
-            content: content,
-            preserveTtl: false,
-            expiry: opts.Expiry,
-            kvDurabilityLevel: opts.DurabilityLevel,
-            serializer: serializer,
-            cancellationToken: opts.Token).ConfigureAwait(false);
+        var request = ContentRequest<InsertRequest, T>(
+                key: id,
+                content: content,
+                preserveTtl: false,
+                expiry: opts.Expiry,
+                durabilityLevel: opts.DurabilityLevel,
+                transcoder: transcoder
+            );
 
         var stellarRequest = new StellarRequest
         {
@@ -258,7 +258,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new LookupInResult(response, request, _stellarCluster.TypeSerializer);
+        return new LookupInResult(response, request, _stellarCluster.TypeTranscoder);
 
         async Task<LookupInResponse> GrpcCall()
         {
@@ -277,6 +277,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? MutateInOptions.DefaultReadOnly;
+
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
 
         var request = KeyedRequest<MutateInRequest>(id);
@@ -291,6 +292,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         request.StoreSemantic = opts.StoreSemantics.ToProto();
 
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
         foreach (var spec in specs)
         {
             var newSpec = new MutateInRequest.Types.Spec
@@ -302,7 +304,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
             if (spec.Value is not null)
             {
-                newSpec.Content = await SerializeToByteString(spec.Value, _stellarCluster.TypeSerializer, opts.Token, spec.RemoveBrackets).ConfigureAwait(false);
+                (newSpec.Content, _) = SerializeToByteString(spec.Value, transcoder, spec.OpCode, spec.RemoveBrackets);
             }
 
             request.Specs.Add(newSpec);
@@ -314,7 +316,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutateInResult(response, request, _stellarCluster.TypeSerializer);
+        return new MutateInResult(response, request, _stellarCluster.TypeTranscoder);
 
         async Task<MutateInResponse> GrpcCall()
         {
@@ -355,17 +357,15 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
 
         var opts = options?.AsReadOnly() ?? ReplaceOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = options?.TranscoderValue ?? _stellarCluster.TypeTranscoder;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, opts.RequestSpan);
-        var request = await ContentRequest<ReplaceRequest, T>(
+        var request = ContentRequest<ReplaceRequest, T>(
             key: id,
-            contentFlags: default, // FIXME: handle content flags
             content: content,
             preserveTtl: opts.PreserveTtl,
             expiry: opts.Expiry,
-            kvDurabilityLevel: opts.DurabilityLevel,
-            serializer: serializer,
-            cancellationToken: opts.Token).ConfigureAwait(false);
+            durabilityLevel: opts.DurabilityLevel,
+            transcoder: transcoder);
 
         if (opts.Cas > 0)
         {
@@ -461,18 +461,16 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         if (content is null) throw new InvalidArgumentException($"Parameter {nameof(content)} cannot be null.");
 
         var opts = options?.AsReadOnly() ?? UpsertOptions.DefaultReadOnly;
-        var serializer = opts.Transcoder?.Serializer ?? _stellarCluster.TypeSerializer;
+        var transcoder = options?.TranscoderValue ?? _stellarCluster.TypeTranscoder;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert, opts.RequestSpan);
 
-        var request = await ContentRequest<UpsertRequest, T>(
+        var request = ContentRequest<UpsertRequest, T>(
             key: id,
-            contentFlags: default, // FIXME: handle content flags
             content: content,
             preserveTtl: opts.PreserveTtl,
             expiry: opts.Expiry,
-            kvDurabilityLevel: opts.DurabilityLevel,
-            serializer: serializer,
-            cancellationToken: opts.Token).ConfigureAwait(false);
+            durabilityLevel: opts.DurabilityLevel,
+            transcoder: transcoder);
 
         var stellarRequest = new StellarRequest
         {
@@ -619,16 +617,27 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return new CounterResult((ulong)response.Content, response.Cas, null, response.MutationToken);
     }
 
-    private static async Task<ByteString> SerializeToByteString<T>(T content, ITypeSerializer serializer,
-        CancellationToken cancellationToken, bool removeBrackets = false)
+    private static (ByteString, uint) SerializeToByteString<T>(T content,
+        ITypeTranscoder transcoder,  OpCode opCode, bool removeBrackets = false)
     {
         using var ms = new MemoryStream();
-        await serializer.SerializeAsync(ms, content, cancellationToken).ConfigureAwait(false);
-        ReadOnlyMemory<byte> bytes = ms.GetBuffer().AsMemory(0, (int) ms.Length);
-        // The .NET API uses a removeBrackets bool to handle multi-value array operations.
-        // Therefore, we need to handle this here.
-        if (removeBrackets) bytes = bytes.StripBrackets();
-        return ByteString.CopyFrom(bytes.ToArray());
+        var flags = transcoder.GetFormat(content);
+
+        transcoder.Encode(ms, content, flags, opCode);
+
+        // convert flags to uint32
+        Span<byte> buffer = stackalloc byte[4];
+        transcoder.GetFormat(content).Write(buffer);
+        var flagsUint = BinaryPrimitives.ReadUInt32BigEndian(buffer);
+
+        ReadOnlyMemory<byte> bytes = ms.GetBuffer().AsMemory(0, (int)ms.Length);
+
+        // strip brackets if asked
+        if (removeBrackets)
+            bytes = bytes.StripBrackets();
+
+        // return converted flags, and byte string from the MemoryStream
+        return (ByteString.CopyFrom(bytes.ToArray()), flagsUint);
     }
 
     private T KeyedRequest<T>(string key) where T : IKeySpec, new()
@@ -688,24 +697,23 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         }
     }
 
-    private async Task<TRequest> ContentRequest<TRequest, TContent>(
+    private TRequest ContentRequest<TRequest, TContent> (
         string key,
-        uint contentFlags,
         TContent content,
         bool preserveTtl,
         TimeSpan expiry,
-        Couchbase.KeyValue.DurabilityLevel kvDurabilityLevel,
-        ITypeSerializer serializer,
-        CancellationToken cancellationToken)
+        Couchbase.KeyValue.DurabilityLevel durabilityLevel,
+        ITypeTranscoder transcoder)
         where TRequest : IKeySpec, IContentRequest, IExpiryRequest, new()
     {
         var request = KeyedRequest<TRequest>(key);
-        request.ContentFlags = contentFlags;
+        var (bytes, flags) = SerializeToByteString(content, transcoder, OpCode.Set);
+        request.ContentUncompressed = bytes;
+        request.ContentFlags = flags;
         HandleExpiry(request, expiry, preserveTtl);
 
-        if (kvDurabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
+        if (durabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
 
-        request.ContentUncompressed = await SerializeToByteString(content, serializer, cancellationToken).ConfigureAwait(false);
         return request;
     }
 

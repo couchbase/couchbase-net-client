@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.KV.V1;
@@ -48,7 +48,7 @@ namespace Couchbase.Stellar.KeyValue
         public void Dispose() { }
     }
 
-    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeSerializer Serializer) : Couchbase.KeyValue.ILookupInResult
+    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeTranscoder Transcoder) : Couchbase.KeyValue.ILookupInResult
     {
         internal static readonly ReadOnlyMemory<byte> RawTrue = Encoding.ASCII.GetBytes("true");
         internal static readonly ReadOnlyMemory<byte> RawFalse = Encoding.ASCII.GetBytes("false");
@@ -96,7 +96,8 @@ namespace Couchbase.Stellar.KeyValue
             var spec = SpecOrInvalid(index);
             if (spec.Status == null || spec.Status.Code == (int)StatusCode.OK)
             {
-                var contentWrapper = new GrpcContentWrapper(spec.Content, 0, this.Serializer);
+                var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0,
+                    Transcoder, IsFullDoc: OriginalRequest.Specs[index].Path.Length == 0);
                 return contentWrapper.ContentAs<T>();
             }
             switch (spec.Status.Code)
@@ -144,7 +145,7 @@ namespace Couchbase.Stellar.KeyValue
         }
     }
 
-    internal record MutateInResult(MutateInResponse GrpcResponse, MutateInRequest OriginalRequest, ITypeSerializer Serializer) : IMutateInResult
+    internal record MutateInResult(MutateInResponse GrpcResponse, MutateInRequest OriginalRequest, ITypeTranscoder Transcoder) : IMutateInResult
     {
 
         public ulong Cas => GrpcResponse.Cas;
@@ -158,7 +159,7 @@ namespace Couchbase.Stellar.KeyValue
         public T? ContentAs<T>(int index)
         {
             var spec = SpecOrInvalid(index);
-            var contentWrapper = new GrpcContentWrapper(spec.Content, 0, Serializer);
+            var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0, Transcoder: Transcoder, IsFullDoc: false);
             return contentWrapper.ContentAs<T>();
         }
 

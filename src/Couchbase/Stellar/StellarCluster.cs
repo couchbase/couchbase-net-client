@@ -16,6 +16,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
 using Couchbase.Client.Transactions;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -77,6 +78,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         RequestTracer = requestTracer;
         GrpcChannel = grpcChannel;
         TypeSerializer = typeSerializer;
+        TypeTranscoder = _clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
         RetryHandler = retryHandler;
     }
 
@@ -85,6 +87,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _clusterOptions = clusterOptions;
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
+        TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
         ChannelCredentials = new ClusterChannelCredentials(clusterOptions);
         var socketsHandler = new SocketsHttpHandler();
         var serverCertValidationCallback = clusterOptions.HttpCertificateCallbackValidation ??
@@ -158,6 +161,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     }
 
     internal IRequestTracer RequestTracer { get; }
+    internal ITypeTranscoder TypeTranscoder { get; }
 
     private void CheckIfDisposed()
     {

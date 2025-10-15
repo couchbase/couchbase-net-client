@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Analytics;
-using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Management.Buckets;
 using Couchbase.Protostellar.Admin.Bucket.V1;
 using Couchbase.Protostellar.Analytics.V1;
@@ -385,15 +385,15 @@ internal static class TypeConversionExtensions
                 CreatePath = subdocPathFlags.HasFlag(CoreKv.SubdocPathFlags.CreatePath),
             };
 
-    public static Couchbase.KeyValue.IGetResult AsGetResult(this IContentResult contentResult, ITypeSerializer serializer) => new GetResult(
+    public static Couchbase.KeyValue.IGetResult AsGetResult(this IContentResult contentResult, ITypeTranscoder transcoder) => new GetResult(
         ExpiryTime: contentResult.Expiry?.ToDateTime(),
         Cas: contentResult.Cas,
-        GrpcContentWrapper: new GrpcContentWrapper(contentResult.ContentUncompressed, contentResult.ContentFlags, serializer)
+        GrpcContentWrapper: new GrpcContentWrapper(contentResult.ContentUncompressed, contentResult.ContentFlags, transcoder)
     );
 
-    public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeSerializer serializer) => new GetReplicaResult(
+    public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeTranscoder transcoder) => new GetReplicaResult(
         Cas: contentResult.Cas,
         IsActive: contentResult.IsActive,
-        GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, serializer));
+        GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, transcoder));
 }
 #endif
