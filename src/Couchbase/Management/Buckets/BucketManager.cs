@@ -398,6 +398,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
         {
+            if(bucketName == null) throw new ArgumentNullException(nameof(bucketName));
             options ??= new GetBucketOptions();
             var (mgmtNode, uri) = GetUri(bucketName);
             _logger.LogInformation("Attempting to get bucket with name {bucketName} - {uri}",

@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Xml;
 using Couchbase.CombinationTests.Fixtures;
@@ -20,7 +21,8 @@ public class BucketManagerTests
     private TestHelper _testHelper;
     private volatile bool _isBucketFlushed;
 
-    public BucketManagerTests(CouchbaseFixture fixture, ITestOutputHelper outputHelper)
+    public BucketManagerTests(CouchbaseFixture fixture,
+        ITestOutputHelper outputHelper)
     {
         _fixture = fixture;
         _outputHelper = outputHelper;
@@ -28,7 +30,8 @@ public class BucketManagerTests
     }
 
     [Fact]
-    public async Task Test_Create_Couchstore_Bucket_With_History_Throws_InvalidArgument()
+    public async Task
+        Test_Create_Couchstore_Bucket_With_History_Throws_InvalidArgument()
     {
         var bucketId = "TestBucket-" + Guid.NewGuid();
 
@@ -53,7 +56,10 @@ public class BucketManagerTests
 
         var bucketManager = _fixture.Cluster.Buckets;
 
-        await Assert.ThrowsAsync<InvalidArgumentException>( async () => await bucketManager.CreateBucketAsync(settings, options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(false));
+        await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
+            await bucketManager.CreateBucketAsync(settings,
+                    options => options.Timeout(TimeSpan.FromSeconds(10)))
+                .ConfigureAwait(false));
 
         await bucketManager.DropBucketAsync(bucketId).ConfigureAwait(false);
     }
@@ -84,7 +90,8 @@ public class BucketManagerTests
         var bucketManager = _fixture.Cluster.Buckets;
         try
         {
-            await bucketManager.CreateBucketAsync(settings, options => options.Timeout(TimeSpan.FromSeconds(10)))
+            await bucketManager.CreateBucketAsync(settings,
+                    options => options.Timeout(TimeSpan.FromSeconds(10)))
                 .ConfigureAwait(false);
         }
         catch (InvalidArgumentException e)
@@ -92,7 +99,8 @@ public class BucketManagerTests
             if (e.Context.Message.Contains(
                     "RAM quota specified is too large to be provisioned into this cluster")) //The op might fail because the cluster is too small
             {
-                _outputHelper.WriteLine("Test failed due to Cluster being too small to add a Magma Bucket.");
+                _outputHelper.WriteLine(
+                    "Test failed due to Cluster being too small to add a Magma Bucket.");
                 Assert.True(true);
             }
         }
@@ -102,11 +110,21 @@ public class BucketManagerTests
             Assert.True(false);
         }
 
-        await _testHelper.WaitUntilBucketIsPresent(bucketId).ConfigureAwait(false);
+        await _testHelper.WaitUntilBucketIsPresent(bucketId)
+            .ConfigureAwait(false);
 
-        var getBucket = await _fixture.Cluster.Buckets.GetBucketAsync(bucketId).ConfigureAwait(false);
+        var getBucket = await _fixture.Cluster.Buckets.GetBucketAsync(bucketId)
+            .ConfigureAwait(false);
         Assert.NotNull(getBucket);
 
         await bucketManager.DropBucketAsync(bucketId).ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task Test_GetBucketAsync_With_Null_BucketName()
+    {
+        var bucketManager = _fixture.Cluster.Buckets;
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => bucketManager.GetBucketAsync(null));
     }
 }
