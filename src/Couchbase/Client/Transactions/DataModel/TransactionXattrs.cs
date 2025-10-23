@@ -31,6 +31,10 @@ namespace Couchbase.Client.Transactions.DataModel
         [JsonPropertyName("fc")]
         public JObject? ForwardCompatibility { get; set; }
 
+        [JsonProperty("aux")]
+        [JsonPropertyName("aux")]
+        public JObject? AuxiliaryData { get; set; }
+
         internal void ValidateMinimum()
         {
             if (Id?.AttemptId == null

@@ -50,6 +50,15 @@ namespace Couchbase.Client.Transactions.Components
                 return _stagedMutations.Values.Any(sm => sm.Flags?.DataFormat == DataFormat.Binary);
             }
         }
+
+        public bool ContainsExpiry()
+        {
+            // iterate over the staged mutations, look for any with staged Expiry
+            lock (_smLock)
+            {
+                return _stagedMutations.Values.Any(sm => sm.Expiry.HasValue);
+            }
+        }
         internal StagedMutation? Find(ICouchbaseCollection collection, string id)
         {
             lock (_smLock)

@@ -48,6 +48,7 @@ namespace Couchbase.Client.Transactions.Support
         public const string UserFlags = TransactionInterfacePrefix + "aux.uf";
         public const string Type = TransactionInterfacePrefix + "op.type";
         public const string Crc32 = TransactionInterfacePrefix + "op.crc32";
+        public const string DocExpiry = TransactionInterfacePrefix + "aux.docexpiry";
         public const string ForwardCompatibility = TransactionInterfacePrefix + "fc";
 
         public const string PreTxnCas = TransactionRestorePrefix + "CAS";

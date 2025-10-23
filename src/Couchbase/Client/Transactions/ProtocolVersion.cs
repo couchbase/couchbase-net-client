@@ -37,6 +37,7 @@ namespace Couchbase.Client.Transactions
             yield return new ExtensionName("ExtMemoryOptUnstaging", "EXT_MEMORY_OPT_UNSTAGING", "MO");
             yield return new ExtensionName("ExtReplicaFromPreferredGroup", "EXT_REPLICA_FROM_PREFERRED_GROUP", "RP");
             yield return new ExtensionName("ExtGetMulti", "EXT_GET_MULTI", "GM");
+            yield return new ExtensionName("ExtTtl", "EXT_TTL", "TTL");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);

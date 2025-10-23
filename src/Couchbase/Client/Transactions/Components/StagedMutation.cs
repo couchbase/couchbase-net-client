@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System;
 using System.Globalization;
 using Couchbase.Core;
 using Couchbase.Client.Transactions.DataModel;
@@ -17,13 +18,16 @@ namespace Couchbase.Client.Transactions.Components
 
         public Flags? Flags { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, Flags? flags, StagedMutationType type, MutationToken? mutationToken = null)
+        public TimeSpan? Expiry { get; }
+
+        public StagedMutation(TransactionGetResult doc, object? content, Flags? flags, StagedMutationType type, MutationToken? mutationToken = null, TimeSpan? expiry = null)
         {
             Doc = doc;
             Content = content;
             Type = type;
             MutationToken = mutationToken ?? MutationToken.Empty;
             Flags = flags;
+            Expiry = expiry;
         }
 
         public JObject ForAtr() => new JObject(

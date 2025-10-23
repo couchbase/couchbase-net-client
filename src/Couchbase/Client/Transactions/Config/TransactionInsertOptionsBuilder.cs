@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Transcoders;
 
@@ -9,8 +10,9 @@ public class TransactionInsertOptionsBuilder
 {
     private ITypeTranscoder? _transcoder;
     private IRequestSpan? _span;
+    private TimeSpan? _expiry;
 
-    public static TransactionInsertOptionsBuilder Default = Create();
+    public static TransactionInsertOptionsBuilder Default => Create();
 
     private TransactionInsertOptionsBuilder()
     {
@@ -39,6 +41,12 @@ public class TransactionInsertOptionsBuilder
         return this;
     }
 
+    public TransactionInsertOptionsBuilder Expiry(TimeSpan expiry)
+    {
+        _expiry = expiry;
+        return this;
+    }
+
     /// <summary>
     /// Create an instance of TransactionInsertOptions from the current state of this builder.
     /// Note this is a new instance, calling Build() several times will return several independent
@@ -47,7 +55,7 @@ public class TransactionInsertOptionsBuilder
     /// <returns></returns>
     public TransactionInsertOptions Build()
     {
-        return new TransactionInsertOptions(_transcoder, _span);
+        return new TransactionInsertOptions(_transcoder, _span, _expiry);
     }
 
     /// <summary>

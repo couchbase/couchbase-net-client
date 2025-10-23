@@ -116,6 +116,14 @@ internal class OperationWrapper
                 new FeatureNotAvailableException(
                     "No queries are allowed in transactions with binary documents")).Build();
         }
+        // if we had a KV operation that had set an Expiry, we cannot support that either.
+        if (_attemptContext.StagedMutations.ContainsExpiry())
+        {
+            throw ErrorBuilder.CreateError(_attemptContext,
+                ErrorClass.FailOther,
+                new FeatureNotAvailableException(
+                    "No queries are allowed in transactions with expiry")).Build();
+        }
         try
         {
             // We only do one query at a time so get the lock

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Transcoders;
 
@@ -9,6 +10,7 @@ public class TransactionReplaceOptionsBuilder
 {
     private ITypeTranscoder? _transcoder;
     private IRequestSpan? _span;
+    private TimeSpan? _expiry;
     private TransactionReplaceOptionsBuilder()
     {
     }
@@ -16,7 +18,7 @@ public class TransactionReplaceOptionsBuilder
     /// <summary>
     /// This creates a new builder with the default values (if any) for this builder.
     /// </summary>
-    public static TransactionReplaceOptionsBuilder Default = Create();
+    public static TransactionReplaceOptionsBuilder Default => Create();
 
 
     /// <summary>
@@ -42,6 +44,12 @@ public class TransactionReplaceOptionsBuilder
         return this;
     }
 
+    public TransactionReplaceOptionsBuilder Expiry(TimeSpan expiry)
+    {
+        _expiry = expiry;
+        return this;
+    }
+
     /// <summary>
     /// Builds a new independent instance of TransactionReplaceOptions, based on the current state
     /// of this builder.   Note that if you call Build multiple times, you will have multiple
@@ -50,7 +58,7 @@ public class TransactionReplaceOptionsBuilder
     /// <returns>A TransactionReplaceOptions instance.</returns>
     public TransactionReplaceOptions Build()
     {
-        return new TransactionReplaceOptions(_transcoder, _span);
+        return new TransactionReplaceOptions(_transcoder, _span, _expiry);
     }
 
     /// <summary>

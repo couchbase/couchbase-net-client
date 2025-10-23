@@ -152,6 +152,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 opts => opts.Cas(op.Cas)
                                     .Durability(cleanupRequest.GetDurabilityLevel())
                                     .AccessDeleted(true)
+                                    .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
                                     .Timeout(_keyValueTimeout)).CAF();
                         }
                         else
@@ -175,6 +176,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                             opts => opts.Cas(op.Cas)
                                 .AccessDeleted(true)
+                                .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
                                 .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
             }
@@ -228,19 +230,31 @@ namespace Couchbase.Client.Transactions.Cleanup
             if (op.IsDeleted)
             {
                 await coll.InsertAsync(op.Id, content,
-                    options => options.Durability(durabilityLevel)
-                        .Transcoder(op.StagedContent?.Transcoder)).CAF();
+                    options =>
+                    {
+                        options.Durability(durabilityLevel)
+                            .Transcoder(op.StagedContent?.Transcoder);
+                        if (op.Expiry.HasValue) options.Expiry(op.Expiry.Value);
+                    }).CAF();
             }
             else
             {
                 await coll.MutateInAsync(op.Id, specs =>
                     specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
                         .SetDoc(content), opts =>
+                {
                     opts.Durability(durabilityLevel)
                         .Transcoder(op.StagedContent?.Transcoder)
                         .Flags(op.StagedContent!.Transcoder.GetFormat(content))
                         .Timeout(_keyValueTimeout)
-                        .Cas(op.Cas)).CAF();
+                        .Cas(op.Cas)
+                        .PreserveTtl(coll.Scope.Bucket.SupportsCollections);
+                    if (op.Expiry.HasValue)
+                    {
+                        opts.Expiry(op.Expiry.Value);
+                        opts.PreserveTtl(false);
+                    }
+                }).CAF();
             }
         }
 
