@@ -212,7 +212,10 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
             };
 
         private static readonly X509Certificate2Collection DefaultCertificatesCollection = new X509Certificate2Collection(DefaultCertificates.ToArray());
-        internal static RemoteCertificateValidationCallback GetValidatorWithDefaultCertificates(ILogger? logger, IRedactor? redactor) => GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection, logger, redactor);
+
+        internal static RemoteCertificateValidationCallback GetValidatorWithDefaultCertificates(
+            ILogger? logger, IRedactor? redactor) =>
+            GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection, logger, redactor);
 
         private static void MaybeLogChainElements(string message, X509Chain chain, ILogger? logger = null)
         {

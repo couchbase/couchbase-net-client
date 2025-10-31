@@ -16,7 +16,9 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
 using Couchbase.Client.Transactions;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -36,9 +38,10 @@ using Couchbase.Stellar.Query;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
 using Couchbase.Utils;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase.Stellar;
 
@@ -56,6 +59,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly IQueryClient _queryClient;
     private readonly Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
+    private readonly ILogger<StellarCluster> _logger;
+    private readonly IRedactor _redactor;
     private volatile bool _disposed;
 
     private ClusterChannelCredentials ChannelCredentials { get; }
@@ -80,11 +85,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         TypeSerializer = typeSerializer;
         TypeTranscoder = _clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
         RetryHandler = retryHandler;
+        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
+
+
     }
 
     private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
+        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
         TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
@@ -95,6 +106,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         var ignoreNameMismatch = clusterOptions.HttpIgnoreRemoteCertificateMismatch ||
                                  clusterOptions.KvIgnoreRemoteCertificateNameMismatch;
 
+        var certs = _clusterOptions.X509CertificateFactory?.GetCertificates();
         if (serverCertValidationCallback is not null && ignoreNameMismatch)
         {
             // combine the checks.
@@ -105,22 +117,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
                 return existingCallback(sender, certificate, chain, errors);
             };
         }
-        else if (ignoreNameMismatch)
+        else if (serverCertValidationCallback == null)
         {
-            serverCertValidationCallback = (_, _, _, errors) =>
-            {
-                var sslPolicyErrors = CertificateFactory.WithoutNameMismatch(errors);
-                return sslPolicyErrors == SslPolicyErrors.None;
-            };
+            CallbackCreator callbackCreator = new CallbackCreator( ignoreNameMismatch, _logger, _redactor, certs);
+            serverCertValidationCallback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
+                callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
         }
 
-        if (serverCertValidationCallback is not null)
+        socketsHandler.SslOptions = new SslClientAuthenticationOptions()
         {
-            socketsHandler.SslOptions = new SslClientAuthenticationOptions()
-            {
-                RemoteCertificateValidationCallback = serverCertValidationCallback
-            };
-        }
+            RemoteCertificateValidationCallback = serverCertValidationCallback,
+        };
 
         var grpcChannelOptions = new GrpcChannelOptions()
         {
