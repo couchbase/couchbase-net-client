@@ -6,5 +6,5 @@ public interface IRotatingCertificateFactory : ICertificateFactory
 {
     bool HasUpdates { get; }
 
-    void RefreshClientHandler(object state);
+    void RefreshCertificates(object state);
 }

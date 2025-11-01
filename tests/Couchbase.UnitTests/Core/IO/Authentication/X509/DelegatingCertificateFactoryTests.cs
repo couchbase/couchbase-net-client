@@ -99,41 +99,6 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
         }
 
         [Fact]
-        public void SetDelegatingCertificate_ShouldUpdateUnderlyingFactory()
-        {
-            // Arrange
-            var originalCertificates = CreateTestCertificateCollection(1);
-            var newCertificates = CreateTestCertificateCollection(2);
-
-            var newMockFactory = new Mock<ICertificateFactory>();
-            newMockFactory.Setup(x => x.GetCertificates()).Returns(newCertificates);
-
-            _mockCertificateFactory.Setup(x => x.GetCertificates()).Returns(originalCertificates);
-
-            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
-
-            // Act
-            factory.SetDelegatingCertificate(newMockFactory.Object);
-
-            // Clear cache by getting certificates to trigger new factory call
-            var result = factory.GetCertificates();
-
-            // Assert - should get certificates from new factory
-            Assert.Same(newCertificates, result);
-            newMockFactory.Verify(x => x.GetCertificates(), Times.Once);
-        }
-
-        [Fact]
-        public void SetDelegatingCertificate_WithNullFactory_ShouldThrowArgumentNullException()
-        {
-            // Arrange
-            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
-
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => factory.SetDelegatingCertificate(null!));
-        }
-
-        [Fact]
         public void RefreshClientHandler_WithValidNewCertificates_ShouldUpdateCacheAndSetHasUpdates()
         {
             // Arrange
@@ -152,7 +117,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var expiresIn = TimeSpan.FromDays(5);
 
             // Act
-            factory.RefreshClientHandler(expiresIn);
+            factory.RefreshCertificates(expiresIn);
 
             // Assert
             Assert.True(factory.HasUpdates);
@@ -177,12 +142,12 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var initialResult = factory.GetCertificates();
 
             // Reset HasUpdates flag by calling RefreshClientHandler once
-            factory.RefreshClientHandler(TimeSpan.FromDays(5));
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
 
             var expiresIn = TimeSpan.FromDays(5); // Require at least 5 days before expiry
 
             // Act
-            factory.RefreshClientHandler(expiresIn);
+            factory.RefreshCertificates(expiresIn);
 
             // Assert - HasUpdates should be false because expired certificates were not added
             Assert.False(factory.HasUpdates);
@@ -204,7 +169,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var expiresIn = TimeSpan.FromDays(5);
 
             // Act
-            factory.RefreshClientHandler(expiresIn);
+            factory.RefreshCertificates(expiresIn);
 
             // Assert - HasUpdates should be false because no new certificates were found
             Assert.False(factory.HasUpdates);
@@ -226,7 +191,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var expiresIn = TimeSpan.FromDays(5);
 
             // Act
-            factory.RefreshClientHandler(expiresIn);
+            factory.RefreshCertificates(expiresIn);
 
             // Assert - HasUpdates should be reset to false since no new certificates were added
             Assert.False(factory.HasUpdates);
@@ -302,7 +267,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             {
                 try
                 {
-                    factory.RefreshClientHandler(expiresIn);
+                    factory.RefreshCertificates(expiresIn);
                 }
                 catch (Exception ex)
                 {
@@ -362,7 +327,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var clusterOptions = new ClusterOptions().WithX509CertificateFactory(factory);
 
             var expiresIn = TimeSpan.FromMilliseconds(2);
-            using (var timer = new Timer(factory.RefreshClientHandler, expiresIn, TimeSpan.Zero,
+            using (var timer = new Timer(factory.RefreshCertificates, expiresIn, TimeSpan.Zero,
                        TimeSpan.FromMilliseconds(10)))
             {
                 await Task.Delay(15);

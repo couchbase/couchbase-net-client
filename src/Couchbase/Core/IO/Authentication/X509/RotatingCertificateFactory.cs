@@ -42,14 +42,14 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
                 _ = Interlocked.Exchange(ref _cachedCertificates, _certificateFactoryImplementation.GetCertificates());
 
                 _timer = TimerFactory.CreateWithFlowSuppressed(
-                    RefreshClientHandler!, this, _interval, _interval);
+                    RefreshCertificates!, this, _interval, _interval);
             }
 
             return _cachedCertificates;
         }
     }
 
-    public void RefreshClientHandler(object state)
+    public void RefreshCertificates(object state)
     {
         lock (_syncObj)
         {

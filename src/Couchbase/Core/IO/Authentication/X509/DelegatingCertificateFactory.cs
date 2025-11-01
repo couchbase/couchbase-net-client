@@ -18,7 +18,7 @@ public class DelegatingCertificateFactory(
 
     public bool HasUpdates => _hasUpdates;
 
-    public void RefreshClientHandler(object state)
+    public void RefreshCertificates(object state)
     {
         var expiresIn = (TimeSpan)state;
         lock (_syncObj)
@@ -65,11 +65,5 @@ public class DelegatingCertificateFactory(
 
             return _cachedCertificates;
         }
-    }
-
-    public void SetDelegatingCertificate(
-        ICertificateFactory delegatingCertificateFactory)
-    {
-        _certificateFactory = delegatingCertificateFactory ?? throw new ArgumentNullException(nameof(delegatingCertificateFactory));
     }
 }
