@@ -125,7 +125,6 @@ namespace Couchbase
 
             _appTelemetryCollector = _context.ServiceProvider.GetRequiredService<IAppTelemetryCollector>();
             _appTelemetryCollector.ClusterContext = _context;
-            _appTelemetryCollector.Initialize();
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
@@ -538,6 +537,9 @@ namespace Couchbase
                 //if we succeeded set the state of the cluster to bootstrapped
                 _hasBootStrapped = _context.GlobalConfig != null;
                 _deferredExceptions.Clear();
+
+                //start the collector here now that we have bootstrapped and global bootstrap is not null
+                _appTelemetryCollector.Initialize();
 
                 UpdateClusterCapabilities();
             }
