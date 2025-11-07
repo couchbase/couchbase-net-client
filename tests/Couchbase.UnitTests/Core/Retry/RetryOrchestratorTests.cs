@@ -104,6 +104,25 @@ namespace Couchbase.UnitTests.Core.Retry
                 yield return [ new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress];
                 yield return [ new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress];
                 yield return [ new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress];
+
+                //BucketNotConnected
+                yield return [ new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new ReplicaRead<dynamic>("key", 1) {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new Config {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new Observe {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.BucketNotConnected];
+                yield return [ new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Delete { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
+                yield return [ new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.BucketNotConnected];
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -309,6 +328,7 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData(ResponseStatus.Locked)]
         [InlineData(ResponseStatus.EConfigOnly)]
         [InlineData(ResponseStatus.Cancelled)]
+        [InlineData(ResponseStatus.BucketNotConnected)]
         public async Task Operation_Retries_Until_Timeout_With_RetryNow(ResponseStatus responseStatus)
         {
             //Couchbase.UnitTests.Documents.kv-error-map-7.6.0.json
