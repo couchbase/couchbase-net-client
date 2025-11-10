@@ -6,6 +6,7 @@
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <RootNamespace>Couchbase.Extensions.Tracing.Otel</RootNamespace>
     <Nullable>enable</Nullable>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

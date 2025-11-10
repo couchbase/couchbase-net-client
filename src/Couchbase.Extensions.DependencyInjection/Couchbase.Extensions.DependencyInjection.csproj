@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">true</IsTrimmable>
     <EnableAOTAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">

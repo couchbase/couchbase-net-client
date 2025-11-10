@@ -8,6 +8,7 @@
     <PackageId>CouchbaseNetClient</PackageId>
     <Product>CouchbaseNetClient</Product>
     <Description>The Official Couchbase .NET SDK.</Description>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
 
     <PackageReleaseNotes>https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html</PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
