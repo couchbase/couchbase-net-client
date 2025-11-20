@@ -21,6 +21,11 @@ namespace Couchbase.Core.IO.Authentication.X509
             : this(certs.ToArray())
         { }
 
+        public PredefinedCertificateFactory(X509Certificate2Collection certs)
+        {
+            _certs = certs.Cast<X509Certificate2>().ToArray();
+        }
+
         public X509Certificate2Collection GetCertificates() => new X509Certificate2Collection(_certs);
     }
 }

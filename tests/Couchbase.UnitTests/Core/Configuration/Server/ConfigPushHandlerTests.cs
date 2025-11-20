@@ -149,7 +149,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockConfigHandler.Setup(ch => ch.Publish(It.IsAny<BucketConfig>())).Callback(onPublish);
         mockConfigHandler.Setup(ch => ch.Subscribe(It.IsAny<IConfigUpdateEventSink>())).Callback(doNothing);
         mockConfigHandler.Setup(ch => ch.Start(It.IsAny<bool>())).Callback(doNothing);
-        var clusterOptions = new ClusterOptions().WithLogging(new TestOutputLoggerFactory(outputHelper));
+        var clusterOptions = new ClusterOptions().WithLogging(new TestOutputLoggerFactory(outputHelper)).WithPasswordAuthentication("username", "password");
         clusterOptions.AddClusterService(mockConfigHandler.Object);
         var mock = new Mock<BucketBase>(
             bucketName,

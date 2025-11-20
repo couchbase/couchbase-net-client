@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests.KeyValue
             private readonly Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
 
             public FakeBucket(params ResponseStatus[] statuses)
-                : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
+                : base(BucketName, new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<IScopeFactory>().Object,
                     CreateRetryOrchestrator(), new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,

@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.Management.Query
         [Fact]
         public void When_NotConnected_QueryIndexManager_Throws_NodeUnavailableException()
         {
-            var clusterContext = new ClusterContext();
+            var clusterContext = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
             var serviceUriProvider = new ServiceUriProvider(clusterContext);
             Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomQueryUri());
         }

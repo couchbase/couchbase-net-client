@@ -334,7 +334,7 @@ namespace Couchbase.UnitTests.Utils
         private ClusterNode MakeFakeClusterNode(string hostname)
         {
             return new ClusterNode(
-                new ClusterContext(null, new ClusterOptions()),
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IConnectionPoolFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),

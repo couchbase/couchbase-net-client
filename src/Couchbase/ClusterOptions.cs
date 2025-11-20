@@ -6,6 +6,8 @@ using System.Linq;
 using System.Net.Security;
 using System.Runtime.Versioning;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
@@ -13,6 +15,7 @@ using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
@@ -23,6 +26,8 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Client.Transactions.Config;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.IO.Authentication.Authenticators;
+using Google.Rpc.Context;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -50,7 +55,9 @@ namespace Couchbase
                 ConnectionStringValue = value != null ? Couchbase.ConnectionString.Parse(value) : null;
                 if (!string.IsNullOrWhiteSpace(ConnectionStringValue?.Username))
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     UserName = ConnectionStringValue!.Username;
+#pragma warning restore CS0618 // Type or member is obsolete
                 }
 
                 if (ConnectionStringValue != null)
@@ -296,6 +303,10 @@ namespace Couchbase
         /// <returns>
         /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
         /// </returns>
+        /// <remarks>
+        /// DEPRECATED: Use <see cref="WithPasswordAuthentication"/> instead.
+        /// </remarks>
+        [Obsolete("Use WithPasswordAuthentication instead. This method will be removed in a future version.")]
         public ClusterOptions WithCredentials(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username))
@@ -312,6 +323,106 @@ namespace Couchbase
             Password = password;
             return this;
         }
+
+        #region New Authenticator API
+
+        /// <summary>
+        /// Sets the authenticator to use for authentication.
+        /// </summary>
+        /// <param name="authenticator">The authenticator to use.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        public ClusterOptions WithAuthenticator(IAuthenticator authenticator)
+        {
+            Authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
+            return this;
+        }
+
+        /// <summary>
+        /// Configures password authentication with username and password credentials.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        public ClusterOptions WithPasswordAuthentication(string username, string password)
+        {
+            Authenticator = new PasswordAuthenticator(username, password, EffectiveEnableTls);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures certificate-based authentication (mTLS) using the specified certificate factory.
+        /// </summary>
+        /// <param name="certificateFactory">The certificate factory to use for providing client certificates.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        public ClusterOptions WithCertificateAuthentication(ICertificateFactory certificateFactory)
+        {
+            Authenticator = new CertificateAuthenticator(certificateFactory);
+            EnableTls = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures TLS settings for server certificate validation.
+        /// </summary>
+        /// <param name="configure">Action to configure TLS settings.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        public ClusterOptions WithTlsSettings(Action<TlsSettings> configure)
+        {
+            if (configure == null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            var settings = new TlsSettings();
+            configure(settings);
+            TlsSettings = settings;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures trusted server CA certificates for server certificate validation.
+        /// </summary>
+        /// <param name="certificates">The server CA certificates to trust.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        public ClusterOptions WithTrustedServerCertificates(X509Certificate2Collection certificates)
+        {
+            if (TlsSettings == null)
+            {
+                TlsSettings = new TlsSettings();
+            }
+            TlsSettings.TrustedServerCertificateFactory = new PredefinedCertificateFactory(certificates);
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the effective authenticator, resolving backward compatibility with legacy properties.
+        /// Internals should call this instead of directly getting the ClusterOptions.Authenticator property.
+        /// </summary>
+        /// <returns>The effective authenticator to use.</returns>
+        internal IAuthenticator GetEffectiveAuthenticator()
+        {
+            if (Authenticator != null)
+            {
+                return Authenticator;
+            }
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (X509CertificateFactory != null)
+            {
+                return Authenticator = new CertificateAuthenticator(X509CertificateFactory);
+            }
+
+            if (!string.IsNullOrEmpty(UserName))
+            {
+                return Authenticator = new PasswordAuthenticator(UserName!, Password ?? string.Empty, EffectiveEnableTls);
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            throw new InvalidConfigurationException(
+                "No authentication method is configured. Please set an IAuthenticator using ClusterOptions.WithAuthenticator or related fluent methods.");
+        }
+
+        #endregion
 
         /// <summary>
         /// The <see cref="ILoggerFactory"/> to use for logging.
@@ -653,7 +764,40 @@ namespace Couchbase
         /// </summary>
         public IRetryStrategy? RetryStrategy { get; set; } = new BestEffortRetryStrategy();
 
+        /// <summary>
+        /// The authenticator to use for authenticating connections to Couchbase Server.
+        /// This and the fluent methods <see cref="WithAuthenticator"/> are the preferred way to
+        /// configure authentication in the SDK.
+        /// </summary>
+        internal IAuthenticator? Authenticator
+        {
+            get => Volatile.Read(ref field);
+            set => Interlocked.Exchange(ref field, value);
+        }
+
+        /// <summary>
+        /// TLS settings for server certificate validation.
+        /// </summary>
+        public TlsSettings TlsSettings { get; set; } = new ();
+
+        /// <summary>
+        /// The username for authentication.
+        /// </summary>
+        /// <remarks>
+        /// DEPRECATED: Use <see cref="Authenticator"/> with <see cref="PasswordAuthenticator"/> instead.
+        /// This property is maintained for backward compatibility.
+        /// </remarks>
+        [Obsolete("Use Authenticator with PasswordAuthenticator instead. This property will be removed in a future version.")]
         public string? UserName { get; set; }
+
+        /// <summary>
+        /// The password for authentication.
+        /// </summary>
+        /// <remarks>
+        /// DEPRECATED: Use <see cref="Authenticator"/> with <see cref="PasswordAuthenticator"/> instead.
+        /// This property is maintained for backward compatibility.
+        /// </remarks>
+        [Obsolete("Use Authenticator with PasswordAuthenticator instead. This property will be removed in a future version.")]
         public string? Password { get; set; }
 
         /// <summary>
@@ -856,7 +1000,12 @@ namespace Couchbase
         /// <summary>
         /// A <see cref="System.Boolean"/> value that specifies whether the certificate revocation list is checked during authentication.
         /// </summary>
-        public bool EnableCertificateRevocation { get; set; }
+        public bool EnableCertificateRevocation
+        {
+            get => TlsSettings.EnableCertificateRevocation;
+            set => TlsSettings.EnableCertificateRevocation = value;
+
+        }
 
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch, since they happen together.
@@ -950,7 +1099,12 @@ namespace Couchbase
         /// </remarks>
         /// <seealso cref="KvCertificateCallbackValidation"/>
         /// <seealso cref="HttpIgnoreRemoteCertificateMismatch"/>
-        public bool KvIgnoreRemoteCertificateNameMismatch { get; set; }
+        [Obsolete("Use TlsSettings.KvIgnoreRemoteCertificateNameMismatch instead. This property will be removed in a future version.")]
+        public bool KvIgnoreRemoteCertificateNameMismatch
+        {
+            get => TlsSettings.KvIgnoreRemoteCertificateNameMismatch;
+            set => TlsSettings.KvIgnoreRemoteCertificateNameMismatch = value;
+        }
 
         /// <summary>
         /// The default <see cref="RemoteCertificateValidationCallback"/> called by .NET to validate the TLS/SSL certificates being used for
@@ -961,7 +1115,12 @@ namespace Couchbase
         /// While it can be handy to simply <code>return true</code> for development against self-signed certificates,
         /// such a shortcut should never be used against a public-facing or production system.
         /// </remarks>
-        public RemoteCertificateValidationCallback? KvCertificateCallbackValidation { get; set; } = null;
+        [Obsolete("Use TlsSettings.KvCertificateValidationCallback instead. This property will be removed in a future version.")]
+        public RemoteCertificateValidationCallback? KvCertificateCallbackValidation
+        {
+            get => TlsSettings.KvCertificateValidationCallback;
+            set => TlsSettings.KvCertificateValidationCallback = value;
+        }
 
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch for HTTP services (Query, FTS, Analytics, etc), since they happen together.
@@ -973,7 +1132,12 @@ namespace Couchbase
         /// </remarks>
         /// <seealso cref="KvIgnoreRemoteCertificateNameMismatch"/>
         /// <seealso cref="HttpCertificateCallbackValidation"/>
-        public bool HttpIgnoreRemoteCertificateMismatch { get; set; }
+        [Obsolete("Use TlsSettings.HttpIgnoreRemoteCertificateNameMismatch instead. This property will be removed in a future version.")]
+        public bool HttpIgnoreRemoteCertificateMismatch
+        {
+            get => TlsSettings.HttpIgnoreRemoteCertificateNameMismatch;
+            set => TlsSettings.HttpIgnoreRemoteCertificateNameMismatch = value;
+        }
 
         /// <summary>
         /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
@@ -986,11 +1150,22 @@ namespace Couchbase
         /// such a shortcut should never be used against a public-facing or production system.
         /// </remarks>
         /// <seealso cref="KvCertificateCallbackValidation"/>
-        public RemoteCertificateValidationCallback? HttpCertificateCallbackValidation { get; set; } = null;
+        [Obsolete("Use TlsSettings.HttpCertificateCallbackValidation instead. This property will be removed in a future version.")]
+        public RemoteCertificateValidationCallback? HttpCertificateCallbackValidation
+        {
+            get => TlsSettings?.HttpCertificateValidationCallback;
+            set => TlsSettings.HttpCertificateValidationCallback = value;
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="ICertificateFactory"/> to provide client certificates during TLS authentication.
         /// </summary>
+        /// <remarks>
+        /// DEPRECATED: Use <see cref="Authenticator"/> with <see cref="CertificateAuthenticator"/> instead,
+        /// and use <see cref="TlsSettings"/> for server certificate validation.
+        /// This property is maintained for backward compatibility.
+        /// </remarks>
+        [Obsolete("Use Authenticator with CertificateAuthenticator for client certs and TlsSettings for server CAs. This property will be removed in a future version.")]
         public ICertificateFactory? X509CertificateFactory { get; set; }
 
         /// <summary>
@@ -999,9 +1174,14 @@ namespace Couchbase
         /// <param name="certificateFactory">The certificate factory to use.</param>
         /// <returns>The ClusterOptions to continue configuration in a fluent style.</returns>
         /// <exception cref="NullReferenceException">The certificateFactory parameter cannot be null.</exception>
+        /// <remarks>
+        /// DEPRECATED: Use <see cref="WithCertificateAuthentication"/> instead.
+        /// </remarks>
+        [Obsolete("Use WithCertificateAuthentication instead. This method will be removed in a future version.")]
         public ClusterOptions WithX509CertificateFactory(ICertificateFactory certificateFactory)
         {
             X509CertificateFactory = certificateFactory ?? throw new NullReferenceException(nameof(certificateFactory));
+            Authenticator = new CertificateAuthenticator(certificateFactory);
             EnableTls = true;
             return this;
         }
@@ -1021,28 +1201,24 @@ namespace Couchbase
         /// <remarks>The default is false and the Hostname will be sent as the target host.</remarks>
         public bool ForceIpAsTargetHost { get; set; } = false;
 
-#if NET6_0_OR_GREATER
         /// <summary>
         /// Enabled SSL Protocols
         /// </summary>
-        /// <remarks>The defaults TLS1.2 and TLS1.3.  Earlier versions are considered insecure.</remarks>
-        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls12 | SslProtocols.Tls13;
-#else
-        /// <summary>
-        /// Enabled SSL Protocols
-        /// </summary>
-        /// <remarks>The defaults is TLS1.2, since earlier protocols are considered insecure.</remarks>
-        /// <remarks>If you are using .NET Framework 4.8 or later on Windows, you can add TLS 1.3.</remarks>
-        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls12;
+        /// <remarks>The defaults TLS1.2 and TLS1.3 if supported. Earlier versions are considered insecure.</remarks>
+        [Obsolete("Use TlsSettings.EnabledSslProtocols instead. This property will be removed in a future version.")]
+        public SslProtocols EnabledSslProtocols
+        {
+            get => TlsSettings.EnabledSslProtocols;
+            set => TlsSettings.EnabledSslProtocols = value;
 
-#endif
+        }
 
 #if NETCOREAPP3_1_OR_GREATER
         /// <summary>
         /// List of enabled TLS Cipher Suites.  If not set, will use default .NET Cipher Suites
         /// </summary>
         [UnsupportedOSPlatform("windows")]
-        public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new();
+        public List<TlsCipherSuite>? EnabledTlsCipherSuites { get; set; }
 
         [UnsupportedOSPlatformGuard("windows")]
         internal readonly bool PlatformSupportsCipherSuite = !OperatingSystem.IsWindows();

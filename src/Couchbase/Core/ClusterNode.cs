@@ -19,6 +19,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
@@ -839,13 +840,27 @@ namespace Couchbase.Core
                     ErrorMap = await GetErrorMap(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
                 }
 
-                var mechanismType = _context.ClusterOptions.EffectiveEnableTls
-                    ? MechanismType.Plain
-                    : MechanismType.ScramSha1;
-                var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
-                    _context.ClusterOptions.Password);
+                // Use the authenticator to handle KV authentication
+                var authenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
 
-                await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
+                // Validate authenticator supports current TLS mode
+                if (_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsTls)
+                {
+                    throw new AuthenticationFailureException(
+                        $"Authenticator {authenticator.GetType().Name} does not support TLS connections");
+                }
+
+                if (!_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsNonTls)
+                {
+                    throw new AuthenticationFailureException(
+                        $"Authenticator {authenticator.GetType().Name} requires TLS connections");
+                }
+
+                await authenticator.AuthenticateKvConnectionAsync(
+                    connection,
+                    _saslMechanismFactory,
+                    cancellationToken
+                ).ConfigureAwait(false);
 
                 //Callback for the case where the server sends a CMCN to the client; this is raised in the
                 //MultiplexingConnection when it detects that the request has come from the server.

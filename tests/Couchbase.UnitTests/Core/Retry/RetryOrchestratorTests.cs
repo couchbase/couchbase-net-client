@@ -165,7 +165,7 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(), new BucketConfig());
@@ -277,7 +277,7 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -305,7 +305,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -344,7 +344,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 LastErrorCode = errorCode
             };
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -369,7 +369,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var op = new Mock<OperationBase>();
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -400,7 +400,7 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,

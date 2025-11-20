@@ -42,7 +42,7 @@ namespace Couchbase.UnitTests.Core
                     .Setup(x => x.Name)
                     .Returns("beer-sample");
 
-            var node1 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker(),
+            var node1 = new ClusterNode(new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), pool, new CircuitBreaker(),
                 new Mock<IOperationConfigurator>().Object)
             {
                 Owner = beerSample.Object,
@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Core
             travelSample
                 .Setup(x => x.Name)
                 .Returns("travel-sample");
-            var node2 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker(),
+            var node2 = new ClusterNode(new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), pool, new CircuitBreaker(),
                 new Mock<IOperationConfigurator>().Object)
             {
                 Owner = travelSample.Object,
@@ -136,7 +136,7 @@ namespace Couchbase.UnitTests.Core
                 .Returns(mockConnectionPool.Object);
 
             var node1 = new ClusterNode(
-                context: new ClusterContext(),
+                context: new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 connectionPoolFactory: mockConnectionPoolFactory.Object,
                 logger: logger,
                 operationBuilderPool: pool,

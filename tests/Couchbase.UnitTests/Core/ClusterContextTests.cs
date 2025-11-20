@@ -54,7 +54,7 @@ namespace Couchbase.UnitTests.Core
             var nodeAdapter = new NodeAdapter(null, config.NodesExt.First(), config);
             var clusterNode = CreateMockedNode("localhost", 11210, nodeAdapter);
 
-            var context = new ClusterContext();
+            var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
             context.AddNode(clusterNode);
 
             // Act
@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests.Core
 
             var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
                 InternalSerializationContext.Default.BucketConfig);
-            var context = new ClusterContext();
+            var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
 
             var hosts = new List<string>{"10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104"};
             hosts.ForEach(x => context.AddNode(CreateMockedNode(x, 11210)));
@@ -109,7 +109,7 @@ namespace Couchbase.UnitTests.Core
                     }, "break early");
                     // return Task.FromResult(CreateMockedNode(host.Host, host.Port));
                 });
-            var options = new ClusterOptions().WithConnectionString("couchbase://node1,node2,node3?random_seed_nodes=true");
+            var options = new ClusterOptions().WithConnectionString("couchbase://node1,node2,node3?random_seed_nodes=true").WithPasswordAuthentication("username", "password");
             options.EnableDnsSrvResolution = false;
             options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
             using var cts = new CancellationTokenSource();
@@ -152,7 +152,7 @@ namespace Couchbase.UnitTests.Core
                 KeyValue = port
             };
 
-            var clusterNode = new ClusterNode(new ClusterContext(), mockConnectionPoolFactory.Object,
+            var clusterNode = new ClusterNode(new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
@@ -164,7 +164,7 @@ namespace Couchbase.UnitTests.Core
                 new Mock<IOperationConfigurator>().Object
             )
             {
-                Owner = new FakeBucket("default", new ClusterOptions())
+                Owner = new FakeBucket("default", new ClusterOptions().WithPasswordAuthentication("username", "password"))
             };
 
             return clusterNode;
@@ -193,7 +193,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async Task BootstrapGlobal_Should_Not_Swallow_AuthenticationFailure()
         {
-            var options = new ClusterOptions().WithConnectionString("couchbases://localhost1,localhost2");
+            var options = new ClusterOptions().WithConnectionString("couchbases://localhost1,localhost2").WithPasswordAuthentication("username", "password");
             var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
             mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Throws(new AuthenticationFailureException());
@@ -206,7 +206,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async Task BootstrapGlobal_Should_Continue_After_AuthenticationFailureException()
         {
-            var options = new ClusterOptions().WithConnectionString("couchbase://localhost1,localhost2?random_seed_nodes=false");
+            var options = new ClusterOptions().WithConnectionString("couchbase://localhost1,localhost2?random_seed_nodes=false").WithPasswordAuthentication("username", "password");
 
             var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Loose);
 
@@ -234,7 +234,7 @@ namespace Couchbase.UnitTests.Core
         {
             using var listener = new CustomTraceListener();
 
-            var options = new ClusterOptions();
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = true,
@@ -262,7 +262,7 @@ namespace Couchbase.UnitTests.Core
         {
             using var listener = new CustomTraceListener();
 
-            var options = new ClusterOptions();
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = true,

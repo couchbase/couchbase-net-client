@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests
         public async Task Scope_DoesNotThrow_ScopeNoteFoundException()
         {
             var bucket = new CouchbaseBucket("default",
-                new ClusterContext
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"))
                 {
                     SupportsCollections = true
                 },

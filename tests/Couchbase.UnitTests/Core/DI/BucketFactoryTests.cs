@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var bucketFactory = new BucketFactory(
-                new ClusterContext(),
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,
@@ -60,7 +60,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var bucketFactory = new BucketFactory(
-                new ClusterContext(),
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,

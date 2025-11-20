@@ -282,7 +282,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var globalConfig = ResourceHelper.ReadResource(@"Documents\Configs\config-with-analytics-prod.json", InternalSerializationContext.Default.BucketConfig);
 
-            var clusterContext = new ClusterContext()
+            var clusterContext = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"))
             {
                 GlobalConfig = globalConfig
             };
@@ -333,7 +333,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var globalConfig = ResourceHelper.ReadResource(@"Documents\Configs\config-with-server-prod.json", InternalSerializationContext.Default.BucketConfig);
 
-            var clusterContext = new ClusterContext()
+            var clusterContext = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"))
             {
                 GlobalConfig = globalConfig
             };

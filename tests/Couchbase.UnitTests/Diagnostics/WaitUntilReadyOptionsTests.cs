@@ -78,7 +78,7 @@ namespace Couchbase.UnitTests.Diagnostics
             //arrange
 
             var options = new WaitUntilReadyOptions();
-            var clusterContext = new ClusterContext()
+            var clusterContext = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"))
             {
                 GlobalConfig = new BucketConfig()
             };
@@ -98,7 +98,7 @@ namespace Couchbase.UnitTests.Diagnostics
             //arrange
 
             var options = new WaitUntilReadyOptions();
-            var clusterContext = new ClusterContext();
+            var clusterContext = new ClusterContext(null, new  ClusterOptions().WithPasswordAuthentication("username", "password"));
             clusterContext.AddNode(new MockClusterNode() { HasKv = true });
             clusterContext.AddNode(new MockClusterNode() { HasKv = true, HasQuery = true });
             clusterContext.AddNode(new MockClusterNode() { HasAnalytics = true });

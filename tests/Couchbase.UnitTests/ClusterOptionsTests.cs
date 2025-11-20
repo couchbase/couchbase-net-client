@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
@@ -399,6 +399,340 @@ namespace Couchbase.UnitTests
             Assert.NotNull(meter);
             Assert.IsType<MockMeter>(meter);
         }
+
+        #endregion
+
+        #region Authenticators
+
+        #region WithPasswordAuthentication
+
+        [Fact]
+        public void WithPasswordAuthentication_SetsPasswordAuthenticator()
+        {
+            var options = new ClusterOptions();
+
+            options.WithPasswordAuthentication("testUser", "testPassword");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.IsType<PasswordAuthenticator>(authenticator);
+        }
+
+        [Fact]
+        public void WithPasswordAuthentication_SetsCorrectCredentials()
+        {
+            var options = new ClusterOptions();
+
+            options.WithPasswordAuthentication("myUsername", "myPassword");
+
+            var authenticator = options.Authenticator as PasswordAuthenticator;
+            Assert.NotNull(authenticator);
+            Assert.Equal("myUsername", authenticator.Username);
+            Assert.Equal("myPassword", authenticator.Password);
+        }
+
+        [Fact]
+        public void WithPasswordAuthentication_SupportsBothTlsAndNonTls()
+        {
+            var options = new ClusterOptions();
+
+            options.WithPasswordAuthentication("user", "pass");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.True(authenticator.SupportsTls);
+            Assert.True(authenticator.SupportsNonTls);
+        }
+
+        [Fact]
+        public void WithPasswordAuthentication_ReturnsNullClientCertificates()
+        {
+            var options = new ClusterOptions();
+            options.WithPasswordAuthentication("user", "pass");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            var certs = authenticator.GetClientCertificates();
+            Assert.Null(certs);
+        }
+
+        #endregion
+
+        #region WithCertificateAuthentication
+
+        [Fact]
+        public void WithCertificateAuthentication_SetsCertificateAuthenticator()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.IsType<CertificateAuthenticator>(authenticator);
+        }
+
+        [Fact]
+        public void WithCertificateAuthentication_EnablesTls()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            Assert.True(options.EnableTls);
+        }
+
+        [Fact]
+        public void WithCertificateAuthentication_UsesCertificateFactory()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+            var expectedCerts = new X509Certificate2Collection();
+            mockFactory.Setup(f => f.GetCertificates()).Returns(expectedCerts);
+
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            var authenticator = options.Authenticator as CertificateAuthenticator;
+            Assert.NotNull(authenticator);
+            Assert.Same(mockFactory.Object, authenticator.CertificateFactory);
+        }
+
+        [Fact]
+        public void WithCertificateAuthentication_SupportsTlsOnly()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.True(authenticator.SupportsTls);
+            Assert.False(authenticator.SupportsNonTls);
+        }
+
+        [Fact]
+        public void WithCertificateAuthentication_ReturnsClientCertificatesFromFactory()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+            var expectedCerts = new X509Certificate2Collection();
+            mockFactory.Setup(f => f.GetCertificates()).Returns(expectedCerts);
+
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            var certs = authenticator.GetClientCertificates();
+            Assert.Same(expectedCerts, certs);
+        }
+
+        #endregion
+
+        #region WithAuthenticator
+
+        [Fact]
+        public void WithAuthenticator_SetsCustomAuthenticator()
+        {
+            var options = new ClusterOptions();
+            var mockAuthenticator = new Mock<IAuthenticator>();
+
+            options.WithAuthenticator(mockAuthenticator.Object);
+
+            Assert.Same(mockAuthenticator.Object, options.Authenticator);
+        }
+
+        [Fact]
+        public void WithAuthenticator_ThrowsArgumentNullException_WhenAuthenticatorIsNull()
+        {
+            var options = new ClusterOptions();
+
+            Assert.Throws<ArgumentNullException>(() => options.WithAuthenticator(null!));
+        }
+
+        #endregion
+
+        #region GetEffectiveAuthenticator
+
+        [Fact]
+        public void GetEffectiveAuthenticator_ReturnsSetAuthenticator_WhenAuthenticatorIsSet()
+        {
+            var options = new ClusterOptions();
+            var mockAuthenticator = new Mock<IAuthenticator>();
+            options.WithAuthenticator(mockAuthenticator.Object);
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.Same(mockAuthenticator.Object, result);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_PrefersExplicitAuthenticator_OverLegacyUserName()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            var options = new ClusterOptions
+            {
+                UserName = "legacyUser",
+                Password = "legacyPass"
+            };
+#pragma warning restore CS0618 // Type or member is obsolete
+            var mockAuthenticator = new Mock<IAuthenticator>();
+            options.WithAuthenticator(mockAuthenticator.Object);
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.Same(mockAuthenticator.Object, result);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_FallsBackToLegacyX509CertificateFactory()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+#pragma warning disable CS0618 // Type or member is obsolete
+            options.X509CertificateFactory = mockFactory.Object;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.NotNull(result);
+            Assert.IsType<CertificateAuthenticator>(result);
+            Assert.Same(mockFactory.Object, ((CertificateAuthenticator)result).CertificateFactory);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_FallsBackToLegacyUserNameAndPassword()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            var options = new ClusterOptions
+            {
+                UserName = "legacyUser",
+                Password = "legacyPass"
+            };
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.NotNull(result);
+            Assert.IsType<PasswordAuthenticator>(result);
+            var passwordAuth = (PasswordAuthenticator)result;
+            Assert.Equal("legacyUser", passwordAuth.Username);
+            Assert.Equal("legacyPass", passwordAuth.Password);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_FallsBackToLegacyUserName_WithEmptyPassword()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            var options = new ClusterOptions
+            {
+                UserName = "legacyUser"
+                // Password is null
+            };
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.NotNull(result);
+            Assert.IsType<PasswordAuthenticator>(result);
+            var passwordAuth = (PasswordAuthenticator)result;
+            Assert.Equal("legacyUser", passwordAuth.Username);
+            Assert.Equal(string.Empty, passwordAuth.Password);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_ThrowsInvalidConfigurationException_WhenNoAuthenticatorConfigured()
+        {
+            var options = new ClusterOptions();
+
+            var ex = Assert.Throws<InvalidConfigurationException>(() => options.GetEffectiveAuthenticator());
+            Assert.Contains("No authentication method is configured", ex.Message);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_CachesAuthenticator_OnSubsequentCalls()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            var options = new ClusterOptions
+            {
+                UserName = "user",
+                Password = "pass"
+            };
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var result1 = options.GetEffectiveAuthenticator();
+            var result2 = options.GetEffectiveAuthenticator();
+
+            Assert.Same(result1, result2);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_PrefersX509Factory_OverUserNamePassword()
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            var options = new ClusterOptions
+            {
+                UserName = "user",
+                Password = "pass"
+            };
+            var mockFactory = new Mock<ICertificateFactory>();
+            options.X509CertificateFactory = mockFactory.Object;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var result = options.GetEffectiveAuthenticator();
+
+            Assert.IsType<CertificateAuthenticator>(result);
+        }
+
+        [Fact]
+        public void GetEffectiveAuthenticator_UsesEffectiveEnableTls_ForPasswordAuthenticator()
+        {
+            var options = new ClusterOptions()
+                .WithConnectionString("couchbases://localhost");
+#pragma warning disable CS0618 // Type or member is obsolete
+            options.UserName = "user";
+            options.Password = "pass";
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            var authenticator = options.GetEffectiveAuthenticator();
+
+            Assert.IsType<PasswordAuthenticator>(authenticator);
+        }
+
+        #endregion
+
+        #region Authenticator Overwriting
+
+        [Fact]
+        public void SettingNewAuthenticator_OverwritesPreviousAuthenticator()
+        {
+            var options = new ClusterOptions();
+            options.WithPasswordAuthentication("user1", "pass1");
+
+            var mockFactory = new Mock<ICertificateFactory>();
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            var authenticator = options.Authenticator;
+            Assert.IsType<CertificateAuthenticator>(authenticator);
+        }
+
+        [Fact]
+        public void WithPasswordAuthentication_OverwritesCertificateAuthentication()
+        {
+            var options = new ClusterOptions();
+            var mockFactory = new Mock<ICertificateFactory>();
+            options.WithCertificateAuthentication(mockFactory.Object);
+
+            options.WithPasswordAuthentication("newUser", "newPass");
+
+            var authenticator = options.Authenticator as PasswordAuthenticator;
+            Assert.NotNull(authenticator);
+            Assert.Equal("newUser", authenticator.Username);
+        }
+
+        #endregion
 
         #endregion
 

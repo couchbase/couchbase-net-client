@@ -63,12 +63,14 @@ internal class CallbackCreator
 
         if (_certs != null)
         {
+            _sslLogger.LogDebug("X509 using user-provided certificate(s) for validation (count: {certCount})", _certs.Count);
             var customCertsCallback =
                 CertificateFactory.GetValidatorWithPredefinedCertificates(_certs, _sslLogger,
                     _redactor);
             return customCertsCallback(sender, certificate, chain, sslPolicyErrors);
         }
 
+        _sslLogger.LogDebug("X509 using default certificate(s) for validation (Capella CA)");
         var defaultCallback =
             CertificateFactory.GetValidatorWithDefaultCertificates(_sslLogger, _redactor);
         return defaultCallback(sender, certificate, chain, sslPolicyErrors);

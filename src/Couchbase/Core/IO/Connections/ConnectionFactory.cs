@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -25,18 +25,21 @@ namespace Couchbase.Core.IO.Connections
         private readonly ILogger<MultiplexingConnection> _multiplexLogger;
         private readonly ILogger<SslConnection> _sslLogger;
         private readonly IRedactor _redactor;
+        private readonly ICertificateValidationCallbackFactory _callbackFactory;
 
         public ConnectionFactory(ClusterOptions clusterOptions,
             IIpEndPointService ipEndPointService,
             ILogger<MultiplexingConnection> multiplexLogger,
             ILogger<SslConnection> sslLogger,
-            IRedactor redactor)
+            IRedactor redactor,
+            ICertificateValidationCallbackFactory callbackFactory)
         {
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _multiplexLogger = multiplexLogger ?? throw new ArgumentNullException(nameof(multiplexLogger));
             _sslLogger = sslLogger ?? throw new ArgumentNullException(nameof(sslLogger));
             _redactor = redactor;
+            _callbackFactory = callbackFactory ?? throw new ArgumentNullException(nameof(callbackFactory));
         }
 
         /// <inheritdoc />
@@ -103,65 +106,16 @@ namespace Couchbase.Core.IO.Connections
 
             if (_clusterOptions.EffectiveEnableTls)
             {
-                //Check if were using x509 auth, if so fetch the certificates
-                X509Certificate2Collection? certs = null;
-                if (_clusterOptions.X509CertificateFactory != null)
-                {
-                    certs = _clusterOptions.X509CertificateFactory.GetCertificates();
-                    if (certs == null || certs.Count == 0)
-                        throw new AuthenticationException(
-                            "No certificates matching the X509FindType and specified FindValue were found in the Certificate Store.");
-
-                    if (_sslLogger.IsEnabled(LogLevel.Debug))
-                    {
-                        foreach (var cert in certs)
-                            _sslLogger.LogDebug("Using cert {FriendlyName} - Thumbprint {Thumbprint}",
-                                cert.FriendlyName, cert.Thumbprint);
-
-                        _sslLogger.LogDebug("Using {Count} certificates.", certs.Count);
-                    }
-                }
+                var authenticator = _clusterOptions.GetEffectiveAuthenticator();
 
                 //The endpoint we are connecting to
                 var targetHost = _clusterOptions.ForceIpAsTargetHost
                     ? endPoint.Address.ToString()
                     : hostEndpoint.Host;
 
-                //create the sslstream with appropriate authentication
-                RemoteCertificateValidationCallback? certValidationCallback = _clusterOptions.KvCertificateCallbackValidation;
-                if (certValidationCallback == null)
-                {
-                    CallbackCreator callbackCreator = new CallbackCreator(_clusterOptions.KvIgnoreRemoteCertificateNameMismatch, _sslLogger, _redactor, certs);
-                    certValidationCallback = (__sender,__certificate, __chain, __sslPolicyErrors) =>
-                        callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
-                }
+                var sslStream = new SslStream(new NetworkStream(socket, true), false);
 
-                var sslStream = new SslStream(new NetworkStream(socket, true), false,
-                    certValidationCallback);
-
-#if !NETCOREAPP3_1_OR_GREATER
-                await sslStream.AuthenticateAsClientAsync(targetHost, certs,
-                        _clusterOptions.EnabledSslProtocols,
-                        _clusterOptions.EnableCertificateRevocation)
-                    .ConfigureAwait(false);
-#else
-                SslClientAuthenticationOptions sslOptions = new SslClientAuthenticationOptions()
-                {
-                    TargetHost = targetHost,
-                    ClientCertificates = certs,
-                    EnabledSslProtocols = _clusterOptions.EnabledSslProtocols,
-                    CertificateRevocationCheckMode = _clusterOptions.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
-                };
-                if (_clusterOptions.PlatformSupportsCipherSuite
-                    && _clusterOptions.EnabledTlsCipherSuites != null
-                    && _clusterOptions.EnabledTlsCipherSuites.Count > 0)
-                {
-                    sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_clusterOptions.EnabledTlsCipherSuites);
-                }
-
-                await sslStream.AuthenticateAsClientAsync(sslOptions)
-                    .ConfigureAwait(false);
-#endif
+                await authenticator.AuthenticateSslStream(sslStream, targetHost, _clusterOptions, _callbackFactory, cancellationToken, _sslLogger).ConfigureAwait(false);
 
                 var isSecure = sslStream.IsAuthenticated && sslStream.IsSigned && sslStream.IsEncrypted;
                 _sslLogger.LogDebug("IsAuthenticated {0} on {1}", sslStream.IsAuthenticated, _redactor.SystemData(targetHost));

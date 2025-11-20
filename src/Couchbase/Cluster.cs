@@ -31,6 +31,7 @@ using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
@@ -40,7 +41,7 @@ using Couchbase.Utils;
 
 namespace Couchbase
 {
-    public class Cluster : ICluster, IBootstrappable
+    public class Cluster : ICluster, IBootstrappable, IClusterAuthenticator
     {
         internal const string RequiresUnreferencedCodeMessage =
             "The Couchbase SDK might require types that cannot be statically analyzed. Make sure all required types are preserved.";
@@ -83,10 +84,8 @@ namespace Couchbase
             {
                 throw new InvalidConfigurationException("ClusterOptions is null.");
             }
-            if (string.IsNullOrWhiteSpace(clusterOptions.Password) || string.IsNullOrWhiteSpace(clusterOptions.UserName))
-            {
-                throw new InvalidConfigurationException("Username and password are required.");
-            }
+            // Throw early if no credentials were provided
+            _ = clusterOptions.GetEffectiveAuthenticator();
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
@@ -156,11 +155,13 @@ namespace Couchbase
         [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static Task<ICluster> ConnectAsync(string connectionString, string username, string password)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             return ConnectAsync(connectionString, new ClusterOptions
             {
                 UserName = username,
                 Password = password
             });
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
@@ -199,6 +200,16 @@ namespace Couchbase
             // tasks are launched, so it does nothing until you start making transactions.
             var unusedTransactionsJustToCreateIt = cluster.LazyTransactions.Value;
             return cluster;
+        }
+
+        #endregion
+
+        #region Authenticator
+
+        /// <inheritdoc/>>
+        public void Authenticator(IAuthenticator authenticator)
+        {
+            _context.ClusterOptions.Authenticator = authenticator;
         }
 
         #endregion
@@ -548,9 +559,11 @@ namespace Couchbase
                 _deferredExceptions.Add(e);
 
                 //auth failed so bubble up exception and clean up resources
+#pragma warning disable CS0618 // Type or member is obsolete
                 _logger.LogError(e,
                     "Could not authenticate user {username}",
                     _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 _context.RemoveAllNodes();
                 throw;

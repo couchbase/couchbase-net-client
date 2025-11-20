@@ -46,6 +46,7 @@
   <ItemGroup>
     <Folder Include="Core\Retry\Analytics\" />
     <Folder Include="Stellar\" />
+    <Folder Include="Stellar\Core\Authentication\" />
   </ItemGroup>
 
   <ItemGroup>

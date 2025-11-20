@@ -1,5 +1,7 @@
 using System;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
@@ -33,6 +35,5 @@ internal interface IAppTelemetryCollector : IDisposable
     TimeSpan PingInterval { get; set; }
     TimeSpan PingTimeout { get; set; }
     Uri? Endpoint(int attempt);
-    string? Username { get; set; }
-    string? Password { get; set; }
+    IAuthenticator? Authenticator { get; set; }
 }

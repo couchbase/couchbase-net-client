@@ -9,6 +9,7 @@ using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
@@ -96,6 +97,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(
                 // Using the lambda approach avoids rooting all constructors of JsonTranscoder by SingletonServiceFactory
                 serviceProvider => new JsonTranscoder(serviceProvider.GetRequiredService<ITypeSerializer>())));
+
+            yield return (typeof(ICertificateValidationCallbackFactory), new SingletonServiceFactory(typeof(CertificateValidationCallbackFactory)));
 
             yield return (typeof(ICouchbaseHttpClientFactory), new SingletonServiceFactory(typeof(CouchbaseHttpClientFactory)));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));

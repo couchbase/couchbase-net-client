@@ -1,45 +1,46 @@
 using System;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Authentication.Authenticators;
 
 #nullable enable
 
 namespace Couchbase.Core.IO.HTTP
 {
+    /// <summary>
+    /// HTTP message handler that adds authentication to outgoing HTTP requests.
+    /// </summary>
     internal sealed class AuthenticatingHttpMessageHandler : DelegatingHandler
     {
-        private const string BasicScheme = "Basic";
-        private readonly string? _headerValue;
+        private readonly IAuthenticator _authenticator;
 
-        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler)
-            : this(innerHandler, "default", string.Empty)
-        {
-        }
-
+        /// <summary>
+        /// Creates a new AuthenticatingHttpMessageHandler using an authenticator from the cluster context.
+        /// </summary>
+        /// <param name="innerHandler">The inner HTTP handler.</param>
+        /// <param name="context">The cluster context containing authentication configuration.</param>
         public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler, ClusterContext context)
-            : this(innerHandler, context.ClusterOptions.UserName ?? "default", context.ClusterOptions.Password ?? string.Empty)
+            : this(innerHandler, context.ClusterOptions.GetEffectiveAuthenticator())
         {
         }
 
-        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler, string username, string password)
+        /// <summary>
+        /// Creates a new AuthenticatingHttpMessageHandler using the specified authenticator.
+        /// </summary>
+        /// <param name="innerHandler">The inner HTTP handler.</param>
+        /// <param name="authenticator">The authenticator to use.</param>
+        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler, IAuthenticator authenticator)
             : base(innerHandler)
         {
-            if (!string.IsNullOrEmpty(username))
-            {
-                // Just build once for speed
-                _headerValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(string.Concat(username, ":", password)));
-            }
+            _authenticator = authenticator ?? throw new ArgumentNullException(nameof(authenticator));
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (_headerValue != null)
-            {
-                request.Headers.Authorization = new AuthenticationHeaderValue(BasicScheme, _headerValue);
-            }
+            // Delegate authentication to the authenticator
+            _authenticator.AuthenticateHttpRequest(request);
 
             return base.SendAsync(request, cancellationToken);
         }

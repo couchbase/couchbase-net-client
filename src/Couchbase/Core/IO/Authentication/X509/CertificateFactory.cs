@@ -167,7 +167,7 @@ namespace Couchbase.Core.IO.Authentication.X509
                         if (logger?.IsEnabled(LogLevel.Debug) == true)
                         {
                             logger.LogDebug(
-                                "X509 validation using system truststore failed with UntrustedRoot or PartialChain, will try CustomRootTrust with Capella CA Cert");
+                                "X509 validation using system truststore failed with UntrustedRoot or PartialChain, will retry using CustomRootTrust with {certCount} provided certificate(s)", certs.Count);
                             foreach (var status in chain.ChainStatus)
                             {
                                 logger.LogDebug("{status}: {statusInformation}", status.Status,
@@ -178,12 +178,17 @@ namespace Couchbase.Core.IO.Authentication.X509
                         // second attempt - using only the certs that have been provided in CustomRootTrust
                         if (chain.ChainElements.Count > 1)
                         {
-                            logger?.LogTrace("chain had intermediate CAs, but not adding them to CustomTrustStore");
+                            logger?.LogDebug("X509 chain had {elementCount} certificate(s) including intermediate CAs, but not adding them to CustomTrustStore", chain.ChainElements.Count);
+                        }
+                        else
+                        {
+                            logger?.LogDebug("X509 chain has only {elementCount} certificate element(s)", chain.ChainElements.Count);
                         }
                         chain.Reset();
                         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
 
                         // user supplied or Capella. If self-signed, they *will* be sufficient for CustomTrustMode
+                        logger?.LogDebug("X509 adding {certCount} certificate(s) to CustomTrustStore", certs.Count);
                         foreach (var defaultCert in certs)
                         {
                             MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
@@ -202,7 +207,14 @@ namespace Couchbase.Core.IO.Authentication.X509
 
                     if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
                     {
-                        logger.LogDebug("X509 validation failed for " + cert2.Subject + " " + cert2.Thumbprint);
+#if NET5_0_OR_GREATER
+                        logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
+                            cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
+#else
+                        logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
+                            cert2.Subject, cert2.Thumbprint);
+#endif
+                        logger.LogDebug("X509 chain contains {chainElementCount} element(s)", chain.ChainElements.Count);
                         foreach (var status in chain.ChainStatus)
                         {
                             logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
@@ -222,7 +234,13 @@ namespace Couchbase.Core.IO.Authentication.X509
                     }
                     else
                     {
-                        logger?.LogDebug("X509 validation succeeded for " + cert2.Subject);
+#if NET5_0_OR_GREATER
+                        logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
+                            cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
+#else
+                        logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
+                            cert2.Subject, cert2.Thumbprint);
+#endif
                     }
 
                     return built;
@@ -253,7 +271,8 @@ namespace Couchbase.Core.IO.Authentication.X509
         {
             if (logger?.IsEnabled(LogLevel.Trace) == true)
             {
-                logger.LogTrace(message + " " + cert.Subject + " " + cert.Thumbprint);
+                logger.LogDebug("{message} Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" Issuer=\"{issuer}\"",
+                    message, cert.Subject, cert.Thumbprint, cert.Issuer);
             }
         }
     }

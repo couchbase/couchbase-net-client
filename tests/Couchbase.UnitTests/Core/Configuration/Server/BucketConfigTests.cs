@@ -206,7 +206,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var oldConfig = ResourceHelper.ReadResource(oldConfigPath, InternalSerializationContext.Default.BucketConfig);
             var newConfig = ResourceHelper.ReadResource(newConfigPath, InternalSerializationContext.Default.BucketConfig);
 
-            var options = new ClusterOptions();
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             var bucketNodes = new ConcurrentDictionary<HostEndpointWithPort, IClusterNode>();
             var context = new ClusterContext(new CancellationTokenSource(), options);
 
@@ -227,7 +227,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object)
                 {
-                    Owner = new FakeBucket("default", new ClusterOptions())
+                    Owner = new FakeBucket("default", new ClusterOptions().WithPasswordAuthentication("username", "password"))
                 };
 
                 context.AddNode(clusterNode);
@@ -339,10 +339,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_MissingManagementNode()
         {
-            var clusterOptions = new ClusterOptions().WithConnectionString("couchbase://UNIT_TEST_NO_SUCH_HOST");
+            var clusterOptions = new ClusterOptions().WithConnectionString("couchbase://UNIT_TEST_NO_SUCH_HOST").WithPasswordAuthentication("username", "password");
             var config = ResourceHelper.ReadResource(@"Documents\Configs\missing-management.json",
                 InternalSerializationContext.Default.BucketConfig);
-            var clusterContext = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            var clusterContext = new ClusterContext(new CancellationTokenSource(), new ClusterOptions().WithPasswordAuthentication("username", "password"));
             clusterContext.GlobalConfig = config;
             Assert.Contains(config.NodesExt, n => n.Services.Mgmt == 0
                                                   && n.Services.MgmtSsl == 0);

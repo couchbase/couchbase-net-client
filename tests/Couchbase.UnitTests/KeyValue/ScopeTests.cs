@@ -36,8 +36,8 @@ namespace Couchbase.UnitTests.KeyValue
             var mockClusterContext = new Mock<ClusterContext>(
                 cluster,
                 new CancellationTokenSource(),
-                new ClusterOptions());
-            var context = new ClusterContext(cluster, new CancellationTokenSource(), new());
+                new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            var context = new ClusterContext(cluster, new CancellationTokenSource(), new ClusterOptions().WithPasswordAuthentication("username", "password"));
             var bucket = new Mock<BucketBase>(
                 bucketName,
                 mockClusterContext.Object,

@@ -22,10 +22,11 @@ namespace Couchbase.UnitTests.Core.DI
 
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
+                new Mock<ILogger<ScramShaMechanism>>().Object,
+                NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
 
-            var result = saslMechanismFactory.Create(mechanismType, username, password);
+            var result = saslMechanismFactory.CreatePasswordMechanism(mechanismType, username, password);
 
             Assert.IsAssignableFrom(expectedType, result);
         }
@@ -41,11 +42,12 @@ namespace Couchbase.UnitTests.Core.DI
 
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
+                new Mock<ILogger<ScramShaMechanism>>().Object,
+                NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                saslMechanismFactory.Create(mechanismType, username, password));
+                saslMechanismFactory.CreatePasswordMechanism(mechanismType, username, password));
 
             Assert.Equal("mechanismType", ex.ParamName);
         }

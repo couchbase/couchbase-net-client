@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Management
         [Fact]
         public void When_NotConnected_AnalyticsIndexManager_Throws_NodeUnavailableException()
         {
-            var clusterContext = new ClusterContext();
+            var clusterContext = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
             var serviceUriProvider = new ServiceUriProvider(clusterContext);
             Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomAnalyticsUri());
         }

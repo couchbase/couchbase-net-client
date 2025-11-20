@@ -40,7 +40,7 @@ namespace Couchbase.Core.IO.Authentication
         public abstract Task AuthenticateAsync(IConnection connection,
             CancellationToken cancellationToken = default);
 
-        protected async Task<string> SaslStart(IConnection connection,  string message, IRequestSpan span, CancellationToken token)
+        protected async Task<string> SaslStart(IConnection connection, string message, IRequestSpan span, CancellationToken token)
         {
             using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStart);
             using var authOp = new SaslStart

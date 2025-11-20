@@ -12,6 +12,7 @@ using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
@@ -33,6 +34,7 @@ internal class WebSocketClientHandler : IDisposable
     private readonly ILogger<WebSocketClientHandler> _logger;
     private readonly IAppTelemetryCollector _appTelemetryCollector;
     private readonly ICouchbaseHttpClientFactory _couchbaseHttpClientFactory;
+    private readonly ICertificateValidationCallbackFactory _certificateValidationCallbackFactory;
     private readonly IRedactor _redactor;
     private int _attempt = 0;
     private readonly int _clampedExponent = 0;
@@ -47,6 +49,8 @@ internal class WebSocketClientHandler : IDisposable
             .GetRequiredService<ICouchbaseHttpClientFactory>();
         _redactor = _appTelemetryCollector.ClusterContext.ServiceProvider
             .GetRequiredService<IRedactor>();
+        _certificateValidationCallbackFactory = _appTelemetryCollector.ClusterContext.ServiceProvider
+            .GetRequiredService<ICertificateValidationCallbackFactory>();
         //Cache the max exponent for the backoff
         _clampedExponent = (int)Math.Floor(Math.Log(_appTelemetryCollector.Backoff.TotalMilliseconds / 100.0, 2));
     }
@@ -88,34 +92,27 @@ internal class WebSocketClientHandler : IDisposable
         _webSocket = new ClientWebSocket();
         _webSocket.Options.KeepAliveInterval = _appTelemetryCollector.PingInterval;
 
+        // If .NET >= 8, we can simply take the configured HttpMessageHandler from the CouchbaseHttpClientFactory
+        // which is already properly configured with the given Authenticator.
 #if NET8_0_OR_GREATER
         var handler = _couchbaseHttpClientFactory.Handler;
         await _webSocket.ConnectAsync(Endpoint, new HttpMessageInvoker(handler), cancellationToken).ConfigureAwait(false);
         _logger.LogDebug("Successfully established WebSocket connection to {Endpoint}", Endpoint);
 #else
         // The previous WebSocket object does not take an HttpMessageInvoker (through which we pass the configured handler above)
-        // We must set the certificates and validating callback via the options
-        if (_appTelemetryCollector.ClusterContext!.ClusterOptions.X509CertificateFactory is not null)
-        {
-            var certs = _appTelemetryCollector.ClusterContext.ClusterOptions.X509CertificateFactory.GetCertificates();
-
+        // We must therefore manually configure the ClientWebSocketOptions to match what would have been done
+        // by the HttpClientHandler in the CouchbaseHttpClientFactory.
+        // (Meaning configuring the RemoteCertificateValidationCallback, and client authentication via Password or Client Certificates)
 #if NET5_0_OR_GREATER
-            RemoteCertificateValidationCallback? certValidationCallback = _appTelemetryCollector.ClusterContext.ClusterOptions.HttpCertificateCallbackValidation;
-            if (certValidationCallback == null)
-            {
-                var callbackCreator = new CallbackCreator(_appTelemetryCollector.ClusterContext.ClusterOptions.HttpIgnoreRemoteCertificateMismatch, _logger, _redactor, certs);
-                certValidationCallback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
-                    callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
-            }
+            var certValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
             _webSocket.Options.RemoteCertificateValidationCallback = certValidationCallback;
 #endif
 #if !NETCOREAPP3_1_OR_GREATER
-            _logger.LogDebug("Certificates have been added to the WebSocket, but this version of .NET does not support custom certificate validation callbacks on the ClientWebSocketOptions");
+            _logger.LogDebug("This version of .NET does not support custom RemoteCertificateValidationCallback on the ClientWebSocketOptions");
 #endif
-            _webSocket.Options.ClientCertificates.AddRange(certs);
-        }
 
-        _webSocket.Options.Credentials = new NetworkCredential(_appTelemetryCollector.Username, _appTelemetryCollector.Password);
+        _appTelemetryCollector.Authenticator!.AuthenticateClientWebSocket(_webSocket);
+
         await _webSocket.ConnectAsync(Endpoint, cancellationToken).ConfigureAwait(false);
 #endif
 

@@ -1,20 +1,17 @@
-using Couchbase.Core.IO.Authentication;
+using System.Net.Security;
 
-#nullable enable
+namespace Couchbase.Core.IO.Authentication;
 
-namespace Couchbase.Core.DI
+public interface ICertificateValidationCallbackFactory
 {
-    internal interface ISaslMechanismFactory
-    {
-        ISaslMechanism CreatePasswordMechanism(MechanismType mechanismType, string username, string password);
-    }
+    public RemoteCertificateValidationCallback CreateForKv();
+    public RemoteCertificateValidationCallback CreateForHttp();
 }
-
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2021 Couchbase, Inc.
+ *    @copyright 2025 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

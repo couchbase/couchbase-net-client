@@ -553,13 +553,13 @@ namespace Couchbase.Core
                             && authException.Message.Contains("certificate"))
                         {
                             if (_clusterOptions.EffectiveEnableTls
-                                && !_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
-                                && _clusterOptions.KvCertificateCallbackValidation == null
+                                && !_clusterOptions.TlsSettings.KvIgnoreRemoteCertificateNameMismatch
+                                && _clusterOptions.TlsSettings.KvCertificateValidationCallback == null
                                 && !_clusterOptions.IsCapella)
                             {
                                 throw new Exceptions.InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
-                                          $" the {nameof(ClusterOptions.KvCertificateCallbackValidation)}" +
-                                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
+                                          $" the {nameof(ClusterOptions.TlsSettings.KvCertificateValidationCallback)}" +
+                                          $" or use {nameof(ClusterOptions.TlsSettings.KvIgnoreRemoteCertificateNameMismatch)}" +
                                           " (Unless connecting to cloud.couchbase.com.)", authException);
                             }
                         }

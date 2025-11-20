@@ -124,7 +124,7 @@ namespace Couchbase.UnitTests
         private static MemcachedBucket CreateMemcachedBucket()
         {
             return new MemcachedBucket("default",
-                new ClusterContext(),
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,

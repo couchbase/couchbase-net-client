@@ -7,6 +7,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -73,13 +74,13 @@ namespace Couchbase.UnitTests.Core.Configuration
 
         private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(BucketBase bucket, out ClusterContext context)
         {
-            var clusterOptions = new ClusterOptions();
+            var clusterOptions = new ClusterOptions().WithPasswordAuthentication("username", "password");
             context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
             var httpStreamingConfigListenerFactory = new Mock<IHttpStreamingConfigListenerFactory>();
-            var httpClientFactory = new Mock<ICouchbaseHttpClientFactory>();
+            var httpClientFactory = new CouchbaseHttpClientFactory(context, new Mock<ILogger<CouchbaseHttpClientFactory>>().Object, new Mock<IRedactor>().Object, new Mock<ICertificateValidationCallbackFactory>().Object);
             var configHandler = new Mock<IConfigHandler>();
             var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
-            var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory.Object, configHandler.Object, logger.Object);
+            var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory, configHandler.Object, logger.Object);
             httpStreamingConfigListenerFactory.Setup(x => x.Create(It.IsAny<IConfigUpdateEventSink>(), It.IsAny<IConfigHandler>())).Returns(htpStreamingConfigListener);
 
             return httpStreamingConfigListenerFactory;
@@ -241,7 +242,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             private ITestOutputHelper _output;
 
             public FakeBucket(ITestOutputHelper output, SemaphoreSlim eventSlim)
-                : base("default", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                : base("default", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,

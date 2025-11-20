@@ -83,7 +83,7 @@ namespace Couchbase.UnitTests.Core.DI
             var mockCluster = new Mock<ICluster>();
             var mock = new Mock<BucketBase>(
                 "default",
-                new ClusterContext(mockCluster.Object, new CancellationTokenSource(), new()),
+                new ClusterContext(mockCluster.Object, new CancellationTokenSource(), new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 factory,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger>().Object,

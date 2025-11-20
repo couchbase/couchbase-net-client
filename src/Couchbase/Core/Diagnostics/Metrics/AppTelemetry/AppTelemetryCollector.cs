@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -38,8 +39,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         PingInterval = clusterOptions.AppTelemetry.PingInterval;
         PingTimeout = clusterOptions.AppTelemetry.PingTimeout;
         _enabled = clusterOptions.AppTelemetry.Enabled;
-        Username = clusterOptions.UserName;
-        Password = clusterOptions.Password;
+        Authenticator = clusterOptions.GetEffectiveAuthenticator();
         _redactor = redactor;
         _logger = logger;
     }
@@ -83,8 +83,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     public TimeSpan Backoff { get; set; }
     public TimeSpan PingInterval { get; set; }
     public TimeSpan PingTimeout { get; set; }
-    public string? Username { get; set; }
-    public string? Password { get; set; }
+    public IAuthenticator? Authenticator { get; set; }
     private bool? TlsEnabled => ClusterContext?.ClusterOptions.EffectiveEnableTls;
 
     /// <summary>

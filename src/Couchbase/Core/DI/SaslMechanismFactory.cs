@@ -15,7 +15,8 @@ namespace Couchbase.Core.DI
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
 
-        public SaslMechanismFactory(ILogger<PlainSaslMechanism> plainLogger,
+        public SaslMechanismFactory(
+            ILogger<PlainSaslMechanism> plainLogger,
             ILogger<ScramShaMechanism> scramLogger,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator)
@@ -24,10 +25,9 @@ namespace Couchbase.Core.DI
             _scramLogger = scramLogger;
             _tracer = tracer;
             _operationConfigurator = operationConfigurator;
-            _plainLogger = plainLogger;
         }
 
-        public ISaslMechanism Create(MechanismType mechanismType, string username, string password)
+        public ISaslMechanism CreatePasswordMechanism(MechanismType mechanismType, string username, string password)
         {
             return mechanismType switch
             {

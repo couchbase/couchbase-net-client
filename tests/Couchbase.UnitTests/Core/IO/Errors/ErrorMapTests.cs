@@ -46,7 +46,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 .Returns(mockConnectionPool.Object);
 
             var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
-                    new ClusterOptions()), mockConnectionPoolFactory.Object,
+                    new ClusterOptions().WithPasswordAuthentication("username", "password")), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
@@ -109,7 +109,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 .Returns(mockConnectionPool.Object);
 
             var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
-                    new ClusterOptions()), mockConnectionPoolFactory.Object,
+                    new ClusterOptions().WithPasswordAuthentication("username", "password")), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,

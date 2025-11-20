@@ -632,7 +632,7 @@ public class BucketConfigExtensionTests
                 It.IsAny<CancellationToken>())).
             Returns(Task.FromResult(node.Object));
 
-        var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object);
+        var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object).WithPasswordAuthentication("username", "password");
         var clusterCtx = new ClusterContext(new CancellationTokenSource(), options)
         {
             SupportsCollections = true

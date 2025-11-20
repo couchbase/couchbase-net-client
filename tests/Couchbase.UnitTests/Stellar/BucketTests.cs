@@ -192,11 +192,10 @@ public class BucketTests
         var requestTracer = new Mock<IRequestTracer>();
         var typeSerializer = new Mock<ITypeSerializer>();
         var clusterOptions = new ClusterOptions();
-        var channelCredentials = new ClusterChannelCredentials(clusterOptions);
         var requestOrchestrator = new Mock<IRetryOrchestrator>();
 
         return new StellarCluster(bucketManager.Object, searchIndexManager.Object, queryIndexManager.Object,
-            queryServiceClient.Object, analyticsClient.Object, searchClient.Object, metaData, channelCredentials,
+            queryServiceClient.Object, analyticsClient.Object, searchClient.Object, metaData,
             requestTracer.Object, channel, typeSerializer.Object, requestOrchestrator.Object, clusterOptions);
     }
 }

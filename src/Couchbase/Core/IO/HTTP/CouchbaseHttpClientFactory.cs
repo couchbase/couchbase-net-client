@@ -10,6 +10,8 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
@@ -29,9 +31,12 @@ namespace Couchbase.Core.IO.HTTP
         private readonly ClusterContext _context;
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;
         private readonly IRedactor _redactor;
+        private readonly ICertificateValidationCallbackFactory _callbackFactory;
+        private readonly object _handlerLock = new object();
         internal volatile HttpMessageHandler _sharedHandler;
+        private IAuthenticator? _currentAuthenticator; //reference to current authenticator for detecting change
 
-        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor)
+        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor, ICertificateValidationCallbackFactory callbackFactory)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (context == null)
@@ -48,17 +53,24 @@ namespace Couchbase.Core.IO.HTTP
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(redactor));
             }
+
+            if (callbackFactory == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(callbackFactory));
+            }
             // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
             _context = context;
             _logger = logger;
             _redactor = redactor;
+            _callbackFactory = callbackFactory;
 
             DefaultCompletionOption = _context.ClusterOptions.Tuning.StreamHttpResponseBodies
                 ? HttpCompletionOption.ResponseHeadersRead
                 : HttpCompletionOption.ResponseContentRead;
 
             _sharedHandler = CreateClientHandler();
+            _currentAuthenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
         }
 
         /// <inheritdoc />
@@ -69,15 +81,12 @@ namespace Couchbase.Core.IO.HTTP
         /// <inheritdoc />
         public HttpClient Create()
         {
-            //check for cert updates if were using a rotating cert factory
-            if (_context.ClusterOptions.X509CertificateFactory is
-                IRotatingCertificateFactory {
-                    HasUpdates: true
-                })
+            var authenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
+
+            // Check and potentially recreate handler
+            if (ShouldRecreateHandler(authenticator))
             {
-                //this may pull the rug from in-progress requests
-                _sharedHandler.Dispose();
-                _sharedHandler = CreateClientHandler();
+                RecreateHandler(authenticator);
             }
 
             var httpClient = new HttpClient(_sharedHandler, false)
@@ -105,79 +114,28 @@ namespace Couchbase.Core.IO.HTTP
         private HttpMessageHandler CreateClientHandler()
         {
             var clusterOptions = _context.ClusterOptions;
+            var authenticator = clusterOptions.GetEffectiveAuthenticator();
 
             if (clusterOptions.IsCapella && !clusterOptions.EffectiveEnableTls)
             {
                 _logger.LogWarning("TLS is required when connecting to Couchbase Capella. Please enable TLS by prefixing the connection string with \"couchbases://\" (note the final 's').");
             }
 
+            // Validate authenticator supports current TLS mode
+            if (clusterOptions.EffectiveEnableTls && !authenticator.SupportsTls)
+            {
+                throw new InvalidConfigurationException($"Authenticator {authenticator.GetType().Name} does not support TLS connections");
+            }
+
+            if (!clusterOptions.EffectiveEnableTls && !authenticator.SupportsNonTls)
+            {
+                throw new InvalidConfigurationException($"Authenticator {authenticator.GetType().Name} requires TLS connections");
+            }
+
 #if !NETCOREAPP3_1_OR_GREATER
             var handler = new HttpClientHandler();
-
-            //for x509 cert authentication
-            if (_context.ClusterOptions.X509CertificateFactory != null)
-            {
-                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                handler.SslProtocols = _context.ClusterOptions.EnabledSslProtocols;
-                handler.ClientCertificates.AddRange(_context.ClusterOptions.X509CertificateFactory.GetCertificates());
-            }
-
-            try
-            {
-                handler.CheckCertificateRevocationList = _context.ClusterOptions.EnableCertificateRevocation;
-                handler.ServerCertificateCustomValidationCallback =
-                    CreateCertificateValidator(_context.ClusterOptions);
-            }
-            catch (PlatformNotSupportedException)
-            {
-                _logger.LogDebug(
-                    "Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
-            }
-            catch (NotImplementedException)
-            {
-                _logger.LogDebug(
-                    "Cannot set ServerCertificateCustomValidationCallback, not implemented on this platform");
-            }
 #else
             var handler = new SocketsHttpHandler();
-
-            X509Certificate2Collection? certs = null;
-            //for x509 cert authentication
-            if (_context.ClusterOptions.X509CertificateFactory != null)
-            {
-                handler.SslOptions.EnabledSslProtocols = _context.ClusterOptions.EnabledSslProtocols;
-
-                certs = _context.ClusterOptions.X509CertificateFactory.GetCertificates();
-                handler.SslOptions.ClientCertificates = certs;
-
-                // This emulates the behavior of HttpClientHandler in Manual mode, which selects the first certificate
-                // from the list which is eligible for use as a client certificate based on having a private key and
-                // the correct key usage flags.
-                handler.SslOptions.LocalCertificateSelectionCallback =
-                    (_, _, _, _, _) => GetClientCertificate(certs)!;
-            }
-
-            // We don't need to check for unsupported platforms here, because this code path only applies to recent
-            // versions of .NET which all support certificate validation callbacks
-            handler.SslOptions.CertificateRevocationCheckMode = _context.ClusterOptions.EnableCertificateRevocation
-                ? X509RevocationMode.Online
-                : X509RevocationMode.NoCheck;
-
-            RemoteCertificateValidationCallback? certValidationCallback = _context.ClusterOptions.HttpCertificateCallbackValidation;
-            if (certValidationCallback == null)
-            {
-                CallbackCreator callbackCreator = new CallbackCreator( _context.ClusterOptions.HttpIgnoreRemoteCertificateMismatch, _logger, _redactor, certs);
-                certValidationCallback = certValidationCallback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
-                    callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
-            }
-
-            handler.SslOptions.RemoteCertificateValidationCallback = certValidationCallback;
-
-            if (_context.ClusterOptions.PlatformSupportsCipherSuite
-                && _context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
-            {
-                handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_context.ClusterOptions.EnabledTlsCipherSuites);
-            }
 
             if (_context.ClusterOptions.IdleHttpConnectionTimeout > TimeSpan.Zero)
             {
@@ -191,6 +149,8 @@ namespace Couchbase.Core.IO.HTTP
             }
 
 #endif
+            authenticator.AuthenticateHttpHandler(handler, clusterOptions, _callbackFactory, _logger);
+
 
 #if NET5_0_OR_GREATER
             if (_context.ClusterOptions.EnableTcpKeepAlives)
@@ -216,43 +176,60 @@ namespace Couchbase.Core.IO.HTTP
             return new AuthenticatingHttpMessageHandler(handler, _context);
         }
 
-#if !NETCOREAPP3_1_OR_GREATER
-        private Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool>
-            CreateCertificateValidator(ClusterOptions clusterOptions)
+        /// <summary>
+        /// Determines if the shared handler needs to be recreated due to authenticator/certificate changes.
+        /// </summary>
+        /// <param name="authenticator">The current authenticator from cluster options.</param>
+        /// <returns>True if the handler should be recreated.</returns>
+        private bool ShouldRecreateHandler(IAuthenticator authenticator)
         {
-            bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
-                X509Chain chain, SslPolicyErrors sslPolicyErrors)
+            // Only CertificateAuthenticator requires handler recreation
+            if (authenticator is not CertificateAuthenticator certAuth)
             {
-                var callback = clusterOptions.HttpCertificateCallbackValidation;
-                if (callback == null)
-                {
-                    CallbackCreator callbackCreator = new CallbackCreator(clusterOptions.HttpIgnoreRemoteCertificateMismatch, _logger, _redactor, null);
-                    callback = (__sender, __certificate, __chain, __sslPolicyErrors) =>
-                        callbackCreator.Callback(__sender, __certificate, __chain, __sslPolicyErrors);
-                }
-                return callback(request, certificate, chain, sslPolicyErrors);
+                return false;
             }
 
-            return OnCertificateValidation;
+            // Case 1: Authenticator changed to a different instance via cluster.Authenticator()
+            if (!ReferenceEquals(authenticator, _currentAuthenticator))
+            {
+                return true;
+            }
+
+            // Case 2: Same CertificateAuthenticator but with a rotating certificate factory that has updates
+            if (certAuth.CertificateFactory is IRotatingCertificateFactory { HasUpdates: true })
+            {
+                return true;
+            }
+
+            return false;
         }
-#else
-        private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
-        internal static X509Certificate2? GetClientCertificate(X509Certificate2Collection candidateCerts) =>
-            candidateCerts.Cast<X509Certificate2>()
-                .FirstOrDefault(cert => cert.HasPrivateKey && IsValidClientCertificate(cert));
+        /// <summary>
+        /// Re-creates the Shared HttpHandler
+        /// </summary>
+        /// <param name="authenticator">The current authenticator from cluster options.</param>
+        private void RecreateHandler(IAuthenticator authenticator)
+        {
+            lock (_handlerLock)
+            {
+                // Check again in case concurrent threads passed the first check,
+                // such that they immediately exit after acquiring the lock
+                // instead of pursuing to re-create the handler
+                if (!ShouldRecreateHandler(authenticator))
+                {
+                    return;
+                }
 
-        private static bool IsValidClientCertificate(X509Certificate2 cert) =>
-            !cert.Extensions.Cast<X509Extension>().Any(extension =>
-                (extension is X509EnhancedKeyUsageExtension eku && !IsValidForClientAuthentication(eku)) ||
-                (extension is X509KeyUsageExtension keyUsageExtenstion && !IsValidForDigitalSignatureUsage(keyUsageExtenstion)));
+                // Create new handler before disposing the old one
+                var oldHandler = _sharedHandler;
 
-        private static bool IsValidForClientAuthentication(X509EnhancedKeyUsageExtension enhancedKeyUsageExtension) =>
-            enhancedKeyUsageExtension.EnhancedKeyUsages.Cast<Oid>().Any(oid => oid.Value == ClientAuthenticationOid);
+                _sharedHandler = CreateClientHandler();
+                _currentAuthenticator = authenticator;
 
-        private static bool IsValidForDigitalSignatureUsage(X509KeyUsageExtension keyUsageExtenstion) =>
-            keyUsageExtenstion.KeyUsages.HasFlag(X509KeyUsageFlags.DigitalSignature);
-#endif
+                // Dispose old handler. This may pull the rug on in-flight requests
+                oldHandler.Dispose();
+            }
+        }
     }
 }
 
