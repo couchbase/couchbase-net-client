@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -31,7 +30,7 @@ public class DelegatingCertificateFactory(
                 _certificateFactory.GetCertificates();
             foreach (var certificate in possibleNewCertificates)
             {
-                var expirationDate = DateTime.Parse(certificate.GetExpirationDateString(), CultureInfo.InvariantCulture);
+                var expirationDate = certificate.NotAfter;
                 if (!_cachedCertificates.Contains(certificate) && expirationDate - DateTime.Today > expiresIn)
                 {
                     validNewCertificates.Add(certificate);
