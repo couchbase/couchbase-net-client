@@ -1,0 +1,48 @@
+name: Build & Run Unit Tests
+
+on:
+  push:
+    branches:
+      - master
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm64, windows-latest, macos-latest]
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      - name: Restore
+        run: dotnet restore couchbase-net-client.sln
+
+      - name: Build (Release)
+        run: dotnet build couchbase-net-client.sln --configuration Release --no-restore
+
+      - name: Test - Couchbase.UnitTests
+        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-${{ matrix.os }}
+          path: TestResults
