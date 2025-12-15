@@ -35,7 +35,7 @@ jobs:
         run: dotnet restore couchbase-net-client.sln
 
       - name: Build (Release)
-        run: dotnet build couchbase-net-client.sln --configuration Release --no-restore
+        run: dotnet build couchbase-net-client.sln --configuration Release
 
       - name: Test - Couchbase.UnitTests
         run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults"
