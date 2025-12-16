@@ -161,7 +161,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             await Assert.ThrowsAsync<SendQueueFullException>(() => operation.Completed.AsTask());
         }
 
-        [Fact(Skip="Inconsistent behavior in Jenkins.")]
+        [Fact]
         public async Task SendAsync_SingleConnection_NotSentSimultaneously()
         {
             // Arrange
@@ -176,7 +176,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             long inProgressCount = 0;
             long maxInProgressCount = 0;
             long totalSentCount = 0;
-            long encounteredMultipleInProgressCount = 0;
             var tcs = new TaskCompletionSource<bool>();
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             cts.Token.Register(() => tcs.TrySetResult(false)); // set result to false on timeout
@@ -184,11 +183,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             void SendStarted(IConnection _)
             {
                 var currentInProgress = Interlocked.Increment(ref inProgressCount);
-                maxInProgressCount = Math.Max(maxInProgressCount, currentInProgress);
-                if (currentInProgress > 1)
+
+                // NCBC-4111: Thread-safe update of maxInProgressCount using Interlocked.CompareExchange.
+                long initialMax, computedMax;
+                do
                 {
-                    Interlocked.Increment(ref encounteredMultipleInProgressCount);
-                }
+                    initialMax = Interlocked.Read(ref maxInProgressCount);
+                    computedMax = Math.Max(initialMax, currentInProgress);
+                } while (initialMax != Interlocked.CompareExchange(ref maxInProgressCount, computedMax, initialMax));
             }
 
             void SendCompleted(IConnection _)
@@ -214,13 +216,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             // Assert
 
-            Assert.True(await tcs.Task, "All sends were not started before timeout");
-            Assert.Equal(1, maxInProgressCount);
-            Assert.Equal(0, inProgressCount);
+            Assert.True(await tcs.Task, "All sends were not completed before timeout");
+            // Use Interlocked.Read for memory barrier consistency with the Interlocked writes above.
+            // With MaxDegreeOfParallelism=1 in DataflowConnectionPool, maxInProgressCount should never exceed 1.
+            Assert.Equal(1, Interlocked.Read(ref maxInProgressCount));
+            Assert.Equal(0, Interlocked.Read(ref inProgressCount));
         }
 
         [Theory]
-      //  [InlineData(2)]
         [InlineData(4)]
         public async Task SendAsync_MultipleConnections_SentSimultaneously(int connections)
         {
@@ -616,8 +619,18 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
         {
             // Arrange
 
-            var isInClose = false;
-            var isClosed = false;
+            // NCBC-4111: Adding a TaskCompletionSource to track the CloseAsync execution state.
+            // CloseAsync is called as a fire-and-forget in ScaleAsync:
+            // ---------------------------
+            // #pragma warning disable 4014
+            // // Don't wait for close, let it happen in the background
+            // p.connection.Connection.CloseAsync(TimeSpan.FromMinutes(1));
+            // #pragma warning restore 4014
+            // ---------------------------
+            // So when ScaleAsync returns, the CloseAsync callback "may not" have started yet due to the Task scheduling.
+            // We can use RunContinuationsAsynchronously which prevents deadlocks when TrySetResult is called from the callback.
+            var closeStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
@@ -628,9 +641,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                     connection.Setup(m => m.CloseAsync(It.IsAny<TimeSpan>()))
                         .Callback(async (TimeSpan _) =>
                         {
-                            isInClose = true;
-                            await Task.Delay(TimeSpan.FromSeconds(5));
-                            isClosed = true;
+                            closeStarted.TrySetResult(true);
+                            // Use a long delay (30s) to ensure the test can check closeCompleted
+                            // before it finishes, even on slow CI machines
+                            await Task.Delay(TimeSpan.FromSeconds(30));
+                            closeCompleted.TrySetResult(true);
                         });
                     return connection.Object;
                 });
@@ -644,14 +659,22 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             // Act
 
-            Assert.False(isInClose);
-            Assert.False(isClosed);
+            Assert.False(closeStarted.Task.IsCompleted, "CloseAsync should not have started before ScaleAsync(-1)");
+            Assert.False(closeCompleted.Task.IsCompleted, "CloseAsync should not have completed before ScaleAsync(-1)");
+
             await pool.ScaleAsync(-1);
 
             // Assert
 
-            Assert.True(isInClose);
-            Assert.False(isClosed);
+            // Follow-up on NCBC-4111: Without this wait,
+            // the test could intermittently fail on slow Jenkins runners
+            var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+            Assert.True(startedTask == closeStarted.Task && closeStarted.Task.Result,
+                "CloseAsync should have started after ScaleAsync(-1) returned");
+
+            // Verify CloseAsync hasn't completed - this proves ScaleAsync returned without waiting
+            Assert.False(closeCompleted.Task.IsCompleted,
+                "CloseAsync should not have completed yet (ScaleAsync should not wait for close)");
         }
 
         [Fact]

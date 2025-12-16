@@ -17,9 +17,9 @@ using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 {
-#pragma warning disable xUnit1000 // Test classes must be public
+    // NCBC-4111: Prevent parallel test execution to avoid resource contention and timing issues on CI
+    [Collection("NonParallel")]
     public class ChannelConnectionPoolTests
-#pragma warning restore xUnit1000 // Test classes must be public
     {
         private readonly ITestOutputHelper _testOutput;
         private readonly HostEndpointWithPort _hostEndpoint = new("localhost", 9999);
@@ -128,33 +128,33 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             await pool.InitializeAsync();
 
-            var lockObject = new object();
             var toSendCount = 10;
-            var inProgressCount = 0;
-            var maxInProgressCount = 0;
-            var totalSentCount = 0;
+            long inProgressCount = 0;
+            long maxInProgressCount = 0;
+            long totalSentCount = 0;
             var tcs = new TaskCompletionSource<bool>();
-            var cts = new CancellationTokenSource(20000);
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             cts.Token.Register(() => tcs.TrySetResult(false)); // set result to false on timeout
 
             void SendStarted(IConnection _)
             {
-                lock (lockObject)
+                var currentInProgress = Interlocked.Increment(ref inProgressCount);
+
+                // NCBC-4111: Thread-safe update of maxInProgressCount using Interlocked.CompareExchange.
+                long initialMax, computedMax;
+                do
                 {
-                    inProgressCount++;
-                    maxInProgressCount = Math.Max(maxInProgressCount, inProgressCount);
-                }
+                    initialMax = Interlocked.Read(ref maxInProgressCount);
+                    computedMax = Math.Max(initialMax, currentInProgress);
+                } while (initialMax != Interlocked.CompareExchange(ref maxInProgressCount, computedMax, initialMax));
             }
 
             void SendCompleted(IConnection _)
             {
-                lock (lockObject)
-                {
-                    inProgressCount--;
-                    totalSentCount++;
-                    if (totalSentCount == toSendCount)
-                        tcs.TrySetResult(true);
-                }
+                Interlocked.Decrement(ref inProgressCount);
+                var currentSentCount = Interlocked.Increment(ref totalSentCount);
+                if (currentSentCount == toSendCount)
+                    tcs.TrySetResult(true);
             }
 
             var operations = Enumerable.Range(1, toSendCount)
@@ -172,9 +172,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             // Assert
 
-            Assert.True(await tcs.Task, "All sends were not started before timeout");
-            Assert.Equal(1, maxInProgressCount);
-            Assert.Equal(0, inProgressCount);
+            Assert.True(await tcs.Task, "All sends were not completed before timeout");
+            // Use Interlocked.Read for memory barrier consistency with the Interlocked writes above.
+            // With MaxDegreeOfParallelism=1 in DataflowConnectionPool, maxInProgressCount should never exceed 1.
+            Assert.Equal(1, Interlocked.Read(ref maxInProgressCount));
+            Assert.Equal(0, Interlocked.Read(ref inProgressCount));
         }
 
         [Theory]
@@ -517,8 +519,12 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         {
             // Arrange
 
-            var isInClose = false;
-            var isClosed = false;
+            // Use TaskCompletionSource to track CloseAsync execution state.
+            // CloseAsync is fire-and-forget in ScaleAsync, so we can't use simple boolean flags -
+            // when ScaleAsync returns, the CloseAsync callback may not have started yet due to TPL scheduling.
+            // RunContinuationsAsynchronously prevents deadlocks when TrySetResult is called from the callback.
+            var closeStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeCompleted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
@@ -529,9 +535,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                     connection.Setup(m => m.CloseAsync(It.IsAny<TimeSpan>()))
                         .Callback(async (TimeSpan _) =>
                         {
-                            isInClose = true;
-                            await Task.Delay(TimeSpan.FromSeconds(2));
-                            isClosed = true;
+                            closeStarted.TrySetResult(true);
+                            // Use a long delay (30s) to ensure the test can check closeCompleted
+                            // before it finishes, even on slow CI machines
+                            await Task.Delay(TimeSpan.FromSeconds(30));
+                            closeCompleted.TrySetResult(true);
                         });
                     return connection.Object;
                 });
@@ -545,20 +553,26 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             // Act
 
-            Assert.False(isInClose);
-            Assert.False(isClosed);
+            Assert.False(closeStarted.Task.IsCompleted, "CloseAsync should not have started before ScaleAsync(-1)");
+            Assert.False(closeCompleted.Task.IsCompleted, "CloseAsync should not have completed before ScaleAsync(-1)");
 
             await using (await pool.FreezePoolAsync())
             {
                 await pool.ScaleAsync(-1);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1));
-
             // Assert
 
-            Assert.True(isInClose);
-            Assert.False(isClosed);
+            // Wait for CloseAsync to actually start executing. Since CloseAsync is fire-and-forget,
+            // the TPL may not have scheduled the callback yet when ScaleAsync returns. Without this wait,
+            // the test would intermittently fail when the scheduler was slower (e.g. on CI).
+            var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+            Assert.True(startedTask == closeStarted.Task && closeStarted.Task.Result,
+                "CloseAsync should have started after ScaleAsync(-1) returned");
+
+            // Verify CloseAsync hasn't completed, which proves ScaleAsync returned without waiting
+            Assert.False(closeCompleted.Task.IsCompleted,
+                "CloseAsync should not have completed yet (ScaleAsync should not wait for close)");
         }
 
         [Fact]
