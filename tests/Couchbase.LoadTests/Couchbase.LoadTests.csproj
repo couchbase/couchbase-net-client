@@ -25,10 +25,12 @@
     <PackageReference Include="JUnitXml.TestLogger" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
   <ItemGroup>

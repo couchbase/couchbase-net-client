@@ -19,7 +19,7 @@ namespace Couchbase.Client.Transactions.LogUtil
         }
 
         /// <inheritdoc />
-        public IDisposable BeginScope<TState>(TState state)
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         {
             return _otherLogger.BeginScope(state);
         }

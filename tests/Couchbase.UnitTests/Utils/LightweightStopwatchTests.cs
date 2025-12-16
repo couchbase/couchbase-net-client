@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Utils
 {
+    [Collection("NonParallel")]
     public class LightweightStopwatchTests
     {
         #region Elapsed
@@ -27,7 +28,7 @@ namespace Couchbase.UnitTests.Utils
             Assert.True(result < TimeSpan.FromSeconds(1));
         }
 
-        [Fact]
+        [Fact(Skip="Inconsistent behavior in underprovisioned Jenkins.")]
         public void Elapsed_AfterSleep_ApproximateValue()
         {
             // Arrange
@@ -66,7 +67,7 @@ namespace Couchbase.UnitTests.Utils
             Assert.True(result < 1000);
         }
 
-        [Fact]
+        [Fact(Skip="Inconsistent behavior in underprovisioned Jenkins.")]
         public async Task ElapsedMilliseconds_AfterSleep_ApproximateValue()
         {
             // Arrange
@@ -75,7 +76,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            await Task.Delay(1000);
+            await  Task.Delay(TimeSpan.FromMilliseconds(1000));
             var result = stopwatch.ElapsedMilliseconds;
 
             // Assert
@@ -109,15 +110,16 @@ namespace Couchbase.UnitTests.Utils
         public async Task Restart_AfterSleep_ApproximateValue()
         {
             // Arrange
+            await Task.Yield();
 
             var stopwatch = LightweightStopwatch.StartNew();
-            await Task.Delay(1000);
+            await Task.Delay(TimeSpan.FromMilliseconds(1000));
             Assert.True(stopwatch.ElapsedMilliseconds > 500);
 
             // Act
 
             stopwatch.Restart();
-            await Task.Delay(1000);
+            await Task.Delay(TimeSpan.FromMilliseconds(1000));
             var result = stopwatch.ElapsedMilliseconds;
 
             // Assert

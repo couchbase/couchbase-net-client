@@ -15,12 +15,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
   </ItemGroup>
-
 
   <PropertyGroup>
     <ProtostellarRepoBase>..\..\..\protostellar</ProtostellarRepoBase>
