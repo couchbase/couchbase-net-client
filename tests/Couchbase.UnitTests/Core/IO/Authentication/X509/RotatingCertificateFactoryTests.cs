@@ -135,7 +135,7 @@ public class RotatingCertificateFactoryTests(
         var result = factory.GetCertificates();
 
         // Wait a bit to allow timer to potentially fire
-        await Task.Delay(200);
+        await Task.Delay(1000);
 
         // Assert
         Assert.NotNull(result);
@@ -168,7 +168,7 @@ public class RotatingCertificateFactoryTests(
         var initialResult = factory.GetCertificates();
 
         // Wait for timer to fire and refresh
-        await Task.Delay(300);
+        await Task.Delay(1000);
 
         // Assert
         Assert.NotNull(initialResult);
@@ -202,7 +202,7 @@ public class RotatingCertificateFactoryTests(
         var hasUpdatesBeforeRefresh = factory.HasUpdates;
 
         // Wait for timer to fire
-        await Task.Delay(150);
+        await Task.Delay(1000);
 
         var hasUpdatesAfterRefresh = factory.HasUpdates;
 

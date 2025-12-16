@@ -7,6 +7,13 @@ namespace Couchbase.Core.DI
     internal interface ISaslMechanismFactory
     {
         ISaslMechanism CreatePasswordMechanism(MechanismType mechanismType, string username, string password);
+
+        /// <summary>
+        /// Creates an OAUTHBEARER SASL mechanism for JWT authentication.
+        /// </summary>
+        /// <param name="token">The JWT token.</param>
+        /// <returns>An OAUTHBEARER SASL mechanism.</returns>
+        ISaslMechanism CreateOAuthBearerMechanism(string token);
     }
 }
 

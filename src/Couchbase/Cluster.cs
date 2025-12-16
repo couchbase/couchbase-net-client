@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -33,8 +32,6 @@ using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Management.Eventing.Internal;
-using Couchbase.Search.Queries.Simple;
-using Couchbase.Search.Queries.Vector;
 using Couchbase.Utils;
 using Couchbase.Core.IO.Operations;
 
@@ -42,7 +39,7 @@ using Couchbase.Core.IO.Operations;
 
 namespace Couchbase
 {
-    public class Cluster : ICluster, IBootstrappable, IClusterAuthenticator
+    public partial class Cluster : ICluster, IBootstrappable, IClusterAuthenticator
     {
         internal const string RequiresUnreferencedCodeMessage =
             "The Couchbase SDK might require types that cannot be statically analyzed. Make sure all required types are preserved.";
@@ -64,7 +61,8 @@ namespace Couchbase
         private readonly IRetryStrategy _retryStrategy;
         private readonly MeterForwarder? _meterForwarder;
         private readonly IAppTelemetryCollector _appTelemetryCollector;
-
+        private CancellationTokenSource? _reauthCts;
+        private readonly AuthenticatorType _authenticatorType;
         // Internal is used to provide a seam for unit tests
         internal LazyService<IQueryClient> LazyQueryClient;
         internal LazyService<ISearchClient> LazySearchClient;
@@ -86,10 +84,13 @@ namespace Couchbase
                 throw new InvalidConfigurationException("ClusterOptions is null.");
             }
             // Throw early if no credentials were provided
-            _ = clusterOptions.GetEffectiveAuthenticator();
+            var authenticator = clusterOptions.GetEffectiveAuthenticator();
+            // Cache the authenticator type to prevent user from changing it with cluster.Authenticator()
+            _authenticatorType = authenticator.AuthenticatorType;
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
+
             _context.Start();
 
             LazyQueryClient = new LazyService<IQueryClient>(_context.ServiceProvider);
@@ -239,10 +240,71 @@ namespace Couchbase
 
         #region Authenticator
 
-        /// <inheritdoc/>>
+        /// <inheritdoc/>
         public void Authenticator(IAuthenticator authenticator)
         {
+            if (_authenticatorType != authenticator.AuthenticatorType)
+            {
+                throw new InvalidArgumentException($"Cannot change authenticator type from {_authenticatorType.GetDescription()} to {authenticator.AuthenticatorType.GetDescription()} on an existing Cluster.");
+            }
+
             _context.ClusterOptions.Authenticator = authenticator;
+
+            if (authenticator is JwtAuthenticator)
+            {
+                LogJwtAuthenticatorTriggeringKvReAuthentication();
+
+                // Cancel any potential previous re-authentication in progress
+                _reauthCts?.Cancel();
+                _reauthCts?.Dispose();
+
+                // Link cancellation to cluster's lifetime
+                _reauthCts = CancellationTokenSource.CreateLinkedTokenSource(_context.CancellationToken);
+
+                // Fire-and-forget so we don't block the caller
+                _ = ReauthenticateAllKvNodesAsync(_reauthCts.Token).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Re-authenticates all existing KV connections across all nodes asynchronously.
+        /// This is called when a JwtAuthenticator is set to re-auth existing connections with a new JWT.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token linked to cluster lifetime and re-auth cancellation.</param>
+        private async Task ReauthenticateAllKvNodesAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var nodes = _context.Nodes.ToList();
+                if (nodes.Count == 0)
+                {
+                    return;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                LogReAuthenticatingKvConnectionsOnNodeCount(nodes.Count);
+
+                // Re-authenticate on all nodes (each node handles re-authenticating its own connections)
+                var tasks = nodes
+                    .Where(node => node.HasKv && !node.IsDead)
+                    .Select(node => node.ReauthenticateKvConnectionsAsync(cancellationToken));
+
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                LogKvConnectionReAuthenticationCompleted();
+            }
+            catch (OperationCanceledException)
+            {
+                // Re-authentication was cancelled (either cluster disposed or new Authenticator() call).
+                LogKvConnectionReAuthenticationCancelled();
+            }
+            catch (Exception ex)
+            {
+                // Re-authentication is best-effort. We log any unexpected errors but don't throw.
+                // Individual connection failures are handled in ReauthenticateKvConnectionsAsync.
+                LogErrorDuringKvConnectionReAuthentication(ex);
+            }
         }
 
         #endregion
@@ -685,6 +747,11 @@ namespace Couchbase
                 if (_disposed) return;
                 LazyTransactions.Value?.Dispose();
                 _disposed = true;
+
+                _reauthCts?.Cancel();
+                _reauthCts?.Dispose();
+                _reauthCts = null;
+
                 _bootstrapper.Dispose();
                 _context.Dispose();
                 _meterForwarder?.Dispose();
@@ -710,6 +777,28 @@ namespace Couchbase
                  _logger.LogError($"Error in DisposeAsync: ${ex}");
             }
         }
+
+        #endregion
+
+        #region  Logging
+
+        [LoggerMessage(LogLevel.Information, "JwtAuthenticator set. Triggering re-authentication of existing KV connections")]
+        partial void LogJwtAuthenticatorTriggeringKvReAuthentication();
+
+        [LoggerMessage(LogLevel.Debug, "Re-authenticating KV connections on {nodeCount} node(s)")]
+        partial void LogReAuthenticatingKvConnectionsOnNodeCount(int nodeCount);
+
+        [LoggerMessage(LogLevel.Information, "KV connection re-authentication completed")]
+        partial void LogKvConnectionReAuthenticationCompleted();
+
+        [LoggerMessage(LogLevel.Debug, "KV connection re-authentication was cancelled")]
+        partial void LogKvConnectionReAuthenticationCancelled();
+
+        [LoggerMessage(LogLevel.Warning, "Error during KV connection re-authentication")]
+        partial void LogErrorDuringKvConnectionReAuthentication(Exception ex);
+
+        [LoggerMessage(LogLevel.Warning, "Exception in AuthenticationStale event handler for connection {connectionId}")]
+        partial void LogExceptionInAuthStaleEventHandlerForConnectionId(Exception ex, ulong connectionId);
 
         #endregion
     }

@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using System.Net.Http;
 using System.Net.Security;
 using System.Net.WebSockets;
@@ -18,6 +17,20 @@ namespace Couchbase.Core.IO.Authentication.Authenticators;
 /// </summary>
 public interface IAuthenticator
 {
+
+    /// <summary>
+    /// Allows for easier type checking of authenticators without incurring the overhead
+    /// of type checking against its concrete class.
+    /// </summary>
+    AuthenticatorType AuthenticatorType { get; }
+
+    /// <summary>
+    /// Determines whether this authenticator can be used to re-authenticate existing KV connections.
+    /// E.g. JWT authenticator should re-authenticate existing KV connections when the token is refreshed,
+    /// while the password and certificate authenticators leave existing connections untouched.
+    /// </summary>
+    bool CanReauthenticateKv { get; }
+
     /// <summary>
     /// Indicates whether this authenticator supports TLS connections.
     /// </summary>

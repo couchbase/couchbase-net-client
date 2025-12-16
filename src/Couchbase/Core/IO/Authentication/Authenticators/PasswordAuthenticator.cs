@@ -1,19 +1,15 @@
 #nullable enable
 
 using System;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Security;
 using System.Net.WebSockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Authentication.Authenticators;
 
@@ -21,13 +17,16 @@ namespace Couchbase.Core.IO.Authentication.Authenticators;
 /// Authenticator using username and password credentials.
 /// Uses SASL for KV connections and HTTP Basic authentication for HTTP requests.
 /// </summary>
-public sealed class PasswordAuthenticator : IAuthenticator, IAuthenticatorInternal
+public sealed class PasswordAuthenticator : BaseAuthenticator
 {
     private const string BasicScheme = "Basic";
     public readonly string Username;
     public readonly string Password;
     private readonly string _encodedCredentials;
     private readonly bool _enableTls;
+
+    public override AuthenticatorType AuthenticatorType => AuthenticatorType.Password;
+    public override bool CanReauthenticateKv => false;
 
     /// <summary>
     /// Creates a new PasswordAuthenticator with the specified credentials.
@@ -46,22 +45,15 @@ public sealed class PasswordAuthenticator : IAuthenticator, IAuthenticatorIntern
     }
 
     /// <inheritdoc />
-    public bool SupportsTls => true;
+    public override bool SupportsTls => true;
 
     /// <inheritdoc />
-    public bool SupportsNonTls => true;
-
-    /// <inheritdoc />
-    public X509Certificate2Collection? GetClientCertificates(ILogger<object>? logger = null)
-    {
-        // Password authentication does not use client certificates
-        return null;
-    }
+    public override bool SupportsNonTls => true;
 
     /// <summary>
     /// Authenticates a KV connection using SASL.
     /// </summary>
-    async Task IAuthenticatorInternal.AuthenticateKvConnectionAsync(
+    private protected override async Task AuthenticateKvConnectionCoreAsync(
         IConnection connection,
         ISaslMechanismFactory saslMechanismFactory,
         CancellationToken cancellationToken)
@@ -75,104 +67,24 @@ public sealed class PasswordAuthenticator : IAuthenticator, IAuthenticatorIntern
     }
 
     /// <inheritdoc />
-    public void AuthenticateHttpRequest(HttpRequestMessage request)
+    public override void AuthenticateHttpRequest(HttpRequestMessage request)
     {
         request.Headers.Authorization = new AuthenticationHeaderValue(BasicScheme, _encodedCredentials);
     }
 
-    public void AuthenticateHttpHandler(HttpMessageHandler handler, ClusterOptions clusterOptions,
-        ICertificateValidationCallbackFactory callbackFactory, ILogger<object>? logger = null)
-    {
-#if NETCOREAPP3_1_OR_GREATER
-        if (handler is SocketsHttpHandler socketsHttpHandler)
-        {
-            socketsHttpHandler.SslOptions.CertificateRevocationCheckMode = clusterOptions.TlsSettings.EnableCertificateRevocation
-                ? X509RevocationMode.Online
-                : X509RevocationMode.NoCheck;
-
-            socketsHttpHandler.SslOptions.RemoteCertificateValidationCallback = callbackFactory.CreateForHttp();
-
-            if (clusterOptions.PlatformSupportsCipherSuite && clusterOptions.EnabledTlsCipherSuites is { Count: > 0 })
-            {
-                socketsHttpHandler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(clusterOptions.EnabledTlsCipherSuites);
-            }
-        }
-#else
-        if (handler is HttpClientHandler httpClientHandler)
-        {
-            try
-            {
-                httpClientHandler.SslProtocols = clusterOptions.TlsSettings.EnabledSslProtocols;
-                httpClientHandler.ServerCertificateCustomValidationCallback = CreateCertificateValidator();
-            }
-            catch (PlatformNotSupportedException)
-            {
-                logger?.LogDebug(
-                    "Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
-            }
-            catch (NotImplementedException)
-            {
-                logger?.LogDebug(
-                    "Cannot set ServerCertificateCustomValidationCallback, not implemented on this platform");
-            }
-
-            // Local function to create the remote certificate validator,
-            // as HttpClientHandler.ServerCertificateCustomValidationCallback is
-            // not of type RemoteCertificateValidationCallback
-            Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool> CreateCertificateValidator()
-            {
-                return OnCertificateValidation;
-
-                bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
-                    X509Chain chain, SslPolicyErrors sslPolicyErrors)
-                {
-                    // Use the factory to create an HTTP-specific callback
-                    var callback = callbackFactory.CreateForHttp();
-                    return callback(request, certificate, chain, sslPolicyErrors);
-                }
-            }
-        }
-#endif
-    }
-
     /// <inheritdoc />
-    public void AuthenticateClientWebSocket(ClientWebSocket clientWebSocket)
+    public override void AuthenticateClientWebSocket(ClientWebSocket clientWebSocket)
     {
-        clientWebSocket.Options.Credentials = new NetworkCredential(Username, Password);
+        clientWebSocket.Options.Credentials = new System.Net.NetworkCredential(Username, Password);
     }
 
-    // The SslStream must be authenticated when TLS is enabled with Password authentication (e.g. Capella).
-    // No client certificates are sent but the server certificate must be validated.
-    public async Task AuthenticateSslStream(SslStream sslStream, string targetHost, ClusterOptions clusterOptions, ICertificateValidationCallbackFactory callbackFactory, CancellationToken cancellationToken, ILogger<object>? logger = null)
-    {
 #if NETCOREAPP3_1_OR_GREATER
-        var sslOptions = new SslClientAuthenticationOptions()
-        {
-            TargetHost = targetHost,
-            EnabledSslProtocols = clusterOptions.TlsSettings.EnabledSslProtocols,
-            CertificateRevocationCheckMode = clusterOptions.TlsSettings.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck,
-            RemoteCertificateValidationCallback = callbackFactory.CreateForKv()
-        };
-        if (clusterOptions.PlatformSupportsCipherSuite
-            && clusterOptions.EnabledTlsCipherSuites != null
-            && clusterOptions.EnabledTlsCipherSuites.Count > 0)
-        {
-            sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(clusterOptions.EnabledTlsCipherSuites);
-        }
-
-        await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken).ConfigureAwait(false);
-#else
-        await sslStream.AuthenticateAsClientAsync(targetHost, null,
-                clusterOptions.TlsSettings.EnabledSslProtocols,
-                clusterOptions.TlsSettings.EnableCertificateRevocation)
-            .ConfigureAwait(false);
-#endif
-    }
-
-    public void AuthenticateGrpcMetadata(Metadata metadata)
+    /// <inheritdoc />
+    public override void AuthenticateGrpcMetadata(Metadata metadata)
     {
         metadata.Add("Authorization", $"Basic {_encodedCredentials}");
     }
+#endif
 }
 
 

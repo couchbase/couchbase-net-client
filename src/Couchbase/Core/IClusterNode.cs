@@ -14,7 +14,6 @@ namespace Couchbase.Core
 {
     internal interface IClusterNode : IDisposable
     {
-
         IBucket Owner { get; set; }
         NodeAdapter NodesAdapter { get; set; }
         HostEndpointWithPort EndPoint { get; }
@@ -80,6 +79,19 @@ namespace Couchbase.Core
         event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
 
         bool IsDead{ get; }
+
+        /// <summary>
+        /// Re-authenticates all existing KV connections in the connection pool using the current authenticator.
+        /// This is used when a new JWT is provided as a result of a token refresh.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task representing the re-authentication operation.</returns>
+        /// <remarks>
+        /// This method is a best-effort operation. If a connection fails to re-authenticate, it will be
+        /// marked as dead and eventually replaced. The method will not throw exceptions for individual
+        /// connection re-authentication failures.
+        /// </remarks>
+        Task ReauthenticateKvConnectionsAsync(CancellationToken cancellationToken = default);
     }
 }
 

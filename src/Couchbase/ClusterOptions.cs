@@ -362,6 +362,20 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Configures JWT (JSON Web Token) authentication.
+        /// Automatically enables TLS as this is required for JWT authentication.
+        /// </summary>
+        /// <param name="token">The JWT token to use for authentication.</param>
+        /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        [InterfaceStability(Level.Uncommitted)]
+        public ClusterOptions WithJwtAuthentication(string token)
+        {
+            Authenticator = new JwtAuthenticator(token);
+            EnableTls = true;
+            return this;
+        }
+
+        /// <summary>
         /// Configures TLS settings for server certificate validation.
         /// </summary>
         /// <param name="configure">Action to configure TLS settings.</param>

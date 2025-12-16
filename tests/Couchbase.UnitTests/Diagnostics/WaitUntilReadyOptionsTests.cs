@@ -195,6 +195,10 @@ namespace Couchbase.UnitTests.Diagnostics
             public event NotifyCollectionChangedEventHandler KeyEndPointsChanged = delegate { };
 
             public bool IsDead { get; }
+            public Task ReauthenticateKvConnectionsAsync(CancellationToken cancellationToken = default)
+            {
+                throw new NotImplementedException();
+            }
 
             #endregion
         }

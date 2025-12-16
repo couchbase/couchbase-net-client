@@ -34,6 +34,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         public string LocalHost => throw new NotImplementedException();
         public Action<SlicedMemoryOwner<byte>> OnClusterMapChangeNotification { get; set; }
+        public Action<ulong> OnAuthenticationStale { get; set; }
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, CancellationToken cancellationToken = default)
         {

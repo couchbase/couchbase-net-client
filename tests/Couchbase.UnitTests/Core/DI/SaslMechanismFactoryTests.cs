@@ -23,6 +23,7 @@ namespace Couchbase.UnitTests.Core.DI
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
                 new Mock<ILogger<ScramShaMechanism>>().Object,
+                new Mock<ILogger<OAuthBearerSaslMechanism>>().Object,
                 NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
 
@@ -43,6 +44,7 @@ namespace Couchbase.UnitTests.Core.DI
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
                 new Mock<ILogger<ScramShaMechanism>>().Object,
+                new Mock<ILogger<OAuthBearerSaslMechanism>>().Object,
                 NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
 

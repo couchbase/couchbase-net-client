@@ -102,7 +102,7 @@ internal class WebSocketClientHandler : IDisposable
         // The previous WebSocket object does not take an HttpMessageInvoker (through which we pass the configured handler above)
         // We must therefore manually configure the ClientWebSocketOptions to match what would have been done
         // by the HttpClientHandler in the CouchbaseHttpClientFactory.
-        // (Meaning configuring the RemoteCertificateValidationCallback, and client authentication via Password or Client Certificates)
+        // (Meaning configuring the RemoteCertificateValidationCallback, and client authentication via Password, Jwt or Client Certificates)
 #if NET5_0_OR_GREATER
             var certValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
             _webSocket.Options.RemoteCertificateValidationCallback = certValidationCallback;

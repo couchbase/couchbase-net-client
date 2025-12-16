@@ -143,10 +143,15 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.Eaccess:
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue: //likely remove
-                case ResponseStatus.AuthStale:
                     return new AuthenticationFailureException("Either the bucket is not present, " +
                         "the user does not have the right privileges to access it, " +
                         "or the bucket is hibernated: " + status.ToString())
+                    { Context = ctx };
+                case ResponseStatus.AuthStale:
+                    return new CouchbaseException(
+                        "The authentication context is stale (AUTH_STALE). " +
+                        "This occurs when credentials have expired. " +
+                        "If you're using JWT auth, consider calling cluster.Authenticator() with a fresh token.")
                     { Context = ctx };
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return new NotMyVBucketException { Context = ctx };

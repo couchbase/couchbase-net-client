@@ -35,7 +35,13 @@ namespace Couchbase.Core.IO.Authentication
         /// The username and password will be sent using human-readable plain text.
         /// </summary>
         [Description("PLAIN")]
-        Plain
+        Plain,
+
+        /// <summary>
+        /// OAuth 2.0 Bearer token authentication (JWT).
+        /// </summary>
+        [Description("OAUTHBEARER")]
+        OAuthBearer
     }
 }
 

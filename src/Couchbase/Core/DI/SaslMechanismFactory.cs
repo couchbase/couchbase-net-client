@@ -12,17 +12,20 @@ namespace Couchbase.Core.DI
     {
         private readonly ILogger<PlainSaslMechanism> _plainLogger;
         private readonly ILogger<ScramShaMechanism> _scramLogger;
+        private readonly ILogger<OAuthBearerSaslMechanism> _oauthLogger;
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
 
         public SaslMechanismFactory(
             ILogger<PlainSaslMechanism> plainLogger,
             ILogger<ScramShaMechanism> scramLogger,
+            ILogger<OAuthBearerSaslMechanism> oauthLogger,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator)
         {
             _plainLogger = plainLogger;
             _scramLogger = scramLogger;
+            _oauthLogger = oauthLogger;
             _tracer = tracer;
             _operationConfigurator = operationConfigurator;
         }
@@ -36,6 +39,11 @@ namespace Couchbase.Core.DI
                 MechanismType.Plain => new PlainSaslMechanism(username, password, _plainLogger, _tracer, _operationConfigurator),
                 _ => throw new ArgumentOutOfRangeException(nameof(mechanismType))
             };
+        }
+
+        public ISaslMechanism CreateOAuthBearerMechanism(string token)
+        {
+            return new OAuthBearerSaslMechanism(token, _oauthLogger, _tracer, _operationConfigurator);
         }
     }
 }

@@ -942,6 +942,69 @@ namespace Couchbase.Core
 
         #endregion
 
+        #region Re-authentication
+
+        /// <inheritdoc />
+        public async Task ReauthenticateKvConnectionsAsync(CancellationToken cancellationToken = default)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var authenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
+
+            // If the authenticator does not support re-authenticating existing KV connections, skip
+            if (!authenticator.CanReauthenticateKv)
+            {
+                return;
+            }
+
+            var connectionCount = ConnectionPool.Size;
+            if (connectionCount == 0)
+            {
+                return;
+            }
+
+            LogReauthenticationStarting(_redactor.SystemData(EndPoint), connectionCount);
+
+            var tasks = ConnectionPool.GetConnections().Select(connection => ReauthenticateConnectionAsync(connection, authenticator, cancellationToken));
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            LogReauthenticationCompleted(_redactor.SystemData(EndPoint));
+        }
+
+        private async Task ReauthenticateConnectionAsync(IConnection connection, IAuthenticator authenticator, CancellationToken cancellationToken)
+        {
+            try
+            {
+                LogReauthenticatingConnection(connection.ConnectionId, _redactor.SystemData(EndPoint));
+
+                await authenticator.AuthenticateKvConnectionAsync(
+                    connection,
+                    _saslMechanismFactory,
+                    cancellationToken
+                ).ConfigureAwait(false);
+
+                LogReauthenticationSucceeded(connection.ConnectionId, _redactor.SystemData(EndPoint));
+            }
+            catch (OperationCanceledException)
+            {
+                // Re-auth was cancelled, don't dispose the connection
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Re-authentication is best-effort. If it fails, log and close the connection gracefully.
+                // The connection pool will create a new connection to replace it
+                LogReauthenticationFailed(ex, connection.ConnectionId, _redactor.SystemData(EndPoint));
+
+                _ = connection.CloseAsync(TimeSpan.FromMinutes(1));
+            }
+        }
+
+        #endregion
+
         #region Circuit Breaker
 
         #nullable enable
@@ -1142,6 +1205,21 @@ namespace Couchbase.Core
 
         [LoggerMessage(203, LogLevel.Debug, "CB: Marking a failure for canary sent to {endpoint}.")]
         private partial void LogCircuitBreakerCanaryFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(300, LogLevel.Information, "Starting JWT re-authentication for {connectionCount} connection(s) on {endpoint}.")]
+        private partial void LogReauthenticationStarting(Redacted<HostEndpointWithPort> endpoint, int connectionCount);
+
+        [LoggerMessage(301, LogLevel.Debug, "Re-authenticating connection {connectionId} on {endpoint}.")]
+        private partial void LogReauthenticatingConnection(ulong connectionId, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(302, LogLevel.Debug, "Re-authentication succeeded for connection {connectionId} on {endpoint}.")]
+        private partial void LogReauthenticationSucceeded(ulong connectionId, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(303, LogLevel.Warning, "Re-authentication failed for connection {connectionId} on {endpoint}. Connection will be disposed.")]
+        private partial void LogReauthenticationFailed(Exception ex, ulong connectionId, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(304, LogLevel.Information, "JWT re-authentication completed for {endpoint}.")]
+        private partial void LogReauthenticationCompleted(Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }

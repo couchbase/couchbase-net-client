@@ -8,97 +8,79 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
-using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Connections;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+
 namespace Couchbase.Core.IO.Authentication.Authenticators;
 
 /// <summary>
-/// Authenticator using X.509 client certificates for mTLS.
+/// Base class for authenticators that provides shared configuration logic.
 /// </summary>
-public sealed class CertificateAuthenticator : BaseAuthenticator
+public abstract class BaseAuthenticator : IAuthenticator, IAuthenticatorInternal
 {
-    private readonly ICertificateFactory _certificateFactory;
+    public abstract AuthenticatorType AuthenticatorType { get; }
+    public abstract bool CanReauthenticateKv { get; }
 
-    /// <summary>
-    /// Creates a new CertificateAuthenticator with the specified certificate factory.
-    /// Note: Only provide client certificates that are intended for authentication.
-    /// Server CAs and Trust Anchors should be provided in <see cref="TlsSettings.TrustedServerCertificateFactory"/>
-    /// </summary>
-    /// <param name="certificateFactory">Factory for providing client certificates.</param>
-    public CertificateAuthenticator(ICertificateFactory certificateFactory)
+    /// <inheritdoc />
+    public abstract bool SupportsTls { get; }
+
+    /// <inheritdoc />
+    public abstract bool SupportsNonTls { get; }
+
+    /// <inheritdoc />
+    public virtual X509Certificate2Collection? GetClientCertificates(ILogger<object>? logger = null)
     {
-        _certificateFactory = certificateFactory ?? throw new ArgumentNullException(nameof(certificateFactory));
+        return null;
     }
 
-    /// <summary>
-    /// Gets the certificate factory used by this authenticator.
-    /// </summary>
-    public ICertificateFactory CertificateFactory => _certificateFactory;
-
-    public override AuthenticatorType AuthenticatorType => AuthenticatorType.Certificate;
-    public override bool CanReauthenticateKv => false;
-
     /// <inheritdoc />
-    public override bool SupportsTls => true;
-
-    /// <inheritdoc />
-    public override bool SupportsNonTls => false;
-
-    /// <inheritdoc />
-    public override X509Certificate2Collection? GetClientCertificates(ILogger<object>? logger = null)
-    {
-        // Provide client certificates for TLS handshake
-        var clientCerts = _certificateFactory.GetCertificates();
-        if (logger is null || clientCerts is not { Count: > 0 } || !logger.IsEnabled(LogLevel.Debug)) return clientCerts;
-
-        foreach (var cert in clientCerts)
-        {
-            logger.LogDebug("Using client cert {FriendlyName} - Thumbprint {Thumbprint}", cert.FriendlyName,
-                cert.Thumbprint);
-        }
-
-        logger.LogDebug("Using {Count} client certificates", clientCerts.Count);
-
-        return clientCerts;
-    }
+    public abstract void AuthenticateHttpRequest(HttpRequestMessage request);
 
     /// <summary>
-    /// Authenticates a KV connection (no-op for certificate auth as authentication happens during TLS handshake).
+    /// Authenticates a KV connection using SDK-provided authentication mechanisms.
     /// </summary>
-    private protected override Task AuthenticateKvConnectionCoreAsync(
+    /// <remarks>
+    /// This method is private protected because it uses internal types (IConnection, ISaslMechanismFactory)
+    /// and should only be accessible to derived classes within the same assembly.
+    /// </remarks>
+    private protected abstract Task AuthenticateKvConnectionCoreAsync(
+        IConnection connection,
+        ISaslMechanismFactory saslMechanismFactory,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Explicit implementation of IAuthenticatorInternal.AuthenticateKvConnectionAsync.
+    /// </summary>
+    Task IAuthenticatorInternal.AuthenticateKvConnectionAsync(
         IConnection connection,
         ISaslMechanismFactory saslMechanismFactory,
         CancellationToken cancellationToken)
     {
-        // No SASL authentication needed - authentication happens in SSL Stream
-        // The server authenticates the client based on the certificate presented
-        return Task.CompletedTask;
+        return AuthenticateKvConnectionCoreAsync(connection, saslMechanismFactory, cancellationToken);
     }
 
-    /// <inheritdoc />
-    public override void AuthenticateHttpRequest(HttpRequestMessage request)
+    /// <summary>
+    /// The base implementation configures the RemoteCertificateValidationCallback on the HttpMessageHandler.
+    /// Derived classes can override to provide client certificates or other settings.
+    /// </summary>
+    /// <param name="handler"></param>
+    /// <param name="clusterOptions"></param>
+    /// <param name="callbackFactory"></param>
+    /// <param name="logger"></param>
+    public virtual void AuthenticateHttpHandler(HttpMessageHandler handler, ClusterOptions clusterOptions,
+        ICertificateValidationCallbackFactory callbackFactory, ILogger<object>? logger = null)
     {
-        // No HTTP header needed - authentication happens during TLS handshake
-        // The client certificate is provided during connection establishment
-    }
 
-    public override void AuthenticateHttpHandler(HttpMessageHandler handler, ClusterOptions clusterOptions, ICertificateValidationCallbackFactory callbackFactory, ILogger<object>? logger = null)
-    {
 #if NETCOREAPP3_1_OR_GREATER
         if (handler is SocketsHttpHandler socketsHttpHandler)
         {
-            var clientCerts = GetClientCertificates();
-            if (clientCerts is { Count: > 0 })
-            {
-                socketsHttpHandler.SslOptions.EnabledSslProtocols = clusterOptions.TlsSettings.EnabledSslProtocols;
-                socketsHttpHandler.SslOptions.ClientCertificates = clientCerts;
-            }
             socketsHttpHandler.SslOptions.CertificateRevocationCheckMode = clusterOptions.TlsSettings.EnableCertificateRevocation
                 ? X509RevocationMode.Online
                 : X509RevocationMode.NoCheck;
+
             socketsHttpHandler.SslOptions.RemoteCertificateValidationCallback = callbackFactory.CreateForHttp();
+
             if (clusterOptions.PlatformSupportsCipherSuite && clusterOptions.EnabledTlsCipherSuites is { Count: > 0 })
             {
                 socketsHttpHandler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(clusterOptions.EnabledTlsCipherSuites);
@@ -107,12 +89,6 @@ public sealed class CertificateAuthenticator : BaseAuthenticator
 #else
         if (handler is HttpClientHandler httpClientHandler)
         {
-            var clientCerts = GetClientCertificates(logger);
-            if (clientCerts is { Count: > 0 })
-            {
-                httpClientHandler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                httpClientHandler.ClientCertificates.AddRange(clientCerts);
-            }
             try
             {
                 httpClientHandler.SslProtocols = clusterOptions.TlsSettings.EnabledSslProtocols;
@@ -128,12 +104,14 @@ public sealed class CertificateAuthenticator : BaseAuthenticator
                 logger?.LogDebug(
                     "Cannot set ServerCertificateCustomValidationCallback, not implemented on this platform");
             }
+
             // Local function to create the remote certificate validator,
             // as HttpClientHandler.ServerCertificateCustomValidationCallback is
             // not of type RemoteCertificateValidationCallback
             Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool> CreateCertificateValidator()
             {
                 return OnCertificateValidation;
+
                 bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
                     X509Chain chain, SslPolicyErrors sslPolicyErrors)
                 {
@@ -146,21 +124,21 @@ public sealed class CertificateAuthenticator : BaseAuthenticator
 #endif
     }
 
-    public override void AuthenticateClientWebSocket(ClientWebSocket clientWebSocket)
-    {
-        clientWebSocket.Options.ClientCertificates = _certificateFactory.GetCertificates();
-    }
+    /// <inheritdoc />
+    public abstract void AuthenticateClientWebSocket(ClientWebSocket clientWebSocket);
 
-    public override async Task AuthenticateSslStream(SslStream sslStream, string targetHost, ClusterOptions clusterOptions, ICertificateValidationCallbackFactory callbackFactory, CancellationToken cancellationToken, ILogger<object>? logger = null)
+    /// <inheritdoc />
+    public virtual async Task AuthenticateSslStream(SslStream sslStream, string targetHost, ClusterOptions clusterOptions,
+        ICertificateValidationCallbackFactory callbackFactory, CancellationToken cancellationToken, ILogger<object>? logger = null)
     {
-        var clientCerts = GetClientCertificates(logger);
 #if NETCOREAPP3_1_OR_GREATER
         var sslOptions = new SslClientAuthenticationOptions()
         {
             TargetHost = targetHost,
-            ClientCertificates = clientCerts,
             EnabledSslProtocols = clusterOptions.TlsSettings.EnabledSslProtocols,
-            CertificateRevocationCheckMode = clusterOptions.TlsSettings.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck,
+            CertificateRevocationCheckMode = clusterOptions.TlsSettings.EnableCertificateRevocation
+                ? X509RevocationMode.Online
+                : X509RevocationMode.NoCheck,
             RemoteCertificateValidationCallback = callbackFactory.CreateForKv()
         };
 
@@ -173,7 +151,7 @@ public sealed class CertificateAuthenticator : BaseAuthenticator
 
         await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken).ConfigureAwait(false);
 #else
-        await sslStream.AuthenticateAsClientAsync(targetHost, clientCerts,
+        await sslStream.AuthenticateAsClientAsync(targetHost, null,
                 clusterOptions.TlsSettings.EnabledSslProtocols,
                 clusterOptions.TlsSettings.EnableCertificateRevocation)
             .ConfigureAwait(false);
@@ -181,12 +159,11 @@ public sealed class CertificateAuthenticator : BaseAuthenticator
     }
 
 #if NETCOREAPP3_1_OR_GREATER
-    public override void AuthenticateGrpcMetadata(Metadata metadata)
-    {
-        // No need to add headers, SocketsHttpsHandler contains client certificates
-    }
+    /// <inheritdoc />
+    public abstract void AuthenticateGrpcMetadata(Metadata metadata);
 #endif
 }
+
 
 /* ************************************************************
  *

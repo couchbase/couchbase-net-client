@@ -539,6 +539,93 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region WithJwtAuthentication
+
+        [Fact]
+        public void WithJwtAuthentication_SetsJwtAuthenticator()
+        {
+            var options = new ClusterOptions();
+
+            options.WithJwtAuthentication("my.jwt.token");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.IsType<JwtAuthenticator>(authenticator);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_SetsCorrectToken()
+        {
+            var options = new ClusterOptions();
+
+            options.WithJwtAuthentication("my.jwt.token");
+
+            var authenticator = options.Authenticator as JwtAuthenticator;
+            Assert.NotNull(authenticator);
+            Assert.Equal("my.jwt.token", authenticator.Token);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_EnablesTls()
+        {
+            var options = new ClusterOptions();
+
+            options.WithJwtAuthentication("my.jwt.token");
+
+            Assert.True(options.EnableTls);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_SupportsTlsOnly()
+        {
+            var options = new ClusterOptions();
+
+            options.WithJwtAuthentication("my.jwt.token");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            Assert.True(authenticator.SupportsTls);
+            Assert.False(authenticator.SupportsNonTls);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_ReturnsNullClientCertificates()
+        {
+            var options = new ClusterOptions();
+            options.WithJwtAuthentication("my.jwt.token");
+
+            var authenticator = options.Authenticator;
+            Assert.NotNull(authenticator);
+            var certs = authenticator.GetClientCertificates();
+            Assert.Null(certs);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_ThrowsArgumentException_WhenTokenIsNull()
+        {
+            var options = new ClusterOptions();
+
+            Assert.Throws<ArgumentException>(() => options.WithJwtAuthentication(null!));
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_ThrowsArgumentException_WhenTokenIsEmpty()
+        {
+            var options = new ClusterOptions();
+
+            Assert.Throws<ArgumentException>(() => options.WithJwtAuthentication(string.Empty));
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_ThrowsArgumentException_WhenTokenIsWhitespace()
+        {
+            var options = new ClusterOptions();
+
+            Assert.Throws<ArgumentException>(() => options.WithJwtAuthentication("   "));
+        }
+
+        #endregion
+
         #region WithAuthenticator
 
         [Fact]
@@ -738,6 +825,19 @@ namespace Couchbase.UnitTests
             var authenticator = options.Authenticator as PasswordAuthenticator;
             Assert.NotNull(authenticator);
             Assert.Equal("newUser", authenticator.Username);
+        }
+
+        [Fact]
+        public void WithJwtAuthentication_OverwritesPasswordAuthentication()
+        {
+            var options = new ClusterOptions();
+            options.WithPasswordAuthentication("user", "pass");
+
+            options.WithJwtAuthentication("my.jwt.token");
+
+            var authenticator = options.Authenticator as JwtAuthenticator;
+            Assert.NotNull(authenticator);
+            Assert.Equal("my.jwt.token", authenticator.Token);
         }
 
         #endregion
