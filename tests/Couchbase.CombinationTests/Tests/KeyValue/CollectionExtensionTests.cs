@@ -127,9 +127,9 @@ public class CollectionExtensionTests
 
         try
         {
-            await col.UpsertAsync(doc1, new { DocThatExists = true }).ConfigureAwait(false);
-            var getResult = await col.GetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            var unlockResult = await col.TryUnlockAsync(doc1, getResult.Cas).ConfigureAwait(false);
+            await col.UpsertAsync(doc1, new { DocThatExists = true }).ConfigureAwait(true);
+            var getResult = await col.GetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(true);
+            var unlockResult = await col.TryUnlockAsync(doc1, getResult.Cas).ConfigureAwait(true);
             Assert.True(unlockResult.DocumentExists);
         }
         finally
@@ -156,8 +156,8 @@ public class CollectionExtensionTests
 
         try
         {
-            await col.UpsertAsync(doc1, new {DocThatExists = true}).ConfigureAwait(false);
-            var getResult = await col.TryGetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            await col.UpsertAsync(doc1, new {DocThatExists = true}).ConfigureAwait(true);
+            var getResult = await col.TryGetAndLockAsync(doc1, TimeSpan.FromSeconds(10)).ConfigureAwait(true);
             Assert.True(getResult.DocumentExists);
             await col.UnlockAsync(doc1, getResult.Cas);
         }

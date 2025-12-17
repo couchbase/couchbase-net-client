@@ -22,7 +22,7 @@ namespace Couchbase.IntegrationTests
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_Collection_Exists()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope", collectionName = "my_collection";
@@ -38,11 +38,11 @@ namespace Couchbase.IntegrationTests
 
                 await Task.Delay(1000);
 
-                var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(false);
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
-                var result = await collection.UpsertAsync("key3", new { }).ConfigureAwait(false);
+                var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(true);
+                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+                var result = await collection.UpsertAsync("key3", new { }).ConfigureAwait(true);
 
-                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000))).ConfigureAwait(false);
+                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000))).ConfigureAwait(true);
             }
             finally
             {
@@ -57,19 +57,19 @@ namespace Couchbase.IntegrationTests
         {
             const string key = nameof(InsertByteArray_DefaultConverter_UnsupportedException);
 
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
-            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(false);
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(true);
 
             try
             {
                 await Assert.ThrowsAsync<UnsupportedException>(
-                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 })).ConfigureAwait(false);
+                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 })).ConfigureAwait(true);
             }
             finally
             {
                 try
                 {
-                    await collection.RemoveAsync(key).ConfigureAwait(false);
+                    await collection.RemoveAsync(key).ConfigureAwait(true);
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -84,7 +84,7 @@ namespace Couchbase.IntegrationTests
             const string collectionName = "coll";
             const string key = nameof(CollectionIdChanged_RetriesAutomatically);
 
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
             var collectionManager = bucket.Collections;
 
             try
@@ -96,7 +96,7 @@ namespace Couchbase.IntegrationTests
                 var scope = await bucket.ScopeAsync(scopeName);
                 ICouchbaseCollection collection = await scope.CollectionAsync(collectionName);
 
-                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(true);
 
                 await collectionManager.DropCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(500);
@@ -104,7 +104,7 @@ namespace Couchbase.IntegrationTests
                 await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(500);
 
-                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(true);
             }
             finally
             {

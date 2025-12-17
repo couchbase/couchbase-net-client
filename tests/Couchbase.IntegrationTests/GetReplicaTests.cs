@@ -19,15 +19,15 @@ namespace Couchbase.IntegrationTests
         [Fact(Skip = "NCBC-2820: skipping for this release.")]
         public async Task Can_get_any_replica()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 
             try
             {
-                await collection.InsertAsync(key, person).ConfigureAwait(false);
+                await collection.InsertAsync(key, person).ConfigureAwait(true);
 
-                var result = await collection.GetAnyReplicaAsync(key).ConfigureAwait(false);
+                var result = await collection.GetAnyReplicaAsync(key).ConfigureAwait(true);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
                 Assert.Null(result.ExpiryTime);
 
@@ -36,22 +36,22 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact(Skip = "NCBC-2820: skipping for this release.")]
         public async Task Can_get_all_replicas()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 
             try
             {
-                await collection.InsertAsync(key, person).ConfigureAwait(false);
+                await collection.InsertAsync(key, person).ConfigureAwait(true);
 
-                var result = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(false);
+                var result = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(true);
                 Assert.Contains(result, x => x.IsActive);
                 Assert.Contains(result, x => !x.IsActive);
 
@@ -66,7 +66,7 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
     }

@@ -38,7 +38,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
 
-            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
+            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(true);
             op.Read(new FakeMemoryOwner<byte>(bytes));
 
             using (op.ParseCommandValues())
@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
             }
 
             op.Reset();
-            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
+            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(true);
             op.Read(new FakeMemoryOwner<byte>(bytes));
             Assert.Equal(10, op.MutateCommands.Count);
 

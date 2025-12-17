@@ -18,7 +18,7 @@ namespace Couchbase.IntegrationTests
         public async Task Test_WaitUntilReadyAsync()
         {
             var bucket = await _fixture.GetDefaultBucket();
-            await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(true);
         }
     }
 }

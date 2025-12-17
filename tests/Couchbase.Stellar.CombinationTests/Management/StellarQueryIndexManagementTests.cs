@@ -33,14 +33,14 @@ public class StellarQueryIndexManagementTests
 
         try
         {
-            await cluster.QueryIndexes.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
+            await cluster.QueryIndexes.CreatePrimaryIndexAsync("default").ConfigureAwait(true);
             var exception = await Record.ExceptionAsync(() => cluster.QueryIndexes.CreatePrimaryIndexAsync("default"))
-                .ConfigureAwait(false);
+                .ConfigureAwait(true);
             Assert.IsType<CollectionExistsException>(exception);
         }
         catch (IndexExistsException)
         {
-            await cluster.QueryIndexes.DropPrimaryIndexAsync("default").ConfigureAwait(false);
+            await cluster.QueryIndexes.DropPrimaryIndexAsync("default").ConfigureAwait(true);
             Assert.True(true);
         }
     }
@@ -55,7 +55,7 @@ public class StellarQueryIndexManagementTests
         try
         {
             await cluster.QueryIndexes.CreateIndexAsync(
-                bucketName, indexName, new[] { "type" }).ConfigureAwait(false);
+                bucketName, indexName, new[] { "type" }).ConfigureAwait(true);
         }
         catch (IndexExistsException)
         {
@@ -65,7 +65,7 @@ public class StellarQueryIndexManagementTests
         bool failedCleanup = false;
         try
         {
-            await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName).ConfigureAwait(false);
+            await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName).ConfigureAwait(true);
 
             using var cts = new CancellationTokenSource(10000);
 
@@ -76,7 +76,7 @@ public class StellarQueryIndexManagementTests
         {
             try
             {
-                await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName).ConfigureAwait(false);
+                await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName).ConfigureAwait(true);
             }
             catch (Exception e)
             {
@@ -102,15 +102,15 @@ public class StellarQueryIndexManagementTests
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
-            await _utils.WaitUntilScopeIsPresent(scopeName).ConfigureAwait(false);
+            await _utils.WaitUntilScopeIsPresent(scopeName).ConfigureAwait(true);
             await collectionManager.CreateCollectionAsync(collectionSpec);
-            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName).ConfigureAwait(false);
+            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName).ConfigureAwait(true);
 
 
             const string indexName = "indexmgr_test_collection";
             try
             {
-                await cluster.QueryIndexes.CreateIndexAsync(bucketName, indexName, new[] { "type" }, new CreateQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(false);
+                await cluster.QueryIndexes.CreateIndexAsync(bucketName, indexName, new[] { "type" }, new CreateQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(true);
             }
             catch (IndexExistsException)
             {
@@ -120,7 +120,7 @@ public class StellarQueryIndexManagementTests
             var failedCleanup = false;
             try
             {
-                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName, new BuildDeferredQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(false);
+                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName, new BuildDeferredQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(true);
 
                 using var cts = new CancellationTokenSource(10000);
 
@@ -131,7 +131,7 @@ public class StellarQueryIndexManagementTests
             {
                 try
                 {
-                    await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName, new DropQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(false);
+                    await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName, new DropQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName)).ConfigureAwait(true);
                 }
                 catch (Exception e)
                 {
@@ -158,18 +158,18 @@ public class StellarQueryIndexManagementTests
 
         try
         {
-            await indexManager.CreatePrimaryIndexAsync(bucketName).ConfigureAwait(false);
+            await indexManager.CreatePrimaryIndexAsync(bucketName).ConfigureAwait(true);
         }
         catch (IndexExistsException)
         {
             //do nothing
         }
 
-        var allIndexes = await indexManager.GetAllIndexesAsync(bucketName).ConfigureAwait(false);
+        var allIndexes = await indexManager.GetAllIndexesAsync(bucketName).ConfigureAwait(true);
         Assert.Single(allIndexes);
 
         allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-            options => options.ScopeName("_default")).ConfigureAwait(false);
+            options => options.ScopeName("_default")).ConfigureAwait(true);
         Assert.Single(allIndexes);
 
         allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
@@ -177,10 +177,10 @@ public class StellarQueryIndexManagementTests
            {
                options.ScopeName("_default");
                options.CollectionName("_default");
-           }).ConfigureAwait(false);
+           }).ConfigureAwait(true);
         Assert.Single(allIndexes);
 
-        await indexManager.DropPrimaryIndexAsync(bucketName).ConfigureAwait(false);
+        await indexManager.DropPrimaryIndexAsync(bucketName).ConfigureAwait(true);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class StellarQueryIndexManagementTests
         {
             //CREATE INDEX idx4 ON default(age MISSING, body)
             await cluster.QueryIndexes.CreateIndexAsync(
-                bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" }).ConfigureAwait(false);
+                bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" }).ConfigureAwait(true);
         }
         catch (IndexExistsException)
         {
@@ -205,7 +205,7 @@ public class StellarQueryIndexManagementTests
         bool failedCleanup = false;
         try
         {
-            await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name).ConfigureAwait(false);
+            await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name).ConfigureAwait(true);
 
             using var cts = new CancellationTokenSource(10000);
 
@@ -216,7 +216,7 @@ public class StellarQueryIndexManagementTests
         {
             try
             {
-                await cluster.QueryIndexes.DropIndexAsync(bucket.Name, indexName).ConfigureAwait(false);
+                await cluster.QueryIndexes.DropIndexAsync(bucket.Name, indexName).ConfigureAwait(true);
             }
             catch (Exception e)
             {

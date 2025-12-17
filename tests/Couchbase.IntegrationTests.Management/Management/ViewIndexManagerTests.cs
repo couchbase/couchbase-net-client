@@ -24,7 +24,7 @@ namespace Couchbase.IntegrationTests.Management
         public async Task TestIndexManager()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
             var manager = bucket.ViewIndexes;
 
             var designDoc = new DesignDocument
@@ -46,29 +46,29 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // upsert
-                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development).ConfigureAwait(false);
+                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development).ConfigureAwait(true);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
 
                 // get
-                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development).ConfigureAwait(false);
+                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development).ConfigureAwait(true);
                 VerifyDesignDoc(designDoc, getResult);
 
                 // publish
-                await manager.PublishDesignDocumentAsync(designDoc.Name).ConfigureAwait(false);
+                await manager.PublishDesignDocumentAsync(designDoc.Name).ConfigureAwait(true);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
 
                 // get all
                 var getAllResult =
-                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production).ConfigureAwait(false)).ToList();
+                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production).ConfigureAwait(true)).ToList();
                 var result = getAllResult.First(p => p.Name == "test_ddoc");
                 VerifyDesignDoc(designDoc, result);
             }
             finally
             {
                 // drop
-                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production).ConfigureAwait(false);
+                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production).ConfigureAwait(true);
             }
         }
 

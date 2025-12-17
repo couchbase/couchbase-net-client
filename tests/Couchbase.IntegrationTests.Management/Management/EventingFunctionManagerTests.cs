@@ -166,26 +166,12 @@ namespace Couchbase.IntegrationTests.Management.Management
             await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
                 await _eventingFunctionManager.PauseFunctionAsync(randomFunctionName));
 
-            // EventingFunctionNotFoundException thrown instead of EventingFunctionNotFoundException against 7.0
-            // Shall be fixed in 7.1.0 - see MB-47840
-            try
-            {
-                await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
-                    await _eventingFunctionManager.DropFunctionAsync(randomFunctionName));
-                await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
-                    await _eventingFunctionManager.UndeployFunctionAsync(randomFunctionName));
-                await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
-                    await _eventingFunctionManager.ResumeFunctionAsync(randomFunctionName));
-            }
-            catch (AssertActualExpectedException)
-            {
-                await Assert.ThrowsAsync<EventingFunctionNotDeployedException>(async () =>
-                    await _eventingFunctionManager.DropFunctionAsync(randomFunctionName));
-                await Assert.ThrowsAsync<EventingFunctionNotDeployedException>(async () =>
-                    await _eventingFunctionManager.UndeployFunctionAsync(randomFunctionName));
-                await Assert.ThrowsAsync<EventingFunctionNotDeployedException>(async () =>
-                    await _eventingFunctionManager.ResumeFunctionAsync(randomFunctionName));
-            }
+            await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
+                await _eventingFunctionManager.DropFunctionAsync(randomFunctionName));
+            await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
+                await _eventingFunctionManager.UndeployFunctionAsync(randomFunctionName));
+            await Assert.ThrowsAsync<EventingFunctionNotFoundException>(async () =>
+                await _eventingFunctionManager.ResumeFunctionAsync(randomFunctionName));
         }
 
         [Fact]

@@ -43,13 +43,13 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
                 return Cluster;
             }
 
-            await GetDefaultBucket().ConfigureAwait(false);
+            await GetDefaultBucket().ConfigureAwait(true);
             return Cluster;
         }
 
         public async Task<IBucket> GetDefaultBucket()
         {
-            var bucket = await Cluster.BucketAsync(BucketName).ConfigureAwait(false);
+            var bucket = await Cluster.BucketAsync(BucketName).ConfigureAwait(true);
 
             _bucketOpened = true;
 
@@ -88,7 +88,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
             var cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     opts)
-                .ConfigureAwait(false);
+                .ConfigureAwait(true);
 
             return cluster;
         }
@@ -115,7 +115,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
             Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     opts)
-                .ConfigureAwait(false);
+                .ConfigureAwait(true);
 
             var bucketSettings = new BucketSettings()
                 {
@@ -127,7 +127,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
 
             try
             {
-                await Cluster.Buckets.CreateBucketAsync(bucketSettings).ConfigureAwait(false);
+                await Cluster.Buckets.CreateBucketAsync(bucketSettings).ConfigureAwait(true);
             }
             catch (BucketExistsException)
             {

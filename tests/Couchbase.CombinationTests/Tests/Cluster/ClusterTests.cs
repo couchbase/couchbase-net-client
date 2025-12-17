@@ -96,8 +96,8 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             clusterOptions.WithRetryStrategy(new BestEffortRetryStrategy());
             clusterOptions.WithLogging(loggerFactory);
 
-            var cluster = await Couchbase.Cluster.ConnectAsync(uri.Host, clusterOptions).ConfigureAwait(false);
-            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            var cluster = await Couchbase.Cluster.ConnectAsync(uri.Host, clusterOptions).ConfigureAwait(true);
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(true);
             var bucket = await cluster.BucketAsync("default");
             var collection = bucket.DefaultCollection();
             var upsertResult = await collection.UpsertAsync("foo", new { foo = "bar" });

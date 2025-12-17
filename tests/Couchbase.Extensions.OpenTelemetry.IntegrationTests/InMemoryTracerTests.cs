@@ -24,18 +24,18 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
         [Fact]
         public async Task Key_value_CRUD()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new { name = "mike" }).ConfigureAwait(false);
+                await collection.InsertAsync(key, new { name = "mike" }).ConfigureAwait(true);
                 Assert.Equal("insert", _fixture.exportedItems.Last().DisplayName);
 
-                await collection.UpsertAsync(key, new { name = "john" }).ConfigureAwait(false);
+                await collection.UpsertAsync(key, new { name = "john" }).ConfigureAwait(true);
                 Assert.Equal("upsert", _fixture.exportedItems.Last().DisplayName);
 
-                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                using (var result = await collection.GetAsync(key).ConfigureAwait(true))
                 {
                     var content = result.ContentAs<dynamic>();
 
@@ -45,7 +45,7 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
                 Assert.Equal("remove", _fixture.exportedItems.Last().DisplayName);
 
             }
@@ -54,18 +54,18 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
         [Fact]
         public async Task Key_value_withcompression()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new { name = "mike mike mike mike mike mike mike mike mike mike mike mike mike mike mike" }).ConfigureAwait(false);
+                await collection.InsertAsync(key, new { name = "mike mike mike mike mike mike mike mike mike mike mike mike mike mike mike" }).ConfigureAwait(true);
                 Assert.Equal("insert", _fixture.exportedItems.Last().DisplayName);
 
-                await collection.UpsertAsync(key, new { name = "john john john john john john john john john john john john john john john" }).ConfigureAwait(false);
+                await collection.UpsertAsync(key, new { name = "john john john john john john john john john john john john john john john" }).ConfigureAwait(true);
                 Assert.Equal("upsert", _fixture.exportedItems.Last().DisplayName);
 
-                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                using (var result = await collection.GetAsync(key).ConfigureAwait(true))
                 {
                     var content = result.ContentAs<dynamic>();
 
@@ -76,7 +76,7 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
                 Assert.Equal("remove", _fixture.exportedItems.Last().DisplayName);
 
             }
@@ -85,7 +85,7 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
         [Fact]
         public async Task Key_value_increment_decrement()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
             try
@@ -97,12 +97,12 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
                 Assert.Equal("increment", _fixture.exportedItems.Last().DisplayName);
 
                 // increment again, doc exists, increments to 2
-                result = await collection.Binary.IncrementAsync(key).ConfigureAwait(false);
+                result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong)2, result.Content);
                 Assert.Equal("increment", _fixture.exportedItems.Last().DisplayName);
 
                 // decrement, doc exists, decrement by 2
-                result = await collection.Binary.DecrementAsync(key).ConfigureAwait(false);
+                result = await collection.Binary.DecrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong)1, result.Content);
                 Assert.Equal("decrement", _fixture.exportedItems.Last().DisplayName);
 
@@ -111,7 +111,7 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             {
                 try
                 {
-                    await collection.RemoveAsync(key).ConfigureAwait(false);
+                    await collection.RemoveAsync(key).ConfigureAwait(true);
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -122,8 +122,8 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
         [Fact]
         public async Task Test_Query()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
-            await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;").ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;").ConfigureAwait(true);
             Assert.Equal("query", _fixture.exportedItems.Last().DisplayName);
         }
 
@@ -138,8 +138,8 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
-            var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(true);
             var result = await analyticsResult.ToListAsync();
 
             Assert.Single(result);

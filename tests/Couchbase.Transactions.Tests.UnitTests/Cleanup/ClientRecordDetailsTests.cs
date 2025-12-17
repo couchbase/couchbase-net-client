@@ -61,7 +61,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Cleanup
             _outputHelper.WriteLine(JObject.FromObject(clientRecordDetails).ToString());
             Assert.Equal(2, clientRecordDetails.NumExistingClients);
             Assert.Equal(1, clientRecordDetails.NumExpiredClients);
-            Assert.Equal(1, clientRecordDetails.ExpiredClientIds.Count);
+            Assert.Single(clientRecordDetails.ExpiredClientIds);
             Assert.Contains(clientUuid, clientRecordDetails.SortedActiveClientIds);
             Assert.NotEqual(-1, clientRecordDetails.IndexOfThisClient);
         }

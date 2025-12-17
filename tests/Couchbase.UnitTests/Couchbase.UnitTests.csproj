@@ -43,6 +43,7 @@
     <PackageReference Include="Serilog.Extensions.Logging.File" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="Xunit.Repeat" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

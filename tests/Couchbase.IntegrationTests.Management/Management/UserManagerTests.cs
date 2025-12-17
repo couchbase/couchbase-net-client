@@ -21,7 +21,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task Test_CreateAndDropUser()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             await cluster.Users.UpsertUserAsync(new User("usermgr_test") {
                 Password = "password",
@@ -29,15 +29,15 @@ namespace Couchbase.IntegrationTests.Management
                 {
                     new Role("data_reader", "default")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(false);
+            await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(true);
         }
 
         [Fact]
         public async Task Test_CreateAndDropUserWithRoleNamesOnly()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             await cluster.Users.UpsertUserAsync(new User("usermgr_test") {
                 Password = "password",
@@ -47,16 +47,16 @@ namespace Couchbase.IntegrationTests.Management
                     new Role("ro_admin"),
                     new Role("cluster_admin")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(false);
+            await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(true);
         }
 
         [Fact]
         public async Task Test_CreateAndDropUserWithBucket()
         {
             var name = "usermgr_bucket_role_test";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             await cluster.Users.UpsertUserAsync(new User(name)
             {
@@ -65,16 +65,16 @@ namespace Couchbase.IntegrationTests.Management
                 {
                     new Role("data_reader", "default")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
+            await cluster.Users.DropUserAsync(name).ConfigureAwait(true);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CreateAndDropUserWithScope()
         {
             var name = "usermgr_scope_role_test";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             await cluster.Users.UpsertUserAsync(new User(name)
             {
@@ -83,16 +83,16 @@ namespace Couchbase.IntegrationTests.Management
                 {
                     new Role("data_reader", "default", "_default")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
+            await cluster.Users.DropUserAsync(name).ConfigureAwait(true);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CreateAndDropUserWithCollection()
         {
             var name = "usermgr_collection_role_test";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             await cluster.Users.UpsertUserAsync(new User(name)
             {
@@ -101,16 +101,16 @@ namespace Couchbase.IntegrationTests.Management
                 {
                     new Role("data_reader", "default", "_default", "_default")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
+            await cluster.Users.DropUserAsync(name).ConfigureAwait(true);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CanAssignCollectionsAwareRoles()
         {
             var name = "usermgr_collection_role_test1";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             await cluster.Users.UpsertUserAsync(new User(name)
             {
                 Password = "password",
@@ -120,9 +120,9 @@ namespace Couchbase.IntegrationTests.Management
                     new Role("data_reader", "default", "_default", null),
                     new Role("data_reader", "default", "_default", "_default")
                 }
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
+            await cluster.Users.DropUserAsync(name).ConfigureAwait(true);
         }
     }
 }

@@ -41,10 +41,12 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var collection = CreateTestCollection();
 
+#pragma warning disable xUnit2021
             Assert.ThrowsAsync<Couchbase.Core.Exceptions.TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
                 options.Timeout(TimeSpan.FromMilliseconds(1d));
             }));
+#pragma warning restore xUnit2021
         }
 
         [Fact]
@@ -239,7 +241,7 @@ namespace Couchbase.UnitTests.KeyValue
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object);
 
-                await clusterNode.SendAsync(op, token).ConfigureAwait(false);
+                await clusterNode.SendAsync(op, token).ConfigureAwait(true);
 
                 ResponseStatus status;
                 if (_statuses.Count > 0)

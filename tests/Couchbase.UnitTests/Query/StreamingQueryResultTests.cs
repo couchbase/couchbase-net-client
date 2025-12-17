@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(fileName);
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
-            await streamingResult.InitializeAsync().ConfigureAwait(false);
+            await streamingResult.InitializeAsync().ConfigureAwait(true);
 
             // Act
 

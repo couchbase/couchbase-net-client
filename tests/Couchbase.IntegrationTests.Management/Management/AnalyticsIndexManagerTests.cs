@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests.Management
         public async Task Cluster_AnalyticsIndexes_Not_Null()
         {
             //arrange
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             //act
             var manager = cluster.AnalyticsIndexes;
@@ -48,7 +48,7 @@ namespace Couchbase.IntegrationTests.Management
             var otherClusterHostname = "changeme_hostname";
             var linkName = nameof(AnalyticsIndexes_CreatLink_Couchbase) + Guid.NewGuid().ToString();
             var dataverseName = "default";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             await manager.CreateDataverseAsync(dataverseName, (new Couchbase.Management.Analytics.CreateAnalyticsDataverseOptions()).IgnoreIfExists(true));
             var link = new CouchbaseRemoteAnalyticsLink(linkName, dataverseName, otherClusterHostname)
@@ -69,7 +69,7 @@ namespace Couchbase.IntegrationTests.Management
             var region = "us-east";
             var linkName = nameof(AnalyticsIndexes_CreateLink_S3) + Guid.NewGuid().ToString();
             var dataverseName = "default";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             await manager.CreateDataverseAsync(dataverseName, (new Couchbase.Management.Analytics.CreateAnalyticsDataverseOptions()).IgnoreIfExists(true));
             var link = new S3ExternalAnalyticsLink(linkName, dataverseName, accessKeyId, secretAccessKey, region);
@@ -92,7 +92,7 @@ namespace Couchbase.IntegrationTests.Management
             // (requires DP enabled)
             var linkName = nameof(AnalyticsIndexes_CreateLink_AzureBlob) + Guid.NewGuid().ToString();
             var dataverseName = "default";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             await manager.CreateDataverseAsync(dataverseName, (new Couchbase.Management.Analytics.CreateAnalyticsDataverseOptions()).IgnoreIfExists(true));
             var link = new AzureBlobExternalAnalyticsLink(linkName, dataverseName)
@@ -107,7 +107,7 @@ namespace Couchbase.IntegrationTests.Management
         {
             var linkName = nameof(AnalyticsIndexes_CreateCouchaseLink_ExpectInvalidArgument) + Guid.NewGuid().ToString();
             var dataverseName = "default";
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             await manager.CreateDataverseAsync(dataverseName, (new Couchbase.Management.Analytics.CreateAnalyticsDataverseOptions()).IgnoreIfExists(true));
             var link = new CouchbaseRemoteAnalyticsLink(linkName, dataverseName, "127.0.0.1")
@@ -121,7 +121,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task AnalyticsIndexes_GetLinks()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             var links = (await manager.GetLinks()).ToList();
             _outputHelper.WriteLine($"links.Count = {links.Count}");
@@ -134,7 +134,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task AnalyticsIndexes_GetLinks_ByType()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
             foreach (var linkType in new[] { "azureblob", "couchbase", "s3"})
             {
@@ -151,7 +151,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task AnalyticsIndexes_DropAllTestLinks()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var manager = cluster.AnalyticsIndexes;
 
             var links = (await manager.GetLinks())

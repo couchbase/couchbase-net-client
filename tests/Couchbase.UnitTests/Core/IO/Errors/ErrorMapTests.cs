@@ -71,7 +71,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
 
             try
             {
-                await node.SendAsync(insert).ConfigureAwait(false);
+                await node.SendAsync(insert).ConfigureAwait(true);
             }
             catch (DocumentExistsException e)
             {
@@ -134,7 +134,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
 
             try
             {
-                await node.SendAsync(insert).ConfigureAwait(false);
+                await node.SendAsync(insert).ConfigureAwait(true);
             }
             catch (CouchbaseException e)
             {

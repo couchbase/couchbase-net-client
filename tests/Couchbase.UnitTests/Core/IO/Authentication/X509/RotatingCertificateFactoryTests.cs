@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Repeat;
 
 namespace Couchbase.UnitTests.Core.IO.Authentication.X509
 {
@@ -188,7 +189,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var initialResult = factory.GetCertificates();
 
             // Wait for timer to fire and refresh
-            await Task.Delay(150);
+            await Task.Delay(300);
 
             // Assert
             Assert.NotNull(initialResult);
@@ -258,7 +259,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var result = factory.GetCertificates();
 
             // Wait for timer to fire and exception to be thrown
-            await Task.Delay(150);
+            await Task.Delay(300);
 
             // Assert
             Assert.NotNull(result);

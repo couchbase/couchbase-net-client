@@ -31,7 +31,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            var result = await service.GetIpEndPointAsync(ipAddress, port).ConfigureAwait(false);
+            var result = await service.GetIpEndPointAsync(ipAddress, port).ConfigureAwait(true);
 
             // Assert
 
@@ -60,7 +60,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            var result = await service.GetIpEndPointAsync("test.com", port).ConfigureAwait(false);
+            var result = await service.GetIpEndPointAsync("test.com", port).ConfigureAwait(true);
 
             // Assert
 
@@ -79,8 +79,8 @@ namespace Couchbase.UnitTests.Utils
             // Act //Assert
 
             await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
-                await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(false)).
-                ConfigureAwait(false);
+                await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(true)).
+                ConfigureAwait(true);
         }
 
         #endregion

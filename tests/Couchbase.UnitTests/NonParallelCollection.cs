@@ -6,7 +6,7 @@ using Xunit;
 namespace Couchbase.UnitTests
 {
     [CollectionDefinition("NonParallel", DisableParallelization = true)]
-    internal class NonParallelCollection
+    public class NonParallelCollection
     {
     }
 }

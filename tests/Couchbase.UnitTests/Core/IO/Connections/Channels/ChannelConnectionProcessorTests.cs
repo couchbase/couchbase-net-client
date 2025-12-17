@@ -93,10 +93,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public override async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
-                await connection.SendAsync(Memory<byte>.Empty, new Noop(), cancellationToken).ConfigureAwait(false);
+                await connection.SendAsync(Memory<byte>.Empty, new Noop(), cancellationToken).ConfigureAwait(true);
             }
         }
-        
+
         [Fact]
         public async Task Should_CloseConnection_When_RemoveConnectionAsyncThrowsException()
         {

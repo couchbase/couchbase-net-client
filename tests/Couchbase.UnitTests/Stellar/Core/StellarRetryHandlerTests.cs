@@ -36,7 +36,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         };
 
-        var result = await Record.ExceptionAsync( () => retryMock.Object.RetryAsync(grpcCall, new StellarRequest())).ConfigureAwait(false);
+        var result = await Record.ExceptionAsync( () => retryMock.Object.RetryAsync(grpcCall, new StellarRequest())).ConfigureAwait(true);
         Assert.Contains(expectedException, result!.ToString());
     }
 

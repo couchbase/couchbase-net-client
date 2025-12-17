@@ -29,13 +29,13 @@ namespace Couchbase.LoadTests.Core.IO.Connections
 
             _key = Guid.NewGuid().ToString();
 
-            await _collection.InsertAsync(_key, new {name = "mike"}).ConfigureAwait(false);
+            await _collection.InsertAsync(_key, new {name = "mike"}).ConfigureAwait(true);
         }
 
         [GlobalCleanup]
         public async Task GlobalCleanup()
         {
-            await _collection.RemoveAsync(_key).ConfigureAwait(false);
+            await _collection.RemoveAsync(_key).ConfigureAwait(true);
 
             _cluster.Dispose();
         }
@@ -47,7 +47,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
             {
                 for (var i = 0; i < 100; i++)
                 {
-                    using var result = await _collection.GetAsync(_key).ConfigureAwait(false);
+                    using var result = await _collection.GetAsync(_key).ConfigureAwait(true);
                 }
             }
 
@@ -55,7 +55,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
                 .Select(_ => DoOneHundredGets())
                 .ToList();
 
-            await Task.WhenAll(parallelTasks).ConfigureAwait(false);
+            await Task.WhenAll(parallelTasks).ConfigureAwait(true);
         }
     }
 }

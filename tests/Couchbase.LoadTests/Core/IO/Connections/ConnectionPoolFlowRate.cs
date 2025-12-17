@@ -75,9 +75,9 @@ namespace Couchbase.LoadTests.Core.IO.Connections
             {
                 using var operation = new Get<string>();
 
-                await _dataFlowPool.SendAsync(operation).ConfigureAwait(false);
+                await _dataFlowPool.SendAsync(operation).ConfigureAwait(true);
 
-                await operation.Completed.ConfigureAwait(false);
+                await operation.Completed.ConfigureAwait(true);
             }));
 
             await Task.WhenAll(ops);
@@ -90,9 +90,9 @@ namespace Couchbase.LoadTests.Core.IO.Connections
             {
                 using var operation = new Get<string>();
 
-                await _channelPool.SendAsync(operation).ConfigureAwait(false);
+                await _channelPool.SendAsync(operation).ConfigureAwait(true);
 
-                await operation.Completed.ConfigureAwait(false);
+                await operation.Completed.ConfigureAwait(true);
             }));
 
             await Task.WhenAll(ops);

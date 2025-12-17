@@ -30,63 +30,63 @@ public class LookupInTests
     [Fact]
     public async Task Test_LookupIn_With_RawBinaryTranscoder()
     {
-        _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(false);
+        _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(true);
 
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
-        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
 
         var resultAsBytes = result.ContentAs<byte[]>(0);
         var resultAsString = Encoding.UTF8.GetString(resultAsBytes!).Replace("\"", "");
 
         Assert.Equal(resultAsString, id);
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupIn_With_JsonTranscoder()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
-        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new JsonTranscoder())).ConfigureAwait(false);
+        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new JsonTranscoder())).ConfigureAwait(true);
 
         var resultAsJson = result.ContentAs<JsonNode>(0);
         var resultAsString = resultAsJson!.ToString();
 
         Assert.Equal(resultAsString, id);
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupIn_With_RawStringTranscoder()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
-        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new RawStringTranscoder())).ConfigureAwait(false);
+        var result = await collection.LookupInAsync(id, specs => specs.Get("name"), new LookupInOptions().Transcoder(new RawStringTranscoder())).ConfigureAwait(true);
 
         var resultAsString = result.ContentAs<string>(0)!.Trim('"');
 
         Assert.Equal(id, resultAsString);
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupInAllReplicas_Returns_Results_Marked_With_IsReplica()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
@@ -102,18 +102,18 @@ public class LookupInTests
             Assert.Contains(allResults, replicaResult => replicaResult.IsReplica == true);
         }
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupInAnyReplica_DocumentUnretrievable_Gets_Thrown()
     {
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         var specs = new List<LookupInSpec>();
         specs.Add(LookupInSpec.Get("name"));
 
-        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs)).ConfigureAwait(false);
+        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs)).ConfigureAwait(true);
         Assert.IsType<DocumentUnretrievableException>(error);
         Assert.True(((DocumentUnretrievableException)error).InnerExceptions.Count >= 1);
     }
@@ -121,12 +121,12 @@ public class LookupInTests
     [Fact]
     public async Task Test_LookupInAnyReplica_Timeout_Gets_Thrown()
     {
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         var specs = new List<LookupInSpec>();
         specs.Add(LookupInSpec.Get("name"));
 
-        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs, options => options.Timeout(TimeSpan.FromMilliseconds(1)))).ConfigureAwait(false);
+        var error = await Record.ExceptionAsync(() => collection.LookupInAnyReplicaAsync("wrongId", specs, options => options.Timeout(TimeSpan.FromMilliseconds(1)))).ConfigureAwait(true);
         Assert.IsType<UnambiguousTimeoutException>(error);
     }
 
@@ -134,7 +134,7 @@ public class LookupInTests
     public async Task Test_All_LookupIn_Should_Throw_InvalidArgument_If_Too_Many_Specs()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
@@ -144,8 +144,8 @@ public class LookupInTests
             specs.Add(LookupInSpec.Get("name"));
         }
 
-        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAnyReplicaAsync(id, specs)).ConfigureAwait(false);
-        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAsync(id, specs)).ConfigureAwait(false);
+        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAnyReplicaAsync(id, specs)).ConfigureAwait(true);
+        await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.LookupInAsync(id, specs)).ConfigureAwait(true);
 
         var allReplicas = collection.LookupInAllReplicasAsync(id, specs);
         await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
@@ -156,14 +156,14 @@ public class LookupInTests
             }
         });
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupInAnyReplica_Extensions()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
@@ -171,27 +171,27 @@ public class LookupInTests
         specs.Add(LookupInSpec.Get("name"));
 
         var anyReplicaSpecBuilder = await collection.LookupInAnyReplicaAsync(id,
-            builder => builder.Get("name")).ConfigureAwait(false);
+            builder => builder.Get("name")).ConfigureAwait(true);
 
         var anyReplicaOptionsBuilder = await collection.LookupInAnyReplicaAsync(id, specs,
-            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
 
         var anyReplicaSpecAndOptionsBuilder = await collection.LookupInAnyReplicaAsync(id,
             builder => builder.Get("name"),
-            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+            options => options.Timeout(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
 
         Assert.Equal(id, anyReplicaSpecBuilder.ContentAs<string>(0));
         Assert.Equal(id, anyReplicaOptionsBuilder.ContentAs<string>(0));
         Assert.Equal(id, anyReplicaSpecAndOptionsBuilder.ContentAs<string>(0));
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
     [Fact]
     public async Task Test_LookupInAllReplicas_Extensions()
     {
         var id = "Test-" + Guid.NewGuid();
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
 
         await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
@@ -208,20 +208,20 @@ public class LookupInTests
             builder => builder.Get("name"),
             options => options.Timeout(TimeSpan.FromSeconds(10)));
 
-        await foreach (var item in allReplicasSpecBuilder.ConfigureAwait(false))
+        await foreach (var item in allReplicasSpecBuilder.ConfigureAwait(true))
         {
             Assert.Equal(id, item.ContentAs<string>(0));
         }
-        await foreach (var item in allReplicasOptionsBuilder.ConfigureAwait(false))
+        await foreach (var item in allReplicasOptionsBuilder.ConfigureAwait(true))
         {
             Assert.Equal(id, item.ContentAs<string>(0));
         }
-        await foreach (var item in allReplicasSpecAndOptionsBuilder.ConfigureAwait(false))
+        await foreach (var item in allReplicasSpecAndOptionsBuilder.ConfigureAwait(true))
         {
             Assert.Equal(id, item.ContentAs<string>(0));
         }
 
-        await collection.RemoveAsync(id).ConfigureAwait(false);
+        await collection.RemoveAsync(id).ConfigureAwait(true);
     }
 
 }

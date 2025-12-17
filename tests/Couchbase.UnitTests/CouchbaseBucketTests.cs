@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
@@ -18,7 +19,7 @@ namespace Couchbase.UnitTests
     public class CouchbaseBucketTests
     {
         [Fact]
-        public void Scope_NotFound_Throws_ScopeNoteFoundException( )
+        public async Task Scope_DoesNotThrow_ScopeNoteFoundException()
         {
             var bucket = new CouchbaseBucket("default",
                 new ClusterContext
@@ -37,7 +38,8 @@ namespace Couchbase.UnitTests
                 new BucketConfig(),
                 new Mock<IConfigPushHandlerFactory>().Object);
 
-                Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
+            bucket.Scope("doesnotexist");
+            await bucket.ScopeAsync("doesnotexist");
         }
     }
 }

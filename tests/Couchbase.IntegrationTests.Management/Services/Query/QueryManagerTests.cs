@@ -29,8 +29,8 @@ namespace Couchbase.IntegrationTests.Management.Services.Query
                 try
                 {
                     // create primary
-                    await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
-                    await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                    await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(true);
+                    await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
                 }
                 catch (CouchbaseException)
                 {
@@ -38,12 +38,12 @@ namespace Couchbase.IntegrationTests.Management.Services.Query
                 }
 
                 // create deferred custom index
-                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(false);
+                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(true);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
 
                 // get all
-                var queryIndexes = await queryManager.GetAllIndexesAsync("default").ConfigureAwait(false);
+                var queryIndexes = await queryManager.GetAllIndexesAsync("default").ConfigureAwait(true);
                 Assert.True(queryIndexes.Any());
 
                 var primaryIndex = queryIndexes.Single(index => index.Name == "#primary");
@@ -55,18 +55,18 @@ namespace Couchbase.IntegrationTests.Management.Services.Query
                 Assert.Equal("deferred", customIndex.State);
 
                 // build deferred
-                await queryManager.BuildDeferredIndexesAsync("default").ConfigureAwait(false);
+                await queryManager.BuildDeferredIndexesAsync("default").ConfigureAwait(true);
 
                 // watch deferred index
-                await queryManager.WatchIndexesAsync("default", new[] {"custom"}).ConfigureAwait(false);
+                await queryManager.WatchIndexesAsync("default", new[] {"custom"}).ConfigureAwait(true);
             }
             finally
             {
                 // drop primary
-                await queryManager.DropPrimaryIndexAsync("default").ConfigureAwait(false);
+                await queryManager.DropPrimaryIndexAsync("default").ConfigureAwait(true);
 
                 // drop custom
-                await queryManager.DropIndexAsync("default", "custom").ConfigureAwait(false);
+                await queryManager.DropIndexAsync("default", "custom").ConfigureAwait(true);
             }
         }
     }

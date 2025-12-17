@@ -33,7 +33,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiLookup<byte[]>("thekey", specs);
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
+            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(true);
             op.Read(new FakeMemoryOwner<byte>(bytes));
             op.Transcoder = new JsonTranscoder();
             op.Transcoder.Serializer = new DefaultSerializer();
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiLookup<byte[]>("thekey", specs);
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
+            await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(true);
             op.Read(new FakeMemoryOwner<byte>(bytes));
             op.Transcoder = new JsonTranscoder();
             op.Transcoder.Serializer = new DefaultSerializer();

@@ -33,24 +33,24 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             var collection = await _fixture.DefaultCollection();
             var doc1 = Guid.NewGuid().ToString();
 
-            await collection.UpsertAsync(doc1, new { Name = doc1 }, options => options.Expiry(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
-            var result = await collection.ExistsAsync(doc1).ConfigureAwait(false);
+            await collection.UpsertAsync(doc1, new { Name = doc1 }, options => options.Expiry(TimeSpan.FromSeconds(10))).ConfigureAwait(true);
+            var result = await collection.ExistsAsync(doc1).ConfigureAwait(true);
             Assert.True(result.Exists);
 
             await collection.RemoveAsync(doc1);
-            var result1 = await collection.ExistsAsync(doc1).ConfigureAwait(false);
+            var result1 = await collection.ExistsAsync(doc1).ConfigureAwait(true);
             Assert.False(result1.Exists);
         }
 
         [Fact]
         public async Task Get()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var id = Guid.NewGuid().ToString();
-            await collection.UpsertAsync(id, new ExampleContent{Content = "test"}).ConfigureAwait(false);
-            var result = await collection.GetAsync(id).ConfigureAwait(false);
+            await collection.UpsertAsync(id, new ExampleContent{Content = "test"}).ConfigureAwait(true);
+            var result = await collection.GetAsync(id).ConfigureAwait(true);
             Assert.Equal("test", result.ContentAs<ExampleContent>().Content);
-            await collection.RemoveAsync(id).ConfigureAwait(false);
+            await collection.RemoveAsync(id).ConfigureAwait(true);
         }
 
         [Fact]
@@ -58,7 +58,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
         {
             var collection = await _fixture.DefaultCollection();
 
-            var exception = await Record.ExceptionAsync( () => collection.GetAsync("fake_doc")).ConfigureAwait(false);
+            var exception = await Record.ExceptionAsync( () => collection.GetAsync("fake_doc")).ConfigureAwait(true);
             Assert.IsType<DocumentNotFoundException>(exception);
         }
 
@@ -71,17 +71,17 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             var dt = DateTimeOffset.Now.ToString("R");
             var id = "UnitTestUpsert01";
             var contentObj = new UpsertSampleDoc(id, dt);
-            var upsertResponse = await collection.UpsertAsync(id, contentObj).ConfigureAwait(false);
+            var upsertResponse = await collection.UpsertAsync(id, contentObj).ConfigureAwait(true);
             Assert.NotNull(upsertResponse);
             Assert.NotEqual(0u, upsertResponse.Cas);
 
-            var getResponse = await collection.GetAsync(id).ConfigureAwait(false);
+            var getResponse = await collection.GetAsync(id).ConfigureAwait(true);
             Assert.NotNull(getResponse);
             Assert.NotEqual(0u, getResponse.Cas);
             var deserializedDoc = getResponse.ContentAs<UpsertSampleDoc>();
             Assert.Equal(dt, deserializedDoc?.Updated);
 
-            await collection.RemoveAsync(id).ConfigureAwait(false);
+            await collection.RemoveAsync(id).ConfigureAwait(true);
         }
 
         [Fact]
@@ -92,11 +92,11 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             var id = "UnitTestInsert01" + Guid.NewGuid();
             var contentObj = new UpsertSampleDoc(id, dt);
             var insertOptions = new InsertOptions().Expiry(TimeSpan.FromSeconds(120));
-            var mutationResult = await collection.InsertAsync(id, contentObj, insertOptions).ConfigureAwait(false);
+            var mutationResult = await collection.InsertAsync(id, contentObj, insertOptions).ConfigureAwait(true);
             Assert.NotNull(mutationResult);
             Assert.NotEqual(0u, mutationResult.Cas);
 
-            var getResponse = await collection.GetAsync(id).ConfigureAwait(false);
+            var getResponse = await collection.GetAsync(id).ConfigureAwait(true);
             Assert.NotNull(getResponse);
             Assert.NotEqual(0u, getResponse.Cas);
             var deserializedDoc = getResponse.ContentAs<UpsertSampleDoc>();
@@ -124,7 +124,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             var id = "LookupIn_Test001" + Guid.NewGuid();
             var customers = GetExampleHobbyCustomers(id);
 
-            await collection.InsertAsync(id, customers, opts => opts.Expiry(TimeSpan.FromMinutes(5))).ConfigureAwait(false);
+            await collection.InsertAsync(id, customers, opts => opts.Expiry(TimeSpan.FromMinutes(5))).ConfigureAwait(true);
 
             try
             {
@@ -151,7 +151,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 throw;
             }
 
-            await collection.RemoveAsync(id).ConfigureAwait(false);
+            await collection.RemoveAsync(id).ConfigureAwait(true);
         }
 
 
@@ -224,22 +224,22 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 throw;
             }
 
-            await collection.RemoveAsync(id).ConfigureAwait(false);
+            await collection.RemoveAsync(id).ConfigureAwait(true);
 
         }
 
         [Fact]
         public async Task GetAllReplicas()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
             var person = new {Name = "Lambda", Age = 100};
 
             try
             {
-                await collection.InsertAsync(key, person).ConfigureAwait(false);
+                await collection.InsertAsync(key, person).ConfigureAwait(true);
 
-                var results = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(false);
+                var results = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(true);
                 foreach (var result in results)
                 {
                     Assert.True(result.IsActive is true or false);
@@ -257,104 +257,104 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task Binary_Increment()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
-            await collection.UpsertAsync(key, 0).ConfigureAwait(false);
+            await collection.UpsertAsync(key, 0).ConfigureAwait(true);
 
             try
             {
                 var result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong) 1, result.Content);
 
-                result = await collection.Binary.IncrementAsync(key).ConfigureAwait(false);
+                result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong) 2, result.Content);
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task Binary_Decrement()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
-            await collection.UpsertAsync(key, 3).ConfigureAwait(false);
+            await collection.UpsertAsync(key, 3).ConfigureAwait(true);
 
             try
             {
                 var result = await collection.Binary.DecrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong) 2, result.Content);
 
-                result = await collection.Binary.DecrementAsync(key).ConfigureAwait(false);
+                result = await collection.Binary.DecrementAsync(key).ConfigureAwait(true);
                 Assert.Equal((ulong) 1, result.Content);
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task Binary_Append()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
-            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
 
             try
             {
                 await collection.Binary.AppendAsync(key, "test1"u8.ToArray()).ConfigureAwait(true);
 
-                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
                 Assert.Equal("testtest1", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
 
                 await collection.Binary.AppendAsync(key, "test2"u8.ToArray()).ConfigureAwait(true);
 
-                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
                 Assert.Equal("testtest1test2", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task Binary_Prepend()
         {
-            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
-            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
 
             try
             {
                 await collection.Binary.PrependAsync(key, "test1"u8.ToArray()).ConfigureAwait(true);
 
-                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
 
                 Assert.Equal("test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
 
                 await collection.Binary.PrependAsync(key, "test2"u8.ToArray()).ConfigureAwait(true);
 
-                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(true);
                 Assert.Equal("test2test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await collection.RemoveAsync(key).ConfigureAwait(true);
             }
         }
 

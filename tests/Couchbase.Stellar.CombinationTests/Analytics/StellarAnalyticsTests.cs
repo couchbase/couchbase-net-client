@@ -23,7 +23,7 @@ public class StellarAnalyticsTests
     {
         var analyticsOptions = new AnalyticsOptions().Priority(true).ClientContextId("").Readonly(true);
 
-        var analyticsResult = await _fixture.StellarCluster.AnalyticsQueryAsync<dynamic>("SELECT \"hello\" as greeting;", analyticsOptions).ConfigureAwait(false);
+        var analyticsResult = await _fixture.StellarCluster.AnalyticsQueryAsync<dynamic>("SELECT \"hello\" as greeting;", analyticsOptions).ConfigureAwait(true);
 
         await foreach (var result in analyticsResult)
         {

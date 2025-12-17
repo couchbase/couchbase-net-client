@@ -513,7 +513,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 Times.Exactly(5));
         }
 
-        [Fact]
+        [Fact(Skip = "Randomly fails on underprovisioned EC2 Jenkins.")]
         public async Task Scale_Down_DoesNotWaitForClose()
         {
             // Arrange

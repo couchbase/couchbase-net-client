@@ -16,6 +16,7 @@ using Couchbase.Test.Common.Utils;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Repeat;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server;
 
@@ -31,7 +32,6 @@ public class ConfigPushHandlerTests
     [Fact]
     public async Task ConfigPushHandler_ServerVersionRegressed()
     {
-        await Task.Yield();
         // server pushes (1,3), but returns (1,1)
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
         initialBucketConfig.OnDeserialized(); // Required to properly initialize ConfigVersion
@@ -89,39 +89,58 @@ public class ConfigPushHandlerTests
     [Fact]
     public async Task ConfigPushHandler_BasicAdvance()
     {
-        // server pushes (1,2), and returns (1,2)
-        bool publishedAnything = false;
-        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 1 };
-        var versionPublished = new ConfigVersion(0, 0);
-        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc =>
+        using var semaphore = new SemaphoreSlim(0, 1);
+
+        try
         {
-            publishedAnything = true;
-            Assert.NotNull(bc);
-            versionPublished = bc!.ConfigVersion;
-        });
+            // server pushes (1,2), and returns (1,2)
+            var publishedAnything = false;
+            var initialBucketConfig = new BucketConfig()
+                { RevEpoch = 1, Rev = 1 };
+            var versionPublished = new ConfigVersion(0, 0);
+            var mockBucket = CreateBucketMock(
+                initialConfig: initialBucketConfig, onPublish: bc =>
+                {
+                    publishedAnything = true;
+                    Assert.NotNull(bc);
+                    versionPublished = bc!.ConfigVersion;
+                    semaphore.Release();
+                });
 
-        ClusterContext mockContext = mockBucket.Context;
-        var mockNode = new Mock<IClusterNode>();
-        BucketConfig getClusterMapResult = new BucketConfig() { RevEpoch = 1, Rev = 2 };
-        getClusterMapResult.OnDeserialized();
-        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
-        mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(getClusterMapResult));
-        mockNode.SetupGet(x => x.IsDead).Returns(false);
-        mockNode.SetupGet(x => x.HasKv).Returns(true);
-        mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
-        mockContext.Nodes.Add(mockNode.Object);
-        mockBucket.Nodes.Add(mockNode.Object);
-        mockContext.RegisterBucket(mockBucket);
-        mockContext.Start();
-        var logger = new TestOutputLogger(_outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
-        var redactor = new TypedRedactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
-        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 2));
-        await Task.Delay(500);
+            ClusterContext mockContext = mockBucket.Context;
+            var mockNode = new Mock<IClusterNode>();
+            BucketConfig getClusterMapResult = new BucketConfig()
+                { RevEpoch = 1, Rev = 2 };
+            getClusterMapResult.OnDeserialized();
+            IReadOnlyCollection<HostEndpointWithPort> endpoints =
+                new List<HostEndpointWithPort>();
+            mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(getClusterMapResult));
+            mockNode.SetupGet(x => x.IsDead).Returns(false);
+            mockNode.SetupGet(x => x.HasKv).Returns(true);
+            mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+            mockContext.Nodes.Add(mockNode.Object);
+            mockBucket.Nodes.Add(mockNode.Object);
+            mockContext.RegisterBucket(mockBucket);
+            mockContext.Start();
+            var logger = new TestOutputLogger(_outputHelper,
+                nameof(ConfigPushHandler_ServerVersionRegressed));
+            var redactor = new TypedRedactor(RedactionLevel.None);
+            using var configPushHandler =
+                new ConfigPushHandler(mockBucket, mockContext, logger,
+                    redactor);
+            configPushHandler.ProcessConfigPush(new ConfigVersion(1, 2));
 
-        Assert.True(publishedAnything);
-        Assert.Equal(expected: getClusterMapResult.ConfigVersion, actual: versionPublished);
+            await semaphore.WaitAsync();
+            Assert.True(publishedAnything);
+            Assert.Equal(expected: getClusterMapResult.ConfigVersion,
+                actual: versionPublished);
+        }
+        catch
+        {
+            semaphore.Release();
+        }
     }
 
     private BucketBase CreateBucketMock(

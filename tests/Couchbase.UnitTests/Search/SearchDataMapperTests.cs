@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("error-with-errors.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
                 Assert.Equal(6, result.MetaData.ErrorCount);
             }
         }
@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
                 Assert.NotEqual(0, result.MetaData.SuccessCount);
                 Assert.Equal(result.MetaData.TotalCount, result.MetaData.SuccessCount);
                 //Assert.True(result.Success);
@@ -43,7 +43,7 @@ namespace Couchbase.UnitTests.Search
             var fileStream = OpenResource("search-response-success.json");
             using (var stream = fileStream)
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(32, result.MetaData.SuccessCount);
             }
@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(0.907210290772297, result.MetaData.MaxScore);
             }
@@ -67,7 +67,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(123, result.MetaData.TimeTook.Milliseconds);
                 Assert.Equal(1231657, result.MetaData.TimeTook.Ticks); // <- max resolution of TimeStamp, currently
@@ -80,7 +80,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(116, result.MetaData.TotalHits);
             }
@@ -92,7 +92,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(0, result.MetaData.ErrorCount);
             }
@@ -104,7 +104,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 Assert.Equal(10, result.Hits.Count);
             }
@@ -116,7 +116,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.json"))
             {
-                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(true);
 
                 var first = result.Hits.First();
                 Assert.Equal("travel_landmark_idx_699e0a42ee02c6b2_27184a97", first.Index);
@@ -133,7 +133,7 @@ namespace Couchbase.UnitTests.Search
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-with-facets.json"))
             {
-                result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                result = await mapper.MapAsync(stream).ConfigureAwait(true);
             }
 
             var expectedFacets = JsonConvert.SerializeObject(new

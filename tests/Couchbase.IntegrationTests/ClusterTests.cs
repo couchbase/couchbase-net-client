@@ -31,34 +31,34 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Open_More_Than_One_Bucket()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var key = Guid.NewGuid().ToString();
 
-            var bucket1 = await cluster.BucketAsync("travel-sample").ConfigureAwait(false);
+            var bucket1 = await cluster.BucketAsync("travel-sample").ConfigureAwait(true);
             Assert.NotNull(bucket1);
 
-            var bucket2 = await cluster.BucketAsync("default").ConfigureAwait(false);
+            var bucket2 = await cluster.BucketAsync("default").ConfigureAwait(true);
             Assert.NotNull(bucket2);
 
             try
             {
                 var result1 = await (await bucket1.DefaultCollectionAsync()).InsertAsync(key, new {Whoah = "buddy!"})
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(true);
 
                 var result2 = await (await bucket2.DefaultCollectionAsync()).InsertAsync(key, new {Whoah = "buddy!"})
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(true);
             }
             finally
             {
-                await (await bucket1.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(false);
-                await (await bucket2.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(false);
+                await (await bucket1.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(true);
+                await (await bucket2.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task Test_Query_With_Positional_Parameters()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=$1",
                 options => { options.Parameter("foo"); }).ConfigureAwait(true);
@@ -73,10 +73,10 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Query2()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
-                options => { options.Parameter("name", "person"); }).ConfigureAwait(false);
+                options => { options.Parameter("name", "person"); }).ConfigureAwait(true);
 
             await foreach (var o in result)
             {
@@ -89,9 +89,9 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Views()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await cluster.BucketAsync("beer-sample").ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("beer-sample").ConfigureAwait(true);
 
-            var results = await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers").ConfigureAwait(false);
+            var results = await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers").ConfigureAwait(true);
             await foreach (var result in results)
             {
                 _outputHelper.WriteLine($"id={result.Id},key={result.Key},value={result.Value}");
@@ -104,15 +104,15 @@ namespace Couchbase.IntegrationTests
             var cluster = _fixture.Cluster;
 
             // To test properly, start this test without any nodes running.
-            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(120)).ConfigureAwait(false);
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(120)).ConfigureAwait(true);
         }
 
         [Fact]
         public async Task Test_WaitUntilReadyAsync_Bucket()
         {
             var cluster = _fixture.Cluster;
-            var defaultBucket = await cluster.BucketAsync("default").ConfigureAwait(false);
-            await defaultBucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            var defaultBucket = await cluster.BucketAsync("default").ConfigureAwait(true);
+            await defaultBucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(true);
         }
 
         [CouchbaseVersionDependentTheory(MinVersion = "6.5.0")]
@@ -128,13 +128,13 @@ namespace Couchbase.IntegrationTests
                 ExplicitServiceTypes = serviceTypes
             };
 
-            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10), options).ConfigureAwait(false);
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10), options).ConfigureAwait(true);
         }
 
         [Fact]
         public async Task Test_Default_Scope_Collection_Async()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucket = await cluster.BucketAsync("default");
 
             var scope = await bucket.DefaultScopeAsync();
@@ -335,7 +335,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Default_Scope_Collection_Legacy()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucket = await cluster.BucketAsync("default");
 
             var scope = bucket.DefaultScope();
@@ -348,7 +348,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Default_Open_Collection_From_Scope_Async()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucket = await cluster.BucketAsync("default");
 
             var scope = await bucket.DefaultScopeAsync();
@@ -361,7 +361,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Default_Open_Collection_From_Scope_Legacy()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucket = await cluster.BucketAsync("default");
 
             var scope = bucket.DefaultScope();

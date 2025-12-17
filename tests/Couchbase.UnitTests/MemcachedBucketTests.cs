@@ -37,8 +37,8 @@ namespace Couchbase.UnitTests
 
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
             {
-                await bucket.ViewQueryAsync<dynamic, dynamic>("designDoc", "viewName").ConfigureAwait(false);
-            }).ConfigureAwait(false);
+                await bucket.ViewQueryAsync<dynamic, dynamic>("designDoc", "viewName").ConfigureAwait(true);
+            }).ConfigureAwait(true);
         }
 
         [Fact]
@@ -46,7 +46,9 @@ namespace Couchbase.UnitTests
         {
             var bucket = CreateMemcachedBucket();
 
+#pragma warning disable xUnit2021
             Assert.ThrowsAsync<NotSupportedException>(async () => await bucket.ScopeAsync("xxxxx"));
+#pragma warning restore xUnit2021
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -66,7 +68,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
 
             var scope = await bucket.ScopeAsync(Scope.DefaultScopeName);
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
@@ -89,7 +91,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
 
             var scope = bucket.Scope(Scope.DefaultScopeName);
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
@@ -112,7 +114,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
 
             Assert.Throws<NotSupportedException>(() => bucket.Scope("xxxx"));
         }

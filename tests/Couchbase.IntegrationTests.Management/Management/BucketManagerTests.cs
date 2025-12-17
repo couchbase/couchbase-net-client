@@ -26,7 +26,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task CreateAndDropCouchbaseBucket()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(CreateAndDropCouchbaseBucket);
 
             try
@@ -37,9 +37,9 @@ namespace Couchbase.IntegrationTests.Management
                     Name = bucketName,
                     NumReplicas = 0,
                     RamQuotaMB = 100
-                }).ConfigureAwait(false);
+                }).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
             }
             catch (BucketExistsException e)
             {
@@ -48,14 +48,14 @@ namespace Couchbase.IntegrationTests.Management
             }
             finally
             {
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task CreateAndDropMemcached()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(CreateAndDropMemcached);
 
             try
@@ -65,9 +65,9 @@ namespace Couchbase.IntegrationTests.Management
                     BucketType = BucketType.Memcached,
                     Name = bucketName,
                     RamQuotaMB = 100
-                }).ConfigureAwait(false);
+                }).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
             }
             catch (BucketExistsException e)
             {
@@ -76,14 +76,14 @@ namespace Couchbase.IntegrationTests.Management
             }
             finally
             {
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task CreateAndDropEphemeral()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(CreateAndDropEphemeral);
 
             try
@@ -93,9 +93,9 @@ namespace Couchbase.IntegrationTests.Management
                     BucketType = BucketType.Ephemeral,
                     Name = bucketName,
                     RamQuotaMB = 100
-                }).ConfigureAwait(false);
+                }).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
             }
             catch (BucketExistsException e)
             {
@@ -104,14 +104,14 @@ namespace Couchbase.IntegrationTests.Management
             }
             finally
             {
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
         [Fact]
         public async Task GetAllBucketsWithMemcachedBucket()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(GetAllBucketsWithMemcachedBucket);
 
             try
@@ -121,17 +121,17 @@ namespace Couchbase.IntegrationTests.Management
                     BucketType = BucketType.Memcached,
                     Name = bucketName,
                     RamQuotaMB = 100
-                }).ConfigureAwait(false);
+                }).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
-                var buckets = await cluster.Buckets.GetAllBucketsAsync().ConfigureAwait(false);
+                var buckets = await cluster.Buckets.GetAllBucketsAsync().ConfigureAwait(true);
 
                 Assert.Contains(buckets, x => x.Value.Name == bucketName && x.Value.BucketType == BucketType.Memcached);
             }
             finally
             {
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
@@ -140,7 +140,7 @@ namespace Couchbase.IntegrationTests.Management
         [InlineData(BucketType.Memcached)]
         public async Task FlushBuckets(BucketType bucketType)
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(FlushBuckets);
 
             await cluster.Buckets.CreateBucketAsync(new BucketSettings
@@ -149,17 +149,17 @@ namespace Couchbase.IntegrationTests.Management
                 Name = bucketName,
                 RamQuotaMB = 100,
                 FlushEnabled = true
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await Task.Delay(5000).ConfigureAwait(false);
+            await Task.Delay(5000).ConfigureAwait(true);
 
             try
             {
-                await cluster.Buckets.FlushBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.FlushBucketAsync(bucketName).ConfigureAwait(true);
             }
             finally
             {
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
@@ -169,7 +169,7 @@ namespace Couchbase.IntegrationTests.Management
         [InlineData(BucketType.Memcached)]
         public async Task PingBucket(BucketType bucketType)
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
             var bucketName = nameof(BucketManagerTests) + "_" + nameof(PingBucket);
 
             await cluster.Buckets.CreateBucketAsync(new BucketSettings
@@ -178,25 +178,25 @@ namespace Couchbase.IntegrationTests.Management
                 Name = bucketName,
                 RamQuotaMB = 100,
                 FlushEnabled = true
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
-            await Task.Delay(5000).ConfigureAwait(false);
+            await Task.Delay(5000).ConfigureAwait(true);
 
             try
             {
-                var bucket = await cluster.BucketAsync(bucketName).ConfigureAwait(false);
+                var bucket = await cluster.BucketAsync(bucketName).ConfigureAwait(true);
 
-                var pingReport = await bucket.PingAsync().ConfigureAwait(false);
+                var pingReport = await bucket.PingAsync().ConfigureAwait(true);
 
                 Assert.Contains(pingReport.Services.Keys, x => x == "kv");
                 Assert.True(pingReport.Services["kv"].All(x => x.State == Couchbase.Diagnostics.ServiceState.Ok));
             }
             finally
             {
-                await _fixture.InitializeAsync().ConfigureAwait(false);
-                cluster = await _fixture.GetCluster().ConfigureAwait(false);
+                await _fixture.InitializeAsync().ConfigureAwait(true);
+                cluster = await _fixture.GetCluster().ConfigureAwait(true);
 
-                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName).ConfigureAwait(true);
             }
         }
 
@@ -221,30 +221,30 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(TimeSpan.FromMilliseconds(5000)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(5000)).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 VerifyBucket(settings, result);
 
                 // upsert
                 settings.ConflictResolutionType = null; // not allowed to edit on existing bucket
-                await bucketManager.UpdateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.UpdateBucketAsync(settings).ConfigureAwait(true);
                 settings.ConflictResolutionType = ConflictResolutionType.Timestamp;
 
                 // get all
-                var allBuckets = await bucketManager.GetAllBucketsAsync().ConfigureAwait(false);
+                var allBuckets = await bucketManager.GetAllBucketsAsync().ConfigureAwait(true);
                 VerifyBucket(settings, allBuckets.Single(x => x.Key == settings.Name).Value);
 
                 // flush
-                await bucketManager.FlushBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.FlushBucketAsync(settings.Name).ConfigureAwait(true);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -278,18 +278,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(EvictionPolicyType.NoEviction, result.EvictionPolicy);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -310,18 +310,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(EvictionPolicyType.NotRecentlyUsed, result.EvictionPolicy);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -342,18 +342,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(EvictionPolicyType.ValueOnly, result.EvictionPolicy);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -374,18 +374,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(EvictionPolicyType.FullEviction, result.EvictionPolicy);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -406,18 +406,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(DurabilityLevel.None, result.DurabilityMinimumLevel);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -439,18 +439,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(DurabilityLevel.Majority, result.DurabilityMinimumLevel);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -471,18 +471,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(StorageBackend.Couchstore, result.StorageBackend);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
 
@@ -503,18 +503,18 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(StorageBackend.Magma, result.StorageBackend);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
         [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
@@ -534,12 +534,12 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(true);
 
-                await Task.Delay(5000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(true);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(true);
                 Assert.Equal(ConflictResolutionType.Custom, result.ConflictResolutionType);
             }
             catch (CouchbaseException ex)
@@ -549,7 +549,7 @@ namespace Couchbase.IntegrationTests.Management
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(true);
             }
         }
     }

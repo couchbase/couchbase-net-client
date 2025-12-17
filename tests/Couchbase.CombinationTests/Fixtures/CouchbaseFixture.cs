@@ -80,7 +80,7 @@ namespace Couchbase.CombinationTests.Fixtures
         {
             if (!isAlreadyFlushed)
             {
-                await Cluster.Buckets.FlushBucketAsync("default").ConfigureAwait(false);
+                await Cluster.Buckets.FlushBucketAsync("default").ConfigureAwait(true);
                 return true;
             }
 
@@ -96,8 +96,8 @@ namespace Couchbase.CombinationTests.Fixtures
         public async Task<IScope> GetDefaultScope()
         {
             await BuildAsync();
-            var bucket = await GetDefaultBucket().ConfigureAwait(false);
-            return await bucket.ScopeAsync("_default").ConfigureAwait(false);
+            var bucket = await GetDefaultBucket().ConfigureAwait(true);
+            return await bucket.ScopeAsync("_default").ConfigureAwait(true);
         }
 
         public async Task<ICouchbaseCollection> GetDefaultCollection()

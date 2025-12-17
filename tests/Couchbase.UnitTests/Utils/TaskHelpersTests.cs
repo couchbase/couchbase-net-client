@@ -5,12 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
 using Xunit;
+using Xunit.Repeat;
 
 namespace Couchbase.UnitTests.Utils;
 
 public class TaskHelpersTests
 {
-    [Theory]
+    [Repeat(5)]
     [InlineData("TaskFive", new[] {true, true, true, true, false})]
     [InlineData("TaskFour", new[] {true, true, true, false, true})]
     [InlineData("TaskTwo", new[] {true, false, true, false, true})]
@@ -24,7 +25,7 @@ public class TaskHelpersTests
 
         var taskList = new[] { taskOne, taskTwo, taskThree , taskFour, taskFive};
 
-        var firstSuccessful = await TaskHelpers.WhenAnySuccessful(taskList, CancellationToken.None).ConfigureAwait(false);
+        var firstSuccessful = await TaskHelpers.WhenAnySuccessful(taskList, CancellationToken.None).ConfigureAwait(true);
 
         Assert.Equal(expectedId, firstSuccessful);
     }
@@ -37,7 +38,7 @@ public class TaskHelpersTests
             .Select<int, Task<string>>(async i =>
             {
                 // using var foo = new ThrowsAfterDispose();
-                await Task.Delay(0).ConfigureAwait(false);
+                await Task.Delay(0).ConfigureAwait(true);
                 SpinWait.SpinUntil(() => Interlocked.Read(ref sentinel) > 0, 500);
                 if (i % 3 == 0)
                 {
@@ -55,7 +56,7 @@ public class TaskHelpersTests
         });
 
         var allTasks = faultyTasks.Concat(new[] { successfulTask });
-        var result = await TaskHelpers.WhenAnySuccessful(allTasks, CancellationToken.None).ConfigureAwait(false);
+        var result = await TaskHelpers.WhenAnySuccessful(allTasks, CancellationToken.None).ConfigureAwait(true);
         Assert.Equal("success", result);
     }
 
@@ -77,7 +78,9 @@ public class TaskHelpersTests
         }, cts.Token);
 
         var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new List<Task<int>>() { t1, t2 }, cts.Token);
+#pragma warning disable xUnit2021
         _ = Assert.ThrowsAsync<OperationCanceledException>(() => whenAnySuccessful);
+#pragma warning restore xUnit2021
     }
 
     [Fact]
@@ -87,12 +90,14 @@ public class TaskHelpersTests
         var t1 = Task.Run(alwaysThrows);
         var t2 = Task.Run(alwaysThrows);
         var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new List<Task<int>>() { t1, t2 }, CancellationToken.None);
+#pragma warning disable xUnit2021
         _ = Assert.ThrowsAsync<AggregateException>(() => whenAnySuccessful);
+#pragma warning restore xUnit2021
     }
 
     private static async Task<string> WaitOrThrow(string id, int seconds, bool throws)
     {
-        await Task.Delay(TimeSpan.FromSeconds(seconds)).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(seconds)).ConfigureAwait(true);
         if (throws)
         {
             throw new Exception($"Task {id} threw.");

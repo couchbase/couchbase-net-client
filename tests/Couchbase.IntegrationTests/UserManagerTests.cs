@@ -40,7 +40,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // available roles
-                var availableRoles = await userManager.GetRolesAsync().ConfigureAwait(false);
+                var availableRoles = await userManager.GetRolesAsync().ConfigureAwait(true);
                 Assert.Contains(availableRoles, role => role.Role == "admin");
 
                 // upsert group
@@ -50,10 +50,10 @@ namespace Couchbase.IntegrationTests
                     LdapGroupReference = "asda=price",
                     Roles = new[] {new Role("admin"), new Role("bucket_admin", "*")}
                 };
-                await userManager.UpsertGroupAsync(@group).ConfigureAwait(false);
+                await userManager.UpsertGroupAsync(@group).ConfigureAwait(true);
 
                 // get group
-                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(false);
+                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(true);
                 Assert.Equal(group.Name, groupResult.Name);
                 Assert.Equal(group.Description, groupResult.Description);
                 Assert.Equal(group.LdapGroupReference, groupResult.LdapGroupReference);
@@ -61,7 +61,7 @@ namespace Couchbase.IntegrationTests
                 Assert.Contains(group.Roles, role => role.Name == "bucket_admin" && role.Bucket == "*");
 
                 // get all groups
-                var allGroupsResult = await userManager.GetAllGroupsAsync().ConfigureAwait(false);
+                var allGroupsResult = await userManager.GetAllGroupsAsync().ConfigureAwait(true);
                 groupResult = allGroupsResult.Single(x => x.Name == groupName);
                 Assert.Equal(group.Name, groupResult.Name);
                 Assert.Equal(group.Description, groupResult.Description);
@@ -77,10 +77,10 @@ namespace Couchbase.IntegrationTests
                     Roles = roles,
                     Password = password
                 };
-                await userManager.UpsertUsersAsync(user).ConfigureAwait(false);
+                await userManager.UpsertUsersAsync(user).ConfigureAwait(true);
 
                 // get user with meta
-                var userResult = await userManager.GetUserAsync(username).ConfigureAwait(false);
+                var userResult = await userManager.GetUserAsync(username).ConfigureAwait(true);
                 Assert.Equal(username, userResult.Username);
                 Assert.Equal(displayName, userResult.DisplayName);
                 Assert.Equal("local", userResult.Domain);
@@ -89,7 +89,7 @@ namespace Couchbase.IntegrationTests
                 Assert.Contains(userResult.Groups, x => x == groupName);
 
                 // get all users with meta
-                var users = await userManager.GetAllUsersAsync().ConfigureAwait(false);
+                var users = await userManager.GetAllUsersAsync().ConfigureAwait(true);
                 userResult = users.Single(x => x.Username == username);
                 Assert.Equal(username, userResult.Username);
                 Assert.Equal(displayName, userResult.DisplayName);
@@ -102,10 +102,10 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 // drop user
-                await userManager.DropUserAsync(username).ConfigureAwait(false);
+                await userManager.DropUserAsync(username).ConfigureAwait(true);
 
                 // drop group
-                await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
+                await userManager.DropGroupAsync(groupName).ConfigureAwait(true);
             }
         }
 
@@ -126,8 +126,8 @@ namespace Couchbase.IntegrationTests
                     new Role("data_reader", "default", "_default", null),
                     new Role("data_reader", "default", "_default", "_default")
                 }};
-                await userManager.UpsertGroupAsync(@group).ConfigureAwait(false);
-                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(false);
+                await userManager.UpsertGroupAsync(@group).ConfigureAwait(true);
+                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(true);
 
                 var user = new User(username)
                 {
@@ -144,10 +144,10 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 // drop user
-                await userManager.DropUserAsync(username).ConfigureAwait(false);
+                await userManager.DropUserAsync(username).ConfigureAwait(true);
 
                 // drop group
-                await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
+                await userManager.DropGroupAsync(groupName).ConfigureAwait(true);
             }
         }
 
@@ -171,8 +171,8 @@ namespace Couchbase.IntegrationTests
                 Groups = new[] { groupName }
             };
 
-            await globalUserManager.UpsertGroupAsync(@group).ConfigureAwait(false);
-            await globalUserManager.UpsertUsersAsync(user).ConfigureAwait(false);
+            await globalUserManager.UpsertGroupAsync(@group).ConfigureAwait(true);
+            await globalUserManager.UpsertUsersAsync(user).ConfigureAwait(true);
 
             try // cannot login to new user immediately...
             {
@@ -185,7 +185,7 @@ namespace Couchbase.IntegrationTests
                     {
                         disposableConnection =
                             await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString,
-                                username, originalPassword).ConfigureAwait(false);
+                                username, originalPassword).ConfigureAwait(true);
                         break;
                     }
                     catch (Exception ex)
@@ -202,7 +202,7 @@ namespace Couchbase.IntegrationTests
 
                 var disposableUserManager = disposableConnection.Users;
                 await disposableUserManager.ChangeUserPasswordAsync(newPassword)
-                    .ConfigureAwait(false);
+                    .ConfigureAwait(true);
 
                 disposableConnection.Dispose();
 
@@ -214,7 +214,7 @@ namespace Couchbase.IntegrationTests
                     {
                         disposableConnection =
                             await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString,
-                                username, newPassword).ConfigureAwait(false);
+                                username, newPassword).ConfigureAwait(true);
                         disposableConnection.Dispose();
                         break;
                     }
@@ -236,8 +236,8 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await globalUserManager.DropUserAsync(username).ConfigureAwait(false);
-                await globalUserManager.DropGroupAsync(groupName).ConfigureAwait(false);
+                await globalUserManager.DropUserAsync(username).ConfigureAwait(true);
+                await globalUserManager.DropGroupAsync(groupName).ConfigureAwait(true);
             }
 
         }

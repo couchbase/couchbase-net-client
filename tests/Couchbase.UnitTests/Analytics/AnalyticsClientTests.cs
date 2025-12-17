@@ -162,7 +162,7 @@ namespace Couchbase.UnitTests.Analytics
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             Assert.Null(client.LastActivity);
-            await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
+            await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(true);
             Assert.NotNull(client.LastActivity);
         }
 
@@ -216,7 +216,7 @@ namespace Couchbase.UnitTests.Analytics
 
             try
             {
-                await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
+                await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(true);
             }
             catch (Exception ex)
             {

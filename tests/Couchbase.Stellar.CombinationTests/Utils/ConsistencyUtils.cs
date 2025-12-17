@@ -22,12 +22,12 @@ public class ConsistencyUtils
         {
             try
             {
-                await _fixture!.CouchbaseCluster.Buckets.GetBucketAsync(bucketName).ConfigureAwait(false);
+                await _fixture!.CouchbaseCluster.Buckets.GetBucketAsync(bucketName).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
                 continue;
             }
             isPresent = true;
@@ -44,13 +44,13 @@ public class ConsistencyUtils
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName).ConfigureAwait(false);
-                await bucket.ScopeAsync(scopeName).ConfigureAwait(false);
+                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName).ConfigureAwait(true);
+                await bucket.ScopeAsync(scopeName).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
                 continue;
             }
             isPresent = true;
@@ -68,15 +68,15 @@ public class ConsistencyUtils
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
-                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(false);
-                await collection.UpsertAsync(docId, new { Content = "Content" }).ConfigureAwait(false);
+                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
+                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(true);
+                await collection.UpsertAsync(docId, new { Content = "Content" }).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
                 continue;
             }
             isPresent = true;
@@ -87,8 +87,8 @@ public class ConsistencyUtils
 
     public async Task WaitUntilCollectionIsDropped(string collectionName, string? bucketName = null, string? scopeName = null, int limit = 10)
     {
-        var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-        var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
+        var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+        var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
 
         bool isGone = false;
         short retryCount = 0;
@@ -96,8 +96,8 @@ public class ConsistencyUtils
         {
             try
             {
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
-                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" }).ConfigureAwait(false);
+                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" }).ConfigureAwait(true);
             }
             catch (Exception)
             {
@@ -105,7 +105,7 @@ public class ConsistencyUtils
                 break;
             }
             retryCount++;
-            await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+            await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
         }
 
         if (!isGone) throw new CouchbaseException($"The consistency util failed out after {limit} attempts.");
@@ -121,15 +121,15 @@ public class ConsistencyUtils
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
-                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(false);
-                result = await collection.GetAsync(id).ConfigureAwait(false);
+                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
+                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(true);
+                result = await collection.GetAsync(id).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
             }
 
             if (result != null)

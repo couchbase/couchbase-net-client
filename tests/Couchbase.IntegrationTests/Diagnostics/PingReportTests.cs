@@ -21,8 +21,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
         [Fact]
         public async Task Can_Get_PingReport()
         {
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
-            var report = await bucket.PingAsync().ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var report = await bucket.PingAsync().ConfigureAwait(true);
 
             Assert.NotNull(report);
             Assert.NotEmpty(report.Id);
@@ -43,8 +43,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
                 ServiceType.Query
             };
 
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
-            var report = await bucket.PingAsync(services).ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var report = await bucket.PingAsync(services).ConfigureAwait(true);
 
             Assert.NotNull(report);
             Assert.NotEmpty(report.Id); // verify report Id has been assigned
@@ -62,8 +62,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
         public async Task Can_Get_PingReport_With_ReportId()
         {
             const string reportId = "report-id";
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
-            var report = await bucket.PingAsync(reportId).ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var report = await bucket.PingAsync(reportId).ConfigureAwait(true);
 
             Assert.NotNull(report);
             Assert.NotEmpty(report.Services);
@@ -85,8 +85,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
                 ServiceType.Query
             };
 
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
-            var report = await bucket.PingAsync(reportId, services).ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var report = await bucket.PingAsync(reportId, services).ConfigureAwait(true);
 
             Assert.NotNull(report);
             Assert.Equal(reportId, report.Id);

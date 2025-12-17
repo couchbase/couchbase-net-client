@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests
                 );
             await ((Couchbase.Core.Bootstrapping.IBootstrappable)cluster).BootStrapAsync();
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
-                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false)).ConfigureAwait(false);
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(true)).ConfigureAwait(true);
         }
 
         #endregion
@@ -116,7 +116,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await cluster.Object.QueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(false);
+            var result = await cluster.Object.QueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(true);
 
             // Assert
 
@@ -162,7 +162,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await cluster.Object.AnalyticsQueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(false);
+            var result = await cluster.Object.AnalyticsQueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(true);
 
             // Assert
 

@@ -23,12 +23,12 @@ public class TestHelper
         {
             try
             {
-                await _fixture.Cluster.Buckets.GetBucketAsync(bucketName).ConfigureAwait(false);
+                await _fixture.Cluster.Buckets.GetBucketAsync(bucketName).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
                 continue;
             }
             isPresent = true;
@@ -45,14 +45,14 @@ public class TestHelper
         {
             try
             {
-                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
-                await scope.CollectionAsync(collectionName).ConfigureAwait(false);
+                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
+                await scope.CollectionAsync(collectionName).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
                 continue;
             }
             isPresent = true;
@@ -63,8 +63,8 @@ public class TestHelper
 
     public async Task WaitUntilCollectionIsDropped(string collectionName, string? bucketName = null, string? scopeName = null, int limit = 10)
     {
-        var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-        var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
+        var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+        var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
 
         bool isGone = false;
         short retryCount = 0;
@@ -72,8 +72,8 @@ public class TestHelper
         {
             try
             {
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
-                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" }).ConfigureAwait(false);
+                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" }).ConfigureAwait(true);
             }
             catch (Exception)
             {
@@ -81,7 +81,7 @@ public class TestHelper
                 break;
             }
             retryCount++;
-            await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+            await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
         }
 
         if (!isGone) throw new CouchbaseException($"The consistency util failed out after {limit} attempts.");
@@ -97,15 +97,15 @@ public class TestHelper
         {
             try
             {
-                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(false);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(false);
-                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(false);
-                result = await collection.GetAsync(id).ConfigureAwait(false);
+                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
+                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(true);
+                result = await collection.GetAsync(id).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(false);
+                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
             }
 
             if (result != null)
