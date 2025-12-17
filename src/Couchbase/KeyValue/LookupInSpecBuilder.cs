@@ -10,7 +10,13 @@ namespace Couchbase.KeyValue
     /// </summary>
     public class LookupInSpecBuilder
     {
-        internal readonly List<LookupInSpec> Specs = new List<LookupInSpec>();
+        internal readonly List<LookupInSpec> Specs = [];
+
+        internal LookupInSpecBuilder Get(string path, bool isXattr, bool isBinary)
+        {
+            Specs.Add(LookupInSpec.Get(path, isXattr, isBinary));
+            return this;
+        }
 
         /// <summary>
         /// Fetches the value of an attribute for a given path.
@@ -20,7 +26,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="LookupInSpecBuilder"/> for chaining specs.</returns>
         public LookupInSpecBuilder Get(string path, bool isXattr = false)
         {
-            Specs.Add(LookupInSpec.Get(path, isXattr));
+            Get(path, isXattr: isXattr, isBinary: false);
             return this;
         }
 

@@ -1,88 +1,19 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using Couchbase.Core.IO.Converters;
-using Couchbase.Core.IO.Operations.Errors;
-
 
 namespace Couchbase.Core.IO.Operations
 {
     internal static class OperationHeaderExtensions
     {
-        private static readonly HashSet<ResponseStatus> ValidResponseStatuses =
-#if NET6_0_OR_GREATER
-            new(Enum.GetValues<ResponseStatus>());
-#else
-            new((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
-#endif
-
-        internal static OperationHeader CreateHeader(this Span<byte> buffer)
+        internal static long? GetServerDuration(this in OperationHeader header, ReadOnlySpan<byte> buffer)
         {
-            // This overload is necessary because the compiler won't apply implicit casting when finding extension methods,
-            // so it avoids the need for explicit casting to find the extension method below.
-
-            return CreateHeader((ReadOnlySpan<byte>) buffer);
-        }
-
-        internal static OperationHeader CreateHeader(this ReadOnlySpan<byte> buffer)
-        {
-            if (buffer == null || buffer.Length < OperationHeader.Length)
-            {
-                return new OperationHeader {Status = ResponseStatus.None};
-            }
-
-            int keyLength, framingExtrasLength;
-            var magic = (Magic) buffer[HeaderOffsets.Magic];
-            if (magic == Magic.AltResponse)
-            {
-                framingExtrasLength = buffer[HeaderOffsets.FramingExtras];
-                keyLength = buffer[HeaderOffsets.AltKeyLength];
-            }
-            else
-            {
-                framingExtrasLength = 0;
-                keyLength = ByteConverter.ToInt16(buffer.Slice(HeaderOffsets.KeyLength));
-            }
-
-            var statusCode = ByteConverter.ToInt16(buffer.Slice(HeaderOffsets.Status));
-            var status = GetResponseStatus(statusCode);
-
-            return new OperationHeader
-            {
-                Magic = (byte) magic,
-                OpCode = buffer[HeaderOffsets.Opcode].ToOpCode(),
-                FramingExtrasLength = framingExtrasLength,
-                KeyLength = keyLength,
-                ExtrasLength = buffer[HeaderOffsets.ExtrasLength],
-                DataType = (DataType) buffer[HeaderOffsets.Datatype],
-                Status = status,
-                BodyLength = ByteConverter.ToInt32(buffer.Slice(HeaderOffsets.Body)),
-                Opaque = ByteConverter.ToUInt32(buffer.Slice(HeaderOffsets.Opaque)),
-                Cas = ByteConverter.ToUInt64(buffer.Slice(HeaderOffsets.Cas))
-            };
-        }
-
-        internal static ResponseStatus GetResponseStatus(short code)
-        {
-            var status = (ResponseStatus) code;
-
-            // Is it a known response status?
-            if (!ValidResponseStatuses.Contains(status))
-            {
-                status = ResponseStatus.UnknownError;
-            }
-
-            return status;
-        }
-
-        internal static long? GetServerDuration(this OperationHeader header, ReadOnlySpan<byte> buffer)
-        {
-            if (header.FramingExtrasLength <= 0)
+            var framingExtrasLength = header.FramingExtrasLength;
+            if (framingExtrasLength <= 0)
             {
                 return null;
             }
 
-            return GetServerDuration(buffer.Slice(OperationHeader.Length, header.FramingExtrasLength));
+            return GetServerDuration(buffer.Slice(OperationHeader.Length, framingExtrasLength));
         }
 
         internal static long? GetServerDuration(ReadOnlySpan<byte> buffer)

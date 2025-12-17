@@ -1,13 +1,15 @@
-using Couchbase.Core;
-using Couchbase.KeyValue;
-using Couchbase.KeyValue.RangeScan;
-using Moq;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Pipelines;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.Operations;
+using Couchbase.KeyValue;
+using Couchbase.KeyValue.RangeScan;
 using Couchbase.Utils;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.KeyValue.KeyRange
@@ -43,14 +45,19 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         }
 
         [Fact]
-        public void SerializeKeyOnlyIsTrue()
+        public async Task SerializeKeyOnlyIsTrue()
         {
             var scan = new RangeScan() as IScanTypeExt;
-            var jsonBytes = scan.Serialize(true,
-                TimeSpan.FromMilliseconds(2000),
-                new MutationToken("default", 10, 16627788222, 1000));
 
-            var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
+            using var jsonBytes = new MemoryStream();
+            var bufferWriter = PipeWriter.Create(jsonBytes);
+            scan.Serialize(true,
+                TimeSpan.FromMilliseconds(2000),
+                new MutationToken("default", 10, 16627788222, 1000),
+                bufferWriter);
+            await bufferWriter.FlushAsync();
+
+            var json = System.Text.Encoding.UTF8.GetString(jsonBytes.ToArray());
             var doc = JsonDocument.Parse(json);
 
             Assert.True(doc.RootElement.GetProperty("key_only").GetBoolean());
@@ -66,29 +73,37 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         }
 
         [Fact]
-        public void SerializeKeyOnlyIsFalse()
+        public async Task SerializeKeyOnlyIsFalse()
         {
             var scan = new RangeScan() as IScanTypeExt;
-            var jsonBytes = scan.Serialize(false,
+            using var jsonBytes = new MemoryStream();
+            var bufferWriter = PipeWriter.Create(jsonBytes);
+            scan.Serialize(false,
                 TimeSpan.FromMilliseconds(2000),
-                new MutationToken("default", 10, 16627788222, 1000));
+                new MutationToken("default", 10, 16627788222, 1000),
+                bufferWriter);
+            await bufferWriter.FlushAsync();
 
-            var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
+            var json = System.Text.Encoding.UTF8.GetString(jsonBytes.ToArray());
             var doc = JsonDocument.Parse(json);
 
             Assert.Throws<KeyNotFoundException>(() => doc.RootElement.GetProperty("key_only").GetBoolean());
         }
 
         [Fact]
-        public void SerializeInclusive()
+        public async Task SerializeInclusive()
         {
             var scan = new RangeScan(ScanTerm.Minimum, ScanTerm.Maximum) as IScanTypeExt;
 
-            var jsonBytes = scan.Serialize(true,
+            using var jsonBytes = new MemoryStream();
+            var bufferWriter = PipeWriter.Create(jsonBytes);
+            scan.Serialize(true,
                 TimeSpan.FromMilliseconds(2000),
-                new MutationToken("default", 10, 16627788222, 1000));
+                new MutationToken("default", 10, 16627788222, 1000),
+                bufferWriter);
+            await bufferWriter.FlushAsync();
 
-            var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
+            var json = System.Text.Encoding.UTF8.GetString(jsonBytes.ToArray());
             var doc = JsonDocument.Parse(json);
 
             var ranges = doc.RootElement.GetProperty("range");
@@ -125,16 +140,20 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         }
 
         [Fact]
-        public void IncludeCollectionIfExists()
+        public async Task IncludeCollectionIfExists()
         {
             var scan = new RangeScan() as IScanTypeExt;
             scan.CollectionName = "coll1";
 
-            var jsonBytes = scan.Serialize(true,
+            using var jsonBytes = new MemoryStream();
+            var bufferWriter = PipeWriter.Create(jsonBytes);
+            scan.Serialize(true,
                 TimeSpan.FromMilliseconds(2000),
-                new MutationToken("default", 10, 16627788222, 1000));
+                new MutationToken("default", 10, 16627788222, 1000),
+                bufferWriter);
+            await bufferWriter.FlushAsync();
 
-            var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
+            var json = System.Text.Encoding.UTF8.GetString(jsonBytes.ToArray());
             var doc = JsonDocument.Parse(json);
 
             Assert.Equal("coll1", doc.RootElement.GetProperty("collection").GetString());

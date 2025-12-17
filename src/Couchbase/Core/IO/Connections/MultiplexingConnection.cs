@@ -294,22 +294,7 @@ namespace Couchbase.Core.IO.Connections
                 return false;
             }
 
-            int responseSize = HeaderOffsets.HeaderLength;
-            var sizeSegment = buffer.Slice(HeaderOffsets.BodyLength, sizeof(int));
-            if (sizeSegment.IsSingleSegment)
-            {
-                responseSize += ByteConverter.ToInt32(sizeSegment.First.Span);
-            }
-            else
-            {
-                // Edge case, we're split across segments in the buffer
-                Span<byte> tempSpan = stackalloc byte[sizeof(int)];
-
-                sizeSegment.CopyTo(tempSpan);
-
-                responseSize += ByteConverter.ToInt32(tempSpan);
-            }
-
+            var responseSize = ReadResponseSize(in buffer);
             if (buffer.Length < responseSize)
             {
                 // Insufficient data, keep filling the buffer
@@ -343,6 +328,43 @@ namespace Couchbase.Core.IO.Connections
                 operationResponse.Dispose();
                 throw;
             }
+        }
+
+        internal static int ReadResponseSize(in ReadOnlySequence<byte> buffer)
+        {
+            var responseSize = HeaderOffsets.HeaderLength;
+
+            var firstSpan = buffer.GetFirstSpan();
+            if (firstSpan.Length >= HeaderOffsets.BodyLength + sizeof(int))
+            {
+                // This is the common fast path where the first 12 bytes are all in the first segment of the sequence.
+                // Slicing a span with no length parameter is significantly faster than slicing a sequence.
+
+                responseSize += ByteConverter.ToInt32(firstSpan.Slice(HeaderOffsets.BodyLength));
+            }
+            else
+            {
+                var sizeSegment = buffer.Slice(HeaderOffsets.BodyLength, sizeof(int));
+                if (sizeSegment.IsSingleSegment)
+                {
+                    // Less likely is the case where the first 12 bytes contain a split across segments but
+                    // the body length in bytes 9-12 is in a single segment.
+
+                    responseSize += ByteConverter.ToInt32(sizeSegment.GetFirstSpan());
+                }
+                else
+                {
+                    // Least likely is the split across segments is in the body length itself.
+
+                    Span<byte> tempSpan = stackalloc byte[sizeof(int)];
+
+                    sizeSegment.CopyTo(tempSpan);
+
+                    responseSize += ByteConverter.ToInt32(tempSpan);
+                }
+            }
+
+            return responseSize;
         }
 
         //our receive thread will always find out immediately when connection closes

@@ -22,6 +22,13 @@ namespace Couchbase.Utils
                 return;
             }
 
+            if (stream is IBufferWriter<byte> bufferWriter)
+            {
+                // OperationBuilder implements IBufferWriter<byte> which can be used to write directly buffer
+                bufferWriter.Write(buffer.Span);
+                return;
+            }
+
             if (MemoryMarshal.TryGetArray(buffer, out var segment))
             {
                 // ReSharper disable once AssignNullToNotNullAttribute

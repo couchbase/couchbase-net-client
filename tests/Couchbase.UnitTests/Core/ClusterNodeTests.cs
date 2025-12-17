@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -139,8 +140,7 @@ namespace Couchbase.UnitTests.Core
                 endPoint: new(hostname, 8091),
                 nodeAdapter: new() { Hostname = hostname},
                 tracer: new Couchbase.Core.Diagnostics.Tracing.NoopRequestTracer(),
-                new Mock<IOperationConfigurator>().Object
-                )
+                new Mock<IOperationConfigurator>().Object)
             {
                 Owner = owner.Object,
             };

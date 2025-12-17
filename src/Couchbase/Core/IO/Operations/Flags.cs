@@ -13,6 +13,8 @@ namespace Couchbase.Core.IO.Operations
 
         public TypeCode TypeCode { get; set; }
 
+        internal const int Size = 4; // we explicitly serialize into 4 bytes
+
         /// <summary>
         /// Read flags from a buffer. The buffer must be at least 4 bytes long.
         /// </summary>

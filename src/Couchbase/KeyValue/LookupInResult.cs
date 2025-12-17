@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Client.Transactions.Components;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -13,13 +14,17 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus
+    internal sealed class LookupInResult : ILookupInReplicaResult, ITypeSerializerProvider, IResponseStatus, ILookupInResultInternal
     {
+
         private readonly IList<LookupInSpec> _specs;
         private readonly Flags _flags;
         private readonly ITypeTranscoder _transcoder;
         private IDisposable? _bufferCleanup;
         private ResponseStatus _status;
+
+        IList<LookupInSpec> ILookupInResultInternal.Specs => _specs;
+        Flags ILookupInResultInternal.Flags => _flags;
         public ITypeSerializer Serializer { get; }
 
         ResponseStatus IResponseStatus.Status => _status;
@@ -75,7 +80,8 @@ namespace Couchbase.KeyValue
 
             if (spec.Status == ResponseStatus.Success)
             {
-                // Only use the transcoder when reading entire documents, otherwise the content should be JSON
+                // Only use the transcoder when reading entire documents
+                // otherwise the content should be JSON
                 return spec is { OpCode: OpCode.Get, Path.Length: 0}
                     ? _transcoder.Decode<T>(spec.Bytes, _flags, spec.OpCode)
                     : _transcoder.Serializer!.Deserialize<T>(spec.Bytes);

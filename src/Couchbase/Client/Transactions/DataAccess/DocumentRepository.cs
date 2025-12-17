@@ -1,17 +1,20 @@
 #nullable enable
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
+using Couchbase.Client.Transactions.Forwards;
 using Couchbase.Client.Transactions.Internal;
 using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.IO.Operations;
+using Couchbase.KeyValue.ZoneAware;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
@@ -44,12 +47,22 @@ namespace Couchbase.Client.Transactions.DataAccess
             _userDataTranscoder = new JsonTranscoder(userDataSerializer);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, string opId, IAtrRepository atr, ulong? cas = null)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, IContentAsWrapper content, string opId, IAtrRepository atr, ulong? cas = null, TimeSpan? expiry = null)
         {
-            List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content, opId);
-            var opts = GetMutateInOptions(StoreSemantics.Insert)
+            List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content, opId, expiry: expiry);
+            var opts = GetMutateInOptions(StoreSemantics.Insert, collection)
                 .AccessDeleted(true)
-                .CreateAsDeleted(true);
+                .CreateAsDeleted(true)
+                .Transcoder(content.Transcoder);
+
+            // we always preserve TTLs - using SupportsCollections as a proxy for supporting TTLs
+            opts.PreserveTtl(collection.Scope.Bucket.SupportsCollections);
+
+            // we set the flags when staging the insert (though, we do it again when we unstage)
+            if (SupportsReplaceBodyWithXattr(collection))
+            {
+                opts.Flags(content.Flags);
+            }
 
             if (cas.HasValue)
             {
@@ -64,19 +77,19 @@ namespace Couchbase.Client.Transactions.DataAccess
             return (mutateResult.Cas, mutateResult.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, string opId, IAtrRepository atr, bool accessDeleted)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, IContentAsWrapper content, string opId, IAtrRepository atr, bool accessDeleted, TimeSpan? expiry = null)
         {
             if (doc.Cas == 0)
             {
                 throw new ArgumentOutOfRangeException("Document CAS should not be wildcard or default when replacing.");
             }
-            var specs = CreateMutationSpecs(atr, "replace", content, opId, doc.DocumentMetadata);
-            var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(doc.Cas);
+            var specs = CreateMutationSpecs(atr, "replace", content, opId, doc.DocumentMetadata, expiry);
+            var opts = GetMutateInOptions(StoreSemantics.Replace, doc.Collection).Cas(doc.Cas);
             if (accessDeleted)
             {
                 opts.AccessDeleted(true);
             }
-
+            opts.Transcoder(content.Transcoder);
             var updatedDoc = await doc.Collection.MutateInAsync(doc.Id, specs, opts).CAF();
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
@@ -101,7 +114,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Upsert(TransactionFields.Crc32, MutationMacro.ValueCRC32c, createPath: true, isXattr: true),
             };
 
-            var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(doc.Cas).CreateAsDeleted(true);
+            var opts = GetMutateInOptions(StoreSemantics.Replace, doc.Collection).Cas(doc.Cas).CreateAsDeleted(true);
             var updatedDoc = await doc.Collection.MutateInAsync(doc.Id, specs, opts).CAF();
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
@@ -109,7 +122,7 @@ namespace Couchbase.Client.Transactions.DataAccess
         public async Task<(ulong updatedCas, MutationToken mutationToken)> RemoveStagedInsert(TransactionGetResult doc)
         {
             var specs = new [] { MutateInSpec.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true) };
-            var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(doc.Cas).AccessDeleted(true);
+            var opts = GetMutateInOptions(StoreSemantics.Replace, doc.Collection).Cas(doc.Cas).AccessDeleted(true);
             var updatedDoc = await doc.Collection.MutateInAsync(doc.Id, specs, opts).CAF();
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
@@ -128,21 +141,35 @@ namespace Couchbase.Client.Transactions.DataAccess
             return false;
         }
 
-        public async Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode)
+        public async Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode, Flags flags, TimeSpan? expiry = null)
         {
+            bool isBinary = flags.DataFormat == DataFormat.Binary;
             if (SupportsReplaceBodyWithXattr(collection))
             {
                 MutateInOptions opts;
                 if (insertMode) {
-                    opts = GetMutateInOptions(StoreSemantics.AccessDeleted)
+                    opts = GetMutateInOptions(StoreSemantics.AccessDeleted, collection)
                         .ReviveDocument(true);
                 } else
                 {
-                    opts = GetMutateInOptions(StoreSemantics.Replace)
+                    opts = GetMutateInOptions(StoreSemantics.Replace, collection)
                         .Cas(cas);
                 }
+
+                if (expiry.HasValue)
+                {
+                    opts.Expiry(expiry.Value);
+                    opts.PreserveTtl(false);
+                }
+                opts.Transcoder(isBinary
+                    ? new RawBinaryTranscoder()
+                    : _userDataTranscoder);
+                var stagedDataField = isBinary
+                    ? TransactionFields.BinStagedData
+                    : TransactionFields.StagedData;
+                opts.Flags(flags);
                 var mutateResult = await collection.MutateInAsync(docId, specs =>
-                        specs.ReplaceBodyWithXattr(TransactionFields.StagedData)
+                        specs.ReplaceBodyWithXattr(stagedDataField, isBinary)
                             .Upsert(TransactionFields.TransactionInterfacePrefixOnly, string.Empty,
                                 isXattr: true, createPath: true)
                             .Remove(TransactionFields.TransactionInterfacePrefixOnly,
@@ -153,15 +180,29 @@ namespace Couchbase.Client.Transactions.DataAccess
             // if bucket doesn't support ReplaceBodyWithXattr (and ReviveDocument)
             if (insertMode)
             {
-                var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout);
+                var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout)
+                    .Transcoder(isBinary
+                        ? new RawBinaryTranscoder()
+                        : _userDataTranscoder);
+                if (expiry.HasValue)
+                {
+                    opts.Expiry(expiry.Value);
+                }
                 var mutateResult = await collection.InsertAsync(docId, finalDoc, opts).CAF();
                 return (mutateResult.Cas, mutateResult.MutationToken);
             }
             else
             {
-                var opts = GetMutateInOptions(StoreSemantics.Replace)
+                var opts = GetMutateInOptions(StoreSemantics.Replace, collection)
                     .Cas(cas)
-                    .Transcoder(_userDataTranscoder);
+                    .Transcoder(isBinary
+                        ? new RawBinaryTranscoder()
+                        : _userDataTranscoder);
+                if (expiry.HasValue)
+                {
+                    opts.Expiry(expiry.Value);
+                    opts.PreserveTtl(false);
+                }
                 var mutateResult = await collection.MutateInAsync(docId, specs =>
                     specs.Upsert(TransactionFields.TransactionInterfacePrefixOnly, string.Empty,
                             isXattr: true, createPath: true)
@@ -179,7 +220,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 
         public async Task ClearTransactionMetadata(ICouchbaseCollection collection, string docId, ulong cas, bool isDeleted)
         {
-            var opts = GetMutateInOptions(StoreSemantics.Replace).Cas(cas);
+            var opts = GetMutateInOptions(StoreSemantics.Replace, collection).Cas(cas);
             if (isDeleted)
             {
                 opts.AccessDeleted(true);
@@ -187,55 +228,91 @@ namespace Couchbase.Client.Transactions.DataAccess
 
             var specs = new []
             {
-                        MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, (string?)null, isXattr: true),
-                        MutateInSpec.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
+                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, (string?)null, isXattr: true),
+                MutateInSpec.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
             };
 
             _ = await collection.MutateInAsync(docId, specs, opts).CAF();
         }
 
-        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument).CAF();
-        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true)
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
+            string docId, DateTimeOffset deadline, ITypeTranscoder? transcoder = null,
+            bool allowReplica = false)
+        {
+            var timeout = deadline - DateTimeOffset.UtcNow;
+            if (_keyValueTimeout != null && timeout > _keyValueTimeout)
+                timeout = _keyValueTimeout.Value;
+            return await LookupDocumentAsync(collection, docId, timeout, true, transcoder,
+                allowReplica).CAF();
+        }
+
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder, allowReplica).CAF();
+        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false)
         {
             var specs = new List<LookupInSpec>()
             {
                 LookupInSpec.Get(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                 LookupInSpec.Get("$document", isXattr: true),
-                LookupInSpec.Get(TransactionFields.StagedData, isXattr: true)
+                LookupInSpec.Get(TransactionFields.StagedData, isXattr: true),
+                LookupInSpec.Get(TransactionFields.BinStagedData, isXattr: true, isBinary: true),
             };
-
-            //We use .Transcoder() instead of .Serializer() as LookupInResult uses the Transcoder's Serializer for ContentAs<T>
-            var opts = new LookupInOptions().Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(new JsonTranscoder(Transactions.MetadataSerializer));
-
-            int? txnIndex = 0;
-            int docMetaIndex = 1;
-            int? stagedDataIndex = 2;
-
             int? fullDocIndex = null;
             if (fullDocument)
             {
                 specs.Add(LookupInSpec.GetFull());
                 fullDocIndex = specs.Count - 1;
             }
-
-            ILookupInResult lookupInResult;
-            try
+            ILookupInResult? lookupInResult;
+            if (allowReplica)
             {
+                var opts = new LookupInAnyReplicaOptions()
+                    .Timeout(keyValueTimeout)
+                    .Transcoder(transcoder ??
+                                new JsonTranscoder(Transactions.MetadataSerializer))
+                    .ReadPreference(InternalReadPreference.SelectedServerGroupWithFallback)
+                    .AccessDeleted(true); // apply if supported
+                lookupInResult =
+                    await collection.LookupInAnyReplicaAsync(docId, specs, opts).CAF();
+            }
+            else
+            {
+                var opts = new LookupInOptions().Defaults(keyValueTimeout)
+                    .AccessDeleted(true) // apply if supported
+                    .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer));
                 lookupInResult = await collection.LookupInAsync(docId, specs, opts).CAF();
             }
-            catch (PathInvalidException)
-            {
-                throw;
-            }
+
+            int txnIndex = 0;
+            int docMetaIndex = 1;
+            int stagedDataIndex = 2;
+            int stagedBinDataIndex = 3;
 
             var docMeta = lookupInResult.ContentAs<DocumentMetadata>(docMetaIndex);
+            int dataIdx = stagedDataIndex; // just need a default
+            if (lookupInResult.Exists(txnIndex))
+            {
+                // only StageData or BinStagedData - figure out which...
+                dataIdx = lookupInResult.Exists(stagedDataIndex)
+                    ? stagedDataIndex
+                    : stagedBinDataIndex;
+
+                // several possibilities for the transcoder...
+                if (dataIdx == stagedBinDataIndex && transcoder == null)
+                {
+                    transcoder = new RawBinaryTranscoder();
+                }
+
+            }
+
+            transcoder ??= new JsonTranscoder(
+                NonStreamingSerializerWrapper.FromCluster(collection.Scope.Bucket.Cluster));
 
             IContentAsWrapper? unstagedContent = fullDocIndex.HasValue
-                ? new LookupInContentAsWrapper(lookupInResult, fullDocIndex.Value)
+                ? new LookupInContentAsWrapper(lookupInResult, fullDocIndex.Value, transcoder)
                 : null;
 
-            var stagedContent = stagedDataIndex.HasValue && lookupInResult.Exists(stagedDataIndex.Value)
-                ? new LookupInContentAsWrapper(lookupInResult, stagedDataIndex.Value)
+            var stagedContent = lookupInResult.Exists(dataIdx)
+                ? new LookupInContentAsWrapper(lookupInResult, dataIdx, transcoder)
                 : null;
 
             var result = new DocumentLookupResult(docId,
@@ -245,33 +322,25 @@ namespace Couchbase.Client.Transactions.DataAccess
                 docMeta,
                 collection);
 
-            if (txnIndex.HasValue && lookupInResult.Exists(txnIndex.Value))
+            if (lookupInResult.Exists(txnIndex))
             {
-                result.TransactionXattrs = lookupInResult.ContentAs<TransactionXattrs>(txnIndex.Value);
+                result.TransactionXattrs = lookupInResult.ContentAs<TransactionXattrs>(txnIndex);
             }
 
             return result;
         }
 
-        private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics) => new MutateInOptions().Defaults(_durability, _keyValueTimeout)
-            .Transcoder(Transactions.MetadataTranscoder)
-            .StoreSemantics(storeSemantics);
+        private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics, ICouchbaseCollection collection) =>
+            new MutateInOptions().Defaults(_durability, _keyValueTimeout)
+                .Transcoder(Transactions.MetadataTranscoder)
+                .StoreSemantics(storeSemantics)
+                .PreserveTtl(collection.Scope.Bucket.SupportsCollections);
 
-        private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, object content, string opId, DocumentMetadata? dm = null)
+        private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, IContentAsWrapper content, string opId, DocumentMetadata? dm = null, TimeSpan? expiry = null)
         {
-            // Round-trip the content through the user's specified serializer.
-            object userSerializedContent = content;
-            JRaw? userSerializedContentRaw = null;
-            var userDataSerializer = _userDataTranscoder.Serializer;
-            if (userDataSerializer != null && userDataSerializer != Transactions.MetadataTranscoder.Serializer)
-            {
-                byte[] bytes = userDataSerializer.Serialize(content);
-                userSerializedContent = userDataSerializer.Deserialize<object>(bytes)!;
-                userSerializedContentRaw = new JRaw(userSerializedContent ?? content);
-            }
-
             var specs = new List<MutateInSpec>
             {
+                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, new JObject(), createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.TransactionId, _overallContext.TransactionId,
                     createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AttemptId, _attemptId, createPath: true, isXattr: true),
@@ -283,7 +352,11 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Upsert(TransactionFields.Crc32, MutationMacro.ValueCRC32c, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.OperationId, opId,true, true),
             };
-
+            if (expiry.HasValue)
+            {
+                specs.Add(MutateInSpec.Upsert(TransactionFields.DocExpiry, expiry.Value.TotalMilliseconds,
+                    true, true));
+            }
             switch (opType)
             {
                 case "remove":
@@ -292,15 +365,26 @@ namespace Couchbase.Client.Transactions.DataAccess
                     break;
                 case "replace":
                 case "insert":
-                    if (userSerializedContentRaw != null)
+                    // check flags, maybe we need to stage binary data, maybe not
+                    if (content.Flags.DataFormat == DataFormat.Binary)
                     {
-                        specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, userSerializedContentRaw, createPath: true, isXattr: true));
+                        specs.Add(MutateInSpec.Upsert(TransactionFields.BinStagedData, content.ContentAs<byte[]>(),
+                            createPath: true, isXattr: true, removeBrackets:false, isBinary: true));
+                        specs.Add(MutateInSpec.Upsert(TransactionFields.ForwardCompatibility,
+                            ForwardCompatibility.extBinSupport, true, true));
                     }
                     else
                     {
-                        specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, userSerializedContent, createPath: true, isXattr: true));
+                        specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, content.ContentAs<object>(),
+                            createPath: true, isXattr: true));
                     }
-
+                    // convert flags to a uint
+                    Span<byte> span = stackalloc byte[4];
+                    content.Flags.Write(span);
+                    var flagCompact = BinaryPrimitives.ReadUInt32LittleEndian(span);
+                    // now add it
+                    specs.Add(MutateInSpec.Upsert(TransactionFields.UserFlags, flagCompact,
+                        createPath: true, isXattr: true));
                     break;
             }
 

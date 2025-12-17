@@ -629,7 +629,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                         .Callback(async (TimeSpan _) =>
                         {
                             isInClose = true;
-                            await Task.Delay(TimeSpan.FromSeconds(1));
+                            await Task.Delay(TimeSpan.FromSeconds(5));
                             isClosed = true;
                         });
                     return connection.Object;

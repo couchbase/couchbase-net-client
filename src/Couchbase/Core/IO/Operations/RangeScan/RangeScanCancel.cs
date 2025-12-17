@@ -23,9 +23,9 @@ namespace Couchbase.Core.IO.Operations.RangeScan
         protected override void WriteExtras(OperationBuilder builder)
         {
             //write uuidbase
-            Span<byte> extras = stackalloc byte[16];
-            Content.Memory.Span.CopyTo(extras);
-            builder.Write(extras);
+            var span = builder.GetSpan(16);
+            Content.Memory.Span.CopyTo(span);
+            builder.Advance(16);
         }
     }
 }

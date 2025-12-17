@@ -28,6 +28,12 @@ namespace Couchbase.Core.IO.Transcoders
 
         public abstract T? Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
 
+        // Optimization to store a reference to the buffered serializer if it is one.
+        // Will never contain a DefaultSerializer because there is no performance gain using the IBufferedTypeSerializer
+        // implementations on a DefaultSerializer. DefaultSerializer implements IBufferedTypeSerializer for compatibility,
+        // but for the purposes of transcoding it just adds an unnecessary layer of indirection through an additional Stream.
+        private IBufferedTypeSerializer? _bufferedTypeSerializer;
+
         public ITypeSerializer? Serializer
         {
             get => _serializer;
@@ -39,6 +45,9 @@ namespace Couchbase.Core.IO.Transcoders
                 }
 
                 _serializer = value;
+                _bufferedTypeSerializer = value is IBufferedTypeSerializer bufferedTypeSerializer and not DefaultSerializer
+                    ? bufferedTypeSerializer
+                    : null;
             }
         }
 
@@ -86,6 +95,14 @@ namespace Couchbase.Core.IO.Transcoders
             if (Serializer == null)
             {
                 ThrowHelper.ThrowInvalidOperationException("A serializer is required to transcode JSON.");
+            }
+
+            var bufferedTypeSerializer = _bufferedTypeSerializer;
+            if (bufferedTypeSerializer is not null && stream is IBufferWriter<byte> bufferWriter)
+            {
+                // Use the buffered serializer if available, typically on OperationBuilder.
+                bufferedTypeSerializer.Serialize(bufferWriter, value);
+                return;
             }
 
             // For .NET Core 3.1 and later, this prefers the Serialize<T> overload.
@@ -154,6 +171,13 @@ namespace Couchbase.Core.IO.Transcoders
 #if SPAN_SUPPORT
             stream.Write(buffer);
 #else
+            if (stream is IBufferWriter<byte> bufferWriter)
+            {
+                // OperationBuilder implements IBufferWriter<byte> which can be used to write directly buffer
+                bufferWriter.Write(buffer);
+                return;
+            }
+
             var array = ArrayPool<byte>.Shared.Rent(buffer.Length);
             try
             {

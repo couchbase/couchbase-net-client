@@ -1,6 +1,8 @@
 using System;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -8,12 +10,17 @@ namespace Couchbase.KeyValue
 {
     public class LookupInSpec : OperationSpec
     {
-        private static LookupInSpec CreateSpec(OpCode opCode, string path, bool isXattr = false)
+        private static LookupInSpec CreateSpec(OpCode opCode, string path, bool isXattr = false, bool isBinary = false)
         {
             var pathFlags = SubdocPathFlags.None;
             if (isXattr)
             {
                 pathFlags |= SubdocPathFlags.Xattr;
+            }
+
+            if (isBinary)
+            {
+                pathFlags |= SubdocPathFlags.BinaryValue;
             }
 
             return new LookupInSpec
@@ -24,11 +31,18 @@ namespace Couchbase.KeyValue
             };
         }
 
+        internal static LookupInSpec Get(string path, bool isXattr,  bool isBinary)
+        {
+            if (isBinary && !isXattr)
+            {
+                ThrowHelper.ThrowInvalidArgumentException("Binary fields must be xattrs");
+            }
+            return path == "" ? GetFull() : CreateSpec(OpCode.SubGet, path, isXattr, isBinary);
+        }
         public static LookupInSpec Get(string path, bool isXattr = false)
         {
-            return path == "" ? GetFull() : CreateSpec(OpCode.SubGet, path, isXattr);
+            return Get(path, isXattr: isXattr, isBinary: false);
         }
-
         public static LookupInSpec Exists(string path, bool isXattr = false)
         {
             return CreateSpec(OpCode.SubExist, path, isXattr);

@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Text.Json.Serialization;
 using Couchbase.Client.Transactions.Components;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,19 +12,28 @@ namespace Couchbase.Client.Transactions.DataModel
     internal class TransactionXattrs
     {
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public CompositeId? Id { get; set; }
 
         [JsonProperty("atr")]
+        [JsonPropertyName("atr")]
         public AtrRef? AtrRef { get; set; }
 
         [JsonProperty("op")]
+        [JsonPropertyName("op")]
         public StagedOperation? Operation { get; set; }
 
         [JsonProperty("restore")]
+        [JsonPropertyName("restore")]
         public DocumentMetadata? RestoreMetadata { get; set; }
 
         [JsonProperty("fc")]
+        [JsonPropertyName("fc")]
         public JObject? ForwardCompatibility { get; set; }
+
+        [JsonProperty("aux")]
+        [JsonPropertyName("aux")]
+        public JObject? AuxiliaryData { get; set; }
 
         internal void ValidateMinimum()
         {

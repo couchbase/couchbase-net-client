@@ -30,9 +30,11 @@ using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -59,6 +61,7 @@ namespace Couchbase
         private readonly IRequestTracer _tracer;
         private readonly IRetryStrategy _retryStrategy;
         private readonly MeterForwarder? _meterForwarder;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
 
         // Internal is used to provide a seam for unit tests
         internal LazyService<IQueryClient> LazyQueryClient;
@@ -119,6 +122,9 @@ namespace Couchbase
                 // this performance penalty when we know we're doing nothing with the data.
                 _meterForwarder = new MeterForwarder(meter);
             }
+
+            _appTelemetryCollector = _context.ServiceProvider.GetRequiredService<IAppTelemetryCollector>();
+            _appTelemetryCollector.ClusterContext = _context;
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
@@ -439,6 +445,7 @@ namespace Couchbase
         {
             options ??= new SearchOptions();
             options.TimeoutValue ??= _context.ClusterOptions.SearchTimeout;
+            options.Token = options.Token.FallbackToTimeout(options.TimeoutValue.Value)?.Token ?? options.Token;
 
             ThrowIfNotBootstrapped();
             // The RFC asks to wait until the GlobalConfig is ready.  That should be handled by ThrowIfNotBootstrapped.
@@ -531,6 +538,9 @@ namespace Couchbase
                 _hasBootStrapped = _context.GlobalConfig != null;
                 _deferredExceptions.Clear();
 
+                //start the collector here now that we have bootstrapped and global bootstrap is not null
+                _appTelemetryCollector.Initialize();
+
                 UpdateClusterCapabilities();
             }
             catch (AuthenticationFailureException e)
@@ -621,6 +631,7 @@ namespace Couchbase
                 _bootstrapper.Dispose();
                 _context.Dispose();
                 _meterForwarder?.Dispose();
+                _appTelemetryCollector.Dispose();
             }
         }
 

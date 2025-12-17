@@ -71,10 +71,10 @@ namespace Couchbase.Core.IO.Operations
             //and revision can be sent to the server for deduping
             if (Epoch.HasValue && Revision.HasValue)
             {
-                Span<byte> extras = stackalloc byte[16];
+                var extras = builder.GetSpan(16);
                 ByteConverter.FromUInt64(Epoch.Value, extras.Slice(0));
                 ByteConverter.FromUInt64(Revision.Value, extras.Slice(8));
-                builder.Write(extras);
+                builder.Advance(16);
             }
         }
 

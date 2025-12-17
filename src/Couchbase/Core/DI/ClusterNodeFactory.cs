@@ -1,18 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.Utils;
 using Couchbase.Core.Logging;
-using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 

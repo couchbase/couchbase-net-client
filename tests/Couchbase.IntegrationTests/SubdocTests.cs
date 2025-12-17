@@ -1,9 +1,11 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
@@ -602,7 +604,7 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task  MutateIn_ReviveDocument_FailsIfDocumentExists()
+        public async Task MutateIn_ReviveDocument_FailsIfDocumentExists()
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var documentKey = nameof(MutateIn_ReviveDocument_FailsIfDocumentExists);
@@ -616,6 +618,67 @@ namespace Couchbase.IntegrationTests
             }, options => options.ReviveDocument(true));
 
             await Assert.ThrowsAsync<DocumentAlreadyAliveException>(async () => await task.ConfigureAwait(false));
+        }
+
+        [Fact]
+        public async Task MutateIn_AddBinaryXattr_Succeeds()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_AddBinaryXattr_Succeeds);
+            var binaryContent = new byte[] { 1, 2, 3 };
+            var transcoder = new RawBinaryTranscoder();
+            await collection.UpsertAsync(documentKey, new { foo = "bar" }).ConfigureAwait(false);
+
+            // ok lets upsert the binary xattr
+            await collection.MutateInAsync(documentKey,
+                builder => builder.Upsert("bin", binaryContent, createPath: true, isXattr: true,
+                    isBinary: true), opt => opt.Transcoder(transcoder)).ConfigureAwait(false);
+            var lookupInResult = await collection.LookupInAsync(documentKey,
+                builder => builder.Get("bin", isXattr: true, isBinary: true),
+                opt => opt.Transcoder(transcoder)).ConfigureAwait(false);
+            Assert.True(lookupInResult.Exists(0));
+            Assert.Equal(lookupInResult.ContentAs<byte[]>(0), binaryContent);
+        }
+
+        [Fact]
+        public async Task MutateIn_SetFlags_Succeeds()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_SetFlags_Succeeds);
+            var binaryContent = new byte[] { 1, 2, 3 };
+            var transcoder = new RawBinaryTranscoder();
+            var flags = transcoder.GetFormat(binaryContent);
+            // lets upsert a JSON doc
+            await collection.UpsertAsync(documentKey, new { foo = "bar" }).ConfigureAwait(false);
+            // ok lets upsert the binary xattr
+            await collection.MutateInAsync(documentKey,
+                builder => builder.Upsert("bin", binaryContent, createPath: true, isXattr: true,
+                    isBinary: true), opt => opt.Transcoder(transcoder)).ConfigureAwait(false);
+
+            // now, lets ReplaceBodyWithXattr and set flags at same time.  NOTE: ReplaceBodyWithXattr
+            // will not update the document's flags, so transactions has to do this itself, which
+            // is why there is an (internal) Flags option.
+            await collection.MutateInAsync(documentKey,
+                builder => { builder.ReplaceBodyWithXattr("bin", isBinary: true); },
+                options => options.Transcoder(transcoder).Flags(flags)).ConfigureAwait(false);
+
+            var lookupInResult = await collection
+                .LookupInAsync(documentKey,
+                    builder => builder.Get("$document.flags", isXattr: true)).ConfigureAwait(false);
+            var docFlags = lookupInResult.ContentAs<uint>(0);
+            var buffer = new byte[sizeof(uint)];
+            flags.Write(buffer);
+            var expectedFlags = BitConverter.ToUInt32(buffer, 0);
+            // note - ENDIANESS!  The Write writes to the wire, which is BigEndian and our machine
+            // is small endian.
+            expectedFlags = BinaryPrimitives.ReverseEndianness(expectedFlags);
+            Assert.Equal(docFlags, expectedFlags);
+
+            // Verify we can now read the doc like any other binary doc, and the content is correct.
+            var getResult = await collection
+                .GetAsync(documentKey, options => options.Transcoder(transcoder))
+                .ConfigureAwait(false);
+            Assert.Equal(getResult.ContentAs<byte[]>(), binaryContent);
         }
 
         #region Helpers

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -8,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -24,19 +26,22 @@ namespace Couchbase.Management.Buckets
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<BucketManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
 
         public BucketManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<BucketManager> logger, IRedactor redactor)
+            ILogger<BucketManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _appTelemetryCollector = appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
         }
 
-        private Uri GetUri(string? bucketName = null)
+        private (IClusterNode, Uri) GetUri(string? bucketName = null)
         {
-            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            var mgmtNode = _serviceUriProvider.GetRandomManagementNode();
+            var builder = new UriBuilder(mgmtNode.ManagementUri)
             {
                 Path = "pools/default/buckets"
             };
@@ -46,16 +51,19 @@ namespace Couchbase.Management.Buckets
                 builder.Path += $"/{bucketName}";
             }
 
-            return builder.Uri;
+            return (mgmtNode, builder.Uri);
         }
 
         public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions? options = null)
         {
             options ??= new CreateBucketOptions();
-            var uri = GetUri();
+            var (mgmtNode, uri) = GetUri();
 
             _logger.LogInformation("Attempting to create bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -64,9 +72,22 @@ namespace Couchbase.Management.Buckets
                 // create bucket
                 var content = new FormUrlEncodedContent(settings!.ToFormValues());
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
-                if (result.IsSuccessStatusCode) return;
+                if (result.IsSuccessStatusCode)
+                {
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        mgmtNode.NodesAdapter.CanonicalHostname,
+                        mgmtNode.NodesAdapter.AlternateHostname,
+                        mgmtNode.NodeUuid,
+                        AppTelemetryServiceType.Management,
+                        AppTelemetryCounterType.Total);
+
+                    return;
+                }
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var ctx = new ManagementErrorContext
@@ -101,8 +122,10 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to create bucket with name {settings.Name} - {uri}",
                     _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }
@@ -110,9 +133,11 @@ namespace Couchbase.Management.Buckets
         public async Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions? options = null)
         {
             options ??= new UpdateBucketOptions();
-            var uri = GetUri(settings.Name);
+            var (mgmtNode, uri) = GetUri(settings.Name);
             _logger.LogInformation("Attempting to upsert bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
@@ -121,9 +146,23 @@ namespace Couchbase.Management.Buckets
                 // upsert bucket
                 var content = new FormUrlEncodedContent(settings!.ToFormValues());
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
-                if (result.IsSuccessStatusCode) return;
+                if (result.IsSuccessStatusCode)
+                {
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        mgmtNode.NodesAdapter.CanonicalHostname,
+                        mgmtNode.NodesAdapter.AlternateHostname,
+                        mgmtNode.NodeUuid,
+                        AppTelemetryServiceType.Management,
+                        AppTelemetryCounterType.Total);
+
+
+                    return;
+                }
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var ctx = new ManagementErrorContext
@@ -141,9 +180,10 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to upsert bucket with name {settings.Name} - {uri}",
                     _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
-
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }
@@ -151,19 +191,31 @@ namespace Couchbase.Management.Buckets
         public async Task DropBucketAsync(string bucketName, DropBucketOptions? options = null)
         {
             options ??= new DropBucketOptions();
-            var uri = GetUri(bucketName);
-            _logger.LogInformation("Attempting to drop bucket with name {bucketName} - {uri}",
-                    _redactor.MetaData(bucketName), _redactor.SystemData(uri));
+            var (mgmtNode, uri) = GetUri(bucketName);
+            _logger.LogInformation("Attempting to drop bucket with name {BucketName} - {Uri}", _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
-                // perform drop
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
-                if (result.IsSuccessStatusCode) return;
+                if (result.IsSuccessStatusCode)
+                {
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        mgmtNode.NodesAdapter.CanonicalHostname,
+                        mgmtNode.NodesAdapter.AlternateHostname,
+                        mgmtNode.NodeUuid,
+                        AppTelemetryServiceType.Management,
+                        AppTelemetryCounterType.Total);
+                    return;
+                }
 
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -188,8 +240,10 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to drop bucket with name {bucketName}",
                     _redactor.MetaData(bucketName));
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }
@@ -197,21 +251,36 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
         public async Task FlushBucketAsync(string bucketName, FlushBucketOptions? options = null)
         {
             options ??= new FlushBucketOptions();
-            // get uri and amend path to flush endpoint
-            var builder = new UriBuilder(GetUri(bucketName));
+            var (mgmtNode, uri) = GetUri(bucketName);
+            var builder = new UriBuilder(uri);
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
-            var uri = builder.Uri;
 
-            _logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}",
-                _redactor.MetaData(bucketName), _redactor.SystemData(uri));
+            uri = builder.Uri;
 
+            _logger.LogInformation("Attempting to flush bucket with name {BucketName} - {Uri}", _redactor.MetaData(bucketName), _redactor.SystemData(uri));
+
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
-                // try do flush
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.PostAsync(uri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
+
+                if (result.IsSuccessStatusCode)
+                {
+                    _appTelemetryCollector.IncrementMetrics(
+                        operationElapsed,
+                        mgmtNode.NodesAdapter.CanonicalHostname,
+                        mgmtNode.NodesAdapter.AlternateHostname,
+                        mgmtNode.NodeUuid,
+                        AppTelemetryServiceType.Management,
+                        AppTelemetryCounterType.Total);
+                    return;
+                }
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var ctx = new ManagementErrorContext
@@ -258,8 +327,10 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to flush bucket with name {bucketName}",
                     _redactor.MetaData(bucketName));
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }
@@ -267,29 +338,33 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
         public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions? options = null)
         {
             options ??= new GetAllBucketsOptions();
-            var uri = GetUri();
+            var (mgmtNode, uri) = GetUri();
             _logger.LogInformation("Attempting to get all buckets - {uri}", _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
                 if (!result.IsSuccessStatusCode)
                 {
                     var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    var ctx = new ManagementErrorContext
-                    {
-                        HttpStatus = result.StatusCode,
-                        Message = content,
-                        Statement = uri.ToString()
-                    };
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus = result.StatusCode,
+                    Message = content,
+                    Statement = uri.ToString()
+                };
 
-                    //Throw specific exception if a rate limiting exception is thrown.
-                    result.ThrowIfRateLimitingError(content, ctx);
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(content, ctx);
 
                     //Throw any other error cases
                     result.ThrowOnError(ctx);
@@ -300,49 +375,64 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
                     ManagementSerializerContext.Default.ListBucketSettings,
                     options.TokenValue).ConfigureAwait(false);
 
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 return buckets!.ToDictionary(
                     p => p.Name,
                     p => p);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to get all buckets - {uri}", _redactor.SystemData(uri));
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }
 
         public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
         {
+            if(bucketName == null) throw new ArgumentNullException(nameof(bucketName));
             options ??= new GetBucketOptions();
-            var uri = GetUri(bucketName);
+            var (mgmtNode, uri) = GetUri(bucketName);
             _logger.LogInformation("Attempting to get bucket with name {bucketName} - {uri}",
                 _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
-using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? operationElapsed;
+            using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
             try
             {
                 using var httpClient = _httpClientFactory.Create();
+                requestStopwatch?.Restart();
                 var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                operationElapsed = requestStopwatch?.Elapsed;
 
                 if (!result.IsSuccessStatusCode)
                 {
                     var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    var ctx = new ManagementErrorContext
-                    {
-                        HttpStatus = result.StatusCode,
-                        Message = content,
-                        Statement = uri.ToString()
-                    };
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus = result.StatusCode,
+                    Message = content,
+                    Statement = uri.ToString()
+                };
 
-                    if (result.StatusCode == HttpStatusCode.NotFound)
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new BucketNotFoundException(bucketName)
                     {
-                        throw new BucketNotFoundException(bucketName)
-                        {
-                            Context = ctx
-                        };
-                    }
+                        Context = ctx
+                    };
+                }
 
                     //Throw specific exception if a rate limiting exception is thrown.
                     result.ThrowIfRateLimitingError(content, ctx);
@@ -351,14 +441,24 @@ using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
                     result.ThrowOnError(ctx);
                 }
 
+                _appTelemetryCollector.IncrementMetrics(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 using var contentStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 return (await JsonSerializer.DeserializeAsync(contentStream,
                     ManagementSerializerContext.Default.BucketSettings, options.TokenValue).ConfigureAwait(false))!;
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}",
                     _redactor.MetaData(bucketName), _redactor.SystemData(uri));
+                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 throw;
             }
         }

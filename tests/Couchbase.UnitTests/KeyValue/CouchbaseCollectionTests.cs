@@ -9,6 +9,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -328,6 +329,8 @@ namespace Couchbase.UnitTests.KeyValue
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new BestEffortRetryStrategy());
 
+            var serviceProviderMock = new Mock<IServiceProvider>();
+
             return new CouchbaseCollection(mockBucket.Object,
                 operationConfigurator,
                 new Mock<ILogger<CouchbaseCollection>>().Object,
@@ -337,7 +340,7 @@ namespace Couchbase.UnitTests.KeyValue
                 Mock.Of<IScope>(),
                 new NoopRequestTracer(),
                 NullFallbackTypeSerializerProvider.Instance,
-                new Mock<IServiceProvider>().Object);
+                serviceProviderMock.Object);
         }
     }
 }

@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -202,8 +204,10 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("hostname")] public string Hostname { get; set; }
         [JsonPropertyName("serverGroup")] public string ServerGroup { get; set; }
         [JsonPropertyName("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
+        [JsonPropertyName("appTelemetryPath")] public string AppTelemetryPath { get; set; }
+        [JsonPropertyName("nodeUUID")] public string NodeUuid { get; set; }
 
-        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Any();
+        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Count != 0;
 
         public bool Equals(NodesExt other)
         {
@@ -223,7 +227,8 @@ namespace Couchbase.Core.Configuration.Server
         {
             unchecked
             {
-                return ((Services != null ? Services.GetHashCode() : 0) * 397);
+                return ((Services != null ? Services.GetHashCode() : 0) * 397) ^
+                       ((Hostname != null ? Hostname.GetHashCode() : 0) * 397);
             }
         }
 
@@ -251,6 +256,34 @@ namespace Couchbase.Core.Configuration.Server
         private List<string> _bucketCaps = new();
         private Dictionary<string, IEnumerable<string>> _clusterCaps = new();
         internal ClusterLabels ClusterLabels = new();
+        private List<NodesExt> _nodesExt = new();
+
+        private List<NodesExt> NodesWithAppTelemetry => NodesExt
+            .Where(n => !string.IsNullOrEmpty(n.AppTelemetryPath))
+            .ToList();
+
+        internal Uri GetAppTelemetryPath(int attempt, bool? tlsEnabled = false)
+        {
+            if (NodesWithAppTelemetry is null || NodesWithAppTelemetry.Count == 0) return null;
+
+            var targetIndex = attempt % NodesWithAppTelemetry.Count;
+            var node = NodesWithAppTelemetry.ElementAt(targetIndex);
+
+            if (node == null) return null;
+
+            if (!node.HasAlternateAddress)
+                return ConstructAppTelemetryUri(tlsEnabled, node.Hostname, node.Services, node.AppTelemetryPath);
+            var alt = node.AlternateAddresses.FirstOrDefault().Value;
+            return ConstructAppTelemetryUri(tlsEnabled, alt.Hostname, alt.Ports, node.AppTelemetryPath);
+        }
+
+        private static Uri ConstructAppTelemetryUri(bool? tlsEnabled, string hostname, Services services,
+            string appTelemetryPath)
+        {
+            return tlsEnabled.HasValue && tlsEnabled.Value
+                ? new Uri("wss://" + hostname + ":" + services.MgmtSsl + appTelemetryPath)
+                : new Uri("ws://" + hostname + ":" + services.Mgmt + appTelemetryPath);
+        }
 
         public ConfigVersion ConfigVersion { get; private set; }
 
@@ -298,6 +331,7 @@ namespace Couchbase.Core.Configuration.Server
                             return;
                         }
                     }
+
                     //We detect internal or "default" should be used
                     NetworkResolution = options.EffectiveNetworkResolution = Couchbase.NetworkResolution.Default;
                 }
@@ -325,7 +359,8 @@ namespace Couchbase.Core.Configuration.Server
         ///config provided. This happens when a DNS SRV refresh is detected and
         ///we need to "rebootstrap".
         /// </summary>
-        [JsonIgnore] public bool IgnoreRev { get; set; }
+        [JsonIgnore]
+        public bool IgnoreRev { get; set; }
 
         [JsonPropertyName("rev")] public ulong Rev { get; set; }
         [JsonPropertyName("revEpoch")] public ulong RevEpoch { get; set; }
@@ -338,7 +373,9 @@ namespace Couchbase.Core.Configuration.Server
         [JsonPropertyName("uuid")] public string Uuid { get; set; }
         [JsonPropertyName("ddocs")] public Ddocs Ddocs { get; set; }
         [JsonPropertyName("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
-        [JsonPropertyName("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
+
+        [JsonPropertyName("bucketCapabilitiesVer")]
+        public string BucketCapabilitiesVer { get; set; }
 
         [JsonPropertyName("clusterUUID")]
         public string ClusterUuid
@@ -353,6 +390,11 @@ namespace Couchbase.Core.Configuration.Server
             get => ClusterLabels.ClusterName;
             set => ClusterLabels.ClusterName = value;
         }
+
+        // Field "prod" added in Couchbase Server 8.0 (value = "server") / Enterprise Analytics 1.0 (value = "analytics").
+        // Assume anything that doesn't set it is an older version of Couchbase Server.
+        [JsonPropertyName("prod")]
+        public string Product { get; set; }
 
         [JsonPropertyName("bucketCapabilities")]
         public List<string> BucketCapabilities
@@ -405,25 +447,31 @@ namespace Couchbase.Core.Configuration.Server
 
         /// <summary>
         /// Maps each Hostname to its index in <see cref="VBucketServerMap"/>'s ServerList.
-        /// Example: { "10.0.0.1": 0, "10.0.0.2": 1, ... }
+        /// Example: { "10.0.0.1:kvport": 0, "10.0.0.2:kvport": 1, ... }
+        /// Note that the server map is written like this - we just accept the entire hostname,
+        /// including port.
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, int> HostnamesAndIndex => VBucketServerMap.ServerList
             .Select((hostname, index) => new { hostname, index })
-            .ToDictionary(item => item.hostname.Split(':')[0], item => item.index);
+            .ToDictionary(item => item.hostname, item => item.index);
 
         /// <summary>
         /// Maps each Hostname to which ServerGroup it belongs to.
-        /// Example: { "10.0.0.1": "group_1", "10.0.0.2": "group_1", ... }
+        /// Example: { "10.0.0.1:kv_port": "group_1", "10.0.0.2:kv_port": "group_1", ... }
+        /// We use the kv port in services to match with the vBucketServerMap.
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, string> HostnameAndServerGroup => NodesExt
-            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup))
-            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.ServerGroup })
-            .ToDictionary(item => item.Hostname, item => item.ServerGroup);
+            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup) && nodeExt.Services.Kv > 0)
+            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.Services.Kv, nodeExt.ServerGroup })
+            .ToDictionary(item => $"{item.Hostname}:{item.Kv}", item => item.ServerGroup);
 
         /// <summary>
         /// Maps each unique ServerGroup to the indexes of the nodes it contains, in <see cref="VBucketServerMap"/>'s ServerList.
         /// Example: { "group_1": [0, 1, 2], "group_2": [3, 4, 5], ... }
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, int[]> ServerGroupNodeIndexes =>
             HostnameAndServerGroup
                 .GroupBy(x => x.Value)
@@ -459,7 +507,8 @@ namespace Couchbase.Core.Configuration.Server
 
             return Rev == other.Rev && RevEpoch == other.RevEpoch && string.Equals(Name, other.Name) && string.Equals(Uri, other.Uri) &&
                    string.Equals(StreamingUri, other.StreamingUri) && string.Equals(NodeLocator, other.NodeLocator) &&
-                   Equals(VBucketServerMap, other.VBucketServerMap) && (NodesExt.AreEqual(other.NodesExt) && Nodes.AreEqual(other.Nodes));
+                   Equals(VBucketServerMap, other.VBucketServerMap) && (NodesExt.AreEqual(other.NodesExt) && Nodes.AreEqual(other.Nodes))
+                   && string.Equals(Product, other.Product) && string.Equals(ClusterUuid, other.ClusterUuid) && string.Equals(ClusterName, other.ClusterName);
         }
 
         public override bool Equals(object obj)
@@ -485,6 +534,9 @@ namespace Couchbase.Core.Configuration.Server
                 hashCode = (hashCode * 397) ^ (VBucketServerMap != null ? VBucketServerMap.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (BucketCapabilitiesVer != null ? BucketCapabilitiesVer.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (BucketCapabilities != null ? BucketCapabilities.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Product != null ? Product.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (ClusterUuid != null ? ClusterUuid.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (ClusterName != null ? ClusterName.GetHashCode() : 0);
                 return hashCode;
             }
         }

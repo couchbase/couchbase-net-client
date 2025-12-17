@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
@@ -65,6 +64,8 @@ namespace Couchbase.Core.IO.Operations
         }
 
         #region IOperation Properties
+
+        public bool IsDurable => false;
 
         public bool PreferReturns { get; internal set; }
 
@@ -317,7 +318,6 @@ namespace Couchbase.Core.IO.Operations
                 OpCode = OpCode,
                 Cas = Header.Cas,
                 BodyLength = Header.BodyLength,
-                Key = Key,
                 Status = ResponseStatus.None,
                 Opaque = Opaque
             };
@@ -338,7 +338,6 @@ namespace Couchbase.Core.IO.Operations
                 OpCode = OpCode,
                 Cas = Header.Cas,
                 BodyLength = Header.BodyLength,
-                Key = Key,
                 Status = status,
                 Opaque = Opaque
             };
@@ -356,11 +355,12 @@ namespace Couchbase.Core.IO.Operations
         {
             EnsureNotDisposed();
 
-            Header = buffer.Memory.Span.CreateHeader();
+            var span = buffer.Memory.Span;
+            Header = OperationHeader.Read(span);
             Cas = Header.Cas;
             _data = buffer;
 
-            ReadExtras(_data.Memory.Span);
+            ReadExtras(span);
         }
 
         protected virtual void ReadExtras(ReadOnlySpan<byte> buffer)
@@ -534,14 +534,13 @@ namespace Couchbase.Core.IO.Operations
         /// Writes the key to an <see cref="OperationBuilder"/>.
         /// </summary>
         /// <param name="builder">The builder.</param>
-        [SkipLocalsInit]
         protected virtual void WriteKey(OperationBuilder builder)
         {
-            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength];
+            var buffer = builder.GetSpan(OperationHeader.MaxKeyLength + Leb128.MaxLength);
 
             var length = WriteKey(buffer);
 
-            builder.Write(buffer.Slice(0, length));
+            builder.Advance(length);
         }
 
         /// <summary>

@@ -1,6 +1,14 @@
 ﻿#nullable enable
+using System;
+using System.IO;
+using System.Reflection.Emit;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
+using OpCode = Couchbase.Core.IO.Operations.OpCode;
 
 namespace Couchbase.Client.Transactions.Internal
 {
@@ -10,38 +18,117 @@ namespace Couchbase.Client.Transactions.Internal
     internal interface IContentAsWrapper
     {
         T? ContentAs<T>();
+        ITypeTranscoder Transcoder { get; set; }
+        Flags Flags { get; }
+
+        bool IsBinary { get; }
     }
 
     internal class JObjectContentWrapper : IContentAsWrapper
     {
-        private readonly object? _originalContent;
+        private readonly ReadOnlyMemory<byte> _originalContent;
+        public Flags Flags { get; }
 
-        public JObjectContentWrapper(object? originalContent)
+        public  bool IsBinary { get; }
+
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public JObjectContentWrapper(object? originalContent, ITypeTranscoder? transcoder = null)
         {
-            _originalContent = originalContent;
+            Transcoder = transcoder ?? new JsonTranscoder();
+            var stream = new MemoryStream();
+            switch (originalContent)
+            {
+                case ReadOnlyMemory<byte> roMemory:
+                    _originalContent = roMemory;
+                    Flags = Transcoder.GetFormat(roMemory);
+                    Transcoder.Encode(stream, roMemory, Flags, OpCode.Get);
+                    break;
+                case Memory<byte> memory:
+                    Flags = Transcoder.GetFormat(memory);
+                    Transcoder.Encode(stream, memory, Flags, OpCode.Get);
+                    break;
+                case byte[] bytes:
+                    Flags = Transcoder.GetFormat(bytes);
+                    Transcoder.Encode(stream, bytes, Flags, OpCode.Get);
+                    break;
+                default:
+                    Flags = Transcoder.GetFormat(originalContent);
+                    Transcoder.Encode(stream, originalContent, Flags, OpCode.Get);
+                    break;
+            }
+            IsBinary = Flags.DataFormat == DataFormat.Binary;
+            // now, store the encoded content
+            _originalContent = stream.ToArray();
         }
 
-        public T? ContentAs<T>() =>
-            _originalContent switch
+        public T? ContentAs<T>()
+        {
+            if (typeof(T) == typeof(byte[]))
             {
-                T asTyped => asTyped,
-                null => default,
-                _ => JObject.FromObject(_originalContent).ToObject<T>()
-            };
+                return (T)(object)_originalContent.ToArray();
+            }
+            if (typeof(T) == typeof(ReadOnlyMemory<byte>))
+            {
+                return (T)(object)_originalContent;
+            }
+            if (typeof(T) == typeof(Memory<byte>))
+            {
+                var copy = new byte[_originalContent.Length];
+                _originalContent.CopyTo(copy);
+                return (T)(object)new Memory<byte>(copy);
+            }
+            return Transcoder.Decode<T>(_originalContent, Flags, OpCode.Set);
+        }
     }
 
     internal class LookupInContentAsWrapper : IContentAsWrapper
     {
         private readonly ILookupInResult _lookupInResult;
         private readonly int _specIndex;
+        public ITypeTranscoder Transcoder { get; set; }
 
-        public LookupInContentAsWrapper(ILookupInResult lookupInResult, int specIndex)
+        public Flags Flags { get; init; }
+
+        public bool IsBinary { get; init; }
+
+        public LookupInContentAsWrapper(ILookupInResult lookupInResult, int specIndex, ITypeTranscoder? transcoder = null)
         {
             _lookupInResult = lookupInResult;
+            if (lookupInResult is not ILookupInResultInternal res)
+            {
+                throw new InvalidArgumentException("lookupInResult is not a LookupInResult");
+            }
+            // NOTE: this Flags isn't necessarily what we want to use for the flags if this specIndex
+            // becomes the document body.
+            Flags = res.Flags;
             _specIndex = specIndex;
+            IsBinary = (res.Specs[specIndex].PathFlags & SubdocPathFlags.BinaryValue) != 0;
+            Transcoder  = transcoder ?? new JsonTranscoder();
         }
 
-        public T? ContentAs<T>() => _lookupInResult.ContentAs<T>(_specIndex);
+        public T? ContentAs<T>()
+        {
+            if (_lookupInResult is not ILookupInResultInternal res)
+            {
+                throw new InvalidArgumentException("lookupInResult is not a LookupInResult");
+            }
+            if (typeof(T) == typeof(byte[]))
+            {
+                return (T)(object)res.Specs[_specIndex].Bytes.ToArray();
+            }
+
+            if (typeof(T) == typeof(ReadOnlyMemory<byte>))
+            {
+                return (T)(object)res.Specs[_specIndex].Bytes;
+            }
+
+            if (typeof(T) == typeof(Memory<byte>))
+            {
+                return  (T)(object)res.Specs[_specIndex].Bytes.ToArray();
+            }
+            return _lookupInResult.ContentAs<T>(_specIndex);
+        }
     }
 }
 

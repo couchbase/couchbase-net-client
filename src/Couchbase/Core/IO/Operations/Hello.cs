@@ -16,26 +16,16 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            var contentLength = Content.Length;
-            var bufferLength = contentLength * 2;
+            var bufferLength = Content.Length * 2;
 
-            var buffer = ArrayPool<byte>.Shared.Rent(bufferLength);
-            try
+            var body = builder.GetSpan(bufferLength);
+            for (var i = 0; i < Content.Length; i++)
             {
-                var body = buffer.AsSpan();
-
-                for (var i = 0; i < contentLength; i++)
-                {
-                    ByteConverter.FromInt16((short) Content[i], body);
-                    body = body.Slice(2);
-                }
-
-                builder.Write(buffer, 0, bufferLength);
+                ByteConverter.FromInt16((short) Content[i], body);
+                body = body.Slice(2);
             }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+
+            builder.Advance(bufferLength);
         }
 
         protected override void WriteExtras(OperationBuilder builder)

@@ -4,14 +4,17 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -26,8 +29,7 @@ namespace Couchbase.Core.IO.HTTP
         private readonly ClusterContext _context;
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;
         private readonly IRedactor _redactor;
-
-        private readonly HttpMessageHandler _sharedHandler;
+        internal volatile HttpMessageHandler _sharedHandler;
 
         public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor)
         {
@@ -62,10 +64,22 @@ namespace Couchbase.Core.IO.HTTP
         /// <inheritdoc />
         public HttpCompletionOption DefaultCompletionOption { get; }
 
+        public HttpMessageHandler Handler => _sharedHandler;
+
         /// <inheritdoc />
         public HttpClient Create()
-
         {
+            //check for cert updates if were using a rotating cert factory
+            if (_context.ClusterOptions.X509CertificateFactory is
+                IRotatingCertificateFactory {
+                    HasUpdates: true
+                })
+            {
+                //this may pull the rug from in-progress requests
+                _sharedHandler.Dispose();
+                _sharedHandler = CreateClientHandler();
+            }
+
             var httpClient = new HttpClient(_sharedHandler, false)
             {
                 DefaultRequestHeaders =
@@ -224,7 +238,7 @@ namespace Couchbase.Core.IO.HTTP
 #else
         private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
-        private static X509Certificate2? GetClientCertificate(X509Certificate2Collection candidateCerts) =>
+        internal static X509Certificate2? GetClientCertificate(X509Certificate2Collection candidateCerts) =>
             candidateCerts.Cast<X509Certificate2>()
                 .FirstOrDefault(cert => cert.HasPrivateKey && IsValidClientCertificate(cert));
 

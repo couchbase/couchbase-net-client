@@ -1,9 +1,9 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Text;
-using Couchbase;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.KV.V1;
@@ -11,6 +11,7 @@ using Couchbase.Stellar.Core;
 using Couchbase.Stellar.KeyValue;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using LookupInRequest = Couchbase.Protostellar.KV.V1.LookupInRequest;
 using MutateInRequest = Couchbase.Protostellar.KV.V1.MutateInRequest;
 using MutationToken = Couchbase.Core.MutationToken;
@@ -47,7 +48,7 @@ namespace Couchbase.Stellar.KeyValue
         public void Dispose() { }
     }
 
-    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeSerializer Serializer) : Couchbase.KeyValue.ILookupInResult
+    internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeTranscoder Transcoder) : Couchbase.KeyValue.ILookupInResult
     {
         internal static readonly ReadOnlyMemory<byte> RawTrue = Encoding.ASCII.GetBytes("true");
         internal static readonly ReadOnlyMemory<byte> RawFalse = Encoding.ASCII.GetBytes("false");
@@ -59,6 +60,11 @@ namespace Couchbase.Stellar.KeyValue
         {
             var spec = SpecOrInvalid(index);
             if (spec.Content == null)
+            {
+                return false;
+            }
+
+            if (spec.Status != null && spec.Status.Code != (int)StatusCode.OK)
             {
                 return false;
             }
@@ -81,14 +87,30 @@ namespace Couchbase.Stellar.KeyValue
             }
 
             // if the original spec was NOT an exists request, then any successful status is a 'true' result.
-            return spec.Status == null;
+            return spec.Status == null || spec.Status.Code == (int)StatusCode.OK;
         }
 
         public T? ContentAs<T>(int index)
         {
+
             var spec = SpecOrInvalid(index);
-            var contentWrapper = new GrpcContentWrapper(spec.Content, 0, this.Serializer);
-            return contentWrapper.ContentAs<T>();
+            if (spec.Status == null || spec.Status.Code == (int)StatusCode.OK)
+            {
+                var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0,
+                    Transcoder, IsFullDoc: OriginalRequest.Specs[index].Path.Length == 0);
+                return contentWrapper.ContentAs<T>();
+            }
+            switch (spec.Status.Code)
+            {
+                case (int)StatusCode.InvalidArgument:
+                    throw new InvalidArgumentException(spec.Status.Message);
+                case (int)StatusCode.NotFound:
+                    throw new PathNotFoundException();
+                case (int)StatusCode.FailedPrecondition:
+                    throw new PathMismatchException();
+                default:
+                    throw new CouchbaseException(spec.Status.Message);
+            }
         }
 
         public int IndexOf(string path)
@@ -123,7 +145,7 @@ namespace Couchbase.Stellar.KeyValue
         }
     }
 
-    internal record MutateInResult(MutateInResponse GrpcResponse, MutateInRequest OriginalRequest, ITypeSerializer Serializer) : IMutateInResult
+    internal record MutateInResult(MutateInResponse GrpcResponse, MutateInRequest OriginalRequest, ITypeTranscoder Transcoder) : IMutateInResult
     {
 
         public ulong Cas => GrpcResponse.Cas;
@@ -137,7 +159,7 @@ namespace Couchbase.Stellar.KeyValue
         public T? ContentAs<T>(int index)
         {
             var spec = SpecOrInvalid(index);
-            var contentWrapper = new GrpcContentWrapper(spec.Content, 0, Serializer);
+            var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0, Transcoder: Transcoder, IsFullDoc: false);
             return contentWrapper.ContentAs<T>();
         }
 
@@ -178,7 +200,7 @@ namespace Couchbase.Stellar.KeyValue
     internal interface IContentResult
     {
         Timestamp Expiry { get; }
-        ByteString Content { get; }
+        ByteString ContentUncompressed { get; }
         uint ContentFlags { get; }
         ulong Cas { get; }
     }
@@ -264,6 +286,26 @@ namespace Couchbase.Protostellar.KV.V1
             (short)token.VbucketId,
             (long)token.VbucketUuid,
             (long)token.SeqNo);
+    }
+
+    partial class AppendResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class PrependResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class IncrementResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class DecrementResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
     }
 }
 #endregion
@@ -425,6 +467,11 @@ namespace Couchbase.Protostellar.Admin.Query.V1
     }
 
     partial class BuildDeferredIndexesResponse : IServiceResult
+    {
+        public RetryReason RetryReason { get; }
+    }
+
+    partial class WaitForIndexOnlineResponse : IServiceResult
     {
         public RetryReason RetryReason { get; }
     }

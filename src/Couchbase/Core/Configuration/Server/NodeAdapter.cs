@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Couchbase.Core.Compatibility;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -31,6 +32,8 @@ namespace Couchbase.Core.Configuration.Server
 
             if (nodeExt != null)
             {
+                CanonicalHostname = nodeExt.Hostname;
+                NodeUuid = nodeExt.NodeUuid;
                 // get services, will use alternate network ports if configured
                 var services = GetServicePorts(nodeExt, bucketConfig);
 
@@ -192,7 +195,23 @@ namespace Couchbase.Core.Configuration.Server
             IsKvNode = KeyValue > 0 || KeyValueSsl > 0;
         }
 
+        /// <summary>
+        /// This Hostname can be either the Canonical address, or the Alternate address.
+        /// This can be determined using the <see cref="UseAlternateAddress"/> property.
+        /// </summary>
         public string Hostname { get; set; }
+
+        /// <summary>
+        /// Returns the canonical hostname of the node.
+        /// </summary>
+        public string CanonicalHostname { get; set; }
+
+        /// <summary>
+        /// Returns the alternate hostname if it is being used, otherwise null.
+        /// </summary>
+        public string AlternateHostname => UseAlternateAddress ? Hostname : null;
+
+        public string NodeUuid { get; set; }
         public string CouchbaseApiBase { get; set; }
         public string CouchbaseApiBaseHttps { get; set; }
         public int MgmtApi { get; set; }

@@ -3,6 +3,8 @@ using System;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.Internal;
+using Newtonsoft.Json.Linq;
+
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -44,6 +46,15 @@ namespace Couchbase.Client.Transactions.DataModel
 
         internal ICouchbaseCollection DocumentCollection { get; }
 
+        internal TimeSpan? Expiry {
+            get
+            {
+                var txn = LookupInResult.ContentAs<JObject>(0);
+                var intValue = txn?["aux"]?["docexpiry"]?.Value<long?>();
+                return intValue.HasValue ? TimeSpan.FromMilliseconds(intValue.Value) : null;
+            }
+        }
+
         public TransactionGetResult GetPreTransactionResult() => TransactionGetResult.FromNonTransactionDoc(
                 collection: DocumentCollection,
                 id: Id,
@@ -51,7 +62,8 @@ namespace Couchbase.Client.Transactions.DataModel
                 cas: Cas,
                 documentMetadata: DocumentMetadata,
                 isDeleted: IsDeleted,
-                transactionXattrs: TransactionXattrs);
+                transactionXattrs: TransactionXattrs
+                );
 
         public TransactionGetResult GetPostTransactionResult() => TransactionGetResult.FromStaged(
                 DocumentCollection,

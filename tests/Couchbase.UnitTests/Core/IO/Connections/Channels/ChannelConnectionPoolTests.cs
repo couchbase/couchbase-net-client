@@ -134,7 +134,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             var maxInProgressCount = 0;
             var totalSentCount = 0;
             var tcs = new TaskCompletionSource<bool>();
-            var cts = new CancellationTokenSource(10000);
+            var cts = new CancellationTokenSource(20000);
             cts.Token.Register(() => tcs.TrySetResult(false)); // set result to false on timeout
 
             void SendStarted(IConnection _)

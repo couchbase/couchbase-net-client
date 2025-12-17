@@ -1,23 +1,32 @@
 ﻿#nullable enable
+using System;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.DataModel;
+using Couchbase.Client.Transactions.Internal;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
     internal interface IDocumentRepository
     {
-        Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, string opId, IAtrRepository atr, ulong? cas = null);
-        Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, object content, string opId, IAtrRepository atr, bool accessDeleted);
+        Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, IContentAsWrapper content, string opId, IAtrRepository atr, ulong? cas = null, TimeSpan? expiry = null);
+        Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, IContentAsWrapper content, string opId, IAtrRepository atr, bool accessDeleted, TimeSpan? expiry = null);
         Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedRemove(TransactionGetResult doc, IAtrRepository atr);
         Task<(ulong updatedCas, MutationToken mutationToken)> RemoveStagedInsert(TransactionGetResult doc);
-        Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode);
+        Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode, Flags flags, TimeSpan? expiry);
         Task UnstageRemove(ICouchbaseCollection collection, string docId, ulong cas = 0);
 
         Task ClearTransactionMetadata(ICouchbaseCollection collection, string docId, ulong cas, bool isDeleted);
 
-        Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true);
+        Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
+            string docId, DateTimeOffset deadline, ITypeTranscoder? transcoder = null,
+            bool allowReplica = false);
+        Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection,
+            string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null,
+            bool allowReplica = false);
         bool SupportsReplaceBodyWithXattr(ICouchbaseCollection collection);
 
     }

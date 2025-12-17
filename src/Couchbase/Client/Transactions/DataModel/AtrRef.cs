@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 #pragma warning disable CS1591
 
@@ -8,15 +9,19 @@ namespace Couchbase.Client.Transactions.DataModel
     public class AtrRef
     {
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string? Id { get; set; }
 
         [JsonProperty("bkt")]
+        [JsonPropertyName("bkt")]
         public string? BucketName { get; set; }
 
         [JsonProperty("scp")]
+        [JsonPropertyName("scp")]
         public string? ScopeName { get; set; }
 
         [JsonProperty("coll")]
+        [JsonPropertyName("coll")]
         public string? CollectionName { get; set; }
 
         public override string ToString() => $"{BucketName ?? "-"}/{ScopeName ?? "-"}/{CollectionName ?? "-"}/{Id ?? "-"}";

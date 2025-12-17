@@ -23,6 +23,7 @@
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="JUnitXml.TestLogger" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -31,7 +32,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Linq.AsyncEnumerable" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'"/>
+    <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1' "/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
+    <ProjectReference Include="..\Couchbase.Test.Common\Couchbase.Test.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

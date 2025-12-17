@@ -18,7 +18,11 @@ namespace Couchbase.Core.IO.Authentication.X509
 
         public X509Certificate2Collection GetCertificates()
         {
-            return new X509Certificate2Collection(new X509Certificate2(_path, _password));
+#if NET8_0 || NETSTANDARD2_1 || NETSTANDARD2_0
+          return new X509Certificate2Collection(new X509Certificate2(_path, _password));
+#else
+          return  X509CertificateLoader.LoadPkcs12CollectionFromFile(_path, _password);
+#endif
         }
     }
 }

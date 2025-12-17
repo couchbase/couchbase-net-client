@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 #pragma warning disable CS1591
 
@@ -8,15 +9,18 @@ namespace Couchbase.Client.Transactions.DataModel
     public class StagedOperation
     {
         [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public string? Type { get; set; }
 
         // TODO: while this is part of the data model, the fact that we have to read separately so that we
         // have access to LookupInResult.ContentAs<T>() later means that we're keeping this in memory twice.
         // That could be significant if the document is large.
         [JsonProperty("stgd")]
+        [JsonPropertyName("stgd")]
         public object? StagedDocument { get; set; }
 
         [JsonProperty("crc32")]
+        [JsonPropertyName("crc32")]
         public string? Crc32 { get; set; }
     }
 }

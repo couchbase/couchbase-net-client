@@ -1,5 +1,6 @@
 #nullable enable
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
@@ -16,8 +17,24 @@ namespace Couchbase.Client.Transactions.Forwards
         public const string WriteWriteConflictInserting = "WW_I";
         public const string WriteWriteConflictInsertingGet = "WW_IG";
         public const string Gets = "G";
+        public const string GetMulti = "GM_G";
         public const string GetsReadingAtr = "G_A";
         public const string CleanupEntry = "CL_E";
+
+        public static readonly JArray extBinSupportActions = new(new JObject()
+        {
+            ["b"] = "f",
+            ["e"] = "BS",
+        });
+
+        public static readonly JObject extBinSupport = new JObject()
+        {
+            [CleanupEntry] = extBinSupportActions,
+            [Gets] = extBinSupportActions,
+            [WriteWriteConflictInserting] = extBinSupportActions,
+            [WriteWriteConflictInsertingGet] = extBinSupportActions,
+        };
+
 
         public static async Task Check(AttemptContext? ctx, string interactionPoint, JObject? fc)
         {
@@ -93,15 +110,19 @@ namespace Couchbase.Client.Transactions.Forwards
         public const char CheckBehaviorRetry = 'r';
 
         [JsonProperty("p")]
+        [JsonPropertyName("p")]
         public decimal? ProtocolVersion { get; set; } = null;
 
         [JsonProperty("b")]
+        [JsonPropertyName("b")]
         public char? Behavior { get; set; } = null;
 
         [JsonProperty("e")]
+        [JsonPropertyName("e")]
         public string? ExtensionCheck { get; set; } = null;
 
         [JsonProperty("ra")]
+        [JsonPropertyName("ra")]
         public int? RetryDelay { get; set; } = null;
     }
 }

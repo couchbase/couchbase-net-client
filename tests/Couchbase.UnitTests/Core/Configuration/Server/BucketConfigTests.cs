@@ -527,6 +527,46 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Fact]
+        public void Test_AppTelemetryPath_Included()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-path.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var node1 = config.NodesExt[0];
+            var node2 = config.NodesExt[1];
+            var node3 = config.NodesExt[2];
+            Assert.Equal("/_appTelemetry", node1.AppTelemetryPath);
+            Assert.Null(node2.AppTelemetryPath);
+            Assert.Null(node3.AppTelemetryPath);
+        }
+
+        [Fact]
+        public void Test_AppTelemetryPath_Random_Round_Robin()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var node1 = config.GetAppTelemetryPath(0);
+            var node2 = config.GetAppTelemetryPath(1);
+            Assert.NotEqual(node1, node2);
+
+            var node3 = config.GetAppTelemetryPath(2);
+            Assert.NotEqual(node1, node3);
+            Assert.NotEqual(node2, node3);
+
+            var node4 = config.GetAppTelemetryPath(3);
+            Assert.Equal(node1, node4);
+
+
+            var node5 = config.GetAppTelemetryPath(4, true);
+            var node6 = config.GetAppTelemetryPath(5, true);
+            Assert.NotEqual(node5, node6);
+
+            var node7 = config.GetAppTelemetryPath(6, true);
+            Assert.NotEqual(node5, node7);
+            Assert.NotEqual(node6, node7);
+        }
+
+        [Fact]
         public void Filter_ServerGroups_and_Indexes()
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json", InternalSerializationContext.Default.BucketConfig);
@@ -536,20 +576,34 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var groupAndIndexes = config.ServerGroupNodeIndexes;
 
             Assert.Equal(4, hostnamesAndIndex.Count);
-            Assert.Equal(0, hostnamesAndIndex["192.168.56.102"]);
-            Assert.Equal(1, hostnamesAndIndex["192.168.56.101"]);
-            Assert.Equal(2, hostnamesAndIndex["192.168.56.103"]);
-            Assert.Equal(3, hostnamesAndIndex["192.168.56.104"]);
+            Assert.Equal(0, hostnamesAndIndex["192.168.56.102:11210"]);
+            Assert.Equal(1, hostnamesAndIndex["192.168.56.101:11210"]);
+            Assert.Equal(2, hostnamesAndIndex["192.168.56.103:11210"]);
+            Assert.Equal(3, hostnamesAndIndex["192.168.56.104:11210"]);
 
             Assert.Equal(4, hostnamesAndGroup.Count);
-            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.102"]);
-            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.101"]);
-            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.103"]);
-            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.104"]);
+            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.102:11210"]);
+            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.101:11210"]);
+            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.103:11210"]);
+            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.104:11210"]);
 
             Assert.Equal(2, groupAndIndexes.Count);
             Assert.Equal([0, 1], groupAndIndexes["group_1"]);
             Assert.Equal([2, 3], groupAndIndexes["group_2"]);
+        }
+
+        [Fact]
+        public void Test_BucketConfig_With_Product()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-with-analytics-prod.json", InternalSerializationContext.Default.BucketConfig);
+            Assert.Equal("analytics", config.Product);
+        }
+
+        [Fact]
+        public void Test_BucketConfig_Without_Product()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json", InternalSerializationContext.Default.BucketConfig);
+            Assert.Null(config.Product);
         }
     }
 }

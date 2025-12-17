@@ -23,7 +23,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="MutateInSpecBuilder"/> for chaining.</returns>
         public MutateInSpecBuilder Insert<T>(string path, T value, bool createPath = default(bool), bool isXattr = default(bool))
         {
-            Specs.Add(MutateInSpec.Insert(path, value, createPath, isXattr));
+            Specs.Add(MutateInSpec.Insert(path, value, createPath, isXattr, false));
             return this;
         }
 
@@ -42,6 +42,13 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        internal MutateInSpecBuilder Upsert<T>(string path, T value, bool createPath, bool isXattr,
+            bool isBinary)
+        {
+            Specs.Add(MutateInSpec.Upsert(path, value, createPath: createPath, isXattr: isXattr,
+                removeBrackets: false, isBinary: isBinary));
+            return this;
+        }
         /// <summary>
         /// Replaces an element  in a document, failing if it does not exist.
         /// </summary>
@@ -246,7 +253,12 @@ namespace Couchbase.KeyValue
 
         public MutateInSpecBuilder ReplaceBodyWithXattr(string path)
         {
-            Specs.Add(MutateInSpec.ReplaceBodyWithXattr(path));
+            Specs.Add(MutateInSpec.ReplaceBodyWithXattr(path, isBinary: false));
+            return this;
+        }
+        internal MutateInSpecBuilder ReplaceBodyWithXattr(string path, bool isBinary)
+        {
+            Specs.Add(MutateInSpec.ReplaceBodyWithXattr(path, isBinary));
             return this;
         }
     }

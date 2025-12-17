@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">true</IsTrimmable>
     <EnableAOTAnalyzer Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">$(DefaultEnableAotAnalyzer)</EnableAOTAnalyzer>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">
@@ -24,6 +25,12 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Linq.AsyncEnumerable" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'"/>
+    <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1' "/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">

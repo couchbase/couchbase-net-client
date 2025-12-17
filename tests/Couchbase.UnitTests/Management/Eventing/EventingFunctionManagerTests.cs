@@ -6,6 +6,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Management.Eventing;
@@ -54,6 +56,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Fact]
         public async Task Test_GetAllFunctionsAsync_Ok()
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-response.json");
             var buffer = new byte[response.Length];
@@ -66,7 +89,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -74,7 +97,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             var eventingFunctions = await manager.GetAllFunctionsAsync();
             var eventingFunction = eventingFunctions.First();
@@ -88,6 +111,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Fact]
         public async Task Test_GetFunctionAsync_Ok()
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getfunction-response.json");
             var buffer = new byte[response.Length];
@@ -100,7 +144,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -108,7 +152,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             var eventingFunctions = await manager.GetFunctionAsync("case_1_enrich_ips");
             var eventingFunction = eventingFunctions;
@@ -122,6 +166,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Fact]
         public async Task Test_GetAllFunctions_GlobalScope()
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
             var buffer = new byte[response.Length];
@@ -134,8 +199,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(),
-                    It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -143,7 +207,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
             var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
             var eventingFunction = eventingFunctions.First();
             Assert.Equal("X40ih3", eventingFunction.FunctionInstanceId);
@@ -156,6 +220,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Fact]
         public async Task Test_GetAllFunctions_Scoped()
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
             var buffer = new byte[response.Length];
@@ -168,8 +253,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(),
-                    It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -177,7 +261,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer,
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object,
                 new EventingFunctionKeyspace("hr", "employees", null));
             var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
             var eventingFunction = eventingFunctions.First();
@@ -206,6 +290,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [InlineData("500_err_bucket_missing.json", HttpStatusCode.InternalServerError, typeof(BucketNotFoundException))]
         public async Task Test_UpsertAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
             var buffer = new byte[response.Length];
@@ -218,7 +323,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>(), It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -226,7 +331,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -234,7 +339,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             }
             catch (Exception e)
             {
-                Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
+                Assert.True(e.GetType() == exception, $"Expected {exception.Name} but was {e.GetType().Name}");
             }
         }
 
@@ -245,6 +350,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
         public async Task Test_DropFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
             var buffer = new byte[response.Length];
@@ -257,7 +383,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.DeleteAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.DeleteAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -265,7 +391,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -283,6 +409,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
         public async Task Test_PauseFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
             var buffer = new byte[response.Length];
@@ -295,15 +442,14 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
-
             using var tracer = new RequestTracer();
             using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -321,6 +467,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
         public async Task Test_ResumeFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
             var buffer = new byte[response.Length];
@@ -333,15 +500,14 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
-
             using var tracer = new RequestTracer();
             using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -364,14 +530,34 @@ namespace Couchbase.UnitTests.Management.Eventing
             var buffer = new byte[response.Length];
             response.Read(buffer, 0, buffer.Length);
 
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             var httpResponseMessage = new HttpResponseMessage
             {
                 StatusCode = statusCode,
                 Content = new ByteArrayContent(buffer)
             };
-
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -379,7 +565,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -398,6 +584,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
         public async Task Test_UndeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
             var buffer = new byte[response.Length];
@@ -410,15 +617,14 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
                 .Returns(Task.FromResult(httpResponseMessage));
-
             using var tracer = new RequestTracer();
             using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             try
             {
@@ -433,6 +639,27 @@ namespace Couchbase.UnitTests.Management.Eventing
         [Fact]
         public async Task Test_FunctionStatus()
         {
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+            nodeMock.Setup(n => n.EventingUri)
+                .Returns(new Uri("http://localhost:8093"));
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomEventingNode())
+                .Returns(nodeMock.Object);
+
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\200_ok_status.json");
             var buffer = new byte[response.Length];
@@ -445,7 +672,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             };
 
             var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunctionKeyspace>()))
+            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(httpResponseMessage));
 
             using var tracer = new RequestTracer();
@@ -453,7 +680,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             tracer.Start(listener);
 
             var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer);
+                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
             var functionStatus = await manager.FunctionsStatus();
             Assert.Equal(1, functionStatus.NumEventingNodes);

@@ -8,6 +8,7 @@
     <PackageId>CouchbaseNetClient</PackageId>
     <Product>CouchbaseNetClient</Product>
     <Description>The Official Couchbase .NET SDK.</Description>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
 
     <PackageReleaseNotes>https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html</PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -57,12 +58,9 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Snappier" />
-    <PackageReference Include="System.Linq.Async" />
   </ItemGroup>
 
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="System.Text.Json" />
@@ -78,6 +76,11 @@
 
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Linq.AsyncEnumerable" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'"/>
+    <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1' "/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">

@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -9,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
@@ -19,6 +19,7 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -42,6 +43,7 @@ namespace Couchbase.Search
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
         private readonly IDataMapper _dataMapper;
+        private readonly IAppTelemetryCollector _appTelemetryCollector;
         private string Escape(string pathValue) => Uri.EscapeDataString(pathValue);
 
         //for log redaction
@@ -53,15 +55,16 @@ namespace Couchbase.Search
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IAppTelemetryCollector appTelemetryCollector)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
-
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
+            _appTelemetryCollector = appTelemetryCollector;
         }
 
         /// <summary>
@@ -89,7 +92,11 @@ namespace Couchbase.Search
             using var encodingSpan = rootSpan.EncodingSpan();
 
             // try get Search nodes
-            var searchUri = _serviceUriProvider.GetRandomSearchUri();
+            var searchNode = _serviceUriProvider.GetRandomSearchNode();
+            var searchUri = searchNode.SearchUri;
+            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            TimeSpan? requestElapsed;
+
             rootSpan.WithRemoteAddress(searchUri);
 
             var path = scope?.Bucket?.Name is not null
@@ -145,18 +152,29 @@ namespace Couchbase.Search
                     Content = content
                 };
 
+                requestStopwatch?.Restart();
+
                 // Search doesn't support streaming the response objects, however we can still get a small performance gain by reading
                 // the HTTP response body as it arrives instead of waiting for the entire response to arrive. Therefore, use the
                 // HttpClientFactory.DefaultCompletionOption here. However, the more complex logic to dispose of HttpClient used in other
                 // query clients is not required as the response body will be fully read before this method returns.
                 using var response = await httpClient.SendAsync(httpRequestMessage, HttpClientFactory.DefaultCompletionOption, cancellationToken)
                     .ConfigureAwait(false);
+                requestElapsed = requestStopwatch?.Elapsed;
                 dispatchSpan.Dispose();
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
                     {
+                        _appTelemetryCollector.IncrementMetrics(
+                            requestElapsed,
+                            searchNode.NodesAdapter.CanonicalHostname,
+                            searchNode.NodesAdapter?.AlternateHostname,
+                            searchNode.NodeUuid,
+                            AppTelemetryServiceType.Search,
+                            AppTelemetryCounterType.Total);
+
                         searchResult = await _dataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
                     }
                     else
@@ -265,8 +283,17 @@ namespace Couchbase.Search
             }
             catch (OperationCanceledException e)
             {
+                requestElapsed = requestStopwatch?.Elapsed;
                 //treat as an orphaned response
                 rootSpan.LogOrphaned();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    requestElapsed,
+                    searchNode.NodesAdapter!.CanonicalHostname,
+                    searchNode.NodesAdapter.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.TimedOut);
 
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
                 throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
@@ -284,8 +311,17 @@ namespace Couchbase.Search
             }
             catch (HttpRequestException e)
             {
+                requestElapsed = requestStopwatch?.Elapsed;
                 //treat as an orphaned response
                 rootSpan.LogOrphaned();
+
+                _appTelemetryCollector.IncrementMetrics(
+                    requestElapsed,
+                    searchNode.NodesAdapter!.CanonicalHostname,
+                    searchNode.NodesAdapter.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.Canceled);
 
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
                 throw new RequestCanceledException("The query was canceled.", e)

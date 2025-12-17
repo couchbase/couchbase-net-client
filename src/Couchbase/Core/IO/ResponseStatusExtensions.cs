@@ -27,6 +27,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.Busy:
                 case ResponseStatus.NotInitialized:
                 case ResponseStatus.EConfigOnly:
+                case ResponseStatus.BucketNotConnected:
                     return RetryReason.KvTemporaryFailure;
                 case ResponseStatus.TransportFailure: return RetryReason.SocketClosedWhileInFlight;
                 case ResponseStatus.SyncWriteInProgress: return RetryReason.KvSyncWriteInProgress;
@@ -66,6 +67,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.UnknownScope:
                 case ResponseStatus.CircuitBreakerOpen:
                 case ResponseStatus.EConfigOnly:
+                case ResponseStatus.BucketNotConnected:
                     return true;
                 case ResponseStatus.Locked:
                     return op.OpCode != OpCode.Unlock; // Unlock return Locked results in CasMismatchException

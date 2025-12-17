@@ -20,8 +20,12 @@ internal interface IKeySpec
 internal interface IContentRequest
 {
     public uint ContentFlags { get; set; }
-    public ByteString Content { get; set; }
+    public ByteString ContentUncompressed { get; set; }
     public DurabilityLevel DurabilityLevel { get; set; }
+}
+
+internal interface IExpiryRequest {
+
     public Timestamp ExpiryTime { get; set; }
     public uint ExpirySecs { get; set; }
 }
@@ -35,13 +39,13 @@ public partial class ExistsRequest : IKeySpec { }
 public partial class GetRequest : IKeySpec { }
 public partial class GetAndLockRequest : IKeySpec { }
 public partial class GetAndTouchRequest : IKeySpec { }
-public partial class InsertRequest : IKeySpec, IContentRequest { }
+public partial class InsertRequest : IKeySpec, IContentRequest, IExpiryRequest { }
 public partial class RemoveRequest : IKeySpec, ICasRequest { }
-public partial class ReplaceRequest : IKeySpec, ICasRequest, IContentRequest { }
+public partial class ReplaceRequest : IKeySpec, ICasRequest, IContentRequest, IExpiryRequest { }
 public partial class TouchRequest : IKeySpec { }
 public partial class UnlockRequest : IKeySpec { }
-public partial class UpsertRequest : IKeySpec, IContentRequest { }
+public partial class UpsertRequest : IKeySpec, IContentRequest, IExpiryRequest { }
 public partial class LookupInRequest : IKeySpec { }
-public partial class MutateInRequest : IKeySpec { }
+public partial class MutateInRequest : IKeySpec, IExpiryRequest { }
 public partial class GetAllReplicasRequest : IKeySpec { }
 #endif

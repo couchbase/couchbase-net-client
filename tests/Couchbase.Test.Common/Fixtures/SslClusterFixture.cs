@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Fixtures
@@ -8,33 +10,27 @@ namespace Couchbase.IntegrationTests.Fixtures
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
+        private ILogger _logger;
+        private ILoggerFactory _loggerFactory;
 
         public ICluster Cluster { get; private set; }
 
         public SslClusterFixture()
         {
             _settings = GetSettings();
+
+            IServiceCollection serviceCollection = new ServiceCollection();
+            serviceCollection.AddLogging(builder => builder
+                    .AddFilter(level => level >= LogLevel.Trace) // GetSettings().LogLevel ?
+            );
+
+            _loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+            _loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+            _logger = _loggerFactory.CreateLogger<SslClusterFixture>();
         }
 
-        public async ValueTask<ICluster> GetCluster()
-        {
-            if (_bucketOpened)
-            {
-                return Cluster;
-            }
+        public string BucketName => _settings.BucketName;
 
-            await GetDefaultBucket().ConfigureAwait(false);
-            return Cluster;
-        }
-
-        public async Task<IBucket> GetDefaultBucket()
-        {
-            var bucket = await Cluster.BucketAsync(_settings.BucketName).ConfigureAwait(false);
-
-            _bucketOpened = true;
-
-            return bucket;
-        }
 
         public string GetCertsFilePath()
         {
@@ -56,16 +52,11 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .AddJsonFile("config.json")
                 .Build()
                 .GetSection("couchbaseSsl")
-                .Get<ClusterOptions>();
+                .Get<ClusterOptions>().WithLogging(_loggerFactory);
         }
 
         public async Task InitializeAsync()
         {
-            var clusterOptions = GetClusterOptions();
-            Cluster = await Couchbase.Cluster.ConnectAsync(
-                    clusterOptions.ConnectionString,
-                    clusterOptions)
-                .ConfigureAwait(false);
         }
 
         public Task DisposeAsync()
@@ -73,6 +64,11 @@ namespace Couchbase.IntegrationTests.Fixtures
             Cluster?.Dispose();
 
             return Task.CompletedTask;
+        }
+
+        public void Log(string? message, params object?[] args)
+        {
+            _logger.LogInformation( message, args);
         }
     }
 }

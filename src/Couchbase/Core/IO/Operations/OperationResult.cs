@@ -62,6 +62,7 @@ namespace Couchbase.Core.IO.Operations
             {
                 case ResponseStatus.TransportFailure:
                 case ResponseStatus.VBucketBelongsToAnotherServer:
+                case ResponseStatus.BucketNotConnected:
                     return true;
                 case ResponseStatus.ClientFailure:
                     return IsClientFailureRetriable();
@@ -83,7 +84,6 @@ namespace Couchbase.Core.IO.Operations
                 case ResponseStatus.Busy:
                 case ResponseStatus.OperationTimeout:
                 case ResponseStatus.TemporaryFailure:
-                case ResponseStatus.BucketNotConnected:
                     return false;
                 case ResponseStatus.Failure: // used for server retry straegies
                     return true;

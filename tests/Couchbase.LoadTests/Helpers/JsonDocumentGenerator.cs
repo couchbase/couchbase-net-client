@@ -40,7 +40,7 @@ namespace Couchbase.LoadTests.Helpers
             }
         }
 
-        private object GenerateDocument(int docSize)
+        public static Dictionary<string, string> GenerateDocument(int docSize)
         {
             var remainingSize = docSize - JsonWrapperSize;
 

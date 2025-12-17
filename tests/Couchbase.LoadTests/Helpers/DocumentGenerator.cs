@@ -7,22 +7,7 @@ namespace Couchbase.LoadTests.Helpers
 {
     public abstract class DocumentGenerator
     {
-        protected Random Random { get; }
-
-        protected DocumentGenerator()
-            : this(new Random())
-        {
-        }
-
-        protected DocumentGenerator(int seed)
-            : this(new Random(seed))
-        {
-        }
-
-        protected DocumentGenerator(Random random)
-        {
-            Random = random ?? throw new ArgumentNullException(nameof(random));
-        }
+        protected static Random Random { get; } = new();
 
         public static IList<int> GenerateDocumentSizes(int minSize, int maxSize, int grades = 10)
         {

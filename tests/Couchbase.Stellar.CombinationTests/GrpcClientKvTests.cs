@@ -74,7 +74,7 @@ namespace Couchbase.Stellar.CombinationTests
             var kvClient = new Couchbase.Protostellar.KV.V1.KvService.KvServiceClient(channel);
 
             var upsertRequest = new Couchbase.Protostellar.KV.V1.UpsertRequest() { Key = "UnitTestUpsert01", BucketName = "default" };
-            upsertRequest.Content = Google.Protobuf.ByteString.CopyFromUtf8("{ 'id': 'foo' }");
+            upsertRequest.ContentUncompressed = Google.Protobuf.ByteString.CopyFromUtf8("{ 'id': 'foo' }");
             var upsertResponse = await kvClient.UpsertAsync(upsertRequest, new Grpc.Core.CallOptions(headers: metadata));
             Assert.NotEqual(0u, upsertResponse.Cas);
         }

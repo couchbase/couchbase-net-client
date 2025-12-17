@@ -2,23 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Management.Users;
 using Couchbase.Query;
+using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests
 {
     public class UserManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
 
-        public UserManagerTests(ClusterFixture fixture)
+        public UserManagerTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
+            _outputHelper = outputHelper;
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "6.5.0")]
@@ -169,17 +174,65 @@ namespace Couchbase.IntegrationTests
             await globalUserManager.UpsertGroupAsync(@group).ConfigureAwait(false);
             await globalUserManager.UpsertUsersAsync(user).ConfigureAwait(false);
 
-            try
+            try // cannot login to new user immediately...
             {
-                var disposableConnection =
-                    await Couchbase.Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword).ConfigureAwait(false);
+                ICluster disposableConnection = null;
+                int MAX_TRIES = 5;
+                for (var i = 0; i <= MAX_TRIES; i++)
+                {
+                    Thread.Sleep(1 * 1000);
+                    try
+                    {
+                        disposableConnection =
+                            await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString,
+                                username, originalPassword).ConfigureAwait(false);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _fixture.Log(
+                            $"User {username} changed their password to {newPassword} try={i} exception={ex.Message}",
+                            username, newPassword, i, ex);
+                        if (i == MAX_TRIES)
+                        {
+                            throw ex;
+                        }
+                    }
+                }
+
                 var disposableUserManager = disposableConnection.Users;
-                await disposableUserManager.ChangeUserPasswordAsync(newPassword).ConfigureAwait(false);
+                await disposableUserManager.ChangeUserPasswordAsync(newPassword)
+                    .ConfigureAwait(false);
 
-                var exception = await Record.ExceptionAsync(() => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, newPassword));
-                Assert.Null(exception);
+                disposableConnection.Dispose();
 
-                await Assert.ThrowsAsync<AuthenticationFailureException>( () => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword));
+                // cannot login to with new password immediately...
+                for (var i = 0; i <= MAX_TRIES; i++)
+                {
+                    Thread.Sleep(1 * 1000);
+                    try
+                    {
+                        disposableConnection =
+                            await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString,
+                                username, newPassword).ConfigureAwait(false);
+                        disposableConnection.Dispose();
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _fixture.Log(
+                            $"User {username} reconnect try={i} exception={ex.Message}",
+                            username, newPassword, i, ex);
+                        if (i == MAX_TRIES)
+                        {
+                            throw ex;
+                        }
+                    }
+                }
+
+                await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                    Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username,
+                        originalPassword));
             }
             finally
             {

@@ -44,8 +44,12 @@ namespace Couchbase.Client.Transactions.Support
         // Adding scope and collection metadata fields to try and future proof
         public const string AtrCollName = TransactionInterfacePrefix + "atr.coll";
         public const string StagedData = TransactionInterfacePrefix + "op.stgd";
+        public const string BinStagedData = TransactionInterfacePrefix + "op.bin";
+        public const string UserFlags = TransactionInterfacePrefix + "aux.uf";
         public const string Type = TransactionInterfacePrefix + "op.type";
         public const string Crc32 = TransactionInterfacePrefix + "op.crc32";
+        public const string DocExpiry = TransactionInterfacePrefix + "aux.docexpiry";
+        public const string ForwardCompatibility = TransactionInterfacePrefix + "fc";
 
         public const string PreTxnCas = TransactionRestorePrefix + "CAS";
         public const string PreTxnRevid = TransactionRestorePrefix + "revid";

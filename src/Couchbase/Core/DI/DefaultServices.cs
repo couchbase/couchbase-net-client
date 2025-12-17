@@ -7,6 +7,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
@@ -138,6 +139,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(IHttpClusterMapFactory), new SingletonServiceFactory(typeof(HttpClusterMapFactory)));
             yield return (typeof(ICollectionQueryIndexManager), new SingletonServiceFactory(typeof(CollectionQueryIndexManager)));
             yield return (typeof(IConfigPushHandlerFactory), new SingletonServiceFactory(typeof(ConfigPushHandlerFactory)));
+
+            yield return (typeof(IAppTelemetryCollector), new SingletonServiceFactory(typeof(AppTelemetryCollector)));
         }
     }
 }

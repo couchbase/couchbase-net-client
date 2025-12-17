@@ -14,6 +14,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
     internal class MockCollection : ICouchbaseCollection
     {
         public Dictionary<string, TransactionGetResult> AllDocs { get; }
+        public bool SubdocAccessDeleted => false;
         public MockCollection(IEnumerable<TransactionGetResult> mockDocs)
         {
             AllDocs = mockDocs.ToDictionary(o => o.Id);
@@ -168,6 +169,8 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
         }
 
         public uint? Cid => throw new NotImplementedException();
+
+        public bool SubdocAccessDeleted => false;
 
         public string Name { get; }
 

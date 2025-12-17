@@ -24,7 +24,8 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // doc doesn't exist, create it and use initial value (1)
-                var result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
+                var result = await collection.Binary.IncrementAsync(key, options =>
+                    options.Initial(1)).ConfigureAwait(true);
                 Assert.Equal((ulong) 1, result.Content);
 
                 // increment again, doc exists, increments to 2
@@ -68,7 +69,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // doc doesn't exist, create it and use initial value (1)
-                var result = await collection.Binary.IncrementAsync(key, options => options.Expiry(TimeSpan.FromMilliseconds(500))).ConfigureAwait(false);
+                var result = await collection.Binary.IncrementAsync(key, options => options.Expiry(TimeSpan.FromMilliseconds(500)).Initial(1)).ConfigureAwait(false);
                 Assert.True(result.Cas > 0);
 
                 await Task.Delay(TimeSpan.FromMilliseconds(600)).ConfigureAwait(false);

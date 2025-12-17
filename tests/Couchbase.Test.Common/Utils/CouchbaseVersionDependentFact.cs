@@ -6,6 +6,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.IntegrationTests.Fixtures;
+using Google.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -59,6 +61,20 @@ namespace Couchbase.IntegrationTests.Utils
             return currentVersion ?? "7.5";
         });
 
+        public static Lazy<string> CertPath = new(() =>
+            {
+
+                var _settings = new ConfigurationBuilder()
+                    .AddJsonFile("config.json")
+                    .Build()
+                    .GetSection("testSettings")
+                    .Get<TestSettings>();
+                return _settings.CertificatesFilePath;
+
+
+            }
+        );
+
         /// <summary>
         /// Gets or sets the minimum Version necessary to run the test.
         /// </summary>
@@ -89,6 +105,13 @@ namespace Couchbase.IntegrationTests.Utils
             get => SkipBasedOnVersion(base.Skip, ExplicitAllow, ExplicitSkip, MinVersion, MaxVersion);
             set => base.Skip = value;
         }
+
+        /// <summary>
+        /// Gets or sets the maximum Version necessary to run the test.
+        /// </summary>
+        /// <remarks>If it does not parse as a Version, it will be ignored.</remarks>
+        public string CertFilePath { get; set; }
+
 
         internal static string SkipBasedOnVersion(string baseSkip, string[] explicitAllowVersions, string[] explicitSkipVersions, string minVersion, string maxVersion)
         {
@@ -128,5 +151,6 @@ namespace Couchbase.IntegrationTests.Utils
 
             return baseSkip;
         }
+
     }
 }

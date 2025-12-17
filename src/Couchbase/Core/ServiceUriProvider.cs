@@ -39,6 +39,34 @@ namespace Couchbase.Core
         /// <inheritdoc />
         public Uri GetRandomEventingUri() =>
             _clusterContext.GetRandomNodeForService(ServiceType.Eventing).EventingUri;
+
+        #region AppTelemetry Utils
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomAnalyticsNode() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Analytics);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomQueryNode() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Query);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomSearchNode() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Search);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomManagementNode() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Management);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomViewsNode(string bucketName) =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Views, bucketName);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomEventingNode() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Eventing);
+
+        #endregion
     }
 }
 

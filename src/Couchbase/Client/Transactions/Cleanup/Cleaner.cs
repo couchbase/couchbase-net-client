@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,8 @@ using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Internal.Test;
 using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Cleanup
@@ -142,7 +145,6 @@ namespace Couchbase.Client.Transactions.Cleanup
                     {
                         await TestHooks.BeforeRemoveDoc(dr.Id).CAF();
                         var collection = await dr.GetCollection(_cluster).CAF();
-                        var finalDoc = op.StagedContent!.ContentAs<object>();
                         if (op.IsDeleted)
                         {
                             await collection.MutateInAsync(dr.Id, specs =>
@@ -150,6 +152,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 opts => opts.Cas(op.Cas)
                                     .Durability(cleanupRequest.GetDurabilityLevel())
                                     .AccessDeleted(true)
+                                    .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
                                     .Timeout(_keyValueTimeout)).CAF();
                         }
                         else
@@ -173,6 +176,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                             opts => opts.Cas(op.Cas)
                                 .AccessDeleted(true)
+                                .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
                                 .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
             }
@@ -188,22 +192,18 @@ namespace Couchbase.Client.Transactions.Cleanup
                 await CleanupDoc(dr, requireCrc32ToMatchStaging: true, attemptId: cleanupRequest.AttemptId,
                     perDoc: async (op) =>
                     {
-                        // TODO: This has significant overlap with UnstageInsertOrReplace.
+                        // NOTE: we could do this more compactly, but this insures we reify the
+                        // content with the correct runtime type.
                         await TestHooks.BeforeCommitDoc(dr.Id).CAF();
-                        var collection = await dr.GetCollection(_cluster).CAF();
-                        var finalDoc = op.StagedContent!.ContentAs<object>();
-                        if (op.IsDeleted)
+                        if (op.StagedContent!.IsBinary)
                         {
-                            await collection.InsertAsync(dr.Id, finalDoc, opts => opts.Durability(durabilityLevel)).CAF();
+                            var content = op.StagedContent.ContentAs<byte[]>();
+                            await UnstageInsertOrRemove(op, content, durabilityLevel).CAF();
                         }
                         else
                         {
-                            await collection.MutateInAsync(dr.Id, specs =>
-                                    specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
-                                        .SetDoc(finalDoc)
-                                , opts => opts.Cas(op.Cas)
-                                    .Durability(durabilityLevel)
-                                    .Timeout(_keyValueTimeout)).CAF();
+                            var content = op.StagedContent.ContentAs<object>();
+                            await UnstageInsertOrRemove(op, content, durabilityLevel).CAF();
                         }
                     }).CAF();
             }
@@ -220,6 +220,41 @@ namespace Couchbase.Client.Transactions.Cleanup
                             .Durability(durabilityLevel)
                             .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
+            }
+        }
+
+        private async Task UnstageInsertOrRemove<T>(DocumentLookupResult op, T content,
+            DurabilityLevel durabilityLevel)
+        {
+            var coll = op.DocumentCollection;
+            if (op.IsDeleted)
+            {
+                await coll.InsertAsync(op.Id, content,
+                    options =>
+                    {
+                        options.Durability(durabilityLevel)
+                            .Transcoder(op.StagedContent?.Transcoder);
+                        if (op.Expiry.HasValue) options.Expiry(op.Expiry.Value);
+                    }).CAF();
+            }
+            else
+            {
+                await coll.MutateInAsync(op.Id, specs =>
+                    specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true)
+                        .SetDoc(content), opts =>
+                {
+                    opts.Durability(durabilityLevel)
+                        .Transcoder(op.StagedContent?.Transcoder)
+                        .Flags(op.StagedContent!.Transcoder.GetFormat(content))
+                        .Timeout(_keyValueTimeout)
+                        .Cas(op.Cas)
+                        .PreserveTtl(coll.Scope.Bucket.SupportsCollections);
+                    if (op.Expiry.HasValue)
+                    {
+                        opts.Expiry(op.Expiry.Value);
+                        opts.PreserveTtl(false);
+                    }
+                }).CAF();
             }
         }
 

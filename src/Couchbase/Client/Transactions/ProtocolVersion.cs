@@ -14,7 +14,6 @@ namespace Couchbase.Client.Transactions
             // For example, EXT_DEFERRED_COMMIT becomes ExtDeferredCommit
             yield return new ExtensionName("ExtTransactionId", "EXT_TRANSACTION_ID", "TI");
             yield return new ExtensionName("ExtRemoveCompleted", "EXT_REMOVE_COMPLETED", "RC");
-
             yield return new ExtensionName("ExtQuery", "EXT_QUERY", "QU");
             yield return new ExtensionName("ExtSingleQuery", "EXT_SINGLE_QUERY", "SQ");
             yield return new ExtensionName("ExtBinaryMetadata", "EXT_BINARY_METADATA", "BM");
@@ -34,6 +33,11 @@ namespace Couchbase.Client.Transactions
             yield return new ExtensionName("ExtInsertExisting", "EXT_INSERT_EXISTING", "IX");
             yield return new ExtensionName("ExtReplaceBodyWithXattr", "EXT_REPLACE_BODY_WITH_XATTR","RX");
             yield return new ExtensionName("ExtParallelUnstaging", "EXT_PARALLEL_UNSTAGING", "PU");
+            yield return new ExtensionName("ExtBinarySupport", "EXT_BINARY_SUPPORT", "BS");
+            yield return new ExtensionName("ExtMemoryOptUnstaging", "EXT_MEMORY_OPT_UNSTAGING", "MO");
+            yield return new ExtensionName("ExtReplicaFromPreferredGroup", "EXT_REPLICA_FROM_PREFERRED_GROUP", "RP");
+            yield return new ExtensionName("ExtGetMulti", "EXT_GET_MULTI", "GM");
+            yield return new ExtensionName("ExtTtl", "EXT_TTL", "TTL");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);

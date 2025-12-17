@@ -14,6 +14,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,11 +24,10 @@
 
   <PropertyGroup>
     <ProtostellarRepoBase>..\..\..\protostellar</ProtostellarRepoBase>
-    <ProtoAdditionalImports>$(RepoRoot)\src\Couchbase.Stellar.CodeGen\deps\googleapis</ProtoAdditionalImports>
+    <ProtoAdditionalImports>$(NuGetPackageRoot)google.api.commonprotos\2.16.0\content\protos</ProtoAdditionalImports>
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="$(RepoRoot)\src\Couchbase.Stellar.CodeGen\deps\googleapis\google\rpc\status.proto" ProtoRoot="$(RepoRoot)\src\Couchbase.Stellar.CodeGen\deps\googleapis" GrpcServices="Client" Link="$(RepoRoot)\src\Couchbase.Stellar.CodeGen\deps\googleapis\google\rpc\status.proto" />
     <!-- this pulls in all the SN proto files with a wildcard, to catch any that have been added -->
     <Protobuf Include="$(ProtostellarRepoBase)\couchbase\**\*.proto" ProtoRoot="$(ProtostellarRepoBase)" GrpcServices="Client" AdditionalImportDirs="$(ProtoAdditionalImports)" />
 

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Compression.Snappier;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
@@ -13,14 +14,23 @@ namespace Couchbase.IntegrationTests.Fixtures
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
+        public static ILogger _logger;
+        private static ILoggerFactory _loggerFactory;
 
         public ClusterOptions ClusterOptions { get; }
 
         public ICluster Cluster { get; private set; }
 
+
         public ClusterFixture()
             : this(null)
         {
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddLogging(builder => builder
+                .AddFilter(level => level >= LogLevel.Debug));
+            _loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+            _loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+            _logger = _loggerFactory.CreateLogger<ClusterFixture>();
         }
 
         internal ClusterFixture(Action<ClusterOptions> configureOptions)
@@ -67,6 +77,15 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .Get<TestSettings>();
         }
 
+        public TestSettings GetCapellaSettings()
+        {
+            return new ConfigurationBuilder()
+                .AddJsonFile("config.json")
+                .Build()
+                .GetSection("capellaSettings")
+                .Get<TestSettings>();
+        }
+
         public static ClusterOptions GetClusterOptions()
         {
             var settings = GetSettings();
@@ -83,7 +102,8 @@ namespace Couchbase.IntegrationTests.Fixtures
                     .AddFilter(level => level >= LogLevel.Debug)
                 );
 
-                var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+                var loggerFactory = serviceCollection.BuildServiceProvider()
+                    .GetService<ILoggerFactory>();
                 loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
                 options.WithLogging(loggerFactory);
             }
@@ -91,6 +111,11 @@ namespace Couchbase.IntegrationTests.Fixtures
             if (settings.SystemTextJson)
             {
                 options.WithSerializer(SystemTextJsonSerializer.Create());
+            }
+
+            if (settings.EnableCompression)
+            {
+                options.WithSnappyCompression();
             }
 
             return options;
@@ -103,6 +128,12 @@ namespace Couchbase.IntegrationTests.Fixtures
                     ClusterOptions)
                 .ConfigureAwait(false);
         }
+
+        public void Log(string? message, params object?[] args)
+        {
+            _logger.LogInformation(message, args);
+        }
+
 
         public Task DisposeAsync()
         {

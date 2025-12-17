@@ -29,218 +29,232 @@ namespace Couchbase.Protostellar.KV.V1 {
             "c3RhbXAucHJvdG8iRQoUTGVnYWN5RHVyYWJpbGl0eVNwZWMSFgoObnVtX3Jl",
             "cGxpY2F0ZWQYASABKA0SFQoNbnVtX3BlcnNpc3RlZBgCIAEoDSJeCg1NdXRh",
             "dGlvblRva2VuEhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnZidWNrZXRfaWQY",
-            "AiABKA0SFAoMdmJ1Y2tldF91dWlkGAMgASgEEg4KBnNlcV9ubxgEIAEoBCJs",
-            "CgpHZXRSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25h",
+            "AiABKA0SFAoMdmJ1Y2tldF91dWlkGAMgASgEEg4KBnNlcV9ubxgEIAEoBCK7",
+            "AQoKR2V0UmVxdWVzdBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29wZV9u",
+            "YW1lGAIgASgJEhcKD2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkYBCAB",
+            "KAkSDwoHcHJvamVjdBgFIAMoCRI9Cgtjb21wcmVzc2lvbhgGIAEoDjIjLmNv",
+            "dWNoYmFzZS5rdi52MS5Db21wcmVzc2lvbkVuYWJsZWRIAIgBAUIOCgxfY29t",
+            "cHJlc3Npb24isgEKC0dldFJlc3BvbnNlEh4KFGNvbnRlbnRfdW5jb21wcmVz",
+            "c2VkGAEgASgMSAASHAoSY29udGVudF9jb21wcmVzc2VkGAcgASgMSAASFQoN",
+            "Y29udGVudF9mbGFncxgGIAEoDRILCgNjYXMYAyABKAQSKgoGZXhwaXJ5GAQg",
+            "ASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIJCgdjb250ZW50SgQI",
+            "AhADSgQIBRAGIoYCChJHZXRBbmRUb3VjaFJlcXVlc3QSEwoLYnVja2V0X25h",
+            "bWUYASABKAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25h",
+            "bWUYAyABKAkSCwoDa2V5GAQgASgJEjEKC2V4cGlyeV90aW1lGAUgASgLMhou",
+            "Z29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgAEhUKC2V4cGlyeV9zZWNzGAYg",
+            "ASgNSAASPQoLY29tcHJlc3Npb24YByABKA4yIy5jb3VjaGJhc2Uua3YudjEu",
+            "Q29tcHJlc3Npb25FbmFibGVkSAGIAQFCCAoGZXhwaXJ5Qg4KDF9jb21wcmVz",
+            "c2lvbiK6AQoTR2V0QW5kVG91Y2hSZXNwb25zZRIeChRjb250ZW50X3VuY29t",
+            "cHJlc3NlZBgBIAEoDEgAEhwKEmNvbnRlbnRfY29tcHJlc3NlZBgHIAEoDEgA",
+            "EhUKDWNvbnRlbnRfZmxhZ3MYBiABKA0SCwoDY2FzGAMgASgEEioKBmV4cGly",
+            "eRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCCQoHY29udGVu",
+            "dEoECAIQA0oECAUQBiLEAQoRR2V0QW5kTG9ja1JlcXVlc3QSEwoLYnVja2V0",
+            "X25hbWUYASABKAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9u",
+            "X25hbWUYAyABKAkSCwoDa2V5GAQgASgJEhEKCWxvY2tfdGltZRgFIAEoDRI9",
+            "Cgtjb21wcmVzc2lvbhgGIAEoDjIjLmNvdWNoYmFzZS5rdi52MS5Db21wcmVz",
+            "c2lvbkVuYWJsZWRIAIgBAUIOCgxfY29tcHJlc3Npb24iuQEKEkdldEFuZExv",
+            "Y2tSZXNwb25zZRIeChRjb250ZW50X3VuY29tcHJlc3NlZBgBIAEoDEgAEhwK",
+            "EmNvbnRlbnRfY29tcHJlc3NlZBgHIAEoDEgAEhUKDWNvbnRlbnRfZmxhZ3MY",
+            "BiABKA0SCwoDY2FzGAMgASgEEioKBmV4cGlyeRgEIAEoCzIaLmdvb2dsZS5w",
+            "cm90b2J1Zi5UaW1lc3RhbXBCCQoHY29udGVudEoECAIQA0oECAUQBiJrCg1V",
+            "bmxvY2tSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25h",
             "bWUYAiABKAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEo",
-            "CRIPCgdwcm9qZWN0GAUgAygJInoKC0dldFJlc3BvbnNlEg8KB2NvbnRlbnQY",
-            "ASABKAwSFQoNY29udGVudF9mbGFncxgGIAEoDRILCgNjYXMYAyABKAQSKgoG",
-            "ZXhwaXJ5GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEoECAIQ",
-            "A0oECAUQBiK3AQoSR2V0QW5kVG91Y2hSZXF1ZXN0EhMKC2J1Y2tldF9uYW1l",
-            "GAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoPY29sbGVjdGlvbl9uYW1l",
-            "GAMgASgJEgsKA2tleRgEIAEoCRIxCgtleHBpcnlfdGltZRgFIAEoCzIaLmdv",
-            "b2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIABIVCgtleHBpcnlfc2VjcxgGIAEo",
-            "DUgAQggKBmV4cGlyeSKCAQoTR2V0QW5kVG91Y2hSZXNwb25zZRIPCgdjb250",
-            "ZW50GAEgASgMEhUKDWNvbnRlbnRfZmxhZ3MYBiABKA0SCwoDY2FzGAMgASgE",
-            "EioKBmV4cGlyeRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBK",
-            "BAgCEANKBAgFEAYidQoRR2V0QW5kTG9ja1JlcXVlc3QSEwoLYnVja2V0X25h",
-            "bWUYASABKAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25h",
-            "bWUYAyABKAkSCwoDa2V5GAQgASgJEhEKCWxvY2tfdGltZRgFIAEoDSKBAQoS",
-            "R2V0QW5kTG9ja1Jlc3BvbnNlEg8KB2NvbnRlbnQYASABKAwSFQoNY29udGVu",
-            "dF9mbGFncxgGIAEoDRILCgNjYXMYAyABKAQSKgoGZXhwaXJ5GAQgASgLMhou",
-            "Z29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEoECAIQA0oECAUQBiJrCg1Vbmxv",
-            "Y2tSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUY",
-            "AiABKAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIL",
-            "CgNjYXMYBSABKAQiEAoOVW5sb2NrUmVzcG9uc2UisQEKDFRvdWNoUmVxdWVz",
-            "dBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29wZV9uYW1lGAIgASgJEhcK",
-            "D2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkYBCABKAkSMQoLZXhwaXJ5",
-            "X3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAASFQoL",
-            "ZXhwaXJ5X3NlY3MYBiABKA1IAEIICgZleHBpcnkiVAoNVG91Y2hSZXNwb25z",
-            "ZRILCgNjYXMYASABKAQSNgoObXV0YXRpb25fdG9rZW4YAiABKAsyHi5jb3Vj",
-            "aGJhc2Uua3YudjEuTXV0YXRpb25Ub2tlbiJeCg1FeGlzdHNSZXF1ZXN0EhMK",
-            "C2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoPY29s",
-            "bGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCSItCg5FeGlzdHNSZXNw",
-            "b25zZRIOCgZyZXN1bHQYASABKAgSCwoDY2FzGAIgASgEIrYCCg1JbnNlcnRS",
-            "ZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiAB",
-            "KAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIPCgdj",
-            "b250ZW50GAUgASgMEhUKDWNvbnRlbnRfZmxhZ3MYCyABKA0SMQoLZXhwaXJ5",
-            "X3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAASFQoL",
-            "ZXhwaXJ5X3NlY3MYCiABKA1IABI/ChBkdXJhYmlsaXR5X2xldmVsGAkgASgO",
-            "MiAuY291Y2hiYXNlLmt2LnYxLkR1cmFiaWxpdHlMZXZlbEgBiAEBQggKBmV4",
-            "cGlyeUITChFfZHVyYWJpbGl0eV9sZXZlbEoECAYQByJVCg5JbnNlcnRSZXNw",
+            "CRILCgNjYXMYBSABKAQiEAoOVW5sb2NrUmVzcG9uc2UisQEKDFRvdWNoUmVx",
+            "dWVzdBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29wZV9uYW1lGAIgASgJ",
+            "EhcKD2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkYBCABKAkSMQoLZXhw",
+            "aXJ5X3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAAS",
+            "FQoLZXhwaXJ5X3NlY3MYBiABKA1IAEIICgZleHBpcnkiVAoNVG91Y2hSZXNw",
             "b25zZRILCgNjYXMYASABKAQSNgoObXV0YXRpb25fdG9rZW4YAiABKAsyHi5j",
-            "b3VjaGJhc2Uua3YudjEuTXV0YXRpb25Ub2tlbiKAAwoNVXBzZXJ0UmVxdWVz",
-            "dBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29wZV9uYW1lGAIgASgJEhcK",
-            "D2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkYBCABKAkSDwoHY29udGVu",
-            "dBgFIAEoDBIVCg1jb250ZW50X2ZsYWdzGAsgASgNEjEKC2V4cGlyeV90aW1l",
-            "GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgAEhUKC2V4cGly",
-            "eV9zZWNzGAogASgNSAASKAobcHJlc2VydmVfZXhwaXJ5X29uX2V4aXN0aW5n",
-            "GAwgASgISAGIAQESPwoQZHVyYWJpbGl0eV9sZXZlbBgJIAEoDjIgLmNvdWNo",
-            "YmFzZS5rdi52MS5EdXJhYmlsaXR5TGV2ZWxIAogBAUIICgZleHBpcnlCHgoc",
-            "X3ByZXNlcnZlX2V4cGlyeV9vbl9leGlzdGluZ0ITChFfZHVyYWJpbGl0eV9s",
-            "ZXZlbEoECAYQByJVCg5VcHNlcnRSZXNwb25zZRILCgNjYXMYASABKAQSNgoO",
-            "bXV0YXRpb25fdG9rZW4YAiABKAsyHi5jb3VjaGJhc2Uua3YudjEuTXV0YXRp",
-            "b25Ub2tlbiLRAgoOUmVwbGFjZVJlcXVlc3QSEwoLYnVja2V0X25hbWUYASAB",
-            "KAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyAB",
-            "KAkSCwoDa2V5GAQgASgJEg8KB2NvbnRlbnQYBSABKAwSFQoNY29udGVudF9m",
-            "bGFncxgMIAEoDRIQCgNjYXMYByABKARIAYgBARIxCgtleHBpcnlfdGltZRgI",
-            "IAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBIABIVCgtleHBpcnlf",
-            "c2VjcxgLIAEoDUgAEj8KEGR1cmFiaWxpdHlfbGV2ZWwYCiABKA4yIC5jb3Vj",
-            "aGJhc2Uua3YudjEuRHVyYWJpbGl0eUxldmVsSAKIAQFCCAoGZXhwaXJ5QgYK",
-            "BF9jYXNCEwoRX2R1cmFiaWxpdHlfbGV2ZWxKBAgGEAciVgoPUmVwbGFjZVJl",
-            "c3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5tdXRhdGlvbl90b2tlbhgCIAEoCzIe",
-            "LmNvdWNoYmFzZS5rdi52MS5NdXRhdGlvblRva2VuIs4BCg1SZW1vdmVSZXF1",
-            "ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkS",
-            "FwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIQCgNjYXMY",
-            "BSABKARIAIgBARI/ChBkdXJhYmlsaXR5X2xldmVsGAcgASgOMiAuY291Y2hi",
-            "YXNlLmt2LnYxLkR1cmFiaWxpdHlMZXZlbEgBiAEBQgYKBF9jYXNCEwoRX2R1",
-            "cmFiaWxpdHlfbGV2ZWwiVQoOUmVtb3ZlUmVzcG9uc2USCwoDY2FzGAEgASgE",
-            "EjYKDm11dGF0aW9uX3Rva2VuGAIgASgLMh4uY291Y2hiYXNlLmt2LnYxLk11",
-            "dGF0aW9uVG9rZW4ivAIKEEluY3JlbWVudFJlcXVlc3QSEwoLYnVja2V0X25h",
-            "bWUYASABKAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25h",
-            "bWUYAyABKAkSCwoDa2V5GAQgASgJEg0KBWRlbHRhGAUgASgEEjEKC2V4cGly",
-            "eV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgAEhUK",
-            "C2V4cGlyeV9zZWNzGAogASgNSAASFAoHaW5pdGlhbBgHIAEoA0gBiAEBEj8K",
-            "EGR1cmFiaWxpdHlfbGV2ZWwYCSABKA4yIC5jb3VjaGJhc2Uua3YudjEuRHVy",
-            "YWJpbGl0eUxldmVsSAKIAQFCCAoGZXhwaXJ5QgoKCF9pbml0aWFsQhMKEV9k",
-            "dXJhYmlsaXR5X2xldmVsImkKEUluY3JlbWVudFJlc3BvbnNlEgsKA2NhcxgB",
-            "IAEoBBIPCgdjb250ZW50GAIgASgDEjYKDm11dGF0aW9uX3Rva2VuGAMgASgL",
-            "Mh4uY291Y2hiYXNlLmt2LnYxLk11dGF0aW9uVG9rZW4ivAIKEERlY3JlbWVu",
-            "dFJlcXVlc3QSEwoLYnVja2V0X25hbWUYASABKAkSEgoKc2NvcGVfbmFtZRgC",
-            "IAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyABKAkSCwoDa2V5GAQgASgJEg0K",
-            "BWRlbHRhGAUgASgEEjEKC2V4cGlyeV90aW1lGAYgASgLMhouZ29vZ2xlLnBy",
-            "b3RvYnVmLlRpbWVzdGFtcEgAEhUKC2V4cGlyeV9zZWNzGAogASgNSAASFAoH",
-            "aW5pdGlhbBgHIAEoA0gBiAEBEj8KEGR1cmFiaWxpdHlfbGV2ZWwYCSABKA4y",
-            "IC5jb3VjaGJhc2Uua3YudjEuRHVyYWJpbGl0eUxldmVsSAKIAQFCCAoGZXhw",
-            "aXJ5QgoKCF9pbml0aWFsQhMKEV9kdXJhYmlsaXR5X2xldmVsImkKEURlY3Jl",
-            "bWVudFJlc3BvbnNlEgsKA2NhcxgBIAEoBBIPCgdjb250ZW50GAIgASgDEjYK",
-            "Dm11dGF0aW9uX3Rva2VuGAMgASgLMh4uY291Y2hiYXNlLmt2LnYxLk11dGF0",
-            "aW9uVG9rZW4i3wEKDUFwcGVuZFJlcXVlc3QSEwoLYnVja2V0X25hbWUYASAB",
-            "KAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyAB",
-            "KAkSCwoDa2V5GAQgASgJEg8KB2NvbnRlbnQYBSABKAwSEAoDY2FzGAYgASgE",
-            "SACIAQESPwoQZHVyYWJpbGl0eV9sZXZlbBgIIAEoDjIgLmNvdWNoYmFzZS5r",
-            "di52MS5EdXJhYmlsaXR5TGV2ZWxIAYgBAUIGCgRfY2FzQhMKEV9kdXJhYmls",
-            "aXR5X2xldmVsIlUKDkFwcGVuZFJlc3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5t",
-            "dXRhdGlvbl90b2tlbhgCIAEoCzIeLmNvdWNoYmFzZS5rdi52MS5NdXRhdGlv",
-            "blRva2VuIuABCg5QcmVwZW5kUmVxdWVzdBITCgtidWNrZXRfbmFtZRgBIAEo",
-            "CRISCgpzY29wZV9uYW1lGAIgASgJEhcKD2NvbGxlY3Rpb25fbmFtZRgDIAEo",
-            "CRILCgNrZXkYBCABKAkSDwoHY29udGVudBgFIAEoDBIQCgNjYXMYBiABKARI",
-            "AIgBARI/ChBkdXJhYmlsaXR5X2xldmVsGAggASgOMiAuY291Y2hiYXNlLmt2",
-            "LnYxLkR1cmFiaWxpdHlMZXZlbEgBiAEBQgYKBF9jYXNCEwoRX2R1cmFiaWxp",
-            "dHlfbGV2ZWwiVgoPUHJlcGVuZFJlc3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5t",
-            "dXRhdGlvbl90b2tlbhgCIAEoCzIeLmNvdWNoYmFzZS5rdi52MS5NdXRhdGlv",
-            "blRva2VuIq0ECg9Mb29rdXBJblJlcXVlc3QSEwoLYnVja2V0X25hbWUYASAB",
-            "KAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyAB",
-            "KAkSCwoDa2V5GAQgASgJEjQKBXNwZWNzGAUgAygLMiUuY291Y2hiYXNlLmt2",
-            "LnYxLkxvb2t1cEluUmVxdWVzdC5TcGVjEjoKBWZsYWdzGAYgASgLMiYuY291",
-            "Y2hiYXNlLmt2LnYxLkxvb2t1cEluUmVxdWVzdC5GbGFnc0gAiAEBGpUCCgRT",
-            "cGVjEkIKCW9wZXJhdGlvbhgBIAEoDjIvLmNvdWNoYmFzZS5rdi52MS5Mb29r",
-            "dXBJblJlcXVlc3QuU3BlYy5PcGVyYXRpb24SDAoEcGF0aBgCIAEoCRI/CgVm",
-            "bGFncxgDIAEoCzIrLmNvdWNoYmFzZS5rdi52MS5Mb29rdXBJblJlcXVlc3Qu",
-            "U3BlYy5GbGFnc0gAiAEBGiUKBUZsYWdzEhIKBXhhdHRyGAEgASgISACIAQFC",
-            "CAoGX3hhdHRyIkkKCU9wZXJhdGlvbhIRCg1PUEVSQVRJT05fR0VUEAASFAoQ",
-            "T1BFUkFUSU9OX0VYSVNUUxABEhMKD09QRVJBVElPTl9DT1VOVBACQggKBl9m",
-            "bGFncxo3CgVGbGFncxIbCg5hY2Nlc3NfZGVsZXRlZBgBIAEoCEgAiAEBQhEK",
-            "D19hY2Nlc3NfZGVsZXRlZEIICgZfZmxhZ3MikwEKEExvb2t1cEluUmVzcG9u",
-            "c2USNQoFc3BlY3MYASADKAsyJi5jb3VjaGJhc2Uua3YudjEuTG9va3VwSW5S",
-            "ZXNwb25zZS5TcGVjEgsKA2NhcxgCIAEoBBo7CgRTcGVjEiIKBnN0YXR1cxgB",
-            "IAEoCzISLmdvb2dsZS5ycGMuU3RhdHVzEg8KB2NvbnRlbnQYAiABKAwilwkK",
-            "D011dGF0ZUluUmVxdWVzdBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29w",
+            "b3VjaGJhc2Uua3YudjEuTXV0YXRpb25Ub2tlbiJeCg1FeGlzdHNSZXF1ZXN0",
+            "EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoP",
+            "Y29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCSItCg5FeGlzdHNS",
+            "ZXNwb25zZRIOCgZyZXN1bHQYASABKAgSCwoDY2FzGAIgASgEIu4CCg1JbnNl",
+            "cnRSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUY",
+            "AiABKAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIe",
+            "ChRjb250ZW50X3VuY29tcHJlc3NlZBgFIAEoDEgAEhwKEmNvbnRlbnRfY29t",
+            "cHJlc3NlZBgMIAEoDEgAEhUKDWNvbnRlbnRfZmxhZ3MYCyABKA0SMQoLZXhw",
+            "aXJ5X3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAES",
+            "FQoLZXhwaXJ5X3NlY3MYCiABKA1IARI/ChBkdXJhYmlsaXR5X2xldmVsGAkg",
+            "ASgOMiAuY291Y2hiYXNlLmt2LnYxLkR1cmFiaWxpdHlMZXZlbEgCiAEBQgkK",
+            "B2NvbnRlbnRCCAoGZXhwaXJ5QhMKEV9kdXJhYmlsaXR5X2xldmVsSgQIBhAH",
+            "IlUKDkluc2VydFJlc3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5tdXRhdGlvbl90",
+            "b2tlbhgCIAEoCzIeLmNvdWNoYmFzZS5rdi52MS5NdXRhdGlvblRva2VuIrgD",
+            "Cg1VcHNlcnRSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3Bl",
+            "X25hbWUYAiABKAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgE",
+            "IAEoCRIeChRjb250ZW50X3VuY29tcHJlc3NlZBgFIAEoDEgAEhwKEmNvbnRl",
+            "bnRfY29tcHJlc3NlZBgNIAEoDEgAEhUKDWNvbnRlbnRfZmxhZ3MYCyABKA0S",
+            "MQoLZXhwaXJ5X3RpbWUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0",
+            "YW1wSAESFQoLZXhwaXJ5X3NlY3MYCiABKA1IARIoChtwcmVzZXJ2ZV9leHBp",
+            "cnlfb25fZXhpc3RpbmcYDCABKAhIAogBARI/ChBkdXJhYmlsaXR5X2xldmVs",
+            "GAkgASgOMiAuY291Y2hiYXNlLmt2LnYxLkR1cmFiaWxpdHlMZXZlbEgDiAEB",
+            "QgkKB2NvbnRlbnRCCAoGZXhwaXJ5Qh4KHF9wcmVzZXJ2ZV9leHBpcnlfb25f",
+            "ZXhpc3RpbmdCEwoRX2R1cmFiaWxpdHlfbGV2ZWxKBAgGEAciVQoOVXBzZXJ0",
+            "UmVzcG9uc2USCwoDY2FzGAEgASgEEjYKDm11dGF0aW9uX3Rva2VuGAIgASgL",
+            "Mh4uY291Y2hiYXNlLmt2LnYxLk11dGF0aW9uVG9rZW4iiQMKDlJlcGxhY2VS",
+            "ZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiAB",
+            "KAkSFwoPY29sbGVjdGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIeChRj",
+            "b250ZW50X3VuY29tcHJlc3NlZBgFIAEoDEgAEhwKEmNvbnRlbnRfY29tcHJl",
+            "c3NlZBgNIAEoDEgAEhUKDWNvbnRlbnRfZmxhZ3MYDCABKA0SEAoDY2FzGAcg",
+            "ASgESAKIAQESMQoLZXhwaXJ5X3RpbWUYCCABKAsyGi5nb29nbGUucHJvdG9i",
+            "dWYuVGltZXN0YW1wSAESFQoLZXhwaXJ5X3NlY3MYCyABKA1IARI/ChBkdXJh",
+            "YmlsaXR5X2xldmVsGAogASgOMiAuY291Y2hiYXNlLmt2LnYxLkR1cmFiaWxp",
+            "dHlMZXZlbEgDiAEBQgkKB2NvbnRlbnRCCAoGZXhwaXJ5QgYKBF9jYXNCEwoR",
+            "X2R1cmFiaWxpdHlfbGV2ZWxKBAgGEAciVgoPUmVwbGFjZVJlc3BvbnNlEgsK",
+            "A2NhcxgBIAEoBBI2Cg5tdXRhdGlvbl90b2tlbhgCIAEoCzIeLmNvdWNoYmFz",
+            "ZS5rdi52MS5NdXRhdGlvblRva2VuIs4BCg1SZW1vdmVSZXF1ZXN0EhMKC2J1",
+            "Y2tldF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoPY29sbGVj",
+            "dGlvbl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCRIQCgNjYXMYBSABKARIAIgB",
+            "ARI/ChBkdXJhYmlsaXR5X2xldmVsGAcgASgOMiAuY291Y2hiYXNlLmt2LnYx",
+            "LkR1cmFiaWxpdHlMZXZlbEgBiAEBQgYKBF9jYXNCEwoRX2R1cmFiaWxpdHlf",
+            "bGV2ZWwiVQoOUmVtb3ZlUmVzcG9uc2USCwoDY2FzGAEgASgEEjYKDm11dGF0",
+            "aW9uX3Rva2VuGAIgASgLMh4uY291Y2hiYXNlLmt2LnYxLk11dGF0aW9uVG9r",
+            "ZW4ivAIKEEluY3JlbWVudFJlcXVlc3QSEwoLYnVja2V0X25hbWUYASABKAkS",
+            "EgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyABKAkS",
+            "CwoDa2V5GAQgASgJEg0KBWRlbHRhGAUgASgEEjEKC2V4cGlyeV90aW1lGAYg",
+            "ASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEgAEhUKC2V4cGlyeV9z",
+            "ZWNzGAogASgNSAASFAoHaW5pdGlhbBgHIAEoA0gBiAEBEj8KEGR1cmFiaWxp",
+            "dHlfbGV2ZWwYCSABKA4yIC5jb3VjaGJhc2Uua3YudjEuRHVyYWJpbGl0eUxl",
+            "dmVsSAKIAQFCCAoGZXhwaXJ5QgoKCF9pbml0aWFsQhMKEV9kdXJhYmlsaXR5",
+            "X2xldmVsImkKEUluY3JlbWVudFJlc3BvbnNlEgsKA2NhcxgBIAEoBBIPCgdj",
+            "b250ZW50GAIgASgDEjYKDm11dGF0aW9uX3Rva2VuGAMgASgLMh4uY291Y2hi",
+            "YXNlLmt2LnYxLk11dGF0aW9uVG9rZW4ivAIKEERlY3JlbWVudFJlcXVlc3QS",
+            "EwoLYnVja2V0X25hbWUYASABKAkSEgoKc2NvcGVfbmFtZRgCIAEoCRIXCg9j",
+            "b2xsZWN0aW9uX25hbWUYAyABKAkSCwoDa2V5GAQgASgJEg0KBWRlbHRhGAUg",
+            "ASgEEjEKC2V4cGlyeV90aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRp",
+            "bWVzdGFtcEgAEhUKC2V4cGlyeV9zZWNzGAogASgNSAASFAoHaW5pdGlhbBgH",
+            "IAEoA0gBiAEBEj8KEGR1cmFiaWxpdHlfbGV2ZWwYCSABKA4yIC5jb3VjaGJh",
+            "c2Uua3YudjEuRHVyYWJpbGl0eUxldmVsSAKIAQFCCAoGZXhwaXJ5QgoKCF9p",
+            "bml0aWFsQhMKEV9kdXJhYmlsaXR5X2xldmVsImkKEURlY3JlbWVudFJlc3Bv",
+            "bnNlEgsKA2NhcxgBIAEoBBIPCgdjb250ZW50GAIgASgDEjYKDm11dGF0aW9u",
+            "X3Rva2VuGAMgASgLMh4uY291Y2hiYXNlLmt2LnYxLk11dGF0aW9uVG9rZW4i",
+            "3wEKDUFwcGVuZFJlcXVlc3QSEwoLYnVja2V0X25hbWUYASABKAkSEgoKc2Nv",
+            "cGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyABKAkSCwoDa2V5",
+            "GAQgASgJEg8KB2NvbnRlbnQYBSABKAwSEAoDY2FzGAYgASgESACIAQESPwoQ",
+            "ZHVyYWJpbGl0eV9sZXZlbBgIIAEoDjIgLmNvdWNoYmFzZS5rdi52MS5EdXJh",
+            "YmlsaXR5TGV2ZWxIAYgBAUIGCgRfY2FzQhMKEV9kdXJhYmlsaXR5X2xldmVs",
+            "IlUKDkFwcGVuZFJlc3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5tdXRhdGlvbl90",
+            "b2tlbhgCIAEoCzIeLmNvdWNoYmFzZS5rdi52MS5NdXRhdGlvblRva2VuIuAB",
+            "Cg5QcmVwZW5kUmVxdWVzdBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29w",
             "ZV9uYW1lGAIgASgJEhcKD2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkY",
-            "BCABKAkSNAoFc3BlY3MYBSADKAsyJS5jb3VjaGJhc2Uua3YudjEuTXV0YXRl",
-            "SW5SZXF1ZXN0LlNwZWMSSwoOc3RvcmVfc2VtYW50aWMYBiABKA4yLi5jb3Vj",
-            "aGJhc2Uua3YudjEuTXV0YXRlSW5SZXF1ZXN0LlN0b3JlU2VtYW50aWNIAYgB",
-            "ARI/ChBkdXJhYmlsaXR5X2xldmVsGAggASgOMiAuY291Y2hiYXNlLmt2LnYx",
-            "LkR1cmFiaWxpdHlMZXZlbEgCiAEBEhAKA2NhcxgJIAEoBEgDiAEBEjoKBWZs",
-            "YWdzGAogASgLMiYuY291Y2hiYXNlLmt2LnYxLk11dGF0ZUluUmVxdWVzdC5G",
-            "bGFnc0gEiAEBEjEKC2V4cGlyeV90aW1lGAsgASgLMhouZ29vZ2xlLnByb3Rv",
-            "YnVmLlRpbWVzdGFtcEgAEhUKC2V4cGlyeV9zZWNzGAwgASgNSAAa+AMKBFNw",
-            "ZWMSQgoJb3BlcmF0aW9uGAEgASgOMi8uY291Y2hiYXNlLmt2LnYxLk11dGF0",
-            "ZUluUmVxdWVzdC5TcGVjLk9wZXJhdGlvbhIMCgRwYXRoGAIgASgJEg8KB2Nv",
-            "bnRlbnQYAyABKAwSPwoFZmxhZ3MYBCABKAsyKy5jb3VjaGJhc2Uua3YudjEu",
-            "TXV0YXRlSW5SZXF1ZXN0LlNwZWMuRmxhZ3NIAIgBARpPCgVGbGFncxIYCgtj",
-            "cmVhdGVfcGF0aBgBIAEoCEgAiAEBEhIKBXhhdHRyGAIgASgISAGIAQFCDgoM",
-            "X2NyZWF0ZV9wYXRoQggKBl94YXR0ciLwAQoJT3BlcmF0aW9uEhQKEE9QRVJB",
-            "VElPTl9JTlNFUlQQABIUChBPUEVSQVRJT05fVVBTRVJUEAESFQoRT1BFUkFU",
-            "SU9OX1JFUExBQ0UQAhIUChBPUEVSQVRJT05fUkVNT1ZFEAMSGgoWT1BFUkFU",
-            "SU9OX0FSUkFZX0FQUEVORBAEEhsKF09QRVJBVElPTl9BUlJBWV9QUkVQRU5E",
-            "EAUSGgoWT1BFUkFUSU9OX0FSUkFZX0lOU0VSVBAGEh4KGk9QRVJBVElPTl9B",
-            "UlJBWV9BRERfVU5JUVVFEAcSFQoRT1BFUkFUSU9OX0NPVU5URVIQCEIICgZf",
-            "ZmxhZ3MaNwoFRmxhZ3MSGwoOYWNjZXNzX2RlbGV0ZWQYASABKAhIAIgBAUIR",
-            "Cg9fYWNjZXNzX2RlbGV0ZWQiYQoNU3RvcmVTZW1hbnRpYxIaChZTVE9SRV9T",
-            "RU1BTlRJQ19SRVBMQUNFEAASGQoVU1RPUkVfU0VNQU5USUNfVVBTRVJUEAES",
-            "GQoVU1RPUkVfU0VNQU5USUNfSU5TRVJUEAJCCAoGZXhwaXJ5QhEKD19zdG9y",
-            "ZV9zZW1hbnRpY0ITChFfZHVyYWJpbGl0eV9sZXZlbEIGCgRfY2FzQggKBl9m",
-            "bGFncyK4AQoQTXV0YXRlSW5SZXNwb25zZRI1CgVzcGVjcxgBIAMoCzImLmNv",
-            "dWNoYmFzZS5rdi52MS5NdXRhdGVJblJlc3BvbnNlLlNwZWMSCwoDY2FzGAIg",
-            "ASgEEjYKDm11dGF0aW9uX3Rva2VuGAMgASgLMh4uY291Y2hiYXNlLmt2LnYx",
-            "Lk11dGF0aW9uVG9rZW4aKAoEU3BlYxIUCgdjb250ZW50GAEgASgMSACIAQFC",
-            "CgoIX2NvbnRlbnQiZgoVR2V0QWxsUmVwbGljYXNSZXF1ZXN0EhMKC2J1Y2tl",
-            "dF9uYW1lGAEgASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoPY29sbGVjdGlv",
-            "bl9uYW1lGAMgASgJEgsKA2tleRgEIAEoCSJhChZHZXRBbGxSZXBsaWNhc1Jl",
-            "c3BvbnNlEhIKCmlzX3JlcGxpY2EYASABKAgSDwoHY29udGVudBgCIAEoDBIV",
-            "Cg1jb250ZW50X2ZsYWdzGAMgASgNEgsKA2NhcxgEIAEoBCqPAQoPRHVyYWJp",
-            "bGl0eUxldmVsEh0KGURVUkFCSUxJVFlfTEVWRUxfTUFKT1JJVFkQABIzCi9E",
-            "VVJBQklMSVRZX0xFVkVMX01BSk9SSVRZX0FORF9QRVJTSVNUX1RPX0FDVElW",
-            "RRABEigKJERVUkFCSUxJVFlfTEVWRUxfUEVSU0lTVF9UT19NQUpPUklUWRAC",
-            "MvUKCglLdlNlcnZpY2USQgoDR2V0EhsuY291Y2hiYXNlLmt2LnYxLkdldFJl",
-            "cXVlc3QaHC5jb3VjaGJhc2Uua3YudjEuR2V0UmVzcG9uc2UiABJaCgtHZXRB",
-            "bmRUb3VjaBIjLmNvdWNoYmFzZS5rdi52MS5HZXRBbmRUb3VjaFJlcXVlc3Qa",
-            "JC5jb3VjaGJhc2Uua3YudjEuR2V0QW5kVG91Y2hSZXNwb25zZSIAElcKCkdl",
-            "dEFuZExvY2sSIi5jb3VjaGJhc2Uua3YudjEuR2V0QW5kTG9ja1JlcXVlc3Qa",
-            "Iy5jb3VjaGJhc2Uua3YudjEuR2V0QW5kTG9ja1Jlc3BvbnNlIgASSwoGVW5s",
-            "b2NrEh4uY291Y2hiYXNlLmt2LnYxLlVubG9ja1JlcXVlc3QaHy5jb3VjaGJh",
-            "c2Uua3YudjEuVW5sb2NrUmVzcG9uc2UiABJICgVUb3VjaBIdLmNvdWNoYmFz",
-            "ZS5rdi52MS5Ub3VjaFJlcXVlc3QaHi5jb3VjaGJhc2Uua3YudjEuVG91Y2hS",
-            "ZXNwb25zZSIAEksKBkV4aXN0cxIeLmNvdWNoYmFzZS5rdi52MS5FeGlzdHNS",
-            "ZXF1ZXN0Gh8uY291Y2hiYXNlLmt2LnYxLkV4aXN0c1Jlc3BvbnNlIgASSwoG",
-            "SW5zZXJ0Eh4uY291Y2hiYXNlLmt2LnYxLkluc2VydFJlcXVlc3QaHy5jb3Vj",
-            "aGJhc2Uua3YudjEuSW5zZXJ0UmVzcG9uc2UiABJLCgZVcHNlcnQSHi5jb3Vj",
-            "aGJhc2Uua3YudjEuVXBzZXJ0UmVxdWVzdBofLmNvdWNoYmFzZS5rdi52MS5V",
-            "cHNlcnRSZXNwb25zZSIAEk4KB1JlcGxhY2USHy5jb3VjaGJhc2Uua3YudjEu",
-            "UmVwbGFjZVJlcXVlc3QaIC5jb3VjaGJhc2Uua3YudjEuUmVwbGFjZVJlc3Bv",
-            "bnNlIgASSwoGUmVtb3ZlEh4uY291Y2hiYXNlLmt2LnYxLlJlbW92ZVJlcXVl",
-            "c3QaHy5jb3VjaGJhc2Uua3YudjEuUmVtb3ZlUmVzcG9uc2UiABJUCglJbmNy",
-            "ZW1lbnQSIS5jb3VjaGJhc2Uua3YudjEuSW5jcmVtZW50UmVxdWVzdBoiLmNv",
-            "dWNoYmFzZS5rdi52MS5JbmNyZW1lbnRSZXNwb25zZSIAElQKCURlY3JlbWVu",
-            "dBIhLmNvdWNoYmFzZS5rdi52MS5EZWNyZW1lbnRSZXF1ZXN0GiIuY291Y2hi",
-            "YXNlLmt2LnYxLkRlY3JlbWVudFJlc3BvbnNlIgASSwoGQXBwZW5kEh4uY291",
-            "Y2hiYXNlLmt2LnYxLkFwcGVuZFJlcXVlc3QaHy5jb3VjaGJhc2Uua3YudjEu",
-            "QXBwZW5kUmVzcG9uc2UiABJOCgdQcmVwZW5kEh8uY291Y2hiYXNlLmt2LnYx",
-            "LlByZXBlbmRSZXF1ZXN0GiAuY291Y2hiYXNlLmt2LnYxLlByZXBlbmRSZXNw",
-            "b25zZSIAElEKCExvb2t1cEluEiAuY291Y2hiYXNlLmt2LnYxLkxvb2t1cElu",
-            "UmVxdWVzdBohLmNvdWNoYmFzZS5rdi52MS5Mb29rdXBJblJlc3BvbnNlIgAS",
-            "UQoITXV0YXRlSW4SIC5jb3VjaGJhc2Uua3YudjEuTXV0YXRlSW5SZXF1ZXN0",
-            "GiEuY291Y2hiYXNlLmt2LnYxLk11dGF0ZUluUmVzcG9uc2UiABJlCg5HZXRB",
-            "bGxSZXBsaWNhcxImLmNvdWNoYmFzZS5rdi52MS5HZXRBbGxSZXBsaWNhc1Jl",
-            "cXVlc3QaJy5jb3VjaGJhc2Uua3YudjEuR2V0QWxsUmVwbGljYXNSZXNwb25z",
-            "ZSIAMAFC2gEKJ2NvbS5jb3VjaGJhc2UuY2xpZW50LnByb3Rvc3RlbGxhci5r",
-            "di52MVABWjhnaXRodWIuY29tL2NvdWNoYmFzZS9nb3Byb3Rvc3RlbGxhci9n",
-            "ZW5wcm90by9rdl92MTtrdl92MaoCHENvdWNoYmFzZS5Qcm90b3N0ZWxsYXIu",
-            "S1YuVjHKAiZDb3VjaGJhc2VcUHJvdG9zdGVsbGFyXEdlbmVyYXRlZFxLVlxW",
-            "MeoCKkNvdWNoYmFzZTo6UHJvdG9zdGVsbGFyOjpHZW5lcmF0ZWQ6OktWOjpW",
-            "MWIGcHJvdG8z"));
+            "BCABKAkSDwoHY29udGVudBgFIAEoDBIQCgNjYXMYBiABKARIAIgBARI/ChBk",
+            "dXJhYmlsaXR5X2xldmVsGAggASgOMiAuY291Y2hiYXNlLmt2LnYxLkR1cmFi",
+            "aWxpdHlMZXZlbEgBiAEBQgYKBF9jYXNCEwoRX2R1cmFiaWxpdHlfbGV2ZWwi",
+            "VgoPUHJlcGVuZFJlc3BvbnNlEgsKA2NhcxgBIAEoBBI2Cg5tdXRhdGlvbl90",
+            "b2tlbhgCIAEoCzIeLmNvdWNoYmFzZS5rdi52MS5NdXRhdGlvblRva2VuIq0E",
+            "Cg9Mb29rdXBJblJlcXVlc3QSEwoLYnVja2V0X25hbWUYASABKAkSEgoKc2Nv",
+            "cGVfbmFtZRgCIAEoCRIXCg9jb2xsZWN0aW9uX25hbWUYAyABKAkSCwoDa2V5",
+            "GAQgASgJEjQKBXNwZWNzGAUgAygLMiUuY291Y2hiYXNlLmt2LnYxLkxvb2t1",
+            "cEluUmVxdWVzdC5TcGVjEjoKBWZsYWdzGAYgASgLMiYuY291Y2hiYXNlLmt2",
+            "LnYxLkxvb2t1cEluUmVxdWVzdC5GbGFnc0gAiAEBGpUCCgRTcGVjEkIKCW9w",
+            "ZXJhdGlvbhgBIAEoDjIvLmNvdWNoYmFzZS5rdi52MS5Mb29rdXBJblJlcXVl",
+            "c3QuU3BlYy5PcGVyYXRpb24SDAoEcGF0aBgCIAEoCRI/CgVmbGFncxgDIAEo",
+            "CzIrLmNvdWNoYmFzZS5rdi52MS5Mb29rdXBJblJlcXVlc3QuU3BlYy5GbGFn",
+            "c0gAiAEBGiUKBUZsYWdzEhIKBXhhdHRyGAEgASgISACIAQFCCAoGX3hhdHRy",
+            "IkkKCU9wZXJhdGlvbhIRCg1PUEVSQVRJT05fR0VUEAASFAoQT1BFUkFUSU9O",
+            "X0VYSVNUUxABEhMKD09QRVJBVElPTl9DT1VOVBACQggKBl9mbGFncxo3CgVG",
+            "bGFncxIbCg5hY2Nlc3NfZGVsZXRlZBgBIAEoCEgAiAEBQhEKD19hY2Nlc3Nf",
+            "ZGVsZXRlZEIICgZfZmxhZ3MikwEKEExvb2t1cEluUmVzcG9uc2USNQoFc3Bl",
+            "Y3MYASADKAsyJi5jb3VjaGJhc2Uua3YudjEuTG9va3VwSW5SZXNwb25zZS5T",
+            "cGVjEgsKA2NhcxgCIAEoBBo7CgRTcGVjEiIKBnN0YXR1cxgBIAEoCzISLmdv",
+            "b2dsZS5ycGMuU3RhdHVzEg8KB2NvbnRlbnQYAiABKAwilwkKD011dGF0ZUlu",
+            "UmVxdWVzdBITCgtidWNrZXRfbmFtZRgBIAEoCRISCgpzY29wZV9uYW1lGAIg",
+            "ASgJEhcKD2NvbGxlY3Rpb25fbmFtZRgDIAEoCRILCgNrZXkYBCABKAkSNAoF",
+            "c3BlY3MYBSADKAsyJS5jb3VjaGJhc2Uua3YudjEuTXV0YXRlSW5SZXF1ZXN0",
+            "LlNwZWMSSwoOc3RvcmVfc2VtYW50aWMYBiABKA4yLi5jb3VjaGJhc2Uua3Yu",
+            "djEuTXV0YXRlSW5SZXF1ZXN0LlN0b3JlU2VtYW50aWNIAYgBARI/ChBkdXJh",
+            "YmlsaXR5X2xldmVsGAggASgOMiAuY291Y2hiYXNlLmt2LnYxLkR1cmFiaWxp",
+            "dHlMZXZlbEgCiAEBEhAKA2NhcxgJIAEoBEgDiAEBEjoKBWZsYWdzGAogASgL",
+            "MiYuY291Y2hiYXNlLmt2LnYxLk11dGF0ZUluUmVxdWVzdC5GbGFnc0gEiAEB",
+            "EjEKC2V4cGlyeV90aW1lGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVz",
+            "dGFtcEgAEhUKC2V4cGlyeV9zZWNzGAwgASgNSAAa+AMKBFNwZWMSQgoJb3Bl",
+            "cmF0aW9uGAEgASgOMi8uY291Y2hiYXNlLmt2LnYxLk11dGF0ZUluUmVxdWVz",
+            "dC5TcGVjLk9wZXJhdGlvbhIMCgRwYXRoGAIgASgJEg8KB2NvbnRlbnQYAyAB",
+            "KAwSPwoFZmxhZ3MYBCABKAsyKy5jb3VjaGJhc2Uua3YudjEuTXV0YXRlSW5S",
+            "ZXF1ZXN0LlNwZWMuRmxhZ3NIAIgBARpPCgVGbGFncxIYCgtjcmVhdGVfcGF0",
+            "aBgBIAEoCEgAiAEBEhIKBXhhdHRyGAIgASgISAGIAQFCDgoMX2NyZWF0ZV9w",
+            "YXRoQggKBl94YXR0ciLwAQoJT3BlcmF0aW9uEhQKEE9QRVJBVElPTl9JTlNF",
+            "UlQQABIUChBPUEVSQVRJT05fVVBTRVJUEAESFQoRT1BFUkFUSU9OX1JFUExB",
+            "Q0UQAhIUChBPUEVSQVRJT05fUkVNT1ZFEAMSGgoWT1BFUkFUSU9OX0FSUkFZ",
+            "X0FQUEVORBAEEhsKF09QRVJBVElPTl9BUlJBWV9QUkVQRU5EEAUSGgoWT1BF",
+            "UkFUSU9OX0FSUkFZX0lOU0VSVBAGEh4KGk9QRVJBVElPTl9BUlJBWV9BRERf",
+            "VU5JUVVFEAcSFQoRT1BFUkFUSU9OX0NPVU5URVIQCEIICgZfZmxhZ3MaNwoF",
+            "RmxhZ3MSGwoOYWNjZXNzX2RlbGV0ZWQYASABKAhIAIgBAUIRCg9fYWNjZXNz",
+            "X2RlbGV0ZWQiYQoNU3RvcmVTZW1hbnRpYxIaChZTVE9SRV9TRU1BTlRJQ19S",
+            "RVBMQUNFEAASGQoVU1RPUkVfU0VNQU5USUNfVVBTRVJUEAESGQoVU1RPUkVf",
+            "U0VNQU5USUNfSU5TRVJUEAJCCAoGZXhwaXJ5QhEKD19zdG9yZV9zZW1hbnRp",
+            "Y0ITChFfZHVyYWJpbGl0eV9sZXZlbEIGCgRfY2FzQggKBl9mbGFncyK4AQoQ",
+            "TXV0YXRlSW5SZXNwb25zZRI1CgVzcGVjcxgBIAMoCzImLmNvdWNoYmFzZS5r",
+            "di52MS5NdXRhdGVJblJlc3BvbnNlLlNwZWMSCwoDY2FzGAIgASgEEjYKDm11",
+            "dGF0aW9uX3Rva2VuGAMgASgLMh4uY291Y2hiYXNlLmt2LnYxLk11dGF0aW9u",
+            "VG9rZW4aKAoEU3BlYxIUCgdjb250ZW50GAEgASgMSACIAQFCCgoIX2NvbnRl",
+            "bnQiZgoVR2V0QWxsUmVwbGljYXNSZXF1ZXN0EhMKC2J1Y2tldF9uYW1lGAEg",
+            "ASgJEhIKCnNjb3BlX25hbWUYAiABKAkSFwoPY29sbGVjdGlvbl9uYW1lGAMg",
+            "ASgJEgsKA2tleRgEIAEoCSJhChZHZXRBbGxSZXBsaWNhc1Jlc3BvbnNlEhIK",
+            "CmlzX3JlcGxpY2EYASABKAgSDwoHY29udGVudBgCIAEoDBIVCg1jb250ZW50",
+            "X2ZsYWdzGAMgASgNEgsKA2NhcxgEIAEoBCqPAQoPRHVyYWJpbGl0eUxldmVs",
+            "Eh0KGURVUkFCSUxJVFlfTEVWRUxfTUFKT1JJVFkQABIzCi9EVVJBQklMSVRZ",
+            "X0xFVkVMX01BSk9SSVRZX0FORF9QRVJTSVNUX1RPX0FDVElWRRABEigKJERV",
+            "UkFCSUxJVFlfTEVWRUxfUEVSU0lTVF9UT19NQUpPUklUWRACKlYKEkNvbXBy",
+            "ZXNzaW9uRW5hYmxlZBIgChxDT01QUkVTU0lPTl9FTkFCTEVEX09QVElPTkFM",
+            "EAASHgoaQ09NUFJFU1NJT05fRU5BQkxFRF9BTFdBWVMQATL1CgoJS3ZTZXJ2",
+            "aWNlEkIKA0dldBIbLmNvdWNoYmFzZS5rdi52MS5HZXRSZXF1ZXN0GhwuY291",
+            "Y2hiYXNlLmt2LnYxLkdldFJlc3BvbnNlIgASWgoLR2V0QW5kVG91Y2gSIy5j",
+            "b3VjaGJhc2Uua3YudjEuR2V0QW5kVG91Y2hSZXF1ZXN0GiQuY291Y2hiYXNl",
+            "Lmt2LnYxLkdldEFuZFRvdWNoUmVzcG9uc2UiABJXCgpHZXRBbmRMb2NrEiIu",
+            "Y291Y2hiYXNlLmt2LnYxLkdldEFuZExvY2tSZXF1ZXN0GiMuY291Y2hiYXNl",
+            "Lmt2LnYxLkdldEFuZExvY2tSZXNwb25zZSIAEksKBlVubG9jaxIeLmNvdWNo",
+            "YmFzZS5rdi52MS5VbmxvY2tSZXF1ZXN0Gh8uY291Y2hiYXNlLmt2LnYxLlVu",
+            "bG9ja1Jlc3BvbnNlIgASSAoFVG91Y2gSHS5jb3VjaGJhc2Uua3YudjEuVG91",
+            "Y2hSZXF1ZXN0Gh4uY291Y2hiYXNlLmt2LnYxLlRvdWNoUmVzcG9uc2UiABJL",
+            "CgZFeGlzdHMSHi5jb3VjaGJhc2Uua3YudjEuRXhpc3RzUmVxdWVzdBofLmNv",
+            "dWNoYmFzZS5rdi52MS5FeGlzdHNSZXNwb25zZSIAEksKBkluc2VydBIeLmNv",
+            "dWNoYmFzZS5rdi52MS5JbnNlcnRSZXF1ZXN0Gh8uY291Y2hiYXNlLmt2LnYx",
+            "Lkluc2VydFJlc3BvbnNlIgASSwoGVXBzZXJ0Eh4uY291Y2hiYXNlLmt2LnYx",
+            "LlVwc2VydFJlcXVlc3QaHy5jb3VjaGJhc2Uua3YudjEuVXBzZXJ0UmVzcG9u",
+            "c2UiABJOCgdSZXBsYWNlEh8uY291Y2hiYXNlLmt2LnYxLlJlcGxhY2VSZXF1",
+            "ZXN0GiAuY291Y2hiYXNlLmt2LnYxLlJlcGxhY2VSZXNwb25zZSIAEksKBlJl",
+            "bW92ZRIeLmNvdWNoYmFzZS5rdi52MS5SZW1vdmVSZXF1ZXN0Gh8uY291Y2hi",
+            "YXNlLmt2LnYxLlJlbW92ZVJlc3BvbnNlIgASVAoJSW5jcmVtZW50EiEuY291",
+            "Y2hiYXNlLmt2LnYxLkluY3JlbWVudFJlcXVlc3QaIi5jb3VjaGJhc2Uua3Yu",
+            "djEuSW5jcmVtZW50UmVzcG9uc2UiABJUCglEZWNyZW1lbnQSIS5jb3VjaGJh",
+            "c2Uua3YudjEuRGVjcmVtZW50UmVxdWVzdBoiLmNvdWNoYmFzZS5rdi52MS5E",
+            "ZWNyZW1lbnRSZXNwb25zZSIAEksKBkFwcGVuZBIeLmNvdWNoYmFzZS5rdi52",
+            "MS5BcHBlbmRSZXF1ZXN0Gh8uY291Y2hiYXNlLmt2LnYxLkFwcGVuZFJlc3Bv",
+            "bnNlIgASTgoHUHJlcGVuZBIfLmNvdWNoYmFzZS5rdi52MS5QcmVwZW5kUmVx",
+            "dWVzdBogLmNvdWNoYmFzZS5rdi52MS5QcmVwZW5kUmVzcG9uc2UiABJRCghM",
+            "b29rdXBJbhIgLmNvdWNoYmFzZS5rdi52MS5Mb29rdXBJblJlcXVlc3QaIS5j",
+            "b3VjaGJhc2Uua3YudjEuTG9va3VwSW5SZXNwb25zZSIAElEKCE11dGF0ZUlu",
+            "EiAuY291Y2hiYXNlLmt2LnYxLk11dGF0ZUluUmVxdWVzdBohLmNvdWNoYmFz",
+            "ZS5rdi52MS5NdXRhdGVJblJlc3BvbnNlIgASZQoOR2V0QWxsUmVwbGljYXMS",
+            "Ji5jb3VjaGJhc2Uua3YudjEuR2V0QWxsUmVwbGljYXNSZXF1ZXN0GicuY291",
+            "Y2hiYXNlLmt2LnYxLkdldEFsbFJlcGxpY2FzUmVzcG9uc2UiADABQtoBCidj",
+            "b20uY291Y2hiYXNlLmNsaWVudC5wcm90b3N0ZWxsYXIua3YudjFQAVo4Z2l0",
+            "aHViLmNvbS9jb3VjaGJhc2UvZ29wcm90b3N0ZWxsYXIvZ2VucHJvdG8va3Zf",
+            "djE7a3ZfdjGqAhxDb3VjaGJhc2UuUHJvdG9zdGVsbGFyLktWLlYxygImQ291",
+            "Y2hiYXNlXFByb3Rvc3RlbGxhclxHZW5lcmF0ZWRcS1ZcVjHqAipDb3VjaGJh",
+            "c2U6OlByb3Rvc3RlbGxhcjo6R2VuZXJhdGVkOjpLVjo6VjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Rpc.StatusReflection.Descriptor, global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Couchbase.Protostellar.KV.V1.DurabilityLevel), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Couchbase.Protostellar.KV.V1.DurabilityLevel), typeof(global::Couchbase.Protostellar.KV.V1.CompressionEnabled), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.LegacyDurabilitySpec), global::Couchbase.Protostellar.KV.V1.LegacyDurabilitySpec.Parser, new[]{ "NumReplicated", "NumPersisted" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.MutationToken), global::Couchbase.Protostellar.KV.V1.MutationToken.Parser, new[]{ "BucketName", "VbucketId", "VbucketUuid", "SeqNo" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetRequest), global::Couchbase.Protostellar.KV.V1.GetRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Project" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetResponse), global::Couchbase.Protostellar.KV.V1.GetResponse.Parser, new[]{ "Content", "ContentFlags", "Cas", "Expiry" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndTouchRequest), global::Couchbase.Protostellar.KV.V1.GetAndTouchRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ExpiryTime", "ExpirySecs" }, new[]{ "Expiry" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndTouchResponse), global::Couchbase.Protostellar.KV.V1.GetAndTouchResponse.Parser, new[]{ "Content", "ContentFlags", "Cas", "Expiry" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndLockRequest), global::Couchbase.Protostellar.KV.V1.GetAndLockRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "LockTime" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndLockResponse), global::Couchbase.Protostellar.KV.V1.GetAndLockResponse.Parser, new[]{ "Content", "ContentFlags", "Cas", "Expiry" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetRequest), global::Couchbase.Protostellar.KV.V1.GetRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Project", "Compression" }, new[]{ "Compression" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetResponse), global::Couchbase.Protostellar.KV.V1.GetResponse.Parser, new[]{ "ContentUncompressed", "ContentCompressed", "ContentFlags", "Cas", "Expiry" }, new[]{ "Content" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndTouchRequest), global::Couchbase.Protostellar.KV.V1.GetAndTouchRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ExpiryTime", "ExpirySecs", "Compression" }, new[]{ "Expiry", "Compression" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndTouchResponse), global::Couchbase.Protostellar.KV.V1.GetAndTouchResponse.Parser, new[]{ "ContentUncompressed", "ContentCompressed", "ContentFlags", "Cas", "Expiry" }, new[]{ "Content" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndLockRequest), global::Couchbase.Protostellar.KV.V1.GetAndLockRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "LockTime", "Compression" }, new[]{ "Compression" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.GetAndLockResponse), global::Couchbase.Protostellar.KV.V1.GetAndLockResponse.Parser, new[]{ "ContentUncompressed", "ContentCompressed", "ContentFlags", "Cas", "Expiry" }, new[]{ "Content" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.UnlockRequest), global::Couchbase.Protostellar.KV.V1.UnlockRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Cas" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.UnlockResponse), global::Couchbase.Protostellar.KV.V1.UnlockResponse.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.TouchRequest), global::Couchbase.Protostellar.KV.V1.TouchRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ExpiryTime", "ExpirySecs" }, new[]{ "Expiry" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.TouchResponse), global::Couchbase.Protostellar.KV.V1.TouchResponse.Parser, new[]{ "Cas", "MutationToken" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.ExistsRequest), global::Couchbase.Protostellar.KV.V1.ExistsRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.ExistsResponse), global::Couchbase.Protostellar.KV.V1.ExistsResponse.Parser, new[]{ "Result", "Cas" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.InsertRequest), global::Couchbase.Protostellar.KV.V1.InsertRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Content", "ContentFlags", "ExpiryTime", "ExpirySecs", "DurabilityLevel" }, new[]{ "Expiry", "DurabilityLevel" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.InsertRequest), global::Couchbase.Protostellar.KV.V1.InsertRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ContentUncompressed", "ContentCompressed", "ContentFlags", "ExpiryTime", "ExpirySecs", "DurabilityLevel" }, new[]{ "Content", "Expiry", "DurabilityLevel" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.InsertResponse), global::Couchbase.Protostellar.KV.V1.InsertResponse.Parser, new[]{ "Cas", "MutationToken" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.UpsertRequest), global::Couchbase.Protostellar.KV.V1.UpsertRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Content", "ContentFlags", "ExpiryTime", "ExpirySecs", "PreserveExpiryOnExisting", "DurabilityLevel" }, new[]{ "Expiry", "PreserveExpiryOnExisting", "DurabilityLevel" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.UpsertRequest), global::Couchbase.Protostellar.KV.V1.UpsertRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ContentUncompressed", "ContentCompressed", "ContentFlags", "ExpiryTime", "ExpirySecs", "PreserveExpiryOnExisting", "DurabilityLevel" }, new[]{ "Content", "Expiry", "PreserveExpiryOnExisting", "DurabilityLevel" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.UpsertResponse), global::Couchbase.Protostellar.KV.V1.UpsertResponse.Parser, new[]{ "Cas", "MutationToken" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.ReplaceRequest), global::Couchbase.Protostellar.KV.V1.ReplaceRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Content", "ContentFlags", "Cas", "ExpiryTime", "ExpirySecs", "DurabilityLevel" }, new[]{ "Expiry", "Cas", "DurabilityLevel" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.ReplaceRequest), global::Couchbase.Protostellar.KV.V1.ReplaceRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "ContentUncompressed", "ContentCompressed", "ContentFlags", "Cas", "ExpiryTime", "ExpirySecs", "DurabilityLevel" }, new[]{ "Content", "Expiry", "Cas", "DurabilityLevel" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.ReplaceResponse), global::Couchbase.Protostellar.KV.V1.ReplaceResponse.Parser, new[]{ "Cas", "MutationToken" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.RemoveRequest), global::Couchbase.Protostellar.KV.V1.RemoveRequest.Parser, new[]{ "BucketName", "ScopeName", "CollectionName", "Key", "Cas", "DurabilityLevel" }, new[]{ "Cas", "DurabilityLevel" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Couchbase.Protostellar.KV.V1.RemoveResponse), global::Couchbase.Protostellar.KV.V1.RemoveResponse.Parser, new[]{ "Cas", "MutationToken" }, null, null, null, null),
@@ -272,9 +286,15 @@ namespace Couchbase.Protostellar.KV.V1 {
     [pbr::OriginalName("DURABILITY_LEVEL_PERSIST_TO_MAJORITY")] PersistToMajority = 2,
   }
 
+  public enum CompressionEnabled {
+    [pbr::OriginalName("COMPRESSION_ENABLED_OPTIONAL")] Optional = 0,
+    [pbr::OriginalName("COMPRESSION_ENABLED_ALWAYS")] Always = 1,
+  }
+
   #endregion
 
   #region Messages
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class LegacyDurabilitySpec : pb::IMessage<LegacyDurabilitySpec>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -459,7 +479,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -482,7 +506,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -501,6 +529,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class MutationToken : pb::IMessage<MutationToken>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -743,7 +772,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -774,7 +807,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -801,6 +838,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetRequest : pb::IMessage<GetRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -808,6 +846,7 @@ namespace Couchbase.Protostellar.KV.V1 {
   {
     private static readonly pb::MessageParser<GetRequest> _parser = new pb::MessageParser<GetRequest>(() => new GetRequest());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<GetRequest> Parser { get { return _parser; } }
@@ -835,11 +874,13 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetRequest(GetRequest other) : this() {
+      _hasBits0 = other._hasBits0;
       bucketName_ = other.bucketName_;
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
       project_ = other.project_.Clone();
+      compression_ = other.compression_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -908,6 +949,33 @@ namespace Couchbase.Protostellar.KV.V1 {
       get { return project_; }
     }
 
+    /// <summary>Field number for the "compression" field.</summary>
+    public const int CompressionFieldNumber = 6;
+    private readonly static global::Couchbase.Protostellar.KV.V1.CompressionEnabled CompressionDefaultValue = global::Couchbase.Protostellar.KV.V1.CompressionEnabled.Optional;
+
+    private global::Couchbase.Protostellar.KV.V1.CompressionEnabled compression_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Couchbase.Protostellar.KV.V1.CompressionEnabled Compression {
+      get { if ((_hasBits0 & 1) != 0) { return compression_; } else { return CompressionDefaultValue; } }
+      set {
+        _hasBits0 |= 1;
+        compression_ = value;
+      }
+    }
+    /// <summary>Gets whether the "compression" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasCompression {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "compression" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearCompression() {
+      _hasBits0 &= ~1;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -928,6 +996,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName != other.CollectionName) return false;
       if (Key != other.Key) return false;
       if(!project_.Equals(other.project_)) return false;
+      if (Compression != other.Compression) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -940,6 +1009,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       hash ^= project_.GetHashCode();
+      if (HasCompression) hash ^= Compression.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -975,6 +1045,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteString(Key);
       }
       project_.WriteTo(output, _repeated_project_codec);
+      if (HasCompression) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Compression);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1002,6 +1076,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteString(Key);
       }
       project_.WriteTo(ref output, _repeated_project_codec);
+      if (HasCompression) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Compression);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1025,6 +1103,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Key);
       }
       size += project_.CalculateSize(_repeated_project_codec);
+      if (HasCompression) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Compression);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1050,6 +1131,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         Key = other.Key;
       }
       project_.Add(other.project_);
+      if (other.HasCompression) {
+        Compression = other.Compression;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1061,7 +1145,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1085,6 +1173,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             project_.AddEntriesFrom(input, _repeated_project_codec);
             break;
           }
+          case 48: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -1096,7 +1188,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1120,6 +1216,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             project_.AddEntriesFrom(ref input, _repeated_project_codec);
             break;
           }
+          case 48: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     }
@@ -1127,6 +1227,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetResponse : pb::IMessage<GetResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1161,10 +1262,18 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetResponse(GetResponse other) : this() {
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       cas_ = other.cas_;
       expiry_ = other.expiry_ != null ? other.expiry_.Clone() : null;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1174,15 +1283,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       return new GetResponse(this);
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 1;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 7;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -1222,6 +1371,27 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 1,
+      ContentCompressed = 7,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1237,10 +1407,12 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (Cas != other.Cas) return false;
       if (!object.Equals(Expiry, other.Expiry)) return false;
+      if (ContentCase != other.ContentCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1248,10 +1420,12 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (Cas != 0UL) hash ^= Cas.GetHashCode();
       if (expiry_ != null) hash ^= Expiry.GetHashCode();
+      hash ^= (int) contentCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1270,9 +1444,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -1285,6 +1459,10 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ContentFlags != 0) {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -1296,9 +1474,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -1312,6 +1490,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
       }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1322,8 +1504,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -1346,9 +1531,6 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other == null) {
         return;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
@@ -1361,6 +1543,15 @@ namespace Couchbase.Protostellar.KV.V1 {
         }
         Expiry.MergeFrom(other.Expiry);
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1372,12 +1563,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -1393,6 +1588,10 @@ namespace Couchbase.Protostellar.KV.V1 {
           }
           case 48: {
             ContentFlags = input.ReadUInt32();
+            break;
+          }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
             break;
           }
         }
@@ -1406,12 +1605,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -1429,6 +1632,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -1436,6 +1643,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAndTouchRequest : pb::IMessage<GetAndTouchRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1443,6 +1651,7 @@ namespace Couchbase.Protostellar.KV.V1 {
   {
     private static readonly pb::MessageParser<GetAndTouchRequest> _parser = new pb::MessageParser<GetAndTouchRequest>(() => new GetAndTouchRequest());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<GetAndTouchRequest> Parser { get { return _parser; } }
@@ -1470,10 +1679,12 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetAndTouchRequest(GetAndTouchRequest other) : this() {
+      _hasBits0 = other._hasBits0;
       bucketName_ = other.bucketName_;
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
+      compression_ = other.compression_;
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           ExpiryTime = other.ExpiryTime.Clone();
@@ -1557,11 +1768,52 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
+    }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
+
+    /// <summary>Field number for the "compression" field.</summary>
+    public const int CompressionFieldNumber = 7;
+    private readonly static global::Couchbase.Protostellar.KV.V1.CompressionEnabled CompressionDefaultValue = global::Couchbase.Protostellar.KV.V1.CompressionEnabled.Optional;
+
+    private global::Couchbase.Protostellar.KV.V1.CompressionEnabled compression_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Couchbase.Protostellar.KV.V1.CompressionEnabled Compression {
+      get { if ((_hasBits0 & 1) != 0) { return compression_; } else { return CompressionDefaultValue; } }
+      set {
+        _hasBits0 |= 1;
+        compression_ = value;
+      }
+    }
+    /// <summary>Gets whether the "compression" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasCompression {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "compression" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearCompression() {
+      _hasBits0 &= ~1;
     }
 
     private object expiry_;
@@ -1606,6 +1858,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key != other.Key) return false;
       if (!object.Equals(ExpiryTime, other.ExpiryTime)) return false;
       if (ExpirySecs != other.ExpirySecs) return false;
+      if (Compression != other.Compression) return false;
       if (ExpiryCase != other.ExpiryCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -1619,7 +1872,8 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasCompression) hash ^= Compression.GetHashCode();
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -1659,9 +1913,13 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(48);
         output.WriteUInt32(ExpirySecs);
+      }
+      if (HasCompression) {
+        output.WriteRawTag(56);
+        output.WriteEnum((int) Compression);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -1693,9 +1951,13 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(48);
         output.WriteUInt32(ExpirySecs);
+      }
+      if (HasCompression) {
+        output.WriteRawTag(56);
+        output.WriteEnum((int) Compression);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -1722,8 +1984,11 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
+      }
+      if (HasCompression) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Compression);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1749,6 +2014,9 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.Key.Length != 0) {
         Key = other.Key;
       }
+      if (other.HasCompression) {
+        Compression = other.Compression;
+      }
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           if (ExpiryTime == null) {
@@ -1772,7 +2040,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1805,6 +2077,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ExpirySecs = input.ReadUInt32();
             break;
           }
+          case 56: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -1816,7 +2092,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1849,6 +2129,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ExpirySecs = input.ReadUInt32();
             break;
           }
+          case 56: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     }
@@ -1856,6 +2140,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAndTouchResponse : pb::IMessage<GetAndTouchResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1890,10 +2175,18 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetAndTouchResponse(GetAndTouchResponse other) : this() {
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       cas_ = other.cas_;
       expiry_ = other.expiry_ != null ? other.expiry_.Clone() : null;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1903,15 +2196,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       return new GetAndTouchResponse(this);
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 1;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 7;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -1951,6 +2284,27 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 1,
+      ContentCompressed = 7,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1966,10 +2320,12 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (Cas != other.Cas) return false;
       if (!object.Equals(Expiry, other.Expiry)) return false;
+      if (ContentCase != other.ContentCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1977,10 +2333,12 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (Cas != 0UL) hash ^= Cas.GetHashCode();
       if (expiry_ != null) hash ^= Expiry.GetHashCode();
+      hash ^= (int) contentCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1999,9 +2357,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -2014,6 +2372,10 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ContentFlags != 0) {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -2025,9 +2387,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -2041,6 +2403,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
       }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2051,8 +2417,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -2075,9 +2444,6 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other == null) {
         return;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
@@ -2090,6 +2456,15 @@ namespace Couchbase.Protostellar.KV.V1 {
         }
         Expiry.MergeFrom(other.Expiry);
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2101,12 +2476,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -2122,6 +2501,10 @@ namespace Couchbase.Protostellar.KV.V1 {
           }
           case 48: {
             ContentFlags = input.ReadUInt32();
+            break;
+          }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
             break;
           }
         }
@@ -2135,12 +2518,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -2158,6 +2545,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -2165,6 +2556,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAndLockRequest : pb::IMessage<GetAndLockRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2172,6 +2564,7 @@ namespace Couchbase.Protostellar.KV.V1 {
   {
     private static readonly pb::MessageParser<GetAndLockRequest> _parser = new pb::MessageParser<GetAndLockRequest>(() => new GetAndLockRequest());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<GetAndLockRequest> Parser { get { return _parser; } }
@@ -2199,11 +2592,13 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetAndLockRequest(GetAndLockRequest other) : this() {
+      _hasBits0 = other._hasBits0;
       bucketName_ = other.bucketName_;
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
       lockTime_ = other.lockTime_;
+      compression_ = other.compression_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2273,6 +2668,33 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
+    /// <summary>Field number for the "compression" field.</summary>
+    public const int CompressionFieldNumber = 6;
+    private readonly static global::Couchbase.Protostellar.KV.V1.CompressionEnabled CompressionDefaultValue = global::Couchbase.Protostellar.KV.V1.CompressionEnabled.Optional;
+
+    private global::Couchbase.Protostellar.KV.V1.CompressionEnabled compression_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::Couchbase.Protostellar.KV.V1.CompressionEnabled Compression {
+      get { if ((_hasBits0 & 1) != 0) { return compression_; } else { return CompressionDefaultValue; } }
+      set {
+        _hasBits0 |= 1;
+        compression_ = value;
+      }
+    }
+    /// <summary>Gets whether the "compression" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasCompression {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "compression" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearCompression() {
+      _hasBits0 &= ~1;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2293,6 +2715,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName != other.CollectionName) return false;
       if (Key != other.Key) return false;
       if (LockTime != other.LockTime) return false;
+      if (Compression != other.Compression) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2305,6 +2728,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       if (LockTime != 0) hash ^= LockTime.GetHashCode();
+      if (HasCompression) hash ^= Compression.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2343,6 +2767,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(40);
         output.WriteUInt32(LockTime);
       }
+      if (HasCompression) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Compression);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2373,6 +2801,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(40);
         output.WriteUInt32(LockTime);
       }
+      if (HasCompression) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Compression);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2397,6 +2829,9 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
       if (LockTime != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(LockTime);
+      }
+      if (HasCompression) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Compression);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -2425,6 +2860,9 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.LockTime != 0) {
         LockTime = other.LockTime;
       }
+      if (other.HasCompression) {
+        Compression = other.Compression;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2436,7 +2874,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2460,6 +2902,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             LockTime = input.ReadUInt32();
             break;
           }
+          case 48: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -2471,7 +2917,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2495,6 +2945,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             LockTime = input.ReadUInt32();
             break;
           }
+          case 48: {
+            Compression = (global::Couchbase.Protostellar.KV.V1.CompressionEnabled) input.ReadEnum();
+            break;
+          }
         }
       }
     }
@@ -2502,6 +2956,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAndLockResponse : pb::IMessage<GetAndLockResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2536,10 +2991,18 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetAndLockResponse(GetAndLockResponse other) : this() {
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       cas_ = other.cas_;
       expiry_ = other.expiry_ != null ? other.expiry_.Clone() : null;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2549,15 +3012,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       return new GetAndLockResponse(this);
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 1;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 7;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -2597,6 +3100,27 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 1,
+      ContentCompressed = 7,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2612,10 +3136,12 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (Cas != other.Cas) return false;
       if (!object.Equals(Expiry, other.Expiry)) return false;
+      if (ContentCase != other.ContentCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2623,10 +3149,12 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (Cas != 0UL) hash ^= Cas.GetHashCode();
       if (expiry_ != null) hash ^= Expiry.GetHashCode();
+      hash ^= (int) contentCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2645,9 +3173,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -2660,6 +3188,10 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ContentFlags != 0) {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -2671,9 +3203,9 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(10);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (Cas != 0UL) {
         output.WriteRawTag(24);
@@ -2687,6 +3219,10 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(48);
         output.WriteUInt32(ContentFlags);
       }
+      if (HasContentCompressed) {
+        output.WriteRawTag(58);
+        output.WriteBytes(ContentCompressed);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2697,8 +3233,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -2721,9 +3260,6 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other == null) {
         return;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
@@ -2736,6 +3272,15 @@ namespace Couchbase.Protostellar.KV.V1 {
         }
         Expiry.MergeFrom(other.Expiry);
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2747,12 +3292,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -2768,6 +3317,10 @@ namespace Couchbase.Protostellar.KV.V1 {
           }
           case 48: {
             ContentFlags = input.ReadUInt32();
+            break;
+          }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
             break;
           }
         }
@@ -2781,12 +3334,16 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 24: {
@@ -2804,6 +3361,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 58: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -2811,6 +3372,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UnlockRequest : pb::IMessage<UnlockRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3082,7 +3644,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3117,7 +3683,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3148,6 +3718,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UnlockResponse : pb::IMessage<UnlockResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3274,7 +3845,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3289,7 +3864,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3300,6 +3879,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class TouchRequest : pb::IMessage<TouchRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3421,10 +4001,24 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
+      }
+    }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
       }
     }
 
@@ -3483,7 +4077,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -3523,7 +4117,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(48);
         output.WriteUInt32(ExpirySecs);
       }
@@ -3557,7 +4151,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(48);
         output.WriteUInt32(ExpirySecs);
       }
@@ -3586,7 +4180,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (_unknownFields != null) {
@@ -3636,7 +4230,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3680,7 +4278,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3720,6 +4322,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class TouchResponse : pb::IMessage<TouchResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3907,7 +4510,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3933,7 +4540,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3955,6 +4566,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ExistsRequest : pb::IMessage<ExistsRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -4197,7 +4809,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4228,7 +4844,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4255,6 +4875,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ExistsResponse : pb::IMessage<ExistsResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -4439,7 +5060,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4462,7 +5087,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4481,6 +5110,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class InsertRequest : pb::IMessage<InsertRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -4521,9 +5151,17 @@ namespace Couchbase.Protostellar.KV.V1 {
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       durabilityLevel_ = other.durabilityLevel_;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           ExpiryTime = other.ExpiryTime.Clone();
@@ -4590,15 +5228,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 5;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 5;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 12;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -4631,20 +5309,36 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
     }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 9;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 1) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 1) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 1;
         durabilityLevel_ = value;
@@ -4661,6 +5355,27 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearDurabilityLevel() {
       _hasBits0 &= ~1;
+    }
+
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 5,
+      ContentCompressed = 12,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
     }
 
     private object expiry_;
@@ -4703,11 +5418,13 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName != other.ScopeName) return false;
       if (CollectionName != other.CollectionName) return false;
       if (Key != other.Key) return false;
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (!object.Equals(ExpiryTime, other.ExpiryTime)) return false;
       if (ExpirySecs != other.ExpirySecs) return false;
       if (DurabilityLevel != other.DurabilityLevel) return false;
+      if (ContentCase != other.ContentCase) return false;
       if (ExpiryCase != other.ExpiryCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -4720,11 +5437,13 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName.Length != 0) hash ^= ScopeName.GetHashCode();
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       if (HasDurabilityLevel) hash ^= DurabilityLevel.GetHashCode();
+      hash ^= (int) contentCase_;
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -4760,9 +5479,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         output.WriteRawTag(58);
@@ -4772,13 +5491,17 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
       if (ContentFlags != 0) {
         output.WriteRawTag(88);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(98);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -4806,9 +5529,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         output.WriteRawTag(58);
@@ -4818,13 +5541,17 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
       if (ContentFlags != 0) {
         output.WriteRawTag(88);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(98);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -4848,8 +5575,11 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Key);
       }
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -4857,7 +5587,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (HasDurabilityLevel) {
@@ -4887,15 +5617,21 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.Key.Length != 0) {
         Key = other.Key;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
       if (other.HasDurabilityLevel) {
         DurabilityLevel = other.DurabilityLevel;
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           if (ExpiryTime == null) {
@@ -4919,7 +5655,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4940,7 +5680,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 58: {
@@ -4964,6 +5704,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 98: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     #endif
@@ -4975,7 +5719,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4996,7 +5744,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 58: {
@@ -5020,6 +5768,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 98: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -5027,6 +5779,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class InsertResponse : pb::IMessage<InsertResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -5214,7 +5967,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5240,7 +5997,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -5262,6 +6023,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UpsertRequest : pb::IMessage<UpsertRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -5302,10 +6064,18 @@ namespace Couchbase.Protostellar.KV.V1 {
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       preserveExpiryOnExisting_ = other.preserveExpiryOnExisting_;
       durabilityLevel_ = other.durabilityLevel_;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           ExpiryTime = other.ExpiryTime.Clone();
@@ -5372,15 +6142,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 5;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 5;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 13;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -5413,20 +6223,36 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
     }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
 
     /// <summary>Field number for the "preserve_expiry_on_existing" field.</summary>
     public const int PreserveExpiryOnExistingFieldNumber = 12;
+    private readonly static bool PreserveExpiryOnExistingDefaultValue = false;
+
     private bool preserveExpiryOnExisting_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool PreserveExpiryOnExisting {
-      get { if ((_hasBits0 & 2) != 0) { return preserveExpiryOnExisting_; } else { return false; } }
+      get { if ((_hasBits0 & 2) != 0) { return preserveExpiryOnExisting_; } else { return PreserveExpiryOnExistingDefaultValue; } }
       set {
         _hasBits0 |= 2;
         preserveExpiryOnExisting_ = value;
@@ -5447,11 +6273,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 9;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 1) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 1) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 1;
         durabilityLevel_ = value;
@@ -5468,6 +6296,27 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearDurabilityLevel() {
       _hasBits0 &= ~1;
+    }
+
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 5,
+      ContentCompressed = 13,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
     }
 
     private object expiry_;
@@ -5510,12 +6359,14 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName != other.ScopeName) return false;
       if (CollectionName != other.CollectionName) return false;
       if (Key != other.Key) return false;
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (!object.Equals(ExpiryTime, other.ExpiryTime)) return false;
       if (ExpirySecs != other.ExpirySecs) return false;
       if (PreserveExpiryOnExisting != other.PreserveExpiryOnExisting) return false;
       if (DurabilityLevel != other.DurabilityLevel) return false;
+      if (ContentCase != other.ContentCase) return false;
       if (ExpiryCase != other.ExpiryCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -5528,12 +6379,14 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName.Length != 0) hash ^= ScopeName.GetHashCode();
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       if (HasPreserveExpiryOnExisting) hash ^= PreserveExpiryOnExisting.GetHashCode();
       if (HasDurabilityLevel) hash ^= DurabilityLevel.GetHashCode();
+      hash ^= (int) contentCase_;
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -5569,9 +6422,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         output.WriteRawTag(58);
@@ -5581,7 +6434,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -5592,6 +6445,10 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (HasPreserveExpiryOnExisting) {
         output.WriteRawTag(96);
         output.WriteBool(PreserveExpiryOnExisting);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(106);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -5619,9 +6476,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         output.WriteRawTag(58);
@@ -5631,7 +6488,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -5642,6 +6499,10 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (HasPreserveExpiryOnExisting) {
         output.WriteRawTag(96);
         output.WriteBool(PreserveExpiryOnExisting);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(106);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -5665,8 +6526,11 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Key);
       }
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -5674,7 +6538,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (HasPreserveExpiryOnExisting) {
@@ -5707,9 +6571,6 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.Key.Length != 0) {
         Key = other.Key;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
@@ -5719,6 +6580,15 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.HasDurabilityLevel) {
         DurabilityLevel = other.DurabilityLevel;
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           if (ExpiryTime == null) {
@@ -5742,7 +6612,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5763,7 +6637,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 58: {
@@ -5791,6 +6665,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             PreserveExpiryOnExisting = input.ReadBool();
             break;
           }
+          case 106: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     #endif
@@ -5802,7 +6680,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -5823,7 +6705,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 58: {
@@ -5851,6 +6733,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             PreserveExpiryOnExisting = input.ReadBool();
             break;
           }
+          case 106: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -5858,6 +6744,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UpsertResponse : pb::IMessage<UpsertResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -6045,7 +6932,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -6071,7 +6962,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -6093,6 +6988,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ReplaceRequest : pb::IMessage<ReplaceRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -6133,10 +7029,18 @@ namespace Couchbase.Protostellar.KV.V1 {
       scopeName_ = other.scopeName_;
       collectionName_ = other.collectionName_;
       key_ = other.key_;
-      content_ = other.content_;
       contentFlags_ = other.contentFlags_;
       cas_ = other.cas_;
       durabilityLevel_ = other.durabilityLevel_;
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           ExpiryTime = other.ExpiryTime.Clone();
@@ -6203,15 +7107,55 @@ namespace Couchbase.Protostellar.KV.V1 {
       }
     }
 
-    /// <summary>Field number for the "content" field.</summary>
-    public const int ContentFieldNumber = 5;
-    private pb::ByteString content_ = pb::ByteString.Empty;
+    /// <summary>Field number for the "content_uncompressed" field.</summary>
+    public const int ContentUncompressedFieldNumber = 5;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pb::ByteString Content {
-      get { return content_; }
+    public pb::ByteString ContentUncompressed {
+      get { return HasContentUncompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
       set {
         content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentUncompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_uncompressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentUncompressed {
+      get { return contentCase_ == ContentOneofCase.ContentUncompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_uncompressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentUncompressed() {
+      if (HasContentUncompressed) {
+        ClearContent();
+      }
+    }
+
+    /// <summary>Field number for the "content_compressed" field.</summary>
+    public const int ContentCompressedFieldNumber = 13;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString ContentCompressed {
+      get { return HasContentCompressed ? (pb::ByteString) content_ : pb::ByteString.Empty; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        contentCase_ = ContentOneofCase.ContentCompressed;
+      }
+    }
+    /// <summary>Gets whether the "content_compressed" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasContentCompressed {
+      get { return contentCase_ == ContentOneofCase.ContentCompressed; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "content_compressed" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContentCompressed() {
+      if (HasContentCompressed) {
+        ClearContent();
       }
     }
 
@@ -6229,11 +7173,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "cas" field.</summary>
     public const int CasFieldNumber = 7;
+    private readonly static ulong CasDefaultValue = 0UL;
+
     private ulong cas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong Cas {
-      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return CasDefaultValue; } }
       set {
         _hasBits0 |= 1;
         cas_ = value;
@@ -6269,20 +7215,36 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
     }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 10;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -6299,6 +7261,27 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public void ClearDurabilityLevel() {
       _hasBits0 &= ~2;
+    }
+
+    private object content_;
+    /// <summary>Enum of possible cases for the "content" oneof.</summary>
+    public enum ContentOneofCase {
+      None = 0,
+      ContentUncompressed = 5,
+      ContentCompressed = 13,
+    }
+    private ContentOneofCase contentCase_ = ContentOneofCase.None;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ContentOneofCase ContentCase {
+      get { return contentCase_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearContent() {
+      contentCase_ = ContentOneofCase.None;
+      content_ = null;
     }
 
     private object expiry_;
@@ -6341,12 +7324,14 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName != other.ScopeName) return false;
       if (CollectionName != other.CollectionName) return false;
       if (Key != other.Key) return false;
-      if (Content != other.Content) return false;
+      if (ContentUncompressed != other.ContentUncompressed) return false;
+      if (ContentCompressed != other.ContentCompressed) return false;
       if (ContentFlags != other.ContentFlags) return false;
       if (Cas != other.Cas) return false;
       if (!object.Equals(ExpiryTime, other.ExpiryTime)) return false;
       if (ExpirySecs != other.ExpirySecs) return false;
       if (DurabilityLevel != other.DurabilityLevel) return false;
+      if (ContentCase != other.ContentCase) return false;
       if (ExpiryCase != other.ExpiryCase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -6359,12 +7344,14 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (ScopeName.Length != 0) hash ^= ScopeName.GetHashCode();
       if (CollectionName.Length != 0) hash ^= CollectionName.GetHashCode();
       if (Key.Length != 0) hash ^= Key.GetHashCode();
-      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (HasContentUncompressed) hash ^= ContentUncompressed.GetHashCode();
+      if (HasContentCompressed) hash ^= ContentCompressed.GetHashCode();
       if (ContentFlags != 0) hash ^= ContentFlags.GetHashCode();
       if (HasCas) hash ^= Cas.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       if (HasDurabilityLevel) hash ^= DurabilityLevel.GetHashCode();
+      hash ^= (int) contentCase_;
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -6400,9 +7387,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (HasCas) {
         output.WriteRawTag(56);
@@ -6416,13 +7403,17 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(80);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(88);
         output.WriteUInt32(ExpirySecs);
       }
       if (ContentFlags != 0) {
         output.WriteRawTag(96);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(106);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -6450,9 +7441,9 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(34);
         output.WriteString(Key);
       }
-      if (Content.Length != 0) {
+      if (HasContentUncompressed) {
         output.WriteRawTag(42);
-        output.WriteBytes(Content);
+        output.WriteBytes(ContentUncompressed);
       }
       if (HasCas) {
         output.WriteRawTag(56);
@@ -6466,13 +7457,17 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(80);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(88);
         output.WriteUInt32(ExpirySecs);
       }
       if (ContentFlags != 0) {
         output.WriteRawTag(96);
         output.WriteUInt32(ContentFlags);
+      }
+      if (HasContentCompressed) {
+        output.WriteRawTag(106);
+        output.WriteBytes(ContentCompressed);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -6496,8 +7491,11 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Key);
       }
-      if (Content.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      if (HasContentUncompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentUncompressed);
+      }
+      if (HasContentCompressed) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(ContentCompressed);
       }
       if (ContentFlags != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ContentFlags);
@@ -6508,7 +7506,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (HasDurabilityLevel) {
@@ -6538,9 +7536,6 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.Key.Length != 0) {
         Key = other.Key;
       }
-      if (other.Content.Length != 0) {
-        Content = other.Content;
-      }
       if (other.ContentFlags != 0) {
         ContentFlags = other.ContentFlags;
       }
@@ -6550,6 +7545,15 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (other.HasDurabilityLevel) {
         DurabilityLevel = other.DurabilityLevel;
       }
+      switch (other.ContentCase) {
+        case ContentOneofCase.ContentUncompressed:
+          ContentUncompressed = other.ContentUncompressed;
+          break;
+        case ContentOneofCase.ContentCompressed:
+          ContentCompressed = other.ContentCompressed;
+          break;
+      }
+
       switch (other.ExpiryCase) {
         case ExpiryOneofCase.ExpiryTime:
           if (ExpiryTime == null) {
@@ -6573,7 +7577,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -6594,7 +7602,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 56: {
@@ -6622,6 +7630,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 106: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     #endif
@@ -6633,7 +7645,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -6654,7 +7670,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             break;
           }
           case 42: {
-            Content = input.ReadBytes();
+            ContentUncompressed = input.ReadBytes();
             break;
           }
           case 56: {
@@ -6682,6 +7698,10 @@ namespace Couchbase.Protostellar.KV.V1 {
             ContentFlags = input.ReadUInt32();
             break;
           }
+          case 106: {
+            ContentCompressed = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -6689,6 +7709,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ReplaceResponse : pb::IMessage<ReplaceResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -6876,7 +7897,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -6902,7 +7927,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -6924,6 +7953,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class RemoveRequest : pb::IMessage<RemoveRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -7025,11 +8055,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "cas" field.</summary>
     public const int CasFieldNumber = 5;
+    private readonly static ulong CasDefaultValue = 0UL;
+
     private ulong cas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong Cas {
-      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return CasDefaultValue; } }
       set {
         _hasBits0 |= 1;
         cas_ = value;
@@ -7050,11 +8082,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 7;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -7252,7 +8286,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -7291,7 +8329,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -7326,6 +8368,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class RemoveResponse : pb::IMessage<RemoveResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -7513,7 +8556,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -7539,7 +8586,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -7561,6 +8612,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class IncrementRequest : pb::IMessage<IncrementRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -7699,20 +8751,36 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
     }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
 
     /// <summary>Field number for the "initial" field.</summary>
     public const int InitialFieldNumber = 7;
+    private readonly static long InitialDefaultValue = 0L;
+
     private long initial_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long Initial {
-      get { if ((_hasBits0 & 1) != 0) { return initial_; } else { return 0L; } }
+      get { if ((_hasBits0 & 1) != 0) { return initial_; } else { return InitialDefaultValue; } }
       set {
         _hasBits0 |= 1;
         initial_ = value;
@@ -7733,11 +8801,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 9;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -7815,7 +8885,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       if (Delta != 0UL) hash ^= Delta.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       if (HasInitial) hash ^= Initial.GetHashCode();
       if (HasDurabilityLevel) hash ^= DurabilityLevel.GetHashCode();
       hash ^= (int) expiryCase_;
@@ -7869,7 +8939,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -7915,7 +8985,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -7947,7 +9017,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (HasInitial) {
@@ -8012,7 +9082,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -8068,7 +9142,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -8120,6 +9198,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class IncrementResponse : pb::IMessage<IncrementResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -8336,7 +9415,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -8366,7 +9449,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -8392,6 +9479,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class DecrementRequest : pb::IMessage<DecrementRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -8530,20 +9618,36 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
       }
     }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
+      }
+    }
 
     /// <summary>Field number for the "initial" field.</summary>
     public const int InitialFieldNumber = 7;
+    private readonly static long InitialDefaultValue = 0L;
+
     private long initial_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long Initial {
-      get { if ((_hasBits0 & 1) != 0) { return initial_; } else { return 0L; } }
+      get { if ((_hasBits0 & 1) != 0) { return initial_; } else { return InitialDefaultValue; } }
       set {
         _hasBits0 |= 1;
         initial_ = value;
@@ -8564,11 +9668,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 9;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -8646,7 +9752,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (Key.Length != 0) hash ^= Key.GetHashCode();
       if (Delta != 0UL) hash ^= Delta.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       if (HasInitial) hash ^= Initial.GetHashCode();
       if (HasDurabilityLevel) hash ^= DurabilityLevel.GetHashCode();
       hash ^= (int) expiryCase_;
@@ -8700,7 +9806,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -8746,7 +9852,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(72);
         output.WriteEnum((int) DurabilityLevel);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(80);
         output.WriteUInt32(ExpirySecs);
       }
@@ -8778,7 +9884,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (HasInitial) {
@@ -8843,7 +9949,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -8899,7 +10009,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -8951,6 +10065,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class DecrementResponse : pb::IMessage<DecrementResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -9167,7 +10282,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -9197,7 +10316,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -9223,6 +10346,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class AppendRequest : pb::IMessage<AppendRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -9337,11 +10461,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "cas" field.</summary>
     public const int CasFieldNumber = 6;
+    private readonly static ulong CasDefaultValue = 0UL;
+
     private ulong cas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong Cas {
-      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return CasDefaultValue; } }
       set {
         _hasBits0 |= 1;
         cas_ = value;
@@ -9362,11 +10488,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 8;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -9580,7 +10708,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -9623,7 +10755,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -9662,6 +10798,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class AppendResponse : pb::IMessage<AppendResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -9849,7 +10986,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -9875,7 +11016,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -9897,6 +11042,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class PrependRequest : pb::IMessage<PrependRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -10011,11 +11157,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "cas" field.</summary>
     public const int CasFieldNumber = 6;
+    private readonly static ulong CasDefaultValue = 0UL;
+
     private ulong cas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong Cas {
-      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return cas_; } else { return CasDefaultValue; } }
       set {
         _hasBits0 |= 1;
         cas_ = value;
@@ -10036,11 +11184,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 8;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -10254,7 +11404,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -10297,7 +11451,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -10336,6 +11494,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class PrependResponse : pb::IMessage<PrependResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -10523,7 +11682,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -10549,7 +11712,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -10571,6 +11738,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class LookupInRequest : pb::IMessage<LookupInRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -10863,7 +12031,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -10905,7 +12077,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -10946,6 +12122,7 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Spec : pb::IMessage<Spec>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -11162,7 +12339,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -11192,7 +12373,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -11227,6 +12412,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             [pbr::OriginalName("OPERATION_COUNT")] Count = 2,
           }
 
+          [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
           public sealed partial class Flags : pb::IMessage<Flags>
           #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
               , pb::IBufferMessage
@@ -11275,11 +12461,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
             /// <summary>Field number for the "xattr" field.</summary>
             public const int XattrFieldNumber = 1;
+            private readonly static bool XattrDefaultValue = false;
+
             private bool xattr_;
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
             [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
             public bool Xattr {
-              get { if ((_hasBits0 & 1) != 0) { return xattr_; } else { return false; } }
+              get { if ((_hasBits0 & 1) != 0) { return xattr_; } else { return XattrDefaultValue; } }
               set {
                 _hasBits0 |= 1;
                 xattr_ = value;
@@ -11397,7 +12585,11 @@ namespace Couchbase.Protostellar.KV.V1 {
             #else
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                     break;
@@ -11416,7 +12608,11 @@ namespace Couchbase.Protostellar.KV.V1 {
             void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                     break;
@@ -11436,6 +12632,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
       }
 
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Flags : pb::IMessage<Flags>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -11484,11 +12681,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
         /// <summary>Field number for the "access_deleted" field.</summary>
         public const int AccessDeletedFieldNumber = 1;
+        private readonly static bool AccessDeletedDefaultValue = false;
+
         private bool accessDeleted_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public bool AccessDeleted {
-          get { if ((_hasBits0 & 1) != 0) { return accessDeleted_; } else { return false; } }
+          get { if ((_hasBits0 & 1) != 0) { return accessDeleted_; } else { return AccessDeletedDefaultValue; } }
           set {
             _hasBits0 |= 1;
             accessDeleted_ = value;
@@ -11606,7 +12805,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -11625,7 +12828,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -11645,6 +12852,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class LookupInResponse : pb::IMessage<LookupInResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -11818,7 +13026,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -11841,7 +13053,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -11863,6 +13079,7 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Spec : pb::IMessage<Spec>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -12050,7 +13267,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -12076,7 +13297,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -12103,6 +13328,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class MutateInRequest : pb::IMessage<MutateInRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -12227,11 +13453,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "store_semantic" field.</summary>
     public const int StoreSemanticFieldNumber = 6;
+    private readonly static global::Couchbase.Protostellar.KV.V1.MutateInRequest.Types.StoreSemantic StoreSemanticDefaultValue = global::Couchbase.Protostellar.KV.V1.MutateInRequest.Types.StoreSemantic.Replace;
+
     private global::Couchbase.Protostellar.KV.V1.MutateInRequest.Types.StoreSemantic storeSemantic_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.MutateInRequest.Types.StoreSemantic StoreSemantic {
-      get { if ((_hasBits0 & 1) != 0) { return storeSemantic_; } else { return global::Couchbase.Protostellar.KV.V1.MutateInRequest.Types.StoreSemantic.Replace; } }
+      get { if ((_hasBits0 & 1) != 0) { return storeSemantic_; } else { return StoreSemanticDefaultValue; } }
       set {
         _hasBits0 |= 1;
         storeSemantic_ = value;
@@ -12252,11 +13480,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "durability_level" field.</summary>
     public const int DurabilityLevelFieldNumber = 8;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel durabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel DurabilityLevel {
-      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 2) != 0) { return durabilityLevel_; } else { return DurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 2;
         durabilityLevel_ = value;
@@ -12277,11 +13507,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
     /// <summary>Field number for the "cas" field.</summary>
     public const int CasFieldNumber = 9;
+    private readonly static ulong CasDefaultValue = 0UL;
+
     private ulong cas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong Cas {
-      get { if ((_hasBits0 & 4) != 0) { return cas_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 4) != 0) { return cas_; } else { return CasDefaultValue; } }
       set {
         _hasBits0 |= 4;
         cas_ = value;
@@ -12329,10 +13561,24 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint ExpirySecs {
-      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs ? (uint) expiry_ : 0; }
+      get { return HasExpirySecs ? (uint) expiry_ : 0; }
       set {
         expiry_ = value;
         expiryCase_ = ExpiryOneofCase.ExpirySecs;
+      }
+    }
+    /// <summary>Gets whether the "expiry_secs" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExpirySecs {
+      get { return expiryCase_ == ExpiryOneofCase.ExpirySecs; }
+    }
+    /// <summary> Clears the value of the oneof if it's currently set to "expiry_secs" </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExpirySecs() {
+      if (HasExpirySecs) {
+        ClearExpiry();
       }
     }
 
@@ -12401,7 +13647,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (HasCas) hash ^= Cas.GetHashCode();
       if (flags_ != null) hash ^= Flags.GetHashCode();
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) hash ^= ExpiryTime.GetHashCode();
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) hash ^= ExpirySecs.GetHashCode();
+      if (HasExpirySecs) hash ^= ExpirySecs.GetHashCode();
       hash ^= (int) expiryCase_;
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -12458,7 +13704,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(90);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(96);
         output.WriteUInt32(ExpirySecs);
       }
@@ -12509,7 +13755,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         output.WriteRawTag(90);
         output.WriteMessage(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         output.WriteRawTag(96);
         output.WriteUInt32(ExpirySecs);
       }
@@ -12551,7 +13797,7 @@ namespace Couchbase.Protostellar.KV.V1 {
       if (expiryCase_ == ExpiryOneofCase.ExpiryTime) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(ExpiryTime);
       }
-      if (expiryCase_ == ExpiryOneofCase.ExpirySecs) {
+      if (HasExpirySecs) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ExpirySecs);
       }
       if (_unknownFields != null) {
@@ -12617,7 +13863,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -12684,7 +13934,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -12756,6 +14010,7 @@ namespace Couchbase.Protostellar.KV.V1 {
         [pbr::OriginalName("STORE_SEMANTIC_INSERT")] Insert = 2,
       }
 
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Spec : pb::IMessage<Spec>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -13001,7 +14256,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -13035,7 +14294,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -13080,6 +14343,7 @@ namespace Couchbase.Protostellar.KV.V1 {
             [pbr::OriginalName("OPERATION_COUNTER")] Counter = 8,
           }
 
+          [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
           public sealed partial class Flags : pb::IMessage<Flags>
           #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
               , pb::IBufferMessage
@@ -13129,11 +14393,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
             /// <summary>Field number for the "create_path" field.</summary>
             public const int CreatePathFieldNumber = 1;
+            private readonly static bool CreatePathDefaultValue = false;
+
             private bool createPath_;
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
             [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
             public bool CreatePath {
-              get { if ((_hasBits0 & 1) != 0) { return createPath_; } else { return false; } }
+              get { if ((_hasBits0 & 1) != 0) { return createPath_; } else { return CreatePathDefaultValue; } }
               set {
                 _hasBits0 |= 1;
                 createPath_ = value;
@@ -13154,11 +14420,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
             /// <summary>Field number for the "xattr" field.</summary>
             public const int XattrFieldNumber = 2;
+            private readonly static bool XattrDefaultValue = false;
+
             private bool xattr_;
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
             [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
             public bool Xattr {
-              get { if ((_hasBits0 & 2) != 0) { return xattr_; } else { return false; } }
+              get { if ((_hasBits0 & 2) != 0) { return xattr_; } else { return XattrDefaultValue; } }
               set {
                 _hasBits0 |= 2;
                 xattr_ = value;
@@ -13292,7 +14560,11 @@ namespace Couchbase.Protostellar.KV.V1 {
             #else
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                     break;
@@ -13315,7 +14587,11 @@ namespace Couchbase.Protostellar.KV.V1 {
             void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
               uint tag;
               while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
+              if ((tag & 7) == 4) {
+                // Abort on any end group tag.
+                return;
+              }
+              switch(tag) {
                   default:
                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                     break;
@@ -13339,6 +14615,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
       }
 
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Flags : pb::IMessage<Flags>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -13387,11 +14664,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
         /// <summary>Field number for the "access_deleted" field.</summary>
         public const int AccessDeletedFieldNumber = 1;
+        private readonly static bool AccessDeletedDefaultValue = false;
+
         private bool accessDeleted_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public bool AccessDeleted {
-          get { if ((_hasBits0 & 1) != 0) { return accessDeleted_; } else { return false; } }
+          get { if ((_hasBits0 & 1) != 0) { return accessDeleted_; } else { return AccessDeletedDefaultValue; } }
           set {
             _hasBits0 |= 1;
             accessDeleted_ = value;
@@ -13509,7 +14788,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -13528,7 +14811,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -13548,6 +14835,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class MutateInResponse : pb::IMessage<MutateInResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -13753,7 +15041,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -13783,7 +15075,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -13812,6 +15108,7 @@ namespace Couchbase.Protostellar.KV.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Spec : pb::IMessage<Spec>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -13858,11 +15155,13 @@ namespace Couchbase.Protostellar.KV.V1 {
 
         /// <summary>Field number for the "content" field.</summary>
         public const int ContentFieldNumber = 1;
+        private readonly static pb::ByteString ContentDefaultValue = pb::ByteString.Empty;
+
         private pb::ByteString content_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public pb::ByteString Content {
-          get { return content_ ?? pb::ByteString.Empty; }
+          get { return content_ ?? ContentDefaultValue; }
           set {
             content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
           }
@@ -13979,7 +15278,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -13998,7 +15301,11 @@ namespace Couchbase.Protostellar.KV.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -14018,6 +15325,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAllReplicasRequest : pb::IMessage<GetAllReplicasRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -14260,7 +15568,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -14291,7 +15603,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -14318,6 +15634,7 @@ namespace Couchbase.Protostellar.KV.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GetAllReplicasResponse : pb::IMessage<GetAllReplicasResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -14560,7 +15877,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -14591,7 +15912,11 @@ namespace Couchbase.Protostellar.KV.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;

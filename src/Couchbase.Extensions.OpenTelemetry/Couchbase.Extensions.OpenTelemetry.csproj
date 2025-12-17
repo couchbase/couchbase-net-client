@@ -6,11 +6,18 @@
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <RootNamespace>Couchbase.Extensions.Tracing.Otel</RootNamespace>
     <Nullable>enable</Nullable>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Api" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Linq.AsyncEnumerable" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'"/>
+    <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netstandard2.1' "/>
   </ItemGroup>
 
   <ItemGroup>

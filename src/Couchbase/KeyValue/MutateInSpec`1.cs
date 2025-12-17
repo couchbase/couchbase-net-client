@@ -1,7 +1,9 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
@@ -46,12 +48,21 @@ namespace Couchbase.KeyValue
             if (!RemoveBrackets)
             {
                 // We can serialize directly
-                if (this is { OpCode: OpCode.Set, Path.Length: 0 })
+                if (this is { OpCode: OpCode.Set, Path.Length: 0 } ||
+                    PathFlags.HasFlag(SubdocPathFlags.BinaryValue))
                 {
-                    // We're writing the entire document, this should pass through the transcoder not just the serializer.
-                    // This allows the use of XATTRs with non-JSON documents.
-                    var flags = transcoder.GetFormat(typedValue);
-                    transcoder.Encode<T>(builder, typedValue, flags, OpCode.Set);
+                    if (typedValue is byte?[] bytes)
+                    {
+                        // If we are given bytes, lets just write them directly.
+                        builder.Write(bytes.Select(b => b ?? 0).ToArray());
+                    }
+                    else
+                    {
+                        // We're writing the entire document, this should pass through the transcoder not just the serializer.
+                        // This allows the use of XATTRs with non-JSON documents.
+                        var flags = transcoder.GetFormat(typedValue);
+                        transcoder.Encode<T>(builder, typedValue, flags, OpCode.Set);
+                    }
                 }
                 else
                 {

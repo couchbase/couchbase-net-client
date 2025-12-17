@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.Stellar.CombinationTests.Fixtures;
 using Xunit;
@@ -43,11 +45,11 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
         [Fact]
         public async Task Get()
         {
-            var collection = await _fixture.DefaultCollection();
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
             var id = Guid.NewGuid().ToString();
-            await collection.UpsertAsync(id, new { Content = "Test" }).ConfigureAwait(false);
+            await collection.UpsertAsync(id, new ExampleContent{Content = "test"}).ConfigureAwait(false);
             var result = await collection.GetAsync(id).ConfigureAwait(false);
-            Assert.Equal(result.ContentAs<dynamic>().ToString(), "{\"content\":\"Test\"}");
+            Assert.Equal("test", result.ContentAs<ExampleContent>().Content);
             await collection.RemoveAsync(id).ConfigureAwait(false);
         }
 
@@ -193,7 +195,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 Assert.NotNull(mutateResponse);
                 Assert.NotEqual((ulong)0, mutateResponse.Cas);
 
-                var getResponse = await collection.TryGetAsync(id);
+                var getResponse = await collection.GetAsync(id);
                 Assert.NotNull(getResponse);
                 Assert.Equal(mutateResponse.Cas, getResponse.Cas);
                 var finalData = getResponse.ContentAs<HobbyCustomers>();
@@ -259,6 +261,103 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             }
         }
 
+        [Fact]
+        public async Task Binary_Increment()
+        {
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            await collection.UpsertAsync(key, 0).ConfigureAwait(false);
+
+            try
+            {
+                var result = await collection.Binary.IncrementAsync(key).ConfigureAwait(true);
+                Assert.Equal((ulong) 1, result.Content);
+
+                result = await collection.Binary.IncrementAsync(key).ConfigureAwait(false);
+                Assert.Equal((ulong) 2, result.Content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Binary_Decrement()
+        {
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            await collection.UpsertAsync(key, 3).ConfigureAwait(false);
+
+            try
+            {
+                var result = await collection.Binary.DecrementAsync(key).ConfigureAwait(true);
+                Assert.Equal((ulong) 2, result.Content);
+
+                result = await collection.Binary.DecrementAsync(key).ConfigureAwait(false);
+                Assert.Equal((ulong) 1, result.Content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Binary_Append()
+        {
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+
+            try
+            {
+                await collection.Binary.AppendAsync(key, "test1"u8.ToArray()).ConfigureAwait(true);
+
+                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                Assert.Equal("testtest1", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+
+                await collection.Binary.AppendAsync(key, "test2"u8.ToArray()).ConfigureAwait(true);
+
+                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                Assert.Equal("testtest1test2", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Binary_Prepend()
+        {
+            var collection = await _fixture.DefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            await collection.UpsertAsync(key, "test"u8.ToArray(), options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+
+            try
+            {
+                await collection.Binary.PrependAsync(key, "test1"u8.ToArray()).ConfigureAwait(true);
+
+                var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+
+                Assert.Equal("test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+
+                await collection.Binary.PrependAsync(key, "test2"u8.ToArray()).ConfigureAwait(true);
+
+                result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder())).ConfigureAwait(false);
+                Assert.Equal("test2test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
         private static HobbyCustomers GetExampleHobbyCustomers(string id)
         {
             var customers = new HobbyCustomers(id, "hobbyists",
@@ -277,6 +376,12 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 }
             );
             return customers;
+        }
+
+        private class ExampleContent
+        {
+            [JsonPropertyName("Content")]
+            public string Content { get; set; } = string.Empty;
         }
     }
 }

@@ -263,8 +263,15 @@ namespace Couchbase.Core.Retry
             catch (OperationCanceledException ex) when (!tokenPair.IsExternalCancellation)
             {
                 var errorContext = CreateKeyValueErrorContext(bucket, operation, ResponseStatus.OperationTimeout);
-
-                if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
+                var elapsed = operation.Elapsed;
+                if (bucket.Context.ClusterOptions.Experiments.EnableTimeoutThresholdHeuristic)
+                {
+                    // add 5% of the timeout to the elapsed, to help with near identical Elapsed
+                    // and Timeout values.
+                    elapsed += TimeSpan.FromTicks(operation.Timeout.Ticks / 20);
+                }
+                // if less than 95% of the timeout has elapsed, it isn't a real timeout.
+                if (elapsed < operation.Timeout && !operation.IsCompleted)
                 {
                     // Not a true timeout. May execute if an operation is in flight while things are shutting down.
                     outcomeErrorType = typeof(CouchbaseException);

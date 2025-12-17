@@ -19,6 +19,7 @@ namespace Couchbase.Core.Configuration.Server
         public const string NON_DEDUPED_HISTORY = "nonDedupedHistory";
         public const string SUBDOC_REPLACE_BODY_WITH_XATTR = "subdoc.ReplaceBodyWithXattr";
         public const string SUBDOC_REVIVE_DOCUMENT = "subdoc.ReviveDocument";
+        public const string SUBDOC_ACCESS_DELETED = "subdoc.AccessDeleted";
     }
 }
 

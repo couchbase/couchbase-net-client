@@ -1,17 +1,21 @@
 using System;
-using System.Linq;
-using System.Text;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using BenchmarkDotNet.Attributes;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Utils;
+using Couchbase.LoadTests.Helpers;
 
 namespace Couchbase.LoadTests.Core.IO.Operations
 {
-    public class OperationBuilderTests
+    [MemoryDiagnoser]
+    public partial class OperationBuilderTests
     {
-        private readonly byte[] _key = Encoding.UTF8.GetBytes("test_key");
-        private readonly byte[] _body = Enumerable.Range(0, 256).Select(p => (byte) p).ToArray();
+        private const string Key = "test_key";
 
-        private readonly OperationRequestHeader _header = new OperationRequestHeader
+        private readonly OperationRequestHeader _header = new()
         {
             DataType = DataType.Json,
             Opaque = 55,
@@ -20,11 +24,18 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         };
 
         private OperationBuilder _operationBuilder;
+        private SystemTextJsonSerializer _serializer;
+        private Dictionary<string, string> _body;
 
-        [GlobalSetup(Target = nameof(Build))]
+        [Params(128, 10240, 131072)]
+        public int DocSize { get; set; }
+
+        [GlobalSetup]
         public void BuildSetup()
         {
             _operationBuilder = new OperationBuilder();
+            _serializer = SystemTextJsonSerializer.Create(JsonContext.Default);
+            _body = JsonDocumentGenerator.GenerateDocument(DocSize);
         }
 
         [Benchmark(Baseline = true)]
@@ -34,12 +45,24 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             builder.Reset();
 
             builder.AdvanceToSegment(OperationSegment.Key);
-            builder.Write(_key.AsSpan());
+            WriteKey(builder);
             builder.AdvanceToSegment(OperationSegment.Body);
-            builder.Write(_body.AsSpan());
+            _serializer.Serialize((IBufferWriter<byte>) builder, _body);
             builder.WriteHeader(_header);
 
             return builder.GetBuffer();
+        }
+
+        private static void WriteKey(OperationBuilder builder)
+        {
+            var buffer = builder.GetSpan(OperationHeader.MaxKeyLength + Leb128.MaxLength + sizeof(ushort) * 2);
+            var keyLength = System.Text.Encoding.UTF8.GetBytes(Key, buffer);
+            builder.Advance(keyLength);
+        }
+
+        [JsonSerializable(typeof(Dictionary<string, string>))]
+        private partial class JsonContext : JsonSerializerContext
+        {
         }
     }
 }

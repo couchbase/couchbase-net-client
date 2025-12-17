@@ -154,6 +154,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
   #endregion
 
   #region Messages
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ListBucketsRequest : pb::IMessage<ListBucketsRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -280,7 +281,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -295,7 +300,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -306,6 +315,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ListBucketsResponse : pb::IMessage<ListBucketsResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -450,7 +460,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -469,7 +483,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -487,6 +505,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static partial class Types {
+      [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
       public sealed partial class Bucket : pb::IMessage<Bucket>
       #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
           , pb::IBufferMessage
@@ -654,11 +673,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
         /// <summary>Field number for the "minimum_durability_level" field.</summary>
         public const int MinimumDurabilityLevelFieldNumber = 10;
+        private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
         private global::Couchbase.Protostellar.KV.V1.DurabilityLevel minimumDurabilityLevel_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevel {
-          get { if ((_hasBits0 & 1) != 0) { return minimumDurabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+          get { if ((_hasBits0 & 1) != 0) { return minimumDurabilityLevel_; } else { return MinimumDurabilityLevelDefaultValue; } }
           set {
             _hasBits0 |= 1;
             minimumDurabilityLevel_ = value;
@@ -679,11 +700,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
         /// <summary>Field number for the "storage_backend" field.</summary>
         public const int StorageBackendFieldNumber = 11;
+        private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend StorageBackendDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend.Couchstore;
+
         private global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend storageBackend_;
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
         public global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend StorageBackend {
-          get { if ((_hasBits0 & 2) != 0) { return storageBackend_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend.Couchstore; } }
+          get { if ((_hasBits0 & 2) != 0) { return storageBackend_; } else { return StorageBackendDefaultValue; } }
           set {
             _hasBits0 |= 2;
             storageBackend_ = value;
@@ -989,7 +1012,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
         #else
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
                 break;
@@ -1052,7 +1079,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
           uint tag;
           while ((tag = input.ReadTag()) != 0) {
-            switch(tag) {
+          if ((tag & 7) == 4) {
+            // Abort on any end group tag.
+            return;
+          }
+          switch(tag) {
               default:
                 _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
                 break;
@@ -1116,6 +1147,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class CreateBucketRequest : pb::IMessage<CreateBucketRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1199,11 +1231,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "ram_quota_mb" field.</summary>
     public const int RamQuotaMbFieldNumber = 3;
+    private readonly static ulong RamQuotaMbDefaultValue = 0UL;
+
     private ulong ramQuotaMb_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong RamQuotaMb {
-      get { if ((_hasBits0 & 1) != 0) { return ramQuotaMb_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return ramQuotaMb_; } else { return RamQuotaMbDefaultValue; } }
       set {
         _hasBits0 |= 1;
         ramQuotaMb_ = value;
@@ -1224,11 +1258,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "num_replicas" field.</summary>
     public const int NumReplicasFieldNumber = 4;
+    private readonly static uint NumReplicasDefaultValue = 0;
+
     private uint numReplicas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint NumReplicas {
-      get { if ((_hasBits0 & 2) != 0) { return numReplicas_; } else { return 0; } }
+      get { if ((_hasBits0 & 2) != 0) { return numReplicas_; } else { return NumReplicasDefaultValue; } }
       set {
         _hasBits0 |= 2;
         numReplicas_ = value;
@@ -1249,11 +1285,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "flush_enabled" field.</summary>
     public const int FlushEnabledFieldNumber = 5;
+    private readonly static bool FlushEnabledDefaultValue = false;
+
     private bool flushEnabled_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool FlushEnabled {
-      get { if ((_hasBits0 & 4) != 0) { return flushEnabled_; } else { return false; } }
+      get { if ((_hasBits0 & 4) != 0) { return flushEnabled_; } else { return FlushEnabledDefaultValue; } }
       set {
         _hasBits0 |= 4;
         flushEnabled_ = value;
@@ -1274,11 +1312,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "replica_indexes" field.</summary>
     public const int ReplicaIndexesFieldNumber = 6;
+    private readonly static bool ReplicaIndexesDefaultValue = false;
+
     private bool replicaIndexes_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool ReplicaIndexes {
-      get { if ((_hasBits0 & 8) != 0) { return replicaIndexes_; } else { return false; } }
+      get { if ((_hasBits0 & 8) != 0) { return replicaIndexes_; } else { return ReplicaIndexesDefaultValue; } }
       set {
         _hasBits0 |= 8;
         replicaIndexes_ = value;
@@ -1299,11 +1339,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "eviction_mode" field.</summary>
     public const int EvictionModeFieldNumber = 7;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode EvictionModeDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode.Full;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode evictionMode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode EvictionMode {
-      get { if ((_hasBits0 & 16) != 0) { return evictionMode_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode.Full; } }
+      get { if ((_hasBits0 & 16) != 0) { return evictionMode_; } else { return EvictionModeDefaultValue; } }
       set {
         _hasBits0 |= 16;
         evictionMode_ = value;
@@ -1324,11 +1366,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "max_expiry_secs" field.</summary>
     public const int MaxExpirySecsFieldNumber = 8;
+    private readonly static uint MaxExpirySecsDefaultValue = 0;
+
     private uint maxExpirySecs_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint MaxExpirySecs {
-      get { if ((_hasBits0 & 32) != 0) { return maxExpirySecs_; } else { return 0; } }
+      get { if ((_hasBits0 & 32) != 0) { return maxExpirySecs_; } else { return MaxExpirySecsDefaultValue; } }
       set {
         _hasBits0 |= 32;
         maxExpirySecs_ = value;
@@ -1349,11 +1393,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "compression_mode" field.</summary>
     public const int CompressionModeFieldNumber = 9;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode CompressionModeDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode.Off;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode compressionMode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode CompressionMode {
-      get { if ((_hasBits0 & 64) != 0) { return compressionMode_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode.Off; } }
+      get { if ((_hasBits0 & 64) != 0) { return compressionMode_; } else { return CompressionModeDefaultValue; } }
       set {
         _hasBits0 |= 64;
         compressionMode_ = value;
@@ -1374,11 +1420,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "minimum_durability_level" field.</summary>
     public const int MinimumDurabilityLevelFieldNumber = 10;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel minimumDurabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevel {
-      get { if ((_hasBits0 & 128) != 0) { return minimumDurabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 128) != 0) { return minimumDurabilityLevel_; } else { return MinimumDurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 128;
         minimumDurabilityLevel_ = value;
@@ -1399,11 +1447,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "storage_backend" field.</summary>
     public const int StorageBackendFieldNumber = 11;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend StorageBackendDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend.Couchstore;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend storageBackend_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend StorageBackend {
-      get { if ((_hasBits0 & 256) != 0) { return storageBackend_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.StorageBackend.Couchstore; } }
+      get { if ((_hasBits0 & 256) != 0) { return storageBackend_; } else { return StorageBackendDefaultValue; } }
       set {
         _hasBits0 |= 256;
         storageBackend_ = value;
@@ -1424,11 +1474,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "conflict_resolution_type" field.</summary>
     public const int ConflictResolutionTypeFieldNumber = 12;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType ConflictResolutionTypeDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType.Timestamp;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType conflictResolutionType_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType ConflictResolutionType {
-      get { if ((_hasBits0 & 512) != 0) { return conflictResolutionType_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.ConflictResolutionType.Timestamp; } }
+      get { if ((_hasBits0 & 512) != 0) { return conflictResolutionType_; } else { return ConflictResolutionTypeDefaultValue; } }
       set {
         _hasBits0 |= 512;
         conflictResolutionType_ = value;
@@ -1722,7 +1774,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1785,7 +1841,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1844,6 +1904,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class CreateBucketResponse : pb::IMessage<CreateBucketResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1999,7 +2060,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2018,7 +2083,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2033,6 +2102,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UpdateBucketRequest : pb::IMessage<UpdateBucketRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2100,11 +2170,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "ram_quota_mb" field.</summary>
     public const int RamQuotaMbFieldNumber = 2;
+    private readonly static ulong RamQuotaMbDefaultValue = 0UL;
+
     private ulong ramQuotaMb_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ulong RamQuotaMb {
-      get { if ((_hasBits0 & 1) != 0) { return ramQuotaMb_; } else { return 0UL; } }
+      get { if ((_hasBits0 & 1) != 0) { return ramQuotaMb_; } else { return RamQuotaMbDefaultValue; } }
       set {
         _hasBits0 |= 1;
         ramQuotaMb_ = value;
@@ -2125,11 +2197,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "num_replicas" field.</summary>
     public const int NumReplicasFieldNumber = 3;
+    private readonly static uint NumReplicasDefaultValue = 0;
+
     private uint numReplicas_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint NumReplicas {
-      get { if ((_hasBits0 & 2) != 0) { return numReplicas_; } else { return 0; } }
+      get { if ((_hasBits0 & 2) != 0) { return numReplicas_; } else { return NumReplicasDefaultValue; } }
       set {
         _hasBits0 |= 2;
         numReplicas_ = value;
@@ -2150,11 +2224,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "flush_enabled" field.</summary>
     public const int FlushEnabledFieldNumber = 4;
+    private readonly static bool FlushEnabledDefaultValue = false;
+
     private bool flushEnabled_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public bool FlushEnabled {
-      get { if ((_hasBits0 & 4) != 0) { return flushEnabled_; } else { return false; } }
+      get { if ((_hasBits0 & 4) != 0) { return flushEnabled_; } else { return FlushEnabledDefaultValue; } }
       set {
         _hasBits0 |= 4;
         flushEnabled_ = value;
@@ -2175,11 +2251,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "eviction_mode" field.</summary>
     public const int EvictionModeFieldNumber = 5;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode EvictionModeDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode.Full;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode evictionMode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode EvictionMode {
-      get { if ((_hasBits0 & 8) != 0) { return evictionMode_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.EvictionMode.Full; } }
+      get { if ((_hasBits0 & 8) != 0) { return evictionMode_; } else { return EvictionModeDefaultValue; } }
       set {
         _hasBits0 |= 8;
         evictionMode_ = value;
@@ -2200,11 +2278,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "max_expiry_secs" field.</summary>
     public const int MaxExpirySecsFieldNumber = 6;
+    private readonly static uint MaxExpirySecsDefaultValue = 0;
+
     private uint maxExpirySecs_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public uint MaxExpirySecs {
-      get { if ((_hasBits0 & 16) != 0) { return maxExpirySecs_; } else { return 0; } }
+      get { if ((_hasBits0 & 16) != 0) { return maxExpirySecs_; } else { return MaxExpirySecsDefaultValue; } }
       set {
         _hasBits0 |= 16;
         maxExpirySecs_ = value;
@@ -2225,11 +2305,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "compression_mode" field.</summary>
     public const int CompressionModeFieldNumber = 7;
+    private readonly static global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode CompressionModeDefaultValue = global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode.Off;
+
     private global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode compressionMode_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode CompressionMode {
-      get { if ((_hasBits0 & 32) != 0) { return compressionMode_; } else { return global::Couchbase.Protostellar.Admin.Bucket.V1.CompressionMode.Off; } }
+      get { if ((_hasBits0 & 32) != 0) { return compressionMode_; } else { return CompressionModeDefaultValue; } }
       set {
         _hasBits0 |= 32;
         compressionMode_ = value;
@@ -2250,11 +2332,13 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
     /// <summary>Field number for the "minimum_durability_level" field.</summary>
     public const int MinimumDurabilityLevelFieldNumber = 8;
+    private readonly static global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevelDefaultValue = global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority;
+
     private global::Couchbase.Protostellar.KV.V1.DurabilityLevel minimumDurabilityLevel_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Couchbase.Protostellar.KV.V1.DurabilityLevel MinimumDurabilityLevel {
-      get { if ((_hasBits0 & 64) != 0) { return minimumDurabilityLevel_; } else { return global::Couchbase.Protostellar.KV.V1.DurabilityLevel.Majority; } }
+      get { if ((_hasBits0 & 64) != 0) { return minimumDurabilityLevel_; } else { return MinimumDurabilityLevelDefaultValue; } }
       set {
         _hasBits0 |= 64;
         minimumDurabilityLevel_ = value;
@@ -2484,7 +2568,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2531,7 +2619,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2574,6 +2666,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class UpdateBucketResponse : pb::IMessage<UpdateBucketResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2700,7 +2793,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2715,7 +2812,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2726,6 +2827,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class DeleteBucketRequest : pb::IMessage<DeleteBucketRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2881,7 +2983,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2900,7 +3006,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2915,6 +3025,7 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
 
   }
 
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class DeleteBucketResponse : pb::IMessage<DeleteBucketResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -3041,7 +3152,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3056,7 +3171,11 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;

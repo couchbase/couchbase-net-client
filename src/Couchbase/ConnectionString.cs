@@ -158,7 +158,7 @@ namespace Couchbase
                     ? "https"
                     : throw new InvalidArgumentException("Only Couchbase2 schema supported by this method."),
                 Host = Hosts.First().Host,
-                Port = StellarPort
+                Port = Hosts.First().Port ?? StellarPort
             }.Uri;
         }
 

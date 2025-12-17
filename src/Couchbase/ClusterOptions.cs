@@ -22,6 +22,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Client.Transactions.Config;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -153,6 +154,22 @@ namespace Couchbase
                     if (ConnectionStringValue.TryGetParameter(CStringParams.RandomSeedNodes, out bool randomizeSeedNodes))
                     {
                         ConnectionStringValue.RandomizeSeedHosts = randomizeSeedNodes;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.AppTelemetryEndpoint, out string appTelemetryEndpoint))
+                    {
+                        AppTelemetry.Endpoint = new Uri(appTelemetryEndpoint);
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.AppTelemetryBackoff, out TimeSpan appTelemetryBackoff))
+                    {
+                        AppTelemetry.Backoff = appTelemetryBackoff;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.AppTelemetryPingInterval, out TimeSpan appTelemetryPingInterval))
+                    {
+                        AppTelemetry.PingInterval = appTelemetryPingInterval;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.AppTelemetryPingTimeout, out TimeSpan appTelemetryPingTimeout))
+                    {
+                        AppTelemetry.PingTimeout = appTelemetryPingTimeout;
                     }
                     if (ConnectionStringValue.TryGetParameter(CStringParams.PreferredServerGroup, out string serverGroup))
                     {
@@ -550,6 +567,74 @@ namespace Couchbase
             return WithLoggingMeterOptions(opts);
         }
 
+        /// <summary>
+        /// Configures the endpoint where AppTelemetry data should be sent to.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="ClusterOptions"/> object for chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithAppTelemetryEndpoint(Uri endpoint)
+        {
+            AppTelemetry.Endpoint = endpoint;
+            AppTelemetry.Enabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the backoff for re-connecting to the AppTelemetry endpoint via WebSockets.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="ClusterOptions"/> object for chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithAppTelemetryBackoff(TimeSpan backoff)
+        {
+            AppTelemetry.Backoff = backoff;
+            AppTelemetry.Enabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables/Disables AppTelemetry.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="ClusterOptions"/> object for chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithAppTelemetryEnabled(bool enabled)
+        {
+            AppTelemetry.Enabled = enabled;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the duration between consecutive PING commands sent to the server.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="ClusterOptions"/> object for chaining.</returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithAppTelemetryPingInterval(TimeSpan interval)
+        {
+            AppTelemetry.PingInterval = interval;
+            AppTelemetry.Enabled = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the maximum timeout for the server to respond to a PING.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>
+        /// A <see cref="ClusterOptions"/> object for chaining.</returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithAppTelemetryPingTimeout(TimeSpan timeout)
+        {
+            AppTelemetry.PingTimeout = timeout;
+            AppTelemetry.Enabled = true;
+            return this;
+        }
+
         #endregion
 
         /// <summary>
@@ -843,6 +928,8 @@ namespace Couchbase
         /// <inheritdoc cref="ExperimentalOptions"/>
         public ExperimentalOptions Experiments { get; set; } = new();
 
+        public AppTelemetryOptions AppTelemetry { get; set; } = new();
+
         /// <summary>
         /// Provides a default implementation of <see cref="ClusterOptions"/>.
         /// </summary>
@@ -928,10 +1015,11 @@ namespace Couchbase
         /// <summary>
         /// If <see cref="ForceIpAsTargetHost"/> is true, send the IP as the target host during TLS authentication. If <see cref="ForceIpAsTargetHost"/> is false,
         /// then mimic the default SDK2 behavior; the hostname or IP as defined by the server will be sent as the target host during TLS authentication.
+        /// Note: Setting this to true will cause a certificate name mismatch when connecting to Capella, since the TLS certificate is tied to the hostname.
         /// </summary>
         /// <remarks>Only applies when <see cref="EnableTls"/> is true.</remarks>
-        /// <remarks>The default is true and the IP Address will be sent as the target host.</remarks>
-        public bool ForceIpAsTargetHost { get; set; } = true;
+        /// <remarks>The default is false and the Hostname will be sent as the target host.</remarks>
+        public bool ForceIpAsTargetHost { get; set; } = false;
 
 #if NET6_0_OR_GREATER
         /// <summary>

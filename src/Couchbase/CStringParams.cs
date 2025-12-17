@@ -31,6 +31,18 @@ namespace Couchbase
         public const string NetworkResolution = "network";
         public const string PreferredServerGroup = "preferred_server_group";
 
+        [InterfaceStability(Level.Volatile)]
+        public const string AppTelemetryEndpoint = "app_telemetry_endpoint";
+
+        [InterfaceStability(Level.Volatile)]
+        public const string AppTelemetryBackoff = "app_telemetry_backoff";
+
+        [InterfaceStability(Level.Volatile)]
+        public const string AppTelemetryPingInterval = "app_telemetry_ping_interval";
+
+        [InterfaceStability(Level.Volatile)]
+        public const string AppTelemetryPingTimeout = "app_telemetry_ping_timeout";
+
         [InterfaceStability(Level.Uncommitted)]
         public const string RandomSeedNodes = "random_seed_nodes";
     }

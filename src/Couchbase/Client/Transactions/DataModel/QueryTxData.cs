@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -21,6 +22,20 @@ namespace Couchbase.Client.Transactions.DataModel
             }
 
             return jobj;
+        }
+
+        public Dictionary<string, object?> ToDictionary()
+        {
+            var returnDict = new Dictionary<string, object?>();
+            returnDict["id"] = id;
+            returnDict["state"] = state;
+            returnDict["config"] = config;
+            if (atr != null)
+            {
+                returnDict["atr"] = atr;
+            }
+            returnDict["mutations"] = mutations.ToList();
+            return returnDict;
         }
     }
 

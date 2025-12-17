@@ -69,6 +69,12 @@ namespace Couchbase.KeyValue
             }
             _preferredServerGroup = _bucket.Context.ClusterOptions.PreferredServerGroup;
             _lazyQueryIndexManagerFactory = new LazyService<ICollectionQueryIndexManagerFactory>(serviceProvider);
+
+            if (_bucket is CouchbaseBucket couchBucket)
+            {
+                SubdocAccessDeleted = couchBucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities
+                    .SUBDOC_ACCESS_DELETED) == true;
+            }
         }
 
         internal IRedactor Redactor { get; }
@@ -92,6 +98,9 @@ namespace Couchbase.KeyValue
 
         /// <inheritdoc />
         public bool IsDefaultCollection { get; }
+
+        /// <inheritdoc />
+        public bool SubdocAccessDeleted { get; }
 
         #region KV Range Scan
 
@@ -217,6 +226,7 @@ namespace Couchbase.KeyValue
                 {
                     Key = id,
                     Cid = Cid,
+                    BucketName = _bucket.Name,
                     CName = Name,
                     SName = ScopeName,
                     Span = rootSpan,
@@ -311,6 +321,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = rootSpan
@@ -353,6 +364,7 @@ namespace Couchbase.KeyValue
             {
                 Content = content,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 SName = ScopeName,
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
@@ -400,6 +412,7 @@ namespace Couchbase.KeyValue
                 Content = content,
                 Cas = options.CasValue,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
@@ -438,6 +451,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cas = options.CasValue,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 DurabilityLevel = options.DurabilityLevel,
@@ -476,6 +490,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
@@ -507,6 +522,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cas = cas,
@@ -549,6 +565,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 SName = ScopeName,
                 CName = Name,
                 Expires = expiry.ToTtl(),
@@ -588,6 +605,7 @@ namespace Couchbase.KeyValue
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expires = expiry.ToTtl(),
@@ -631,6 +649,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Expiry = lockTime.ToTtl(),
@@ -683,6 +702,7 @@ namespace Couchbase.KeyValue
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
                 Content = content,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Cid = Cid,
@@ -736,7 +756,7 @@ namespace Couchbase.KeyValue
             _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+            var opts = options?.AsReadOnly() ?? LookupInAnyReplicaOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -749,7 +769,7 @@ namespace Couchbase.KeyValue
             var vBucket = VBucketForReplicas(id);
             var enumeratedSpecs = specs.ToList();
 
-            var readWithPreference = opts.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<MultiLookup<byte[]>>>();
 
             if (readWithPreference)
@@ -760,9 +780,24 @@ namespace Couchbase.KeyValue
                 }
                 else
                 {
-                    throw new DocumentUnretrievableException($"Either neither the primary or replicas for Document: {id}" +
-                                                             $" live in the selected Server Group: {_preferredServerGroup}," +
-                                                             $" or no node/group matches could be made from the config.");
+                    if (opts.ReadPreferenceValue != InternalReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        throw new DocumentUnretrievableException(
+                            $"Either neither the primary or replicas for Document: {id}" +
+                            $" live in the selected Server Group: {_preferredServerGroup}," +
+                            $" or no node/group matches could be made from the config.");
+                    }
+                    // We did ask for the fallback, so fallback to LookupIn...
+                    Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
+                    tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
+                    if (vBucket.HasReplicas)
+                    {
+                        tasks.AddRange(vBucket.Replicas.Select(replica =>
+                        {
+                            var replicaOpts = opts with { ReplicaIndex = replica };
+                            return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
+                        }));
+                    }
                 }
             }
             else
@@ -804,7 +839,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
             if (specs.Count() > 16) throw new InvalidArgumentException("Too many specs in Lookup operation (Limited to 16)");
-            var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+            var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -817,7 +852,7 @@ namespace Couchbase.KeyValue
             var vBucket = VBucketForReplicas(id);
             var enumeratedSpecs = specs.ToList();
 
-            var readWithPreference = opts.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<MultiLookup<byte[]>>>();
 
             if (readWithPreference)
@@ -826,8 +861,30 @@ namespace Couchbase.KeyValue
                 {
                     tasks.AddRange(zoneAwareTasks);
                 }
+                else if (opts.ReadPreferenceValue ==
+                           InternalReadPreference.SelectedServerGroupWithFallback)
+                {
+                    Logger.LogDebug("Falling back to LookupInAllReplica with no server group preference for {id}", Redactor.UserData(id));
+                    AddLookupInAllReplicaTasks();
+                }
             }
             else
+            {
+                AddLookupInAllReplicaTasks();
+            }
+
+            foreach (var lookupTask in tasks)
+            {
+                var lookup = await lookupTask.ConfigureAwait(false);
+                var responseStatus = lookup.Header.Status;
+                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
+                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+            }
+
+            yield break;
+
+            void AddLookupInAllReplicaTasks()
             {
                 //LookupIn on primary
                 tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
@@ -841,15 +898,6 @@ namespace Couchbase.KeyValue
                     }));
                 }
             }
-
-            foreach (var lookupTask in tasks)
-            {
-                var lookup = await lookupTask.ConfigureAwait(false);
-                var responseStatus = lookup.Header.Status;
-                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
-                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
-            }
         }
 
         private bool TryExecuteZoneAwareLookupInReplica(VBucket vBucket, string id, List<LookupInSpec> enumeratedSpecs, IRequestSpan rootSpan, LookupInOptions.ReadOnly options, out List<Task<MultiLookup<byte[]>>> tasks)
@@ -860,8 +908,11 @@ namespace Couchbase.KeyValue
             // 1 - The preferred server group is not set
             // 2 - No Node/ServerGroup pairs could be made from the config
             // 3 - The preferred group does not have an entry in the above, or if it does but is null/empty
-            if (_preferredServerGroup is null ||
-                _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
+            if (_preferredServerGroup is null)
+            {
+                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+            }
+            if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
                 !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
                 indexesInGroup is null || indexesInGroup.Length == 0)
             {
@@ -903,13 +954,22 @@ namespace Couchbase.KeyValue
                     }
                 });
             }
+            // if we are a replica read _and_ wanting access deleted, we have to be sure to
+            // check that AccessDeleted is "fully" supported...
+            var docFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None;
+            docFlags |= options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None;
+            if (options is { AccessDeleted: true, ReplicaIndex: not null } && !SubdocAccessDeleted)
+            {
+                docFlags &= ~SubdocDocFlags.AccessDeleted;
+            }
 
             var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
-                DocFlags = options.AccessDeleted ? SubdocDocFlags.AccessDeleted : (options.ReplicaIndex.HasValue ? SubdocDocFlags.ReplicaRead : SubdocDocFlags.None),
+                DocFlags = docFlags,
                 Span = span,
                 PreferReturns = options.PreferReturn,
             };
@@ -990,7 +1050,7 @@ namespace Couchbase.KeyValue
                 docFlags |= SubdocDocFlags.ReviveDocument | SubdocDocFlags.AccessDeleted;
             }
 
-            if (options.AccessDeletedValue) docFlags |= SubdocDocFlags.AccessDeleted;
+            if (options.AccessDeletedValue ) docFlags |= SubdocDocFlags.AccessDeleted;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)
@@ -1003,6 +1063,7 @@ namespace Couchbase.KeyValue
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
+                OptionalFlags = options.FlagsValue,
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };
@@ -1054,11 +1115,13 @@ namespace Couchbase.KeyValue
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Cas = options.CasValue
             };
             _operationConfigurator.Configure(op, options);
 
@@ -1089,11 +1152,13 @@ namespace Couchbase.KeyValue
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Cas = options.CasValue
             };
             _operationConfigurator.Configure(op, options);
 
@@ -1124,6 +1189,7 @@ namespace Couchbase.KeyValue
             using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Delta = options.DeltaValue,
@@ -1161,6 +1227,7 @@ namespace Couchbase.KeyValue
             using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Delta = options.DeltaValue,
@@ -1198,7 +1265,7 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
             var vBucket = VBucketForReplicas(id);
 
-            var readWithPreference = options.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<IGetReplicaResult>>();
 
             if (readWithPreference)
@@ -1209,9 +1276,17 @@ namespace Couchbase.KeyValue
                 }
                 else
                 {
-                    throw new DocumentUnretrievableException($"Either neither the primary or replicas for Document: {id}" +
-                                                             $" live in the selected Server Group: {_preferredServerGroup}," +
-                                                             $" or no node/group matches could be made from the config.");
+                    if (options.ReadPreferenceValue !=
+                        InternalReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        throw new DocumentUnretrievableException(
+                            $"Either neither the primary or replicas for Document: {id}" +
+                            $" live in the selected Server Group: {_preferredServerGroup}," +
+                            $" or no node/group matches could be made from the config.");
+                    }
+                    // Fallback when TryGetZoneAwareReplica fails, if asked.
+                    Logger.LogDebug("Falling back to GetPrimary for {id}", Redactor.UserData(id));
+                    tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
                 }
             }
             else
@@ -1264,7 +1339,7 @@ namespace Couchbase.KeyValue
                 Logger.LogWarning(
                     $"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
 
-            var readWithPreference = options.ReadPreferenceValue != ReadPreference.NoPreference;
+            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
             var tasks = new List<Task<IGetReplicaResult>>();
 
             if (readWithPreference)
@@ -1273,20 +1348,29 @@ namespace Couchbase.KeyValue
                 {
                     tasks.AddRange(zoneAwareTasks);
                 }
+                else
+                {
+                    if (options.ReadPreferenceValue ==
+                        InternalReadPreference.SelectedServerGroupWithFallback)
+                    {
+                        AddAllReplicaTasks();
+                    }
+                }
             }
             else
             {
-                //get a list of replica indexes
-                var replicas = GetReplicaIndexes(vBucket);
-
-                // get the primary
-                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
-
-                // get the replicas
-                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+                AddAllReplicaTasks();
             }
 
             return tasks;
+
+            // local function to capture variables
+            void AddAllReplicaTasks()
+            {
+                var replicas = GetReplicaIndexes(vBucket);
+                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+            }
         }
 
         private static List<short> GetReplicaIndexes(VBucket vBucket)
@@ -1303,10 +1387,13 @@ namespace Couchbase.KeyValue
             // 1 - The preferred server group is not set
             // 2 - No Node/ServerGroup pairs could be made from the config
             // 3, 4 - The preferred group does not have an entry in the above, or if it does but is null/empty
-            if (_preferredServerGroup is null ||
-                _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
-                !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
-                indexesInGroup is null || indexesInGroup.Length == 0)
+            if (_preferredServerGroup is null)
+            {
+                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+            }
+            if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
+                     !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
+                     indexesInGroup is null || indexesInGroup.Length == 0)
             {
                 return false;
             }
@@ -1337,6 +1424,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = childSpan
@@ -1372,6 +1460,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                BucketName = _bucket.Name,
                 CName = Name,
                 SName = ScopeName,
                 Span = childSpan

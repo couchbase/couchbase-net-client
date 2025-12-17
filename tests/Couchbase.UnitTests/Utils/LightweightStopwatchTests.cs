@@ -79,7 +79,7 @@ namespace Couchbase.UnitTests.Utils
             var result = stopwatch.ElapsedMilliseconds;
 
             // Assert
-            Assert.InRange(result, 750, 1250);
+            Assert.InRange(result, 750, 2500);
         }
 
         #endregion

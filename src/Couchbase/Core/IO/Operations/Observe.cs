@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.Utils;
@@ -20,18 +19,18 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        [SkipLocalsInit]
         protected override void WriteBody(OperationBuilder builder)
         {
-            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength + 4];
+            const int vBucketAndLengthSize = sizeof(ushort) * 2;
+            var buffer = builder.GetSpan(vBucketAndLengthSize + OperationHeader.MaxKeyLength + Leb128.MaxLength);
 
-            var keyLength = WriteKey(buffer.Slice(4));
+            var keyLength = WriteKey(buffer.Slice(vBucketAndLengthSize));
 
             // ReSharper disable once PossibleInvalidOperationException
             ByteConverter.FromInt16(VBucketId.Value, buffer);
             ByteConverter.FromInt16((short) keyLength, buffer.Slice(2));
 
-            builder.Write(buffer.Slice(0, keyLength + 4));
+            builder.Advance(vBucketAndLengthSize + keyLength);
         }
 
         public override ObserveState GetValue()
