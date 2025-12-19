@@ -147,9 +147,10 @@ namespace Couchbase.Client.Transactions.DataAccess
             if (SupportsReplaceBodyWithXattr(collection))
             {
                 MutateInOptions opts;
-                if (insertMode) {
+                if (insertMode)
+                {
                     opts = GetMutateInOptions(StoreSemantics.AccessDeleted, collection)
-                        .ReviveDocument(true);
+                        .ReviveDocument(true).PreserveTtl(false);
                 } else
                 {
                     opts = GetMutateInOptions(StoreSemantics.Replace, collection)
