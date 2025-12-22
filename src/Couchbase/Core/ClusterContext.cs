@@ -1,6 +1,7 @@
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
@@ -79,6 +80,13 @@ namespace Couchbase.Core
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
             _httpClusterMapFactory = ServiceProvider.GetRequiredService<IHttpClusterMapFactory>();
             _httpClusterMap = _httpClusterMapFactory.Create(this);
+
+            // Dispose per-cluster meters (like LoggingMeter) when the cluster is disposed.
+            var meter = ServiceProvider.GetRequiredService<IMeter>();
+            if (meter is IDisposable disposableMeter && meter is not NoopMeter)
+            {
+                _ownedObjects.Add(disposableMeter);
+            }
         }
 
         /// <summary>
