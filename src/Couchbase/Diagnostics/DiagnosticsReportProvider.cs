@@ -19,6 +19,8 @@ using Couchbase.Search;
 using Couchbase.Search.Queries;
 using Couchbase.Views;
 
+#nullable enable
+
 namespace Couchbase.Diagnostics
 {
     internal static class DiagnosticsReportProvider
@@ -36,13 +38,13 @@ namespace Couchbase.Diagnostics
             ServiceType.Analytics
         };
 
-        internal static async Task<IPingReport> CreatePingReportAsync(ClusterContext context, BucketConfig config, PingOptions options)
+        internal static async Task<IPingReport> CreatePingReportAsync(ClusterContext context, BucketConfig? config, PingOptions options)
         {
-            var clusterNodes = context.GetNodes(config.Name);
+            var clusterNodes = context.GetNodes(config?.Name ?? BucketConfig.GlobalBucketName);
             var endpoints =
                 await GetEndpointDiagnosticsAsync(context, clusterNodes, true, options.ServiceTypesValue,
                    options.Token).ConfigureAwait(false);
-            return new PingReport(options.ReportIdValue ?? Guid.NewGuid().ToString(), config.Rev, endpoints);
+            return new PingReport(options.ReportIdValue ?? Guid.NewGuid().ToString(), config?.Rev ?? 0, endpoints);
         }
 
         internal static async Task<IDiagnosticsReport> CreateDiagnosticsReportAsync(ClusterContext context, string reportId)
@@ -54,157 +56,166 @@ namespace Couchbase.Diagnostics
             return new DiagnosticsReport(reportId, endpoints);
         }
 
-       private static async Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
+        private static async ValueTask<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
            IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
-       {
-           var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
+        {
+            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 
-           IOperationConfigurator operationConfigurator = ping
-               ? context.ServiceProvider.GetRequiredService<IOperationConfigurator>()
-               : null;
+            IOperationConfigurator? operationConfigurator = ping
+                ? context.ServiceProvider.GetRequiredService<IOperationConfigurator>()
+                : null;
 
-           foreach (var clusterNode in clusterNodes)
-           {
-               if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
-               {
-                   var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
+            var pingTasks = new List<Task>();
 
-                   foreach (var connection in clusterNode.ConnectionPool.GetConnections())
-                   {
-                       var endPointDiagnostics =
-                           CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection, ping);
+            foreach (var clusterNode in clusterNodes)
+            {
+                if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
+                {
+                    var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
 
-                       if (ping)
-                       {
-                           await RecordLatencyAsync(endPointDiagnostics, async () =>
-                           {
-                               using var op = new Noop();
-                               try
-                               {
-                                   operationConfigurator.Configure(op);
+                    foreach (var connection in clusterNode.ConnectionPool.GetConnections())
+                    {
+                        var endPointDiagnostics =
+                            CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection, ping);
 
-                                   using var ctp = token == CancellationToken.None
-                                       ? CancellationTokenPairSource.FromTimeout(context.ClusterOptions.KvTimeout)
-                                       : CancellationTokenPairSource.FromExternalToken(token);
-                                   await clusterNode.ExecuteOp(connection, op, ctp.TokenPair).ConfigureAwait(false);
-                               }
-                               catch (ObjectDisposedException)
-                               {
-                                   //Ignore as the ping is on a timer is a race condition when the connection is closed
-                               }
-                               finally
-                               {
-                                   op.StopRecording();
-                               }
-                           }).ConfigureAwait(false);
-                       }
+                        if (ping)
+                        {
+                            pingTasks.Add(RecordLatencyAsync(endPointDiagnostics, async () =>
+                            {
+                                using var op = new Noop();
+                                try
+                                {
+                                    Debug.Assert(operationConfigurator is not null,
+                                        $"{nameof(operationConfigurator)} should not be null when {nameof(ping)} is true.");
+                                    operationConfigurator!.Configure(op);
 
-                       kvEndpoints.Add(endPointDiagnostics);
-                   }
-               }
+                                    using var ctp = token == CancellationToken.None
+                                        ? CancellationTokenPairSource.FromTimeout(context.ClusterOptions.KvTimeout)
+                                        : CancellationTokenPairSource.FromExternalToken(token);
+                                    await clusterNode.ExecuteOp(connection, op, ctp.TokenPair).ConfigureAwait(false);
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                    //Ignore as the ping is on a timer is a race condition when the connection is closed
+                                }
+                                finally
+                                {
+                                    op.StopRecording();
+                                }
+                            }, token));
+                        }
 
-               if (serviceTypes.Contains(ServiceType.Views) && clusterNode.HasViews)
-               {
-                   if (clusterNode.Owner is CouchbaseBucket bucket && context.ServiceProvider.IsService<IViewClient>())
-                   {
-                       var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("view", new List<IEndpointDiagnostics>());
-                       var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint, ping);
+                        kvEndpoints.Add(endPointDiagnostics);
+                    }
+                }
 
-                       if (ping)
-                       {
-                           await RecordLatencyAsync(endPointDiagnostics,
-                                   async () => await bucket.ViewQueryAsync<object, object>("p", "p").ConfigureAwait(false))
-                               .ConfigureAwait(false);
-                       }
+                if (serviceTypes.Contains(ServiceType.Views) && clusterNode.HasViews)
+                {
+                    if (clusterNode.Owner is CouchbaseBucket bucket && context.ServiceProvider.IsService<IViewClient>())
+                    {
+                        var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("view", new List<IEndpointDiagnostics>());
+                        var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint, ping);
 
-                       kvEndpoints.Add(endPointDiagnostics);
-                   }
-               }
+                        if (ping)
+                        {
+                            pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
+                                () => bucket.ViewQueryAsync<object, object>("p", "p"), token));
+                        }
 
-               if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery &&
-                   context.ServiceProvider.IsService<IQueryClient>())
-               {
-                   var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("n1ql", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
+                        kvEndpoints.Add(endPointDiagnostics);
+                    }
+                }
 
-                   if (ping)
-                   {
-                        await RecordLatencyAsync(endPointDiagnostics, () =>
+                if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery &&
+                    context.ServiceProvider.IsService<IQueryClient>())
+                {
+                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("n1ql", new List<IEndpointDiagnostics>());
+                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
+
+                    if (ping)
+                    {
+                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics, () =>
+                         {
+                             var token1 = token;
+                             var queryOptions = new QueryOptions();
+                             if (token1 != CancellationToken.None)
+                             {
+                                 queryOptions.CancellationToken(token1);
+                             }
+                             return context.Cluster.QueryAsync<dynamic>("SELECT 1;", queryOptions);
+                         }, token));
+                    }
+
+                    kvEndpoints.Add(endPointDiagnostics);
+                }
+
+                if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics &&
+                    context.ServiceProvider.IsService<IAnalyticsClient>())
+                {
+                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("cbas", new List<IEndpointDiagnostics>());
+                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
+
+                    if (ping)
+                    {
+                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics, () =>
                         {
                             var token1 = token;
-                            var queryOptions = new QueryOptions();
+                            var analyticsOptions = new AnalyticsOptions();
                             if (token1 != CancellationToken.None)
                             {
-                                queryOptions.CancellationToken(token1);
+                                analyticsOptions.CancellationToken(token1);
                             }
-                            return context.Cluster.QueryAsync<dynamic>("SELECT 1;", queryOptions);
-                        }).ConfigureAwait(false);
-                   }
+                            return context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;", analyticsOptions);
+                        }, token));
+                    }
 
-                   kvEndpoints.Add(endPointDiagnostics);
-               }
+                    kvEndpoints.Add(endPointDiagnostics);
+                }
 
-               if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics &&
-                   context.ServiceProvider.IsService<IAnalyticsClient>())
-               {
-                   var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("cbas", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
+                if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch &&
+                    context.ServiceProvider.IsService<ISearchClient>())
+                {
+                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("fts", new List<IEndpointDiagnostics>());
+                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
 
-                   if (ping)
-                   {
-                       await RecordLatencyAsync(endPointDiagnostics, () =>
-                       {
-                           var token1 = token;
-                           var analyticsOptions = new AnalyticsOptions();
-                           if (token1 != CancellationToken.None)
-                           {
-                               analyticsOptions.CancellationToken(token1);
-                           }
-                           return context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;", analyticsOptions);
-                       }).ConfigureAwait(false);
-                   }
+                    if (ping)
+                    {
+                        var index = "ping";
+                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
+                            async () =>
+                            {
+                                try
+                                {
+                                    var token1 = token;
+                                    var searchOptions = new SearchOptions();
+                                    if (token1 != CancellationToken.None)
+                                    {
+                                        searchOptions.CancellationToken(token1);
+                                    }
+                                    await context.Cluster.SearchQueryAsync(index, new NoOpQuery(), searchOptions)
+                                        .ConfigureAwait(false);
+                                }
+                                catch (IndexNotFoundException)
+                                {
+                                    // This exception is expected for pings, the ping index does not exist
+                                }
+                            }, token));
+                    }
 
-                   kvEndpoints.Add(endPointDiagnostics);
-               }
+                    kvEndpoints.Add(endPointDiagnostics);
+                }
+            }
 
-               if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch &&
-                   context.ServiceProvider.IsService<ISearchClient>())
-               {
-                   var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("fts", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
+            // Await all the pings, if any
+            if (pingTasks.Count > 0)
+            {
+                await Task.WhenAll(pingTasks).ConfigureAwait(false);
+            }
 
-                   if (ping)
-                   {
-                       var index = "ping";
-                       await RecordLatencyAsync(endPointDiagnostics,
-                           async () =>
-                           {
-                               try
-                               {
-                                   var token1 = token;
-                                   var searchOptions = new SearchOptions();
-                                   if (token1 != CancellationToken.None)
-                                   {
-                                       searchOptions.CancellationToken(token1);
-                                   }
-                                   await context.Cluster.SearchQueryAsync(index, new NoOpQuery(), searchOptions)
-                                       .ConfigureAwait(false);
-                               }
-                               catch (IndexNotFoundException)
-                               {
-                                   // This exception is expected for pings, the ping index does not exist
-                               }
-                           }).ConfigureAwait(false);
-                   }
+            return endpoints;
+        }
 
-                   kvEndpoints.Add(endPointDiagnostics);
-               }
-           }
-
-           return endpoints;
-       }
-
-       private static EndpointDiagnostics CreateEndpointHealth(string bucketName, DateTime createdAt, IConnection connection, bool ping)
+        private static EndpointDiagnostics CreateEndpointHealth(string? bucketName, DateTime createdAt, IConnection connection, bool ping)
         {
             return new EndpointDiagnostics
             {
@@ -218,7 +229,7 @@ namespace Couchbase.Diagnostics
             };
         }
 
-       internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
+       internal static EndpointDiagnostics CreateEndpointHealth(string? bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
             HostEndpointWithPort? endPoint, bool ping)
         {
             return new EndpointDiagnostics
@@ -231,28 +242,33 @@ namespace Couchbase.Diagnostics
             };
         }
 
-        internal static async Task RecordLatencyAsync(EndpointDiagnostics endpoint, Func<Task> action)
+        internal static Task RecordLatencyAsync(EndpointDiagnostics endpoint, Func<Task> action, CancellationToken cancellationToken)
         {
-            var timer = Stopwatch.StartNew();
-            try
+            // Run the action via the global queue to avoid blocking on the synchronous part of the
+            // operation, this improves paralellism when there are many pings to perform.
+            return Task.Run(async () =>
             {
-                await action().ConfigureAwait(false);
-                endpoint.State = ServiceState.Ok;
-            }
-            catch (ViewNotFoundException)
-            {
-                endpoint.State = ServiceState.Ok;
-            }
-            catch(RateLimitedException)
-            {
-                throw;
-            }
-            catch(Exception)
-            {
-                endpoint.State = ServiceState.Error;
-            }
+                var timer = Stopwatch.StartNew();
+                try
+                {
+                    await action().ConfigureAwait(false);
+                    endpoint.State = ServiceState.Ok;
+                }
+                catch (ViewNotFoundException)
+                {
+                    endpoint.State = ServiceState.Ok;
+                }
+                catch (RateLimitedException)
+                {
+                    throw;
+                }
+                catch (Exception)
+                {
+                    endpoint.State = ServiceState.Error;
+                }
 
-            endpoint.Latency = timer.ElapsedTicks / TicksPerMicrosecond;
+                endpoint.Latency = timer.ElapsedTicks / TicksPerMicrosecond;
+            }, cancellationToken);
         }
 
         internal static long CalculateLastActivity(DateTime createdAt, DateTime? lastActivity)
