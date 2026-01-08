@@ -21,6 +21,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -205,28 +206,24 @@ namespace Couchbase.Core
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
             options ??= new WaitUntilReadyOptions();
-            if (options?.DesiredStateValue == ClusterState.Offline)
+            if (options.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));
 
-            var token = options?.CancellationTokenValue ?? new CancellationToken();
-            CancellationTokenSource? tokenSource = null;
-            if (token == CancellationToken.None)
-            {
-                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-                tokenSource.CancelAfter(timeout);
-                token = tokenSource.Token;
-            }
+            using var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
+            var token = ctsp.Token;
 
             try
             {
-                token.ThrowIfCancellationRequested();
-                while (!token.IsCancellationRequested)
+                while (true)
                 {
+                    token.ThrowIfCancellationRequested();
+
                     var pingReport =
                         await DiagnosticsReportProvider.CreatePingReportAsync(Context, CurrentConfig,
                             new PingOptions
                             {
-                                ServiceTypesValue = options?.EffectiveServiceTypes(Context).ToList()
+                                ServiceTypesValue = options.EffectiveServiceTypes(Context).ToList(),
+                                Token = token,
                             }).ConfigureAwait(false);
 
                     var status = new Dictionary<string, bool>();
@@ -249,7 +246,7 @@ namespace Couchbase.Core
 
                     //determine if completely offline or degraded
                     _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
-                    if (_clusterState == options?.DesiredStateValue)
+                    if (_clusterState == options.DesiredStateValue)
                     {
                         return;
                     }
@@ -259,7 +256,14 @@ namespace Couchbase.Core
             }
             catch (OperationCanceledException e)
             {
-                throw new UnambiguousTimeoutException($"Timed out after {timeout}.", e);
+                if (ctsp.IsExternalCancellation)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new UnambiguousTimeoutException($"Timed out after {timeout}.", e);
+                }
             }
             catch (Exception e)
             {
@@ -267,7 +271,7 @@ namespace Couchbase.Core
             }
             finally
             {
-                tokenSource?.Dispose();
+                CancellationTokenPairSourcePool.Shared.Return(ctsp);
             }
         }
 
@@ -283,7 +287,7 @@ namespace Couchbase.Core
             subject.DeferredExceptions.Add(e);
         }
 
-        async Task IBootstrappable.BootStrapAsync()
+        async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
         {
             await Context.RebootStrapAsync(Name).ConfigureAwait(false);
         }

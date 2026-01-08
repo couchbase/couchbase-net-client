@@ -40,6 +40,25 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             return new ValueTask<ICluster>(_cluster!.Value);
         }
 
+        public ValueTask<ICluster> GetClusterAsync(CancellationToken cancellationToken)
+        {
+            // Don't cancel the cluster connection attempt if the supplied token is canceled, since the cluster
+            // is shared. Instead, just cancel the wait for the result.
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<ICluster>(cancellationToken);
+            }
+
+            var result = GetClusterAsync();
+            if (result.IsCompleted)
+            {
+                return result;
+            }
+
+            return new ValueTask<ICluster>(result.AsTask().WaitAsync(cancellationToken));
+        }
+
         /// <summary>
         /// Seam for injecting mock.
         /// </summary>

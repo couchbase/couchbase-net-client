@@ -14,6 +14,14 @@
              Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))">
       <Visible>false</Visible>
     </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\CallerArgumentExpressionAttribute.cs"
+             Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netcoreapp3.0'))">
+      <Visible>false</Visible>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)src\Shared\TaskExtensions.cs"
+             Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
+      <Visible>false</Visible>
+    </Compile>
   </ItemGroup>
 
   <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->

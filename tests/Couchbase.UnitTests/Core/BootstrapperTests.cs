@@ -93,7 +93,7 @@ namespace Couchbase.UnitTests.Core
             _hasFailed = hasFailed;
         }
 
-        Task IBootstrappable.BootStrapAsync()
+        Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
         {
             if (_hasFailed)
             {

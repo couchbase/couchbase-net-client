@@ -15,6 +15,21 @@ namespace Couchbase.Utils
 {
     internal static class ThrowHelper
     {
+#if !NETCOREAPP6_0_OR_GREATER
+
+        extension(ArgumentNullException)
+        {
+            public static void ThrowIfNull([NotNull] object? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
+            {
+                if (value is null)
+                {
+                    ThrowArgumentNullException(paramName);
+                }
+            }
+        }
+
+#endif
+
         [DoesNotReturn]
         public static void ThrowServiceNotAvailableException(ServiceType serviceType) =>
             throw new ServiceNotAvailableException(serviceType);
@@ -24,7 +39,7 @@ namespace Couchbase.Utils
             throw new ArgumentException(message, paramName);
 
         [DoesNotReturn]
-        public static void ThrowArgumentNullException(string paramName) =>
+        public static void ThrowArgumentNullException(string? paramName) =>
             throw new ArgumentNullException(paramName);
 
         [DoesNotReturn]

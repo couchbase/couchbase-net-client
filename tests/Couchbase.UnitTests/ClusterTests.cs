@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests
                 Status = Couchbase.Core.IO.Operations.ResponseStatus.BucketNotConnected
             };
 
-            mockNode.Setup(n => n.GetClusterMap(null, default)).Throws(() => new CouchbaseException(errorContext));
+            mockNode.Setup(n => n.GetClusterMap(null, It.IsAny<CancellationToken>())).Throws(() => new CouchbaseException(errorContext));
             var nodeFactory = new Mock<Couchbase.Core.DI.IClusterNodeFactory>();
             nodeFactory.Setup(nf => nf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(mockNode.Object));

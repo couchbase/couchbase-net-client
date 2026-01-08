@@ -36,6 +36,7 @@ using Couchbase.Management.Eventing.Internal;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
 using Couchbase.Utils;
+using Couchbase.Core.IO.Operations;
 
 #nullable enable
 
@@ -136,42 +137,64 @@ namespace Couchbase
 
         [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
         [RequiresDynamicCode(RequiresDynamicCodeMessage)]
-        public static Task<ICluster> ConnectAsync(string connectionString, Action<ClusterOptions> configureOptions)
+        public static Task<ICluster> ConnectAsync(string connectionString, Action<ClusterOptions> configureOptions) =>
+            ConnectAsync(connectionString, configureOptions, CancellationToken.None);
+
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
+        public static Task<ICluster> ConnectAsync(string connectionString, Action<ClusterOptions> configureOptions,
+            CancellationToken cancellationToken)
         {
             var options = new ClusterOptions();
             configureOptions.Invoke(options);
 
-            return ConnectAsync(connectionString, options);
+            return ConnectAsync(connectionString, options, cancellationToken);
         }
 
         [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
         [RequiresDynamicCode(RequiresDynamicCodeMessage)]
-        public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
+        public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options)
         {
-            return ConnectAsync((options ?? new ClusterOptions()).WithConnectionString(connectionString));
+            return ConnectAsync(connectionString, options, CancellationToken.None);
+        }
+
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
+        public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            return ConnectAsync((options ?? new ClusterOptions()).WithConnectionString(connectionString), cancellationToken);
         }
 
         [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
         [RequiresDynamicCode(RequiresDynamicCodeMessage)]
         public static Task<ICluster> ConnectAsync(string connectionString, string username, string password)
+            => ConnectAsync(connectionString, username, password, CancellationToken.None);
+
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
+        public static Task<ICluster> ConnectAsync(string connectionString, string username, string password,
+            CancellationToken cancellationToken)
         {
 #pragma warning disable CS0618 // Type or member is obsolete
             return ConnectAsync(connectionString, new ClusterOptions
             {
                 UserName = username,
                 Password = password
-            });
+            }, cancellationToken);
 #pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
         [RequiresDynamicCode(RequiresDynamicCodeMessage)]
-        public static async Task<ICluster> ConnectAsync(ClusterOptions options)
+        public static Task<ICluster> ConnectAsync(ClusterOptions options) =>
+            ConnectAsync(options, CancellationToken.None);
+
+        [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+        [RequiresDynamicCode(RequiresDynamicCodeMessage)]
+        public static async Task<ICluster> ConnectAsync(ClusterOptions options, CancellationToken cancellationToken)
         {
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             var connectionString = options.ConnectionStringValue ?? throw new ArgumentException(
                 $"{nameof(options)} must have a connection string.", nameof(options));
@@ -189,17 +212,27 @@ namespace Couchbase
             //happen at the bucket level. In this case the caller can open a bucket and
             //resubmit the cluster level request.
             var cluster = new Cluster(options);
-            await ((IBootstrappable)cluster).BootStrapAsync().ConfigureAwait(false);
-            cluster.StartBootstrapper();
+            try
+            {
+                await ((IBootstrappable)cluster).BootStrapAsync(cancellationToken).ConfigureAwait(false);
+                cluster.StartBootstrapper();
 
-            // We can re-ify the Transactions now that we are bootstrapped.  We need
-            // to do this because extSDKIntegration means we may configure the cleanup
-            // to clean one or several collections when creating the cluster, and intend
-            // for this to happen even in absence of this instance creating transactions.
-            // Also, if we don't configure transactions cleanup, by default no cleanup
-            // tasks are launched, so it does nothing until you start making transactions.
-            var unusedTransactionsJustToCreateIt = cluster.LazyTransactions.Value;
-            return cluster;
+                // We can re-ify the Transactions now that we are bootstrapped.  We need
+                // to do this because extSDKIntegration means we may configure the cleanup
+                // to clean one or several collections when creating the cluster, and intend
+                // for this to happen even in absence of this instance creating transactions.
+                // Also, if we don't configure transactions cleanup, by default no cleanup
+                // tasks are launched, so it does nothing until you start making transactions.
+                _ = cluster.LazyTransactions.Value;
+                return cluster;
+            }
+            catch (Exception)
+            {
+                // Dispose the cluster on failure or cancellation, then rethrow the exception, to stop any background tasks from running.
+                await cluster.DisposeAsync().ConfigureAwait(false);
+
+                throw;
+            }
         }
 
         #endregion
@@ -279,35 +312,37 @@ namespace Couchbase
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
+            if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+            {
+                // Already timed out
+                throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+            }
+
             options ??= new WaitUntilReadyOptions();
             if(options.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));
 
-            var token = options.CancellationTokenValue;
-            CancellationTokenSource? tokenSource = null;
-            if (token == CancellationToken.None)
-            {
-                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-                tokenSource.CancelAfter(timeout);
-                token = tokenSource.Token;
-            }
+            CancellationTokenPairSource? ctps =  CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
+            CancellationToken token = ctps.Token;
 
             var bootstrappable = (IBootstrappable)this;
             try
             {
-                token.ThrowIfCancellationRequested();
-                while (!token.IsCancellationRequested)
+                while (true)
                 {
+                    token.ThrowIfCancellationRequested();
+
                     if (!IsBootstrapped)
                     {
-                        await bootstrappable.BootStrapAsync().ConfigureAwait(false);
+                        // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
+                        // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
+                        await bootstrappable.BootStrapAsync().WaitAsync(token).ConfigureAwait(false);
                         if (!IsBootstrapped)
                         {
                             await Task.Delay(100, token).ConfigureAwait(false);
                             continue;
                         }
                     }
-
 
                     if (!_context.IsGlobal)
                         throw new NotSupportedException(
@@ -348,11 +383,6 @@ namespace Couchbase
 
                     await Task.Delay(100, token).ConfigureAwait(false);
                 }
-
-                if (token.IsCancellationRequested)
-                {
-                    throw new UnambiguousTimeoutException($"Timed out after {timeout} with {_context.Nodes.Count} nodes.");
-                }
             }
             catch (RateLimitedException)
             {
@@ -364,16 +394,25 @@ namespace Couchbase
             }
             catch (OperationCanceledException e)
             {
-                throw new UnambiguousTimeoutException($"Timed out after {timeout} with {_context.Nodes.Count} nodes.", e);
+                if (ctps.IsExternalCancellation)
+                {
+                    // If the token was canceled because the supplied token was canceled, rethrow as this matches
+                    // normal .NET cancellation semantics.
+                    throw;
+                }
+                else
+                {
+                    // If the token was canceled due to timeout, throw UnambiguousTimeoutException
+                    throw new UnambiguousTimeoutException($"Timed out after {timeout} with {_context.Nodes.Count} nodes.", e);
+                }
             }
-
             catch (Exception e)
             {
                 throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
             }
             finally
             {
-                tokenSource?.Dispose();
+                CancellationTokenPairSourcePool.Shared.Return(ctps);
             }
         }
 
@@ -539,11 +578,11 @@ namespace Couchbase
             _bootstrapper.Start(this);
         }
 
-        async Task IBootstrappable.BootStrapAsync()
+        async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
         {
             try
             {
-                await _context.BootstrapGlobalAsync().ConfigureAwait(false);
+                await _context.BootstrapGlobalAsync(cancellationToken).ConfigureAwait(false);
 
                 //if we succeeded set the state of the cluster to bootstrapped
                 _hasBootStrapped = _context.GlobalConfig != null;
@@ -566,6 +605,11 @@ namespace Couchbase
 #pragma warning restore CS0618 // Type or member is obsolete
 
                 _context.RemoveAllNodes();
+                throw;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Don't trap OperationCanceledException if the caller requested cancellation
                 throw;
             }
             catch (Exception e)

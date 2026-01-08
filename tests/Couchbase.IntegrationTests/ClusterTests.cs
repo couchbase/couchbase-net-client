@@ -1,5 +1,6 @@
 
 using System;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,6 +99,25 @@ namespace Couchbase.IntegrationTests
             {
                 _outputHelper.WriteLine($"id={result.Id},key={result.Key},value={result.Value}");
             }
+        }
+
+        [CouchbaseVersionDependentTheory(MinVersion = "6.5.0")]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task Test_ConnectAsync_Cancellation(bool enableDnsSrv)
+        {
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            {
+                using var cts = new CancellationTokenSource();
+                cts.CancelAfter(10);
+
+                using var cluster = await Cluster.ConnectAsync("couchbase://invalidhost",
+                    options => {
+                        options.WithCredentials("invaliduser", "invalidpassword");
+                        options.EnableDnsSrvResolution = enableDnsSrv;
+                    },
+                    cts.Token);
+            });
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "6.5.0")]

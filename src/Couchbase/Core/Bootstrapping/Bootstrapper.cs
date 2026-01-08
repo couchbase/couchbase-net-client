@@ -72,7 +72,7 @@ namespace Couchbase.Core.Bootstrapping
                     _logger.LogDebug("The subject is not bootstrapped.");
                     try
                     {
-                        await subject.BootStrapAsync().ConfigureAwait(false);
+                        await subject.BootStrapAsync(token).ConfigureAwait(false);
                         subject.DeferredExceptions.Clear();
 
                         _logger.LogDebug("The subject has successfully bootstrapped.");

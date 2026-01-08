@@ -13,6 +13,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
+using DnsClient;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -323,12 +324,15 @@ namespace Couchbase.Core
                 x => !x.IsAssigned && x.EndPoint.Equals(endpoint));
         }
 
-        public async Task BootstrapGlobalAsync()
+        public async Task BootstrapGlobalAsync(CancellationToken cancellationToken = default)
         {
             if (ClusterOptions.ConnectionStringValue == null)
             {
                 ThrowHelper.ThrowInvalidOperationException("ConnectionString has not been set.");
             }
+
+            // Combine the input CancellationToken with the Dispose token, we'll cancel if either is triggered
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);
 
             try
             {
@@ -346,7 +350,7 @@ namespace Couchbase.Core
                             ? ClusterOptions.ConnectionStringValue.DnsSrvUri
                             : ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
 
-                        var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)
+                        var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, cts.Token)
                             .ConfigureAwait(false)).ToList();
                         if (servers.Any())
                         {
@@ -361,6 +365,16 @@ namespace Couchbase.Core
                             _logger.LogInformation(
                                 $"Bootstrapping: the DNS SRV succeeded, but no records were returned for {bootstrapUri}.");
                         }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Don't trap OperationCanceledException if the caller requested cancellation
+                        throw;
+                    }
+                    catch (DnsResponseException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // DnsClient wraps OperationCanceledException in a DnsResponseException
+                        throw new OperationCanceledException(cancellationToken);
                     }
                     catch (Exception exception)
                     {
@@ -380,12 +394,14 @@ namespace Couchbase.Core
                     IClusterNode node = null;
                     try
                     {
+                        cts.Token.ThrowIfCancellationRequested();
+
                         _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server);
                         node = await _clusterNodeFactory
-                            .CreateAndConnectAsync(server, CancellationToken)
+                            .CreateAndConnectAsync(server, cts.Token)
                             .ConfigureAwait(false);
 
-                        GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
+                        GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
 
@@ -404,6 +420,11 @@ namespace Couchbase.Core
 
                         //ignore the exceptions since at least one node bootstrapped
                         exceptions?.Clear();
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Don't trap OperationCanceledException if the caller requested cancellation
+                        throw;
                     }
                     catch (Exception e)
                     {

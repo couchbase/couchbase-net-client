@@ -219,7 +219,7 @@ namespace Couchbase.UnitTests.Core
             config.VBucketServerMap = new Couchbase.Core.Sharding.VBucketServerMapDto();
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(cn => cn.GetClusterMap(null, default)).Returns(Task.FromResult(config));
+            mockClusterNode.Setup(cn => cn.GetClusterMap(null, It.IsAny<CancellationToken>())).Returns(Task.FromResult(config));
 
             mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(new HostEndpointWithPort("localhost2", 11210), It.IsAny<CancellationToken>()))
                .Returns(Task.FromResult(mockClusterNode.Object));

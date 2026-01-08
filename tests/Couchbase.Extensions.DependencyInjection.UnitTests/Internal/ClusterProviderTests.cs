@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Extensions.DependencyInjection.Internal;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,23 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             var ex = await Assert.ThrowsAsync<ObjectDisposedException>(() => provider.GetClusterAsync().AsTask());
 
             Assert.Equal(nameof(ClusterProvider), ex.ObjectName);
+        }
+
+        [Fact]
+        public async Task GetClusterAsync_CanceledOnInvoke_Exception()
+        {
+            // Arrange
+
+            var options = new Mock<IOptionsMonitor<ClusterOptions>>();
+
+            var provider = new ClusterProvider(options.Object, null);
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            // Act/Assert
+
+            var ex = await Assert.ThrowsAsync<TaskCanceledException>(() => provider.GetClusterAsync(cts.Token).AsTask());
         }
 
         [Fact]
@@ -503,6 +521,6 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             bucket2.Verify(m => m.DisposeAsync(), Times.AtLeastOnce);
         }
 
-#endregion
+        #endregion
     }
 }

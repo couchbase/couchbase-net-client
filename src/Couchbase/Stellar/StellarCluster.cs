@@ -314,7 +314,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     #region Bootstrapping/start up error propagation
 
-    public Task BootStrapAsync() =>
+    public Task BootStrapAsync(CancellationToken cancellationToken = default) =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("BootStrap", "Protostellar");
 
     public bool IsBootstrapped => _deferredExceptions.Count == 0;

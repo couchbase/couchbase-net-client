@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 #nullable enable
@@ -16,7 +16,7 @@ namespace Couchbase.Core.Bootstrapping
         /// Starts the bootstrapping process if <see cref="IsBootstrapped"/> is false.
         /// </summary>
         /// <returns></returns>
-        Task BootStrapAsync();
+        Task BootStrapAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// True if bootstrapped; otherwise false.
