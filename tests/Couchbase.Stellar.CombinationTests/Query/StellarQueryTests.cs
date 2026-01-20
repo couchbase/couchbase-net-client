@@ -22,17 +22,17 @@ public class StellarQueryTests
     public async Task ClusterQuery()
     {
         var cluster = _fixture.StellarCluster;
-        var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
+        var collection = await _fixture.DefaultCollection();
         var id = Guid.NewGuid().ToString();
         var statement = $"SELECT RAW \"{id}\" FROM `default`.`_default`.`_default` LIMIT 1";
-        await collection.UpsertAsync(id, new { Content = "content" }).ConfigureAwait(true);
+        await collection.UpsertAsync(id, new { Content = "content" });
         var queryResult = await cluster.QueryAsync<string>(statement);
         await foreach (var row in queryResult.Rows)
         {
             Assert.Equal(row, id);
         }
 
-        await collection.RemoveAsync(id).ConfigureAwait(true);
+        await collection.RemoveAsync(id);
     }
 
     [Fact]
@@ -41,16 +41,16 @@ public class StellarQueryTests
         var cluster = _fixture.StellarCluster;
         var bucket1 = await cluster.BucketAsync("default");
         var scope = bucket1.DefaultScope();
-        var collection = await _fixture.DefaultCollection().ConfigureAwait(true);
+        var collection = await _fixture.DefaultCollection();
         var id = Guid.NewGuid().ToString();
         var statement = $"SELECT RAW \"{id}\" FROM `default`.`_default`.`_default` LIMIT 1";
-        await collection.UpsertAsync(id, new { Content = "content" }).ConfigureAwait(true);
+        await collection.UpsertAsync(id, new { Content = "content" });
         var queryResult = await scope.QueryAsync<string>(statement);
         await foreach (var row in queryResult.Rows)
         {
             Assert.Equal(row, id);
         }
 
-        await collection.RemoveAsync(id).ConfigureAwait(true);
+        await collection.RemoveAsync(id);
     }
 }

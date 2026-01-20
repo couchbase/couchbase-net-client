@@ -84,11 +84,11 @@ namespace Couchbase.UnitTests.Views
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
             using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
-            await viewResult.InitializeAsync().ConfigureAwait(true);
+            await viewResult.InitializeAsync();
 
             // Act
 
-            var result = await viewResult.ToListAsync().ConfigureAwait(true);
+            var result = await viewResult.ToListAsync();
 
             // Assert
 
@@ -104,8 +104,8 @@ namespace Couchbase.UnitTests.Views
 
             // Act
 
-            await viewResult.InitializeAsync().ConfigureAwait(true);
-            var result = await viewResult.ToListAsync().ConfigureAwait(true);
+            await viewResult.InitializeAsync();
+            var result = await viewResult.ToListAsync();
 
             // Assert
 
@@ -123,7 +123,7 @@ namespace Couchbase.UnitTests.Views
 
             // Act/Assert
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => viewResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => viewResult.ToListAsync().AsTask());
         }
 
         [Theory]
@@ -136,12 +136,12 @@ namespace Couchbase.UnitTests.Views
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
-            await viewResult.InitializeAsync().ConfigureAwait(true);
+            await viewResult.InitializeAsync();
 
             // Act/Assert
 
-            await viewResult.ToListAsync().ConfigureAwait(true);
-            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => viewResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await viewResult.ToListAsync();
+            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => viewResult.ToListAsync().AsTask());
         }
 
         [Fact]
@@ -152,11 +152,11 @@ namespace Couchbase.UnitTests.Views
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
             using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
-            await viewResult.InitializeAsync().ConfigureAwait(true);
+            await viewResult.InitializeAsync();
 
             // Act
 
-            await viewResult.ToListAsync().ConfigureAwait(true);
+            await viewResult.ToListAsync();
 
             // Assert
 
@@ -178,7 +178,7 @@ namespace Couchbase.UnitTests.Views
 
             // Act
 
-            await viewResult.InitializeAsync().ConfigureAwait(true);
+            await viewResult.InitializeAsync();
 
             // Assert
 
@@ -196,8 +196,8 @@ namespace Couchbase.UnitTests.Views
 
             // Act/Assert
 
-            await viewResult.InitializeAsync().ConfigureAwait(true);
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await viewResult.InitializeAsync().ConfigureAwait(true)).
+            await viewResult.InitializeAsync();
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await viewResult.InitializeAsync()).
                 ConfigureAwait(true);
         }
 

@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(fileName);
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act
 
@@ -52,11 +52,11 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act
 
-            var result = await blockResult.ToListAsync().ConfigureAwait(true);
+            var result = await blockResult.ToListAsync();
 
             // Assert
             Assert.True(blockResult.Success);
@@ -72,11 +72,11 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act
 
-            var result = await blockResult.ToListAsync().ConfigureAwait(true);
+            var result = await blockResult.ToListAsync();
 
             // Assert
 
@@ -94,7 +94,7 @@ namespace Couchbase.UnitTests.Query
 
             // Act/Assert
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => blockResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => blockResult.ToListAsync().AsTask());
         }
 
         [Theory]
@@ -107,12 +107,12 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act/Assert
 
-            await blockResult.ToListAsync().ConfigureAwait(true);
-            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => blockResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await blockResult.ToListAsync();
+            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => blockResult.ToListAsync().AsTask());
         }
 
         [Theory]
@@ -126,11 +126,11 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act
 
-            await blockResult.ToListAsync().ConfigureAwait(true);
+            await blockResult.ToListAsync();
             var result = blockResult.MetaData.Status;
 
             // Assert
@@ -148,11 +148,11 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\failure_cas_mismatch_reason.json");
 
             using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(true);
+            await blockResult.InitializeAsync();
 
             // Act
 
-            await blockResult.ToListAsync().ConfigureAwait(true);
+            await blockResult.ToListAsync();
             var result = blockResult.MetaData.Status;
 
             Assert.NotEmpty(blockResult.Errors);

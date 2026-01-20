@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task CreateAndDropCollectionIndex()
         {
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var bucket = await _fixture.GetDefaultBucket();
             var collectionManager = _fixture.GetDefaultBucket().Result.Collections;
 
             var scopeName = Guid.NewGuid().ToString();
@@ -41,14 +41,14 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName);
                 await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(true);
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName);
+                var collection = await scope.CollectionAsync(collectionName);
 
                 const string indexName = "indexmgr_test_collection";
                 try
                 {
                     await collection.QueryIndexes.CreateIndexAsync(indexName, new[] { "type" }, new CreateQueryIndexOptions())
-                        .ConfigureAwait(true);
+                        ;
                 }
                 catch (IndexExistsException)
                 {
@@ -59,16 +59,16 @@ namespace Couchbase.IntegrationTests.Management
                 try
                 {
                     await collection.QueryIndexes.BuildDeferredIndexesAsync(new BuildDeferredQueryIndexOptions())
-                        .ConfigureAwait(true);
+                        ;
 
                     using var cts = new CancellationTokenSource(10000);
 
                     await collection.QueryIndexes.WatchIndexesAsync(new[] { indexName }, TimeSpan.FromMinutes(1),
                             new WatchQueryIndexOptions().CancellationToken(cts.Token))
-                        .ConfigureAwait(true);
+                        ;
 
                     var getIndexes = await collection.QueryIndexes.GetAllIndexesAsync(new GetAllQueryIndexOptions())
-                        .ConfigureAwait(true);
+                        ;
                     Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
                 }
                 finally
@@ -76,7 +76,7 @@ namespace Couchbase.IntegrationTests.Management
                     try
                     {
                         await collection.QueryIndexes.DropIndexAsync(indexName, new DropQueryIndexOptions())
-                            .ConfigureAwait(true);
+                            ;
                     }
                     catch (Exception e)
                     {

@@ -37,8 +37,8 @@ namespace Couchbase.UnitTests
 
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
             {
-                await bucket.ViewQueryAsync<dynamic, dynamic>("designDoc", "viewName").ConfigureAwait(true);
-            }).ConfigureAwait(true);
+                await bucket.ViewQueryAsync<dynamic, dynamic>("designDoc", "viewName");
+            });
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
+            await bucket.BootstrapAsync(mockClusterNode.Object);
 
             var scope = await bucket.ScopeAsync(Scope.DefaultScopeName);
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
+            await bucket.BootstrapAsync(mockClusterNode.Object);
 
             var scope = bucket.Scope(Scope.DefaultScopeName);
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
@@ -114,7 +114,7 @@ namespace Couchbase.UnitTests
                 Returns(Task.FromResult(bucketConfig));
 
             var bucket = CreateMemcachedBucket();
-            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(true);
+            await bucket.BootstrapAsync(mockClusterNode.Object);
 
             Assert.Throws<NotSupportedException>(() => bucket.Scope("xxxx"));
         }

@@ -65,7 +65,7 @@ namespace Couchbase.IntegrationTests.DataStructures
 
         private async Task<IPersistentDictionary<Foo>> GetPersistentDictionary([CallerMemberName] string id = "")
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
+            var collection = await _fixture.GetDefaultCollectionAsync();
             return new PersistentDictionary<Foo>(collection, $"{nameof(PersistentDictionaryTests)}-{id}", new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 
@@ -125,7 +125,7 @@ namespace Couchbase.IntegrationTests.DataStructures
         {
             var dict = await GetPersistentDictionary();
 
-            await dict.ClearAsync().ConfigureAwait(true);
+            await dict.ClearAsync();
             await dict.AddAsync("Fred", new Foo { Name = "Tom", Age = 50 });
             await dict.AddAsync("Bill", new Foo { Name = "Dick", Age = 30 });
 
@@ -140,7 +140,7 @@ namespace Couchbase.IntegrationTests.DataStructures
         {
             var dict = await GetPersistentDictionary();
 
-            await dict.ClearAsync().ConfigureAwait(true);
+            await dict.ClearAsync();
             await dict.AddAsync("Fred", new Foo { Name = "Tom", Age = 50 });
             await dict.AddAsync("Bill", new Foo { Name = "Dick", Age = 30 });
 

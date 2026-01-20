@@ -60,7 +60,7 @@ public class StellarSearch
             new MatchQuery("inn"),
             new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))
                 .Highlight(HighLightStyle.Html, "inn")
-        ).ConfigureAwait(true);
+        );
 
         Assert.True(results.Hits.Count > 0);
     }
@@ -76,7 +76,7 @@ public class StellarSearch
                 new DateRangeFacet("daterangefacet", "thefield", 10).AddRange("testName", DateTime.Now, DateTime.Now.AddDays(1)),
                 new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange("testName", 2.2f, 3.5f)
             )
-        ).ConfigureAwait(true);
+        );
         foreach (var item in results.Facets)
         {
             _outputHelper.WriteLine(item.Key);
@@ -91,7 +91,7 @@ public class StellarSearch
         var results = await cluster.SearchQueryAsync(IndexName,
             new MatchQuery("inn"),
             new SearchOptions().IncludeLocations(true).Limit(10).Collections("_default", "inventory")
-        ).ConfigureAwait(true);
+        );
         Assert.NotEmpty(results.Hits[0].Locations);
     }
 
@@ -102,7 +102,7 @@ public class StellarSearch
         var results = await cluster.SearchQueryAsync(IndexName,
             new MatchQuery("inn hotel").MatchOperator(MatchOperator.Or),
             new SearchOptions().Limit(10)
-        ).ConfigureAwait(true);
+        );
         Assert.Equal(10,  results.Hits.Count);
     }
 
@@ -114,7 +114,7 @@ public class StellarSearch
         var results = await cluster.SearchQueryAsync(IndexName,
             new MatchQuery("http://www.hotelavenuelodge.com Val-d'Isère").MatchOperator(MatchOperator.And),
             new SearchOptions()
-        ).ConfigureAwait(true);
+        );
         Assert.Equal(1,  results.Hits.Count);
     }
 
@@ -125,7 +125,7 @@ public class StellarSearch
         var results = await cluster.SearchQueryAsync(IndexName,
             new MatchQuery("http://www.hotelavenuelodge.com asdfg").MatchOperator(MatchOperator.And),
             new SearchOptions()
-        ).ConfigureAwait(true);
+        );
         Assert.Equal(0,  results.Hits.Count);
     }
 

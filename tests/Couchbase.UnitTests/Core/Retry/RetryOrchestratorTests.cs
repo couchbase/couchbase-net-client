@@ -158,7 +158,7 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Operation_Succeeds_After_N_Retries_Using_BestEffort_When_TemporaryFailure(
             object operation, ResponseStatus status)
         {
-            await AssertRetryThenSuccessAsync((OperationBase)operation, status).ConfigureAwait(true);
+            await AssertRetryThenSuccessAsync((OperationBase)operation, status);
         }
 
         private async Task AssertRetryThenSuccessAsync(OperationBase op, ResponseStatus status)
@@ -194,7 +194,7 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 try
                 {
-                   await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(true);
+                   await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair);
                 }
                 catch (Exception ex)
                 {
@@ -210,7 +210,7 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
             object operation, Exception exception)
         {
-            await AssertRetryAsync<UnambiguousTimeoutException>((IOperation)operation, exception).ConfigureAwait(true);
+            await AssertRetryAsync<UnambiguousTimeoutException>((IOperation)operation, exception);
         }
 
         [Fact]
@@ -224,7 +224,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var exception = new OperationCanceledException();
 
             await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 0)
-                .ConfigureAwait(true);
+                ;
         }
 
         [Fact(Skip = "inconsistent results in jenkins")]
@@ -240,7 +240,7 @@ namespace Couchbase.UnitTests.Core.Retry
             using var cts = new CancellationTokenSource(5000);
 
             await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 0,
-                externalCancellationToken: cts.Token).ConfigureAwait(true);
+                externalCancellationToken: cts.Token);
         }
 
         [Fact]
@@ -254,7 +254,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new OperationCanceledException();
 
-            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 0).ConfigureAwait(true);
+            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 0);
         }
 
         [Fact]
@@ -268,7 +268,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new OperationCanceledException();
 
-            await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 0).ConfigureAwait(true);
+            await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 0);
         }
 
         private async Task AssertRetryAsync<TExpected>(IOperation op, Exception exp, int minAttempts = 2,
@@ -289,7 +289,7 @@ namespace Couchbase.UnitTests.Core.Retry
             using var tokenPair = CancellationTokenPairSource.FromTimeout(timeProvider, TimeSpan.FromMilliseconds(10000), externalCancellationToken);
             try
             {
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(true);
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair);
             }
             catch (Exception e)
             {
@@ -317,7 +317,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             using var tokenPair = CancellationTokenPairSource.FromTimeout(timeProvider, TimeSpan.FromMilliseconds(2500));
 
-            await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(true);
+            await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair);
 
             Assert.Equal(0u, op.Attempts);
         }
@@ -416,7 +416,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             try
             {
-                await bucketMock.Object.RetryAsync(op, tokenPair.TokenPair).ConfigureAwait(true);
+                await bucketMock.Object.RetryAsync(op, tokenPair.TokenPair);
             }
             catch (Exception e)
             {

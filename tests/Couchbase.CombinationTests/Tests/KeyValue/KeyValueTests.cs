@@ -580,7 +580,7 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
         public async Task Test_GetAnyReplica_Throws_DocumentUnretrievable()
         {
             var id = "Test-" + Guid.NewGuid();
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
+            var collection = await _fixture.GetDefaultCollection();
 
             await collection.UpsertAsync(id, new { Name = id, Id = 1, Items = new[] { 1, 2, 3 } });
 
@@ -589,7 +589,7 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
 
             await Assert.ThrowsAsync<DocumentUnretrievableException>(() => collection.GetAnyReplicaAsync("wrongId"));
 
-            await collection.RemoveAsync(id).ConfigureAwait(true);
+            await collection.RemoveAsync(id);
         }
 
         [Fact]
@@ -598,24 +598,24 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             var id = "Test" + Guid.NewGuid();
             var collectionName = "TestCollection" + new Random().Next();
 
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
-            var scope = await _fixture.GetDefaultScope().ConfigureAwait(true);
+            var bucket = await _fixture.GetDefaultBucket();
+            var scope = await _fixture.GetDefaultScope();
 
             // Create and get collection on default bucket/scope
-            await bucket.Collections.CreateCollectionAsync("_default", collectionName, new CreateCollectionSettings()).ConfigureAwait(true);
-            await _testHelper.WaitUntilCollectionIsPresent(collectionName).ConfigureAwait(true);
-            var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+            await bucket.Collections.CreateCollectionAsync("_default", collectionName, new CreateCollectionSettings());
+            await _testHelper.WaitUntilCollectionIsPresent(collectionName);
+            var collection = await scope.CollectionAsync(collectionName);
 
             //Upsert a doc so that the client caches the Cid
-            await collection.UpsertAsync(id, new { Content = "hello" }).ConfigureAwait(true);
-            await _testHelper.WaitUntilDocumentIsPresent(id, collectionName).ConfigureAwait(true);
+            await collection.UpsertAsync(id, new { Content = "hello" });
+            await _testHelper.WaitUntilDocumentIsPresent(id, collectionName);
 
             // Drop collection
-            await bucket.Collections.DropCollectionAsync("_default", collectionName).ConfigureAwait(true);
-            await _testHelper.WaitUntilCollectionIsDropped(collectionName).ConfigureAwait(true);
+            await bucket.Collections.DropCollectionAsync("_default", collectionName);
+            await _testHelper.WaitUntilCollectionIsDropped(collectionName);
 
             var stopwatch = Stopwatch.StartNew();
-            var exception = await Record.ExceptionAsync(async () => await collection.GetAsync(id).ConfigureAwait(true)).ConfigureAwait(true);
+            var exception = await Record.ExceptionAsync(async () => await collection.GetAsync(id));
             stopwatch.Stop();
 
             _outputHelper.WriteLine("Exception: " + exception!.Message);

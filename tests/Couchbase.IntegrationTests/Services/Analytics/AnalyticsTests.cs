@@ -57,8 +57,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
-            var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
+            var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement);
             var result = await analyticsResult.ToListAsync();
 
             Assert.Single(result);
@@ -70,16 +70,16 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var result = await cluster.IngestAsync<dynamic>(
                 statement,
-                await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true),
+                await _fixture.GetDefaultCollectionAsync(),
                 options =>
                 {
                     options.Timeout(TimeSpan.FromSeconds(75));
                     options.Expiry(TimeSpan.FromDays(1));
                 }
-            ).ConfigureAwait(true);
+            );
 
             Assert.True(result.Any());
         }
@@ -87,8 +87,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_Collections_DataverseCollectionQuery()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
+            var bucket = await _fixture.Cluster.BucketAsync("default");
 
             var dataverseName = bucket.Name + "." + ScopeName;
             var collectionManager = (CollectionManager)bucket.Collections;
@@ -97,25 +97,25 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             try
             {
                 await using var dataverseDisposer = DisposeCleaner.DropDataverseOnDispose(analytics, dataverseName, _output);
-                await collectionManager.CreateScopeAsync(ScopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(ScopeName);
                 await using var scopeDispose = DisposeCleaner.DropScopeOnDispose(collectionManager, ScopeName, _output);
                 var collectionSpec = new CollectionSpec(ScopeName, CollectionName);
 
                 await Task.Delay(TimeSpan.FromSeconds(1));
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 await Task.Delay(TimeSpan.FromSeconds(1));
                 var collectionExistsResult =
-                    await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                    await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
                 await bucket.Scope(ScopeName).Collection(CollectionName).UpsertAsync("KEY1", new {bar = "foo"});
 
-                await analytics.CreateDataverseAsync(dataverseName).ConfigureAwait(true);
+                await analytics.CreateDataverseAsync(dataverseName);
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 var statement = $"CREATE ANALYTICS COLLECTION {FilteredCollection} ON {bucket.Name}.{ScopeName}.{CollectionName}";
-                await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(true);
+                await cluster.AnalyticsQueryAsync<TestRequest>(statement);
                 await using var analyticsCollectionDisposer = new DisposeCleanerAsync(() =>
                     cluster.AnalyticsQueryAsync<dynamic>($"DROP ANALYTICS COLLECTION {FilteredCollection}"),
                     _output
@@ -124,9 +124,9 @@ namespace Couchbase.IntegrationTests.Services.Analytics
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 var selectStatement = $"SELECT * FROM `{FilteredCollection}`";
-                var analyticsResult2 = await cluster.AnalyticsQueryAsync<TestRequest>(selectStatement).ConfigureAwait(true);
+                var analyticsResult2 = await cluster.AnalyticsQueryAsync<TestRequest>(selectStatement);
 
-                var result = await analyticsResult2.ToListAsync().ConfigureAwait(true);
+                var result = await analyticsResult2.ToListAsync();
                 Assert.True(result.Any());
             }
             catch (Exception e)

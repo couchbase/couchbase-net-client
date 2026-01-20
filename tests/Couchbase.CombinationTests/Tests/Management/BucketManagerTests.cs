@@ -59,9 +59,9 @@ public class BucketManagerTests
         await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
             await bucketManager.CreateBucketAsync(settings,
                     options => options.Timeout(TimeSpan.FromSeconds(10)))
-                .ConfigureAwait(true));
+                );
 
-        await bucketManager.DropBucketAsync(bucketId).ConfigureAwait(true);
+        await bucketManager.DropBucketAsync(bucketId);
     }
 
     [CouchbaseVersionDependentFact(MinVersion = "7.2.0")]
@@ -92,7 +92,7 @@ public class BucketManagerTests
         {
             await bucketManager.CreateBucketAsync(settings,
                     options => options.Timeout(TimeSpan.FromSeconds(10)))
-                .ConfigureAwait(true);
+                ;
         }
         catch (InvalidArgumentException e)
         {
@@ -111,13 +111,13 @@ public class BucketManagerTests
         }
 
         await _testHelper.WaitUntilBucketIsPresent(bucketId)
-            .ConfigureAwait(true);
+            ;
 
         var getBucket = await _fixture.Cluster.Buckets.GetBucketAsync(bucketId)
-            .ConfigureAwait(true);
+            ;
         Assert.NotNull(getBucket);
 
-        await bucketManager.DropBucketAsync(bucketId).ConfigureAwait(true);
+        await bucketManager.DropBucketAsync(bucketId);
     }
 
     [Fact]

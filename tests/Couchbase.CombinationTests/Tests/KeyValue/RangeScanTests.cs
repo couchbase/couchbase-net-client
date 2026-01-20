@@ -29,7 +29,7 @@ public class RangeScanTests
     [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
     public async Task Test_RangeScan()
     {
-        _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed).ConfigureAwait(true);
+        _isBucketFlushed = await _fixture.FlushBucket(_isBucketFlushed);
 
         var random = new Random();
 
@@ -41,7 +41,7 @@ public class RangeScanTests
             var doc = new String('*', random.Next(100, 2048));
             doc = doc.Insert(0, "start");
             doc = doc.Insert(doc.Length, "end");
-            var result = await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20))).ConfigureAwait(true);
+            var result = await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20)));
             mutationResults[xd] = result;
         }
 
@@ -70,7 +70,7 @@ public class RangeScanTests
 
         for (var xd = 0; xd < 10_000; xd++)
         {
-            await coll.RemoveAsync($"key{xd}").ConfigureAwait(true);
+            await coll.RemoveAsync($"key{xd}");
         }
     }
 
@@ -83,19 +83,19 @@ public class RangeScanTests
         doc = doc.Insert(0, "start");
         doc = doc.Insert(doc.Length, "end");
 
-        await coll.UpsertAsync(id, doc).ConfigureAwait(true);
+        await coll.UpsertAsync(id, doc);
 
         var scan = coll.ScanAsync(
             new RangeScan(ScanTerm.Inclusive("Test_"), ScanTerm.Inclusive("Test_MaxDocumentSize")),
             new ScanOptions().Timeout(TimeSpan.FromSeconds(20_000)).IdsOnly(false).ItemLimit(1));
 
-        var scanResult = await scan.FirstAsync().ConfigureAwait(true);
+        var scanResult = await scan.FirstAsync();
         var content = scanResult.ContentAs<string>();
         Assert.StartsWith("start", content);
         Assert.EndsWith("end", content);
         Assert.Equal(doc.Length, content.Length);
 
-        await coll.RemoveAsync(id).ConfigureAwait(true);
+        await coll.RemoveAsync(id);
     }
 
     [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
@@ -110,7 +110,7 @@ public class RangeScanTests
             var doc = new String('*', random.Next(100, 2048));
             doc = doc.Insert(0, "start");
             doc = doc.Insert(doc.Length, "end");
-            await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20))).ConfigureAwait(true);
+            await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20)));
         }
 
         var scan =  coll.ScanAsync(new SamplingScan(100),
@@ -129,7 +129,7 @@ public class RangeScanTests
 
         for (var xd = 0; xd < 200; xd++)
         {
-            await coll.RemoveAsync($"key{xd}").ConfigureAwait(true);
+            await coll.RemoveAsync($"key{xd}");
         }
     }
 
@@ -140,19 +140,19 @@ public class RangeScanTests
         var body = "hello";
         var id = System.Guid.NewGuid().ToString();
 
-        await collection.UpsertAsync(id, body).ConfigureAwait(true);
+        await collection.UpsertAsync(id, body);
 
         var scan = collection.ScanAsync(
             new RangeScan(ScanTerm.Inclusive(id), ScanTerm.Inclusive(id)),
             new ScanOptions().Timeout(TimeSpan.FromSeconds(10)).IdsOnly(false).ItemLimit(1));
 
-        var scanResult = await scan.FirstAsync().ConfigureAwait(true);
+        var scanResult = await scan.FirstAsync();
         var content = scanResult.ContentAs<string>();
 
         Assert.Equal(id, scanResult.Id);
         Assert.Equal(body, content);
 
-        await collection.RemoveAsync(id).ConfigureAwait(true);
+        await collection.RemoveAsync(id);
     }
 
     [CouchbaseVersionDependentFact(MinVersion = "8.0.0")]
@@ -164,7 +164,7 @@ public class RangeScanTests
 
         for (var xd = 0; xd < 100; xd++)
         {
-            await collection.UpsertAsync(id + xd, body).ConfigureAwait(true);
+            await collection.UpsertAsync(id + xd, body);
         }
 
         var min = ScanTerm.Inclusive(id + Encoding.UTF8.GetString(new byte[] { 0x00 }));
@@ -188,7 +188,7 @@ public class RangeScanTests
 
         for (var xd = 0; xd < 100; xd++)
         {
-            await collection.RemoveAsync(id + xd).ConfigureAwait(true);
+            await collection.RemoveAsync(id + xd);
         }
 
     }

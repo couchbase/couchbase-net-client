@@ -241,7 +241,7 @@ namespace Couchbase.UnitTests.KeyValue
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object);
 
-                await clusterNode.SendAsync(op, token).ConfigureAwait(true);
+                await clusterNode.SendAsync(op, token);
 
                 ResponseStatus status;
                 if (_statuses.Count > 0)

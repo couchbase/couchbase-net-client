@@ -25,7 +25,7 @@ public class TaskHelpersTests
 
         var taskList = new[] { taskOne, taskTwo, taskThree , taskFour, taskFive};
 
-        var firstSuccessful = await TaskHelpers.WhenAnySuccessful(taskList, CancellationToken.None).ConfigureAwait(true);
+        var firstSuccessful = await TaskHelpers.WhenAnySuccessful(taskList, CancellationToken.None);
 
         Assert.Equal(expectedId, firstSuccessful);
     }
@@ -38,7 +38,7 @@ public class TaskHelpersTests
             .Select<int, Task<string>>(async i =>
             {
                 // using var foo = new ThrowsAfterDispose();
-                await Task.Delay(0).ConfigureAwait(true);
+                await Task.Delay(0);
                 SpinWait.SpinUntil(() => Interlocked.Read(ref sentinel) > 0, 500);
                 if (i % 3 == 0)
                 {
@@ -56,7 +56,7 @@ public class TaskHelpersTests
         });
 
         var allTasks = faultyTasks.Concat(new[] { successfulTask });
-        var result = await TaskHelpers.WhenAnySuccessful(allTasks, CancellationToken.None).ConfigureAwait(true);
+        var result = await TaskHelpers.WhenAnySuccessful(allTasks, CancellationToken.None);
         Assert.Equal("success", result);
     }
 
@@ -97,7 +97,7 @@ public class TaskHelpersTests
 
     private static async Task<string> WaitOrThrow(string id, int seconds, bool throws)
     {
-        await Task.Delay(TimeSpan.FromSeconds(seconds)).ConfigureAwait(true);
+        await Task.Delay(TimeSpan.FromSeconds(seconds));
         if (throws)
         {
             throw new Exception($"Task {id} threw.");

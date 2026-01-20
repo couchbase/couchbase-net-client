@@ -73,7 +73,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<object>(stream, new DefaultSerializer()));
 
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.CreateDataverseAsync(dataverseName, new CreateAnalyticsDataverseOptions().IgnoreIfExists(ignoreIfExists)).ConfigureAwait(true);
+                await manager.CreateDataverseAsync(dataverseName, new CreateAnalyticsDataverseOptions().IgnoreIfExists(ignoreIfExists));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -93,7 +93,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropDataverseAsync(dataverseName, new DropAnalyticsDataverseOptions().IgnoreIfNotExists(ignoreIfExists)).ConfigureAwait(true);
+                await manager.DropDataverseAsync(dataverseName, new DropAnalyticsDataverseOptions().IgnoreIfNotExists(ignoreIfExists));
                 mockAnalyticClient.VerifyAll();
             }
         }
@@ -112,7 +112,7 @@ namespace Couchbase.UnitTests.Management
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 await manager.CreateDatasetAsync("test_dataset",
                     "test_bucket",
-                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(false)).ConfigureAwait(true);
+                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(false));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -129,7 +129,7 @@ namespace Couchbase.UnitTests.Management
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 await manager.CreateDatasetAsync("test_dataset",
                     "test_bucket",
-                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).DataverseName("test_dataverse").Condition("`type` = \"beer\"")).ConfigureAwait(true);
+                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).DataverseName("test_dataverse").Condition("`type` = \"beer\""));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Management
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 await manager.CreateDatasetAsync("test_dataset",
                     "test_bucket",
-                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).DataverseName("test_dataverse").Condition("WHERE `type` = \"beer\"")).ConfigureAwait(true);
+                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).DataverseName("test_dataverse").Condition("WHERE `type` = \"beer\""));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -163,7 +163,7 @@ namespace Couchbase.UnitTests.Management
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 await manager.CreateDatasetAsync("test_dataset",
                     "test_bucket",
-                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).Condition("WHERE `type` = \"beer\"")).ConfigureAwait(true);
+                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(true).Condition("WHERE `type` = \"beer\""));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -180,7 +180,7 @@ namespace Couchbase.UnitTests.Management
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 await manager.CreateDatasetAsync("test_dataset",
                     "test_bucket",
-                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(false).Condition("WHERE `type` = \"beer\"")).ConfigureAwait(true);
+                    new CreateAnalyticsDatasetOptions().IgnoreIfExists(false).Condition("WHERE `type` = \"beer\""));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -195,7 +195,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(true)).ConfigureAwait(true);
+                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(true));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -210,7 +210,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(false)).ConfigureAwait(true);
+                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(false));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -226,7 +226,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
 
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(true).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(true).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -241,7 +241,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(false).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.DropDatasetAsync("test_dataset", new DropAnalyticsDatasetOptions().IgnoreIfNotExists(false).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -257,7 +257,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 var fields = new Dictionary<string, string> { { "name", "string" } };
-                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -273,7 +273,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 var fields = new Dictionary<string, string> { { "name", "string" } };
-                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -289,7 +289,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 var fields = new Dictionary<string, string> { { "name", "string" } };
-                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false)).ConfigureAwait(true);
+                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -305,7 +305,7 @@ namespace Couchbase.UnitTests.Management
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
                 var fields = new Dictionary<string, string> { { "name", "string" } };
-                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true)).ConfigureAwait(true);
+                await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -320,7 +320,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(true).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(true).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -335,7 +335,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(false)).ConfigureAwait(true);
+                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(false));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -350,7 +350,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(false).DataverseName("test_dataverse")).ConfigureAwait(true);
+                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(false).DataverseName("test_dataverse"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -365,7 +365,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(true)).ConfigureAwait(true);
+                await manager.DropIndexAsync("test_dataset", "test_index", new DropAnalyticsIndexOptions().IgnoreIfNotExists(true));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -381,7 +381,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.ConnectLinkAsync(new ConnectAnalyticsLinkOptions().LinkName("test_link")).ConfigureAwait(true);
+                await manager.ConnectLinkAsync(new ConnectAnalyticsLinkOptions().LinkName("test_link"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -397,7 +397,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.ConnectLinkAsync(new ConnectAnalyticsLinkOptions()).ConfigureAwait(true);
+                await manager.ConnectLinkAsync(new ConnectAnalyticsLinkOptions());
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -413,7 +413,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DisconnectLinkAsync(new DisconnectAnalyticsLinkOptions().LinkName("test_link")).ConfigureAwait(true);
+                await manager.DisconnectLinkAsync(new DisconnectAnalyticsLinkOptions().LinkName("test_link"));
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -429,7 +429,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-                await manager.DisconnectLinkAsync(new DisconnectAnalyticsLinkOptions()).ConfigureAwait(true);
+                await manager.DisconnectLinkAsync(new DisconnectAnalyticsLinkOptions());
                 mockAnalyticsClient.VerifyAll();
             }
         }
@@ -440,7 +440,7 @@ namespace Couchbase.UnitTests.Management
             Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
             _mockProvider.Setup(x => x.GetRandomManagementUri()).Returns(new Uri("http://localhost:8094"));
             var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-            var results = await manager.GetPendingMutationsAsync(new GetPendingAnalyticsMutationsOptions()).ConfigureAwait(true);
+            var results = await manager.GetPendingMutationsAsync(new GetPendingAnalyticsMutationsOptions());
             Assert.True(results.ContainsKey("GleambookMessages"));
             Assert.Equal(0, results["GleambookMessages"]);
         }
@@ -483,7 +483,7 @@ namespace Couchbase.UnitTests.Management
                 .ReturnsAsync(queryResult.Object);
 
             var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-            var result = await manager.GetAllIndexesAsync(new GetAllAnalyticsIndexesOptions()).ConfigureAwait(true);
+            var result = await manager.GetAllIndexesAsync(new GetAllAnalyticsIndexesOptions());
             Assert.Equal(2, result.Count());
             var first = result.FirstOrDefault();
             Assert.NotNull(first);
@@ -527,7 +527,7 @@ namespace Couchbase.UnitTests.Management
                     It.IsAny<AnalyticsOptions>()))
                 .ReturnsAsync(queryResult.Object);
             var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
-            var result = await manager.GetAllDatasetsAsync(new GetAllAnalyticsDatasetsOptions()).ConfigureAwait(true);
+            var result = await manager.GetAllDatasetsAsync(new GetAllAnalyticsDatasetsOptions());
             Assert.Equal(2, result.Count());
             var first = result.FirstOrDefault();
             Assert.NotNull(first);

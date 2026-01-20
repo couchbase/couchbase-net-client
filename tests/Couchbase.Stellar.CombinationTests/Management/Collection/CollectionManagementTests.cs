@@ -24,14 +24,14 @@ public class CollectionManagementTests
     [Fact]
     public async Task CollectionAlreadyExistsTest()
     {
-        var bucket = await _fixture.DefaultBucket().ConfigureAwait(true);
+        var bucket = await _fixture.DefaultBucket();
         var collectionManager = bucket.Collections;
 
         var collectionName = Guid.NewGuid().ToString()[..6];
 
-        await collectionManager.CreateCollectionAsync("_default", collectionName, new CreateCollectionSettings(TimeSpan.FromSeconds(-1), false)).ConfigureAwait(true);
+        await collectionManager.CreateCollectionAsync("_default", collectionName, new CreateCollectionSettings(TimeSpan.FromSeconds(-1), false));
 
-        var exception = await Record.ExceptionAsync( () => collectionManager.CreateCollectionAsync("_default", collectionName, CreateCollectionSettings.Default)).ConfigureAwait(true);
+        var exception = await Record.ExceptionAsync( () => collectionManager.CreateCollectionAsync("_default", collectionName, CreateCollectionSettings.Default));
         Assert.IsType<CollectionExistsException>(exception);
     }
 }

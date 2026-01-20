@@ -28,7 +28,7 @@ public class StellarCollectionQueryIndexManagementTests
     [Fact]
     public async Task CreateAndDropCollectionIndex()
     {
-        var bucket = await _fixture.DefaultBucket().ConfigureAwait(true);
+        var bucket = await _fixture.DefaultBucket();
         var collectionManager = _fixture.DefaultBucket().Result.Collections;
 
         var scopeName = Guid.NewGuid().ToString();
@@ -38,18 +38,18 @@ public class StellarCollectionQueryIndexManagementTests
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
-            await _utils.WaitUntilScopeIsPresent(scopeName).ConfigureAwait(true);
+            await _utils.WaitUntilScopeIsPresent(scopeName);
             await collectionManager.CreateCollectionAsync(collectionSpec);
-            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName).ConfigureAwait(true);
+            await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName);
 
-            var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(true);
-            var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+            var scope = await bucket.ScopeAsync(scopeName);
+            var collection = await scope.CollectionAsync(collectionName);
 
             const string indexName = "indexmgr_test_collection";
             try
             {
                 await collection.QueryIndexes.CreateIndexAsync(indexName, new[] { "type" }, new CreateQueryIndexOptions())
-                    .ConfigureAwait(true);
+                    ;
             }
             catch (IndexExistsException)
             {
@@ -60,12 +60,12 @@ public class StellarCollectionQueryIndexManagementTests
             try
             {
                 await collection.QueryIndexes.BuildDeferredIndexesAsync(new BuildDeferredQueryIndexOptions())
-                    .ConfigureAwait(true);
+                    ;
 
                 using var cts = new CancellationTokenSource(10000);
 
                 var getIndexes = await collection.QueryIndexes.GetAllIndexesAsync(new GetAllQueryIndexOptions())
-                    .ConfigureAwait(true);
+                    ;
                 Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
             }
             finally
@@ -73,7 +73,7 @@ public class StellarCollectionQueryIndexManagementTests
                 try
                 {
                     await collection.QueryIndexes.DropIndexAsync(indexName, new DropQueryIndexOptions())
-                        .ConfigureAwait(true);
+                        ;
                 }
                 catch (Exception e)
                 {

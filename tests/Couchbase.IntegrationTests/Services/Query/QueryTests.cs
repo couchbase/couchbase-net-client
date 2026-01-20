@@ -27,36 +27,36 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_Query()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
-            await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;").ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
+            await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;");
         }
 
         [Fact]
         public async Task Test_Prepared()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             // execute prepare first time
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
-                options => options.AdHoc(false)).ConfigureAwait(true);
+                options => options.AdHoc(false));
             Assert.Equal(QueryStatus.Success, result.MetaData.Status);
 
             // should use prepared plan
             var preparedResult = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
-                options => options.AdHoc(false)).ConfigureAwait(true);
+                options => options.AdHoc(false));
             Assert.Equal(QueryStatus.Success, preparedResult.MetaData.Status);
         }
 
         [Fact]
         public async Task Test_QueryWithSynchronousStream()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
             {
                 parameter.Parameter("name", "person");
-            }).ConfigureAwait(true);
+            });
 
             // Non-streaming approach in C# 7
 #if NET8_0_OR_GREATER
@@ -75,26 +75,26 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_QueryWithAsyncStreamCSharp7()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
                 {
                     parameter.Parameter("name", "person");
-                }).ConfigureAwait(true);
+                });
 
             // Async streaming approach in C# 7
             var enumerator = result.GetAsyncEnumerator();
             try
             {
-                while (await enumerator.MoveNextAsync().ConfigureAwait(true))
+                while (await enumerator.MoveNextAsync())
                 {
                     _testOutputHelper.WriteLine(JsonConvert.SerializeObject(enumerator.Current, Formatting.None));
                 }
             }
             finally
             {
-                await enumerator.DisposeAsync().ConfigureAwait(true);
+                await enumerator.DisposeAsync();
             }
 
             result.Dispose();
@@ -103,15 +103,15 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_QueryWithAsyncStreamCSharp8()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
                 {
                     parameter.Parameter("name", "person");
-                }).ConfigureAwait(true);
+                });
 
-            await foreach (var o in result.ConfigureAwait(true))
+            await foreach (var o in result)
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
@@ -122,21 +122,21 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_RawQuery()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var bucket = await _fixture.GetDefaultBucket();
             var collection = await bucket.DefaultCollectionAsync();
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new {name = "john"}).ConfigureAwait(true);
+                await collection.InsertAsync(key, new {name = "john"});
 
                 using var result = await cluster
                     .QueryAsync<string>("SELECT RAW name FROM `default` WHERE name IS VALUED LIMIT 1;")
-                    .ConfigureAwait(true);
+                    ;
 
                 var found = false;
-                await foreach (var name in result.ConfigureAwait(true))
+                await foreach (var name in result)
                 {
                     found = true;
                     _testOutputHelper.WriteLine(name);
@@ -153,23 +153,23 @@ namespace Couchbase.IntegrationTests.Services.Query
         [CouchbaseVersionDependentFact(MinVersion = "7.6.0")]
         public async Task Test_Query_Use_Replica()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
-            var scope = await bucket.DefaultScopeAsync().ConfigureAwait(true);
-            var collection = await scope.CollectionAsync("_default").ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
+            var bucket = await _fixture.GetDefaultBucket();
+            var scope = await bucket.DefaultScopeAsync();
+            var collection = await scope.CollectionAsync("_default");
 
             string id = Guid.NewGuid().ToString();
             try
             {
                 //Upsert document and query it with ScanConsistency
-                await collection.InsertAsync(id, new[] { "content" }).ConfigureAwait(true);
+                await collection.InsertAsync(id, new[] { "content" });
 
                 var options = new QueryOptions().ScanConsistency(QueryScanConsistency.RequestPlus).Metrics(true);
                 Assert.Equal(false, options.UseReplicaHasValue);
 
                 var resultConsistent = await cluster
                     .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
-                    .ConfigureAwait(true);
+                    ;
                 await foreach (var r in resultConsistent.Rows) continue;
                 Assert.Equal(1, (int)resultConsistent.MetaData!.Metrics.ResultCount);
 
@@ -177,7 +177,7 @@ namespace Couchbase.IntegrationTests.Services.Query
 
                 var resultNoReplica = await cluster
                     .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
-                    .ConfigureAwait(true);
+                    ;
                 await foreach (var r in resultNoReplica.Rows) continue;
                 Assert.Equal(1, (int)resultNoReplica.MetaData!.Metrics.ResultCount);
 
@@ -187,13 +187,13 @@ namespace Couchbase.IntegrationTests.Services.Query
 
                 var resultWithReplica = await cluster
                     .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
-                    .ConfigureAwait(true);
+                    ;
                 await foreach (var r in resultWithReplica.Rows) continue;
                 Assert.Equal(1, (int)resultWithReplica.MetaData!.Metrics.ResultCount);
             }
             finally
             {
-                await collection.RemoveAsync(id).ConfigureAwait(true);
+                await collection.RemoveAsync(id);
             }
         }
 
@@ -202,15 +202,15 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_InterpolatedQuery()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var type = "hotel";
             var limit = 1;
 
             using var result = await cluster.QueryInterpolatedAsync<dynamic>($"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
-                .ConfigureAwait(true);
+                ;
 
-            await foreach (var o in result.ConfigureAwait(true))
+            await foreach (var o in result)
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
@@ -219,16 +219,16 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_InterpolatedQueryWithPassedOptions()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var type = "hotel";
             var limit = 1;
 
             var options = new QueryOptions().AdHoc(false); // This can be done inline, but we do it here so we can assert afterward
             using var result = await cluster.QueryInterpolatedAsync<dynamic>(options, $"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
-                .ConfigureAwait(true);
+                ;
 
-            await foreach (var o in result.ConfigureAwait(true))
+            await foreach (var o in result)
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
@@ -240,16 +240,16 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_InterpolatedQueryWithOptionsBuilder()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
 
             var type = "hotel";
             var limit = 1;
 
             using var result = await cluster.QueryInterpolatedAsync<dynamic>(options => options.AdHoc(false),
                 $"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
-                .ConfigureAwait(true);
+                ;
 
-            await foreach (var o in result.ConfigureAwait(true))
+            await foreach (var o in result)
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
@@ -262,13 +262,13 @@ namespace Couchbase.IntegrationTests.Services.Query
         {
             // After a BEGIN WORK statement is issued, all queries with the same "txid" parameter should
             // go to the same query node.
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             string txid = string.Empty;
             Uri originalQueryNode;
 
             {
                 using var span = new TestOutputSpan(_testOutputHelper);
-                var results = await cluster.QueryAsync<Transaction>("BEGIN WORK", options => options.RequestSpan(span)).ConfigureAwait(true);
+                var results = await cluster.QueryAsync<Transaction>("BEGIN WORK", options => options.RequestSpan(span));
                 originalQueryNode = results.MetaData?.LastDispatchedToNode;
                 await foreach (var result in results.Rows)
                 {
@@ -284,7 +284,7 @@ namespace Couchbase.IntegrationTests.Services.Query
                 using var querySpan = new TestOutputSpan(_testOutputHelper);
                 var options = new QueryOptions().Parameter("txid", txid).RequestSpan(querySpan);
                 options.LastDispatchedNode = originalQueryNode;
-                var result = await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;", options).ConfigureAwait(true);
+                var result = await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;", options);
 
 
                 var thisQueryHost = querySpan.Attributes.Where(kvp => kvp.Key == "net.peer.name").Select(kvp => kvp.Value).FirstOrDefault();

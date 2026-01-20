@@ -21,15 +21,15 @@ namespace Couchbase.Transactions.Tests.UnitTests
 
         ////    var cluster = MockCollection.CreateMockCluster(mockDocs);
         ////    var ctx = new AttemptContext(new TransactionContext(Guid.NewGuid().ToString(), DateTimeOffset.UtcNow, TransactionConfigBuilder.Create().Build(), null));
-        ////    var bucket = await cluster.BucketAsync("test-bucket").ConfigureAwait(true);
+        ////    var bucket = await cluster.BucketAsync("test-bucket");
         ////    var collection = bucket.DefaultCollection();
-        ////    var notFoundDoc = await ctx.GetOptionalAsync(collection, "notFound-id").ConfigureAwait(true);
+        ////    var notFoundDoc = await ctx.GetOptionalAsync(collection, "notFound-id");
         ////    Assert.Null(notFoundDoc);
-        ////    var foundDoc = await ctx.GetOptionalAsync(collection, "found-id").ConfigureAwait(true);
+        ////    var foundDoc = await ctx.GetOptionalAsync(collection, "found-id");
         ////    Assert.NotNull(foundDoc);
         ////    await Assert.ThrowsAsync<DocumentNotFoundException>(async () =>
         ////    {
-        ////        var getThrows = await ctx.GetAsync(collection, "notFound2-id").ConfigureAwait(true);
+        ////        var getThrows = await ctx.GetAsync(collection, "notFound2-id");
         ////    });
 
         ////}

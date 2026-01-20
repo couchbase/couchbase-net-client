@@ -29,14 +29,14 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task CreateAndDropIndex()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var bucketName = _fixture.GetDefaultBucket().Result.Name;
 
             const string indexName = "indexmgr_test";
             try
             {
                 await cluster.QueryIndexes.CreateIndexAsync(
-                    bucketName, indexName, new[] { "type" }).ConfigureAwait(true);
+                    bucketName, indexName, new[] { "type" });
             }
             catch (IndexExistsException)
             {
@@ -46,12 +46,12 @@ namespace Couchbase.IntegrationTests.Management
             bool failedCleanup = false;
             try
             {
-                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName).ConfigureAwait(true);
+                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName);
 
                 using var cts = new CancellationTokenSource(10000);
 
                 await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] { indexName },
-                    options => { options.CancellationToken(cts.Token); }).ConfigureAwait(true);
+                    options => { options.CancellationToken(cts.Token); });
 
                 var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName);
                 Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
@@ -60,7 +60,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 try
                 {
-                    await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName).ConfigureAwait(true);
+                    await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName);
                 }
                 catch (Exception e)
                 {
@@ -75,7 +75,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task CreateAndDropCollectionIndex()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var bucketName = _fixture.GetDefaultBucket().Result.Name;
             var collectionManager = _fixture.GetDefaultBucket().Result.Collections;
 
@@ -95,7 +95,7 @@ namespace Couchbase.IntegrationTests.Management
                         {
                             options.ScopeNameValue = scopeName;
                             options.CollectionNameValue = collectionName;
-                        }).ConfigureAwait(true);
+                        });
                 }
                 catch (IndexExistsException)
                 {
@@ -109,7 +109,7 @@ namespace Couchbase.IntegrationTests.Management
                     {
                         options.ScopeNameValue = scopeName;
                         options.CollectionNameValue = collectionName;
-                    }).ConfigureAwait(true);
+                    });
 
                     using var cts = new CancellationTokenSource(10000);
 
@@ -119,7 +119,7 @@ namespace Couchbase.IntegrationTests.Management
                             options.CancellationToken(cts.Token);
                             options.ScopeNameValue = scopeName;
                             options.CollectionNameValue = collectionName;
-                        }).ConfigureAwait(true);
+                        });
 
                     var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName, options =>
                     {
@@ -136,7 +136,7 @@ namespace Couchbase.IntegrationTests.Management
                         {
                             options.ScopeNameValue = scopeName;
                             options.CollectionNameValue = collectionName;
-                        }).ConfigureAwait(true);
+                        });
                     }
                     catch (Exception e)
                     {
@@ -156,25 +156,25 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task GetAllIndexesReturnsIndexesOnDefaultCollection()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var bucketName = _fixture.GetDefaultBucket().Result.Name;
 
             var indexManager = cluster.QueryIndexes;
 
             try
             {
-                await indexManager.CreatePrimaryIndexAsync(bucketName).ConfigureAwait(true);
+                await indexManager.CreatePrimaryIndexAsync(bucketName);
             }
             catch (IndexExistsException)
             {
                 //do nothing
             }
 
-            var allIndexes = await indexManager.GetAllIndexesAsync(bucketName).ConfigureAwait(true);
+            var allIndexes = await indexManager.GetAllIndexesAsync(bucketName);
             Assert.Single(allIndexes);
 
             allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-                options => options.ScopeName("_default")).ConfigureAwait(true);
+                options => options.ScopeName("_default"));
             Assert.Single(allIndexes);
 
             allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
@@ -182,14 +182,14 @@ namespace Couchbase.IntegrationTests.Management
                {
                    options.ScopeName("_default");
                    options.CollectionName("_default");
-               }).ConfigureAwait(true);
+               });
             Assert.Single(allIndexes);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task CreateIndexWithMissingField()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var bucket = await _fixture.GetDefaultBucket();
             var indexManager = cluster.QueryIndexes;
 
@@ -198,7 +198,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 //CREATE INDEX idx4 ON default(age MISSING, body)
                 await cluster.QueryIndexes.CreateIndexAsync(
-                    bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" }).ConfigureAwait(true);
+                    bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" });
             }
             catch (IndexExistsException)
             {
@@ -208,12 +208,12 @@ namespace Couchbase.IntegrationTests.Management
             bool failedCleanup = false;
             try
             {
-                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name).ConfigureAwait(true);
+                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name);
 
                 using var cts = new CancellationTokenSource(10000);
 
                 await cluster.QueryIndexes.WatchIndexesAsync(bucket.Name, new[] { indexName },
-                    options => { options.CancellationToken(cts.Token); }).ConfigureAwait(true);
+                    options => { options.CancellationToken(cts.Token); });
 
                 var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucket.Name);
                 Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
@@ -222,7 +222,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 try
                 {
-                    await cluster.QueryIndexes.DropIndexAsync(bucket.Name, indexName).ConfigureAwait(true);
+                    await cluster.QueryIndexes.DropIndexAsync(bucket.Name, indexName);
                 }
                 catch (Exception e)
                 {

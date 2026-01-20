@@ -31,19 +31,19 @@ namespace Couchbase.IntegrationTests.Management
 
         private async Task DropScopeIfExists(string scopeName, CollectionManager collectionManager)
         {
-            if (await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true))
+            if (await collectionManager.ScopeExistsAsync(scopeName))
             {
                 // drop scope
-                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.DropScopeAsync(scopeName);
             }
         }
 
         private async Task DropCollectionIfExists(CollectionSpec collectionSpec, CollectionManager collectionManager)
         {
-            if (await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true))
+            if (await collectionManager.CollectionExistsAsync(collectionSpec))
             {
                 // drop collection
-                await collectionManager.DropCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.DropCollectionAsync(collectionSpec);
             }
         }
 
@@ -59,7 +59,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CollectionManager_With_MinExpiry()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope1", collectionName = "test_collection1";
@@ -71,26 +71,26 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
                 Assert.True(scopeExistsResult);
 
                 // get all scopes
-                var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(true);
+                var getAllScopesResult = await collectionManager.GetAllScopesAsync();
                 var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
                 Assert.NotNull(scope);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // collection exists
-                getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(true);
+                getAllScopesResult = await collectionManager.GetAllScopesAsync();
                 scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
 
                 Assert.Equal(TimeSpan.FromMinutes(10), scope.Collections.First(x=>x.Name== collectionName).MaxExpiry);
@@ -104,7 +104,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CollectionManager()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope2", collectionName = "test_collection2";
@@ -113,30 +113,30 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
-                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(1));
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
                 Assert.True(scopeExistsResult);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // get all scopes
-                var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(true);
+                var getAllScopesResult = await collectionManager.GetAllScopesAsync();
                 var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
                 Assert.NotNull(scope);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(1));
 
                 // collection exists
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
             }
             finally
@@ -148,7 +148,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_ScopeNotFound()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope3", collectionName = "test_collection3";
@@ -157,14 +157,14 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
-                await Assert.ThrowsAsync<ScopeNotFoundException>(async ()=> await collectionManager.CreateCollectionAsync(collectionSpecInvalid).ConfigureAwait(true));
+                await Assert.ThrowsAsync<ScopeNotFoundException>(async ()=> await collectionManager.CreateCollectionAsync(collectionSpecInvalid));
             }
             finally
             {
@@ -175,7 +175,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_ScopeExists()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope4", collectionName = "test_collection4";
@@ -183,20 +183,20 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
                 // collection exists
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
                 Assert.True(scopeExistsResult);
             }
             finally
@@ -208,7 +208,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CollectionExists()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope5", collectionName = "test_collection5";
@@ -217,13 +217,13 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 // collection exists
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
             }
@@ -236,7 +236,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_ScopeExistsException()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope6", collectionName = "test_collection6";
@@ -244,24 +244,24 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 // collection exists
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
                 Assert.True(scopeExistsResult);
 
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
             }
             catch (ScopeExistsException e)
@@ -278,7 +278,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CollectionExistsException()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope7", collectionName = "test_collection7";
@@ -286,27 +286,27 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 // collection exists
                 var collectionExistsResult =
-                    await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                    await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(true);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
                 Assert.True(scopeExistsResult);
 
                 await Assert
                     .ThrowsAsync<CollectionExistsException>(async () =>
-                        await collectionManager.CreateCollectionAsync(collectionSpec)).ConfigureAwait(true);
+                        await collectionManager.CreateCollectionAsync(collectionSpec));
 
             }
             finally
@@ -318,7 +318,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_DropNonExistentScope_Throws_ScopeNotFoundException()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope8", collectionName = "test_collection8";
@@ -326,16 +326,16 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                await collectionManager.DropScopeAsync("scope_none").ConfigureAwait(true);
+                await collectionManager.DropScopeAsync("scope_none");
 
             }
             catch (ScopeNotFoundException e)
@@ -351,7 +351,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_DropNonExistentCollection_Throws_CollectionNotFoundException()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "scope_only";
@@ -361,13 +361,13 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(true);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
-                await collectionManager.DropCollectionAsync(collectionSpecNone).ConfigureAwait(true);
+                await collectionManager.DropCollectionAsync(collectionSpecNone);
             }
             catch (CollectionNotFoundException e)
             {
@@ -382,18 +382,18 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0", Skip = "Undo to run")]
         public async Task Test_BatchingCollectionGet()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
+            var collection = await _fixture.GetDefaultCollectionAsync();
             var upsertTasks = Enumerable.Range(0, 20).Select(x => collection.UpsertAsync($"mykey-{x}", x));
             var getTasks = Enumerable.Range(0, 20).Select(x => collection.GetAsync($"mykey-{x}"));
 
-            await Task.WhenAll(upsertTasks).ConfigureAwait(true);
-            await Task.WhenAll(getTasks).ConfigureAwait(true);
+            await Task.WhenAll(upsertTasks);
+            await Task.WhenAll(getTasks);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_UpsertOps()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope9", collectionName = "my_collection9";
@@ -404,8 +404,8 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope and collection
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);
@@ -422,7 +422,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_InsertOps()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope12", collectionName = "test_collection12";
@@ -433,8 +433,8 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope and collection
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);
@@ -451,7 +451,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_RemoveOps()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager) bucket.Collections;
 
             const string scopeName = "test_scope13", collectionName = "test_collection13";
@@ -462,8 +462,8 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope and collection
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);
@@ -483,7 +483,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_GetAllScopes()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName1 = "test_scopex1",  scopeName2 = "test_scopex2", scopeName3 = "test_scopex3", scopeName4 = "test_scopex4";
@@ -496,13 +496,13 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeName1).ConfigureAwait(true);
-                await collectionManager.CreateScopeAsync(scopeName2).ConfigureAwait(true);
-                await collectionManager.CreateScopeAsync(scopeName3).ConfigureAwait(true);
-                await collectionManager.CreateScopeAsync(scopeName4).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName1);
+                await collectionManager.CreateScopeAsync(scopeName2);
+                await collectionManager.CreateScopeAsync(scopeName3);
+                await collectionManager.CreateScopeAsync(scopeName4);
 
                 // get all scopes
-                var getAllScopesResult = (await collectionManager.GetAllScopesAsync().ConfigureAwait(true)).ToList();
+                var getAllScopesResult = (await collectionManager.GetAllScopesAsync()).ToList();
                 Assert.Contains(getAllScopesResult, p => p.Name == scopeName1);
                 Assert.Contains(getAllScopesResult, p => p.Name == scopeName2);
                 Assert.Contains(getAllScopesResult, p => p.Name == scopeName3);
@@ -520,18 +520,18 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0", Skip = "Undo to run.")]
         public async Task Test_SingleScopeMaxNumberOfCollections()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
             string scopeName = "singlescope1";
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
                 for (int i = 0; i < 1000; i++)
                 {
                     var collectionSpec = new CollectionSpec(scopeName, (1000 + i).ToString());
-                    await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
-                    var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                    await collectionManager.CreateCollectionAsync(collectionSpec);
+                    var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                     Assert.True(collectionExistsResult);
                 }
             }
@@ -544,7 +544,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async System.Threading.Tasks.Task Test_Collections_QueryOptionsAsync()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
             var scopeName = "query_test_scope1";
             var collectionName = "query_test_collection1";
@@ -555,16 +555,16 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(true);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
                 Assert.True(collectionExistsResult);
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);
 
-                var task = await collection.InsertAsync(docId, new { }).ConfigureAwait(true);
+                var task = await collection.InsertAsync(docId, new { });
                 var options = new QueryOptions("select * from `" + collectionName + "` where meta().id=\"" + docId + "\"") { QueryContext = "namespace:bucket:scope:collection" };
                 var args = options.GetFormValues();
                 Assert.Equal("namespace:bucket:scope:collection", args["query_context"]);
@@ -578,7 +578,7 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async System.Threading.Tasks.Task Test_Collections_QueryOps()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
             var scopeName = "query_test_scope2";
             var collectionName = "query_test_collection2";
@@ -589,13 +589,13 @@ namespace Couchbase.IntegrationTests.Management
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(true);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(true);
+                await collectionManager.CreateScopeAsync(scopeName);
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);
 
-                var task = await collection.InsertAsync(docId, new { }).ConfigureAwait(true);
+                var task = await collection.InsertAsync(docId, new { });
                 var options =
                     new QueryOptions("select * from `" + collectionName + "` where meta().id=\"" + docId + "\"")
                         {QueryContext = "namespace:bucket:scope:collection"};
@@ -623,7 +623,7 @@ namespace Couchbase.IntegrationTests.Management
     {
         public static async Task<ScopeSpec> GetScopeUsingGetAllScopesAsync(this ICouchbaseCollectionManager collectionManager, string scopeName)
         {
-            var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(true);
+            var getAllScopesResult = await collectionManager.GetAllScopesAsync();
             var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
             return scope;
         }

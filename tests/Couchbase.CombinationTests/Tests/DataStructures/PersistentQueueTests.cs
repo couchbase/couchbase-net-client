@@ -27,7 +27,7 @@ public class PersistentQueueTests
     [Fact]
     async Task Test_PersistentQueue_Enqueues_And_Dequeues_In_Correct_FIFO_Order()
     {
-        var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
+        var collection = await _fixture.GetDefaultCollection();
 
         var documentId = "QueueTest" + Guid.NewGuid();
         var queue = collection.Queue<int>(documentId);
@@ -35,7 +35,7 @@ public class PersistentQueueTests
         for (var queueItem = 1; queueItem <= 5; queueItem++)
         {
             _outputHelper.WriteLine($"Enqueing {queueItem}");
-            await queue.EnqueueAsync(queueItem).ConfigureAwait(true);
+            await queue.EnqueueAsync(queueItem);
         }
 
         var count = 1;
@@ -44,7 +44,7 @@ public class PersistentQueueTests
             int currentPeek;
             try
             {
-                currentPeek = await queue.PeekAsync().ConfigureAwait(true);
+                currentPeek = await queue.PeekAsync();
             }
             catch (PathNotFoundException)
             {
@@ -53,7 +53,7 @@ public class PersistentQueueTests
 
             Assert.Equal(count, currentPeek);
             _outputHelper.WriteLine($"Peeking at {currentPeek} before dequeing");
-            await queue.DequeueAsync().ConfigureAwait(true);
+            await queue.DequeueAsync();
             count++;
 
         }

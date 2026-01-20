@@ -229,11 +229,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
-            await Task.Delay(10).ConfigureAwait(true);
+            await Task.Delay(10);
             Assert.False(task.IsCompleted, userMessage: "Task should not be complete before any states are complete.");
 
             state1.Complete(SlicedMemoryOwner<byte>.Empty);
-            await Task.Delay(10).ConfigureAwait(true);
+            await Task.Delay(10);
             Assert.False(task.IsCompleted, userMessage: "Task should not be complete before all states are complete");
 
             state2.Complete(SlicedMemoryOwner<byte>.Empty);

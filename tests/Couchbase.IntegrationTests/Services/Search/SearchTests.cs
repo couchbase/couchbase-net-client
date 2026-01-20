@@ -39,7 +39,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Test_Async()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn"),
                 new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Scope("_default").Collections("_default")).
@@ -51,12 +51,12 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Test_Async_With_HighLightStyle_Html_And_Fields()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn"),
                 new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))
                     .Highlight(HighLightStyle.Html, "inn")
-            ).ConfigureAwait(true);
+            );
 
             Assert.True(results.Hits.Count > 0);
         }
@@ -64,7 +64,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Facets_Async_Success()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn"),
                 new SearchOptions().Facets(
@@ -72,29 +72,29 @@ namespace Couchbase.IntegrationTests.Services.Search
                     new DateRangeFacet("daterangefacet", "thefield", 10).AddRange("testName", DateTime.Now, DateTime.Now.AddDays(1)),
                     new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange("testName", 2.2f, 3.5f)
                 )
-            ).ConfigureAwait(true);
+            );
             Assert.Equal(3, results.Facets.Count);
         }
 
         [Fact]
         public async Task Search_Include_Locations()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn"),
                 new SearchOptions().IncludeLocations(true).Limit(10)
-            ).ConfigureAwait(true);
+            );
             Assert.NotEmpty(results.Hits[0].Locations);
         }
 
         [Fact]
         public async Task Search_Match_Operator_Or()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn hotel").MatchOperator(MatchOperator.Or),
                 new SearchOptions().Limit(10)
-            ).ConfigureAwait(true);
+            );
             Assert.Equal(10,  results.Hits.Count);
         }
 
@@ -102,22 +102,22 @@ namespace Couchbase.IntegrationTests.Services.Search
         public async Task Search_Match_Operator_And_Hit()
         {
             //Referring to document "hotel_31944"
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("http://www.hotelavenuelodge.com Val-d'Isère").MatchOperator(MatchOperator.And),
                 new SearchOptions()
-            ).ConfigureAwait(true);
+            );
             Assert.Equal(1,  results.Hits.Count);
         }
 
         [Fact]
         public async Task Search_Match_Operator_And_Miss()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(true);
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("http://www.hotelavenuelodge.com asdfg").MatchOperator(MatchOperator.And),
                 new SearchOptions()
-            ).ConfigureAwait(true);
+            );
             Assert.Equal(0,  results.Hits.Count);
         }
     }

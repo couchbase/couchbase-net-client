@@ -58,7 +58,7 @@ namespace Couchbase.UnitTests.Views
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
 
-            await queryClient.ExecuteAsync<dynamic, dynamic>(query).ConfigureAwait(true);
+            await queryClient.ExecuteAsync<dynamic, dynamic>(query);
         }
 
         [Fact]
@@ -80,7 +80,7 @@ namespace Couchbase.UnitTests.Views
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys("test-key");
 
-            await queryClient.ExecuteAsync<dynamic, dynamic>(query).ConfigureAwait(true);
+            await queryClient.ExecuteAsync<dynamic, dynamic>(query);
             Assert.NotNull(queryClient.LastActivity);
         }
 
@@ -116,7 +116,7 @@ namespace Couchbase.UnitTests.Views
             await client.ExecuteAsync<object, object>(new ViewQuery("default", "doc", "view")
             {
                 Serializer = overrideSerializer.Object
-            }).ConfigureAwait(true);
+            });
 
             primarySerializer.Verify(
                 m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(),

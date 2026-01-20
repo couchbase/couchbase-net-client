@@ -112,7 +112,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         {
             if (!isAlreadyFlushed)
             {
-                await CouchbaseCluster.Buckets.FlushBucketAsync(_settings.Bucket).ConfigureAwait(true);
+                await CouchbaseCluster.Buckets.FlushBucketAsync(_settings.Bucket);
                 return true;
             }
 
@@ -128,8 +128,8 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         public async Task<IScope> GetDefaultScope()
         {
             await BuildAsync();
-            var bucket = await DefaultBucket().ConfigureAwait(true);
-            return await bucket.ScopeAsync("_default").ConfigureAwait(true);
+            var bucket = await DefaultBucket();
+            return await bucket.ScopeAsync("_default");
         }
 
         public async Task<ICouchbaseCollection> DefaultCollection()

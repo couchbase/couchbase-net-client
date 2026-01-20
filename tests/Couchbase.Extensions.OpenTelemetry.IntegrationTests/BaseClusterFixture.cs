@@ -44,13 +44,13 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 return Cluster;
             }
 
-            await GetDefaultBucket().ConfigureAwait(true);
+            await GetDefaultBucket();
             return Cluster;
         }
 
         public virtual async Task<IBucket> GetDefaultBucket()
         {
-            var bucket = await Cluster.BucketAsync(_settings.BucketName).ConfigureAwait(true);
+            var bucket = await Cluster.BucketAsync(_settings.BucketName);
 
             _bucketOpened = true;
 
@@ -59,7 +59,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
 
         public async Task<ICouchbaseCollection> GetDefaultCollectionAsync()
         {
-            var bucket = await GetDefaultBucket().ConfigureAwait(true);
+            var bucket = await GetDefaultBucket();
             return await bucket.DefaultCollectionAsync();
         }
 
@@ -106,7 +106,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
             Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
                     GetClusterOptions())
-                .ConfigureAwait(true);
+                ;
         }
 
         public virtual Task DisposeAsync()

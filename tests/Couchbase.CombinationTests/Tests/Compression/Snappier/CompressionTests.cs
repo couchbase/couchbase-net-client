@@ -17,14 +17,14 @@ namespace Couchbase.CombinationTests.Tests.Compression.Snappier
         [Fact]
         public async Task InsertAndGet()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(true);
+            var collection = await _fixture.GetDefaultCollection();
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new {name = "mike", data=new string('X', 500)}).ConfigureAwait(true);
+                await collection.InsertAsync(key, new {name = "mike", data=new string('X', 500)});
 
-                using (var result = await collection.GetAsync(key).ConfigureAwait(true))
+                using (var result = await collection.GetAsync(key))
                 {
                     var content = result.ContentAs<dynamic>();
 
@@ -34,7 +34,7 @@ namespace Couchbase.CombinationTests.Tests.Compression.Snappier
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(true);
+                await collection.RemoveAsync(key);
             }
         }
     }

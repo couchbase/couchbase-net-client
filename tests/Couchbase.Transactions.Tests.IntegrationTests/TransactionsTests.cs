@@ -59,7 +59,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var result = await txn.RunAsync(async ctx =>
                 {
-                    var insertResult = await ctx.InsertAsync(defaultCollection, docId, sampleDoc).ConfigureAwait(true);
+                    var insertResult = await ctx.InsertAsync(defaultCollection, docId, sampleDoc);
                     Assert.Equal("_default", insertResult?.TransactionXattrs?.AtrRef?.CollectionName);
                     Assert.Equal("_default", insertResult?.TransactionXattrs?.AtrRef?.ScopeName);
 
@@ -116,7 +116,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var result = await txn.RunAsync(async ctx =>
                 {
-                    var insertResult = await ctx.InsertAsync(customCollection, docId, sampleDoc).ConfigureAwait(true);
+                    var insertResult = await ctx.InsertAsync(customCollection, docId, sampleDoc);
                     Assert.Equal("_default", insertResult?.TransactionXattrs?.AtrRef?.CollectionName);
                     Assert.Equal("_default", insertResult?.TransactionXattrs?.AtrRef?.ScopeName);
                     var getResult = await ctx.GetAsync(customCollection, docId);
@@ -173,7 +173,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var result = await txn.RunAsync(async ctx =>
                 {
-                    var insertResult = await ctx.InsertAsync(defaultCollection, docId, sampleDoc).ConfigureAwait(true);
+                    var insertResult = await ctx.InsertAsync(defaultCollection, docId, sampleDoc);
                     Assert.Equal(ClusterFixture.CustomCollectionName, insertResult?.TransactionXattrs?.AtrRef?.CollectionName);
 
                     var getResult = await ctx.GetAsync(defaultCollection, docId);

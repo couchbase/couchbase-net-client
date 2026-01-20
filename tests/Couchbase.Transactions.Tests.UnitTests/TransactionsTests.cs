@@ -113,25 +113,25 @@ namespace Couchbase.Transactions.Tests.UnitTests
                 {
                     // Inserting a doc:
                     var docId = "test-id";
-                    var bucket = await cluster.BucketAsync("test-bucket").ConfigureAwait(true);
+                    var bucket = await cluster.BucketAsync("test-bucket");
                     var collection = await bucket.DefaultCollectionAsync();
-                    var insertResult = await ctx.InsertAsync(collection, docId, new JObject()).ConfigureAwait(true);
+                    var insertResult = await ctx.InsertAsync(collection, docId, new JObject());
 
                     // Getting documents:
-                    var docOpt = await ctx.GetOptionalAsync(collection, docId).ConfigureAwait(true);
-                    var doc = await ctx.GetAsync(collection, docId).ConfigureAwait(true);
+                    var docOpt = await ctx.GetOptionalAsync(collection, docId);
+                    var doc = await ctx.GetAsync(collection, docId);
 
                     // Replacing a document:
-                    var anotherDoc = await ctx.GetAsync(collection, "anotherDoc").ConfigureAwait(true);
+                    var anotherDoc = await ctx.GetAsync(collection, "anotherDoc");
                     var content = anotherDoc.ContentAs<JObject>();
                     content["transactions"] = "are awesome";
                     await ctx.ReplaceAsync(anotherDoc, content);
 
                     // Removing a document:
-                    var yetAnotherDoc = await ctx.GetAsync(collection, "yetAnotherDoc)").ConfigureAwait(true);
-                    await ctx.RemoveAsync(yetAnotherDoc).ConfigureAwait(true);
+                    var yetAnotherDoc = await ctx.GetAsync(collection, "yetAnotherDoc)");
+                    await ctx.RemoveAsync(yetAnotherDoc);
 
-                    await ctx.CommitAsync().ConfigureAwait(true);
+                    await ctx.CommitAsync();
                     reachedPostCommit = true;
                 });
             }

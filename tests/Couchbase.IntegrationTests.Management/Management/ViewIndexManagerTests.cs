@@ -24,7 +24,7 @@ namespace Couchbase.IntegrationTests.Management
         public async Task TestIndexManager()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var bucket = await _fixture.GetDefaultBucket();
             var manager = bucket.ViewIndexes;
 
             var designDoc = new DesignDocument
@@ -46,29 +46,29 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // upsert
-                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development).ConfigureAwait(true);
+                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // get
-                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development).ConfigureAwait(true);
+                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development);
                 VerifyDesignDoc(designDoc, getResult);
 
                 // publish
-                await manager.PublishDesignDocumentAsync(designDoc.Name).ConfigureAwait(true);
+                await manager.PublishDesignDocumentAsync(designDoc.Name);
 
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(5));
 
                 // get all
                 var getAllResult =
-                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production).ConfigureAwait(true)).ToList();
+                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production)).ToList();
                 var result = getAllResult.First(p => p.Name == "test_ddoc");
                 VerifyDesignDoc(designDoc, result);
             }
             finally
             {
                 // drop
-                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production).ConfigureAwait(true);
+                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production);
             }
         }
 

@@ -23,12 +23,12 @@ public class TestHelper
         {
             try
             {
-                await _fixture.Cluster.Buckets.GetBucketAsync(bucketName).ConfigureAwait(true);
+                await _fixture.Cluster.Buckets.GetBucketAsync(bucketName);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
+                await Task.Delay(LinearBackoff(retryCount));
                 continue;
             }
             isPresent = true;
@@ -45,14 +45,14 @@ public class TestHelper
         {
             try
             {
-                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
-                await scope.CollectionAsync(collectionName).ConfigureAwait(true);
+                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default");
+                await scope.CollectionAsync(collectionName);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
+                await Task.Delay(LinearBackoff(retryCount));
                 continue;
             }
             isPresent = true;
@@ -63,8 +63,8 @@ public class TestHelper
 
     public async Task WaitUntilCollectionIsDropped(string collectionName, string? bucketName = null, string? scopeName = null, int limit = 10)
     {
-        var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
-        var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
+        var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
+        var scope = await bucket.ScopeAsync(scopeName ?? "_default");
 
         bool isGone = false;
         short retryCount = 0;
@@ -72,8 +72,8 @@ public class TestHelper
         {
             try
             {
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
-                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" }).ConfigureAwait(true);
+                var collection = await scope.CollectionAsync(collectionName);
+                await collection.UpsertAsync(Guid.NewGuid().ToString(), new { TestContent = "Test" });
             }
             catch (Exception)
             {
@@ -81,7 +81,7 @@ public class TestHelper
                 break;
             }
             retryCount++;
-            await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
+            await Task.Delay(LinearBackoff(retryCount));
         }
 
         if (!isGone) throw new CouchbaseException($"The consistency util failed out after {limit} attempts.");
@@ -97,15 +97,15 @@ public class TestHelper
         {
             try
             {
-                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default").ConfigureAwait(true);
-                var scope = await bucket.ScopeAsync(scopeName ?? "_default").ConfigureAwait(true);
-                var collection = await scope.CollectionAsync(collectionName ?? "_default").ConfigureAwait(true);
-                result = await collection.GetAsync(id).ConfigureAwait(true);
+                var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
+                var scope = await bucket.ScopeAsync(scopeName ?? "_default");
+                var collection = await scope.CollectionAsync(collectionName ?? "_default");
+                result = await collection.GetAsync(id);
             }
             catch (Exception)
             {
                 retryCount++;
-                await Task.Delay(LinearBackoff(retryCount)).ConfigureAwait(true);
+                await Task.Delay(LinearBackoff(retryCount));
             }
 
             if (result != null)

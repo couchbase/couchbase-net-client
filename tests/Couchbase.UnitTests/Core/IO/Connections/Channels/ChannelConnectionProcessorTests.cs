@@ -93,7 +93,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public override async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
-                await connection.SendAsync(Memory<byte>.Empty, new Noop(), cancellationToken).ConfigureAwait(true);
+                await connection.SendAsync(Memory<byte>.Empty, new Noop(), cancellationToken);
             }
         }
 

@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core
 
              bootStrapper.Start(mockSubject.Object);
 
-             await Task.Delay(1200).ConfigureAwait(true);
+             await Task.Delay(1200);
              mockSubject.Verify(x => x.BootStrapAsync(), Times.AtLeast(2));
          }
 

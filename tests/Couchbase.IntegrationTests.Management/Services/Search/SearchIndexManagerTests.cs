@@ -38,44 +38,44 @@ namespace Couchbase.IntegrationTests.Services.Search
             try
             {
                 // upsert
-                await manager.UpsertIndexAsync(definition).ConfigureAwait(true);
+                await manager.UpsertIndexAsync(definition);
 
                 // get
-                var getResult = await manager.GetIndexAsync(definition.Name).ConfigureAwait(true);
+                var getResult = await manager.GetIndexAsync(definition.Name);
                 VerifyIndex(definition, getResult);
 
                 //TODO: assert params, planParams and sourceParams
 
                 // get all
-                var getAllResult = await manager.GetAllIndexesAsync().ConfigureAwait(true);
+                var getAllResult = await manager.GetAllIndexesAsync();
                 getResult = getAllResult.Single(x => x.Name == definition.Name);
                 VerifyIndex(definition, getResult);
 
-                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+                await Task.Delay(TimeSpan.FromSeconds(1));
 
-                await manager.GetIndexedDocumentsCountAsync(definition.Name).ConfigureAwait(true);
+                await manager.GetIndexedDocumentsCountAsync(definition.Name);
 
                 // pause
-                await manager.PauseIngestAsync(definition.Name).ConfigureAwait(true);
+                await manager.PauseIngestAsync(definition.Name);
 
                 // resume
-                await manager.ResumeIngestAsync(definition.Name).ConfigureAwait(true);
+                await manager.ResumeIngestAsync(definition.Name);
 
                 // freeze
-                await manager.FreezePlanAsync(definition.Name).ConfigureAwait(true);
+                await manager.FreezePlanAsync(definition.Name);
 
                 // unfreeze
-                await manager.UnfreezePlanAsync(definition.Name).ConfigureAwait(true);
+                await manager.UnfreezePlanAsync(definition.Name);
 
                 // allow querying
-                await manager.AllowQueryingAsync(definition.Name).ConfigureAwait(true);
+                await manager.AllowQueryingAsync(definition.Name);
 
                 // disallow querying
-                await manager.DisallowQueryingAsync(definition.Name).ConfigureAwait(true);
+                await manager.DisallowQueryingAsync(definition.Name);
             }
             finally
             {
-                await manager.DropIndexAsync(definition.Name).ConfigureAwait(true);
+                await manager.DropIndexAsync(definition.Name);
             }
         }
 

@@ -26,17 +26,17 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
         [Fact]
         public async Task Loop1000InsertUpsertRemoveOps()
         {
-            var collection = await fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
+            var collection = await fixture.GetDefaultCollectionAsync();
             var key = Guid.NewGuid().ToString();
 
             for (var i = 0; i < 1000; i++)
             {
                 try
                 {
-                    await collection.InsertAsync(key, new { name = "mike mike mike mike mike mike mike mike mike mike mike mike mike mike mike" }).ConfigureAwait(true);
-                    await collection.UpsertAsync(key, new { name = "john john john john john john john john john john john john john john john" }).ConfigureAwait(true);
+                    await collection.InsertAsync(key, new { name = "mike mike mike mike mike mike mike mike mike mike mike mike mike mike mike" });
+                    await collection.UpsertAsync(key, new { name = "john john john john john john john john john john john john john john john" });
 
-                    using (var result = await collection.GetAsync(key).ConfigureAwait(true))
+                    using (var result = await collection.GetAsync(key))
                     {
                         var content = result.ContentAs<dynamic>();
 
@@ -47,7 +47,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 {
                     try
                     {
-                        await collection.RemoveAsync(key).ConfigureAwait(true);
+                        await collection.RemoveAsync(key);
                     }
                     catch (DocumentNotFoundException)
                     {

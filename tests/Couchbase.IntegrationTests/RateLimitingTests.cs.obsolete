@@ -402,7 +402,7 @@ namespace Couchbase.IntegrationTests
                         .Select(async _ => await cluster.QueryAsync<JObject>("select 1 = 1"))
                         .ToList();
 
-                    await Task.WhenAll(parallelTasks).ConfigureAwait(true);
+                    await Task.WhenAll(parallelTasks);
                 });
 
                 Assert.True(ex.Context?.Message.Contains("User has more requests running than allowed"));
@@ -440,7 +440,7 @@ namespace Couchbase.IntegrationTests
                         .Select(async _ => await cluster.Buckets.GetAllBucketsAsync())
                         .ToList();
 
-                    await Task.WhenAll(parallelTasks).ConfigureAwait(true);
+                    await Task.WhenAll(parallelTasks);
                 });
 
                 Assert.True(ex.Context?.Message.Contains("Limit(s) exceeded [num_concurrent_requests]"));
@@ -729,7 +729,7 @@ namespace Couchbase.IntegrationTests
                             options => options.Timeout(TimeSpan.FromSeconds(10))))
                         .ToList();
 
-                    await Task.WhenAll(parallelTasks).ConfigureAwait(true);
+                    await Task.WhenAll(parallelTasks);
                 });
 
                 Assert.True(ex.Context?.Message.Contains("num_concurrent_requests"));

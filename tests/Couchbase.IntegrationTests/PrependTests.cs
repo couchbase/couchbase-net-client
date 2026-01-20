@@ -20,22 +20,22 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_prepend()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(true);
+            var collection = await _fixture.GetDefaultCollectionAsync();
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, Encoding.UTF8.GetBytes("world"), options => options.Transcoder(new LegacyTranscoder())).ConfigureAwait(true);
-                await collection.Binary.PrependAsync(key, Encoding.UTF8.GetBytes("hello ")).ConfigureAwait(true);
+                await collection.InsertAsync(key, Encoding.UTF8.GetBytes("world"), options => options.Transcoder(new LegacyTranscoder()));
+                await collection.Binary.PrependAsync(key, Encoding.UTF8.GetBytes("hello "));
 
-                using (var result = await collection.GetAsync(key, options => options.Transcoder(new LegacyTranscoder())).ConfigureAwait(true))
+                using (var result = await collection.GetAsync(key, options => options.Transcoder(new LegacyTranscoder())))
                 {
                     Assert.Equal("hello world", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
                 }
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(true);
+                await collection.RemoveAsync(key);
             }
         }
     }

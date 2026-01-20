@@ -28,7 +28,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var bytes = Encoding.UTF8.GetBytes(json);
 
             await Assert.ThrowsAsync<ValueToolargeException>(() =>
-                conn.SendAsync(bytes, Mock.Of<IOperation>()).AsTask()).ConfigureAwait(true);
+                conn.SendAsync(bytes, Mock.Of<IOperation>()).AsTask());
         }
 
         [Fact]

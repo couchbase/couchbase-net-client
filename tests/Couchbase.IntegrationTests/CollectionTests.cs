@@ -22,7 +22,7 @@ namespace Couchbase.IntegrationTests
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_Collection_Exists()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope", collectionName = "my_collection";
@@ -38,11 +38,11 @@ namespace Couchbase.IntegrationTests
 
                 await Task.Delay(1000);
 
-                var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(true);
-                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(true);
-                var result = await collection.UpsertAsync("key3", new { }).ConfigureAwait(true);
+                var scope = await bucket.ScopeAsync(scopeName);
+                var collection = await scope.CollectionAsync(collectionName);
+                var result = await collection.UpsertAsync("key3", new { });
 
-                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000))).ConfigureAwait(true);
+                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000)));
             }
             finally
             {
@@ -57,19 +57,19 @@ namespace Couchbase.IntegrationTests
         {
             const string key = nameof(InsertByteArray_DefaultConverter_UnsupportedException);
 
-            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(true);
-            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(true);
+            var bucket = await _fixture.Cluster.BucketAsync("default");
+            var collection = await bucket.DefaultCollectionAsync();
 
             try
             {
                 await Assert.ThrowsAsync<UnsupportedException>(
-                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 })).ConfigureAwait(true);
+                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 }));
             }
             finally
             {
                 try
                 {
-                    await collection.RemoveAsync(key).ConfigureAwait(true);
+                    await collection.RemoveAsync(key);
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -84,7 +84,7 @@ namespace Couchbase.IntegrationTests
             const string collectionName = "coll";
             const string key = nameof(CollectionIdChanged_RetriesAutomatically);
 
-            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+            var bucket = await _fixture.GetDefaultBucket();
             var collectionManager = bucket.Collections;
 
             try
@@ -96,7 +96,7 @@ namespace Couchbase.IntegrationTests
                 var scope = await bucket.ScopeAsync(scopeName);
                 ICouchbaseCollection collection = await scope.CollectionAsync(collectionName);
 
-                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(true);
+                await collection.UpsertAsync(key, new {name = "mike"});
 
                 await collectionManager.DropCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(500);
@@ -104,7 +104,7 @@ namespace Couchbase.IntegrationTests
                 await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(500);
 
-                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(true);
+                await collection.UpsertAsync(key, new {name = "mike"});
             }
             finally
             {

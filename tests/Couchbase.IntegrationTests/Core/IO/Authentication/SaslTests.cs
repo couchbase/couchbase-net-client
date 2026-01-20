@@ -46,7 +46,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
 
             var connection = await factory
                 .CreateAndConnectAsync(endPoint)
-                .ConfigureAwait(true);
+                ;
 
             var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
                 options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
@@ -54,7 +54,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new BestEffortRetryStrategy()));
 
-            await sha1Mechanism.AuthenticateAsync(connection).ConfigureAwait(true);
+            await sha1Mechanism.AuthenticateAsync(connection);
         }
     }
 }

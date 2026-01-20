@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Query
 
                 try
                 {
-                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(true);
+                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
                 }
                 catch (Exception e)
                 {
@@ -151,7 +151,7 @@ namespace Couchbase.UnitTests.Query
 
                 try
                 {
-                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(true);
+                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
                 }
                 catch (Exception e)
                 {
@@ -209,9 +209,9 @@ namespace Couchbase.UnitTests.Query
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<AppTelemetryCollector>().Object);
 
-            var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(true);
+            var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions());
 
-            Assert.Equal(10, await result.CountAsync().ConfigureAwait(true));
+            Assert.Equal(10, await result.CountAsync());
         }
 
         [Fact]
@@ -262,7 +262,7 @@ namespace Couchbase.UnitTests.Query
                 new QueryOptions
                 {
                     Serializer = overrideSerializer.Object
-                }).ConfigureAwait(true);
+                });
 
             primarySerializer.Verify(
                 m => m.DeserializeAsync<BlockQueryResult<object>.QueryResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),

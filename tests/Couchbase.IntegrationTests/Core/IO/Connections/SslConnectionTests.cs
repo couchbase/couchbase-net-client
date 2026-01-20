@@ -69,13 +69,13 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
 
                 try
                 {
-                    await collection.InsertAsync(key, new { name = "mike" }).ConfigureAwait(true);
+                    await collection.InsertAsync(key, new { name = "mike" });
 
                     async Task DoOneHundredGets()
                     {
                         for (var i = 0; i < 100; i++)
                         {
-                            using var result = await collection.GetAsync(key).ConfigureAwait(true);
+                            using var result = await collection.GetAsync(key);
 
                             var content = result.ContentAs<dynamic>();
 
@@ -87,11 +87,11 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                         .Select(_ => DoOneHundredGets())
                         .ToList();
 
-                    await Task.WhenAll(parallelTasks).ConfigureAwait(true);
+                    await Task.WhenAll(parallelTasks);
                 }
                 finally
                 {
-                    await collection.RemoveAsync(key).ConfigureAwait(true);
+                    await collection.RemoveAsync(key);
                 }
         }
 

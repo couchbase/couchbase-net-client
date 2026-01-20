@@ -26,33 +26,33 @@ public class CollectionManagerTests
     [Fact]
     public async Task Test_CreateCollection()
     {
-        var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+        var bucket = await _fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
         var collectionManager = bucket.Collections;
         var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10));
 
-        var exception = await Record.ExceptionAsync(async () => await collectionManager.CreateCollectionAsync("_default", id, settings).ConfigureAwait(true)).ConfigureAwait(true);
+        var exception = await Record.ExceptionAsync(async () => await collectionManager.CreateCollectionAsync("_default", id, settings));
 
         Assert.Null(exception);
 
-        await collectionManager.DropCollectionAsync("_default", id).ConfigureAwait(true);
+        await collectionManager.DropCollectionAsync("_default", id);
     }
 
     [Fact]
     public async Task Test_DropCollection()
     {
-        var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+        var bucket = await _fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
         var collectionManager = bucket.Collections;
         var settings = new CreateCollectionSettings(TimeSpan.FromSeconds(10));
 
-        await collectionManager.CreateCollectionAsync("_default", id, settings).ConfigureAwait(true);
+        await collectionManager.CreateCollectionAsync("_default", id, settings);
 
-        var exception = await Record.ExceptionAsync(async () => await collectionManager.DropCollectionAsync("_default", id).ConfigureAwait(true)).ConfigureAwait(true);
+        var exception = await Record.ExceptionAsync(async () => await collectionManager.DropCollectionAsync("_default", id));
 
         Assert.Null(exception);
     }
@@ -60,7 +60,7 @@ public class CollectionManagerTests
     [CouchbaseVersionDependentFact(MinVersion = "7.2.0")]
     public async Task Test_UpdateCollection_With_History_And_MaxExpiry()
     {
-        var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(true);
+        var bucket = await _fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
@@ -68,13 +68,13 @@ public class CollectionManagerTests
         var createSettings = new CreateCollectionSettings(TimeSpan.FromMinutes(5), false);
         var updateSettings = new UpdateCollectionSettings(TimeSpan.FromMinutes(5), true);
 
-        await collectionManager.CreateCollectionAsync("_default", id, createSettings).ConfigureAwait(true);
+        await collectionManager.CreateCollectionAsync("_default", id, createSettings);
 
-        await _testHelper.WaitUntilCollectionIsPresent(id).ConfigureAwait(true);
+        await _testHelper.WaitUntilCollectionIsPresent(id);
 
         try
         {
-            await collectionManager.UpdateCollectionAsync("_default", id, updateSettings).ConfigureAwait(true);
+            await collectionManager.UpdateCollectionAsync("_default", id, updateSettings);
             Assert.True(true);
         }
         catch (CouchbaseException e)
@@ -90,6 +90,6 @@ public class CollectionManagerTests
             }
         }
 
-        await collectionManager.DropCollectionAsync("_default", id).ConfigureAwait(true);
+        await collectionManager.DropCollectionAsync("_default", id);
     }
 }

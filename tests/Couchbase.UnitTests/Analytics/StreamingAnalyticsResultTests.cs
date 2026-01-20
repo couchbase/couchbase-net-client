@@ -24,11 +24,11 @@ namespace Couchbase.UnitTests.Analytics
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
 
             using var queryResult = new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer());
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Act
 
-            var result = await queryResult.ToListAsync().ConfigureAwait(true);
+            var result = await queryResult.ToListAsync();
 
             // Assert
 
@@ -44,11 +44,11 @@ namespace Couchbase.UnitTests.Analytics
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
 
             using var queryResult = new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer());
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Act
 
-            var result = await queryResult.ToListAsync().ConfigureAwait(true);
+            var result = await queryResult.ToListAsync();
 
             // Assert
 
@@ -66,7 +66,7 @@ namespace Couchbase.UnitTests.Analytics
 
             // Act/Assert
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => queryResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => queryResult.ToListAsync().AsTask());
         }
 
         [Theory]
@@ -79,12 +79,12 @@ namespace Couchbase.UnitTests.Analytics
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var queryResult = new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer());
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Act/Assert
 
-            await queryResult.ToListAsync().ConfigureAwait(true);
-            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => queryResult.ToListAsync().AsTask()).ConfigureAwait(true);
+            await queryResult.ToListAsync();
+            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => queryResult.ToListAsync().AsTask());
         }
 
         [Theory]
@@ -97,11 +97,11 @@ namespace Couchbase.UnitTests.Analytics
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var queryResult = new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer());
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Act
 
-            await queryResult.ToListAsync().ConfigureAwait(true);
+            await queryResult.ToListAsync();
             var result = queryResult.MetaData.Status;
 
             // Assert
@@ -118,11 +118,11 @@ namespace Couchbase.UnitTests.Analytics
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
 
             using var queryResult = new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer());
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Act
 
-            await queryResult.ToListAsync().ConfigureAwait(true);
+            await queryResult.ToListAsync();
 
             // Assert
 
@@ -145,7 +145,7 @@ namespace Couchbase.UnitTests.Analytics
 
             // Act
 
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Assert
 
@@ -164,7 +164,7 @@ namespace Couchbase.UnitTests.Analytics
 
             // Act
 
-            await queryResult.InitializeAsync().ConfigureAwait(true);
+            await queryResult.InitializeAsync();
 
             // Assert
 
