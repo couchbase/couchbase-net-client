@@ -109,10 +109,9 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
 
             // Assert
 
-            Assert.Empty(exportedItems
+            Assert.DoesNotContain(exportedItems
                 .Where(p => p.Name == Names.OperationCounts)
-                .SelectMany(Enumerate)
-                .Where(p => IsOperation(p, Kv.SetUpsert)));
+                .SelectMany(Enumerate), p => IsOperation(p, Kv.SetUpsert));
         }
 
         private static IEnumerable<MetricPoint> Enumerate(Metric metric)

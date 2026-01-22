@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Utils;
 using Xunit;
 

@@ -16,8 +16,8 @@ namespace Couchbase.Stellar.CombinationTests.Management;
 public class StellarCollectionQueryIndexManagementTests
 {
     private readonly ITestOutputHelper _outputHelper;
-    private StellarFixture _fixture;
-    private ConsistencyUtils _utils;
+    private readonly StellarFixture _fixture;
+    private readonly ConsistencyUtils _utils;
     public StellarCollectionQueryIndexManagementTests(StellarFixture fixture, ITestOutputHelper outputHelper)
     {
         _fixture = fixture;
@@ -29,17 +29,16 @@ public class StellarCollectionQueryIndexManagementTests
     public async Task CreateAndDropCollectionIndex()
     {
         var bucket = await _fixture.DefaultBucket();
-        var collectionManager = _fixture.DefaultBucket().Result.Collections;
+        var collectionManager = bucket.Collections;
 
         var scopeName = Guid.NewGuid().ToString();
         var collectionName = Guid.NewGuid().ToString();
-        var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
             await _utils.WaitUntilScopeIsPresent(scopeName);
-            await collectionManager.CreateCollectionAsync(collectionSpec);
+            await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
             await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName);
 
             var scope = await bucket.ScopeAsync(scopeName);
@@ -48,7 +47,8 @@ public class StellarCollectionQueryIndexManagementTests
             const string indexName = "indexmgr_test_collection";
             try
             {
-                await collection.QueryIndexes.CreateIndexAsync(indexName, new[] { "type" }, new CreateQueryIndexOptions())
+                await collection.QueryIndexes.CreateIndexAsync(indexName,
+                        ["type"], new CreateQueryIndexOptions())
                     ;
             }
             catch (IndexExistsException)

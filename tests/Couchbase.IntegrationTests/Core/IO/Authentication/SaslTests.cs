@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Utils;
 using DnsClient;
 using Microsoft.Extensions.Logging;

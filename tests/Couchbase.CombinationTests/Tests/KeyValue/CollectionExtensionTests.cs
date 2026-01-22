@@ -52,7 +52,7 @@ public class CollectionExtensionTests
             Assert.True(lookupInResult.DocumentExists);
             Assert.True(lookupInResult.Exists(0));
             var content = lookupInResult.ContentAs<bool>(0);
-            Assert.NotNull(content);
+            Assert.True(content);
         }
         finally
         {
@@ -70,7 +70,7 @@ public class CollectionExtensionTests
         {
             await col.UpsertAsync(doc1, new { DocThatExists = true });
             var getResult = await col.TryGetAsync(doc1);
-            Assert.True(getResult.Exists);
+            Assert.True(getResult.DocumentExists);
             var content = getResult.ContentAs<dynamic>();
             Assert.NotNull(content);
         }

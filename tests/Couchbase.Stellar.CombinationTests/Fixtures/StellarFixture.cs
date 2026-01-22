@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
@@ -29,17 +30,19 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         [JsonPropertyName("Bucket")]
         public string Bucket { get; init; } = "default";
     }
+
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class StellarFixture : IDisposable, IAsyncDisposable, IAsyncLifetime
     {
         private readonly ClusterOptions _options;
-        private FixtureSettings _settings;
-        private ICluster? _cluster;
+        private readonly FixtureSettings? _settings;
         private ICluster? _stellarCluster;
         private readonly object _syncObj = new();
 
         public StellarFixture()
         {
             _settings = GetOptionsFromConfig();
+            Debug.Assert(_settings != null, nameof(_settings) + " != null");
             _options = new ClusterOptions
             {
                 UserName = _settings.Username,
@@ -62,16 +65,15 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
             _options.WithLogging(loggerFactory);
         }
 
-        public FixtureSettings GetOptionsFromConfig() => new ConfigurationBuilder()
+        private static FixtureSettings? GetOptionsFromConfig() => new ConfigurationBuilder()
             .AddJsonFile("settings.json")
             .Build()
             .GetSection("couchbase")
             .Get<FixtureSettings>();
 
-        public async Task BuildAsync()
+        private async Task BuildAsync()
         {
-            _stellarCluster ??= await Couchbase.Cluster.ConnectAsync(_options.ConnectionString!, _options);
-            _cluster ??= await Couchbase.Cluster.ConnectAsync("couchbase://" + _settings.Hostname, _options);
+            _stellarCluster ??= await Cluster.ConnectAsync(_options.ConnectionString!, _options);
         }
 
         public ICluster StellarCluster
@@ -91,37 +93,14 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
             }
         }
 
-        public ICluster CouchbaseCluster
-        {
-            get
-            {
-                lock (_syncObj)
-                {
-                    if (_cluster == null)
-                    {
-                        throw new InvalidOperationException(
-                            "Cluster is null. Call CouchbaseFixture.Build() before calling CouchbaseFixture.");
-                    }
-                }
-
-                return _cluster;
-            }
-        }
-
-        public async Task<bool> FlushBucket(bool isAlreadyFlushed)
-        {
-            if (!isAlreadyFlushed)
-            {
-                await CouchbaseCluster.Buckets.FlushBucketAsync(_settings.Bucket);
-                return true;
-            }
-
-            return false;
-        }
-
         public async Task<IBucket> DefaultBucket()
         {
-            await BuildAsync();
+            if (_stellarCluster == null)
+            {
+                await BuildAsync();
+            }
+
+            Debug.Assert(_settings != null, nameof(_settings) + " != null");
             return await StellarCluster.BucketAsync(_settings.Bucket);
         }
 
@@ -136,34 +115,33 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         {
             await BuildAsync();
             var bucket = await DefaultBucket();
+            // ReSharper disable once MethodHasAsyncOverload
             return bucket.DefaultCollection();
         }
 
         public void Dispose()
         {
-            _cluster?.Dispose();
             _stellarCluster?.Dispose();
         }
 
         public async Task InitializeAsync()
         {
             _stellarCluster ??= await Couchbase.Stellar.StellarCluster.ConnectAsync(_options);
-            _cluster ??= await Couchbase.Cluster.ConnectAsync("couchbase://" + _settings.Hostname, _options);
         }
 
         async Task IAsyncLifetime.DisposeAsync()
         {
-            if (_cluster != null)
+            if (_stellarCluster != null)
             {
-                await _cluster.DisposeAsync();
+                await _stellarCluster.DisposeAsync();
             }
         }
 
         public async ValueTask DisposeAsync()
         {
-            if (_cluster != null)
+            if (_stellarCluster != null)
             {
-                await _cluster.DisposeAsync();
+                await _stellarCluster.DisposeAsync();
             }
         }
     }

@@ -1,18 +1,14 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Couchbase.Stellar.CombinationTests.Fixtures;
 
 namespace Couchbase.Stellar.CombinationTests.Utils;
 
-public class ConsistencyUtils
+public class ConsistencyUtils(StellarFixture fixture)
 {
-    private StellarFixture? _fixture;
-
-    public ConsistencyUtils(StellarFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    private readonly StellarFixture? _fixture = fixture;
 
     public async Task WaitUntilBucketIsPresent(string bucketName, int limit = 10)
     {
@@ -22,7 +18,8 @@ public class ConsistencyUtils
         {
             try
             {
-                await _fixture!.CouchbaseCluster.Buckets.GetBucketAsync(bucketName);
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
+                await _fixture.StellarCluster.Buckets.GetBucketAsync(bucketName);
             }
             catch (Exception)
             {
@@ -44,7 +41,8 @@ public class ConsistencyUtils
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName);
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
+                var bucket = await _fixture.StellarCluster.BucketAsync(bucketName);
                 await bucket.ScopeAsync(scopeName);
             }
             catch (Exception)
@@ -68,7 +66,8 @@ public class ConsistencyUtils
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default");
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
+                var bucket = await _fixture.StellarCluster.BucketAsync(bucketName ?? "default");
                 var scope = await bucket.ScopeAsync(scopeName ?? "_default");
                 var collection = await scope.CollectionAsync(collectionName ?? "_default");
                 await collection.UpsertAsync(docId, new { Content = "Content" });
@@ -87,7 +86,8 @@ public class ConsistencyUtils
 
     public async Task WaitUntilCollectionIsDropped(string collectionName, string? bucketName = null, string? scopeName = null, int limit = 10)
     {
-        var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default");
+        Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
+        var bucket = await _fixture.StellarCluster.BucketAsync(bucketName ?? "default");
         var scope = await bucket.ScopeAsync(scopeName ?? "_default");
 
         bool isGone = false;
@@ -115,13 +115,14 @@ public class ConsistencyUtils
     {
         IGetResult? result = null;
 
-        bool isPresent = false;
+        var isPresent = false;
         short retryCount = 0;
         while (!isPresent && retryCount < limit)
         {
             try
             {
-                var bucket = await _fixture!.CouchbaseCluster.BucketAsync(bucketName ?? "default");
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
+                var bucket = await _fixture.StellarCluster.BucketAsync(bucketName ?? "default");
                 var scope = await bucket.ScopeAsync(scopeName ?? "_default");
                 var collection = await scope.CollectionAsync(collectionName ?? "_default");
                 result = await collection.GetAsync(id);
@@ -134,7 +135,6 @@ public class ConsistencyUtils
 
             if (result != null)
             {
-                isPresent = true;
                 break;
             }
 

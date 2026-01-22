@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.Test.Common.Fixtures;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -553,15 +554,15 @@ namespace Couchbase.IntegrationTests
             var newDocBody = new { bar = "foo2", foo = "bar2", xxx = 3 };
 
             // put the newDocBody in test_attr xattr...
-            using (await collection.MutateInAsync(documentKey, builder =>
-            {
-                builder.Upsert("test_attr", newDocBody, isXattr: true, createPath: true);
-            }));
+            using var async = await collection.MutateInAsync(documentKey, builder =>
+                   {
+                       builder.Upsert("test_attr", newDocBody, isXattr: true, createPath: true);
+                   });
 
-            using (await collection.MutateInAsync(documentKey, builder =>
-            {
-                builder.ReplaceBodyWithXattr("test_attr");
-            }));
+            using var result = await collection.MutateInAsync(documentKey, builder =>
+                   {
+                       builder.ReplaceBodyWithXattr("test_attr");
+                   });
 
             // verify the document body changed.  NOTE: by comparing as strings, we run the risk
             // of having the order change though the key/value pairs are all equal. If you change
@@ -577,11 +578,10 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollectionAsync();
             var documentKey = nameof(MutateIn_ReviveDocument_Succeeds) + Guid.NewGuid();
             // first, lets create a tombstone
-            using (await collection.MutateInAsync(documentKey, builder =>
-                {
-                    builder.Upsert("test_attr", "foo", isXattr: true);
-                }, options => options.StoreSemantics(StoreSemantics.Upsert).CreateAsDeleted(true))
-                );
+            using var async = await collection.MutateInAsync(documentKey, builder =>
+                   {
+                       builder.Upsert("test_attr", "foo", isXattr: true);
+                   }, options => options.StoreSemantics(StoreSemantics.Upsert).CreateAsDeleted(true));
 
             // verify it is a tombstone
             var lookupInResult = await collection.LookupInAsync(documentKey, builder =>
@@ -591,10 +591,10 @@ namespace Couchbase.IntegrationTests
             Assert.True(lookupInResult.IsDeleted);
 
             // now revive (we can use the ReplaceBodyWithXattr since we do that with txns)...
-            using (await collection.MutateInAsync(documentKey, builder =>
+            using var result = await collection.MutateInAsync(documentKey, builder =>
                    {
                        builder.ReplaceBodyWithXattr("test_attr");
-                   }, options => options.ReviveDocument(true)));
+                   }, options => options.ReviveDocument(true));
             // verify not a tombstone
             var lookupInResult2 = await collection.LookupInAsync(documentKey, builder =>
             {

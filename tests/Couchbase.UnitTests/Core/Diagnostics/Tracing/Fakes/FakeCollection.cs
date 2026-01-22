@@ -85,7 +85,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
-        public Task<IMutationResult> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
+        public Task<IMutationResult?> TouchWithCasAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {
             throw new NotImplementedException();
         }

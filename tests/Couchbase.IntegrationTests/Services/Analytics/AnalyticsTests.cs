@@ -6,6 +6,7 @@ using Couchbase.Analytics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Collections;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Newtonsoft.Json;
 using Xunit;

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Couchbase.DataStructures;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

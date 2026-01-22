@@ -7,6 +7,7 @@ using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Analytics.Link;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;

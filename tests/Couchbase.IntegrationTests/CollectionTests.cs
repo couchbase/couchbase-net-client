@@ -6,6 +6,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -47,7 +48,7 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 // drop collection
-                await collectionManager.DropCollectionAsync(collectionSpec);
+                await collectionManager.DropCollectionAsync(scopeName, collectionName);
                 await collectionManager.DropScopeAsync(scopeName);
             }
         }
@@ -90,7 +91,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 await collectionManager.CreateScopeAsync(scopeName);
-                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
                 await Task.Delay(1000);
 
                 var scope = await bucket.ScopeAsync(scopeName);
@@ -98,10 +99,10 @@ namespace Couchbase.IntegrationTests
 
                 await collection.UpsertAsync(key, new {name = "mike"});
 
-                await collectionManager.DropCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await collectionManager.DropCollectionAsync(scopeName, collectionName);
                 await Task.Delay(500);
 
-                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
                 await Task.Delay(500);
 
                 await collection.UpsertAsync(key, new {name = "mike"});

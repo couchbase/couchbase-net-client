@@ -130,10 +130,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void When_Node_is_null_Kv_service_should_Not_be_disabled()
         {
-            const string hostname = "localhost";
+            const string expected = "localhost";
             var nodeExt = new NodesExt
             {
-                Hostname = hostname,
+                Hostname = expected,
                 Services = new Couchbase.Core.Configuration.Server.Services
                 {
                     Kv = 11210 // nodeEXt has KV port, but node is null
@@ -141,7 +141,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             };
 
             var adapter = new NodeAdapter(null, nodeExt, new BucketConfig());
-            Assert.Equal(adapter.Hostname, hostname);
+            Assert.Equal(expected, adapter.Hostname);
 
             Assert.True(adapter.IsKvNode);
         }

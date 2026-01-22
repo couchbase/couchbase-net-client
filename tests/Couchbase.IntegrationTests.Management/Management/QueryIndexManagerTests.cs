@@ -9,6 +9,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Query;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -30,7 +31,8 @@ namespace Couchbase.IntegrationTests.Management
         public async Task CreateAndDropIndex()
         {
             var cluster = await _fixture.GetCluster();
-            var bucketName = _fixture.GetDefaultBucket().Result.Name;
+            var bucket = await _fixture.GetDefaultBucket();
+            var bucketName = bucket.Name;
 
             const string indexName = "indexmgr_test";
             try
@@ -43,7 +45,7 @@ namespace Couchbase.IntegrationTests.Management
                 _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
             }
 
-            bool failedCleanup = false;
+            var failedCleanup = false;
             try
             {
                 await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName);
@@ -86,7 +88,7 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 await collectionManager.CreateScopeAsync(scopeName);
-                await collectionManager.CreateCollectionAsync(collectionSpec);
+                await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
 
                 const string indexName = "indexmgr_test_collection";
                 try
@@ -156,33 +158,25 @@ namespace Couchbase.IntegrationTests.Management
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task GetAllIndexesReturnsIndexesOnDefaultCollection()
         {
-            var cluster = await _fixture.GetCluster();
-            var bucketName = _fixture.GetDefaultBucket().Result.Name;
-
-            var indexManager = cluster.QueryIndexes;
+            var collection = await _fixture.GetDefaultCollectionAsync();
+            var indexManager = collection.QueryIndexes;
 
             try
             {
-                await indexManager.CreatePrimaryIndexAsync(bucketName);
+                await indexManager.CreatePrimaryIndexAsync(new CreatePrimaryQueryIndexOptions());
             }
             catch (IndexExistsException)
             {
                 //do nothing
             }
 
-            var allIndexes = await indexManager.GetAllIndexesAsync(bucketName);
+            var allIndexes = await indexManager.GetAllIndexesAsync(new GetAllQueryIndexOptions());
             Assert.Single(allIndexes);
 
-            allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-                options => options.ScopeName("_default"));
+            allIndexes = await indexManager.GetAllIndexesAsync(new GetAllQueryIndexOptions());
             Assert.Single(allIndexes);
 
-            allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-               options =>
-               {
-                   options.ScopeName("_default");
-                   options.CollectionName("_default");
-               });
+            allIndexes = await indexManager.GetAllIndexesAsync(new GetAllQueryIndexOptions());
             Assert.Single(allIndexes);
         }
 
@@ -191,21 +185,20 @@ namespace Couchbase.IntegrationTests.Management
         {
             var cluster = await _fixture.GetCluster();
             var bucket = await _fixture.GetDefaultBucket();
-            var indexManager = cluster.QueryIndexes;
 
             const string indexName = "idxCreateIndexWithMissingField_test";
             try
             {
                 //CREATE INDEX idx4 ON default(age MISSING, body)
                 await cluster.QueryIndexes.CreateIndexAsync(
-                    bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" });
+                    bucket.Name, indexName, ["age INCLUDE MISSING", "body"]);
             }
             catch (IndexExistsException)
             {
                 _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
             }
 
-            bool failedCleanup = false;
+            var failedCleanup = false;
             try
             {
                 await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name);

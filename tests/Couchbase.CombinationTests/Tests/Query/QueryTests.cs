@@ -130,7 +130,7 @@ namespace Couchbase.CombinationTests.Tests.Query
             {
                 var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                     parameter => { });
-                Assert.False(true, "Exception should have been thrown.");
+                Assert.Fail("Exception should have been thrown.");
             }
             catch (InternalServerFailureException e)
             {

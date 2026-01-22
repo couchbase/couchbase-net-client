@@ -40,59 +40,66 @@ namespace Couchbase.UnitTests.Query
         [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
         public async Task Test(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file))
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file);
+#else
+            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file);
+#endif
+
+            var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
+            response.Read(buffer, 0, buffer.Length);
+#endif
+
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
             {
-                var buffer = new byte[response.Length];
-                response.Read(buffer, 0, buffer.Length);
+                StatusCode = httpStatusCode,
+                Content = new ByteArrayContent(buffer)
+            });
 
-                var handlerMock = new Mock<HttpMessageHandler>();
-                handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = httpStatusCode,
-                    Content = new ByteArrayContent(buffer)
-                });
+            var httpClient = new HttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
-                var httpClient = new HttpClient(handlerMock.Object)
-                {
-                    BaseAddress = new Uri("http://localhost:8091")
-                };
-                var httpClientFactory = new MockHttpClientFactory(httpClient);
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.QueryUri)
+                .Returns(new Uri("http://localhost:8093"));
 
-                var nodeMock = new Mock<IClusterNode>();
-                nodeMock
-                    .Setup(n => n.QueryUri)
-                    .Returns(new Uri("http://localhost:8093"));
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-                var nodeAdapterMock = new Mock<NodeAdapter>();
-                nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
 
-                nodeMock.Setup(n => n.NodesAdapter)
-                    .Returns(nodeAdapterMock.Object);
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryNode())
+                .Returns(nodeMock.Object);
 
-                var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-                mockServiceUriProvider
-                    .Setup(m => m.GetRandomQueryUri())
-                    .Returns(new Uri("http://localhost:8093"));
-                mockServiceUriProvider
-                    .Setup(m => m.GetRandomQueryNode())
-                    .Returns(nodeMock.Object);
+            var serializer = DefaultSerializer.Instance;
 
-                var serializer = DefaultSerializer.Instance;
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
-                var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                    NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
-
-                try
-                {
-                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
-                }
-                catch (Exception e)
-                {
-                    Assert.Equal(errorType, e.GetType());
-                }
+            try
+            {
+                await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
+            }
+            catch (Exception e)
+            {
+                Assert.Equal(errorType, e.GetType());
             }
         }
 
@@ -105,58 +112,65 @@ namespace Couchbase.UnitTests.Query
         [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
         public async Task Test_SystemTextJson(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file))
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file);
+#else
+            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file);
+#endif
+
+            var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
+            response.Read(buffer, 0, buffer.Length);
+#endif
+
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
             {
-                var buffer = new byte[response.Length];
-                response.Read(buffer, 0, buffer.Length);
+                StatusCode = httpStatusCode,
+                Content = new ByteArrayContent(buffer)
+            });
 
-                var handlerMock = new Mock<HttpMessageHandler>();
-                handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
-                    {
-                        StatusCode = httpStatusCode,
-                        Content = new ByteArrayContent(buffer)
-                    });
+            var httpClient = new HttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
-                var httpClient = new HttpClient(handlerMock.Object)
-                {
-                    BaseAddress = new Uri("http://localhost:8091")
-                };
-                var httpClientFactory = new MockHttpClientFactory(httpClient);
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock
+                .Setup(n => n.QueryUri)
+                .Returns(new Uri("http://localhost:8093"));
 
-                var nodeMock = new Mock<IClusterNode>();
-                nodeMock
-                    .Setup(n => n.QueryUri)
-                    .Returns(new Uri("http://localhost:8093"));
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-                var nodeAdapterMock = new Mock<NodeAdapter>();
-                nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
 
-                nodeMock.Setup(n => n.NodesAdapter)
-                    .Returns(nodeAdapterMock.Object);
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryNode())
+                .Returns(nodeMock.Object);
 
-                var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-                mockServiceUriProvider
-                    .Setup(m => m.GetRandomQueryNode())
-                    .Returns(nodeMock.Object);
+            // Do not use JsonPropertyNaming.CamelCase here to confirm that non-standard
+            // options still deserialize errors correctly.
+            var serializer = SystemTextJsonSerializer.Create(new JsonSerializerOptions());
 
-                // Do not use JsonPropertyNaming.CamelCase here to confirm that non-standard
-                // options still deserialize errors correctly.
-                var serializer = SystemTextJsonSerializer.Create(new JsonSerializerOptions());
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
-                var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                    NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
-
-                try
-                {
-                    await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
-                }
-                catch (Exception e)
-                {
-                    Assert.Equal(errorType, e.GetType());
-                }
+            try
+            {
+                await client.QueryAsync<DynamicAttribute>("SELECT * FROM `default`", new QueryOptions());
+            }
+            catch (Exception e)
+            {
+                Assert.Equal(errorType, e.GetType());
             }
         }
 
@@ -165,10 +179,18 @@ namespace Couchbase.UnitTests.Query
         [InlineData(typeof(NonStreamingSerializer))]
         public async Task TestSuccess(Type serializerType)
         {
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+#else
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+#endif
 
             var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(

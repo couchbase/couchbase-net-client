@@ -6,6 +6,7 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 

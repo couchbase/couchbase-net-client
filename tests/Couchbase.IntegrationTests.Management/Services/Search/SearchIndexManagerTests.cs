@@ -7,6 +7,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management;
 using Couchbase.Management.Search;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Search

@@ -10,6 +10,7 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Query;
+using Couchbase.Test.Common.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -297,7 +298,12 @@ namespace Couchbase.IntegrationTests
                 opts.HttpIgnoreRemoteCertificateMismatch = false;
                 X509Certificate2[] certs = new X509Certificate2[1];
                 const string capemPath = "/Users/michaelreiche/ca.pem";
+
+#if NET10_0_OR_GREATER
+                certs[0] = X509CertificateLoader.LoadCertificateFromFile(capemPath);
+#else
                 certs[0] = new X509Certificate2(capemPath);
+#endif
                 opts.WithX509CertificateFactory(CertificateFactory.FromCertificates(certs));
 
                 IServiceCollection serviceCollection = new ServiceCollection();
@@ -311,7 +317,7 @@ namespace Couchbase.IntegrationTests
                 opts.WithLogging(loggerFactory);
 
                 var cluster =
-                    await Couchbase.Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                    await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
 
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(5));
                 var bucket = await cluster.BucketAsync(bucketName);

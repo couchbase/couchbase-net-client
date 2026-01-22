@@ -7,14 +7,11 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Search;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
@@ -31,10 +28,18 @@ namespace Couchbase.UnitTests.Analytics
         [InlineData(typeof(NonStreamingSerializer))]
         public async Task TestSuccess(Type serializerType)
         {
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#else
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#endif
 
             var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -56,8 +61,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.AnalyticsUri)
                 .Returns(new Uri("http://localhost:8096"));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);
@@ -71,7 +81,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Returns(nodeMock.Object);
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer ?? throw new InvalidOperationException(),
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new AnalyticsOptions());
@@ -107,8 +117,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.AnalyticsUri)
                 .Returns(new Uri("http://localhost:8096"));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);
@@ -132,7 +147,7 @@ namespace Couchbase.UnitTests.Analytics
         public async Task QueryAsync_Sets_LastActivity()
         {
             var httpClient = new HttpClient(
-                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+                FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")
                 })
@@ -143,8 +158,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.AnalyticsUri)
                 .Returns(new Uri("http://localhost:8096"));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);
@@ -186,7 +206,7 @@ namespace Couchbase.UnitTests.Analytics
         {
             var response = "{\"requestID\":\"eb8a8d08-9e25-4473-81f8-6565c51a43d9\",\"signature\":{\"*\": \"*\"},\"errors\":[{\"code\":XXXX,\"msg\":\"Some error\"}],\"status\": \"fatal\"}";
             var httpClient = new HttpClient(
-                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.BadRequest)
+                FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
                 {
                     Content = new StringContent(response.Replace("XXXX", errorCode.ToString()))
                 })) ;
@@ -196,8 +216,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.AnalyticsUri)
                 .Returns(new Uri("http://localhost:8096"));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);
@@ -231,7 +256,7 @@ namespace Couchbase.UnitTests.Analytics
         public async Task QueryAsync_Throws_CouchbaseException_If_EnterpriseAnalytics()
         {
             var httpClient = new HttpClient(
-                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+                FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")
                 })
@@ -244,8 +269,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.HasAnalytics)
                 .Returns(true);
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);
@@ -277,7 +307,7 @@ namespace Couchbase.UnitTests.Analytics
         public async Task QueryAsync_Succeeds_When_Prod_Is_Valid()
         {
             var httpClient = new HttpClient(
-                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+                FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")
                 })
@@ -290,8 +320,13 @@ namespace Couchbase.UnitTests.Analytics
             nodeMock.Setup(n => n.HasAnalytics)
                 .Returns(true);
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
+                }
+            };
 
             nodeMock.Setup(n => n.NodesAdapter)
                 .Returns(nodeAdapterMock.Object);

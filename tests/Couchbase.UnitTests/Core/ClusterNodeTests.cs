@@ -4,6 +4,7 @@ using System.Net;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
@@ -63,7 +64,7 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
-        public async void External_Cancellation_Is_Not_TimeoutException()
+        public async Task External_Cancellation_Is_Not_TimeoutException()
         {
             using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
@@ -73,12 +74,17 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
-        public async void Internal_Cancellation_Is_TimeoutException()
+        public async Task Internal_Cancellation_Is_TimeoutException()
         {
             using var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cts = new CancellationTokenPairSource();
+#if NET8_0_OR_GREATER
+            await cts.CancelAsync();
+#else
             cts.Cancel();
+#endif
+
             var cancellationTokenPair = new CancellationTokenPair(cts);
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(() => clusterNode.SendAsync(op, cancellationTokenPair));
         }

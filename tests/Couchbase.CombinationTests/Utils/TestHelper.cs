@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 
@@ -23,6 +24,7 @@ public class TestHelper
         {
             try
             {
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
                 await _fixture.Cluster.Buckets.GetBucketAsync(bucketName);
             }
             catch (Exception)
@@ -45,6 +47,7 @@ public class TestHelper
         {
             try
             {
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
                 var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
                 var scope = await bucket.ScopeAsync(scopeName ?? "_default");
                 await scope.CollectionAsync(collectionName);
@@ -63,6 +66,7 @@ public class TestHelper
 
     public async Task WaitUntilCollectionIsDropped(string collectionName, string? bucketName = null, string? scopeName = null, int limit = 10)
     {
+        Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
         var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
         var scope = await bucket.ScopeAsync(scopeName ?? "_default");
 
@@ -97,6 +101,7 @@ public class TestHelper
         {
             try
             {
+                Debug.Assert(_fixture != null, nameof(_fixture) + " != null");
                 var bucket = await _fixture.Cluster.BucketAsync(bucketName ?? "default");
                 var scope = await bucket.ScopeAsync(scopeName ?? "_default");
                 var collection = await scope.CollectionAsync(collectionName ?? "_default");

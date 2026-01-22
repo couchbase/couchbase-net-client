@@ -40,10 +40,22 @@ namespace Couchbase.UnitTests.Management.Query
         [Fact]
         public async Task Test_GetAllIndexesAsync()
         {
-            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Management\query-index-partition-response.json");
+#if NET8_0_OR_GREATER
+            await using var response =
+                ResourceHelper.ReadResourceAsStream(
+                    @"Documents\Query\Management\query-index-partition-response.json");
+#else
+            using var response =
+                ResourceHelper.ReadResourceAsStream(
+                    @"Documents\Query\Management\query-index-partition-response.json");
+#endif
 
             var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -248,7 +260,11 @@ namespace Couchbase.UnitTests.Management.Query
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Management\query-create-primary-index-exists-5000.json");
 
             var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            response.ReadExactly(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(

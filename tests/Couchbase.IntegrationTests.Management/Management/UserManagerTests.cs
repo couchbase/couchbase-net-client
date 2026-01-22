@@ -4,6 +4,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Users;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Management

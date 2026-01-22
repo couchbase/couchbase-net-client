@@ -1,4 +1,5 @@
 #if NETCOREAPP3_1_OR_GREATER
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Protostellar.KV.V1;
@@ -16,10 +17,10 @@ namespace Couchbase.UnitTests.Stellar.Core;
 public class StellarRetryHandlerTests
 {
     [Theory]
-    [InlineData( "document", "DocumentNotFound", StatusCode.NotFound, "\n\bdocument\u0012\"default/_default/_default/fake_doc")]
-    [InlineData( "collection", "CollectionExists", StatusCode.AlreadyExists, "\n\ncollection\u0012\u0017default/_default/5efcb8")]
-    [InlineData( "queryindex", "IndexExists", StatusCode.AlreadyExists, "\n\nqueryindex\u0012\b#primary")]
-    public async Task RetryThrowsTypeUrlResourceErrors(string resourceType, string expectedException, StatusCode statusCode, string detailValue)
+    [InlineData( "DocumentNotFound", StatusCode.NotFound, "\n\bdocument\u0012\"default/_default/_default/fake_doc")]
+    [InlineData( "CollectionExists", StatusCode.AlreadyExists, "\n\ncollection\u0012\u0017default/_default/5efcb8")]
+    [InlineData( "IndexExists", StatusCode.AlreadyExists, "\n\nqueryindex\u0012\b#primary")]
+    public async Task RetryThrowsTypeUrlResourceErrors(string expectedException, StatusCode statusCode, string detailValue)
     {
         var any = new Any
         {
@@ -37,7 +38,8 @@ public class StellarRetryHandlerTests
         };
 
         var result = await Record.ExceptionAsync( () => retryMock.Object.RetryAsync(grpcCall, new StellarRequest()));
-        Assert.Contains(expectedException, result!.ToString());
+        Debug.Assert(result != null, nameof(result) + " != null");
+        Assert.Contains(expectedException, result.ToString());
     }
 
     [Fact]

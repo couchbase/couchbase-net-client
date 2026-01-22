@@ -41,7 +41,7 @@ namespace Couchbase.UnitTests.Management
 
             //Assert
 
-            Assert.Equal(roles.First().Value, roleApplicableToAllBucket);
+            Assert.Equal(roleApplicableToAllBucket, roles.First().Value);
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Management
 
             //Assert
 
-            Assert.Equal(roles.First().Value, roleLimitedToBucket);
+            Assert.Equal(roleLimitedToBucket, roles.First().Value);
         }
 
         [Fact]
@@ -96,7 +96,7 @@ namespace Couchbase.UnitTests.Management
             var roles = formValues.Where(x => x.Key.Equals("roles"));
 
             //Assert
-            Assert.Equal(roles.First().Value, roleLimitedToBucketScope);
+            Assert.Equal(roleLimitedToBucketScope, roles.First().Value);
         }
 
         [Fact]
@@ -122,14 +122,14 @@ namespace Couchbase.UnitTests.Management
             var roles = formValues.Where(x => x.Key.Equals("roles"));
 
             //Assert
-            Assert.Equal(roles.First().Value, roleLimitedToBucketScopeCollection);
+            Assert.Equal(roleLimitedToBucketScopeCollection, roles.First().Value);
         }
 
         [Fact]
         public void Test_GetUserFormValues_All()
         {
             //Setup
-            const string all = "data_reader,data_reader[bucket],data_reader[bucket:s],data_reader[bucket:s:c]";
+            const string expected = "data_reader,data_reader[bucket],data_reader[bucket:s],data_reader[bucket:s:c]";
 
             var user = new User("username")
             {
@@ -137,10 +137,10 @@ namespace Couchbase.UnitTests.Management
                 Domain = "Domain",
                 Roles = new List<Role>
                 {
-                    new Role("data_reader"),
-                    new Role("data_reader", "bucket"),
-                    new Role("data_reader", "bucket", "s"),
-                    new Role("data_reader", "bucket", "s", "c")
+                    new("data_reader"),
+                    new("data_reader", "bucket"),
+                    new("data_reader", "bucket", "s"),
+                    new("data_reader", "bucket", "s", "c")
                 }
             };
 
@@ -150,7 +150,7 @@ namespace Couchbase.UnitTests.Management
             var roles = formValues.Where(x => x.Key.Equals("roles"));
 
             //Assert
-            Assert.Equal(roles.First().Value,all);
+            Assert.Equal(expected, roles.First().Value);
         }
     }
 }

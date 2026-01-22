@@ -79,7 +79,7 @@ namespace Couchbase.Transactions.Tests.UnitTests.Cleanup
 
             var clientRecordDetails = new ClientRecordDetails(clientRecord, parsedHlc, clientUuid, TimeSpan.FromSeconds(1));
             Assert.Equal(0, clientRecordDetails.NumExpiredClients);
-            Assert.Equal(0, clientRecordDetails.ExpiredClientIds.Count);
+            Assert.Empty(clientRecordDetails.ExpiredClientIds);
             Assert.Contains(clientUuid, clientRecordDetails.SortedActiveClientIds);
             Assert.Equal(0, clientRecordDetails.IndexOfThisClient);
         }

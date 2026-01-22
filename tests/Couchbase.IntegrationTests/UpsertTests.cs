@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;

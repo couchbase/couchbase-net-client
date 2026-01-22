@@ -1,48 +1,41 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Couchbase.Extensions.Metrics.Otel;
 using Couchbase.Extensions.Tracing.Otel.Tracing;
 using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
+namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests;
+
+// ReSharper disable once ClassNeverInstantiated.Global
+public class InMemoryTracingFixture : BaseClusterFixture
 {
-    public class InMemoryTracingFixture : BaseClusterFixture
+    private readonly TracerProvider _tracerProvider;
+
+    public InMemoryTracingFixture()
     {
-        private readonly TracerProvider _tracerProvider;
+        ExportedItems = new List<Activity>();
 
-        public List<Activity> ExportedItems { get; set; }
+        _tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .SetSampler(new AlwaysOnSampler())
+            .AddInMemoryExporter(ExportedItems)
+            .AddCouchbaseInstrumentation()
+            .Build();
+    }
 
-        public InMemoryTracingFixture()
-        {
-            exportedItems = new List<Activity>();
+    protected override async Task<IBucket> GetDefaultBucket()
+    {
+        // Ensure that any tracing from other tests is complete before proceeding,
+        // otherwise spans may leak into our exportedItems from other tests.
+        await Task.Delay(1000);
 
-            var resourceBuilder = ResourceBuilder.CreateDefault()
-                .AddService("couchbase-tests");
+        return await base.GetDefaultBucket();
+    }
 
-            _tracerProvider = Sdk.CreateTracerProviderBuilder()
-                .SetSampler(new AlwaysOnSampler())
-                .AddInMemoryExporter(exportedItems)
-                .AddCouchbaseInstrumentation()
-                .Build();
-        }
-        public override async Task<IBucket> GetDefaultBucket()
-        {
-            // Ensure that any tracing from other tests is complete before proceeding,
-            // otherwise spans may leak into our exportedItems from other tests.
-            await Task.Delay(1000);
+    public override async Task DisposeAsync()
+    {
+        await base.DisposeAsync();
 
-            return await base.GetDefaultBucket();
-        }
-
-        public override async Task DisposeAsync()
-        {
-            await base.DisposeAsync();
-
-            _tracerProvider.Dispose();
-        }
+        _tracerProvider.Dispose();
     }
 }

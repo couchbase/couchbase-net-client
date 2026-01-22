@@ -9,6 +9,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Query;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -39,7 +40,7 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 await collectionManager.CreateScopeAsync(scopeName);
-                await collectionManager.CreateCollectionAsync(collectionSpec);
+                await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
 
                 var scope = await bucket.ScopeAsync(scopeName);
                 var collection = await scope.CollectionAsync(collectionName);

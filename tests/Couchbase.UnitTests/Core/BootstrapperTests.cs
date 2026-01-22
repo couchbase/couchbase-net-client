@@ -71,7 +71,7 @@ namespace Couchbase.UnitTests.Core
 
               bootStrapper.Start(subject);
 
-              await Task.Delay(400).ConfigureAwait(failed);
+              await Task.Delay(400);
               if (failed)
               {
                   Assert.False(subject.IsBootstrapped);

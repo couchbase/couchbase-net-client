@@ -9,24 +9,16 @@ using Xunit.Abstractions;
 namespace Couchbase.CombinationTests.Tests.Management;
 
 [Collection(CombinationTestingCollection.Name)]
-public class CollectionManagerTests
+public class CollectionManagerTests(
+    CouchbaseFixture fixture,
+    ITestOutputHelper outputHelper)
 {
-    private readonly CouchbaseFixture _fixture;
-    private readonly ITestOutputHelper _outputHelper;
-    private TestHelper _testHelper;
-    private volatile bool _isBucketFlushed;
-
-    public CollectionManagerTests(CouchbaseFixture fixture, ITestOutputHelper outputHelper)
-    {
-        _fixture = fixture;
-        _outputHelper = outputHelper;
-        _testHelper = new TestHelper(fixture);
-    }
+    private readonly TestHelper _testHelper = new(fixture);
 
     [Fact]
     public async Task Test_CreateCollection()
     {
-        var bucket = await _fixture.GetDefaultBucket();
+        var bucket = await fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
@@ -43,7 +35,7 @@ public class CollectionManagerTests
     [Fact]
     public async Task Test_DropCollection()
     {
-        var bucket = await _fixture.GetDefaultBucket();
+        var bucket = await fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
@@ -60,7 +52,7 @@ public class CollectionManagerTests
     [CouchbaseVersionDependentFact(MinVersion = "7.2.0")]
     public async Task Test_UpdateCollection_With_History_And_MaxExpiry()
     {
-        var bucket = await _fixture.GetDefaultBucket();
+        var bucket = await fixture.GetDefaultBucket();
 
         var id = "TestCollection" + Guid.NewGuid();
 
@@ -81,7 +73,7 @@ public class CollectionManagerTests
         {
             if (e.Context.Message.Contains("Bucket must have storage_mode=magma"))
             {
-                _outputHelper.WriteLine("Test failed due to Bucket having a Couchstore backend instead of Magma, but operation went through to the server.");
+                outputHelper.WriteLine("Test failed due to Bucket having a Couchstore backend instead of Magma, but operation went through to the server.");
                 Assert.True(true);
             }
             else

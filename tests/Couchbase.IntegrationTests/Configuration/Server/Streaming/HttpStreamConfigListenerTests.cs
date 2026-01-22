@@ -6,6 +6,7 @@ using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Views;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Views;
 using Xunit;
 

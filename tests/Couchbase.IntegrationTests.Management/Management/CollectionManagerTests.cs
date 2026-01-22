@@ -8,6 +8,7 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Collections;
 using Couchbase.Query;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;
@@ -43,7 +44,7 @@ namespace Couchbase.IntegrationTests.Management
             if (await collectionManager.CollectionExistsAsync(collectionSpec))
             {
                 // drop collection
-                await collectionManager.DropCollectionAsync(collectionSpec);
+                await collectionManager.DropCollectionAsync(collectionSpec.ScopeName, collectionSpec.Name);
             }
         }
 
@@ -367,7 +368,7 @@ namespace Couchbase.IntegrationTests.Management
                 var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
-                await collectionManager.DropCollectionAsync(collectionSpecNone);
+                await collectionManager.DropCollectionAsync(collectionSpecNone.ScopeName, collectionSpecNone.Name);
             }
             catch (CollectionNotFoundException e)
             {

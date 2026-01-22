@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
@@ -71,7 +72,9 @@ namespace Couchbase.IntegrationTests.Services.Views
             try
             {
                 bucket.ViewQueryAsync<dynamic, dynamic>("beer", "brewery_beers", options => options.Limit(1))
+#pragma warning disable xUnit1031
                     .Wait();
+#pragma warning restore xUnit1031
 
                 // If view queries are incorrectly awaiting on the current SynchronizationContext
                 // We will see calls to Post or Send on the mock

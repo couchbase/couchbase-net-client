@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
@@ -49,7 +50,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             var id = Guid.NewGuid().ToString();
             await collection.UpsertAsync(id, new ExampleContent{Content = "test"});
             var result = await collection.GetAsync(id);
-            Assert.Equal("test", result.ContentAs<ExampleContent>().Content);
+            Assert.Equal("test", result.ContentAs<ExampleContent>()?.Content);
             await collection.RemoveAsync(id);
         }
 
@@ -114,7 +115,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
         private record HobbyCustomers(string Id, string Group, IEnumerable<Hobbyist> Customers,
             string? Placeholder = null)
         {
-            [JsonExtensionData] public Dictionary<string, JsonElement> Data { get; set; } = null;
+            [JsonExtensionData] public Dictionary<string, JsonElement>? Data { get; set; } = null;
         };
 
         [Fact]
@@ -199,6 +200,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 Assert.NotNull(getResponse);
                 Assert.Equal(mutateResponse.Cas, getResponse.Cas);
                 var finalData = getResponse.ContentAs<HobbyCustomers>();
+                Debug.Assert(finalData?.Customers != null, "finalData?.Customers != null");
                 Assert.Collection(finalData.Customers,
                     h => Assert.Equal(primo.Name, h.Name),
                     h => Assert.Equal(sigurd.Name, h.Name),
@@ -242,7 +244,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 var results = await Task.WhenAll(collection.GetAllReplicasAsync(key));
                 foreach (var result in results)
                 {
-                    Assert.True(result.IsActive is true or false);
+                    Assert.True(result.IsActive);
                 }
 
                 foreach (var p in results)
@@ -251,8 +253,8 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                     Assert.Null(p.ExpiryTime);
 
                     var retrievedPerson = p.ContentAs<dynamic>();
-                    Assert.Contains(person.Name, retrievedPerson.ToString());
-                    Assert.Contains(person.Age.ToString(), retrievedPerson.ToString());
+                    Assert.Contains(person.Name, retrievedPerson?.ToString());
+                    Assert.Contains(person.Age.ToString(), retrievedPerson?.ToString());
                 }
             }
             finally
@@ -318,12 +320,12 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 await collection.Binary.AppendAsync(key, "test1"u8.ToArray());
 
                 var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder()));
-                Assert.Equal("testtest1", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                Assert.Equal("testtest1", Encoding.UTF8.GetString(result.ContentAs<byte[]>() ?? throw new InvalidOperationException()));
 
                 await collection.Binary.AppendAsync(key, "test2"u8.ToArray());
 
                 result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder()));
-                Assert.Equal("testtest1test2", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                Assert.Equal("testtest1test2", Encoding.UTF8.GetString(result.ContentAs<byte[]>() ?? throw new InvalidOperationException()));
             }
             finally
             {
@@ -345,12 +347,12 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
 
                 var result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder()));
 
-                Assert.Equal("test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                Assert.Equal("test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>() ?? throw new InvalidOperationException()));
 
                 await collection.Binary.PrependAsync(key, "test2"u8.ToArray());
 
                 result = await collection.GetAsync(key, options => options.Transcoder(new RawBinaryTranscoder()));
-                Assert.Equal("test2test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                Assert.Equal("test2test1test", Encoding.UTF8.GetString(result.ContentAs<byte[]>() ?? throw new InvalidOperationException()));
             }
             finally
             {

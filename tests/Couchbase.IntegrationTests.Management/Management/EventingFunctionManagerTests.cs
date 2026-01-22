@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 using Couchbase.Test.Common.Utils;
 using Xunit.Sdk;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 
 namespace Couchbase.IntegrationTests.Management.Management
 {
@@ -50,8 +51,8 @@ namespace Couchbase.IntegrationTests.Management.Management
                 {
                     var collectionManager = bucket.Collections;
                     await collectionManager.CreateScopeAsync(ScopeName);
-                    await collectionManager.CreateCollectionAsync(new CollectionSpec(ScopeName, "source"));
-                    await collectionManager.CreateCollectionAsync(new CollectionSpec(ScopeName, "meta"));
+                    await collectionManager.CreateCollectionAsync(ScopeName, "source", new CreateCollectionSettings());
+                    await collectionManager.CreateCollectionAsync(ScopeName, "meta", new CreateCollectionSettings());
                 }
                 catch (ScopeExistsException)
                 {

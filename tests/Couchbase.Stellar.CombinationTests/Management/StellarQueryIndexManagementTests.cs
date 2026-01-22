@@ -13,23 +13,16 @@ using Xunit.Abstractions;
 namespace Couchbase.Stellar.CombinationTests.Management;
 
 [Collection(StellarTestCollection.Name)]
-public class StellarQueryIndexManagementTests
+public class StellarQueryIndexManagementTests(
+    StellarFixture fixture,
+    ITestOutputHelper outputHelper)
 {
-    private readonly ITestOutputHelper _outputHelper;
-    private StellarFixture _fixture;
-    private ConsistencyUtils _utils;
-    public StellarQueryIndexManagementTests(StellarFixture fixture, ITestOutputHelper outputHelper)
-    {
-        _fixture = fixture;
-        _outputHelper = outputHelper;
-        _utils = new ConsistencyUtils(fixture);
-    }
+    private readonly ConsistencyUtils _utils = new(fixture);
 
     [Fact]
     public async Task PrimaryIndexAlreadyExists()
     {
-        var cluster = _fixture.StellarCluster;
-        var bucketName = _fixture.DefaultBucket().Result.Name;
+        var cluster = fixture.StellarCluster;
 
         try
         {
@@ -48,18 +41,19 @@ public class StellarQueryIndexManagementTests
     [Fact]
     public async Task CreateAndDropIndex()
     {
-        var cluster = _fixture.StellarCluster;
-        var bucketName = _fixture.DefaultBucket().Result.Name;
+        var cluster = fixture.StellarCluster;
+        var bucket = await fixture.DefaultBucket();
+        var bucketName = bucket.Name;
 
         const string indexName = "indexmgr_test";
         try
         {
             await cluster.QueryIndexes.CreateIndexAsync(
-                bucketName, indexName, new[] { "type" });
+                bucketName, indexName, ["type"]);
         }
         catch (IndexExistsException)
         {
-            _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
+            outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
         }
 
         bool failedCleanup = false;
@@ -80,7 +74,7 @@ public class StellarQueryIndexManagementTests
             }
             catch (Exception e)
             {
-                _outputHelper.WriteLine($"Failure during cleanup: {e}");
+                outputHelper.WriteLine($"Failure during cleanup: {e}");
                 failedCleanup = true;
             }
         }
@@ -91,51 +85,51 @@ public class StellarQueryIndexManagementTests
     [Fact]
     public async Task CreateAndDropCollectionIndex()
     {
-        var cluster = _fixture.StellarCluster;
-        var bucketName = _fixture.DefaultBucket().Result.Name;
-        var collectionManager = _fixture.DefaultBucket().Result.Collections;
+        var bucket = await fixture.DefaultBucket();
+        var collectionManager = bucket.Collections;
 
         var scopeName = Guid.NewGuid().ToString();
         var collectionName = Guid.NewGuid().ToString();
-        var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
         try
         {
             await collectionManager.CreateScopeAsync(scopeName);
             await _utils.WaitUntilScopeIsPresent(scopeName);
-            await collectionManager.CreateCollectionAsync(collectionSpec);
+            await collectionManager.CreateCollectionAsync(scopeName, collectionName, new CreateCollectionSettings());
             await _utils.WaitUntilCollectionIsPresent(collectionName, scopeName: scopeName);
-
 
             const string indexName = "indexmgr_test_collection";
             try
             {
-                await cluster.QueryIndexes.CreateIndexAsync(bucketName, indexName, new[] { "type" }, new CreateQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName));
+                var collection = await fixture.DefaultCollection();
+                await collection.QueryIndexes.CreateIndexAsync(indexName, ["type"], new CreateQueryIndexOptions());
             }
             catch (IndexExistsException)
             {
-                _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
+                outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
             }
 
             var failedCleanup = false;
             try
             {
-                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucketName, new BuildDeferredQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName));
-
+                var collection = await fixture.DefaultCollection();
+                await collection.QueryIndexes.BuildDeferredIndexesAsync(
+                    new BuildDeferredQueryIndexOptions());
                 using var cts = new CancellationTokenSource(10000);
 
-                var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName, new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName));
+                var getIndexes = await collection.QueryIndexes.GetAllIndexesAsync(new GetAllQueryIndexOptions());
                 Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
             }
             finally
             {
                 try
                 {
-                    await cluster.QueryIndexes.DropIndexAsync(bucketName, indexName, new DropQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName));
+                    var collection = await fixture.DefaultCollection();
+                    await collection.QueryIndexes.DropIndexAsync(indexName, new DropQueryIndexOptions());
                 }
                 catch (Exception e)
                 {
-                    _outputHelper.WriteLine($"Failure during cleanup: {e}");
+                    outputHelper.WriteLine($"Failure during cleanup: {e}");
                     failedCleanup = true;
                 }
             }
@@ -151,44 +145,35 @@ public class StellarQueryIndexManagementTests
     [Fact]
     public async Task GetAllIndexesReturnsIndexesOnDefaultCollection()
     {
-        var cluster = _fixture.StellarCluster;
-        var bucketName = _fixture.DefaultBucket().Result.Name;
-
-        var indexManager = cluster.QueryIndexes;
+        var collection = await fixture.DefaultCollection();
+        var indexManager = collection.QueryIndexes;
 
         try
         {
-            await indexManager.CreatePrimaryIndexAsync(bucketName);
+            await indexManager.CreatePrimaryIndexAsync(new CreatePrimaryQueryIndexOptions());
         }
         catch (IndexExistsException)
         {
             //do nothing
         }
 
-        var allIndexes = await indexManager.GetAllIndexesAsync(bucketName);
+        var allIndexes = await indexManager.GetAllIndexesAsync(new  GetAllQueryIndexOptions());
         Assert.Single(allIndexes);
 
-        allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-            options => options.ScopeName("_default"));
+        allIndexes = await indexManager.GetAllIndexesAsync(new GetAllQueryIndexOptions());
         Assert.Single(allIndexes);
 
-        allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
-           options =>
-           {
-               options.ScopeName("_default");
-               options.CollectionName("_default");
-           });
+        allIndexes = await indexManager.GetAllIndexesAsync(new GetAllQueryIndexOptions());
         Assert.Single(allIndexes);
 
-        await indexManager.DropPrimaryIndexAsync(bucketName);
+        await indexManager.DropPrimaryIndexAsync(new  DropPrimaryQueryIndexOptions());
     }
 
     [Fact]
     public async Task CreateIndexWithMissingField()
     {
-        var cluster = _fixture.StellarCluster;
-        var bucket = await _fixture.DefaultBucket();
-        var indexManager = cluster.QueryIndexes;
+        var cluster = fixture.StellarCluster;
+        var bucket = await fixture.DefaultBucket();
 
         const string indexName = "idxCreateIndexWithMissingField_test";
         try
@@ -199,7 +184,7 @@ public class StellarQueryIndexManagementTests
         }
         catch (IndexExistsException)
         {
-            _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
+            outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
         }
 
         bool failedCleanup = false;
@@ -220,7 +205,7 @@ public class StellarQueryIndexManagementTests
             }
             catch (Exception e)
             {
-                _outputHelper.WriteLine($"Failure during cleanup: {e}");
+                outputHelper.WriteLine($"Failure during cleanup: {e}");
                 failedCleanup = true;
             }
         }

@@ -559,7 +559,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             {
                 var getResult = await ctx.GetAsync(defaultCollection, docId);
                 var docGet = getResult?.ContentAs<dynamic>();
-                Assert.False(true, "Should never have reached here.");
+                Assert.Fail("Should never have reached here.");
             });
 
             var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
@@ -579,7 +579,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             {
                 var getResult = await ctx.GetAsync(defaultCollection, docId);
                 var docGet = getResult?.ContentAs<dynamic>();
-                Assert.False(true, "Should never have reached here.");
+                Assert.Fail("Should never have reached here.");
             });
 
             var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
@@ -604,7 +604,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                 {
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult?.ContentAs<dynamic>();
-                    Assert.False(true, "Should never have reached here.");
+                    Assert.Fail("Should never have reached here.");
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -613,7 +613,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                 }
                 catch (Exception)
                 {
-                    Assert.False(true, "Should have failed with DocNotFound earlier");
+                    Assert.Fail("Should have failed with DocNotFound earlier");
                 }
             });
 

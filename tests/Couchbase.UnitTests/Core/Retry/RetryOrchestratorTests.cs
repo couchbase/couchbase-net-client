@@ -175,7 +175,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 .Callback((IOperation op1, CancellationTokenPair ct) =>
                 {
                     if (op1.Completed.IsCompleted && status != ResponseStatus.CircuitBreakerOpen)
-                        Assert.True(false, "operation result should be reset before retry");
+                        Assert.Fail("operation result should be reset before retry");
 
                     // complete the operation if circuit breaker is not open
                     if (op1.Attempts != 0)
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 catch (Exception ex)
                 {
                     var msg = ex.Message;
-                    Assert.True(false, $"Expected operation to succeed after retry: {ex.Message}");
+                    Assert.Fail($"Expected operation to succeed after retry: {ex.Message}");
                 }
             }
             Assert.True(op.Attempts > 0);
@@ -446,10 +446,18 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Test_Search(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
-
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
+#else
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
+#endif
+
             var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
             var responses = GetResponses(20, buffer, httpStatusCode);
             var client = MockedHttpClients.SearchClient(responses);
@@ -483,10 +491,18 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
+#if NET8_0_OR_GREATER
+            await using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Views\" + file))
+#else
             using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Views\" + file))
+#endif
             {
                 var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+                await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
                 response.Read(buffer, 0, buffer.Length);
+#endif
 
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.ViewClient(responses);
@@ -519,29 +535,34 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Test_Analytics(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly)
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file);
+#else
+            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file);
+#endif
+            var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
+            response.Read(buffer, 0, buffer.Length);
+#endif
 
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file))
+            var responses = GetResponses(20, buffer, httpStatusCode);
+            var client = MockedHttpClients.AnalyticsClient(responses);
+
+            var statement = "SELECT * FROM `bar`;";
+            var options = new AnalyticsOptions();
+            options.Timeout(TimeSpan.FromSeconds(900));
+            options.Readonly(readOnly);
+
+            async Task<IAnalyticsResult<dynamic>> Send()
             {
-                var buffer = new byte[response.Length];
-                response.Read(buffer, 0, buffer.Length);
-
-                var responses = GetResponses(20, buffer, httpStatusCode);
-                var client = MockedHttpClients.AnalyticsClient(responses);
-
-                var statement = "SELECT * FROM `bar`;";
-                var options = new AnalyticsOptions();
-                options.Timeout(TimeSpan.FromSeconds(900));
-                options.Readonly(readOnly);
-
-                async Task<IAnalyticsResult<dynamic>> Send()
-                {
-                    var client1 = client;
-                    return await client1.QueryAsync<dynamic>(statement, options);
-                }
-
-                var meter = NoopMeter.Instance;
-                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, options)));
+                var client1 = client;
+                return await client1.QueryAsync<dynamic>(statement, options);
             }
+
+            var meter = NoopMeter.Instance;
+            await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, options)));
         }
 
         [Theory]
@@ -561,53 +582,59 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
-            using (var response = ResourceHelper.ReadResourceAsStream(file))
+#if NET8_0_OR_GREATER
+            await using var response = ResourceHelper.ReadResourceAsStream(file);
+#else
+            using var response = ResourceHelper.ReadResourceAsStream(file);
+#endif
+            var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
+            response.Read(buffer, 0, buffer.Length);
+#endif
+
+            var responses = GetResponses(20, buffer, httpStatusCode);
+            var client = MockedHttpClients.QueryClient(responses, enableEnhancedPreparedStatements);
+
+            var queryOptions = new QueryOptions().
+                Readonly(readOnly).
+                Timeout(TimeSpan.FromSeconds(900));
+
+            var request = new QueryRequest
             {
-                var buffer = new byte[response.Length];
-                response.Read(buffer, 0, buffer.Length);
+                Options = queryOptions,
+                Statement = "SELECT * FROM `default`",
+                Timeout = TimeSpan.FromSeconds(900)
+            };
 
-                var responses = GetResponses(20, buffer, httpStatusCode);
-                var client = MockedHttpClients.QueryClient(responses, enableEnhancedPreparedStatements);
+            async Task<IQueryResult<dynamic>> Func()
+            {
+                var client1 = client;
+                return await client1.QueryAsync<dynamic>(request.Statement, queryOptions);
+            }
 
-                var queryOptions = new QueryOptions().
-                    Readonly(readOnly).
-                    Timeout(TimeSpan.FromSeconds(900));
+            var e = await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, request));
 
-                var request = new QueryRequest
+            if (e != null)
+            {
+                // Did throw exception, as expected, now validate the exception
+
+                if (canRetry)
                 {
-                    Options = queryOptions,
-                    Statement = "SELECT * FROM `default`",
-                    Timeout = TimeSpan.FromSeconds(900)
-                };
-
-                async Task<IQueryResult<dynamic>> Func()
+                    Assert.True(request.Attempts > 0, "Attempts: " + request.Attempts);
+                }
+                else
                 {
-                    var client1 = client;
-                    return await client1.QueryAsync<dynamic>(request.Statement, queryOptions);
+                    Assert.True(request.Attempts == 0, "Attempts: " + request.Attempts);
                 }
 
-                var e = await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, request));
-
-                if (e != null)
+                if (e is InvalidOperationException)
                 {
-                    // Did throw exception, as expected, now validate the exception
-
-                    if (canRetry)
-                    {
-                        Assert.True(request.Attempts > 0, "Attempts: " + request.Attempts);
-                    }
-                    else
-                    {
-                        Assert.True(request.Attempts == 0, "Attempts: " + request.Attempts);
-                    }
-
-                    if (e is InvalidOperationException)
-                    {
-                        throw new Exception($"Failed after {request.Attempts} retries.");
-                    }
-
-                    Assert.Equal(errorType, e.GetType());
+                    throw new Exception($"Failed after {request.Attempts} retries.");
                 }
+
+                Assert.Equal(errorType, e.GetType());
             }
         }
 

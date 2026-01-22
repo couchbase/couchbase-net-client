@@ -1,8 +1,5 @@
 using System;
-using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Xml;
 using Couchbase.CombinationTests.Fixtures;
 using Couchbase.Core.Exceptions;
 using Couchbase.IntegrationTests.Utils;
@@ -14,20 +11,11 @@ using Xunit.Abstractions;
 namespace Couchbase.CombinationTests.Tests.Management;
 
 [Collection(CombinationTestingCollection.Name)]
-public class BucketManagerTests
+public class BucketManagerTests(
+    CouchbaseFixture fixture,
+    ITestOutputHelper outputHelper)
 {
-    private readonly CouchbaseFixture _fixture;
-    private readonly ITestOutputHelper _outputHelper;
-    private TestHelper _testHelper;
-    private volatile bool _isBucketFlushed;
-
-    public BucketManagerTests(CouchbaseFixture fixture,
-        ITestOutputHelper outputHelper)
-    {
-        _fixture = fixture;
-        _outputHelper = outputHelper;
-        _testHelper = new TestHelper(fixture);
-    }
+    private readonly TestHelper _testHelper = new(fixture);
 
     [Fact]
     public async Task
@@ -54,7 +42,7 @@ public class BucketManagerTests
             HistoryRetentionDuration = TimeSpan.FromSeconds(5)
         };
 
-        var bucketManager = _fixture.Cluster.Buckets;
+        var bucketManager = fixture.Cluster.Buckets;
 
         await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
             await bucketManager.CreateBucketAsync(settings,
@@ -87,7 +75,7 @@ public class BucketManagerTests
             HistoryRetentionDuration = null
         };
 
-        var bucketManager = _fixture.Cluster.Buckets;
+        var bucketManager = fixture.Cluster.Buckets;
         try
         {
             await bucketManager.CreateBucketAsync(settings,
@@ -99,21 +87,21 @@ public class BucketManagerTests
             if (e.Context.Message.Contains(
                     "RAM quota specified is too large to be provisioned into this cluster")) //The op might fail because the cluster is too small
             {
-                _outputHelper.WriteLine(
+                outputHelper.WriteLine(
                     "Test failed due to Cluster being too small to add a Magma Bucket.");
                 Assert.True(true);
             }
         }
         catch (Exception e)
         {
-            _outputHelper.WriteLine(e.Message);
+            outputHelper.WriteLine(e.Message);
             Assert.True(false);
         }
 
         await _testHelper.WaitUntilBucketIsPresent(bucketId)
             ;
 
-        var getBucket = await _fixture.Cluster.Buckets.GetBucketAsync(bucketId)
+        var getBucket = await fixture.Cluster.Buckets.GetBucketAsync(bucketId)
             ;
         Assert.NotNull(getBucket);
 
@@ -123,7 +111,7 @@ public class BucketManagerTests
     [Fact]
     public async Task Test_GetBucketAsync_With_Null_BucketName()
     {
-        var bucketManager = _fixture.Cluster.Buckets;
+        var bucketManager = fixture.Cluster.Buckets;
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => bucketManager.GetBucketAsync(null));
     }

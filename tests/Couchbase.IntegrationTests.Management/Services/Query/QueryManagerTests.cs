@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Query;
 using Couchbase.Test.Common;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Management.Services.Query

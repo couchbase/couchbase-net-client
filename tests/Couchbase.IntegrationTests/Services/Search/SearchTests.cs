@@ -7,6 +7,7 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Search
@@ -107,7 +108,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new MatchQuery("http://www.hotelavenuelodge.com Val-d'Isère").MatchOperator(MatchOperator.And),
                 new SearchOptions()
             );
-            Assert.Equal(1,  results.Hits.Count);
+            Assert.Single(results.Hits);
         }
 
         [Fact]
@@ -118,7 +119,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new MatchQuery("http://www.hotelavenuelodge.com asdfg").MatchOperator(MatchOperator.And),
                 new SearchOptions()
             );
-            Assert.Equal(0,  results.Hits.Count);
+            Assert.Empty(results.Hits);
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Diagnostics
@@ -50,8 +51,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
             Assert.NotEmpty(report.Id); // verify report Id has been assigned
             Assert.Equal(services.Length, report.Services.Count);
 
-            Assert.NotEmpty(report.Services["kv"].Where(e => e.Type == ServiceType.KeyValue)); // at least one KV
-            Assert.NotEmpty(report.Services["n1ql"].Where(e => e.Type == ServiceType.Query)); // at least one N1QL
+            Assert.Contains(report.Services["kv"], e => e.Type == ServiceType.KeyValue); // at least one KV
+            Assert.Contains(report.Services["n1ql"], e => e.Type == ServiceType.Query); // at least one N1QL
 
             Assert.False(report.Services.ContainsKey("view"));
             Assert.False(report.Services.ContainsKey("fts"));
@@ -68,10 +69,10 @@ namespace Couchbase.IntegrationTests.Diagnostics
             Assert.NotNull(report);
             Assert.NotEmpty(report.Services);
             Assert.Equal(reportId, report.Id);
-            Assert.NotEmpty(report.Services["kv"].Where(e => e.Type == ServiceType.KeyValue)); // at least one KV
-            Assert.NotEmpty(report.Services["view"].Where(e => e.Type == ServiceType.Views)); // at least one Index
-            Assert.NotEmpty(report.Services["n1ql"].Where(e => e.Type == ServiceType.Query)); // at least one N1QL
-            Assert.NotEmpty(report.Services["fts"].Where(e => e.Type == ServiceType.Search));
+            Assert.Contains(report.Services["kv"], e => e.Type == ServiceType.KeyValue); // at least one KV
+            Assert.Contains(report.Services["view"], e => e.Type == ServiceType.Views); // at least one Index
+            Assert.Contains(report.Services["n1ql"], e => e.Type == ServiceType.Query); // at least one N1QL
+            Assert.Contains(report.Services["fts"], e => e.Type == ServiceType.Search);
             Assert.Contains(report.Services["cbas"], e => e.Type == ServiceType.Analytics);
         }
 
@@ -92,8 +93,8 @@ namespace Couchbase.IntegrationTests.Diagnostics
             Assert.Equal(reportId, report.Id);
             Assert.Equal(services.Length, report.Services.Count);
 
-            Assert.NotEmpty(report.Services["kv"].Where(e => e.Type == ServiceType.KeyValue)); // at least one KV
-            Assert.NotEmpty(report.Services["n1ql"].Where(e => e.Type == ServiceType.Query)); // at least one N1QL
+            Assert.Contains(report.Services["kv"], e => e.Type == ServiceType.KeyValue); // at least one KV
+            Assert.Contains(report.Services["n1ql"], e => e.Type == ServiceType.Query); // at least one N1QL
 
             Assert.False(report.Services.ContainsKey("view"));
             Assert.False(report.Services.ContainsKey("fts"));

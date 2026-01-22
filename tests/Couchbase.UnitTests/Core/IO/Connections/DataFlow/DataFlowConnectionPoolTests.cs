@@ -669,7 +669,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             // Follow-up on NCBC-4111: Without this wait,
             // the test could intermittently fail on slow Jenkins runners
             var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
-            Assert.True(startedTask == closeStarted.Task && closeStarted.Task.Result,
+            Assert.True(startedTask == closeStarted.Task && await closeStarted.Task,
                 "CloseAsync should have started after ScaleAsync(-1) returned");
 
             // Verify CloseAsync hasn't completed - this proves ScaleAsync returned without waiting

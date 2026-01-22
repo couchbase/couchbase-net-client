@@ -16,19 +16,11 @@ using Couchbase.Test.Common.Utils;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Repeat;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server;
 
-public class ConfigPushHandlerTests
+public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
 {
-    private readonly ITestOutputHelper _outputHelper;
-
-    public ConfigPushHandlerTests(ITestOutputHelper outputHelper)
-    {
-        _outputHelper = outputHelper;
-    }
-
     [Fact]
     public async Task ConfigPushHandler_ServerVersionRegressed()
     {
@@ -61,7 +53,7 @@ public class ConfigPushHandlerTests
         mockBucket.Nodes.Add(mockNode.Object);
         mockContext.RegisterBucket(mockBucket);
         mockContext.Start();
-        var logger = new TestOutputLogger(_outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
+        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
         var redactor = new TypedRedactor(RedactionLevel.None);
         using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
         var pushedVersion = new ConfigVersion(1, 3);
@@ -124,7 +116,7 @@ public class ConfigPushHandlerTests
             mockBucket.Nodes.Add(mockNode.Object);
             mockContext.RegisterBucket(mockBucket);
             mockContext.Start();
-            var logger = new TestOutputLogger(_outputHelper,
+            var logger = new TestOutputLogger(outputHelper,
                 nameof(ConfigPushHandler_ServerVersionRegressed));
             var redactor = new TypedRedactor(RedactionLevel.None);
             using var configPushHandler =
@@ -157,14 +149,14 @@ public class ConfigPushHandlerTests
         mockConfigHandler.Setup(ch => ch.Publish(It.IsAny<BucketConfig>())).Callback(onPublish);
         mockConfigHandler.Setup(ch => ch.Subscribe(It.IsAny<IConfigUpdateEventSink>())).Callback(doNothing);
         mockConfigHandler.Setup(ch => ch.Start(It.IsAny<bool>())).Callback(doNothing);
-        var clusterOptions = new ClusterOptions().WithLogging(new TestOutputLoggerFactory(_outputHelper));
+        var clusterOptions = new ClusterOptions().WithLogging(new TestOutputLoggerFactory(outputHelper));
         clusterOptions.AddClusterService(mockConfigHandler.Object);
         var mock = new Mock<BucketBase>(
             bucketName,
             new ClusterContext(mockCluster.Object, new CancellationTokenSource(), clusterOptions),
             new Mock<IScopeFactory>().Object,
             new Mock<IRetryOrchestrator>().Object,
-            new TestOutputLogger(_outputHelper, nameof(ConfigPushHandlerTests)),
+            new TestOutputLogger(outputHelper, nameof(ConfigPushHandlerTests)),
             new TypedRedactor(RedactionLevel.None),
             new Mock<IBootstrapperFactory>().Object,
             NoopRequestTracer.Instance,
@@ -176,23 +168,9 @@ public class ConfigPushHandlerTests
         mock.Setup(it => it.ConfigUpdatedAsync(It.IsAny<BucketConfig>()))
             .Returns((BucketConfig bc) =>
             {
-                _outputHelper.WriteLine("Config Published: bucket={}, version={}", bucketName, bc.ConfigVersion);
+                outputHelper.WriteLine("Config Published: bucket={0}, version={1}", bucketName, bc.ConfigVersion);
                 return Task.CompletedTask;
             });
         return mock.Object;
-    }
-
-    internal class MockConfigUpdatedSink : IConfigUpdateEventSink
-    {
-        public Action<BucketConfig> ConfigUpdatedAction { get; set; } = _ => { };
-
-        public Task ConfigUpdatedAsync(BucketConfig newConfig)
-        {
-            ConfigUpdatedAction(newConfig);
-            return Task.CompletedTask;
-        }
-
-        public string Name => nameof(MockConfigUpdatedSink);
-        public IEnumerable<IClusterNode> ClusterNodes { get; set; }
     }
 }

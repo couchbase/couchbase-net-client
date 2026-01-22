@@ -153,8 +153,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
 
                 try
                 {
-                    var collectionSpec = new CollectionSpec(scopeName: CustomScopeName, CustomCollectionName);
-                    await bucket.Collections.CreateCollectionAsync(collectionSpec);
+                    await bucket.Collections.CreateCollectionAsync(CustomCollectionName, CustomCollectionName, new CreateCollectionSettings());
                     await Task.Delay(5_000);
                 }
                 catch (CollectionExistsException)

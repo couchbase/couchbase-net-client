@@ -11,6 +11,7 @@ using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Views;
 using Couchbase.Query;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Views;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

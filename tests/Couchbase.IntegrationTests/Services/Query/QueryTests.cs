@@ -6,6 +6,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Query;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Newtonsoft.Json;
 using Xunit;
@@ -165,7 +166,7 @@ namespace Couchbase.IntegrationTests.Services.Query
                 await collection.InsertAsync(id, new[] { "content" });
 
                 var options = new QueryOptions().ScanConsistency(QueryScanConsistency.RequestPlus).Metrics(true);
-                Assert.Equal(false, options.UseReplicaHasValue);
+                Assert.False(options.UseReplicaHasValue);
 
                 var resultConsistent = await cluster
                     .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
@@ -183,11 +184,12 @@ namespace Couchbase.IntegrationTests.Services.Query
 
                 //Query with UseReplica
                 options.UseReplica(true);
-                Assert.Equal(true, options.UseReplicaHasValue);
+                Assert.True(options.UseReplicaHasValue);
 
                 var resultWithReplica = await cluster
-                    .QueryAsync<dynamic>($"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"", options)
-                    ;
+                    .QueryAsync<dynamic>(
+                        $"SELECT * FROM `{bucket.Name}` WHERE meta().id = \"{id}\"",
+                        options);
                 await foreach (var r in resultWithReplica.Rows) continue;
                 Assert.Equal(1, (int)resultWithReplica.MetaData!.Metrics.ResultCount);
             }

@@ -5,13 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
 using Xunit;
-using Xunit.Repeat;
 
 namespace Couchbase.UnitTests.Utils;
 
 public class TaskHelpersTests
 {
-    [Repeat(5)]
+    [Theory]
     [InlineData("TaskFive", new[] {true, true, true, true, false})]
     [InlineData("TaskFour", new[] {true, true, true, false, true})]
     [InlineData("TaskTwo", new[] {true, false, true, false, true})]

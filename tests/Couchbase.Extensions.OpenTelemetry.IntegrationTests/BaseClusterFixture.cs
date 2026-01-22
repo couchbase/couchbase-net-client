@@ -11,9 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Xunit;
 
 namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
@@ -22,16 +20,14 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
-        private readonly TracerProvider _tracerProvider;
-        private readonly MeterProvider _meterProvider;
 
         public ClusterOptions ClusterOptions { get; }
 
-        public ICluster Cluster { get; private set; }
+        private ICluster Cluster { get; set; }
 
-        public List<Activity> exportedItems { get; set; }
+        public List<Activity> ExportedItems { get; set; }
 
-        public BaseClusterFixture()
+        protected BaseClusterFixture()
         {
             _settings = GetSettings();
             ClusterOptions = GetClusterOptions();
@@ -48,7 +44,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
             return Cluster;
         }
 
-        public virtual async Task<IBucket> GetDefaultBucket()
+        protected virtual async Task<IBucket> GetDefaultBucket()
         {
             var bucket = await Cluster.BucketAsync(_settings.BucketName);
 
@@ -63,7 +59,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
             return await bucket.DefaultCollectionAsync();
         }
 
-        public static TestSettings GetSettings()
+        private static TestSettings GetSettings()
         {
             return new ConfigurationBuilder()
                 .AddJsonFile("config.json")

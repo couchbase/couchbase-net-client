@@ -204,12 +204,12 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
 
             // Assert
-            Assert.IsAssignableFrom<IRotatingCertificateFactory>(factory);
-            Assert.IsAssignableFrom<ICertificateFactory>(factory);
+            Assert.IsType<IRotatingCertificateFactory>(factory, exactMatch: false);
+            Assert.IsType<ICertificateFactory>(factory, exactMatch: false);
         }
 
         [Fact]
-        public void GetCertificates_ConcurrentAccess_ShouldBeThreadSafe()
+        public async Task vGetCertificates_ConcurrentAccess_ShouldBeThreadSafe()
         {
             // Arrange
             var certificates = CreateTestCertificateCollection(3);
@@ -237,7 +237,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
                 }
             })).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
 
             // Assert
             Assert.All(exceptions, ex => Assert.Null(ex));
@@ -247,7 +247,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
         }
 
         [Fact]
-        public void RefreshClientHandler_ConcurrentAccess_ShouldBeThreadSafe()
+        public async Task RefreshClientHandler_ConcurrentAccess_ShouldBeThreadSafe()
         {
             // Arrange
             var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(10));
@@ -275,7 +275,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
                 }
             })).ToArray();
 
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
 
             // Assert
             Assert.All(exceptions, ex => Assert.Null(ex));

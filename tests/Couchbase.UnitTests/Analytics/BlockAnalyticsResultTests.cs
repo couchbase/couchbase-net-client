@@ -20,8 +20,11 @@ namespace Couchbase.UnitTests.Analytics
         public async Task GetAsyncEnumerator_HasInitialized_GetsResults()
         {
             // Arrange
-
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#endif
 
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
             await queryResult.InitializeAsync();
@@ -40,8 +43,11 @@ namespace Couchbase.UnitTests.Analytics
         public async Task GetAsyncEnumerator_NoResults_Empty()
         {
             // Arrange
-
+#if NET8_0_OR_GREATER
+           await  using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
+#endif
 
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
             await queryResult.InitializeAsync();
@@ -60,7 +66,11 @@ namespace Couchbase.UnitTests.Analytics
         {
             // Arrange
 
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#endif
 
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
 
@@ -75,9 +85,11 @@ namespace Couchbase.UnitTests.Analytics
         public async Task GetAsyncEnumerator_CalledTwice_StreamAlreadyReadException(string filename)
         {
             // Arrange
-
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(filename);
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
-
+#endif
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
             await queryResult.InitializeAsync();
 
@@ -93,8 +105,11 @@ namespace Couchbase.UnitTests.Analytics
         public async Task GetAsyncEnumerator_AfterEnumeration_HasErrors(string filename, AnalyticsStatus expectedStatus)
         {
             // Arrange
-
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(filename);
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
+#endif
 
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
             await queryResult.InitializeAsync();
@@ -115,8 +130,11 @@ namespace Couchbase.UnitTests.Analytics
         {
             // Arrange
 
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
-
+#endif
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
             await queryResult.InitializeAsync();
 
@@ -139,7 +157,11 @@ namespace Couchbase.UnitTests.Analytics
         {
             // Arrange
 
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\good-request.json");
+#endif
 
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
 
@@ -158,8 +180,11 @@ namespace Couchbase.UnitTests.Analytics
         {
             // Arrange
 
+#if NET8_0_OR_GREATER
+            await using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\syntax-24000.json");
+#else
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\syntax-24000.json");
-
+#endif
             using var queryResult = new BlockAnalyticsResult<dynamic>(stream, new DefaultSerializer());
 
             // Act

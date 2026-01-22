@@ -192,7 +192,7 @@ namespace Couchbase.UnitTests.Diagnostics
                 throw new NotImplementedException();
             }
 
-            public event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
+            public event NotifyCollectionChangedEventHandler KeyEndPointsChanged = delegate { };
 
             public bool IsDead { get; }
 

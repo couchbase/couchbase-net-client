@@ -132,7 +132,7 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
-            const int actual = 389;
+            const int expected = 389;
             var config = ResourceHelper.ReadResource(@"Documents\config.json",
                 InternalSerializationContext.Default.BucketConfig);
 
@@ -141,7 +141,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
             var vBucket = (IVBucket) mapper.MapKey(Key);
-            Assert.Equal(vBucket.Index, actual);
+            Assert.Equal(expected, vBucket.Index);
         }
 
         [Fact]

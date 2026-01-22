@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Core.IO.Connections.DataFlow
@@ -23,7 +24,9 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections.DataFlow
             {
                 options.NumKvConnections = 1;
                 options.MaxKvConnections = 2;
+#pragma warning disable CS0618 // Type or member is obsolete
                 options.Experiments.ChannelConnectionPools = false;
+#pragma warning restore CS0618 // Type or member is obsolete
             });
             await fixture.InitializeAsync();
 

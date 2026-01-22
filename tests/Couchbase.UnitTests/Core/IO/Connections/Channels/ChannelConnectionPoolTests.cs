@@ -568,7 +568,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // the TPL may not have scheduled the callback yet when ScaleAsync returns. Without this wait,
             // the test would intermittently fail when the scheduler was slower (e.g. on CI).
             var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
-            Assert.True(startedTask == closeStarted.Task && closeStarted.Task.Result,
+            Assert.True(startedTask == closeStarted.Task && await closeStarted.Task,
                 "CloseAsync should have started after ScaleAsync(-1) returned");
 
             // Verify CloseAsync hasn't completed, which proves ScaleAsync returned without waiting

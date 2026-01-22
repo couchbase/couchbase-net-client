@@ -10,6 +10,7 @@ using Couchbase.IntegrationTests.TestData;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
+using Couchbase.Test.Common.Fixtures;
 using Couchbase.Test.Common.Utils;
 using Serilog;
 using Xunit;
@@ -487,8 +488,9 @@ namespace Couchbase.IntegrationTests
                 {
                     await collection.RemoveAsync(key);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
+                    // ignored
                 }
             }
         }

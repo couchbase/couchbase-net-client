@@ -189,11 +189,11 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         [Fact]
-        public void GetAsync_Allows_No_GetOptions()
+        public async Task GetAsync_Allows_No_GetOptions()
         {
             var collection = CreateTestCollection();
 
-            collection.GetAsync("key").GetAwaiter().GetResult();
+            await collection.GetAsync("key");
         }
 
         internal class FakeBucket : BucketBase

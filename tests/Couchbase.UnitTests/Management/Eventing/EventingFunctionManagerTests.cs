@@ -20,678 +20,779 @@ using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Couchbase.UnitTests.Management.Eventing
+namespace Couchbase.UnitTests.Management.Eventing;
+
+public class EventingFunctionManagerTests : IDisposable
 {
-    public class EventingFunctionManagerTests : IDisposable
-    {
 #if NET6_0_OR_GREATER
-        private const HttpStatusCode UnprocessableEntity = HttpStatusCode.UnprocessableEntity;
-        private const HttpStatusCode Locked = HttpStatusCode.Locked;
+    private const HttpStatusCode UnprocessableEntity = HttpStatusCode.UnprocessableEntity;
+    private const HttpStatusCode Locked = HttpStatusCode.Locked;
 #else
         private const HttpStatusCode UnprocessableEntity = (HttpStatusCode)422;
         private const HttpStatusCode Locked = (HttpStatusCode)423;
 #endif
 
-        private readonly LoggerFactory _loggerFactory;
+    private readonly LoggerFactory _loggerFactory;
 
-        public EventingFunctionManagerTests(ITestOutputHelper testOutputHelper)
-        {
-            _loggerFactory = new LoggerFactory();
-            _loggerFactory.AddProvider(new XUnitLoggerProvider(testOutputHelper));
-        }
+    public EventingFunctionManagerTests(ITestOutputHelper testOutputHelper)
+    {
+        _loggerFactory = new LoggerFactory();
+        _loggerFactory.AddProvider(new XUnitLoggerProvider(testOutputHelper));
+    }
 
-        public void Dispose()
-        {
-            _loggerFactory.Dispose();
-        }
+    public void Dispose()
+    {
+        _loggerFactory.Dispose();
+    }
 
-        [Fact]
-        public void When_NotConnected_EventingFunctionManager_Throws_NodeUnavailableException()
-        {
-            var clusterContext = new ClusterContext();
-            var serviceUriProvider = new ServiceUriProvider(clusterContext);
-            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomEventingUri());
-        }
+    [Fact]
+    public void When_NotConnected_EventingFunctionManager_Throws_NodeUnavailableException()
+    {
+        var clusterContext = new ClusterContext();
+        var serviceUriProvider = new ServiceUriProvider(clusterContext);
+        Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomEventingUri());
+    }
 
-        [Fact]
-        public async Task Test_GetAllFunctionsAsync_Ok()
-        {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+    [Fact]
+    public async Task Test_GetAllFunctionsAsync_Ok()
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
-
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-response.json");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-response.json");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            var eventingFunctions = await manager.GetAllFunctionsAsync();
-            var eventingFunction = eventingFunctions.First();
-            Assert.Equal("function OnUpdate(doc, meta) {\n  log('document', doc);\n  doc[\"ip_num_start\"] = get_numip_first_3_octets(doc[\"ip_start\"]);\n  doc[\"ip_num_end\"]   = get_numip_first_3_octets(doc[\"ip_end\"]);\n  tgt[meta.id]=doc;\n}\nfunction get_numip_first_3_octets(ip) {\n  var return_val = 0;\n  if (ip) {\n    var parts = ip.split('.');\n    //IP Number = A x (256*256*256) + B x (256*256) + C x 256 + D\n    return_val = (parts[0]*(256*256*256)) + (parts[1]*(256*256)) + (parts[2]*256) + parseInt(parts[3]);\n    return return_val;\n  }\n}", eventingFunction.Code);
-            Assert.Equal("UhEbm2", eventingFunction.FunctionInstanceId);
-            Assert.Equal("evt-7.0.0-5071-ee", eventingFunction.Version);
-            Assert.False(eventingFunction.EnforceSchema);
-            Assert.Equal(2908133798, eventingFunction.HandlerUuid);
-        }
-
-        [Fact]
-        public async Task Test_GetFunctionAsync_Ok()
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = HttpStatusCode.OK,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
+        var eventingFunctions = await manager.GetAllFunctionsAsync();
+        var eventingFunction = eventingFunctions.First();
+        Assert.Equal("function OnUpdate(doc, meta) {\n  log('document', doc);\n  doc[\"ip_num_start\"] = get_numip_first_3_octets(doc[\"ip_start\"]);\n  doc[\"ip_num_end\"]   = get_numip_first_3_octets(doc[\"ip_end\"]);\n  tgt[meta.id]=doc;\n}\nfunction get_numip_first_3_octets(ip) {\n  var return_val = 0;\n  if (ip) {\n    var parts = ip.split('.');\n    //IP Number = A x (256*256*256) + B x (256*256) + C x 256 + D\n    return_val = (parts[0]*(256*256*256)) + (parts[1]*(256*256)) + (parts[2]*256) + parseInt(parts[3]);\n    return return_val;\n  }\n}", eventingFunction.Code);
+        Assert.Equal("UhEbm2", eventingFunction.FunctionInstanceId);
+        Assert.Equal("evt-7.0.0-5071-ee", eventingFunction.Version);
+        Assert.False(eventingFunction.EnforceSchema);
+        Assert.Equal(2908133798, eventingFunction.HandlerUuid);
+    }
+
+    [Fact]
+    public async Task Test_GetFunctionAsync_Ok()
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getfunction-response.json");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getfunction-response.json");
-            var buffer = new byte[response.Length];
+#endif
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            var eventingFunctions = await manager.GetFunctionAsync("case_1_enrich_ips");
-            var eventingFunction = eventingFunctions;
-            Assert.Equal("function OnUpdate(doc, meta) {\n  log('document', doc);\n  doc[\"ip_num_start\"] = get_numip_first_3_octets(doc[\"ip_start\"]);\n  doc[\"ip_num_end\"]   = get_numip_first_3_octets(doc[\"ip_end\"]);\n  tgt[meta.id]=doc;\n}\nfunction get_numip_first_3_octets(ip) {\n  var return_val = 0;\n  if (ip) {\n    var parts = ip.split('.');\n    //IP Number = A x (256*256*256) + B x (256*256) + C x 256 + D\n    return_val = (parts[0]*(256*256*256)) + (parts[1]*(256*256)) + (parts[2]*256) + parseInt(parts[3]);\n    return return_val;\n  }\n}", eventingFunction.Code);
-            Assert.Equal("UhEbm2", eventingFunction.FunctionInstanceId);
-            Assert.Equal("evt-7.0.0-5071-ee", eventingFunction.Version);
-            Assert.False(eventingFunction.EnforceSchema);
-            Assert.Equal(2908133798, eventingFunction.HandlerUuid);
-        }
-
-        [Fact]
-        public async Task Test_GetAllFunctions_GlobalScope()
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = HttpStatusCode.OK,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
-            using var response =
-                ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
-            var buffer = new byte[response.Length];
+        var eventingFunctions = await manager.GetFunctionAsync("case_1_enrich_ips");
+        var eventingFunction = eventingFunctions;
+        Assert.Equal("function OnUpdate(doc, meta) {\n  log('document', doc);\n  doc[\"ip_num_start\"] = get_numip_first_3_octets(doc[\"ip_start\"]);\n  doc[\"ip_num_end\"]   = get_numip_first_3_octets(doc[\"ip_end\"]);\n  tgt[meta.id]=doc;\n}\nfunction get_numip_first_3_octets(ip) {\n  var return_val = 0;\n  if (ip) {\n    var parts = ip.split('.');\n    //IP Number = A x (256*256*256) + B x (256*256) + C x 256 + D\n    return_val = (parts[0]*(256*256*256)) + (parts[1]*(256*256)) + (parts[2]*256) + parseInt(parts[3]);\n    return return_val;\n  }\n}", eventingFunction.Code);
+        Assert.Equal("UhEbm2", eventingFunction.FunctionInstanceId);
+        Assert.Equal("evt-7.0.0-5071-ee", eventingFunction.Version);
+        Assert.False(eventingFunction.EnforceSchema);
+        Assert.Equal(2908133798, eventingFunction.HandlerUuid);
+    }
+
+    [Fact]
+    public async Task Test_GetAllFunctions_GlobalScope()
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+#else
+        using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+#endif
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
-
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-            var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
-            var eventingFunction = eventingFunctions.First();
-            Assert.Equal("X40ih3", eventingFunction.FunctionInstanceId);
-            Assert.NotNull(eventingFunction.FunctionScope);
-            Assert.Equal("*", eventingFunction.FunctionScope.Scope);
-            Assert.Equal("*", eventingFunction.FunctionScope.Bucket);
-            Assert.Equal(1, eventingFunctions.Count);
-        }
-
-        [Fact]
-        public async Task Test_GetAllFunctions_Scoped()
+#endif
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = HttpStatusCode.OK,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+        var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
+        var eventingFunction = eventingFunctions.First();
+        Assert.Equal("X40ih3", eventingFunction.FunctionInstanceId);
+        Assert.NotNull(eventingFunction.FunctionScope);
+        Assert.Equal("*", eventingFunction.FunctionScope.Scope);
+        Assert.Equal("*", eventingFunction.FunctionScope.Bucket);
+        Assert.Single(eventingFunctions);
+    }
 
-            using var response =
-                ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
-            var buffer = new byte[response.Length];
+    [Fact]
+    public async Task Test_GetAllFunctions_Scoped()
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+#else
+using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
+#endif
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object,
-                new EventingFunctionKeyspace("hr", "employees", null));
-            var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
-            var eventingFunction = eventingFunctions.First();
-            Assert.Equal("fpKlI", eventingFunction.FunctionInstanceId);
-            Assert.NotNull(eventingFunction.FunctionScope);
-            Assert.Equal("employees", eventingFunction.FunctionScope.Scope);
-            Assert.Equal("hr", eventingFunction.FunctionScope.Bucket);
-            Assert.Equal(1, eventingFunctions.Count);
-        }
-
-        [Fact]
-        public void Test_ToJson()
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var originalJson = ResourceHelper.ReadResource(@"Documents\Eventing\getfunction-response.json");
-            var eventingResource = JsonConvert.DeserializeObject<EventingFunction>(originalJson);
+            StatusCode = HttpStatusCode.OK,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var json = eventingResource.ToJson(null);
-        }
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("400_err_invalid_config_upsert.json", HttpStatusCode.BadRequest, typeof(InvalidArgumentException))]
-        [InlineData("422_err_handler_compilation.json", UnprocessableEntity, typeof(EventingFunctionCompilationFailureException))]
-        [InlineData("422_err_source_mb_same.json", UnprocessableEntity, typeof(EventingFunctionIdenticalKeyspaceException))]
-        [InlineData("500_err_collection_missing.json", HttpStatusCode.InternalServerError, typeof(Couchbase.Management.Collections.CollectionNotFoundException))]
-        [InlineData("500_err_bucket_missing.json", HttpStatusCode.InternalServerError, typeof(BucketNotFoundException))]
-        public async Task Test_UpsertAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
-        {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object,
+            new EventingFunctionKeyspace("hr", "employees", null));
+        var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
+        var eventingFunction = eventingFunctions.First();
+        Assert.Equal("fpKlI", eventingFunction.FunctionInstanceId);
+        Assert.NotNull(eventingFunction.FunctionScope);
+        Assert.Equal("employees", eventingFunction.FunctionScope.Scope);
+        Assert.Equal("hr", eventingFunction.FunctionScope.Bucket);
+        Assert.Single(eventingFunctions);
+    }
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+    [Fact]
+    public void Test_ToJson()
+    {
+        var originalJson = ResourceHelper.ReadResource(@"Documents\Eventing\getfunction-response.json");
+        var eventingResource = JsonConvert.DeserializeObject<EventingFunction>(originalJson);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var json = eventingResource.ToJson(null);
+    }
 
-            using var response =
-                ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
-            response.Read(buffer, 0, buffer.Length);
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("400_err_invalid_config_upsert.json", HttpStatusCode.BadRequest, typeof(InvalidArgumentException))]
+    [InlineData("422_err_handler_compilation.json", UnprocessableEntity, typeof(EventingFunctionCompilationFailureException))]
+    [InlineData("422_err_source_mb_same.json", UnprocessableEntity, typeof(EventingFunctionIdenticalKeyspaceException))]
+    [InlineData("500_err_collection_missing.json", HttpStatusCode.InternalServerError, typeof(Couchbase.Management.Collections.CollectionNotFoundException))]
+    [InlineData("500_err_bucket_missing.json", HttpStatusCode.InternalServerError, typeof(BucketNotFoundException))]
+    public async Task Test_UpsertAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>(), It.IsAny<EventingFunctionKeyspace>()))
-                .Returns(Task.FromResult(httpResponseMessage));
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
 
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            try
-            {
-                await manager.UpsertFunctionAsync(new EventingFunction{Name = "some_func"});
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {exception.Name} but was {e.GetType().Name}");
-            }
-        }
-
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("406_err_app_not_deployed.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotDeployedException))]
-        [InlineData("422_err_app_not_undeployed.json", UnprocessableEntity, typeof(EventingFunctionDeployedException))]
-        [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
-        public async Task Test_DropFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
-        {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
-
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
-
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
-
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
-
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.DeleteAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            try
-            {
-                await manager.DropFunctionAsync("case_1_enrich_ips");
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
-            }
-        }
-
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
-        [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
-        public async Task Test_PauseFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), It.IsAny<EventingFunction>(), It.IsAny<EventingFunctionKeyspace>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
+        try
+        {
+            await manager.UpsertFunctionAsync(new EventingFunction{Name = "some_func"});
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {exception.Name} but was {e.GetType().Name}");
+        }
+    }
+
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("406_err_app_not_deployed.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotDeployedException))]
+    [InlineData("422_err_app_not_undeployed.json", UnprocessableEntity, typeof(EventingFunctionDeployedException))]
+    [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
+    public async Task Test_DropFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            try
-            {
-                await manager.PauseFunctionAsync("case_1_enrich_ips");
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {exception.Name} but was {e.GetType().Name}");
-            }
-        }
-
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
-        [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
-        public async Task Test_ResumeFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.DeleteAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
+        try
+        {
+            await manager.DropFunctionAsync("case_1_enrich_ips");
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
+        }
+    }
+
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
+    [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotFound, typeof(EventingFunctionNotFoundException))]
+    public async Task Test_PauseFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+        Debug.Assert(response != null, nameof(response) + " != null");
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
-
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            try
-            {
-                await manager.ResumeFunctionAsync("case_1_enrich_ips");
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
-            }
-        }
-
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
-        [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
-        public async Task Test_DeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+        var httpResponseMessage = new HttpResponseMessage
         {
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
+
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            .Returns(Task.FromResult(httpResponseMessage));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
+
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+
+        try
+        {
+            await manager.PauseFunctionAsync("case_1_enrich_ips");
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {exception.Name} but was {e.GetType().Name}");
+        }
+    }
+
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
+    [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
+    public async Task Test_ResumeFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
-
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
-
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
-
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
-
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
-
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
-
-            try
-            {
-                await manager.DeployFunctionAsync("case_1_enrich_ips");
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
-            }
-        }
-
-        [Theory]
-        [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
-        [InlineData("404_page_not_found.json", HttpStatusCode.NotFound, typeof(CouchbaseException))]
-        [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
-        [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
-        public async Task Test_UndeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            .Returns(Task.FromResult(httpResponseMessage));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        try
+        {
+            await manager.ResumeFunctionAsync("case_1_enrich_ips");
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
+        }
+    }
 
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("423_err_app_not_bootstrapped.json", Locked, typeof(EventingFunctionNotBootstrappedException))]
+    [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
+    public async Task Test_DeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = statusCode,
-                Content = new ByteArrayContent(buffer)
-            };
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
-                .Returns(Task.FromResult(httpResponseMessage));
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            try
-            {
-                await manager.UndeployFunctionAsync("case_1_enrich_ips");
-            }
-            catch (Exception e)
-            {
-                Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
-            }
-        }
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
 
-        [Fact]
-        public async Task Test_FunctionStatus()
+        var httpResponseMessage = new HttpResponseMessage
         {
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-            nodeMock.Setup(n => n.EventingUri)
-                .Returns(new Uri("http://localhost:8093"));
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomEventingNode())
-                .Returns(nodeMock.Object);
+        try
+        {
+            await manager.DeployFunctionAsync("case_1_enrich_ips");
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
+        }
+    }
 
+    [Theory]
+    [InlineData("200_ok_upsert.json", HttpStatusCode.OK, null)]
+    [InlineData("404_page_not_found.json", HttpStatusCode.NotFound, typeof(CouchbaseException))]
+    [InlineData("406_err_app_not_deployed.json", Locked, typeof(EventingFunctionNotDeployedException))]
+    [InlineData("404_err_app_not_found_ts.json", HttpStatusCode.NotAcceptable, typeof(EventingFunctionNotFoundException))]
+    public async Task Test_UndeployFunctionAsync(string jsonFileName, HttpStatusCode statusCode, Type exception)
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#else
+            using var response =
+                ResourceHelper.ReadResourceAsStream($@"Documents\Eventing\{jsonFileName}");
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
+            response.Read(buffer, 0, buffer.Length);
+#endif
+
+        var httpResponseMessage = new HttpResponseMessage
+        {
+            StatusCode = statusCode,
+            Content = new ByteArrayContent(buffer)
+        };
+
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.PostAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>(), null, It.IsAny<EventingFunctionKeyspace>()))
+            .Returns(Task.FromResult(httpResponseMessage));
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
+
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+
+        try
+        {
+            await manager.UndeployFunctionAsync("case_1_enrich_ips");
+        }
+        catch (Exception e)
+        {
+            Assert.True(e.GetType() == exception, $"Expected {e.GetType().Name} but was {exception.Name}");
+        }
+    }
+
+    [Fact]
+    public async Task Test_FunctionStatus()
+    {
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+        nodeMock.Setup(n => n.EventingUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomEventingNode())
+            .Returns(nodeMock.Object);
+
+#if NET8_0_OR_GREATER
+        await using var response =
+            ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\200_ok_status.json");
+#else
             using var response =
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\200_ok_status.json");
-            var buffer = new byte[response.Length];
+#endif
+
+        var buffer = new byte[response.Length];
+#if NET8_0_OR_GREATER
+        await response.ReadExactlyAsync(buffer, 0, buffer.Length);
+#else
             response.Read(buffer, 0, buffer.Length);
+#endif
 
-            var httpResponseMessage = new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new ByteArrayContent(buffer)
-            };
+        var httpResponseMessage = new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new ByteArrayContent(buffer)
+        };
 
-            var serviceMock = new Mock<IEventingFunctionService>();
-            serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(httpResponseMessage));
+        var serviceMock = new Mock<IEventingFunctionService>();
+        serviceMock.Setup(x => x.GetAsync(It.IsAny<Uri>(), It.IsAny<IRequestSpan>(), It.IsAny<IRequestSpan>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(httpResponseMessage));
 
-            using var tracer = new RequestTracer();
-            using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
-            tracer.Start(listener);
+        using var tracer = new RequestTracer();
+        using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
+        tracer.Start(listener);
 
-            var manager = new EventingFunctionManager(serviceMock.Object,
-                new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+        var manager = new EventingFunctionManager(serviceMock.Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
 
-            var functionStatus = await manager.FunctionsStatus();
-            Assert.Equal(1, functionStatus.NumEventingNodes);
+        var functionStatus = await manager.FunctionsStatus();
+        Assert.Equal(1, functionStatus.NumEventingNodes);
 
-            var function = functionStatus.Functions.First();
-            Assert.Equal(EventingFunctionStatus.Undeployed, function.Status);
-            Assert.Equal(EventingFunctionDeploymentStatus.Undeployed, function.DeploymentStatus);
-            Assert.Equal(EventingFunctionProcessingStatus.Paused, function.ProcessingStatus);
-            Assert.Equal(0, function.NumDeployedNodes);
-            Assert.Equal(0, function.NumBootstrappingNodes);
-            Assert.Equal("case_1_enrich_ips", function.Name);
-        }
+        var function = functionStatus.Functions.First();
+        Assert.Equal(EventingFunctionStatus.Undeployed, function.Status);
+        Assert.Equal(EventingFunctionDeploymentStatus.Undeployed, function.DeploymentStatus);
+        Assert.Equal(EventingFunctionProcessingStatus.Paused, function.ProcessingStatus);
+        Assert.Equal(0, function.NumDeployedNodes);
+        Assert.Equal(0, function.NumBootstrappingNodes);
+        Assert.Equal("case_1_enrich_ips", function.Name);
     }
 }

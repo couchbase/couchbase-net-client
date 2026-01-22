@@ -5,36 +5,30 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
-using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
+using Couchbase.Test.Common.Fixtures;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Core.IO.Connections
 {
-    public class SslConnectionTests : IClassFixture<SslClusterFixture>
+    public class SslConnectionTests(SslClusterFixture fixture)
+        : IClassFixture<SslClusterFixture>
     {
-        private readonly SslClusterFixture _fixture;
-
-        public SslConnectionTests(SslClusterFixture fixture)
-        {
-            _fixture = fixture;
-        }
-
         [CouchbaseCertificateFact(CertFilePath = "required")]
         public async Task ParallelOperations()
         {
-                ClusterOptions options = _fixture.GetClusterOptions();
-                _fixture.Log("ParallelOperations: " + _fixture.GetCertsFilePath());
+                var options = fixture.GetClusterOptions();
+                fixture.Log("ParallelOperations: " + fixture.GetCertsFilePath());
                 var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadWrite);
                 var certs = new X509Certificate2Collection();
 
 #if NET5_0_OR_GREATER
-                _fixture.Log(_fixture.GetCertsFilePath());
-                certs.ImportFromPemFile(_fixture.GetCertsFilePath());
+                fixture.Log(fixture.GetCertsFilePath());
+                certs.ImportFromPemFile(fixture.GetCertsFilePath());
 #else
                 const string endCert = "-----END CERTIFICATE-----";
-                var certFileText = File.ReadAllText(_fixture.GetCertsFilePath());
+                var certFileText = File.ReadAllText(fixture.GetCertsFilePath());
                 var certStrings =
  certFileText.Split(new[] {endCert}, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var certString in certStrings)
@@ -50,8 +44,8 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                 store.AddRange(certs);
                 var findByValue = certs[0].Thumbprint;
                 // Find certificate in local store
-                options.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
-                    new CertificateStoreSearchCriteria()
+                options?.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
+                    new CertificateStoreSearchCriteria
                     {
                         StoreLocation = StoreLocation.CurrentUser,
                         StoreName = StoreName.My,
@@ -59,11 +53,11 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                         FindValue = findByValue
                     });
 
-                var cluster =
-                    await Cluster.ConnectAsync(_fixture.GetClusterOptions().ConnectionString,
+                await using var cluster =
+                    await Cluster.ConnectAsync(fixture.GetClusterOptions()?.ConnectionString ?? throw new InvalidOperationException(),
                         options);
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
-                var bucket = await cluster.BucketAsync(_fixture.BucketName);
+                await using var bucket = await cluster.BucketAsync(fixture.BucketName);
                 var collection = await bucket.DefaultCollectionAsync();
                 var key = Guid.NewGuid().ToString();
 
@@ -98,18 +92,18 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
         [CouchbaseCertificateFact(CertFilePath = "required")]
         public async Task MultiCertsTest()
         {
-            ClusterOptions options = _fixture.GetClusterOptions();
-            _fixture.Log("MultiCertsTest: " + _fixture.GetCertsFilePath());
+            var options = fixture.GetClusterOptions();
+            fixture.Log("MultiCertsTest: " + fixture.GetCertsFilePath());
             var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadWrite);
             var certs = new X509Certificate2Collection();
 
 #if NET5_0_OR_GREATER
-            _fixture.Log(_fixture.GetCertsFilePath());
-            certs.ImportFromPemFile(_fixture.GetCertsFilePath());
+            fixture.Log(fixture.GetCertsFilePath());
+            certs.ImportFromPemFile(fixture.GetCertsFilePath());
 #else
                 const string endCert = "-----END CERTIFICATE-----";
-                var certFileText = File.ReadAllText(_fixture.GetCertsFilePath());
+                var certFileText = File.ReadAllText(fixture.GetCertsFilePath());
                 var certStrings =
  certFileText.Split(new[] {endCert}, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var certString in certStrings)
@@ -125,8 +119,8 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
             store.AddRange(certs);
             var findByValue = certs[0].Thumbprint;
             // Find certificate in local store
-            options.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
-                new CertificateStoreSearchCriteria()
+            options?.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
+                new CertificateStoreSearchCriteria
                 {
                     StoreLocation = StoreLocation.CurrentUser,
                     StoreName = StoreName.My,
@@ -135,20 +129,23 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                 });
 
             var cluster =
-                await Cluster.ConnectAsync(_fixture.GetClusterOptions().ConnectionString, options);
+                await Cluster.ConnectAsync(fixture.GetClusterOptions()?.ConnectionString ?? throw new InvalidOperationException(), options);
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
-            var bucket = await cluster.BucketAsync(_fixture.BucketName);
+            var bucket = await cluster.BucketAsync(fixture.BucketName);
             var key = Guid.NewGuid().ToString();
 
             try
             {
+                // ReSharper disable once MethodHasAsyncOverload
                 await bucket.DefaultCollection().UpsertAsync(key, "Multicerts test data");
+                // ReSharper disable once MethodHasAsyncOverload
                 var result = await bucket.DefaultCollection().GetAsync(key);
 
                 Assert.Equal("Multicerts test data", (string)result.ContentAs<dynamic>());
             }
             finally
             {
+                // ReSharper disable once MethodHasAsyncOverload
                 await bucket.DefaultCollection().RemoveAsync(key);
             }
 
