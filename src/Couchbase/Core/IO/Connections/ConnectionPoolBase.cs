@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -119,6 +120,7 @@ namespace Couchbase.Core.IO.Connections
             await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
             {
                 var tasks = GetConnections()
+                    .Where(p => !p.IsDead)
                     .Select(connection => Task.Run(async () =>
                     {
                         try
@@ -135,6 +137,12 @@ namespace Couchbase.Core.IO.Connections
                         }
                     }, cancellationToken))
                     .ToList();
+
+                if (tasks.Count == 0)
+                {
+                    // There are no healthy connections, so we cannot select the bucket
+                    throw new DocumentNotFoundException($"Failed to select bucket {BucketName}.");
+                }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
 

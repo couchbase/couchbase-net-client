@@ -19,7 +19,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -628,6 +627,19 @@ namespace Couchbase.Core
                 //We need to now try HTTP Streaming for config fetching
                 config = await _httpClusterMap.GetClusterMapAsync(
                     name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The ClusterNode may be in a bad state, such as all connections being unhealthy, so we'll
+                // never be able to reuse this node for a later SelectBucketAsync call. Clean up so the
+                // next attempt can succeed with a fresh node.
+                if (!newNode)
+                {
+                    RemoveNode(node);
+                }
+
+                node.Dispose();
+                throw;
             }
 
             //Determine the bucket type to create based off the bucket capabilities
