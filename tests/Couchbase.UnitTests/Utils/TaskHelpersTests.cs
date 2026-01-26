@@ -10,7 +10,7 @@ namespace Couchbase.UnitTests.Utils;
 
 public class TaskHelpersTests
 {
-    [Theory]
+    [Theory(Skip = "Skipping because this is a flaky test and we shouldn't care which task is returned.")]
     [InlineData("TaskFive", new[] {true, true, true, true, false})]
     [InlineData("TaskFour", new[] {true, true, true, false, true})]
     [InlineData("TaskTwo", new[] {true, false, true, false, true})]

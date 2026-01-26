@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests.Utils
             // Assert
 
             Assert.Equal(4, readChars);
-            Assert.Equal("\0\0\0ABCD\0\0\0", buffer);
+            Assert.Equal("\0\0\0ABCD\0\0\0", new string(buffer));
         }
 
         [Theory]
@@ -105,7 +105,7 @@ namespace Couchbase.UnitTests.Utils
             // Assert 1
 
             Assert.Equal(4, readChars1);
-            Assert.Equal("ABCD".PadRight(buffer.Length, '\0'), buffer);
+            Assert.Equal("ABCD".PadRight(buffer.Length, '\0'), new string(buffer));
 
             // Act 2
 
@@ -114,7 +114,7 @@ namespace Couchbase.UnitTests.Utils
             // Assert 1
 
             Assert.Equal(3, readChars2);
-            Assert.Equal(Encoding.UTF8.GetString(source).PadRight(buffer.Length, '\0'), buffer);
+            Assert.Equal(Encoding.UTF8.GetString(source).PadRight(buffer.Length, '\0'), new string(buffer));
         }
 
         [Theory]
@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Utils
             // Assert 1
 
             Assert.Equal(5, readChars1); // Reads the 🇺 surrogate pair and half of the 🇸 pair
-            Assert.Equal("AB🇺\ud83c".PadRight(buffer.Length, '\0'), buffer);
+            Assert.Equal("AB🇺\ud83c".PadRight(buffer.Length, '\0'), new string(buffer));
 
             // Act 2
 
