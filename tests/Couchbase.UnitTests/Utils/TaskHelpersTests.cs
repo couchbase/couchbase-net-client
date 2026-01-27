@@ -10,23 +10,56 @@ namespace Couchbase.UnitTests.Utils;
 
 public class TaskHelpersTests
 {
-    [Theory(Skip = "Skipping because this is a flaky test and we shouldn't care which task is returned.")]
-    [InlineData("TaskFive", new[] {true, true, true, true, false})]
-    [InlineData("TaskFour", new[] {true, true, true, false, true})]
-    [InlineData("TaskTwo", new[] {true, false, true, false, true})]
-    public static async Task WhenAnySuccessful_Should_Return_First_Successful_Task(string expectedId, bool[] throws)
+    public enum TaskResult
     {
-        var taskOne = WaitOrThrow("TaskOne", 1, throws[0]);
-        var taskTwo = WaitOrThrow("TaskTwo", 2, throws[1]);
-        var taskThree = WaitOrThrow("TaskThree", 3, throws[2]);
-        var taskFour = WaitOrThrow("TaskFour", 4, throws[3]);
-        var taskFive = WaitOrThrow("TaskFive", 5, throws[4]);
+        Success,
+        Failure,
+        NeverCompletes
+    }
 
-        var taskList = new[] { taskOne, taskTwo, taskThree , taskFour, taskFive};
+    [Theory]
+    [InlineData(new[] { TaskResult.Failure, TaskResult.Failure, TaskResult.Failure, TaskResult.Failure, TaskResult.Success })]
+    [InlineData(new[] { TaskResult.Failure, TaskResult.Failure, TaskResult.Failure, TaskResult.Success, TaskResult.Failure })]
+    [InlineData(new[] { TaskResult.Failure, TaskResult.Success, TaskResult.Failure, TaskResult.Success, TaskResult.Failure })]
+    [InlineData(new[] { TaskResult.NeverCompletes, TaskResult.NeverCompletes, TaskResult.NeverCompletes, TaskResult.NeverCompletes, TaskResult.Success })]
+    [InlineData(new[] { TaskResult.NeverCompletes, TaskResult.NeverCompletes, TaskResult.NeverCompletes, TaskResult.Success, TaskResult.NeverCompletes })]
+    [InlineData(new[] { TaskResult.NeverCompletes, TaskResult.Success, TaskResult.NeverCompletes, TaskResult.Success, TaskResult.NeverCompletes })]
+    public static async Task WhenAnySuccessful_Should_Return_A_Successful_Task(TaskResult[] taskResults)
+    {
+        // true = success, false = failure, null = never completes
 
-        var firstSuccessful = await TaskHelpers.WhenAnySuccessful(taskList, CancellationToken.None);
+        TaskCompletionSource<string>[] taskCompletionSources = taskResults
+            .Select(p => new TaskCompletionSource<string>())
+            .ToArray();
 
-        Assert.Equal(expectedId, firstSuccessful);
+        // Just in case, don't let this test run forever
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+        var completeTask = TaskHelpers.WhenAnySuccessful(taskCompletionSources.Select(p => p.Task), cts.Token);
+
+        for (var i=0; i< taskResults.Length; i++)
+        {
+            var taskResult = taskResults[i];
+            if (taskResult == TaskResult.Success)
+            {
+                taskCompletionSources[i].SetResult($"{i}");
+            }
+            else if (taskResult == TaskResult.Failure)
+            {
+                taskCompletionSources[i].SetException(new Exception("intentional failure " + i));
+            }
+        }
+
+        var firstSuccessful = await completeTask
+#if NET6_0_OR_GREATER
+            .WaitAsync(cts.Token); // Extra safeguard against a stuck test
+#else
+            ;
+#endif
+
+        var index = int.Parse(firstSuccessful);
+
+        Assert.Equal(TaskResult.Success, taskResults[index]);
     }
 
     [Fact]
@@ -92,15 +125,5 @@ public class TaskHelpersTests
 #pragma warning disable xUnit2021
         _ = Assert.ThrowsAsync<AggregateException>(() => whenAnySuccessful);
 #pragma warning restore xUnit2021
-    }
-
-    private static async Task<string> WaitOrThrow(string id, int seconds, bool throws)
-    {
-        await Task.Delay(TimeSpan.FromSeconds(seconds));
-        if (throws)
-        {
-            throw new Exception($"Task {id} threw.");
-        }
-        return id;
     }
 }
