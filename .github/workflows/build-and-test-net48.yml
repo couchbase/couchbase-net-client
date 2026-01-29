@@ -1,0 +1,43 @@
+name: Build & Run Unit Tests (.NET Framework 4.8)
+
+on:
+  push:
+    branches:
+      - master
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Unit Tests (Windows .NET Framework 4.8)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore couchbase-net-client.sln
+
+      - name: Build (Release)
+        run: msbuild couchbase-net-client.sln /p:Configuration=Release /p:TargetFrameworkVersion=v4.8 /m
+
+      - name: Setup VSTest
+        uses: darenm/Setup-VSTest@v1.3
+
+      - name: Test - Couchbase.UnitTests
+        run: vstest.console.exe tests/Couchbase.UnitTests/bin/Release/net48/Couchbase.UnitTests.dll /Logger:trx;LogFileName=unit-tests.trx /ResultsDirectory:TestResults
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-windows-net48
+          path: TestResults
+
