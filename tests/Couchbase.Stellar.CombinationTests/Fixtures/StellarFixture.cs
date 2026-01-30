@@ -43,6 +43,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
         {
             _settings = GetOptionsFromConfig();
             Debug.Assert(_settings != null, nameof(_settings) + " != null");
+#pragma warning disable CS0618 // Type or member is obsolete
             _options = new ClusterOptions
             {
                 UserName = _settings.Username,
@@ -54,6 +55,7 @@ namespace Couchbase.Stellar.CombinationTests.Fixtures
                 KvCertificateCallbackValidation = (_, _, _, _) => true,
                 HttpCertificateCallbackValidation = (_, _, _, _) => true
             };
+#pragma warning restore CS0618 // Type or member is obsolete
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder

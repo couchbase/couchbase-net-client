@@ -324,7 +324,9 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             // Assert initial state
             Assert.False(factory.HasUpdates);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var clusterOptions = new ClusterOptions().WithX509CertificateFactory(factory);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var expiresIn = TimeSpan.FromMilliseconds(2);
             using (var timer = new Timer(factory.RefreshCertificates, expiresIn, TimeSpan.Zero,

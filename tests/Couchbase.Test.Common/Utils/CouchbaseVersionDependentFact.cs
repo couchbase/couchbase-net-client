@@ -43,11 +43,13 @@ namespace Couchbase.IntegrationTests.Utils
                     versionEndpoint.Path = "versions";
                     versionEndpoint.Query = string.Empty;
                     versionEndpoint.Port = 8091;
+#pragma warning disable CS0618 // Type or member is obsolete
                     versionEndpoint.UserName = clusterOptions.UserName ?? versionEndpoint.UserName;
                     versionEndpoint.Password = clusterOptions.Password ?? versionEndpoint.Password;
 
                     using var httpClient = new HttpClient();
                     var authString = $"{clusterOptions.UserName}:{clusterOptions.Password}";
+#pragma warning restore CS0618 // Type or member is obsolete
                     var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
                     var responseJsonString = httpClient.GetStringAsync(versionEndpoint.Uri).Result;

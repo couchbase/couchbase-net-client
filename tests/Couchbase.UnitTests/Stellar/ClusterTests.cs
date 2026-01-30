@@ -99,7 +99,9 @@ public class ClusterTests
 #endif
       public async Task Test_Schema_Delivers_The_Correct_ICluster_Impl(string connectionString, Type type)
       {
+#pragma warning disable CS0618 // Type or member is obsolete
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
+#pragma warning restore CS0618 // Type or member is obsolete
           options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
           var cluster = await Cluster.ConnectAsync(connectionString,options);
 
@@ -110,10 +112,12 @@ public class ClusterTests
       {
           var connectionString = "couchbase2://xxx";
 
+#pragma warning disable CS0618 // Type or member is obsolete
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
           options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
           options.HttpIgnoreRemoteCertificateMismatch = true;
           options.KvIgnoreRemoteCertificateNameMismatch = true;
+#pragma warning restore CS0618 // Type or member is obsolete
 
           return await Cluster.ConnectAsync(connectionString,options);
       }

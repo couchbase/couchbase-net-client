@@ -168,7 +168,9 @@ namespace Couchbase.IntegrationTests
             // default without overriding any callbacks.
             {
                 // Initialize the Connection
+#pragma warning disable CS0618 // Type or member is obsolete
                 var opts = new ClusterOptions().WithCredentials(username, password);
+#pragma warning restore CS0618 // Type or member is obsolete
                 opts.EnableTls = true;
                 opts.ForceIpAsTargetHost = false;
 
@@ -224,9 +226,11 @@ namespace Couchbase.IntegrationTests
             // If a callback is specified, default certificates should not be used.
            {
                 // Initialize the Connection
+#pragma warning disable CS0618 // Type or member is obsolete
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
                 opts.KvCertificateCallbackValidation = (a, b, c, d) => false;
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 var cluster = await Cluster.ConnectAsync( endpoint, opts);
 
@@ -244,9 +248,11 @@ namespace Couchbase.IntegrationTests
             // If a query callback is specified but KV is not, KV should still work.
             {
                 // Initialize the Connection
+#pragma warning disable CS0618 // Type or member is obsolete
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
                 opts.HttpCertificateCallbackValidation = (a, b, c, d) => false;
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 var cluster = await Cluster.ConnectAsync( endpoint, opts);
                 var bucket = await cluster.BucketAsync(bucketName);
@@ -291,6 +297,7 @@ namespace Couchbase.IntegrationTests
             // default without overriding any callbacks.
             {
                 // Initialize the Connection
+#pragma warning disable CS0618 // Type or member is obsolete
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
                 opts.ForceIpAsTargetHost = false;
@@ -305,6 +312,7 @@ namespace Couchbase.IntegrationTests
                 certs[0] = new X509Certificate2(capemPath);
 #endif
                 opts.WithX509CertificateFactory(CertificateFactory.FromCertificates(certs));
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 IServiceCollection serviceCollection = new ServiceCollection();
                 serviceCollection.AddLogging(builder => builder

@@ -44,6 +44,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                 store.AddRange(certs);
                 var findByValue = certs[0].Thumbprint;
                 // Find certificate in local store
+#pragma warning disable CS0618 // Type or member is obsolete
                 options?.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
                     new CertificateStoreSearchCriteria
                     {
@@ -52,6 +53,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                         X509FindType = X509FindType.FindByThumbprint,
                         FindValue = findByValue
                     });
+#pragma warning restore CS0618 // Type or member is obsolete
 
                 await using var cluster =
                     await Cluster.ConnectAsync(fixture.GetClusterOptions()?.ConnectionString ?? throw new InvalidOperationException(),
@@ -119,6 +121,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
             store.AddRange(certs);
             var findByValue = certs[0].Thumbprint;
             // Find certificate in local store
+#pragma warning disable CS0618 // Type or member is obsolete
             options?.X509CertificateFactory = CertificateFactory.GetCertificatesFromStore(
                 new CertificateStoreSearchCriteria
                 {
@@ -127,6 +130,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
                     X509FindType = X509FindType.FindByThumbprint,
                     FindValue = findByValue
                 });
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var cluster =
                 await Cluster.ConnectAsync(fixture.GetClusterOptions()?.ConnectionString ?? throw new InvalidOperationException(), options);

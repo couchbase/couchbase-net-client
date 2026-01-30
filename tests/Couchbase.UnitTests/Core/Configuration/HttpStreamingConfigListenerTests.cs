@@ -18,9 +18,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         [Fact]
         public async Task Should_Continue_After_Failures()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var clusterOptions = new ClusterOptions()
                 .WithConnectionString($"couchbases://NOSUCHHOST{nameof(Should_Continue_After_Failures)}")
                 .WithCredentials("UnitTestUser", "PasswordDoesn'tMatter");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var messageHandler = new ThrowsEveryTimeMessageHandler();
             var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(messageHandler, false));

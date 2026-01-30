@@ -29,12 +29,14 @@ namespace Couchbase.UnitTests
         [Fact]
         public void WhenDnsSrvAllowReconfigure()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var options = new ClusterOptions()
             {
                 UserName = "Administrator",
                 Password = "password",
                 EnableDnsSrvResolution = true
             }.WithConnectionString("dotnet123.cbqeoc.com");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             //fake like DNS SRV records were returned
             var serversOld = new List<HostEndpoint>
@@ -149,12 +151,15 @@ namespace Couchbase.UnitTests
         {
             var options = new ClusterOptions();
 
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Null(options.X509CertificateFactory);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [Fact]
         public void When_Set_X509Certificate_Is_NotNull_And_EnableTls_True()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var options = new ClusterOptions().
                 WithX509CertificateFactory(CertificateFactory.GetCertificatesFromStore(
                 new CertificateStoreSearchCriteria
@@ -166,13 +171,16 @@ namespace Couchbase.UnitTests
                 }));
 
             Assert.NotNull(options.X509CertificateFactory);
+#pragma warning restore CS0618 // Type or member is obsolete
             Assert.True(options.EffectiveEnableTls);
         }
 
         [Fact]
         public void When_X509Certificate_Is_Set_To_Null_Throw_NRE()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Throws<NullReferenceException>(() => new ClusterOptions().WithX509CertificateFactory(null));
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         #endregion

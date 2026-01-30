@@ -32,7 +32,9 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             // NCBC-3000: wrong password raises ServiceNotAvailable instead of AuthenticationFailure
             using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
             var clusterOptions = _fixture.GetOptionsFromConfig();
+#pragma warning disable CS0618 // Type or member is obsolete
             clusterOptions.Password = "WRONG_PASSWORD_ON_PURPOSE";
+#pragma warning restore CS0618 // Type or member is obsolete
             clusterOptions.WithLogging(loggerFactory);
             var t = Couchbase.Cluster.ConnectAsync(clusterOptions);
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t);
@@ -80,10 +82,12 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             var ub = new UriBuilder(fixtureOptions.ConnectionString ?? "http://localhost:8091");
             ub.Scheme = "http";
             Uri uri = ub.Uri;
+#pragma warning disable CS0618 // Type or member is obsolete
             ClusterOptions clusterOptions = new ClusterOptions
             {
                 UserName = fixtureOptions.UserName,
                 Password = fixtureOptions.Password,
+#pragma warning restore CS0618 // Type or member is obsolete
                 TracingOptions = new TracingOptions { Enabled = false },
                 EnableOperationDurationTracing = false,
                 OrphanTracingOptions = new OrphanOptions { Enabled = false },

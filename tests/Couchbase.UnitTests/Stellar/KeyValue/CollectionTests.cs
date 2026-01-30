@@ -145,7 +145,9 @@ public class CollectionTests
         //Represents an unreachable host - the SDK will fail when the first op is called
         var connectionString = "couchbase2://xxx";
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var options = new ClusterOptions().WithCredentials("Administrator", "password");
+#pragma warning restore CS0618 // Type or member is obsolete
         options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
 
         var cluster = await Cluster.ConnectAsync(connectionString, options);

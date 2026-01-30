@@ -111,10 +111,12 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Throws<ArgumentException>(() => config.WithCredentials(null, null));
             Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, null));
             Assert.Throws<ArgumentException>(() => config.WithCredentials(null, string.Empty));
             Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, string.Empty));
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 }

@@ -10,11 +10,13 @@ namespace Couchbase.UnitTests.Fixtures
 
         public ClusterFixture()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var cluster = new Cluster(new ClusterOptions()
                 .WithConnectionString("couchbase://localhost")
                 .WithBuckets("default")
                 .WithCredentials("Administrator", "password")
             );
+#pragma warning restore CS0618 // Type or member is obsolete
             Cluster = cluster;
         }
 

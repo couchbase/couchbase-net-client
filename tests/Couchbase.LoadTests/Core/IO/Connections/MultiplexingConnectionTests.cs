@@ -18,9 +18,11 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         [GlobalSetup]
         public async Task GlobalSetup()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var options = new ClusterOptions()
                 .WithConnectionString("couchbase://localhost")
                 .WithCredentials("Administrator", "password");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             _cluster = await Cluster.ConnectAsync(options);
 

@@ -38,6 +38,7 @@ namespace Couchbase.UnitTests
         [InlineData(null, "couchbase://\t@localhost", null, null)]
         public void WithConnectionString_Sets_Username_Unless_Provided(string username, string connectionString, string expectedUserNamePreSet, string expectedUserNamePostSet)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             var clusterOptionsPreSet = new ClusterOptions() {UserName = username}.WithConnectionString(connectionString);
             Assert.Equal(expectedUserNamePreSet, clusterOptionsPreSet.UserName);
 
@@ -45,6 +46,7 @@ namespace Couchbase.UnitTests
 
             clusterOptionsPostSet.UserName = username;
             Assert.Equal(expectedUserNamePostSet, clusterOptionsPostSet.UserName);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         #endregion
@@ -66,9 +68,11 @@ namespace Couchbase.UnitTests
             nodeFactory.Setup(nf => nf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(mockNode.Object));
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var cluster = new Cluster(ClusterOptions.Default
                 .WithCredentials("Administrator", "password")
                 .WithConnectionString("couchbases://HostThatDoesNotExist.NoSuchDomain")
+#pragma warning restore CS0618 // Type or member is obsolete
                 .WithDnsResolver(dnsResolver.Object)
                 .AddClusterService(nodeFactory.Object)
                 );
@@ -102,8 +106,10 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<QueryOptions>()))
                 .ReturnsAsync(queryResult.Object);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var cluster = new Mock<Cluster>(options)
             {
@@ -148,8 +154,10 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<AnalyticsOptions>()))
                 .ReturnsAsync(analyticsResult.Object);
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
+#pragma warning restore CS0618 // Type or member is obsolete
 
             var cluster = new Mock<Cluster>(options)
             {
