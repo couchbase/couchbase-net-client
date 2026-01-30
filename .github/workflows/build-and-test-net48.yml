@@ -26,7 +26,7 @@ jobs:
         run: nuget restore couchbase-net-client.sln
 
       - name: Build (Release)
-        run: msbuild couchbase-net-client.sln /p:Configuration=Release /p:TargetFrameworkVersion=v4.8 /m
+        run: msbuild couchbase-net-client.sln /p:Configuration=Release /p:TargetFramework=net48 /m
 
       - name: Setup VSTest
         uses: darenm/Setup-VSTest@v1.3
