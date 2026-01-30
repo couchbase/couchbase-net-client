@@ -16,17 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
       - name: Restore NuGet packages
-        run: nuget restore tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj
+        run: dotnet restore tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj
 
       - name: Build (Release)
-        run: msbuild tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj /p:Configuration=Release /p:TargetFramework=net48 /m
+        run: dotnet build tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --framework net48 --no-restore
 
       - name: Setup VSTest
         uses: darenm/Setup-VSTest@v1.3
