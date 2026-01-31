@@ -46,6 +46,7 @@ internal class StellarBucket : IBucket
         }
     }
 
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public IViewIndexManager ViewIndexes =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("View Indexes", "Protostellar");
 
@@ -128,6 +129,7 @@ internal class StellarBucket : IBucket
         return ValueTask.FromResult(Scope(scopeName));
     }
 
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null) =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("View Queries", "Protostellar");
 

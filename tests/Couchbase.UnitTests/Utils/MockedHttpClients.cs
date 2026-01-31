@@ -21,6 +21,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Couchbase.UnitTests.Utils
 {
     internal static class MockedHttpClients

@@ -111,7 +111,9 @@ namespace Couchbase.Diagnostics
 
                 if (serviceTypes.Contains(ServiceType.Views) && clusterNode.HasViews)
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     if (clusterNode.Owner is CouchbaseBucket bucket && context.ServiceProvider.IsService<IViewClient>())
+#pragma warning restore CS0618 // Type or member is obsolete
                     {
                         var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("view", new List<IEndpointDiagnostics>());
                         var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint, ping);
@@ -119,7 +121,9 @@ namespace Couchbase.Diagnostics
                         if (ping)
                         {
                             pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
+#pragma warning disable CS0618 // Type or member is obsolete
                                 () => bucket.ViewQueryAsync<object, object>("p", "p"), token));
+#pragma warning restore CS0618 // Type or member is obsolete
                         }
 
                         kvEndpoints.Add(endPointDiagnostics);

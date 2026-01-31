@@ -11,6 +11,7 @@ namespace Couchbase.Views
     /// Implemented as an object that can query a Couchbase View.
     /// <remarks>This is a "Fluent" style interface and methods can be chained together.</remarks>
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal interface IViewQuery : IViewQueryable, IRequest
     {
         IRequestSpan? RequestSpanValue { get; internal set; }

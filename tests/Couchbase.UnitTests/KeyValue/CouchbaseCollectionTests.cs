@@ -32,6 +32,8 @@ using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Couchbase.UnitTests.KeyValue
 {
     public class CouchbaseCollectionTests
@@ -213,7 +215,9 @@ namespace Couchbase.UnitTests.KeyValue
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }
 
+#pragma warning disable CS0672 // Member overrides obsolete member
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
+#pragma warning restore CS0672 // Member overrides obsolete member
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
@@ -259,7 +263,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override IScope Scope(string scopeName) => throw new NotImplementedException();
 
+#pragma warning disable CS0672 // Member overrides obsolete member
             public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
+#pragma warning restore CS0672 // Member overrides obsolete member
             {
                 throw new NotImplementedException();
             }

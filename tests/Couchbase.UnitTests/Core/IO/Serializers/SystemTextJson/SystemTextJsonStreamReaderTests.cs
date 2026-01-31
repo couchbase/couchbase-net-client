@@ -281,7 +281,9 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
 
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
+#pragma warning disable CS0618 // Type or member is obsolete
             var result = await reader.ReadObjectsAsync<ViewRow<string[],object>>().ToListAsync();
+#pragma warning restore CS0618 // Type or member is obsolete
 
             // Assert
 
@@ -331,7 +333,9 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
 
             await reader.ReadToNextAttributeAsync();
             await Assert.ThrowsAsync<InvalidOperationException>(
+#pragma warning disable CS0618 // Type or member is obsolete
                 () => reader.ReadObjectsAsync<ViewRow<string[], object>>().ToListAsync().AsTask());
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         #endregion

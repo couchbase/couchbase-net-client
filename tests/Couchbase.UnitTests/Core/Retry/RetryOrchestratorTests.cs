@@ -507,12 +507,16 @@ namespace Couchbase.UnitTests.Core.Retry
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.ViewClient(responses);
 
+#pragma warning disable CS0618 // Type or member is obsolete
                 var viewQuery = new ViewQuery("default", "beers", "brewery_beers")
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     Timeout = TimeSpan.FromMilliseconds(1000)
                 };
 
+#pragma warning disable CS0618 // Type or member is obsolete
                 async Task<IViewResult<dynamic, dynamic>> Func()
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     var client1 = client;
                     return await client1.ExecuteAsync<dynamic, dynamic>(viewQuery);

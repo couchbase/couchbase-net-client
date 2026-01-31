@@ -239,6 +239,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [Obsolete("The View service has been deprecated use the Query service instead.")]
             public static void TrackOperation(ViewQuery viewQuery, TimeSpan duration, Type? errorType)
             {
                 var tags = new TagList

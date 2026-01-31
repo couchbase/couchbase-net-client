@@ -18,6 +18,7 @@ namespace Couchbase
         /// <param name="designDocument">Design document name.</param>
         /// <param name="viewName">View name.</param>
         /// <returns>An <seealso cref="IViewResult{TKey,TValue}"/>.</returns>
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public static Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(this IBucket bucket, string designDocument, string viewName)
         {
             return bucket.ViewQueryAsync<TKey, TValue>(designDocument, viewName, ViewOptions.Default);
@@ -33,6 +34,7 @@ namespace Couchbase
         /// <param name="viewName">View name.</param>
         /// <param name="configureOptions">Action to configure the <seealso cref="ViewOptions"/> controlling query execution.</param>
         /// <returns>An <seealso cref="IViewResult{TKey,TValue}"/>.</returns>
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public static Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(this IBucket bucket, string designDocument,
             string viewName, Action<ViewOptions> configureOptions)
         {

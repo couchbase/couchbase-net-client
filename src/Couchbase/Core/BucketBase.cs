@@ -161,9 +161,11 @@ namespace Couchbase.Core
         #region Views
 
         /// <inheritdoc />
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public abstract Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName,
             ViewOptions? options = default);
 
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public abstract IViewIndexManager ViewIndexes { get; }
 
         #endregion

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Management.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public static class ViewManagerExtensions
     {
         public static Task<DesignDocument> GetDesignDocumentAsync(this IViewIndexManager viewManager, string designDocName, DesignDocumentNamespace @namespace)

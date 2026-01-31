@@ -1,7 +1,9 @@
+using System;
 using Newtonsoft.Json;
 
 namespace Couchbase.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public class View
     {
         [JsonProperty("map")]

@@ -7,6 +7,7 @@ using Couchbase.Test.Common.Fixtures;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Couchbase.IntegrationTests.Services.Views
 {

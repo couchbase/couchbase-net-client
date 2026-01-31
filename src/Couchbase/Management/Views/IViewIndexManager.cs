@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -5,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Management.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public interface IViewIndexManager
     {
         Task<DesignDocument> GetDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, GetDesignDocumentOptions? options = null);

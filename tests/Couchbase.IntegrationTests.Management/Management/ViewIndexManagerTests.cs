@@ -8,6 +8,7 @@ using Couchbase.Test.Common;
 using Couchbase.Test.Common.Fixtures;
 using Couchbase.Views;
 using Xunit;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Couchbase.IntegrationTests.Management
 {

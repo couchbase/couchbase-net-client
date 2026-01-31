@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Test.Common.Fixtures;
 using Xunit;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Couchbase.IntegrationTests
 {

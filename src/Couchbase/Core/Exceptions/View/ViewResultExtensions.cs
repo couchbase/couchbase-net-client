@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using Couchbase.Views;
 
@@ -5,6 +6,7 @@ namespace Couchbase.Core.Exceptions.View
 {
     internal static class ViewResultExtensions
     {
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public static bool ViewNotFound<TKey, TValue>(this ViewResultBase<TKey, TValue> result)
         {
             return result.StatusCode == HttpStatusCode.NotFound &&

@@ -20,6 +20,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+#pragma warning disable CS0672 // Member overrides obsolete member
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Couchbase.UnitTests.Core.Configuration
 {

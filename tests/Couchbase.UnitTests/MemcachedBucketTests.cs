@@ -18,6 +18,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Couchbase.UnitTests
 {
     public class MemcachedBucketTests

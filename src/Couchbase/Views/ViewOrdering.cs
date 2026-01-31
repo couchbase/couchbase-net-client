@@ -1,5 +1,8 @@
+using System;
+
 namespace Couchbase.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public enum ViewOrdering
     {
         Ascending,

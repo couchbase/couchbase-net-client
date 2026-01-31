@@ -25,6 +25,7 @@ namespace Couchbase.Views
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
     /// <seealso cref="IViewResult{TKey, TValue}" />
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal sealed class StreamingViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
     {
         private readonly IStreamingTypeDeserializer _deserializer;

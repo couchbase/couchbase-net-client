@@ -171,6 +171,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return childSpan;
         }
 
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, IViewQuery viewQuery)
         {
             var childSpan = DispatchSpan(parentSpan);
@@ -266,6 +267,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return span;
         }
 
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         internal static IRequestSpan WithOperation(this IRequestSpan span, IViewQuery viewQuery)
         {
             return span.WithOperation($"{viewQuery.DesignDocName}/{viewQuery.ViewName}");

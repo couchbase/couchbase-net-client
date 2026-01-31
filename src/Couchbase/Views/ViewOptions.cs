@@ -9,6 +9,7 @@ using Couchbase.Management.Views;
 
 namespace Couchbase.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public class ViewOptions
     {
         internal ViewScanConsistency ScanConsistencyValue { get; set; }

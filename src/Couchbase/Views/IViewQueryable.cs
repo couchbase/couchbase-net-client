@@ -8,6 +8,7 @@ namespace Couchbase.Views
     /// <summary>
     /// A base interface for View and Spatial query requests.
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal interface IViewQueryable
     {
         /// <summary>

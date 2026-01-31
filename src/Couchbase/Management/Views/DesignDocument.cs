@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Couchbase.Views;
 using Newtonsoft.Json;
 
 namespace Couchbase.Management.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public class DesignDocument
     {
         [JsonIgnore]

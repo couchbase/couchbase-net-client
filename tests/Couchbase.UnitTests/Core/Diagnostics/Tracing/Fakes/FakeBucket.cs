@@ -9,6 +9,7 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
+#pragma warning disable CS0618 // Type or member is obsolete
 
 #nullable enable
 

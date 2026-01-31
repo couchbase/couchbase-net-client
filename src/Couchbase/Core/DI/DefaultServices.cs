@@ -108,14 +108,18 @@ namespace Couchbase.Core.DI
             yield return (typeof(IAnalyticsClient), new SingletonServiceFactory(typeof(AnalyticsClient)));
             yield return (typeof(ISearchClient), new SingletonServiceFactory(typeof(SearchClient)));
             yield return (typeof(IQueryClient), new SingletonServiceFactory(typeof(QueryClient)));
+#pragma warning disable CS0618 // Type or member is obsolete
             yield return (typeof(IViewClient), new SingletonServiceFactory(typeof(ViewClient)));
+#pragma warning restore CS0618 // Type or member is obsolete
             yield return (typeof(IEventingFunctionService), new SingletonServiceFactory(typeof(EventingFunctionService)));
 
             yield return (typeof(IBucketManager), new SingletonServiceFactory(typeof(BucketManager)));
             yield return (typeof(ICollectionManagerFactory), new SingletonServiceFactory(typeof(CollectionManagerFactory)));
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
             yield return (typeof(ICollectionQueryIndexManagerFactory), new SingletonServiceFactory(typeof(CollectionQueryIndexManagerFactory)));
+#pragma warning disable CS0618 // Type or member is obsolete
             yield return (typeof(IViewIndexManagerFactory), new SingletonServiceFactory(typeof(ViewIndexManagerFactory)));
+#pragma warning restore CS0618 // Type or member is obsolete
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
             yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));

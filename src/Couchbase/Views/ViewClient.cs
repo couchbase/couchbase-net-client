@@ -17,6 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal sealed class ViewClient : HttpServiceBase, IViewClient
     {
         private readonly ITypeSerializer _serializer;

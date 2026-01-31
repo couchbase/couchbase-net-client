@@ -10,6 +10,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public interface IViewRow<out TKey, out TValue>
     {
         /// <summary>
@@ -35,6 +36,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal sealed class ViewRow<TKey, TValue> : IViewRow<TKey, TValue>
     {
         /// <inheritdoc />

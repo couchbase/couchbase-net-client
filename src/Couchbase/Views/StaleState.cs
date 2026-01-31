@@ -1,8 +1,11 @@
-﻿namespace Couchbase.Views
+﻿using System;
+
+namespace Couchbase.Views
 {
     /// <summary>
     /// Allow the results from a stale view to be used
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public enum StaleState
     {
         None,

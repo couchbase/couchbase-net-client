@@ -5,6 +5,7 @@ namespace Couchbase.Views
     /// <summary>
     /// Extension methods for working withe StaleState enumeration.
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal static class StaleStateExtensions
     {
         /// <summary>

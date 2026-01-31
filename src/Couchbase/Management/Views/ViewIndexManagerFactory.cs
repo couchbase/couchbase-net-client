@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Management.Views
 {
     /// <inheritdoc />
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal class ViewIndexManagerFactory : IViewIndexManagerFactory
     {
         private readonly IServiceProvider _serviceProvider;

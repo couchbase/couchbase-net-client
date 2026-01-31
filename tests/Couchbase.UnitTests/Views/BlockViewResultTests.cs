@@ -9,6 +9,8 @@ using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Xunit;
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Couchbase.UnitTests.Views
 {
     public class BlockViewResultTests

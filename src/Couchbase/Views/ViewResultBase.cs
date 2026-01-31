@@ -16,6 +16,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal abstract class ViewResultBase<TKey, TValue> : IViewResult<TKey, TValue>, IServiceResultExceptionInfo
     {
         private readonly IDisposable? _ownedForCleanup;

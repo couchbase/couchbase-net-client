@@ -31,7 +31,9 @@ public class BucketTests
     public async Task Throw_FeatureNotAvailableException_ViewQueryAsync()
     {
         var bucket = await CreateBucket();
+#pragma warning disable CS0618 // Type or member is obsolete
         await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await bucket.ViewQueryAsync<object, string>("", ""));
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]
@@ -45,7 +47,9 @@ public class BucketTests
     public async Task Throw_FeatureNotAvailableException_ViewIndexes()
     {
         var bucket = await CreateBucket();
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Throws<FeatureNotAvailableException>(() => bucket.ViewIndexes);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Fact]

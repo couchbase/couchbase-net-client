@@ -16,6 +16,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Views
 {
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal class ViewIndexManager : IViewIndexManager
     {
         private readonly string _bucketName;

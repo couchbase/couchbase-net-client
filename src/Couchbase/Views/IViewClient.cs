@@ -8,6 +8,7 @@ namespace Couchbase.Views
     /// <summary>
     /// An interface for client-side support for querying Couchbase views.
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     internal interface IViewClient
     {
         /// <summary>

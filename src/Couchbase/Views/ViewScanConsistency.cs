@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 
 namespace Couchbase.Views
@@ -5,6 +6,7 @@ namespace Couchbase.Views
    /// <summary>
     /// Sets the desired index scan consistency for current N1QL query.
     /// </summary>
+    [Obsolete("The View service has been deprecated use the Query service instead.")]
     public enum ViewScanConsistency
     {
         /// <summary>

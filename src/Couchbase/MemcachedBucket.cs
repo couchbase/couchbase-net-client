@@ -61,11 +61,13 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public  override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = default)
         {
             throw new NotSupportedException("Views are not supported by Memcached Buckets.");
         }
 
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public override IViewIndexManager ViewIndexes => throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
 
         public override ICouchbaseCollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");

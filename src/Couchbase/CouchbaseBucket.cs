@@ -31,15 +31,21 @@ namespace Couchbase
     internal sealed class CouchbaseBucket : BucketBase
     {
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
+#pragma warning disable CS0618 // Type or member is obsolete
         private readonly LazyService<IViewClient> _viewClientLazy;
+#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
         private readonly LazyService<IViewIndexManagerFactory> _viewManagerLazy;
+#pragma warning restore CS0618 // Type or member is obsolete
         private readonly LazyService<ICollectionManagerFactory> _collectionManagerLazy;
         private readonly SemaphoreSlim _configMutex = new(1, 1);
 
         // It isn't imperative that race conditions accessing these fields the first time must
         // always return the same singleton. In the unlikely event two threads access them the
         // first time simultaneously one may receive a temporary extra instance but that's okay.
+#pragma warning disable CS0618 // Type or member is obsolete
         private IViewIndexManager? _viewIndexManager;
+#pragma warning restore CS0618 // Type or member is obsolete
         private ICouchbaseCollectionManager? _collectionManager;
 
         private readonly ConfigPushHandler _configPushHandler;
@@ -53,12 +59,17 @@ namespace Couchbase
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
+#pragma warning disable CS0618 // Type or member is obsolete
             _viewClientLazy = new LazyService<IViewClient>(context.ServiceProvider);
+#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
             _viewManagerLazy = new LazyService<IViewIndexManagerFactory>(context.ServiceProvider);
+#pragma warning restore CS0618 // Type or member is obsolete
             _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
             _configPushHandler = configPushHandlerFactory.Create(this, Context);
         }
 
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public override IViewIndexManager ViewIndexes =>
             _viewIndexManager ??= _viewManagerLazy.GetValueOrThrow().Create(Name);
 
@@ -215,6 +226,7 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
+        [Obsolete("The View service has been deprecated use the Query service instead.")]
         public override async Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null)
         {
             ThrowIfBootStrapFailed();
