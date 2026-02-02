@@ -181,14 +181,8 @@ namespace Couchbase.Core.IO.HTTP
         /// </summary>
         /// <param name="authenticator">The current authenticator from cluster options.</param>
         /// <returns>True if the handler should be recreated.</returns>
-        private bool ShouldRecreateHandler(IAuthenticator authenticator)
+  private bool ShouldRecreateHandler(IAuthenticator authenticator)
         {
-            // Only CertificateAuthenticator requires handler recreation
-            if (authenticator is not CertificateAuthenticator certAuth)
-            {
-                return false;
-            }
-
             // Case 1: Authenticator changed to a different instance via cluster.Authenticator()
             if (!ReferenceEquals(authenticator, _currentAuthenticator))
             {
@@ -196,7 +190,7 @@ namespace Couchbase.Core.IO.HTTP
             }
 
             // Case 2: Same CertificateAuthenticator but with a rotating certificate factory that has updates
-            if (certAuth.CertificateFactory is IRotatingCertificateFactory { HasUpdates: true })
+            if (authenticator is CertificateAuthenticator { CertificateFactory: IRotatingCertificateFactory { HasUpdates: true } })
             {
                 return true;
             }

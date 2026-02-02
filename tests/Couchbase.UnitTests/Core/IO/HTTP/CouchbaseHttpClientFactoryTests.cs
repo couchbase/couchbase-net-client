@@ -128,7 +128,7 @@ public class CouchbaseHttpClientFactoryTests
     }
 
     [Fact]
-    public void Create_WhenPasswordAuthenticatorChanges_DoesNotRecreateHandler()
+    public void Create_WhenPasswordAuthenticatorChanges_DoesRecreateHandler()
     {
         // Arrange
         var clusterOptions = new ClusterOptions()
@@ -149,8 +149,8 @@ public class CouchbaseHttpClientFactoryTests
         clusterOptions.Authenticator = new PasswordAuthenticator("user2", "password2");
         using var client = factory.Create();
 
-        // Assert - Handler should NOT be recreated for non-certificate authenticators
-        Assert.Same(initialHandler, factory._sharedHandler);
+        // Assert - Handler should be recreated for non-certificate authenticators
+        Assert.NotSame(initialHandler, factory._sharedHandler);
     }
 
     [Fact]
