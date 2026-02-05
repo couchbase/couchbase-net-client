@@ -36,6 +36,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly InFlightOperationSet _statesInFlight;
         private LightweightStopwatch _stopwatch;
         private int _disposed;
+        private int _closing;
 
         private readonly string _remoteHostString;
         private readonly string _localHostString;
@@ -134,7 +135,8 @@ namespace Couchbase.Core.IO.Connections
             {
                 throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
             }
-            if (Volatile.Read(ref _disposed) > 0)
+
+            if (Volatile.Read(ref _closing) > 0)
             {
                 ThrowHelper.ThrowSocketNotAvailableException(nameof(MultiplexingConnection));
             }
@@ -402,6 +404,9 @@ namespace Couchbase.Core.IO.Connections
 
         public void Close()
         {
+            // set _closing just in case Close() was called before CloseAsync
+            Interlocked.Exchange(ref _closing, 1);
+
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
                 _logger.LogInformation("Closing connection {cid}", ConnectionId);
@@ -432,29 +437,50 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public async ValueTask CloseAsync(TimeSpan timeout)
         {
-            _logger.LogDebug("CloseAsync");
+            _logger.LogDebug("CloseAsync called on {cid} with timeout {timeout}", ConnectionId, timeout);
             if (Volatile.Read(ref _disposed) > 0)
             {
                 return;
             }
 
-            _logger.LogInformation("Closing connection {cid}, waiting {timeout} for {count} in-flight operations to complete.", ConnectionId, timeout, _statesInFlight.Count);
-
-            try
+            if (Interlocked.Exchange(ref _closing, 1) == 0)
             {
-                await _statesInFlight.WaitForAllOperationsAsync(timeout).ConfigureAwait(false);
 
-                Debug.Assert(_statesInFlight.Count == 0, "Expect no in-flight operations");
-                _logger.LogInformation("In-flight operations are complete on connection {cid}, proceeding to close.", ConnectionId);
+                _logger.LogInformation(
+                    "Closing connection {cid}, waiting {timeout} for {count} in-flight operations to complete.",
+                    ConnectionId, timeout, _statesInFlight.Count);
+
+                try
+                {
+                    await _statesInFlight.WaitForAllOperationsAsync(timeout).ConfigureAwait(false);
+                    // if we are racing with close, we can bail out here
+                    if (Volatile.Read(ref _disposed) > 0)
+                    {
+                        _logger.LogInformation("Close called while CloseAsync was waiting  on operations on connection {cid}", ConnectionId);
+                        return;
+                    }
+
+                    Debug.Assert(_statesInFlight.Count == 0,
+                            $"Expect no in-flight operations on {ConnectionId}");
+
+                    _logger.LogInformation(
+                        "In-flight operations are complete on connection {cid}, proceeding to close.",
+                        ConnectionId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Error waiting for all operations to gracefully complete before connection close.");
+                }
+
+                EndpointState = EndpointState.Disconnecting;
+
+                Close();
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Error waiting for all operations to gracefully complete before connection close.");
+                _logger.LogInformation("CloseAsync already called on {cid}", ConnectionId);
             }
-
-            EndpointState = EndpointState.Disconnecting;
-
-            Close();
         }
 
         public void Dispose() => Close();
