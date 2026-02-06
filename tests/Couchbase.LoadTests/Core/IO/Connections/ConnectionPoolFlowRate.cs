@@ -1,8 +1,7 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Engines;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Connections.DataFlow;

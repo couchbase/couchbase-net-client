@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.Channels;

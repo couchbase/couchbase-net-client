@@ -27,7 +27,7 @@ The following meters are exposed under the `CouchbaseNetClient` meter name.
 | Instrument Name                   | Type      | Description |
 | --------------------------------- | --------- | ----------- |
 | db.couchbase.connections          | Gauge     | Total number of active connections to data nodes |
-| db.couchbase.operations           | Histogram | Distribution of operation durations, in microseconds |
+| db.couchbase.operations           | Histogram | Distribution of operation durations, in microseconds (legacy); the modern `db.client.operation.duration` uses seconds |
 | db.couchbase.retries              | Counter   | Number of operation retries, excluding first attempts |
 | db.couchbase.orphaned             | Counter   | Number of operations which were sent but for which a response was never received |
 | db.couchbase.sendqueue.fullerrors | Counter   | Number of times a connection pool rejected an operation because the send queue was full |

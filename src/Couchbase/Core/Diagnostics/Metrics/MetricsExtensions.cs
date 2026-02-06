@@ -10,13 +10,20 @@ internal static class MetricsExtensions
     {
         if (span is RequestSpanWrapper wrapper)
         {
-            if (wrapper.ClusterLabels?.ClusterName is not null)
+            var labels = wrapper.ClusterLabels;
+            if (labels is not null)
             {
-                tagList.Add(OuterRequestSpans.Attributes.ClusterName, wrapper.ClusterLabels.ClusterName);
-            }
-            if (wrapper.ClusterLabels?.ClusterUuid is not null)
-            {
-                tagList.Add(OuterRequestSpans.Attributes.ClusterUuid, wrapper.ClusterLabels.ClusterUuid);
+                var clusterName = labels.ClusterName;
+                if (clusterName is not null)
+                {
+                    tagList.Add(OuterRequestSpans.Attributes.ClusterName, clusterName);
+                }
+
+                var clusterUuid = labels.ClusterUuid;
+                if (clusterUuid is not null)
+                {
+                    tagList.Add(OuterRequestSpans.Attributes.ClusterUuid, clusterUuid);
+                }
             }
         }
     }

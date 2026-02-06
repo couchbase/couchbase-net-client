@@ -48,10 +48,10 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
 
             var activity = parentSpan is OpenTelemetryRequestSpan openTelemetrySpan
                 // It is faster to construct directly from the parent ActivityContext than from the parent ID
-                ? ActivitySource.StartActivity(name, ActivityKind.Internal, openTelemetrySpan.ActivityContext)
+                ? ActivitySource.StartActivity(name, ActivityKind.Client, openTelemetrySpan.ActivityContext)
                 : parentSpan?.Id == null ?
                     ActivitySource.StartActivity(name) :
-                    ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id);
+                    ActivitySource.StartActivity(name, ActivityKind.Client, parentSpan.Id);
 
             if (activity == null)
             {

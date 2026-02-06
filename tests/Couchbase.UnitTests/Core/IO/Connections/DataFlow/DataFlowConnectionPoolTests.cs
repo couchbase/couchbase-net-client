@@ -2,10 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
@@ -818,7 +818,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger,
                 uint kvSendQueueCapacity)
             {
-                _innerPool = new(connectionInitializer, connectionFactory, scaleController, redactor, logger, kvSendQueueCapacity);
+                _innerPool = new(connectionInitializer, connectionFactory, scaleController, redactor, logger,
+                    kvSendQueueCapacity);
             }
 
             public HostEndpointWithPort EndPoint => _innerPool.EndPoint;

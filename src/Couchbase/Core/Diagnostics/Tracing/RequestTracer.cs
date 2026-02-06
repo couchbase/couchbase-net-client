@@ -38,10 +38,10 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
             var activity = parentSpan is RequestSpan requestSpan
                 // It is faster to construct directly from the parent ActivityContext than from the parent ID
-                ? ActivitySource.StartActivity(name, ActivityKind.Internal, requestSpan.ActivityContext)
+                ? ActivitySource.StartActivity(name, ActivityKind.Client, requestSpan.ActivityContext)
                 : parentSpan?.Id == null ?
                     ActivitySource.StartActivity(name) :
-                    ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id);
+                    ActivitySource.StartActivity(name, ActivityKind.Client, parentSpan.Id);
 
             if (activity == null)
             {

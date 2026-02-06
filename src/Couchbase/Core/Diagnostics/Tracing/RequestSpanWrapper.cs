@@ -2,9 +2,10 @@ using System;
 
 namespace Couchbase.Core.Diagnostics.Tracing;
 
-internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels clusterLabels = null) : IRequestSpan
+internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels clusterLabels = null, ObservabilitySemanticConvention convention = ObservabilitySemanticConvention.Legacy) : IRequestSpan
 {
     internal ClusterLabels ClusterLabels => clusterLabels;
+    internal ObservabilitySemanticConvention ObservabilitySemanticConvention => convention;
 
     public void Dispose()
     {
@@ -13,17 +14,23 @@ internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels c
 
     public IRequestSpan SetAttribute(string key, bool value)
     {
-        return innerSpan.SetAttribute(key, value);
+        SemanticConventionEmitter.EmitAttribute(ObservabilitySemanticConvention, key, value, innerSpan,
+            static (span, k, v) => span.SetAttribute(k, v));
+        return this;
     }
 
     public IRequestSpan SetAttribute(string key, string value)
     {
-        return innerSpan.SetAttribute(key, value);
+        SemanticConventionEmitter.EmitAttribute(ObservabilitySemanticConvention, key, value, innerSpan,
+            static (span, k, v) => span.SetAttribute(k, v));
+        return this;
     }
 
     public IRequestSpan SetAttribute(string key, uint value)
     {
-        return innerSpan.SetAttribute(key, value);
+        SemanticConventionEmitter.EmitAttribute(ObservabilitySemanticConvention, key, value, innerSpan,
+            static (span, k, v) => span.SetAttribute(k, v));
+        return this;
     }
 
     public IRequestSpan AddEvent(string name, DateTimeOffset? timestamp = null)

@@ -1,4 +1,6 @@
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;

@@ -6,6 +6,14 @@ internal sealed class RequestTracerWrapper(IRequestTracer innerTracer, ClusterCo
     internal ClusterContext ClusterContext = clusterContext;
     internal ClusterLabels ClusterLabels => ClusterContext?.GlobalConfig?.ClusterLabels;
 
+    internal ObservabilitySemanticConvention Convention { get; } = ResolveConvention(clusterContext);
+
+    private static ObservabilitySemanticConvention ResolveConvention(ClusterContext clusterContext)
+    {
+        return clusterContext?.ClusterOptions?.ObservabilitySemanticConvention
+            ?? ObservabilitySemanticConventionParser.FromEnvironment();
+    }
+
     public void Dispose()
     {
         InnerTracer.Dispose();
@@ -13,7 +21,7 @@ internal sealed class RequestTracerWrapper(IRequestTracer innerTracer, ClusterCo
 
     public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
     {
-        var span = new RequestSpanWrapper(InnerTracer.RequestSpan(name, parentSpan), ClusterLabels);
+        var span = new RequestSpanWrapper(InnerTracer.RequestSpan(name, parentSpan), ClusterLabels, Convention);
         span.SetClusterLabelsIfProvided(ClusterLabels);
         return span;
     }

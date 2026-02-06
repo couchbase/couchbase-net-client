@@ -7,6 +7,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;

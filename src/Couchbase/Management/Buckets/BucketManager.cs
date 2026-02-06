@@ -254,7 +254,6 @@ namespace Couchbase.Management.Buckets
             var (mgmtNode, uri) = GetUri(bucketName);
             var builder = new UriBuilder(uri);
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
-
             uri = builder.Uri;
 
             _logger.LogInformation("Attempting to flush bucket with name {BucketName} - {Uri}", _redactor.MetaData(bucketName), _redactor.SystemData(uri));

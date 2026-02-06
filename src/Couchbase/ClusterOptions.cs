@@ -25,9 +25,9 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Client.Transactions.Config;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.IO.Authentication.Authenticators;
-using Google.Rpc.Context;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -1226,6 +1226,11 @@ namespace Couchbase
             set => TlsSettings.EnabledSslProtocols = value;
 
         }
+        /// <summary>
+        /// Specifies which convention to use
+        /// </summary>
+        public ObservabilitySemanticConvention ObservabilitySemanticConvention { get; set; } =
+            ObservabilitySemanticConvention.Legacy;
 
 #if NETCOREAPP3_1_OR_GREATER
         /// <summary>

@@ -151,7 +151,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.Insert(_prefixedAtrFieldTransactionId,
                     _overallContext.TransactionId, createPath: true, isXattr: true),
                 MutateInSpec.Insert(_prefixedAtrFieldStatus,
-                            AttemptStates.PENDING.ToString(), isXattr: true),
+                            nameof(AttemptStates.PENDING), isXattr: true),
                 MutateInSpec.Insert(_prefixedAtrFieldStartTimestamp, MutationMacro.Cas),
                 MutateInSpec.Insert(_prefixedAtrFieldExpiresAfterMsecs, exp,
                             createPath: false, isXattr: true),

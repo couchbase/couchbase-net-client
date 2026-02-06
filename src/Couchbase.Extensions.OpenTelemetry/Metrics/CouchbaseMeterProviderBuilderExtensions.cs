@@ -1,5 +1,9 @@
 using System;
+using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Diagnostics.Metrics;
 using OpenTelemetry.Metrics;
+
+// ReSharper disable MemberCanBePrivate.Global
 
 // ReSharper disable once CheckNamespace
 namespace Couchbase.Extensions.Metrics.Otel
@@ -9,8 +13,6 @@ namespace Couchbase.Extensions.Metrics.Otel
     /// </summary>
     public static class CouchbaseMeterProviderBuilderExtensions
     {
-        private const string CouchbaseMeterName = "CouchbaseNetClient";
-
         /// <summary>
         /// Add instrumentation for Couchbase to the metric builder.
         /// </summary>
@@ -23,7 +25,7 @@ namespace Couchbase.Extensions.Metrics.Otel
         /// Add instrumentation for Couchbase to the metric builder.
         /// </summary>
         /// <param name="builder">The <see cref="MeterProviderBuilder" />.</param>
-        /// <param name="options">Options to configure how meters are instrumented.</param>
+        /// <param name="setupAction">Options to configure how meters are instrumented.</param>
         /// <returns>The <see cref="MeterProviderBuilder" />.</returns>
         public static MeterProviderBuilder AddCouchbaseInstrumentation(this MeterProviderBuilder builder, Action<CouchbaseMeterInstrumentationOptions>? setupAction)
         {
@@ -40,7 +42,6 @@ namespace Couchbase.Extensions.Metrics.Otel
                 return deferredMeterProviderBuilder.Configure((_, deferredBuilder) =>
                 {
                     AddCouchbaseInstrumentationInternal(deferredBuilder, options);
-                    deferredBuilder.AddMeter(CouchbaseMeterName);
                 });
             }
 
@@ -51,18 +52,33 @@ namespace Couchbase.Extensions.Metrics.Otel
         private static void AddCouchbaseInstrumentationInternal(MeterProviderBuilder builder,
             CouchbaseMeterInstrumentationOptions? options)
         {
-            builder.AddMeter(CouchbaseMeterName);
+            // Determine which semantic convention to use
+            var convention = options?.SemanticConvention
+                ?? ObservabilitySemanticConventionParser.FromEnvironment();
 
-            // If options is null use the default behavior of including legacy metrics
-            if (options is { ExcludeLegacyMetrics: true })
+            // Subscribe to the appropriate meter(s) based on the convention
+            if (convention is ObservabilitySemanticConvention.Legacy or ObservabilitySemanticConvention.Both)
             {
-                // The db.couchbase.operations.count metric is intrinsically part of the db.couchbase.operations histogram
+                builder.AddMeter(CouchbaseMetrics.MeterName);
+            }
+
+            if (convention is ObservabilitySemanticConvention.Modern or ObservabilitySemanticConvention.Both)
+            {
+                builder.AddMeter(CouchbaseMetrics.ModernMeterName);
+            }
+
+            if (convention is ObservabilitySemanticConvention.Modern) return;
+            // Drop redundant counters if requested (applies only to the legacy meter;
+            // the modern meter does not emit these redundant counters)
+            if (options is { DropLegacyRedundantCounters: true })
+            {
+                // The db.couchbase.operations.count metric is intrinsically part of the histogram
                 builder.AddView("db.couchbase.operations.count", MetricStreamConfiguration.Drop);
 
-                // The db.couchbase.operations.status metric is included in the "outcome" tag on the db.couchbase.operations histogram
+                // The db.couchbase.operations.status metric is included in the "outcome" tag on the histogram
                 builder.AddView("db.couchbase.operations.status", MetricStreamConfiguration.Drop);
 
-                // The db.couchbase.timeouts metric is included in the "outcome" tag on the db.couchbase.operations histogram
+                // The db.couchbase.timeouts metric is included in the "outcome" tag on the histogram
                 builder.AddView("db.couchbase.timeouts", MetricStreamConfiguration.Drop);
             }
         }

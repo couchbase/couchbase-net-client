@@ -56,8 +56,10 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="sendQueueCapacity">The maximum number of items the channel will store.
         /// Defaults to 1024 and is configurable via <see cref="Couchbase.ClusterOptions.KvSendQueueCapacity"/></param>
         public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity) :
-            this(connectionInitializer, connectionFactory, scaleController, redactor, logger, CreateDefaultChannel(sendQueueCapacity))
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger,
+            int sendQueueCapacity) :
+            this(connectionInitializer, connectionFactory, scaleController, redactor, logger,
+                CreateDefaultChannel(sendQueueCapacity))
         {
         }
 
@@ -71,7 +73,8 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="logger">Logger.</param>
         /// <param name="channel">Channel queue.</param>
         internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, Channel<ChannelQueueItem> channel)
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger,
+            Channel<ChannelQueueItem> channel)
             : base(connectionInitializer, connectionFactory, logger)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));

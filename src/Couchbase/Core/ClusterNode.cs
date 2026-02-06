@@ -645,7 +645,7 @@ namespace Couchbase.Core
                     status = await op.Completed.ConfigureAwait(false);
                 }
 
-                Diagnostics.Metrics.MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
+                MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
 
                 if (!status.Failure(op.OpCode))
                 {
