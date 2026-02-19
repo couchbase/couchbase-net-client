@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -12,15 +13,23 @@ namespace Couchbase.UnitTests.Core
 {
     public class BootstrapperTests
     {
-         [Fact(Skip = "Only fails on Jenkins.")]
+         [Fact]
          public async Task When_Cannot_Bootstrap_Repeat()
          {
+             var callCount = 0;
+             var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
              var mockSubject = new Mock<IBootstrappable>();
-             mockSubject.Setup(x => x.BootStrapAsync()).Returns(Task.CompletedTask);
+             mockSubject.Setup(x => x.BootStrapAsync(It.IsAny<CancellationToken>()))
+                 .Returns(Task.CompletedTask)
+                 .Callback(() =>
+                 {
+                     if (++callCount >= 2)
+                         calledTwiceTcs.TrySetResult(true);
+                 });
              mockSubject.Setup(x => x.DeferredExceptions).Returns(new List<Exception>());
 
              using var tcs = new CancellationTokenSource();
-             tcs.CancelAfter(1000);
+             tcs.CancelAfter(TimeSpan.FromSeconds(10));
 
              var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
              {
@@ -29,8 +38,11 @@ namespace Couchbase.UnitTests.Core
 
              bootStrapper.Start(mockSubject.Object);
 
-             await Task.Delay(1200);
-             mockSubject.Verify(x => x.BootStrapAsync(), Times.AtLeast(2));
+             // Wait for bootstrap to be called at least twice (TCS signals when threshold reached)
+             var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+
+             Assert.True(completedTask == calledTwiceTcs.Task, "BootStrapAsync should have been called at least twice");
+             mockSubject.Verify(x => x.BootStrapAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
          }
 
         [Fact]
@@ -58,7 +70,7 @@ namespace Couchbase.UnitTests.Core
           public async Task When_Success_IsBootstrapped_Is_True(bool failed)
           {
               var subject = new FakeBootstrappable(failed);
-              using var tcs = new CancellationTokenSource(100);
+              using var tcs = new CancellationTokenSource(TimeSpan.FromSeconds(10));
               var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
               {
                   SleepDuration = TimeSpan.FromMilliseconds(50)
@@ -71,15 +83,24 @@ namespace Couchbase.UnitTests.Core
 
               bootStrapper.Start(subject);
 
-              await Task.Delay(400);
               if (failed)
               {
+                  // For failure case, wait for bootstrap to be attempted and verify state
+                  await AsyncTestHelper.WaitForConditionAsync(
+                      () => subject.BootstrapAttempted,
+                      timeout: TimeSpan.FromSeconds(5));
+
                   Assert.False(subject.IsBootstrapped);
                   Assert.True(subject.DeferredExceptions.Any());
               }
               else
               {
-                  Assert.True(subject.IsBootstrapped);
+                  // For success case, poll until bootstrapped (instead of fixed delay)
+                  var bootstrapped = await AsyncTestHelper.WaitForConditionAsync(
+                      () => subject.IsBootstrapped,
+                      timeout: TimeSpan.FromSeconds(5));
+
+                  Assert.True(bootstrapped, "Expected IsBootstrapped to be true after successful bootstrap");
               }
           }
     }
@@ -93,8 +114,11 @@ namespace Couchbase.UnitTests.Core
             _hasFailed = hasFailed;
         }
 
+        public bool BootstrapAttempted { get; private set; }
+
         Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
         {
+            BootstrapAttempted = true;
             if (_hasFailed)
             {
                 throw new Exception("Bootstrapping has failed.");

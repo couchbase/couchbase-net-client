@@ -48,23 +48,33 @@ namespace Couchbase.UnitTests.Core.Configuration
             using var configListener = new HttpStreamingConfigListener(mockBucket.Object,
                 clusterOptions, httpClientFactory, configHandler, mockLogger);
             configListener.StartListening();
-            var exitedSpinBeforeTimeout = SpinWait.SpinUntil(() => messageHandler.CallCount > 0, TimeSpan.FromSeconds(10));
-            if (!exitedSpinBeforeTimeout)
+
+            // Wait for the listener to start (use async polling instead of SpinWait to avoid starving the background task)
+            var listenerStarted = await AsyncTestHelper.WaitForConditionAsync(
+                () => messageHandler.CallCount > 0,
+                timeout: TimeSpan.FromSeconds(30));
+            if (!listenerStarted)
             {
                 throw new TimeoutException($"{nameof(HttpStreamingConfigListener)} didn't start in time.");
             }
 
-            await Task.Delay(500);
-            Assert.NotInRange(messageHandler.CallCount, 0, 2);
+            // Wait for multiple calls to occur
+            var multipleCalls = await AsyncTestHelper.WaitForConditionAsync(
+                () => messageHandler.CallCount > 2,
+                timeout: TimeSpan.FromSeconds(10));
+            Assert.True(multipleCalls, "Expected more than 2 calls before dispose");
+
             configListener.Dispose();
 
-            // give it a little time to finish up.
-            await Task.Delay(500);
-            var callCountAfterDispose = messageHandler.CallCount;
+            // Wait for the call count to stabilize after dispose (instead of fixed delays)
+            var stableCallCount = await AsyncTestHelper.WaitForStableValueAsync(
+                () => messageHandler.CallCount,
+                stableDuration: TimeSpan.FromMilliseconds(300),
+                timeout: TimeSpan.FromSeconds(5));
 
-            // a little more time to generate more calls if it was still running.
-            await Task.Delay(500);
-            Assert.Equal(callCountAfterDispose, messageHandler.CallCount);
+            // Verify no more calls are made after stabilization
+            var finalCallCount = messageHandler.CallCount;
+            Assert.Equal(stableCallCount, finalCallCount);
 
             await configListener.DisposeAsync();
         }

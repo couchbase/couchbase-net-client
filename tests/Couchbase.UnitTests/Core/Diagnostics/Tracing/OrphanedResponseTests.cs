@@ -1,8 +1,10 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.UnitTests.Core.Diagnostics.Metrics;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +21,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         }
 
         [Fact]
-        public void Test()
+        public async Task Test()
         {
             var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
             var orphanReporter = new OrphanReporter(loggerFactory.CreateLogger<OrphanReporter>(), new OrphanOptions{EmitInterval = TimeSpan.FromSeconds(1)});
@@ -29,7 +31,10 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.N1QLQuery));
 
             string report = null;
-            var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
+            // Use async polling instead of SpinWait to avoid starving background tasks on overloaded CI
+            var finished = await AsyncTestHelper.WaitForConditionAsync(
+                () => loggerFactory.LoggedData.TryTake(out report),
+                timeout: TimeSpan.FromSeconds(30));
             Assert.True(finished, userMessage: "Did not find a log entry for orphaned data.");
             Assert.NotNull(report);
 

@@ -7,6 +7,7 @@ using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.UnitTests.Core.Diagnostics.Metrics;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Core.Utils;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -116,7 +117,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         }
 
         [Fact]
-        public void Test_Logs()
+        public async Task Test_Logs()
         {
             var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
             using var tracer = new RequestTracer();
@@ -133,7 +134,10 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             }
 
             string report = null;
-            var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
+            // Use async polling instead of SpinWait to avoid starving background tasks on overloaded CI
+            var finished = await AsyncTestHelper.WaitForConditionAsync(
+                () => loggerFactory.LoggedData.TryTake(out report),
+                timeout: TimeSpan.FromSeconds(30));
             Assert.True(finished, userMessage: "Did not find a log entry for threshold data.");
             Assert.NotNull(report);
             Assert.StartsWith("{", report);

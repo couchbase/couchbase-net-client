@@ -32,8 +32,8 @@ public class TaskHelpersTests
             .Select(p => new TaskCompletionSource<string>())
             .ToArray();
 
-        // Just in case, don't let this test run forever
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        // Just in case, don't let this test run forever (use generous timeout for slow CI)
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var completeTask = TaskHelpers.WhenAnySuccessful(taskCompletionSources.Select(p => p.Task), cts.Token);
 

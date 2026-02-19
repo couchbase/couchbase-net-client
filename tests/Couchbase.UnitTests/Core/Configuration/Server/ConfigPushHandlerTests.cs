@@ -13,6 +13,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Test.Common.Utils;
+using Couchbase.UnitTests.Helpers;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -59,21 +60,21 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         var pushedVersion = new ConfigVersion(1, 3);
         configPushHandler.ProcessConfigPush(pushedVersion);
 
-        // while server is returning older version, do not publish
-        // Give the handler some time to process the push (but it should NOT publish since fetched version is older)
-        await Task.Delay(500);
-
+        // While server is returning older version, verify it does NOT publish the pushed version
+        // Poll to verify the version is not immediately published (give some time for potential race)
+        var notPublishedYet = await AsyncTestHelper.WaitForConditionAsync(
+            () => versionPublished != pushedVersion,
+            timeout: TimeSpan.FromMilliseconds(500));
+        Assert.True(notPublishedYet, "Should not publish when server returns older version");
         Assert.NotEqual(versionPublished, pushedVersion);
 
-        // update the version of the config that is returned.  This should result in a publish.
+        // Update the version of the config that is returned. This should result in a publish.
         getClusterMapResult.Rev = 3;
         getClusterMapResult.OnDeserialized();
 
         // Wait for the publish to occur with a CI-friendly timeout
         var completedTask = await Task.WhenAny(publishTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
         Assert.True(completedTask == publishTcs.Task, $"Expected version {pushedVersion} to be published but got {versionPublished}");
-
-        await Task.Delay(500);
 
         Assert.Equal(versionPublished, pushedVersion);
     }

@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -121,26 +122,33 @@ public class RotatingCertificateFactoryTests(
     public async Task GetCertificates_WithShortInterval_ShouldStartTimer()
     {
         // Arrange
+        var callCount = 0;
+        var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var expectedCertificates = CreateTestCertificateCollection(1);
         _mockCertificateFactory.Setup(x => x.GetCertificates())
-            .Returns(expectedCertificates);
+            .Returns(() =>
+            {
+                if (++callCount >= 2)
+                    calledTwiceTcs.TrySetResult(true);
+                return expectedCertificates;
+            });
 
         var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
-            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(50),
             TimeSpan.FromMinutes(30),
             _mockLogger.Object);
 
         // Act
         var result = factory.GetCertificates();
 
-        // Wait a bit to allow timer to potentially fire
-        await Task.Delay(1000);
+        // Wait for timer to fire at least once (TCS signals when threshold reached)
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
 
         // Assert
         Assert.NotNull(result);
-        // Timer should have been created and potentially fired
-        _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.AtLeastOnce);
+        Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once");
+        _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.AtLeast(2));
     }
 
     [Fact]
@@ -151,10 +159,12 @@ public class RotatingCertificateFactoryTests(
         var newValidCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(60));
 
         var callCount = 0;
+        var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(() =>
             {
-                callCount++;
+                if (++callCount >= 2)
+                    calledTwiceTcs.TrySetResult(true);
                 return callCount == 1 ? initialCertificates : newValidCertificates;
             });
 
@@ -167,12 +177,12 @@ public class RotatingCertificateFactoryTests(
         // Act
         var initialResult = factory.GetCertificates();
 
-        // Wait for timer to fire and refresh
-        await Task.Delay(1000);
+        // Wait for timer to fire and refresh (TCS signals when threshold reached)
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
 
         // Assert
         Assert.NotNull(initialResult);
-        // The timer should have fired at least once
+        Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once to refresh certificates");
         _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.AtLeast(2));
     }
 
@@ -184,10 +194,12 @@ public class RotatingCertificateFactoryTests(
         var expiredCertificates = GetExpiredCertificates();//CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(-1)); // Expired
 
         var callCount = 0;
+        var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(() =>
             {
-                callCount++;
+                if (++callCount >= 2)
+                    calledTwiceTcs.TrySetResult(true);
                 return callCount == 1 ? initialCertificates : expiredCertificates;
             });
 
@@ -201,8 +213,9 @@ public class RotatingCertificateFactoryTests(
         var initialResult = factory.GetCertificates();
         var hasUpdatesBeforeRefresh = factory.HasUpdates;
 
-        // Wait for timer to fire
-        await Task.Delay(1000);
+        // Wait for timer to fire and attempt refresh (TCS signals when threshold reached)
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired to attempt certificate refresh");
 
         var hasUpdatesAfterRefresh = factory.HasUpdates;
 
@@ -218,6 +231,7 @@ public class RotatingCertificateFactoryTests(
         // Arrange
         var initialCertificates = CreateTestCertificateCollection(1);
         var callCount = 0;
+        var warningLoggedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(() =>
@@ -228,6 +242,14 @@ public class RotatingCertificateFactoryTests(
                 throw new InvalidOperationException("Test exception");
             });
 
+        _mockLogger.Setup(x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Refreshing client certificates failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+            .Callback(() => warningLoggedTcs.TrySetResult(true));
+
         var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMilliseconds(50),
@@ -237,11 +259,12 @@ public class RotatingCertificateFactoryTests(
         // Act
         var result = factory.GetCertificates();
 
-        // Wait for timer to fire and exception to be thrown
-        await Task.Delay(300);
+        // Wait for warning to be logged (TCS signals immediately when callback fires)
+        var completedTask = await Task.WhenAny(warningLoggedTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
 
         // Assert
         Assert.NotNull(result);
+        Assert.True(completedTask == warningLoggedTcs.Task, "Expected warning to be logged when certificate refresh fails");
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,

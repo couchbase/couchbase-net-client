@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.UnitTests.Helpers;
 using Moq;
 using Xunit;
 
@@ -317,7 +318,16 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             var newMockFactory = new Mock<ICertificateFactory>();
             newMockFactory.Setup(x => x.GetCertificates()).Returns(newCertificates);
 
-            _mockCertificateFactory.Setup(x => x.GetCertificates()).Returns(originalCertificates);
+            var refreshCallCount = 0;
+            var refreshCalledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _mockCertificateFactory.Setup(x => x.GetCertificates())
+                .Returns(originalCertificates)
+                .Callback(() =>
+                {
+                    // Track calls from RefreshCertificates (not initial GetCertificates)
+                    if (++refreshCallCount >= 2)
+                        refreshCalledTcs.TrySetResult(true);
+                });
 
             var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
 
@@ -332,11 +342,17 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             using (var timer = new Timer(factory.RefreshCertificates, expiresIn, TimeSpan.Zero,
                        TimeSpan.FromMilliseconds(10)))
             {
-                await Task.Delay(15);
+                // Wait for timer to fire and call RefreshCertificates at least once
+                // (RefreshCertificates calls _certificateFactory.GetCertificates internally)
+                var completedTask = await Task.WhenAny(refreshCalledTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                Assert.True(completedTask == refreshCalledTcs.Task, "Timer should have fired and called RefreshCertificates");
 
-                // Act - call GetCertificates to set HasUpdates to true
+                // Now call GetCertificates - since cache is empty, this sets HasUpdates = true
                 factory.GetCertificates();
-                Assert.True(factory.HasUpdates);
+
+                // Check HasUpdates immediately after GetCertificates (before timer can reset it)
+                // Note: There's still a small race window, but it's much smaller than polling
+                Assert.True(factory.HasUpdates, "Expected HasUpdates to be true after GetCertificates");
             }
         }
 

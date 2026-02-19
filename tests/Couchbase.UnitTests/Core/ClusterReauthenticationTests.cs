@@ -39,11 +39,11 @@ public class ClusterReauthenticationTests
         // Act
         cluster.Authenticator(jwtAuthenticator);
 
-        // Wait for the fire-and-forget re-auth to complete (deterministic)
+        // Wait for the fire-and-forget re-auth to complete (use generous timeout for slow CI)
 #if NET5_0_OR_GREATER
-        await reauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await reauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 #else
-        using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await reauthCompleted.Task.WaitAsync(cts.Token);
 #endif
 
@@ -104,11 +104,11 @@ public class ClusterReauthenticationTests
         // Act
         cluster.Authenticator(jwtAuthenticator);
 
-        // Wait for the live node's re-auth to complete (deterministic)
+        // Wait for the live node's re-auth to complete (use generous timeout for slow CI)
 #if NET5_0_OR_GREATER
-        await liveNodeReauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await liveNodeReauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 #else
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await liveNodeReauthCompleted.Task.WaitAsync(cts.Token);
 #endif
 
@@ -144,11 +144,11 @@ public class ClusterReauthenticationTests
         // Act
         cluster.Authenticator(jwtAuthenticator);
 
-        // Wait for the KV node's re-auth to complete (deterministic)
+        // Wait for the KV node's re-auth to complete (use generous timeout for slow CI)
 #if NET5_0_OR_GREATER
-        await kvNodeReauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await kvNodeReauthCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 #else
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await kvNodeReauthCompleted.Task.WaitAsync(cts.Token);
 #endif
 
@@ -291,22 +291,22 @@ public class ClusterReauthenticationTests
         // Act
         cluster.Authenticator(new JwtAuthenticator("test-token"));
 
-        // Wait for re-auth to start (deterministic)
+        // Wait for re-auth to start (use generous timeout for slow CI)
 #if NET5_0_OR_GREATER
-        await reauthStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await reauthStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 #else
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await reauthStarted.Task.WaitAsync(cts.Token);
 #endif
 
         // Now dispose the cluster - this should cancel the re-auth
         cluster.Dispose();
 
-        // Wait for cancellation to be observed (deterministic, with timeout for safety)
+        // Wait for cancellation to be observed (use generous timeout for slow CI)
 #if NET5_0_OR_GREATER
-        var cancelled = await reauthCancellationObserved.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        var cancelled = await reauthCancellationObserved.Task.WaitAsync(TimeSpan.FromSeconds(10));
 #else
-        using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var cancelled = await reauthCancellationObserved.Task.WaitAsync(cts2.Token);
 #endif
 
