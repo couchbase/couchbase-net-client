@@ -60,13 +60,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             });
 
             // Non-streaming approach in C# 7
-#if NET8_0_OR_GREATER
             foreach (var o in result.ToBlockingEnumerable())
-#else
-//This is a breaking change in .NET10, but cannot resolve System.Linq.Async on .net48
-//This will need to be investigated further as I don't understand why I cannot conditional find ToEnumerable
-            foreach (var o in result.ToEnumerable())
-#endif
             {
                 _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
             }
