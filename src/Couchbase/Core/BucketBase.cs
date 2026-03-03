@@ -269,10 +269,6 @@ namespace Couchbase.Core
             {
                 throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
             }
-            finally
-            {
-                CancellationTokenPairSourcePool.Shared.Return(ctsp);
-            }
         }
 
         #endregion

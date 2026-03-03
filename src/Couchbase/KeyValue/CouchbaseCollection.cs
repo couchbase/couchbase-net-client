@@ -1655,29 +1655,7 @@ namespace Couchbase.KeyValue
         #region Timeouts
 
         private CancellationTokenPairSourceWrapper CreateRetryTimeoutCancellationTokenSource(ITimeoutOptions options, IOperation op) =>
-            new(GetTimeout(options.Timeout, op), options.Token);
-
-        [StructLayout(LayoutKind.Auto)]
-        private struct CancellationTokenPairSourceWrapper : IDisposable
-        {
-            private CancellationTokenPairSource? _source;
-
-            public readonly CancellationTokenPair TokenPair => _source?.TokenPair ?? default;
-
-            public CancellationTokenPairSourceWrapper(TimeSpan timeout, CancellationToken externalToken)
-            {
-                _source = CancellationTokenPairSourcePool.Shared.Rent(timeout, externalToken);
-            }
-
-            public void Dispose()
-            {
-                if (_source is not null)
-                {
-                    CancellationTokenPairSourcePool.Shared.Return(_source);
-                    _source = null;
-                }
-            }
-        }
+            CancellationTokenPairSourcePool.Shared.Rent(GetTimeout(options.Timeout, op), options.Token);
 
         #endregion
 

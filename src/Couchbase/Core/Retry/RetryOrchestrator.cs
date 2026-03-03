@@ -34,7 +34,7 @@ namespace Couchbase.Core.Retry
 
         public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
-            var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeProvider, request.Timeout, request.Token);
+            using var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeProvider, request.Timeout, request.Token);
             var token = ctsp.Token;
 
             Type? outcomeErrorType = null;
@@ -155,8 +155,6 @@ namespace Couchbase.Core.Retry
             {
                 //stop recording metrics and either return result or throw exception
                 request.StopRecording(outcomeErrorType);
-
-                CancellationTokenPairSourcePool.Shared.Return(ctsp);
             }
         }
 

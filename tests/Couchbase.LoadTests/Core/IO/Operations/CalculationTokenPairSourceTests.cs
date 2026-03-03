@@ -17,17 +17,10 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         [Benchmark]
         public void RentRegisterReturn()
         {
-            var source = CancellationTokenPairSourcePool.Shared.Rent(_timeout, _externalToken.Token);
+            using var source = CancellationTokenPairSourcePool.Shared.Rent(_timeout, _externalToken.Token);
             var tokenPair = source.TokenPair;
 
-            try
-            {
-                using var _ = new OperationCancellationRegistration(_operation, tokenPair);
-            }
-            finally
-            {
-                CancellationTokenPairSourcePool.Shared.Return(source);
-            }
+            using var _ = new OperationCancellationRegistration(_operation, tokenPair);
         }
     }
 }

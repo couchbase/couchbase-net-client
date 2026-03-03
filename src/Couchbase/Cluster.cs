@@ -384,7 +384,7 @@ namespace Couchbase
             if(options.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));
 
-            CancellationTokenPairSource? ctps =  CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
+            using var ctps = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
             CancellationToken token = ctps.Token;
 
             var bootstrappable = (IBootstrappable)this;
@@ -471,10 +471,6 @@ namespace Couchbase
             catch (Exception e)
             {
                 throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
-            }
-            finally
-            {
-                CancellationTokenPairSourcePool.Shared.Return(ctps);
             }
         }
 
