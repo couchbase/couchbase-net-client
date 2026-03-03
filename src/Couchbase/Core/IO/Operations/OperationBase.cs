@@ -536,7 +536,11 @@ namespace Couchbase.Core.IO.Operations
         /// <param name="builder">The builder.</param>
         protected virtual void WriteKey(OperationBuilder builder)
         {
-            var buffer = builder.GetSpan(OperationHeader.MaxKeyLength + Leb128.MaxLength);
+            var keyLength = Cid is > 0
+                ? OperationHeader.MaxKeyLength + Leb128.MaxLength
+                : OperationHeader.MaxKeyLength;
+
+            var buffer = builder.GetSpan(keyLength);
 
             var length = WriteKey(buffer);
 
@@ -553,7 +557,7 @@ namespace Couchbase.Core.IO.Operations
             var length = 0;
 
             //Default collection does not need the CID
-            if (Cid.HasValue)
+            if (Cid is > 0)
             {
                 length += Leb128.Write(buffer, Cid.GetValueOrDefault());
             }
