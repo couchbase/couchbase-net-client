@@ -275,19 +275,9 @@ namespace Couchbase.Core
                 .ConfigureAwait(false);
         }
 
-        public async Task HelloHello()
+        public Task HelloHello()
         {
-            foreach (var connection in ConnectionPool.GetConnections())
-            {
-                _logger.LogDebug("Starting connection reinitialization on server {endpoint}.", EndPoint);
-                using var rootSpan = RootSpan("reinitialize_connection");
-
-                var serverFeatureList = await Hello(connection, rootSpan).ConfigureAwait(false);
-                connection.ServerFeatures = serverFeatureList != null
-                    ? new ServerFeatureSet(serverFeatureList)
-                    : ServerFeatureSet.Empty;
-                ServerFeatures = connection.ServerFeatures;
-            }
+            throw new NotSupportedException("HelloHello is no longer supported.");
         }
 
         private async Task<ServerFeatures[]> Hello(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
