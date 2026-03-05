@@ -1,9 +1,8 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Management.Buckets;
-
-#nullable enable
 
 namespace Couchbase.Management.Collections
 {

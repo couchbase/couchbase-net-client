@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,9 +6,11 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Couchbase.Query;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
-#nullable enable
 
 namespace Couchbase.Management.Query
 {
@@ -18,22 +21,31 @@ namespace Couchbase.Management.Query
         private readonly IQueryClient _queryClient;
         private readonly ILogger<QueryIndexManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly IRequestTracer _tracer;
 
-        public QueryIndexManager(IQueryClient queryClient, ILogger<QueryIndexManager> logger, IRedactor redactor)
+        public QueryIndexManager(IQueryClient queryClient, ILogger<QueryIndexManager> logger, IRedactor redactor, IRequestTracer? tracer = null)
         {
             _queryClient = queryClient ?? throw new ArgumentNullException(nameof(queryClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions? options = null)
         {
             options ??= BuildDeferredQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.BuildDeferredQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to build deferred query indexes on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
             Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.BuildDeferredQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 var indexes = await this.GetAllIndexesAsync(bucketName,
@@ -58,11 +70,16 @@ namespace Couchbase.Management.Query
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Error trying to build deferred query indexes on {bucketName}",
                     _redactor.MetaData(bucketName));
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -70,6 +87,9 @@ namespace Couchbase.Management.Query
         public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> indexKeys, CreateQueryIndexOptions? options = null)
         {
             options ??= CreateQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.CreateQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to create query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
@@ -90,6 +110,10 @@ namespace Couchbase.Management.Query
                 throw new ArgumentOutOfRangeException(nameof(indexKeys));
             }
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.CreateQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 var statement = QueryGenerator.CreateIndexStatement(bucketName, indexName, enumerable, options);
@@ -100,20 +124,32 @@ namespace Couchbase.Management.Query
                         queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (IndexExistsException e)
             {
+                tracker.SetError(e);
                 if (!options.IgnoreIfExistsValue)
                 {
                     _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                         _redactor.MetaData(bucketName));
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                     throw;
                 }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Error trying to create query index {indexName} on {bucketName}",
                     _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -121,10 +157,17 @@ namespace Couchbase.Management.Query
         public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions? options = null)
         {
             options ??= CreatePrimaryQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.CreatePrimaryQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to create primary query index on bucket {bucketName}", _redactor.MetaData(bucketName));
 
             Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.CreatePrimaryQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 var statement = QueryGenerator.CreatePrimaryIndexStatement(bucketName, options);
@@ -135,20 +178,30 @@ namespace Couchbase.Management.Query
                         queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (IndexExistsException e)
             {
+                tracker.SetError(e);
                 if (!options.IgnoreIfExistsValue)
                 {
                     _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                         _redactor.MetaData(bucketName));
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                     throw;
                 }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception e)
             {
+                tracker.SetError(e);
                 _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                     _redactor.MetaData(bucketName));
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 throw;
             }
         }
@@ -156,6 +209,9 @@ namespace Couchbase.Management.Query
         public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions? options = null)
         {
             options ??= DropQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.DropQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to drop query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
@@ -166,6 +222,10 @@ namespace Couchbase.Management.Query
                 throw new ArgumentNullException(nameof(indexName));
             }
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.DropQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 var statement = QueryGenerator.CreateDropIndexStatement(bucketName, indexName, options);
@@ -176,20 +236,32 @@ namespace Couchbase.Management.Query
                         queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (IndexExistsException e)
             {
+                tracker.SetError(e);
                 if (!options.IgnoreIfExistsValue)
                 {
                     _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                         _redactor.MetaData(bucketName));
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                     throw;
                 }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, $"Error trying to drop query index {indexName} on {bucketName}",
                     _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -197,11 +269,18 @@ namespace Couchbase.Management.Query
         public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions? options = null)
         {
             options ??= DropPrimaryQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.DropPrimaryQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to drop primary query index on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
             Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.DropPrimaryQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 var statement = QueryGenerator.CreateDropPrimaryIndexStatement(bucketName, options);
@@ -212,20 +291,32 @@ namespace Couchbase.Management.Query
                         queryOptions.Timeout(options.TimeoutValue);
                         if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (IndexExistsException e)
             {
+                tracker.SetError(e);
                 if (!options.IgnoreIfExistsValue)
                 {
                     _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                         _redactor.MetaData(bucketName));
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                     throw;
                 }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Error trying to drop query index on {bucketName}",
                     _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -233,9 +324,16 @@ namespace Couchbase.Management.Query
         public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions? options = null)
         {
             options ??= GetAllQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.GetAllQueryIndexes, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to get query indexes for bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.GetAllQueryIndexes,
+                rootSpan,
+                bucketName);
             try
             {
                 var queryOptions = new QueryOptions()
@@ -264,12 +362,17 @@ namespace Couchbase.Management.Query
                     indexes.Add(row);
                 }
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return indexes;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Error trying to get query indexes for bucket {bucketName}",
                     _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -277,12 +380,19 @@ namespace Couchbase.Management.Query
         public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions? options = null)
         {
             options ??= WatchQueryIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.WatchQueryIndex, options.RequestSpanValue)
+                .WithCommonTags();
             var indexesToWatch = string.Join(", ", indexNames.ToList());
             _logger.LogInformation("Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}",
                 _redactor.MetaData(indexesToWatch), _redactor.MetaData(bucketName));
 
             Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Query.WatchQueryIndex,
+                rootSpan,
+                bucketName);
             try
             {
                 while (!options.TokenValue.IsCancellationRequested)
@@ -297,7 +407,10 @@ namespace Couchbase.Management.Query
 
                     if (!indexes.Any())
                     {
-                        throw new IndexNotFoundException("Could not retrieve any of the given indexes.");
+                        var ex = new IndexNotFoundException("Could not retrieve any of the given indexes.");
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
                     }
 
                     var pendingIndexes = indexes.Where(index => index.State != "online")
@@ -312,16 +425,24 @@ namespace Couchbase.Management.Query
                         _redactor.MetaData(indexesToWatch));
                     await Task.Delay(WatchIndexSleepDuration).ConfigureAwait(false);
                 }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException tas)
             {
+                tracker.SetError(tas);
                 // application cancelled watch task
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception,
                     $"Error trying to watch pending indexes ({indexesToWatch}) for bucket {bucketName}",
                     _redactor.MetaData(indexesToWatch), _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

@@ -1,12 +1,21 @@
-using System.Threading;
-
 #nullable enable
+using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
+
 
 namespace Couchbase.Management.Views
 {
     public class UpsertDesignDocumentOptions
     {
+
         internal CancellationToken TokenValue { get; set; }
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public UpsertDesignDocumentOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public UpsertDesignDocumentOptions CancellationToken(CancellationToken cancellationToken)
         {

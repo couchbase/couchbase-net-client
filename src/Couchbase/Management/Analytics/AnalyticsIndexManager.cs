@@ -12,9 +12,10 @@ using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Analytics.Link;
-using Couchbase.Query;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Analytics
@@ -26,24 +27,31 @@ namespace Couchbase.Management.Analytics
         private readonly IRedactor _redactor;
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
+        private readonly IRequestTracer _tracer;
 
         public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IAnalyticsClient client, IRedactor redactor,
-            IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory)
+            IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory, IRequestTracer? tracer = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         public async Task CreateDataverseAsync(string dataverseName, CreateAnalyticsDataverseOptions? options = null)
         {
             options ??= new CreateAnalyticsDataverseOptions();
 
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.CreateDataverse, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to create dataverse with name {dataverseName}",
                 _redactor.MetaData(dataverseName));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.CreateDataverse,
+                rootSpan);
             try
             {
                 dataverseName = UncompoundName(dataverseName);
@@ -53,17 +61,27 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (DataverseExistsException)
+            catch (DataverseExistsException dat)
             {
+                tracker.SetError(dat);
                 _logger.LogError("Failed to create dataverse with name {dataverseName} because it already exists.",
                     _redactor.MetaData(dataverseName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to create dataverse with name {dataverseName}",
                     _redactor.MetaData(dataverseName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -71,8 +89,14 @@ namespace Couchbase.Management.Analytics
         public async Task DropDataverseAsync(string dataverseName, DropAnalyticsDataverseOptions? options = null)
         {
             options ??= new DropAnalyticsDataverseOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.DropDataverse, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to drop dataverse with name {dataverseName}",
                 _redactor.MetaData(dataverseName));
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.DropDataverse,
+                rootSpan);
             try
             {
                 dataverseName = UncompoundName(dataverseName);
@@ -81,17 +105,27 @@ namespace Couchbase.Management.Analytics
 
                 await _client.QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (DataverseNotFoundException)
+            catch (DataverseNotFoundException dat)
             {
+                tracker.SetError(dat);
                 _logger.LogError("Failed to drop dataverse with name {dataverseName} because it does not exists.",
                     _redactor.MetaData(dataverseName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to drop dataverse with name {dataverseName}",
                     _redactor.MetaData(dataverseName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -99,8 +133,14 @@ namespace Couchbase.Management.Analytics
         public async Task CreateDatasetAsync(string datasetName, string bucketName, CreateAnalyticsDatasetOptions? options = null)
         {
             options ??= new CreateAnalyticsDatasetOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.CreateDataset, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to create dataSet with name {dataverseName} on {bucketName}",
                 _redactor.MetaData(datasetName), _redactor.MetaData(bucketName));
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.CreateDataset,
+                rootSpan);
             try
             {
                 datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
@@ -112,14 +152,15 @@ namespace Couchbase.Management.Analytics
 
                 var ignoreStr = options.IgnoreIfExistsValue ? "IF NOT EXISTS " : string.Empty;
                 var whereStr = string.Empty;
-                if (!string.IsNullOrWhiteSpace(options.ConditionValue))
+                var conditionValue = options.ConditionValue;
+                if (!string.IsNullOrWhiteSpace(conditionValue))
                 {
-                    if (!options.ConditionValue.ToLowerInvariant().Trim().StartsWith("where"))
+                    if (!conditionValue!.ToLowerInvariant().Trim().StartsWith("where"))
                     {
                         whereStr += " WHERE";
                     }
 
-                    whereStr += options.ConditionValue.StartsWith(" ") ? options.ConditionValue : " " + options.ConditionValue;
+                    whereStr += conditionValue.StartsWith(" ") ? conditionValue : " " + conditionValue;
                 }
 
                 var statement = $"CREATE DATASET {ignoreStr}{datasetName} ON `{bucketName}`{whereStr}";
@@ -127,16 +168,27 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (DatasetExistsException)
+            catch (DatasetExistsException dat)
             {
+                tracker.SetError(dat);
                 _logger.LogError("Failed to create dataset with name {datasetName} because it already exists on {bucketName}.",
                     _redactor.MetaData(datasetName), _redactor.MetaData(bucketName));
-                throw;            }
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                throw;
+            }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to create dataset with name {datasetName} on {bucketName}",
                     _redactor.MetaData(datasetName), _redactor.MetaData(bucketName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -144,7 +196,13 @@ namespace Couchbase.Management.Analytics
         public async Task DropDatasetAsync(string datasetName, DropAnalyticsDatasetOptions? options = null)
         {
             options ??= new DropAnalyticsDatasetOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.DropDataset, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("attempting to drop dataset {datasetName}", _redactor.MetaData(datasetName));
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.DropDataset,
+                rootSpan);
             try
             {
                 datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
@@ -154,17 +212,27 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (DatasetNotFoundException)
+            catch (DatasetNotFoundException dat)
             {
+                tracker.SetError(dat);
                 _logger.LogError("Failed to drop dataset with name {datasetName} as it does not exist. ",
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to drop dataset with name {datasetName} ",
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -172,7 +240,13 @@ namespace Couchbase.Management.Analytics
         public async Task<IEnumerable<AnalyticsDataset>> GetAllDatasetsAsync(GetAllAnalyticsDatasetsOptions? options = null)
         {
             options ??= new GetAllAnalyticsDatasetsOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.GetAllDatasets, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Retrieving all datasets.");
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.GetAllDatasets,
+                rootSpan);
             try
             {
                 var statement = "SELECT d.* FROM Metadata.`Dataset` d WHERE d.DataverseName <> \"Metadata\"";
@@ -188,11 +262,16 @@ namespace Couchbase.Management.Analytics
                     dataSets.Add(row);
                 }
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return dataSets;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to retrieve data sets.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -201,6 +280,11 @@ namespace Couchbase.Management.Analytics
         {
             options ??= new CreateAnalyticsIndexOptions();
 
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.CreateIndex, options.RequestSpanValue)
+                .WithCommonTags();
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.CreateIndex,
+                rootSpan);
             try
             {
                 datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
@@ -227,19 +311,28 @@ namespace Couchbase.Management.Analytics
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (IndexExistsException)
+            catch (IndexExistsException ind)
             {
+                tracker.SetError(ind);
                 _logger.LogError("Failed to create index with name {indexName} because it already exists on {datasetName}.",
                     _redactor.MetaData(indexName),
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to create index with name {indexName} on {datasetName}",
                     _redactor.MetaData(indexName),
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -247,9 +340,15 @@ namespace Couchbase.Management.Analytics
         public async Task DropIndexAsync(string datasetName, string indexName, DropAnalyticsIndexOptions? options = null)
         {
             options ??= new DropAnalyticsIndexOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.DropIndex, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to drop {indexName} on {datasetName}",
                 _redactor.MetaData(indexName),
                 _redactor.MetaData(datasetName));
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.DropIndex,
+                rootSpan);
             try
             {
                 datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
@@ -265,19 +364,29 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (IndexNotFoundException)
+            catch (IndexNotFoundException ind)
             {
+                tracker.SetError(ind);
                 _logger.LogError("Failed to drop index with name {indexName} because it does not exist on {datasetName}.",
                     _redactor.MetaData(indexName),
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to drop index with name {indexName} on {datasetName}",
                     _redactor.MetaData(indexName),
                     _redactor.MetaData(datasetName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -285,8 +394,14 @@ namespace Couchbase.Management.Analytics
         public async Task<IEnumerable<AnalyticsIndex>> GetAllIndexesAsync(GetAllAnalyticsIndexesOptions? options = null)
         {
             options ??= new GetAllAnalyticsIndexesOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.GetAllIndexes, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to retrieve all indexes.");
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.GetAllIndexes,
+                rootSpan);
             try
             {
                 var statement = "SELECT d.* FROM Metadata.`Index` d WHERE d.DataverseName <> \"Metadata\"";
@@ -303,11 +418,16 @@ namespace Couchbase.Management.Analytics
                     indexes.Add(row);
                 }
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return indexes;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to retrieve all indexes.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -315,8 +435,14 @@ namespace Couchbase.Management.Analytics
         public async Task ConnectLinkAsync(ConnectAnalyticsLinkOptions? options = null)
         {
             options ??= new ConnectAnalyticsLinkOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.ConnectLink, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to connect link {linkName}", _redactor.MetaData(options.LinkNameValue));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.ConnectLink,
+                rootSpan);
             try
             {
                 var statement = $"CONNECT LINK {options.LinkNameValue}";
@@ -324,15 +450,25 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (LinkNotFoundException)
+            catch (LinkNotFoundException lin)
             {
+                tracker.SetError(lin);
                 _logger.LogError("Could not find link {linkName}", _redactor.MetaData(options.LinkNameValue));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to create link {linkName}", _redactor.MetaData(options.LinkNameValue));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -340,8 +476,14 @@ namespace Couchbase.Management.Analytics
         public async Task DisconnectLinkAsync(DisconnectAnalyticsLinkOptions? options = null)
         {
             options ??= new DisconnectAnalyticsLinkOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.DisconnectLink, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Attempting to disconnect link {linkName}", _redactor.MetaData(options.LinkNameValue));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.DisconnectLink,
+                rootSpan);
             try
             {
                 var statement = $"DISCONNECT LINK {options.LinkNameValue}";
@@ -349,15 +491,25 @@ namespace Couchbase.Management.Analytics
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (LinkNotFoundException)
+            catch (LinkNotFoundException lin)
             {
+                tracker.SetError(lin);
                 _logger.LogError("Could not find link {linkName}", _redactor.MetaData(options.LinkNameValue));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to disconnect link {linkName}", _redactor.MetaData(options.LinkNameValue));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -365,23 +517,37 @@ namespace Couchbase.Management.Analytics
         public async Task<Dictionary<string, int>> GetPendingMutationsAsync(GetPendingAnalyticsMutationsOptions? options = null)
         {
             options ??= new GetPendingAnalyticsMutationsOptions();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.GetPendingMutations, options.RequestSpanValue)
+                .WithCommonTags();
             _logger.LogInformation("Getting pending mutations.");
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.GetPendingMutations,
+                rootSpan);
             try
             {
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri());
                 builder.Path += "analytics/node/agg/stats/remaining";
                 var uri = builder.Uri;
+
+                rootSpan.WithRemoteAddress(uri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var json = JToken.Parse(content);
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return parseResult(json);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to retrieve pending mutations.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -389,19 +555,34 @@ namespace Couchbase.Management.Analytics
         {
             link.ValidateForRequest();
             options ??= new();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.CreateLink, options.RequestSpanValue)
+                .WithCommonTags();
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.CreateLink,
+                rootSpan);
             try
             {
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
                 builder.Path = link.ManagementPath;
                 var uri = builder.Uri;
+
+                rootSpan.WithRemoteAddress(uri);
+
                 var formContent = new FormUrlEncodedContent(link.FormData);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, link).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to create link.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -410,20 +591,35 @@ namespace Couchbase.Management.Analytics
         {
             link.ValidateForRequest();
             options ??= new();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.ReplaceLink, options.RequestSpanValue)
+                .WithCommonTags();
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.ReplaceLink,
+                rootSpan);
             try
             {
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
                 builder.Path = link.ManagementPath;
                 var uri = builder.Uri;
+
+                rootSpan.WithRemoteAddress(uri);
+
                 var formContent = new FormUrlEncodedContent(link.FormData);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PutAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, link).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to replace link.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -433,19 +629,34 @@ namespace Couchbase.Management.Analytics
             _ = linkName ?? throw new ArgumentNullException(nameof(linkName));
             _ = dataverseName ?? throw new ArgumentNullException(nameof(dataverseName));
             options ??= new();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.DropLink, options.RequestSpanValue)
+                .WithCommonTags();
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.DropLink,
+                rootSpan);
             try
             {
                 var dummy = new GeneralAnalyticsLinkResponse(linkName, dataverseName);
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
                 builder.Path = dummy.ManagementPath;
                 var uri = builder.Uri;
+
+                rootSpan.WithRemoteAddress(uri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, linkName, dataverseName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to delete link.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -453,6 +664,12 @@ namespace Couchbase.Management.Analytics
         public async Task<IEnumerable<AnalyticsLink>> GetLinks(GetAnalyticsLinksOptions? options = null)
         {
             options ??= new();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Analytics.GetLinks, options.RequestSpanValue)
+                .WithCommonTags();
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Analytics.GetLinks,
+                rootSpan);
             try
             {
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
@@ -474,6 +691,9 @@ namespace Couchbase.Management.Analytics
 
                 using var httpClient = _httpClientFactory.Create();
                 var uri = builder.Uri;
+
+                rootSpan.WithRemoteAddress(uri);
+
                 var result = await httpClient.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, string.Empty, string.Empty).ConfigureAwait(false);
@@ -486,11 +706,16 @@ namespace Couchbase.Management.Analytics
                     _ => token.ToObject<GeneralAnalyticsLinkResponse>(),
                 });
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return typedResults.Where(tr => tr != null).Select(tr => tr!);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to delete link.");
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

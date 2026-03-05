@@ -88,6 +88,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string SearchQuery = "search";
             public const string Eventing = "eventing";
             public const string Transaction = "transaction";
+            public const string Management = "management";
 
             public static class Kv
             {
@@ -167,6 +168,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string GetPendingMutations = "manager_analytics_get_pending_mutations";
                 public const string GetAllIndexes = " manager_analytics_get_all_indexes";
                 public const string GetAllDataverses = " manager_analytics_get_all_dataverses";
+                public const string CreateLink = "manager_analytics_create_link";
+                public const string ReplaceLink = "manager_analytics_replace_link";
+                public const string DropLink = "manager_analytics_drop_link";
+                public const string GetLinks = "manager_analytics_get_links";
+
             }
 
             public static class Query
@@ -178,6 +184,14 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string DropPrimaryIndex = "manager_query_drop_primary_index";
                 public const string GetAllIndexes = "manager_query_get_all_indexes";
                 public const string WatchIndexes = "manager_query_watch_indexes";
+                public const string BuildDeferredQueryIndex = BuildDeferredIndexes;
+                public const string CreateQueryIndex = CreateIndex;
+                public const string CreatePrimaryQueryIndex = CreatePrimaryIndex;
+                public const string DropQueryIndex = DropIndex;
+                public const string DropPrimaryQueryIndex = DropPrimaryIndex;
+                public const string GetAllQueryIndexes = GetAllIndexes;
+                public const string WatchQueryIndex = WatchIndexes;
+
             }
 
             public static class Bucket
@@ -197,6 +211,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string DropCollection = "manager_collections_drop_collection";
                 public const string DropScope = "manager_collections_drop_scope";
                 public const string GetAllScopes = "manager_collections_get_all_scopes";
+                public const string UpdateCollection = "manager_collections_update_collection";
+
             }
 
             public static class Search
@@ -217,6 +233,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
             public static class Users
             {
+                public const string ChangePassword = "manager_users_change_password";
                 public const string DropGroup = "manager_users_drop_group";
                 public const string DropUser = "manager_users_drop_user";
                 public const string GetAllGroups = "manager_users_get_all_groups";

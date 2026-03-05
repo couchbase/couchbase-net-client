@@ -24,6 +24,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
         private LoggingMeterValueRecorder? _searchQueryHistograms;
         private LoggingMeterValueRecorder? _analyticsQueryHistograms;
         private LoggingMeterValueRecorder? _viewQueryHistograms;
+        private LoggingMeterValueRecorder? _managementHistograms;
 
         private readonly uint _intervalMilliseconds;
 
@@ -101,6 +102,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 case OuterRequestSpans.ServiceSpan.ViewQuery:
                     return GetOrCreateValueRecorder(ref _viewQueryHistograms, OuterRequestSpans.ServiceSpan.ViewQuery);
 
+                case OuterRequestSpans.ServiceSpan.Management:
+                    return GetOrCreateValueRecorder(ref _managementHistograms, OuterRequestSpans.ServiceSpan.Management);
+
                 default:
                     return NoopValueRecorder.Instance;
             }
@@ -145,6 +149,11 @@ namespace Couchbase.Core.Diagnostics.Metrics
             if (_viewQueryHistograms is not null)
             {
                 yield return _viewQueryHistograms.Histograms;
+            }
+
+            if (_managementHistograms is not null)
+            {
+                yield return _managementHistograms.Histograms;
             }
         }
 

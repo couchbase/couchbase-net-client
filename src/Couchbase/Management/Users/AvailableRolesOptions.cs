@@ -1,9 +1,9 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Users
 {
@@ -11,6 +11,13 @@ namespace Couchbase.Management.Users
     {
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public AvailableRolesOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         /// <summary>
         /// Allows to pass in a custom CancellationToken from a CancellationTokenSource.

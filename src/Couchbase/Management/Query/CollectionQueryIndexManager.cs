@@ -1,13 +1,12 @@
+#nullable enable
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 #pragma warning disable CS0618
-#nullable enable
+
 
 namespace Couchbase.Management.Query;
 

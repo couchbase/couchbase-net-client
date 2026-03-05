@@ -1,14 +1,21 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
+using Couchbase.Core.Diagnostics.Tracing;
 using CancellationTokenCls = System.Threading.CancellationToken;
-
-#nullable enable
 
 namespace Couchbase.Management.Buckets
 {
     public class DropCollectionOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public DropCollectionOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
 

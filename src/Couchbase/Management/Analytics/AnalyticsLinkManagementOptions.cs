@@ -1,13 +1,13 @@
 #nullable enable
-using System;
 using System.Threading;
-using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Analytics
 {
     public abstract record AnalyticsLinkManagementOptions
     {
         public CancellationToken CancellationToken { get; init; } = CancellationToken.None;
+        internal IRequestSpan? RequestSpanValue { get; init; }
     }
 
 
@@ -31,6 +31,12 @@ namespace Couchbase.Management.Analytics
             where T : AnalyticsLinkManagementOptions
         {
             return opts with { CancellationToken = token };
+        }
+
+        public static T RequestSpan<T>(this T opts, IRequestSpan span)
+            where T : AnalyticsLinkManagementOptions
+        {
+            return opts with { RequestSpanValue = span };
         }
     }
 }

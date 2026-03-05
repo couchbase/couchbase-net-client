@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,7 +14,6 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.Utils;
 using Couchbase.Views;
 
-#nullable enable
 
 namespace Couchbase.Core.Diagnostics.Metrics
 {
@@ -421,6 +421,117 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 };
 
                 AddModernClusterLabels(ref modernTags, ((IViewQuery)viewQuery).RequestSpanValue);
+                ModernOperations.Record(duration.TotalSeconds, modernTags);
+            }
+        }
+
+        public static class Management
+        {
+            /// <summary>
+            /// Starts tracking a management operation. Dispose to record the metric.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static OperationTracker StartOperation(
+                string operationName,
+                IRequestSpan? span,
+                string? bucketName = null,
+                string? scopeName = null,
+                string? collectionName = null)
+            {
+                return new OperationTracker(operationName, span, bucketName, scopeName, collectionName);
+            }
+
+            /// <summary>
+            /// A disposable tracker for management operations. Records metrics on dispose.
+            /// </summary>
+            public struct OperationTracker : IDisposable
+            {
+                private readonly string _operationName;
+                private readonly IRequestSpan? _span;
+                private readonly string? _bucketName;
+                private readonly string? _scopeName;
+                private readonly string? _collectionName;
+                private readonly LightweightStopwatch _stopwatch;
+                private Type? _errorType;
+
+                internal OperationTracker(
+                    string operationName,
+                    IRequestSpan? span,
+                    string? bucketName,
+                    string? scopeName,
+                    string? collectionName)
+                {
+                    _operationName = operationName;
+                    _span = span;
+                    _bucketName = bucketName;
+                    _scopeName = scopeName;
+                    _collectionName = collectionName;
+                    _stopwatch = LightweightStopwatch.StartNew();
+                    _errorType = null;
+                }
+
+                /// <summary>
+                /// Records an error type for the operation.
+                /// </summary>
+                public void SetError(Exception e) => _errorType = e.GetType();
+
+                /// <summary>
+                /// Records the operation metrics.
+                /// </summary>
+                public void Dispose()
+                {
+                    TrackOperation(
+                        _operationName,
+                        _stopwatch.Elapsed,
+                        _errorType,
+                        _bucketName,
+                        _scopeName,
+                        _collectionName,
+                        _span);
+                }
+            }
+
+            /// <summary>
+            /// Tracks the first attempt of an operation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void TrackOperation(
+                string operationName,
+                TimeSpan duration,
+                Type? errorType,
+                string? bucketName = null,
+                string? scopeName = null,
+                string? collectionName = null,
+                IRequestSpan? span = null)
+            {
+                // Legacy metrics
+                var legacyTags = new TagList
+                {
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Management),
+                    new(OuterRequestSpans.Attributes.Operation, operationName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+                // Add these tags conditionally to prevent increasing cardinality unnecessarily
+                if (bucketName is not null) legacyTags.Add(OuterRequestSpans.Attributes.BucketName, bucketName);
+                if (scopeName is not null) legacyTags.Add(OuterRequestSpans.Attributes.ScopeName, scopeName);
+                if (collectionName is not null) legacyTags.Add(OuterRequestSpans.Attributes.CollectionName, collectionName);
+
+                legacyTags.AddClusterLabelsIfProvided(span);
+                LegacyOperations.Record(duration.ToMicroseconds(), legacyTags);
+
+                // Modern metrics
+                var modernTags = new TagList
+                {
+                    new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.Management),
+                    new(ModernAttributes.Operation, operationName),
+                    new(ModernAttributes.Outcome, GetOutcome(errorType))
+                };
+                // Add these tags conditionally
+                if (bucketName is not null) modernTags.Add(ModernAttributes.Namespace, bucketName);
+                if (scopeName is not null) modernTags.Add(ModernAttributes.ScopeName, scopeName);
+                if (collectionName is not null) modernTags.Add(ModernAttributes.CollectionName, collectionName);
+
+                AddModernClusterLabels(ref modernTags, span);
                 ModernOperations.Record(duration.TotalSeconds, modernTags);
             }
         }

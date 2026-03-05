@@ -1,13 +1,15 @@
+#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
 
-#nullable enable
 
 namespace Couchbase.Management.Users
 {
+    /// <summary>
+    ///  Options for <see cref="IUserManager.ChangeUserPasswordAsync(string, ChangePasswordOptions)"/>
+    /// </summary>
     public class ChangePasswordOptions
     {
         internal string DomainNameValue { get; set; } = "/controller/changePassword";
@@ -16,6 +18,13 @@ namespace Couchbase.Management.Users
 
         internal RequestSpan? ParentSpan { get; set; }
 
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public ChangePasswordOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public ChangePasswordOptions DomainName(string domainName)
         {

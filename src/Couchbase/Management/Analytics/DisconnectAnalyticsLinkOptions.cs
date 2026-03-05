@@ -1,11 +1,21 @@
+#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Analytics
 {
     public class DisconnectAnalyticsLinkOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public DisconnectAnalyticsLinkOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal string LinkNameValue { get; set; } = "Local";
 
         public DisconnectAnalyticsLinkOptions LinkName(string linkName)

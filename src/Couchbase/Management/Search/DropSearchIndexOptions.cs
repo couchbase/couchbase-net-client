@@ -1,14 +1,22 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Search
 {
     public class DropSearchIndexOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public DropSearchIndexOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;

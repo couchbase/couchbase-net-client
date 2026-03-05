@@ -1,14 +1,23 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Search
 {
     public class AllowQueryingSearchIndexOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public AllowQueryingSearchIndexOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
+        public static AllowQueryingSearchIndexOptions Default => new AllowQueryingSearchIndexOptions();
         public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
         internal CancellationToken TokenValue { get; private set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
@@ -37,7 +46,6 @@ namespace Couchbase.Management.Search
             return this;
         }
 
-        public static AllowQueryingSearchIndexOptions Default => new AllowQueryingSearchIndexOptions();
 
         public void Deconstruct(out CancellationToken tokenValue, out TimeSpan timeoutValue)
         {

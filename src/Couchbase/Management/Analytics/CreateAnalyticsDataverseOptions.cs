@@ -1,11 +1,21 @@
+#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Analytics
 {
     public class CreateAnalyticsDataverseOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public CreateAnalyticsDataverseOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal bool IgnoreIfExistsValue { get; set; }
 
         public CreateAnalyticsDataverseOptions IgnoreIfExists(bool ignoreIfExists)

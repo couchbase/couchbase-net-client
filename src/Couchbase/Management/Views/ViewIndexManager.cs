@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -11,8 +12,10 @@ using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Utils;
 
-#nullable enable
 
 namespace Couchbase.Management.Views
 {
@@ -24,15 +27,17 @@ namespace Couchbase.Management.Views
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<ViewIndexManager> _logger;
         private readonly IRedactor _redactor;
+        private readonly IRequestTracer _tracer;
 
         public ViewIndexManager(string bucketName, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<ViewIndexManager> logger, IRedactor redactor)
+            ILogger<ViewIndexManager> logger, IRedactor redactor, IRequestTracer? tracer = null)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         private Uri GetUri(string? designDocName, DesignDocumentNamespace @namespace)
@@ -65,12 +70,17 @@ namespace Couchbase.Management.Views
         public async Task<DesignDocument> GetDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, GetDesignDocumentOptions? options = null)
         {
             options ??= GetDesignDocumentOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Views.GetDesignDocument, options.RequestSpanValue)
+                .WithCommonTags();
             var uri = GetUri(designDocName, @namespace);
             _logger.LogInformation("Attempting to get design document {_bucketName}/{designDocName} - {uri}",
                 _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
             try
             {
+                rootSpan.WithRemoteAddress(uri);
+
                 using var httpClient = _httpClientFactory.Create();
 
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
@@ -85,12 +95,16 @@ namespace Couchbase.Management.Views
                 var designDocument = JsonConvert.DeserializeObject<DesignDocument>(content);
                 designDocument!.Name = designDocName;
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return designDocument;
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Failed to get design document {_bucketName}/{designDocName} - {uri}",
                     _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -98,6 +112,9 @@ namespace Couchbase.Management.Views
         public async Task<IEnumerable<DesignDocument>> GetAllDesignDocumentsAsync(DesignDocumentNamespace @namespace, GetAllDesignDocumentsOptions? options = null)
         {
             options ??= GetAllDesignDocumentsOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Views.GetAllDesignDocuments, options.RequestSpanValue)
+                .WithCommonTags();
             var uri = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
                 Path = $"pools/default/buckets/{_bucketName}/ddocs"
@@ -107,6 +124,8 @@ namespace Couchbase.Management.Views
 
             try
             {
+                rootSpan.WithRemoteAddress(uri);
+
                 using var httpClient = _httpClientFactory.Create();
 
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
@@ -141,12 +160,16 @@ namespace Couchbase.Management.Views
                     }
                 }
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return designDocuments;
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Failed to get all design documents for bucket {_bucketName} - {uri}",
                     _redactor.MetaData(_bucketName), _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -154,24 +177,39 @@ namespace Couchbase.Management.Views
         public async Task UpsertDesignDocumentAsync(DesignDocument designDocument, DesignDocumentNamespace @namespace, UpsertDesignDocumentOptions? options = null)
         {
             options ??= UpsertDesignDocumentOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Views.UpsertDesignDocument, options.RequestSpanValue)
+                .WithCommonTags();
             var json = JsonConvert.SerializeObject(designDocument);
             var uri = GetUri(designDocument.Name, @namespace);
             _logger.LogInformation("Attempting to upsert design document {_bucketName}/{designDocument.Name} - {uri}",
                 _redactor.MetaData(_bucketName), _redactor.MetaData(designDocument.Name), _redactor.SystemData(uri));
             _logger.LogDebug(json);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Views.UpsertDesignDocument,
+                rootSpan,
+                _bucketName);
             try
             {
+                rootSpan.WithRemoteAddress(uri);
+
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
 
                 result.EnsureSuccessStatusCode();
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to upsert design document {_bucketName}/{designDocument.Name} - {uri} - {json}",
                     _redactor.MetaData(_bucketName), _redactor.MetaData(designDocument.Name), _redactor.SystemData(uri), _redactor.MetaData(json));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -179,12 +217,21 @@ namespace Couchbase.Management.Views
         public async Task DropDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, DropDesignDocumentOptions? options = null)
         {
             options ??= DropDesignDocumentOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Views.DropDesignDocument, options.RequestSpanValue)
+                .WithCommonTags();
             var uri = GetUri(designDocName, @namespace);
             _logger.LogInformation("Attempting to drop design document {_bucketName}/{designDocName} - {uri}",
                 _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Views.DropDesignDocument,
+                rootSpan,
+                _bucketName);
             try
             {
+                rootSpan.WithRemoteAddress(uri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
@@ -195,11 +242,17 @@ namespace Couchbase.Management.Views
                 }
 
                 result.EnsureSuccessStatusCode();
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to drop design document {_bucketName}/{designDocName} - {uri}",
                     _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -207,12 +260,21 @@ namespace Couchbase.Management.Views
         public async Task PublishDesignDocumentAsync(string designDocName, PublishDesignDocumentOptions? options = null)
         {
             options ??= PublishDesignDocumentOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Views.PublishDesignDocument, options.RequestSpanValue)
+                .WithCommonTags();
             var uri = GetUri(designDocName, DesignDocumentNamespace.Production);
             _logger.LogInformation("Attempting to publish design document {_bucketName}/{designDocName} - {uri}",
             _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Views.PublishDesignDocument,
+                rootSpan,
+                _bucketName);
             try
             {
+                rootSpan.WithRemoteAddress(uri);
+
                 // get dev design document
                 var designDocument = await GetDesignDocumentAsync(designDocName, DesignDocumentNamespace.Development, GetDesignDocumentOptions.Default).ConfigureAwait(false);
                 var json = JsonConvert.SerializeObject(designDocument);
@@ -222,17 +284,27 @@ namespace Couchbase.Management.Views
                 using var httpClient = _httpClientFactory.Create();
                 var publishResult = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 publishResult.EnsureSuccessStatusCode();
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
-            catch (DesignDocumentNotFoundException)
+            catch (DesignDocumentNotFoundException des)
             {
+                tracker.SetError(des);
                 _logger.LogError("Failed to publish design document {_bucketName}/{designDocName} because it does not exist",
                     _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to put design document {_bucketName}/{designDocName} - {uri}",
                     _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

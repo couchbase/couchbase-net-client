@@ -1,9 +1,9 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
 
-#nullable enable
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Query
 {
@@ -16,6 +16,18 @@ namespace Couchbase.Management.Query
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
         internal string? QueryContext { get; set; }
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        /// <summary>
+        /// Allows to pass in a custom <see cref="IRequestSpan"/>
+        /// </summary>
+        /// <param name="span">The custom <see cref="IRequestSpan"/> to use for this operation.</param>
+        /// <returns>This class for method chaining.</returns>
+        public BuildDeferredQueryIndexOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         /// <summary>
         /// Sets the scope name for this query management operation.

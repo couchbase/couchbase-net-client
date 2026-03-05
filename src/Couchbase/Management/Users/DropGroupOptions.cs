@@ -1,14 +1,23 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Users
 {
     public class DropGroupOptions
     {
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
+
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public DropGroupOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
 
@@ -37,7 +46,6 @@ namespace Couchbase.Management.Users
         }
 
         public static DropGroupOptions Default => new DropGroupOptions();
-        public static ReadOnly DefaultReadOnly => Default.AsReadOnly();
 
         public void Deconstruct(out CancellationToken tokenValue, out TimeSpan timeoutValue)
         {

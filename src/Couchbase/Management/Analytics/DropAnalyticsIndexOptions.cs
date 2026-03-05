@@ -1,13 +1,23 @@
+#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Analytics
 {
     public class DropAnalyticsIndexOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public DropAnalyticsIndexOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal bool IgnoreIfNotExistsValue { get; set; }
-        internal string DataverseNameValue { get; set; }
+        internal string? DataverseNameValue { get; set; }
 
         public DropAnalyticsIndexOptions IgnoreIfNotExists(bool ignoreIfNotExists)
         {

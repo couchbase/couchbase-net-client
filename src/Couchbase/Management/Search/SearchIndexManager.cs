@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -14,8 +15,9 @@ using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Search
 {
@@ -26,16 +28,18 @@ namespace Couchbase.Management.Search
         private readonly ILogger<SearchIndexManager> _logger;
         private readonly IRedactor _redactor;
         private readonly ClusterContext _context;
+        private readonly IRequestTracer _tracer;
 
         // TODO:  need to be able to reference global config to AssertBucketCap(ScopedSearchIndexes)
         public SearchIndexManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<SearchIndexManager> logger, IRedactor redactor, ClusterContext context)
+            ILogger<SearchIndexManager> logger, IRedactor redactor, ClusterContext context, IRequestTracer? tracer = null)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _context = context;
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         private Uri GetIndexUri(IScope? scope, string? indexName = null)
@@ -106,24 +110,38 @@ namespace Couchbase.Management.Search
         public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= AllowQueryingSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.AllowQuerying, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetQueryControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to allow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.AllowQuerying,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to allow querying for index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -131,24 +149,38 @@ namespace Couchbase.Management.Search
         public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= DisallowQueryingSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.DisallowQuerying, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetQueryControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to disallow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.DisallowQuerying,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to disallow querying for index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -156,24 +188,38 @@ namespace Couchbase.Management.Search
         public async Task DropIndexAsync(string indexName, DropSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= DropSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.DropIndex, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIndexUri(scope, indexName);
             _logger.LogInformation("Trying to drop index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.DropIndex,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.DeleteAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to drop index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -181,24 +227,38 @@ namespace Couchbase.Management.Search
         public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= FreezePlanSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.FreezePlan, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetFreezeControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to freeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.FreezePlan,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to freeze index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -206,13 +266,21 @@ namespace Couchbase.Management.Search
         public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null, IScope? scope = null)
         {
             options ??= GetAllSearchIndexesOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.GetAllIndexes, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIndexUri(scope);
             _logger.LogInformation("Trying to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.GetAllIndexes,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
@@ -220,11 +288,17 @@ namespace Couchbase.Management.Search
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return json["indexDefs"]!["indexDefs"]!.ToObject<Dictionary<string, SearchIndex>>()!.Values;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -232,14 +306,22 @@ namespace Couchbase.Management.Search
         public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= GetSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.GetIndex, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIndexUri(scope, indexName);
             _logger.LogInformation("Trying to get index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.GetIndex,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
@@ -247,12 +329,18 @@ namespace Couchbase.Management.Search
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return json["indexDef"]!.ToObject<SearchIndex>()!;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to get index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -260,14 +348,22 @@ namespace Couchbase.Management.Search
         public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions? options = null, IScope? scope = null)
         {
             options ??= GetSearchIndexDocumentCountOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.GetIndexedDocumentsCount, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIndexedDocumentCountUri(indexName, scope);
             _logger.LogInformation("Trying to get index document count with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.GetIndexedDocumentsCount,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
@@ -276,12 +372,18 @@ namespace Couchbase.Management.Search
 
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var jobj = JObject.Parse(responseBody);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 return jobj["count"]!.Value<int>();
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to get index document count with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -289,24 +391,38 @@ namespace Couchbase.Management.Search
         public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= PauseIngestSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.PauseIngest, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIngestControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to pause ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.PauseIngest,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to pause ingest for index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -314,24 +430,38 @@ namespace Couchbase.Management.Search
         public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= ResumeIngestSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.ResumeIngest, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIngestControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to resume ingest for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.ResumeIngest,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to resume ingest for index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -339,24 +469,38 @@ namespace Couchbase.Management.Search
         public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions? options = null, IScope? scope = null)
         {
             options ??= UnfreezePlanSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.UnfreezePlan, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetFreezeControlUri(indexName, false, scope);
             _logger.LogInformation("Trying to unfreeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.UnfreezePlan,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(baseUri, null!, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to unfreeze index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -366,14 +510,22 @@ namespace Couchbase.Management.Search
             CheckVectorSearchSupport(indexDefinition);
 
             options ??= UpsertSearchIndexOptions.Default;
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.UpsertIndex, options.RequestSpanValue)
+                .WithCommonTags();
             var baseUri = GetIndexUri(scope, indexDefinition.Name);
             _logger.LogInformation("Trying to upsert index with name {indexDefinition.Name} - {baseUri}",
                 _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Search.UpsertIndex,
+                rootSpan);
             try
             {
+                rootSpan.WithRemoteAddress(baseUri);
+
                 var json = JsonConvert.SerializeObject(indexDefinition, Formatting.None);
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
                 using var httpClient = _httpClientFactory.Create();
@@ -381,11 +533,17 @@ namespace Couchbase.Management.Search
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to upsert index with name {indexDefinition.Name} - {baseUri}",
                     _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

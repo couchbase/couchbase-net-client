@@ -1,9 +1,9 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
 
-#nullable enable
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Buckets
 {
@@ -12,6 +12,8 @@ namespace Couchbase.Management.Buckets
         public static ReadOnly DefaultReadOnly => Default.AsReadOnly();
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
         internal TimeSpan TimeoutValue { get; set; } = ClusterOptions.Default.ManagementTimeout;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
 
         /// <summary>
         /// Allows to pass in a custom CancellationToken from a CancellationTokenSource.
@@ -22,6 +24,17 @@ namespace Couchbase.Management.Buckets
         public UpdateBucketOptions CancellationToken(CancellationToken token)
         {
             TokenValue = token;
+            return this;
+        }
+
+        /// <summary>
+        /// Allows to pass in a custom <see cref="IRequestSpan"/>
+        /// </summary>
+        /// <param name="span">The custom <see cref="IRequestSpan"/> to use for this operation.</param>
+        /// <returns>This class for method chaining.</returns>
+        public UpdateBucketOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
             return this;
         }
 

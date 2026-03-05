@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Couchbase.Core;
 using Couchbase.Core.DI;
@@ -5,8 +6,8 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Couchbase.Core.Diagnostics.Tracing;
 
-#nullable enable
 
 namespace Couchbase.Management.Views
 {
@@ -33,6 +34,7 @@ namespace Couchbase.Management.Views
                 _serviceProvider.GetRequiredService<IServiceUriProvider>(),
                 _serviceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                 _serviceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
-                _serviceProvider.GetRequiredService<IRedactor>());
+                _serviceProvider.GetRequiredService<IRedactor>(),
+                _serviceProvider.GetRequiredService<IRequestTracer>());
     }
 }

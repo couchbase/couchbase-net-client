@@ -1,12 +1,21 @@
-using System.Threading;
-
 #nullable enable
+using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
+
 
 namespace Couchbase.Management.Views
 {
     public class GetDesignDocumentOptions
     {
+
+        internal IRequestSpan? RequestSpanValue { get; set; }
         internal CancellationToken TokenValue { get; set; }
+
+        public GetDesignDocumentOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public GetDesignDocumentOptions CancellationToken(CancellationToken cancellationToken)
         {

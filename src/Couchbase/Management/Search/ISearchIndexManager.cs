@@ -1,8 +1,7 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-
-#nullable enable
 
 namespace Couchbase.Management.Search
 {

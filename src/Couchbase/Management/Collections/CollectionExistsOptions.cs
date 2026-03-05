@@ -1,9 +1,7 @@
+#nullable enable
 using System;
 using System.Threading;
-using Couchbase.Utils;
 using CancellationTokenCls = System.Threading.CancellationToken;
-
-#nullable enable
 
 namespace Couchbase.Management.Collections
 {

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -13,18 +14,15 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-#nullable enable
 
 namespace Couchbase.Search
 {

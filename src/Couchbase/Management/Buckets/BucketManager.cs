@@ -1,22 +1,22 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
-#nullable enable
 
 namespace Couchbase.Management.Buckets
 {
@@ -27,15 +27,17 @@ namespace Couchbase.Management.Buckets
         private readonly ILogger<BucketManager> _logger;
         private readonly IRedactor _redactor;
         private readonly IAppTelemetryCollector _appTelemetryCollector;
+        private readonly IRequestTracer _tracer;
 
         public BucketManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<BucketManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector)
+            ILogger<BucketManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector, IRequestTracer? tracer = null)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _appTelemetryCollector = appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         private (IClusterNode, Uri) GetUri(string? bucketName = null)
@@ -59,6 +61,10 @@ namespace Couchbase.Management.Buckets
             options ??= new CreateBucketOptions();
             var (mgmtNode, uri) = GetUri();
 
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.CreateBucket, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to create bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
 
@@ -67,6 +73,10 @@ namespace Couchbase.Management.Buckets
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.CreateBucket,
+                rootSpan,
+                settings.Name);
             try
             {
                 // create bucket
@@ -86,6 +96,7 @@ namespace Couchbase.Management.Buckets
                         AppTelemetryServiceType.Management,
                         AppTelemetryCounterType.Total);
 
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                     return;
                 }
 
@@ -105,27 +116,42 @@ namespace Couchbase.Management.Buckets
                     if (body.IndexOf("Bucket with given name already exists",
                         StringComparison.InvariantCultureIgnoreCase) >= 0)
                     {
-                        throw new BucketExistsException(settings.Name);
+                        var ex = new BucketExistsException(settings.Name);
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
                     }
 
-                    throw new InvalidArgumentException() { Context = ctx };
+                    var argEx = new InvalidArgumentException() { Context = ctx };
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                    throw argEx;
                 }
 
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
+
+                // fallback for things not caught above
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
             }
-            catch (BucketExistsException)
+            catch (BucketExistsException buc)
             {
+                tracker.SetError(buc);
                 _logger.LogError("Failed to create bucket with name {settings.Name} because it already exists",
                     _redactor.MetaData(settings.Name));
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to create bucket with name {settings.Name} - {uri}",
                     _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -134,6 +160,11 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new UpdateBucketOptions();
             var (mgmtNode, uri) = GetUri(settings.Name);
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.UpdateBucket, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to upsert bucket with name {settings.Name} - {uri}",
                 _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
@@ -141,6 +172,10 @@ namespace Couchbase.Management.Buckets
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.UpdateBucket,
+                rootSpan,
+                settings.Name);
             try
             {
                 // upsert bucket
@@ -160,7 +195,7 @@ namespace Couchbase.Management.Buckets
                         AppTelemetryServiceType.Management,
                         AppTelemetryCounterType.Total);
 
-
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                     return;
                 }
 
@@ -177,13 +212,20 @@ namespace Couchbase.Management.Buckets
 
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
+
+                // fallback for things not caught above
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to upsert bucket with name {settings.Name} - {uri}",
                     _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -192,12 +234,21 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new DropBucketOptions();
             var (mgmtNode, uri) = GetUri(bucketName);
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.DropBucket, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to drop bucket with name {BucketName} - {Uri}", _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
             TimeSpan? operationElapsed;
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.DropBucket,
+                rootSpan,
+                bucketName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -214,6 +265,8 @@ namespace Couchbase.Management.Buckets
                         mgmtNode.NodeUuid,
                         AppTelemetryServiceType.Management,
                         AppTelemetryCounterType.Total);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                     return;
                 }
 
@@ -221,7 +274,11 @@ namespace Couchbase.Management.Buckets
                 {
                     _logger.LogError("Unable to drop bucket with name {bucketName} because it does not exist",
                         _redactor.MetaData(bucketName));
-                    throw new BucketNotFoundException(bucketName);
+                    var ex = new BucketNotFoundException(bucketName);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                    throw ex;
                 }
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -237,13 +294,20 @@ namespace Couchbase.Management.Buckets
 
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
+
+                // fallback for things not caught above
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to drop bucket with name {bucketName}",
                     _redactor.MetaData(bucketName));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -256,12 +320,20 @@ namespace Couchbase.Management.Buckets
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
             uri = builder.Uri;
 
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.FlushBucket, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to flush bucket with name {BucketName} - {Uri}", _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
             TimeSpan? operationElapsed;
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.FlushBucket,
+                rootSpan,
+                bucketName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -278,6 +350,8 @@ namespace Couchbase.Management.Buckets
                         mgmtNode.NodeUuid,
                         AppTelemetryServiceType.Management,
                         AppTelemetryCounterType.Total);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                     return;
                 }
 
@@ -289,17 +363,30 @@ namespace Couchbase.Management.Buckets
                     Statement = uri.ToString()
                 };
 
-                if (result.IsSuccessStatusCode) return;
+                if (result.IsSuccessStatusCode)
+                {
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                    return;
+                }
+
                 switch (result.StatusCode)
                 {
                     case HttpStatusCode.NotFound:
-                        throw new BucketNotFoundException(bucketName);
+                    {
+                        var ex = new BucketNotFoundException(bucketName);
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
                     case HttpStatusCode.BadRequest:
                     {
                         var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                         if (json.IndexOf("Flush is disabled for the bucket", StringComparison.InvariantCultureIgnoreCase) >= 0)
                         {
-                            throw new BucketIsNotFlushableException(bucketName);
+                            var ex = new BucketIsNotFlushableException(bucketName);
+                            rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                            throw ex;
                         }
 
                         break;
@@ -311,25 +398,36 @@ namespace Couchbase.Management.Buckets
 
                 //Throw any other error cases
                 result.ThrowOnError(ctx);
+
+                // fallback
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
             }
-            catch (BucketNotFoundException)
+            catch (BucketNotFoundException buc)
             {
+                tracker.SetError(buc);
                 _logger.LogError("Unable to flush bucket with name {bucketName} because it does not exist",
                     _redactor.MetaData(bucketName));
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 throw;
             }
-            catch (BucketIsNotFlushableException)
+            catch (BucketIsNotFlushableException buc)
             {
+                tracker.SetError(buc);
                 _logger.LogError("Failed to flush bucket with name {bucketName} because it is not flushable",
                     _redactor.MetaData(bucketName));
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 throw;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to flush bucket with name {bucketName}",
                     _redactor.MetaData(bucketName));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -338,12 +436,20 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new GetAllBucketsOptions();
             var (mgmtNode, uri) = GetUri();
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.GetAllBuckets, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to get all buckets - {uri}", _redactor.SystemData(uri));
 
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
             TimeSpan? operationElapsed;
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.GetAllBuckets,
+                rootSpan);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -367,6 +473,8 @@ namespace Couchbase.Management.Buckets
 
                     //Throw any other error cases
                     result.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 using var contentStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -382,15 +490,21 @@ namespace Couchbase.Management.Buckets
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+
                 return buckets!.ToDictionary(
                     p => p.Name,
                     p => p);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, "Failed to get all buckets - {uri}", _redactor.SystemData(uri));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -400,6 +514,11 @@ namespace Couchbase.Management.Buckets
             if(bucketName == null) throw new ArgumentNullException(nameof(bucketName));
             options ??= new GetBucketOptions();
             var (mgmtNode, uri) = GetUri(bucketName);
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Bucket.GetBucket, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to get bucket with name {bucketName} - {uri}",
                 _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
@@ -407,6 +526,10 @@ namespace Couchbase.Management.Buckets
             TimeSpan? operationElapsed;
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Bucket.GetBucket,
+                rootSpan,
+                bucketName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -418,26 +541,31 @@ namespace Couchbase.Management.Buckets
                 {
                     var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                var ctx = new ManagementErrorContext
-                {
-                    HttpStatus = result.StatusCode,
-                    Message = content,
-                    Statement = uri.ToString()
-                };
-
-                if (result.StatusCode == HttpStatusCode.NotFound)
-                {
-                    throw new BucketNotFoundException(bucketName)
+                    var ctx = new ManagementErrorContext
                     {
-                        Context = ctx
+                        HttpStatus = result.StatusCode,
+                        Message = content,
+                        Statement = uri.ToString()
                     };
-                }
+
+                    if (result.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        var ex = new BucketNotFoundException(bucketName)
+                        {
+                            Context = ctx
+                        };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
 
                     //Throw specific exception if a rate limiting exception is thrown.
                     result.ThrowIfRateLimitingError(content, ctx);
 
                     //Throw any other error cases
                     result.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -448,16 +576,22 @@ namespace Couchbase.Management.Buckets
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+
                 using var contentStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 return (await JsonSerializer.DeserializeAsync(contentStream,
                     ManagementSerializerContext.Default.BucketSettings, options.TokenValue).ConfigureAwait(false))!;
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}",
                     _redactor.MetaData(bucketName), _redactor.SystemData(uri));
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

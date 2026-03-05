@@ -1,6 +1,6 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -20,7 +22,6 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-#nullable enable
 
 namespace Couchbase.Management.Collections
 {
@@ -34,6 +35,7 @@ namespace Couchbase.Management.Collections
         private readonly ILogger<CollectionManager> _logger;
         private readonly IRedactor _redactor;
         private readonly IAppTelemetryCollector _appTelemetryCollector;
+        private readonly IRequestTracer _tracer;
 
         /// <summary>
         /// REST endpoint path definitions.
@@ -63,7 +65,7 @@ namespace Couchbase.Management.Collections
 
         public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider,
             ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<CollectionManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector)
+            ILogger<CollectionManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector, IRequestTracer? tracer = null)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _bucketConfig = bucketConfig ?? throw new ArgumentNullException(nameof(bucketConfig));
@@ -73,6 +75,7 @@ namespace Couchbase.Management.Collections
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _appTelemetryCollector =
                 appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
+            _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
@@ -178,6 +181,11 @@ namespace Couchbase.Management.Collections
         {
             options ??= GetAllScopesOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.GetScopes(_bucketName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.GetAllScopes, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting to get all scopes - {Uri}", _redactor.SystemData(uri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
@@ -210,6 +218,8 @@ namespace Couchbase.Management.Collections
                     result.ThrowIfRateLimitingError(body, ctx);
 
                     result.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -227,6 +237,8 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
 
                 return scopes.Select(scope => new ScopeSpec(scope["name"]?.Value<string>())
                 {
@@ -246,6 +258,9 @@ namespace Couchbase.Management.Collections
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to get all scopes - {Uri}", _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -262,6 +277,11 @@ namespace Couchbase.Management.Collections
 
             options ??= CreateCollectionOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.CreateCollections(_bucketName, scopeName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.CreateCollection, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
@@ -270,6 +290,12 @@ namespace Couchbase.Management.Collections
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Collections.CreateCollection,
+                rootSpan,
+                _bucketName,
+                scopeName,
+                collectionName);
             try
             {
                 // create collection
@@ -310,21 +336,36 @@ namespace Couchbase.Management.Collections
                     createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("already exists"))
-                        throw new CollectionExistsException(scopeName, collectionName)
+                    {
+                        var ex = new CollectionExistsException(scopeName, collectionName)
                         {
                             Context = ctx
                         };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
 
                     if (contentBody.Contains("not found"))
-                        throw ScopeNotFoundException.FromScopeName(scopeName);
+                    {
+                        var ex = ScopeNotFoundException.FromScopeName(scopeName);
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
 
                     if (contentBody.Contains("The value must be in range from -1 to 2147483647"))
                     {
-                        throw new InvalidArgumentException(contentBody) { Context = ctx };
+                        var ex = new InvalidArgumentException(contentBody) { Context = ctx };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
                     }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -334,14 +375,20 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to create collection {ScopeName}/{Name} - {Uri}",
                     scopeName,
                     collectionName, _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -357,6 +404,11 @@ namespace Couchbase.Management.Collections
         {
             options ??= DropCollectionOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.DeleteCollections(_bucketName, scopeName, collectionName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.DropCollection, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting drop collection {Scope}/{Collection} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
@@ -365,6 +417,12 @@ namespace Couchbase.Management.Collections
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Collections.DropCollection,
+                rootSpan,
+                _bucketName,
+                scopeName,
+                collectionName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -387,13 +445,20 @@ namespace Couchbase.Management.Collections
                     createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("not found"))
-                        throw new CollectionNotFoundException(scopeName, collectionName)
+                    {
+                        var ex = new CollectionNotFoundException(scopeName, collectionName)
                         {
                             Context = ctx
                         };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -403,13 +468,19 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to drop collection {Scope}/{Collection} - {Uri}", scopeName,
                     collectionName, _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -472,6 +543,11 @@ namespace Couchbase.Management.Collections
         {
             options ??= CreateScopeOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.CreateScope(_bucketName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.CreateScope, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting create scope {Name} - {Uri}", scopeName, _redactor.SystemData(uri));
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
             TimeSpan? operationElapsed;
@@ -483,6 +559,11 @@ namespace Couchbase.Management.Collections
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Collections.CreateScope,
+                rootSpan,
+                _bucketName,
+                scopeName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -504,13 +585,20 @@ namespace Couchbase.Management.Collections
                     createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("already exists"))
-                        throw new ScopeExistsException(scopeName)
+                    {
+                        var ex = new ScopeExistsException(scopeName)
                         {
                             Context = ctx
                         };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
+                        throw ex;
+                    }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -520,13 +608,19 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to create scope {Name} - {Uri}", scopeName,
                     _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -548,12 +642,22 @@ namespace Couchbase.Management.Collections
         {
             options ??= DropScopeOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.DeleteScope(_bucketName, scopeName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.DropScope, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             _logger.LogInformation("Attempting drop scope {ScopeName} - {Uri}", scopeName, _redactor.SystemData(uri));
             var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
             TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Collections.DropScope,
+                rootSpan,
+                _bucketName,
+                scopeName);
             try
             {
                 // drop scope
@@ -579,11 +683,15 @@ namespace Couchbase.Management.Collections
                     {
                         var ex = ScopeNotFoundException.FromScopeName(scopeName);
                         ex.Context = ctx;
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                         throw ex;
                     }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -593,13 +701,19 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to drop scope {ScopeName} - {Uri}", scopeName,
                     _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }
@@ -616,6 +730,11 @@ namespace Couchbase.Management.Collections
 
             options ??= UpdateCollectionOptions.Default;
             var (mgmtNode, uri) = GetUri(RestApi.UpdateCollection(_bucketName, scopeName, collectionName));
+
+            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Collections.UpdateCollection, options.RequestSpanValue)
+                .WithCommonTags()
+                .WithRemoteAddress(uri);
+
             var dict = new Dictionary<string, string>();
 
             if (settings.MaxExpiry.HasValue)
@@ -636,6 +755,12 @@ namespace Couchbase.Management.Collections
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
+            using var tracker = MetricTracker.Management.StartOperation(
+                OuterRequestSpans.ManagerSpan.Collections.UpdateCollection,
+                rootSpan,
+                _bucketName,
+                scopeName,
+                collectionName);
             try
             {
                 using var httpClient = _httpClientFactory.Create();
@@ -660,8 +785,12 @@ namespace Couchbase.Management.Collections
 
                     if (contentBody.Contains("not found"))
                     {
-                        var ex = new CollectionNotFoundException(collectionName);
-                        ex.Context = ctx;
+                        var ex = new CollectionNotFoundException(scopeName, collectionName)
+                        {
+                            Context = ctx
+                        };
+                        rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                         throw ex;
                     }
 
@@ -670,7 +799,10 @@ namespace Couchbase.Management.Collections
                         throw new InvalidArgumentException(contentBody) { Context = ctx };
                     }
 
+                    //Throw any other error cases
                     updateResult.ThrowOnError(ctx);
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
                 _appTelemetryCollector.IncrementMetrics(
@@ -680,13 +812,19 @@ namespace Couchbase.Management.Collections
                     mgmtNode.NodeUuid,
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                tracker.SetError(exception);
                 operationElapsed = requestStopwatch?.Elapsed;
                 _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
-                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}", collectionName,
-                    _redactor.SystemData(uri));
+                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}",
+                    collectionName, _redactor.SystemData(uri));
+
+                rootSpan.SetStatus(RequestSpanStatusCode.Error);
+
                 throw;
             }
         }

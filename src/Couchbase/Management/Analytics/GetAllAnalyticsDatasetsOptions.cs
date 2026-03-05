@@ -1,11 +1,21 @@
+#nullable enable
 using System;
 using System.Threading;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Management.Analytics
 {
     public class GetAllAnalyticsDatasetsOptions
     {
+        internal IRequestSpan? RequestSpanValue { get; set; }
+
+        public GetAllAnalyticsDatasetsOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal CancellationToken TokenValue { get; set; }
 
         public GetAllAnalyticsDatasetsOptions CancellationToken(CancellationToken token)
