@@ -963,6 +963,15 @@ namespace Couchbase.KeyValue
                 docFlags &= ~SubdocDocFlags.AccessDeleted;
             }
 
+            // if the server doesn't support binary xattr, strip the flag from the specs
+            if (!_bucket.Context.SupportsBinaryXattr)
+            {
+                foreach (var spec in specs)
+                {
+                    spec.PathFlags &= ~SubdocPathFlags.BinaryValue;
+                }
+            }
+
             var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
                 Cid = Cid,
@@ -1052,6 +1061,15 @@ namespace Couchbase.KeyValue
 
             if (options.AccessDeletedValue ) docFlags |= SubdocDocFlags.AccessDeleted;
 
+            // if the server doesn't support binary xattrs, strip the flag from the specs
+            if (!_bucket.Context.SupportsBinaryXattr)
+            {
+                foreach(var spec in specs)
+                {
+                    spec.PathFlags &= ~SubdocPathFlags.BinaryValue;
+                }
+            }
+
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)
             {
@@ -1063,7 +1081,7 @@ namespace Couchbase.KeyValue
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
-                OptionalFlags = options.FlagsValue,
+                OptionalFlags = _bucket.Context.SupportsBinaryXattr ? options.FlagsValue : null,
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };
