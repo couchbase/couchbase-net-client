@@ -65,172 +65,150 @@ namespace Couchbase.Analytics
                 .WithOperationId(options)
                 .WithLocalAddress();
 
-            // try get Analytics node
-            var analyticsNode = _serviceUriProvider.GetRandomAnalyticsNode();
-            var analyticsUri = analyticsNode.AnalyticsUri;
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
-            TimeSpan? operationElapsed;
-
-            rootSpan.WithRemoteAddress(analyticsUri);
-
-            _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
-                options.ClientContextIdValue, analyticsUri);
-
-            using var encodingSpan = rootSpan.EncodingSpan();
-
-            AnalyticsResultBase<T> result;
-            var body = options.GetFormValuesAsJson(statement);
-
-            using (var content = new StringContent(body, Encoding.UTF8, MediaType.Json))
+            bool success = false;
+            try
             {
-                try
+
+                // try get Analytics node
+                var analyticsNode = _serviceUriProvider.GetRandomAnalyticsNode();
+                var analyticsUri = analyticsNode.AnalyticsUri;
+                var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+
+                rootSpan.WithRemoteAddress(analyticsUri);
+
+                _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
+                    options.ClientContextIdValue, analyticsUri);
+
+                using var encodingSpan = rootSpan.EncodingSpan();
+
+                AnalyticsResultBase<T> result;
+                var body = options.GetFormValuesAsJson(statement);
+
+                using (var content = new StringContent(body, Encoding.UTF8, MediaType.Json))
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Post, analyticsUri)
-                    {
-                        Content = content
-                    };
-
-                    if (options.PriorityValue != 0)
-                    {
-                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {options.PriorityValue.ToStringInvariant()});
-                    }
-
-                    encodingSpan.Dispose();
-                    using var dispatchSpan = rootSpan.DispatchSpan(options);
-                    var httpClient = CreateHttpClient(options.TimeoutValue);
                     try
                     {
-                        requestStopwatch?.Restart();
-                        var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
-                            .ConfigureAwait(false);
-                        operationElapsed = requestStopwatch?.Elapsed;
-                        dispatchSpan.Dispose();
-
-                        var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-                        if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                        var request = new HttpRequestMessage(HttpMethod.Post, analyticsUri)
                         {
-                            result = new StreamingAnalyticsResult<T>(stream, streamingTypeDeserializer, ownedForCleanup: httpClient)
-                            {
-                                HttpStatusCode = response.StatusCode
-                            };
-                        }
-                        else
+                            Content = content
+                        };
+
+                        if (options.PriorityValue != 0)
                         {
-                            result = new BlockAnalyticsResult<T>(stream, _typeSerializer, ownedForCleanup: httpClient)
-                            {
-                                HttpStatusCode = response.StatusCode
-                            };
+                            request.Headers.Add(AnalyticsPriorityHeaderName, [
+                                options.PriorityValue.ToStringInvariant()
+                            ]);
                         }
 
-                        await result.InitializeAsync(options.Token).ConfigureAwait(false);
-
-                        if (response.StatusCode != HttpStatusCode.OK)
+                        encodingSpan.Dispose();
+                        using var dispatchSpan = rootSpan.DispatchSpan(options);
+                        var httpClient = CreateHttpClient(options.TimeoutValue);
+                        try
                         {
-                            var context = new AnalyticsErrorContext
-                            {
-                                ClientContextId = options.ClientContextIdValue,
-                                HttpStatus = response.StatusCode,
-                                Statement = statement,
-                                Parameters = options.GetParametersAsJson(),
-                                Errors = result.Errors
-                            };
+                            requestStopwatch?.Restart();
+                            var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
+                                .ConfigureAwait(false);
+                            var operationElapsed = requestStopwatch?.Elapsed;
+                            dispatchSpan.Dispose();
 
-                            if (result.ShouldRetry())
+                            var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                            if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)
                             {
-                                result.NoRetryException = CreateExceptionForError(result, context, true);
-                                UpdateLastActivity();
-                                return result;
+                                result = new StreamingAnalyticsResult<T>(stream, streamingTypeDeserializer, ownedForCleanup: httpClient)
+                                {
+                                    HttpStatusCode = response.StatusCode
+                                };
+                            }
+                            else
+                            {
+                                result = new BlockAnalyticsResult<T>(stream, _typeSerializer, ownedForCleanup: httpClient)
+                                {
+                                    HttpStatusCode = response.StatusCode
+                                };
                             }
 
-                            CouchbaseException? ex = CreateExceptionForError(result, context, false);
-                            if (ex != null) { throw ex; }
-                        }
+                            await result.InitializeAsync(options.Token).ConfigureAwait(false);
 
-                        _appTelemetryCollector.IncrementMetrics(
-                            operationElapsed,
+                            if (response.StatusCode != HttpStatusCode.OK)
+                            {
+                                var context = new AnalyticsErrorContext
+                                {
+                                    ClientContextId = options.ClientContextIdValue,
+                                    HttpStatus = response.StatusCode,
+                                    Statement = statement,
+                                    Parameters = options.GetParametersAsJson(),
+                                    Errors = result.Errors
+                                };
+
+                                if (result.ShouldRetry())
+                                {
+                                    result.NoRetryException = CreateExceptionForError(result, context, true);
+                                    UpdateLastActivity();
+                                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                                    success = true;
+                                    return result;
+                                }
+
+                                CouchbaseException? ex = CreateExceptionForError(result, context, false);
+                                if (ex != null) { throw ex; }
+                            }
+
+                            _appTelemetryCollector.IncrementMetrics(
+                                operationElapsed,
+                                analyticsNode.NodesAdapter.CanonicalHostname,
+                                analyticsNode.NodesAdapter.AlternateHostname,
+                                analyticsNode.NodeUuid,
+                                AppTelemetryServiceType.Analytics,
+                                AppTelemetryCounterType.Total);
+                        }
+                        catch
+                        {
+                            // Ensure the HttpClient is disposed on an exception. On success scenarios it is disposed when the caller
+                            // disposes of the returned IAnalyticsResult. HttpClient is not simply disposed in every case because doing so
+                            // causes exceptions in .NET 4 when using HttpCompletionOption.ResponseHeadersRead because it closes the socket
+                            // before the body is fully read.
+                            httpClient.Dispose();
+                            throw;
+                        }
+                    }
+                    catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
+                    {
+                        var context = new AnalyticsErrorContext
+                        {
+                            ClientContextId = options.ClientContextIdValue,
+                            Statement = statement,
+                            Parameters = options.GetParametersAsJson()
+                        };
+
+                        throw HandleHttpException(
+                            e,
+                            rootSpan,
+                            requestStopwatch?.Elapsed,
+                            AppTelemetryServiceType.Analytics,
                             analyticsNode.NodesAdapter.CanonicalHostname,
                             analyticsNode.NodesAdapter.AlternateHostname,
                             analyticsNode.NodeUuid,
-                            AppTelemetryServiceType.Analytics,
-                            AppTelemetryCounterType.Total);
-                    }
-                    catch
-                    {
-                        // Ensure the HttpClient is disposed on an exception. On success scenarios it is disposed when the caller
-                        // disposes of the returned IAnalyticsResult. HttpClient is not simply disposed in every case because doing so
-                        // causes exceptions in .NET 4 when using HttpCompletionOption.ResponseHeadersRead because it closes the socket
-                        // before the body is fully read.
-                        httpClient.Dispose();
-                        throw;
+                            options.ReadonlyValue,
+                            context,
+                            _logger,
+                            _appTelemetryCollector);
                     }
                 }
-                catch (OperationCanceledException e)
+
+                UpdateLastActivity();
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                success = true;
+                return result;
+
+            }
+            finally
+            {
+                if (!success)
                 {
-                    operationElapsed = requestStopwatch?.Elapsed;
-                    //treat as an orphaned response
-                    rootSpan.LogOrphaned();
-
-                    _appTelemetryCollector.IncrementMetrics(
-                        operationElapsed,
-                        analyticsNode.NodesAdapter.CanonicalHostname,
-                        analyticsNode.NodesAdapter.AlternateHostname,
-                        analyticsNode.NodeUuid,
-                        AppTelemetryServiceType.Analytics,
-                        AppTelemetryCounterType.TimedOut);
-
-                    var context = new AnalyticsErrorContext
-                    {
-                        ClientContextId = options.ClientContextIdValue,
-                        Statement = statement,
-                        Parameters = options.GetParametersAsJson()
-                    };
-
-                    _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
-                    if (options.ReadonlyValue)
-                    {
-                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
-                        {
-                            Context = context
-                        };
-                    }
-
-                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
-                    {
-                        Context = context
-                    };
-                }
-                catch (HttpRequestException e)
-                {
-                    operationElapsed = requestStopwatch?.Elapsed;
-                    //treat as an orphaned response
-                    rootSpan.LogOrphaned();
-
-                    _appTelemetryCollector.IncrementMetrics(
-                        operationElapsed,
-                        analyticsNode.NodesAdapter.CanonicalHostname,
-                        analyticsNode.NodesAdapter.AlternateHostname,
-                        analyticsNode.NodeUuid,
-                        AppTelemetryServiceType.Analytics,
-                        AppTelemetryCounterType.Canceled);
-
-                    var context = new AnalyticsErrorContext
-                    {
-                        ClientContextId = options.ClientContextIdValue,
-                        Statement = statement,
-                        Parameters = options.GetParametersAsJson()
-                    };
-
-                    _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
-                    throw new RequestCanceledException("The query was canceled.", e)
-                    {
-                        Context = context
-                    };
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
             }
-
-            UpdateLastActivity();
-            return result;
         }
 
         /// <summary>

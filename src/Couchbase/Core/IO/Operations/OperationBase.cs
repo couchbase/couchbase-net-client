@@ -811,6 +811,12 @@ namespace Couchbase.Core.IO.Operations
             var elapsed = _stopwatch.Elapsed;
 #endif
 
+            // Set span status and retry count per RFC 67
+            Span.SetStatus(errorType == null
+                ? RequestSpanStatusCode.Ok
+                : RequestSpanStatusCode.Error);
+            Span.SetAttribute(OuterRequestSpans.Attributes.Retries, Attempts);
+
             MetricTracker.KeyValue.TrackOperation(this, elapsed, errorType);
         }
         #endregion

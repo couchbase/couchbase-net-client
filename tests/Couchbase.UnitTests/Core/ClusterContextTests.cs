@@ -385,6 +385,11 @@ namespace Couchbase.UnitTests.Core
             public bool CanWrite { get; }
             public string? Id { get; }
             public uint? Duration { get; }
+
+            public IRequestSpan SetStatus(RequestSpanStatusCode code)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         #endregion

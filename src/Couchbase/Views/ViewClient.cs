@@ -3,8 +3,10 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
@@ -47,6 +49,10 @@ namespace Couchbase.Views
 
             var uri = query.RawUri();
             rootSpan.WithRemoteAddress(uri);
+
+            bool success = false;
+            try
+            {
 
             using var encodingSpan = rootSpan.EncodingSpan();
 
@@ -141,6 +147,8 @@ namespace Couchbase.Views
                                 }
                             };
                             UpdateLastActivity();
+                            rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                            success = true;
                             return viewResult;
                         }
 
@@ -170,43 +178,43 @@ namespace Couchbase.Views
                     throw;
                 }
             }
-            catch (OperationCanceledException e)
+            catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
             {
-                //treat as an orphaned response
-                rootSpan.LogOrphaned();
-
-                _logger.LogDebug(LoggingEvents.ViewEvent, e, "View request timeout.");
-                throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e)
+                var context = new ViewContextError
                 {
-                    Context = new ViewContextError
-                    {
-                        DesignDocumentName = query.DesignDocName,
-                        ViewName = query.ViewName,
-                        ClientContextId = query.ClientContextId,
-                        HttpStatus = HttpStatusCode.RequestTimeout
-                    }
+                    DesignDocumentName = query.DesignDocName,
+                    ViewName = query.ViewName,
+                    ClientContextId = query.ClientContextId,
+                    HttpStatus = HttpStatusCode.RequestTimeout
                 };
-            }
-            catch (HttpRequestException e)
-            {
-                //treat as an orphaned response
-                rootSpan.LogOrphaned();
 
-                _logger.LogDebug(LoggingEvents.QueryEvent, e, "View request cancelled.");
-                throw new RequestCanceledException("The view query was canceled.", e)
-                {
-                    Context = new ViewContextError
-                    {
-                        DesignDocumentName = query.DesignDocName,
-                        ViewName = query.ViewName,
-                        ClientContextId = query.ClientContextId,
-                        HttpStatus = HttpStatusCode.RequestTimeout
-                    }
-                };
+                throw HandleHttpException(
+                    e,
+                    rootSpan,
+                    null, // ViewClient doesn't currently track elapsed time for app telemetry inside these catches
+                    default(AppTelemetryServiceType),
+                    null,
+                    null,
+                    null,
+                    true, // View queries are non-mutating, so UnambiguousTimeoutException
+                    context,
+                    _logger,
+                    null); // ViewClient doesn't currently use app telemetry
             }
 
             UpdateLastActivity();
+            rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+            success = true;
             return viewResult;
+
+            }
+            finally
+            {
+                if (!success)
+                {
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+                }
+            }
         }
 
         private static HttpStatusCode GetStatusCode(string message)

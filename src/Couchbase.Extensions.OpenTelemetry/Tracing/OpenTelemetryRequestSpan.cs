@@ -70,6 +70,18 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
             return this;
         }
 
+        /// <inheritdoc />
+        public IRequestSpan SetStatus(RequestSpanStatusCode code)
+        {
+            _activity.SetStatus(code switch
+            {
+                RequestSpanStatusCode.Ok => ActivityStatusCode.Ok,
+                RequestSpanStatusCode.Error => ActivityStatusCode.Error,
+                _ => ActivityStatusCode.Unset
+            });
+            return this;
+        }
+
         public IRequestSpan ChildSpan(string name)
         {
             return _tracer.RequestSpan(name, this);

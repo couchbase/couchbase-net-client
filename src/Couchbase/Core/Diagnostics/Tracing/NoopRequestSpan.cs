@@ -67,6 +67,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
         }
 
         /// <inheritdoc />
+        public IRequestSpan SetStatus(RequestSpanStatusCode code)
+        {
+            return this;
+        }
+
+        /// <inheritdoc />
         public void End()
         {
         }

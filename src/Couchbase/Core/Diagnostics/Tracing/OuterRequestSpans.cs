@@ -69,6 +69,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
             /// The outcome of the operation.
             /// </summary>
             public const string Outcome = "outcome";
+
+            /// <summary>
+            /// The number of retry attempts for the operation.
+            /// </summary>
+            public const string Retries = "db.couchbase.retries";
         }
 
         /// <summary>

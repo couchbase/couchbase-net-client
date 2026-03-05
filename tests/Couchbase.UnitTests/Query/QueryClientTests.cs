@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.Query
         [InlineData("query-n1ql-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
         [InlineData("query-notfound-response-404.json", HttpStatusCode.NotFound, typeof(PreparedStatementException))]
         [InlineData("query-service-error-response-503.json", HttpStatusCode.ServiceUnavailable, typeof(InternalServerFailureException))]
-        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(UnambiguousTimeoutException))]
+        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(AmbiguousTimeoutException))]
         [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
         public async Task Test(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
@@ -108,7 +108,7 @@ namespace Couchbase.UnitTests.Query
         [InlineData("query-n1ql-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
         [InlineData("query-notfound-response-404.json", HttpStatusCode.NotFound, typeof(PreparedStatementException))]
         [InlineData("query-service-error-response-503.json", HttpStatusCode.ServiceUnavailable, typeof(InternalServerFailureException))]
-        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(UnambiguousTimeoutException))]
+        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(AmbiguousTimeoutException))]
         [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
         public async Task Test_SystemTextJson(string file, HttpStatusCode httpStatusCode, Type errorType)
         {

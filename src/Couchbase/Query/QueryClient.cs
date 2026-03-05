@@ -116,71 +116,93 @@ namespace Couchbase.Query
                 .WithStatement(statement)
                 .WithLocalAddress();
 
-            // does this query use a prepared plan?
-            if (options.IsAdHoc)
+            bool success = false;
+            try
             {
-                // don't use prepared plan, execute query directly
-                options.Statement(statement);
-                return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
-            }
-
-            // try find cached query plan
-            if (_queryCache.TryGetValue(statement, out var queryPlan))
-            {
-                // if an upgrade has happened, don't use query plans that have an encoded plan
-                if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
+                // does this query use a prepared plan?
+                if (options.IsAdHoc)
                 {
-                    using var prepareAndExecuteSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Internal.PrepareAndExecute, rootSpan);
-
-                    // plan is valid, execute query with it
-                    options.Prepared(queryPlan, statement);
-                    return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                    // don't use prepared plan, execute query directly
+                    options.Statement(statement);
+                    var resultAdhoc = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                    success = true;
+                    return resultAdhoc;
                 }
 
-                // entry is stale, remove from cache
-                _queryCache.TryRemove(statement, out _);
-            }
-
-            // create prepared statement
-            var prepareStatement = statement;
-            if (!prepareStatement.StartsWith("PREPARE ", StringComparison.InvariantCultureIgnoreCase))
-            {
-                prepareStatement = $"PREPARE {statement}";
-            }
-
-            // set prepared statement
-            options.Statement(prepareStatement);
-
-            // server supports combined prepare & execute
-            if (EnhancedPreparedStatementsEnabled)
-            {
-                _logger.LogDebug("Using enhanced prepared statement behavior for request {currentContextId}", options.CurrentContextId);
-                // execute combined prepare & execute query
-                options.AutoExecute(true);
-                var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
-
-                // add/replace query plan name in query cache
-                if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
+                // try find cached query plan
+                if (_queryCache.TryGetValue(statement, out var queryPlan))
                 {
-                    var plan = new QueryPlan {Name = streamingResult.PreparedPlanName, Text = statement};
-                    _queryCache.AddOrUpdate(statement, plan, static (_, p) => p);
+                    // if an upgrade has happened, don't use query plans that have an encoded plan
+                    if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
+                    {
+                        using var prepareAndExecuteSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Internal.PrepareAndExecute, rootSpan);
+
+                        // plan is valid, execute query with it
+                        options.Prepared(queryPlan, statement);
+                        var resultCached = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                        rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                        success = true;
+                        return resultCached;
+                    }
+
+                    // entry is stale, remove from cache
+                    _queryCache.TryRemove(statement, out _);
                 }
 
-                return result;
+                // create prepared statement
+                var prepareStatement = statement;
+                if (!prepareStatement.StartsWith("PREPARE ", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    prepareStatement = $"PREPARE {statement}";
+                }
+
+                // set prepared statement
+                options.Statement(prepareStatement);
+
+                // server supports combined prepare & execute
+                if (EnhancedPreparedStatementsEnabled)
+                {
+                    _logger.LogDebug("Using enhanced prepared statement behavior for request {currentContextId}", options.CurrentContextId);
+                    // execute combined prepare & execute query
+                    options.AutoExecute(true);
+                    var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+
+                    // add/replace query plan name in query cache
+                    if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
+                    {
+                        var plan = new QueryPlan {Name = streamingResult.PreparedPlanName, Text = statement};
+                        _queryCache.AddOrUpdate(statement, plan, static (_, p) => p);
+                    }
+
+                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                    success = true;
+                    return result;
+                }
+
+                _logger.LogDebug("Using legacy prepared statement behavior for request {currentContextId}", options.CurrentContextId);
+
+                // older style, prepare then execute
+                var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer, rootSpan).ConfigureAwait(false);
+                queryPlan = await preparedResult.FirstAsync().ConfigureAwait(false);
+
+                // add plan to cache and execute
+                _queryCache.TryAdd(statement, queryPlan);
+                options.Prepared(queryPlan, statement);
+
+                // execute query using plan
+                var finalResult = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
+                success = true;
+                return finalResult;
             }
-
-            _logger.LogDebug("Using legacy prepared statement behavior for request {currentContextId}", options.CurrentContextId);
-
-            // older style, prepare then execute
-            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer, rootSpan).ConfigureAwait(false);
-            queryPlan = await preparedResult.FirstAsync().ConfigureAwait(false);
-
-            // add plan to cache and execute
-            _queryCache.TryAdd(statement, queryPlan);
-            options.Prepared(queryPlan, statement);
-
-            // execute query using plan
-            return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+            finally
+            {
+                if (!success)
+                {
+                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
+                }
+            }
         }
 
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span)
@@ -307,13 +329,13 @@ namespace Couchbase.Query
 
                             if (options.IsReadOnly)
                             {
-                                throw new AmbiguousTimeoutException
+                                throw new UnambiguousTimeoutException
                                 {
                                     Context = context
                                 };
                             }
 
-                            throw new UnambiguousTimeoutException
+                            throw new AmbiguousTimeoutException
                             {
                                 Context = context
                             };
@@ -337,20 +359,8 @@ namespace Couchbase.Query
                     throw;
                 }
             }
-            catch (OperationCanceledException e)
+            catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
             {
-                operationElapsed = requestStopwatch?.Elapsed;
-                //treat as an orphaned response
-                span.LogOrphaned();
-
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    queryNode.NodesAdapter.CanonicalHostname,
-                    queryNode.NodesAdapter.AlternateHostname,
-                    queryNode.NodeUuid,
-                    AppTelemetryServiceType.Query,
-                    AppTelemetryCounterType.TimedOut);
-
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
@@ -360,48 +370,18 @@ namespace Couchbase.Query
                     QueryStatus = QueryStatus.Fatal
                 };
 
-                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
-                if (options.IsReadOnly)
-                {
-                    throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
-                    {
-                        Context = context
-                    };
-                }
-                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
-                {
-                    Context = context
-                };
-            }
-            catch (HttpRequestException e)
-            {
-                operationElapsed = requestStopwatch?.Elapsed;
-                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
-
-                //treat as an orphaned response
-                span.LogOrphaned();
-
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
+                throw HandleHttpException(
+                    e,
+                    span,
+                    requestStopwatch?.Elapsed,
+                    AppTelemetryServiceType.Query,
                     queryNode.NodesAdapter.CanonicalHostname,
                     queryNode.NodesAdapter.AlternateHostname,
                     queryNode.NodeUuid,
-                    AppTelemetryServiceType.Query,
-                    AppTelemetryCounterType.Canceled);
-
-                var context = new QueryErrorContext
-                {
-                    ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(serializer),
-                    Statement = options.StatementValue,
-                    HttpStatus = HttpStatusCode.RequestTimeout,
-                    QueryStatus = QueryStatus.Fatal
-                };
-
-                throw new RequestCanceledException("The query was canceled.", e)
-                {
-                    Context = context
-                };
+                    options.IsReadOnly,
+                    context,
+                    _logger,
+                    _appTelemetryCollector);
             }
 
             _appTelemetryCollector.IncrementMetrics(

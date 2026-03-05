@@ -41,6 +41,17 @@ namespace Couchbase.Core.Diagnostics.Tracing
         IRequestSpan AddEvent(string name, DateTimeOffset? timestamp = null);
 
         /// <summary>
+        /// Sets the status code of the span.
+        /// </summary>
+        /// <remarks>
+        /// Should only be set on the outer request span: <see cref="RequestSpanStatusCode.Ok"/> on success,
+        /// <see cref="RequestSpanStatusCode.Error"/> on failure. Implementations that don't support status
+        /// (e.g. <see cref="NoopRequestSpan"/>) silently ignore this call.
+        /// </remarks>
+        /// <param name="code">The status code to set.</param>
+        IRequestSpan SetStatus(RequestSpanStatusCode code);
+
+        /// <summary>
         /// Completes the span.
         /// </summary>
         void End();

@@ -87,6 +87,18 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return this;
         }
 
+        /// <inheritdoc />
+        public IRequestSpan SetStatus(RequestSpanStatusCode code)
+        {
+            _activity.SetStatus(code switch
+            {
+                RequestSpanStatusCode.Ok => ActivityStatusCode.Ok,
+                RequestSpanStatusCode.Error => ActivityStatusCode.Error,
+                _ => ActivityStatusCode.Unset
+            });
+            return this;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private string SetEndTimeAndDuration()
         {

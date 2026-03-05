@@ -72,5 +72,11 @@ namespace Couchbase.Test.Common.Utils
         }
 
         public IRequestSpan SetAttribute(string key, uint value) => SetAttribute(key, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        public IRequestSpan SetStatus(RequestSpanStatusCode code)
+        {
+            SetAttribute("otel.status_code", code.ToString());
+            return this;
+        }
     }
 }

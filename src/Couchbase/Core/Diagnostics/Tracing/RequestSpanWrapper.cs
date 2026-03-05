@@ -38,6 +38,12 @@ internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels c
         return innerSpan.AddEvent(name, timestamp);
     }
 
+    public IRequestSpan SetStatus(RequestSpanStatusCode code)
+    {
+        innerSpan.SetStatus(code);
+        return this;
+    }
+
     public void End()
     {
         innerSpan.End();

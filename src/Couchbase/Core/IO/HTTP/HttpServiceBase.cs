@@ -2,7 +2,11 @@ using System;
 using System.Net;
 using System.Net.Http;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -66,6 +70,72 @@ namespace Couchbase.Core.IO.HTTP
             }
 
             return httpClient;
+        }
+
+        protected Exception HandleHttpException<TErrorContext>(
+            Exception ex,
+            IRequestSpan span,
+            TimeSpan? elapsed,
+            AppTelemetryServiceType serviceType,
+            string? canonicalHostname,
+            string? alternateHostname,
+            string? nodeUuid,
+            bool isReadOnly,
+            TErrorContext context,
+            ILogger logger,
+            IAppTelemetryCollector? telemetryCollector) where TErrorContext : IErrorContext
+        {
+            if (ex is OperationCanceledException)
+            {
+                //treat as an orphaned response
+                span.LogOrphaned();
+                span.SetStatus(RequestSpanStatusCode.Error);
+
+                telemetryCollector?.IncrementMetrics(
+                    elapsed,
+                    canonicalHostname ?? string.Empty,
+                    alternateHostname,
+                    nodeUuid ?? string.Empty,
+                    serviceType,
+                    AppTelemetryCounterType.TimedOut);
+
+                logger.LogDebug(ex, "Request timeout.");
+                if (isReadOnly)
+                {
+                    return new UnambiguousTimeoutException("The request was timed out via the Token.", ex)
+                    {
+                        Context = context
+                    };
+                }
+
+                return new AmbiguousTimeoutException("The request was timed out via the Token.", ex)
+                {
+                    Context = context
+                };
+            }
+            if (ex is HttpRequestException)
+            {
+                logger.LogDebug(ex, "Request canceled.");
+
+                //treat as an orphaned response
+                span.LogOrphaned();
+                span.SetStatus(RequestSpanStatusCode.Error);
+
+                telemetryCollector?.IncrementMetrics(
+                    elapsed,
+                    canonicalHostname ?? string.Empty,
+                    alternateHostname,
+                    nodeUuid ?? string.Empty,
+                    serviceType,
+                    AppTelemetryCounterType.Canceled);
+
+                return new RequestCanceledException("The request was canceled.", ex)
+                {
+                    Context = context
+                };
+            }
+
+            return ex;
         }
     }
 }
