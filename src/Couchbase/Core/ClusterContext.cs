@@ -801,7 +801,6 @@ namespace Couchbase.Core
                             if (clusterNode.HasKv)
                             {
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                                await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                                 SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
@@ -819,7 +818,6 @@ namespace Couchbase.Core
                             if (clusterNode.HasKv)
                             {
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                                await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                                 SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
@@ -847,7 +845,6 @@ namespace Couchbase.Core
                         if (clusterNode.HasKv)
                         {
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                             SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
@@ -868,7 +865,6 @@ namespace Couchbase.Core
                         if(clusterNode.HasKv)
                         {
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                             SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
