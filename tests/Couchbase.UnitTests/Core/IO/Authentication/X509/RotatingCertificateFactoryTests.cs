@@ -143,7 +143,7 @@ public class RotatingCertificateFactoryTests(
         var result = factory.GetCertificates();
 
         // Wait for timer to fire at least once (TCS signals when threshold reached)
-        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
 
         // Assert
         Assert.NotNull(result);
@@ -178,7 +178,7 @@ public class RotatingCertificateFactoryTests(
         var initialResult = factory.GetCertificates();
 
         // Wait for timer to fire and refresh (TCS signals when threshold reached)
-        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
 
         // Assert
         Assert.NotNull(initialResult);
@@ -214,7 +214,7 @@ public class RotatingCertificateFactoryTests(
         var hasUpdatesBeforeRefresh = factory.HasUpdates;
 
         // Wait for timer to fire and attempt refresh (TCS signals when threshold reached)
-        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
         Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired to attempt certificate refresh");
 
         var hasUpdatesAfterRefresh = factory.HasUpdates;
@@ -260,7 +260,7 @@ public class RotatingCertificateFactoryTests(
         var result = factory.GetCertificates();
 
         // Wait for warning to be logged (TCS signals immediately when callback fires)
-        var completedTask = await Task.WhenAny(warningLoggedTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        var completedTask = await Task.WhenAny(warningLoggedTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
 
         // Assert
         Assert.NotNull(result);

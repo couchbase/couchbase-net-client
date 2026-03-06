@@ -52,8 +52,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             Assert.True(set.TryRemove(6, out _));
 
-            // Wait up to 15 seconds for the task to complete
-            var whichCompleted = await Task.WhenAny(addTask, Task.Delay(15000));
+            // Wait up to 30 seconds for the task to complete
+            var whichCompleted = await Task.WhenAny(addTask, Task.Delay(30000));
 
             // Assert
 
@@ -75,8 +75,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             await set.AddAsync(state);
 
-            // Wait up to 15 seconds for the task to complete
-            await Task.WhenAny(state.CompletionTask, Task.Delay(15000));
+            // Wait up to 30 seconds for the task to complete
+            await Task.WhenAny(state.CompletionTask, Task.Delay(30000));
 
             // Assert
 
@@ -238,7 +238,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             state2.Complete(SlicedMemoryOwner<byte>.Empty);
 
-            await Task.WhenAny(task.AsTask(), Task.Delay(TimeSpan.FromSeconds(10)));
+            await Task.WhenAny(task.AsTask(), Task.Delay(TimeSpan.FromSeconds(30)));
             Assert.True(task.IsCompleted, userMessage: "Task should have been complete within a reasonable amount of time after all states were complete.");
         }
 

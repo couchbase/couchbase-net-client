@@ -19,14 +19,21 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
     internal sealed partial class ThresholdTraceListener : TraceListener
     {
         private readonly IReadOnlyDictionary<string, TimeSpan> _serviceThresholds;
+        private readonly IReadOnlyDictionary<string, ThresholdServiceQueue> _serviceQueues;
         private readonly Timer _timer;
+        private volatile int _disposed;
+
+        public ILogger Logger { get; }
 
         public ThresholdTraceListener(ILoggerFactory loggerFactory, ThresholdOptions options)
         {
             var thresholdOptions1 = options;
-            var logger = loggerFactory.CreateLogger<RequestTracer>();
-            _timer = TimerFactory.CreateWithFlowSuppressed(GenerateAndLogReport, logger, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
-            ThresholdServiceQueue.SetSampleSize((int)thresholdOptions1.SampleSize);//change to uint
+            Logger = loggerFactory.CreateLogger<RequestTracer>();
+
+            _serviceQueues = ServiceIdentifier.CoreServices.Select(s => new ThresholdServiceQueue(s, (int)thresholdOptions1.SampleSize))
+                .ToDictionary(sq => sq.ServiceName);
+
+            _timer = TimerFactory.CreateWithFlowSuppressed(GenerateAndLogReport, this, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
 
             _serviceThresholds = options.GetServiceThresholds();
             Start();
@@ -34,24 +41,33 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         private static void GenerateAndLogReport(object? state)
         {
-            ILogger? logger = null;
+            if (state is not ThresholdTraceListener listener || listener._disposed == 1)
+            {
+                return;
+            }
+
+            ILogger? logger = listener.Logger;
             try
             {
-                logger = state as ILogger;
-                var reportSummaries = ThresholdServiceQueue.ReportSummaries();
+                var reportSummaries = new Dictionary<string, ThresholdSummaryReport>(listener._serviceQueues.Count);
+                foreach (var serviceQueue in listener._serviceQueues.Values)
+                {
+                    var report = serviceQueue.ReportAndReset();
+                    if (report.TopRequests.Length > 0)
+                    {
+                        reportSummaries.Add(serviceQueue.ServiceName, report);
+                    }
+                }
 
-                if (reportSummaries.Count > 0 && logger is not null && logger.IsEnabled(LogLevel.Information))
+                if (reportSummaries.Count > 0 && logger.IsEnabled(LogLevel.Information))
                 {
                     LogThresholdEvent(logger,
-                        JsonSerializer.Serialize(reportSummaries, ThresholdTracingSerializerContext.Default.IDictionaryStringThresholdSummaryReport));
+                        JsonSerializer.Serialize((IDictionary<string, ThresholdSummaryReport>)reportSummaries, ThresholdTracingSerializerContext.Default.IDictionaryStringThresholdSummaryReport));
                 }
             }
             catch (Exception e)
             {
-                if (logger is not null)
-                {
-                    LogReportError(logger, e);
-                }
+                LogReportError(logger, e);
             }
         }
 
@@ -68,7 +84,10 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
                     if (activity.Duration > threshold)
                     {
                         var summary = ThresholdSummary.FromActivity(activity);
-                        ThresholdServiceQueue.AddByService(serviceAttribute.Value, summary);
+                        if (_serviceQueues.TryGetValue(serviceAttribute.Value, out var serviceQueue))
+                        {
+                            serviceQueue.Add(summary);
+                        }
                     }
                 }
             };
@@ -81,13 +100,18 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         public override void Dispose()
         {
+            if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            {
+                return;
+            }
+
             try
             {
                 base.Dispose();
             }
             finally
             {
-                _timer?.Dispose();
+                _timer.Dispose();
             }
         }
 

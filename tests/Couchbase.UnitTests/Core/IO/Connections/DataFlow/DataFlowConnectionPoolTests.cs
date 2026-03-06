@@ -154,7 +154,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             await pool.SendAsync(operation);
 
             // wait for operation to fail but not forever
-            await Task.WhenAny(operation.Completed.AsTask(), Task.Delay(3000));
+            await Task.WhenAny(operation.Completed.AsTask(), Task.Delay(30000));
 
             // Assert
             Assert.True(operation.Completed.IsCompleted);
@@ -668,7 +668,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             // Follow-up on NCBC-4111: Without this wait,
             // the test could intermittently fail on slow Jenkins runners
-            var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+            var startedTask = await Task.WhenAny(closeStarted.Task, Task.Delay(TimeSpan.FromSeconds(30)));
             Assert.True(startedTask == closeStarted.Task && await closeStarted.Task,
                 "CloseAsync should have started after ScaleAsync(-1) returned");
 

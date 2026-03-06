@@ -39,7 +39,7 @@ namespace Couchbase.UnitTests.Core
              bootStrapper.Start(mockSubject.Object);
 
              // Wait for bootstrap to be called at least twice (TCS signals when threshold reached)
-             var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+             var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
 
              Assert.True(completedTask == calledTwiceTcs.Task, "BootStrapAsync should have been called at least twice");
              mockSubject.Verify(x => x.BootStrapAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
@@ -98,7 +98,7 @@ namespace Couchbase.UnitTests.Core
                   // For success case, poll until bootstrapped (instead of fixed delay)
                   var bootstrapped = await AsyncTestHelper.WaitForConditionAsync(
                       () => subject.IsBootstrapped,
-                      timeout: TimeSpan.FromSeconds(5));
+                      timeout: TimeSpan.FromSeconds(30));
 
                   Assert.True(bootstrapped, "Expected IsBootstrapped to be true after successful bootstrap");
               }

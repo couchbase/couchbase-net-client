@@ -8,28 +8,21 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     internal class ThresholdServiceQueue
     {
-        private int _sampleSize = ThresholdOptions.DefaultSampleSize;
+        private readonly int _sampleSize;
         private long _sampleCount = 0;
         private readonly ConcurrentQueue<ThresholdSummary> _latestEvents = new();
 
-        private static readonly ManualResetEventSlim ReportIdle = new(true);
-
-        internal static readonly IReadOnlyDictionary<string, ThresholdServiceQueue> CoreQueues =
-            ServiceIdentifier.CoreServices.Select(s => new ThresholdServiceQueue(s))
-                .ToDictionary(sq => sq.ServiceName);
-
-        internal ThresholdServiceQueue(string serviceName)
+        internal ThresholdServiceQueue(string serviceName, int sampleSize)
         {
             ServiceName = serviceName;
+            _sampleSize = sampleSize;
         }
 
         internal string ServiceName { get; }
 
-        private void Add(ThresholdSummary overThresholdEvent)
+        internal void Add(ThresholdSummary overThresholdEvent)
         {
-            // Don't add while sample reporting is being done.
-            // We don't care otherwise if Add races a little against other adds.
-            ReportIdle.Wait();
+            // We don't care if Add races a little against other adds.
 
             Interlocked.Increment(ref _sampleCount);
             _latestEvents.Enqueue(overThresholdEvent);
@@ -39,18 +32,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             }
         }
 
-        public static bool AddByService(string serviceName, ThresholdSummary overThresholdSummary)
-        {
-            if (CoreQueues.TryGetValue(serviceName, out var serviceQueue))
-            {
-                serviceQueue.Add(overThresholdSummary);
-                return true;
-            }
-
-            return false;
-        }
-
-        private ThresholdSummaryReport ReportAndReset()
+        internal ThresholdSummaryReport ReportAndReset()
         {
             // to avoid a race, this should only be called while waiting on ReportMutex.
             var count = Interlocked.Exchange(ref _sampleCount, 0);
@@ -79,40 +61,6 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             }
 
             return new ThresholdSummaryReport(ServiceName, (int)count, top);
-        }
-
-        internal static void SetSampleSize(int sampleSize)
-        {
-            foreach (var cq in CoreQueues)
-            {
-                cq.Value._sampleSize = sampleSize;
-            }
-        }
-
-        public static IDictionary<string, ThresholdSummaryReport> ReportSummaries()
-        {
-            ReportIdle.Wait();
-            try
-            {
-                ReportIdle.Reset();
-
-                // it would be more elegant to use yield return, but that shouldn't be mixed with semaphores
-                // in case it is only partially iterated.
-                var results = new Dictionary<string, ThresholdSummaryReport>(CoreQueues.Count);
-                foreach (var serviceQueue in CoreQueues.Values)
-                {
-                    if (serviceQueue._sampleCount > 0)
-                    {
-                        results.Add(serviceQueue.ServiceName, serviceQueue.ReportAndReset());
-                    }
-                }
-
-                return results;
-            }
-            finally
-            {
-                ReportIdle.Set();
-            }
         }
     }
 }

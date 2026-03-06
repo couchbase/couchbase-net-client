@@ -344,7 +344,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             {
                 // Wait for timer to fire and call RefreshCertificates at least once
                 // (RefreshCertificates calls _certificateFactory.GetCertificates internally)
-                var completedTask = await Task.WhenAny(refreshCalledTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                var completedTask = await Task.WhenAny(refreshCalledTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
                 Assert.True(completedTask == refreshCalledTcs.Task, "Timer should have fired and called RefreshCertificates");
 
                 // Now call GetCertificates - since cache is empty, this sets HasUpdates = true

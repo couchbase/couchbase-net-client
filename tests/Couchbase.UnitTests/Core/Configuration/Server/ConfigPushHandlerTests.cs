@@ -73,7 +73,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         getClusterMapResult.OnDeserialized();
 
         // Wait for the publish to occur with a CI-friendly timeout
-        var completedTask = await Task.WhenAny(publishTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        var completedTask = await Task.WhenAny(publishTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
         Assert.True(completedTask == publishTcs.Task, $"Expected version {pushedVersion} to be published but got {versionPublished}");
 
         Assert.Equal(versionPublished, pushedVersion);

@@ -15,6 +15,9 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
+    // ThresholdTraceListener uses static ThresholdServiceQueue.CoreQueues, so tests using it
+    // must not run in parallel to avoid one test's timer draining another test's data.
+    [Collection("NonParallel")]
     public class ThresholdTracerTests : IDisposable
     {
         private readonly ITestOutputHelper _testOutputHelper;
@@ -73,11 +76,14 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         [Fact]
         public async Task TestKeyValueTracing()
         {
+            using var tracer = new RequestTracer();
+            using var listener = new ThresholdTraceListener(_loggerFactory, new ThresholdOptions());
+            tracer.Start(listener);
+
             var cluster = new FakeCluster(new ClusterOptions
             {
                 TracingOptions = new TracingOptions {
-                   RequestTracer = new RequestTracer().Start(
-                        new ThresholdTraceListener(_loggerFactory, new ThresholdOptions()))
+                   RequestTracer = tracer,
                 }
             });
             var bucket = await cluster.BucketAsync("fakeBucket");
@@ -123,15 +129,21 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             using var tracer = new RequestTracer();
             using var listener = new ThresholdTraceListener(loggerFactory, new ThresholdOptions
             {
-                EmitInterval = TimeSpan.FromMilliseconds(10),
+                EmitInterval = TimeSpan.FromMilliseconds(100),
                 KvThreshold = TimeSpan.Zero
             });
             tracer.Start(listener);
+            // Delay to insure the tracer is registered with the ActivitySource
+            await Task.Delay(100);
 
             using (var parentSpan = tracer.RequestSpan("get"))
             {
                 parentSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+                await Task.Delay(10); // Ensure span duration exceeds threshold
             }
+
+            // Brief yield to allow ActivityStopped callback to complete before polling
+            await Task.Yield();
 
             string report = null;
             // Use async polling instead of SpinWait to avoid starving background tasks on overloaded CI
@@ -139,6 +151,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
                 () => loggerFactory.LoggedData.TryTake(out report),
                 timeout: TimeSpan.FromSeconds(30));
             Assert.True(finished, userMessage: "Did not find a log entry for threshold data.");
+
             Assert.NotNull(report);
             Assert.StartsWith("{", report);
 
