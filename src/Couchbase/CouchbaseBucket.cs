@@ -405,6 +405,8 @@ namespace Couchbase
                     Manifest = await node.GetManifest().ConfigureAwait(false);
                 }
 
+                await node.HelloHello().ConfigureAwait(false);
+
                 KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
 
                 Nodes.Add(node);
