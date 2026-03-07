@@ -536,7 +536,11 @@ namespace Couchbase.Core.IO.Operations
         /// <param name="builder">The builder.</param>
         protected virtual void WriteKey(OperationBuilder builder)
         {
-            var buffer = builder.GetSpan(OperationHeader.MaxKeyLength + Leb128.MaxLength);
+            var keyLength = Cid.HasValue ?
+                OperationHeader.MaxKeyLength + Leb128.MaxLength :
+                OperationHeader.MaxKeyLength;
+
+            var buffer = builder.GetSpan(keyLength);
 
             var length = WriteKey(buffer);
 
