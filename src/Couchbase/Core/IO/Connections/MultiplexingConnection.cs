@@ -30,7 +30,7 @@ namespace Couchbase.Core.IO.Connections
 
         public static int GetConnectionCount() => _connections.Count(p => p.TryGetTarget(out var connection) && !connection.IsDead);
 
-        private const uint MaxDocSize = 20971520;
+        internal const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight;

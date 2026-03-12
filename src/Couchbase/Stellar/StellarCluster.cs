@@ -11,6 +11,7 @@ using Couchbase.Analytics;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Diagnostics;
@@ -41,6 +42,7 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Stellar;
 
@@ -61,13 +63,16 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly ILogger<StellarCluster> _logger;
     private readonly IRedactor _redactor;
     private volatile bool _disposed;
+    private readonly bool _isCompressionEnabled;
 
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
         IQueryIndexManager queryIndexManager, IQueryClient queryClient,
         IAnalyticsClient analyticsClient, IStellarSearchClient searchClient,
         Metadata metaData, IRequestTracer requestTracer, GrpcChannel grpcChannel,
-        ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions)
+        ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions,
+        IOperationCompressor operationCompressor,
+        CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.None)
     {
         _bucketManager = bucketManager;
         _searchIndexManager = searchIndexManager;
@@ -81,6 +86,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         GrpcChannel = grpcChannel;
         TypeSerializer = typeSerializer;
         TypeTranscoder = _clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
+        OperationCompressor = operationCompressor;
+        _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm != CompressionAlgorithm.None;
         RetryHandler = retryHandler;
         _redactor = new Redactor(new TypedRedactor(_clusterOptions));
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
@@ -95,6 +102,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
         TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
 
+        var serviceProvider = clusterOptions.BuildServiceProvider();
+        OperationCompressor = serviceProvider.GetRequiredService<IOperationCompressor>();
+        var compressionAlgorithm = serviceProvider.GetRequiredService<ICompressionAlgorithm>();
+        _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm.Algorithm != CompressionAlgorithm.None;
+
         var socketsHandler = new SocketsHttpHandler();
         var authenticator = _clusterOptions.GetEffectiveAuthenticator() ?? throw new NullReferenceException($"{nameof(_clusterOptions.Authenticator)} should not be null");
         var certificateCallbackFactory = new CertificateValidationCallbackFactory(_clusterOptions, new Logger<CertificateValidationCallbackFactory>(_clusterOptions.Logging ?? new NullLoggerFactory()), _redactor);
@@ -105,6 +117,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         {
             LoggerFactory = clusterOptions.Logging,
             HttpHandler = socketsHandler,
+            MaxReceiveMessageSize = null, // gRPC default is 4MB, which is too small for Couchbase documents
         };
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
@@ -140,6 +153,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     internal IRequestTracer RequestTracer { get; }
     internal ITypeTranscoder TypeTranscoder { get; }
+    internal IOperationCompressor OperationCompressor { get; }
+    internal bool IsCompressionEnabled => _isCompressionEnabled;
 
     private void CheckIfDisposed()
     {

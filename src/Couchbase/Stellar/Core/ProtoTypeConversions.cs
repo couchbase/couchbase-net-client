@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Management.Buckets;
 using Couchbase.Protostellar.Admin.Bucket.V1;
@@ -385,15 +387,45 @@ internal static class TypeConversionExtensions
                 CreatePath = subdocPathFlags.HasFlag(CoreKv.SubdocPathFlags.CreatePath),
             };
 
-    public static Couchbase.KeyValue.IGetResult AsGetResult(this IContentResult contentResult, ITypeTranscoder transcoder) => new GetResult(
-        ExpiryTime: contentResult.Expiry?.ToDateTime(),
-        Cas: contentResult.Cas,
-        GrpcContentWrapper: new GrpcContentWrapper(contentResult.ContentUncompressed, contentResult.ContentFlags, transcoder)
-    );
+    public static Couchbase.KeyValue.IGetResult AsGetResult(this IContentResult contentResult, ITypeTranscoder transcoder, IOperationCompressor? compressor = null, IRequestSpan? span = null)
+    {
+        var (content, contentOwner) = DecompressIfRequired(contentResult, compressor, span);
+        return new GetResult(
+            ExpiryTime: contentResult.Expiry?.ToDateTime(),
+            Cas: contentResult.Cas,
+            GrpcContentWrapper: new GrpcContentWrapper(content, contentResult.ContentFlags, transcoder),
+            ContentOwner: contentOwner
+        );
+    }
 
-    public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeTranscoder transcoder) => new GetReplicaResult(
-        Cas: contentResult.Cas,
-        IsActive: contentResult.IsActive,
-        GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content, contentResult.ContentFlags, transcoder));
+    public static Couchbase.KeyValue.IGetReplicaResult AsGetReplicaResult(this IReplicaContentResult contentResult, ITypeTranscoder transcoder)
+    {
+        // Note: GetAllReplicasResponse proto does not currently support compression fields,
+        // so no decompression is needed here. If compression support is added to the proto
+        // in the future, this method will need to be updated similar to AsGetResult.
+        return new GetReplicaResult(
+            Cas: contentResult.Cas,
+            IsActive: contentResult.IsActive,
+            GrpcContentWrapper: new GrpcContentWrapper(contentResult.Content.Memory, contentResult.ContentFlags, transcoder));
+    }
+
+    /// <summary>
+    /// Returns the content as <see cref="ReadOnlyMemory{T}"/> and an optional <see cref="IDisposable"/>
+    /// that owns the decompressed buffer. The caller must keep the disposable alive as long as
+    /// the memory is in use, and dispose it when done.
+    /// </summary>
+    private static (ReadOnlyMemory<byte> Content, IDisposable? ContentOwner) DecompressIfRequired(IContentResult result, IOperationCompressor? compressor, IRequestSpan? span)
+    {
+        if (result.HasContentCompressed && compressor != null)
+        {
+            var decompressed = compressor.Decompress(result.ContentCompressed.Memory, span ?? NoopRequestSpan.Instance);
+            // Return the decompressed memory directly — no copy into ByteString.
+            // The IMemoryOwner<byte> is returned as the ContentOwner so the caller
+            // can dispose it when the GetResult is no longer needed.
+            return (decompressed.Memory, decompressed);
+        }
+        // Uncompressed: ByteString.Memory is already a zero-copy ReadOnlyMemory<byte>.
+        return (result.ContentUncompressed.Memory, null);
+    }
 }
 #endif

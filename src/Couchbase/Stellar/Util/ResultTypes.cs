@@ -22,7 +22,7 @@ namespace Couchbase.Stellar.KeyValue
     #nullable enable
 
     internal record ExistsResult(bool Exists, ulong Cas) : Couchbase.KeyValue.IExistsResult;
-    internal record MutationResult(ulong Cas, TimeSpan? Expiry) : Couchbase.KeyValue.IMutationResult
+    internal record MutationResult(ulong Cas) : Couchbase.KeyValue.IMutationResult
     {
         private MutationToken _mutationToken = MutationToken.Empty;
         public MutationToken MutationToken
@@ -41,11 +41,11 @@ namespace Couchbase.Stellar.KeyValue
         public DateTime? ExpiryTime => null;
     }
 
-    internal record GetResult(DateTime? ExpiryTime, ulong Cas, GrpcContentWrapper GrpcContentWrapper) : Couchbase.KeyValue.IGetResult
+    internal record GetResult(DateTime? ExpiryTime, ulong Cas, GrpcContentWrapper GrpcContentWrapper, IDisposable? ContentOwner = null) : Couchbase.KeyValue.IGetResult
     {
         public TimeSpan? Expiry => null;
         public T? ContentAs<T>() => GrpcContentWrapper.ContentAs<T>();
-        public void Dispose() { }
+        public void Dispose() => ContentOwner?.Dispose();
     }
 
     internal record LookupInResult(LookupInResponse GrpcResponse, LookupInRequest OriginalRequest, ITypeTranscoder Transcoder) : Couchbase.KeyValue.ILookupInResult
@@ -83,7 +83,7 @@ namespace Couchbase.Stellar.KeyValue
                     return false;
                 }
 
-                throw new ArgumentOutOfRangeException("returnValue", "expected 'true' or 'false'");
+                throw new CouchbaseException("Unexpected payload returned from server for an Exists operation.  Expected content to be 'true' or 'false'");
             }
 
             // if the original spec was NOT an exists request, then any successful status is a 'true' result.
@@ -96,7 +96,7 @@ namespace Couchbase.Stellar.KeyValue
             var spec = SpecOrInvalid(index);
             if (spec.Status == null || spec.Status.Code == (int)StatusCode.OK)
             {
-                var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0,
+                var contentWrapper = new GrpcContentWrapper(Content: spec.Content.Memory, ContentFlags: 0,
                     Transcoder, IsFullDoc: OriginalRequest.Specs[index].Path.Length == 0);
                 return contentWrapper.ContentAs<T>();
             }
@@ -159,7 +159,7 @@ namespace Couchbase.Stellar.KeyValue
         public T? ContentAs<T>(int index)
         {
             var spec = SpecOrInvalid(index);
-            var contentWrapper = new GrpcContentWrapper(Content: spec.Content, ContentFlags: 0, Transcoder: Transcoder, IsFullDoc: false);
+            var contentWrapper = new GrpcContentWrapper(Content: spec.Content.Memory, ContentFlags: 0, Transcoder: Transcoder, IsFullDoc: false);
             return contentWrapper.ContentAs<T>();
         }
 
@@ -201,6 +201,8 @@ namespace Couchbase.Stellar.KeyValue
     {
         Timestamp Expiry { get; }
         ByteString ContentUncompressed { get; }
+        bool HasContentCompressed { get; }
+        ByteString ContentCompressed { get; }
         uint ContentFlags { get; }
         ulong Cas { get; }
     }
@@ -218,65 +220,65 @@ namespace Couchbase.Protostellar.KV.V1
 {
     partial class GetResponse : IContentResult, IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
     partial class GetAndLockResponse : IContentResult, IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
     partial class GetAndTouchResponse : IContentResult, IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class GetAllReplicasResponse : IReplicaContentResult, IServiceResult
     {
         public bool IsActive { get; set; }
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class TouchResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class ExistsResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class InsertResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class ReplaceResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class LookupInResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
     partial class MutateInResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class RemoveResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class UnlockResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class UpsertResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class MutationToken
@@ -290,22 +292,22 @@ namespace Couchbase.Protostellar.KV.V1
 
     partial class AppendResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class PrependResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class IncrementResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DecrementResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 }
 #endregion
@@ -316,27 +318,27 @@ namespace Couchbase.Protostellar.Admin.Collection.V1
 {
     partial class ListCollectionsResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class CreateCollectionResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DeleteCollectionResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class CreateScopeResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DeleteScopeResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 }
 
@@ -348,22 +350,22 @@ namespace Couchbase.Protostellar.Admin.Bucket.V1
 {
     partial class DeleteBucketResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class CreateBucketResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class UpdateBucketResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class ListBucketsResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 }
 
@@ -376,62 +378,62 @@ namespace Couchbase.Protostellar.Admin.Search.V1
 {
     partial class GetIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class ListIndexesResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class UpdateIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class CreateIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DeleteIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class GetIndexedDocumentsCountResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class PauseIndexIngestResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class ResumeIndexIngestResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class AllowIndexQueryingResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DisallowIndexQueryingResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class FreezeIndexPlanResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class UnfreezeIndexPlanResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 }
 
@@ -443,37 +445,37 @@ namespace Couchbase.Protostellar.Admin.Query.V1
 {
     partial class CreatePrimaryIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class CreateIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class GetAllIndexesResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DropIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class DropPrimaryIndexResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class BuildDeferredIndexesResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
     partial class WaitForIndexOnlineResponse : IServiceResult
     {
-        public RetryReason RetryReason { get; }
+        public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 }
 #endregion

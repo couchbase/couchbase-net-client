@@ -212,6 +212,9 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 break;
             case StatusCode.InvalidArgument:
                 throw new InvalidArgumentException(context);
+            case StatusCode.ResourceExhausted:
+                throw new ValueToolargeException(
+                    "Request exceeds maximum message size.");
             default:
             {
                 context.Fields.Add("status", status);

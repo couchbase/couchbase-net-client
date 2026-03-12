@@ -21,6 +21,7 @@ internal interface IContentRequest
 {
     public uint ContentFlags { get; set; }
     public ByteString ContentUncompressed { get; set; }
+    public ByteString ContentCompressed { get; set; }
     public DurabilityLevel DurabilityLevel { get; set; }
 }
 

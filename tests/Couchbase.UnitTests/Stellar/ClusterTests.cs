@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
@@ -258,11 +259,12 @@ public class ClusterTests
           var requestTracer = new Mock<IRequestTracer>();
           var typeSerializer = new Mock<ITypeSerializer>();
           var clusterOptions = new ClusterOptions();
-          var requestOrchestrator = new Mock<IRetryOrchestrator>();
+           var requestOrchestrator = new Mock<IRetryOrchestrator>();
+           var compressor = new Mock<IOperationCompressor>();
 
-          return new StellarCluster(bucketManager.Object, searchIndexManager.Object, queryIndexManager.Object,
-              queryServiceClient.Object, analyticsClient.Object, searchClient.Object, metaData,
-              requestTracer.Object, channel, typeSerializer.Object, requestOrchestrator.Object, clusterOptions);
+           return new StellarCluster(bucketManager.Object, searchIndexManager.Object, queryIndexManager.Object,
+               queryServiceClient.Object, analyticsClient.Object, searchClient.Object, metaData,
+               requestTracer.Object, channel, typeSerializer.Object, requestOrchestrator.Object, clusterOptions, compressor.Object);
       }
 }
 #endif

@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -132,6 +134,10 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var request = KeyedRequest<GetAndLockRequest>(id);
         request.LockTime = expiry.ToTtl();
+        if (_stellarCluster.IsCompressionEnabled)
+        {
+            request.Compression = CompressionEnabled.Optional;
+        }
 
         async Task<GetAndLockResponse> GrpcCall()
         {
@@ -144,7 +150,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         };
 
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(transcoder);
+        return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
     }
 
     public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
@@ -158,6 +164,10 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var request = KeyedRequest<GetAndTouchRequest>(id);
         request.ExpiryTime = Timestamp.FromDateTime(expiry.FromNow());
+        if (_stellarCluster.IsCompressionEnabled)
+        {
+            request.Compression = CompressionEnabled.Optional;
+        }
 
         var stellarRequest = new StellarRequest
         {
@@ -165,7 +175,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(transcoder);
+        return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
 
         async Task<GetAndTouchResponse> GrpcCall()
         {
@@ -185,6 +195,10 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var request = KeyedRequest<GetRequest>(id);
+        if (_stellarCluster.IsCompressionEnabled)
+        {
+            request.Compression = CompressionEnabled.Optional;
+        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
@@ -195,7 +209,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             request.Project.Add(opts.ProjectList);
         }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return response.AsGetResult(transcoder);
+        return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
 
         async Task<GetResponse> GrpcCall()
         {
@@ -219,7 +233,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 preserveTtl: false,
                 expiry: opts.Expiry,
                 durabilityLevel: opts.DurabilityLevel,
-                transcoder: transcoder
+                transcoder: transcoder,
+                span: childSpan
             );
 
         var stellarRequest = new StellarRequest
@@ -228,7 +243,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutationResult(response.Cas, Expiry: null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken
         };
@@ -369,7 +384,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             preserveTtl: opts.PreserveTtl,
             expiry: opts.Expiry,
             durabilityLevel: opts.DurabilityLevel,
-            transcoder: transcoder);
+            transcoder: transcoder,
+            span: childSpan);
 
         if (opts.Cas > 0)
         {
@@ -383,7 +399,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
-        return new MutationResult(response.Cas, null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken
         };
@@ -418,7 +434,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutationResult(response.Cas, null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken ?? MutationToken.Empty
         };
@@ -474,7 +490,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             preserveTtl: opts.PreserveTtl,
             expiry: opts.Expiry,
             durabilityLevel: opts.DurabilityLevel,
-            transcoder: transcoder);
+            transcoder: transcoder,
+            span: childSpan);
 
         var stellarRequest = new StellarRequest
         {
@@ -482,7 +499,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutationResult(response.Cas, null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken
         };
@@ -501,6 +518,11 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var opts = options?.AsReadOnly() ?? AppendOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        if (value.Length >= MultiplexingConnection.MaxDocSize)
+        {
+            throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
+        }
+
         var request = new AppendRequest()
         {
             BucketName = _bucketName,
@@ -521,7 +543,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutationResult(response.Cas, Expiry: null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken
         };
@@ -533,6 +555,11 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var opts = options?.AsReadOnly() ?? PrependOptions.DefaultReadOnly;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.Append, opts.RequestSpan);
+        if (value.Length >= MultiplexingConnection.MaxDocSize)
+        {
+            throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
+        }
+
         var request = new PrependRequest()
         {
             BucketName = _bucketName,
@@ -553,7 +580,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutationResult(response.Cas, Expiry: null)
+        return new MutationResult(response.Cas)
         {
             MutationToken = response.MutationToken
         };
@@ -634,14 +661,14 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         transcoder.GetFormat(content).Write(buffer);
         var flagsUint = BinaryPrimitives.ReadUInt32BigEndian(buffer);
 
-        ReadOnlyMemory<byte> bytes = ms.GetBuffer().AsMemory(0, (int)ms.Length);
+        ReadOnlySpan<byte> bytes = ms.GetBuffer().AsSpan(0, (int)ms.Length);
 
         // strip brackets if asked
         if (removeBrackets)
             bytes = bytes.StripBrackets();
 
-        // return converted flags, and byte string from the MemoryStream
-        return (ByteString.CopyFrom(bytes.ToArray()), flagsUint);
+        // CopyFrom(ReadOnlySpan<byte>) avoids the intermediate array allocation
+        return (ByteString.CopyFrom(bytes), flagsUint);
     }
 
     private T KeyedRequest<T>(string key) where T : IKeySpec, new()
@@ -707,13 +734,47 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         bool preserveTtl,
         TimeSpan expiry,
         Couchbase.KeyValue.DurabilityLevel durabilityLevel,
-        ITypeTranscoder transcoder)
+        ITypeTranscoder transcoder,
+        IRequestSpan span)
         where TRequest : IKeySpec, IContentRequest, IExpiryRequest, new()
     {
         var request = KeyedRequest<TRequest>(key);
-        var (bytes, flags) = SerializeToByteString(content, transcoder, OpCode.Set);
-        request.ContentUncompressed = bytes;
-        request.ContentFlags = flags;
+
+        // Inline serialization so we can work with the MemoryStream's live buffer
+        // directly, avoiding an intermediate copy. The ByteString is created from
+        // the buffer before the MemoryStream is disposed — exactly 1 copy.
+        using var ms = new MemoryStream();
+        var format = transcoder.GetFormat(content);
+        transcoder.Encode(ms, content, format, OpCode.Set);
+
+        if (ms.Length >= MultiplexingConnection.MaxDocSize)
+        {
+            throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
+        }
+
+        Span<byte> flagBuffer = stackalloc byte[4];
+        format.Write(flagBuffer);
+        request.ContentFlags = BinaryPrimitives.ReadUInt32BigEndian(flagBuffer);
+
+        ReadOnlyMemory<byte> bytes = ms.GetBuffer().AsMemory(0, (int)ms.Length);
+
+        if (_stellarCluster.IsCompressionEnabled)
+        {
+            using var compressed = _stellarCluster.OperationCompressor.Compress(bytes, span);
+            if (compressed != null)
+            {
+                request.ContentCompressed = ByteString.CopyFrom(compressed.Memory.Span);
+            }
+            else
+            {
+                request.ContentUncompressed = ByteString.CopyFrom(bytes.Span);
+            }
+        }
+        else
+        {
+            request.ContentUncompressed = ByteString.CopyFrom(bytes.Span);
+        }
+
         HandleExpiry(request, expiry, preserveTtl);
 
         if (durabilityLevel.TryConvertToProto(out var protoDurability)) request.DurabilityLevel = protoDurability;
