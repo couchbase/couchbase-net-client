@@ -22,8 +22,9 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     private readonly object _metricsLock = new();
     private readonly Uri? _endpoint;
     private CancellationTokenSource? _webSocketTokenSource;
+    private ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> _metricSets = new();
 
-    public ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets { get; } = new();
+    internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
 
     public AppTelemetryCollector()
     {
@@ -75,7 +76,10 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         {
             _enabled = false;
             _webSocketTokenSource?.Cancel();
-            MetricSets.Clear();
+        }
+        lock (_metricsLock)
+        {
+            _metricSets = new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>();
         }
     }
 
@@ -125,8 +129,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         AppTelemetryMetricSet metricSet;
         lock (_metricsLock)
         {
-            // Ensures we don't add during a Clear
-            metricSet = MetricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
+            metricSet = _metricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
         }
 
         metricSet.IncrementHistogram(name, operationLatency.Value);
@@ -142,8 +145,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         AppTelemetryMetricSet metricSet;
         lock (_metricsLock)
         {
-            // Ensures we don't add during a Clear
-            metricSet = MetricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
+            metricSet = _metricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
         }
         metricSet.IncrementCounter(serviceType, counterType);
     }
@@ -151,18 +153,17 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     public bool TryExportMetricsAndReset(out string metricsString)
     {
         metricsString = string.Empty;
-        if (MetricSets.IsEmpty) return false;
 
-        var sb = new StringBuilder();
-
-        var snapshot = MetricSets.ToArray();
-
+        ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> oldMetrics;
         lock (_metricsLock)
         {
-            MetricSets.Clear();
+            if (_metricSets.IsEmpty) return false;
+            oldMetrics = _metricSets;
+            _metricSets = new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>();
         }
 
-        foreach (var exported in snapshot.Select(entry => entry.Value.ExportAllMetrics(entry.Key)))
+        var sb = new StringBuilder();
+        foreach (var exported in oldMetrics.Select(entry => entry.Value.ExportAllMetrics(entry.Key)))
         {
             sb.Append(exported);
         }

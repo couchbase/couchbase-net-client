@@ -38,6 +38,7 @@ internal class WebSocketClientHandler : IDisposable
     private readonly IRedactor _redactor;
     private int _attempt = 0;
     private readonly int _clampedExponent = 0;
+    private string? _pendingMetrics;
     private Uri? Endpoint => _appTelemetryCollector.Endpoint(_attempt);
 
     public WebSocketClientHandler(IAppTelemetryCollector appTelemetryCollector)
@@ -69,6 +70,7 @@ internal class WebSocketClientHandler : IDisposable
 
                 if (_webSocket?.State == WebSocketState.Open)
                 {
+                    _attempt = 0;
                     await ReceiveAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -156,20 +158,42 @@ internal class WebSocketClientHandler : IDisposable
 
     private async Task SendTelemetryAsync(CancellationToken cancellationToken)
     {
-        if (_appTelemetryCollector.TryExportMetricsAndReset(out var metrics))
+        string? metrics;
+
+        if (_pendingMetrics != null)
         {
-            var metricsBytes = Encoding.UTF8.GetBytes(metrics);
-            var response = new byte[1 + metricsBytes.Length];
-            response[0] = SuccessOpcode;
-            metricsBytes.CopyTo(response, 1);
+            // Retry previously unsent metrics before exporting new ones.
+            metrics = _pendingMetrics;
+        }
+        else if (_appTelemetryCollector.TryExportMetricsAndReset(out var newMetrics))
+        {
+            metrics = newMetrics;
+        }
+        else
+        {
+            return;
+        }
 
-            _logger.LogDebug("Sending AppTelemetry metrics {Metrics}", metrics); //TODO: this is for debugging
+        var metricsBytes = Encoding.UTF8.GetBytes(metrics);
+        var response = new byte[1 + metricsBytes.Length];
+        response[0] = SuccessOpcode;
+        metricsBytes.CopyTo(response, 1);
 
+        _logger.LogTrace("Sending AppTelemetry metrics {Metrics}", metrics);
+
+        try
+        {
             await _webSocket!.SendAsync(
                 new ArraySegment<byte>(response),
                 WebSocketMessageType.Binary,
                 true,
                 cancellationToken).ConfigureAwait(false);
+            _pendingMetrics = null;
+        }
+        catch
+        {
+            _pendingMetrics = metrics;
+            throw;
         }
     }
 

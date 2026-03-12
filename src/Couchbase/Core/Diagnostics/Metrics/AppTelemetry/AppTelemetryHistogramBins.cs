@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Core.Compatibility;
 
 namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
@@ -8,6 +9,11 @@ namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 [InterfaceStability(Level.Volatile)]
 internal class AppTelemetryHistogramBins
 {
+#if NET10_0_OR_GREATER
+    private readonly Lock _binLock = new();
+#else
+    private readonly object _binLock = new();
+#endif
     /// <summary>
     /// Count of all operations. This value is the cumulative sum of all smaller bins.
     /// Sum of all operations' durations in seconds.
@@ -32,16 +38,19 @@ internal class AppTelemetryHistogramBins
     {
         var opLatency = operationLatency.TotalMilliseconds;
 
-        // For each bin, if the operation latency is less than or equal to the bin's upper bound,
-        // increment the count and add to the sum
-        foreach (var bin in Bins)
+        lock (_binLock)
         {
-            var le = bin.Keys.First(); // There's only 1 key per bin
+            // For each bin, if the operation latency is less than or equal to the bin's upper bound,
+            // increment the count and add to the sum
+            foreach (var bin in Bins)
+            {
+                var le = bin.Keys.First(); // There's only 1 key per bin
 
-            if (!(opLatency <= le)) continue;
-            var currentValue = bin[le];
-            bin[le] = new KeyValuePair<uint, double>(currentValue.Key + 1, currentValue.Value + opLatency);
-            break; //Break immediately after incrementing the bin, then we'll sum each bin cumulatively in the export method.
+                if (!(opLatency <= le)) continue;
+                var currentValue = bin[le];
+                bin[le] = new KeyValuePair<uint, double>(currentValue.Key + 1, currentValue.Value + opLatency);
+                break; //Break immediately after incrementing the bin, then we'll sum each bin cumulatively in the export method.
+            }
         }
     }
 }
