@@ -101,9 +101,9 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     }
 
     /// <summary>
-    /// Gets a node from the collection by <see cref="IPEndPoint"/>, if present.
+    /// Gets a node from the collection by <see cref="HostEndpointWithPort"/>, if present.
     /// </summary>
-    /// <param name="endPoint"><see cref="IPEndPoint"/> to find.</param>
+    /// <param name="endPoint"><see cref="HostEndpointWithPort"/> to find.</param>
     /// <param name="bucketName">The bucketName that may be the owner.</param>
     /// <param name="node">Node found, if any.</param>
     /// <returns>True if the node was found.</returns>
@@ -116,6 +116,23 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
         // ReSharper disable once InconsistentlySynchronizedField
        node = _nodes.FirstOrDefault(x => x.EndPoint == endPoint && x.BucketName == bucketName);
        return node != null;
+    }
+
+    /// <summary>
+    /// Gets a node from the collection by hostname, if present.
+    /// </summary>
+    /// <param name="hostName"><see cref="string"/> to find.</param>
+    /// <param name="node">Node found, if any.</param>
+    /// <returns>True if the node was found.</returns>
+    /// <remarks>
+    /// Optimized to be low-lock.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetByHostname(string hostName, [NotNullWhen(true)] out IClusterNode? node)
+    {
+        // ReSharper disable once InconsistentlySynchronizedField
+        node = _nodes.FirstOrDefault(x => x.EndPoint.Host == hostName);
+        return node != null;
     }
 
     /// <inheritdoc />

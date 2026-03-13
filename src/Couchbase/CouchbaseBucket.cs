@@ -406,10 +406,7 @@ namespace Couchbase
                 }
 
                 KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
-
-                Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
-
                 var nodes = Context.GetNodes(Name);
 
                 //update the local nodes collection
