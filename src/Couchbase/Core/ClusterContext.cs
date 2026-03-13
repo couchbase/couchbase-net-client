@@ -432,7 +432,7 @@ namespace Couchbase.Core
                             _logger.LogInformation(nodeAdapter.ToString());
 
                             var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                            if (server.Equals(hostEndpoint) && node != null) //this is the bootstrap node so update
+                            if (server.Host.Equals(hostEndpoint.Host) && node != null) //this is the bootstrap node so update
                             {
                                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
                                     _redactor.SystemData(hostEndpoint.ToString()));
@@ -755,28 +755,25 @@ namespace Couchbase.Core
                                 "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
                                 _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                            clusterNode.Owner = bucket;
-
                             if (clusterNode.HasKv)
                             {
+                                clusterNode.Owner = bucket;
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                                 await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                                 SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
 
-                            Nodes.Add(clusterNode);
                             continue;
                         }
 
                         clusterNode = GetUnassignedNode(endPoint);
                         if (clusterNode != null)
                         {
-                            clusterNode.Owner = bucket;
                             clusterNode.NodesAdapter = nodeAdapter;
-
                             if (clusterNode.HasKv)
                             {
+                                clusterNode.Owner = bucket;
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                                 await clusterNode.HelloHello().ConfigureAwait(false);
                                 SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
@@ -800,11 +797,10 @@ namespace Couchbase.Core
                     clusterNode = GetUnassignedNode(endPoint);
                     if (clusterNode != null)
                     {
-                        clusterNode.Owner = bucket;
                         clusterNode.NodesAdapter = nodeAdapter;
-
                         if (clusterNode.HasKv)
                         {
+                            clusterNode.Owner = bucket;
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
@@ -813,7 +809,6 @@ namespace Couchbase.Core
                     }
                     else
                     {
-
                         _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
                             _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
@@ -823,9 +818,9 @@ namespace Couchbase.Core
                             nodeAdapter,
                             CancellationToken).ConfigureAwait(false);
 
-                        clusterNode.Owner = bucket;
                         if(clusterNode.HasKv)
                         {
+                            clusterNode.Owner = bucket;
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await clusterNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
@@ -879,7 +874,7 @@ namespace Couchbase.Core
 
             //The global nodes have no IBucket owner and are named "CLUSTER"
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y)))
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Host.Equals(y.Host)))
                 && x.Owner == null && config.Name == Name);
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
@@ -920,14 +915,20 @@ namespace Couchbase.Core
                     foreach (var nodeAdapter in globalConfig.GetNodes())
                     {
                         var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                        if (!Nodes.TryGet(endPoint, globalConfig.Name, out IClusterNode node))
+                        if (!Nodes.TryGetByHostname(endPoint.Host, out IClusterNode existingNode))
                         {
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(endPoint, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
 
-                            SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
-                            SupportsBinaryXattr = newNode.ServerFeatures.SubdocBinaryXattr;
+                            if (newNode.ServerFeatures != null)
+                            {
+                                SupportsPreserveTtl =
+                                    newNode.ServerFeatures.PreserveTtl;
+                                SupportsBinaryXattr = newNode.ServerFeatures
+                                    .SubdocBinaryXattr;
+                            }
+
                             AddNode(newNode);
 
                             //if the global config is updated replace it
@@ -936,7 +937,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            node.NodesAdapter = nodeAdapter;
+                            existingNode.NodesAdapter = nodeAdapter;
                         }
                     }
 
