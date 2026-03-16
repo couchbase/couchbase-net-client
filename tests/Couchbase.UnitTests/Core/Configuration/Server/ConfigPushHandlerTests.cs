@@ -13,6 +13,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Test.Common.Utils;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -33,14 +34,19 @@ public class ConfigPushHandlerTests
     public async Task ConfigPushHandler_ServerVersionRegressed()
     {
         // server pushes (1,3), but returns (1,1)
-        bool publishedAnything = false;
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized(); // Required to properly initialize ConfigVersion
         var versionPublished = new ConfigVersion(0, 0);
+        var publishTcs = new TaskCompletionSource<ConfigVersion>(TaskCreationOptions.RunContinuationsAsynchronously);
         var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc =>
         {
-            publishedAnything = true;
             Assert.NotNull(bc);
             versionPublished = bc!.ConfigVersion;
+            // Signal when we publish the target version (1,3)
+            if (bc.ConfigVersion == new ConfigVersion(1, 3))
+            {
+                publishTcs.TrySetResult(bc.ConfigVersion);
+            }
         });
         ClusterContext mockContext = mockBucket.Context;
         var mockNode = new Mock<IClusterNode>();
@@ -61,14 +67,24 @@ public class ConfigPushHandlerTests
         using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
         var pushedVersion = new ConfigVersion(1, 3);
         configPushHandler.ProcessConfigPush(pushedVersion);
-        // while server is returning older version, do not publish
-        await Task.Delay(100);
+
+        // While server is returning older version, verify it does NOT publish the pushed version
+        // Poll to verify the version is not immediately published (give some time for potential race)
+        var notPublishedYet = await AsyncTestHelper.WaitForConditionAsync(
+            () => versionPublished != pushedVersion,
+            timeout: TimeSpan.FromMilliseconds(500));
+        Assert.True(notPublishedYet, "Should not publish when server returns older version");
         Assert.NotEqual(versionPublished, pushedVersion);
 
-        // update the version of the config that is returned.  This should result in a publish.
+        // Update the version of the config that is returned. This should result in a publish.
         getClusterMapResult.Rev = 3;
         getClusterMapResult.OnDeserialized();
-        await Task.Delay(100);
+
+        // Wait for the publish to occur with a CI-friendly timeout
+        var completedTask = await Task.WhenAny(publishTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Assert.True(completedTask == publishTcs.Task, $"Expected version {pushedVersion} to be published but got {versionPublished}");
+
+
         Assert.Equal(versionPublished, pushedVersion);
     }
 
@@ -76,14 +92,15 @@ public class ConfigPushHandlerTests
     public async Task ConfigPushHandler_BasicAdvance()
     {
         // server pushes (1,2), and returns (1,2)
-        bool publishedAnything = false;
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 1 };
+        initialBucketConfig.OnDeserialized(); // Required to properly initialize ConfigVersion
         var versionPublished = new ConfigVersion(0, 0);
+        var publishTcs = new TaskCompletionSource<ConfigVersion>(TaskCreationOptions.RunContinuationsAsynchronously);
         var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc =>
         {
-            publishedAnything = true;
             Assert.NotNull(bc);
             versionPublished = bc!.ConfigVersion;
+            publishTcs.TrySetResult(bc.ConfigVersion);
         });
 
         ClusterContext mockContext = mockBucket.Context;
@@ -100,12 +117,14 @@ public class ConfigPushHandlerTests
         mockBucket.Nodes.Add(mockNode.Object);
         mockContext.RegisterBucket(mockBucket);
         mockContext.Start();
-        var logger = new TestOutputLogger(_outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
+        var logger = new TestOutputLogger(_outputHelper, nameof(ConfigPushHandler_BasicAdvance));
         var redactor = new TypedRedactor(RedactionLevel.None);
         using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 2));
-        await Task.Delay(100);
-        Assert.True(publishedAnything);
+
+        // Wait for the publish to occur with a CI-friendly timeout
+        var completedTask = await Task.WhenAny(publishTcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        Assert.True(completedTask == publishTcs.Task, $"Expected config to be published but got {versionPublished}");
         Assert.Equal(expected: getClusterMapResult.ConfigVersion, actual: versionPublished);
     }
 

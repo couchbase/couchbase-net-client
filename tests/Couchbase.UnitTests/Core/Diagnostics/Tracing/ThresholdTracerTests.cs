@@ -7,6 +7,7 @@ using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.UnitTests.Core.Diagnostics.Metrics;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Core.Utils;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
@@ -14,6 +15,9 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
+    // ThresholdTraceListener uses static ThresholdServiceQueue.CoreQueues, so tests using it
+    // must not run in parallel to avoid one test's timer draining another test's data.
+    [Collection("NonParallel")]
     public class ThresholdTracerTests : IDisposable
     {
         private readonly ITestOutputHelper _testOutputHelper;
@@ -72,11 +76,14 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         [Fact]
         public async Task TestKeyValueTracing()
         {
+            using var tracer = new RequestTracer();
+            using var listener = new ThresholdTraceListener(_loggerFactory, new ThresholdOptions());
+            tracer.Start(listener);
+
             var cluster = new FakeCluster(new ClusterOptions
             {
                 TracingOptions = new TracingOptions {
-                   RequestTracer = new RequestTracer().Start(
-                        new ThresholdTraceListener(_loggerFactory, new ThresholdOptions()))
+                   RequestTracer = tracer,
                 }
             });
             var bucket = await cluster.BucketAsync("fakeBucket");
@@ -116,25 +123,35 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         }
 
         [Fact]
-        public void Test_Logs()
+        public async Task Test_Logs()
         {
             var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
             using var tracer = new RequestTracer();
             using var listener = new ThresholdTraceListener(loggerFactory, new ThresholdOptions
             {
-                EmitInterval = TimeSpan.FromMilliseconds(10),
+                // Set EmitInterval high so the timer doesn't interfere; we'll flush manually
+                EmitInterval = TimeSpan.FromHours(1),
                 KvThreshold = TimeSpan.Zero
             });
             tracer.Start(listener);
+            // Delay to ensure the tracer is registered with the ActivitySource
+            await Task.Delay(100);
 
             using (var parentSpan = tracer.RequestSpan("get"))
             {
                 parentSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+                await Task.Delay(10); // Ensure span duration exceeds threshold
             }
 
-            string report = null;
-            var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
-            Assert.True(finished, userMessage: "Did not find a log entry for threshold data.");
+            // Brief yield to allow ActivityStopped callback to complete
+            await Task.Yield();
+
+            // Directly flush the report instead of waiting for the Timer callback,
+            // which can be starved by ThreadPool saturation on overloaded CI.
+            listener.ForceFlush();
+
+            Assert.True(loggerFactory.LoggedData.TryTake(out var report),
+                "Did not find a log entry for threshold data.");
             Assert.NotNull(report);
             Assert.StartsWith("{", report);
 

@@ -109,6 +109,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 SetAttribute(ThresholdTags.TotalDurationTag, durationStr);
 
                 _activity.Stop();
+                _disposed = true;
             }
             else
             {
