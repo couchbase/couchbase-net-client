@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Management.Eventing;
@@ -106,7 +105,7 @@ public class EventingFunctionManagerTests : IDisposable
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         var eventingFunctions = await manager.GetAllFunctionsAsync();
         var eventingFunction = eventingFunctions.First();
@@ -169,7 +168,7 @@ public class EventingFunctionManagerTests : IDisposable
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         var eventingFunctions = await manager.GetFunctionAsync("case_1_enrich_ips");
         var eventingFunction = eventingFunctions;
@@ -232,7 +231,7 @@ public class EventingFunctionManagerTests : IDisposable
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
         var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
         var eventingFunction = eventingFunctions.First();
         Assert.Equal("X40ih3", eventingFunction.FunctionInstanceId);
@@ -294,7 +293,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object,
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object,
             new EventingFunctionKeyspace("hr", "employees", null));
         var eventingFunctions = (await manager.GetAllFunctionsAsync()).ToList();
         var eventingFunction = eventingFunctions.First();
@@ -374,7 +373,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -443,7 +442,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -512,7 +511,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -579,7 +578,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -647,7 +646,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -716,7 +715,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         try
         {
@@ -782,7 +781,7 @@ using var response =
         tracer.Start(listener);
 
         var manager = new EventingFunctionManager(serviceMock.Object,
-            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object, new Mock<IAppTelemetryCollector>().Object);
+            new Mock<ILogger<EventingFunctionManager>>().Object, tracer, mockServiceUriProvider.Object);
 
         var functionStatus = await manager.FunctionsStatus();
         Assert.Equal(1, functionStatus.NumEventingNodes);

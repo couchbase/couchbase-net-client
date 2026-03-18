@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
@@ -65,7 +64,7 @@ namespace Couchbase.UnitTests.Management
                 .Returns(nodeMock.Object);
 
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync(indexName, new FtsSearchRequest{Index = indexName, Options = new SearchOptions()}, null, null, CancellationToken.None);
         }

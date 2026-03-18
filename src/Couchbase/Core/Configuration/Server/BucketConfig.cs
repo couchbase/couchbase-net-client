@@ -258,9 +258,10 @@ namespace Couchbase.Core.Configuration.Server
         internal ClusterLabels ClusterLabels = new();
         private List<NodesExt> _nodesExt = new();
 
-        private List<NodesExt> NodesWithAppTelemetry => NodesExt
-            .Where(n => !string.IsNullOrEmpty(n.AppTelemetryPath))
-            .ToList();
+        internal List<NodesExt> NodesWithAppTelemetry =>
+            field ??= NodesExt
+                .Where(n => !string.IsNullOrEmpty(n.AppTelemetryPath))
+                .ToList().Shuffle();
 
         internal Uri GetAppTelemetryPath(int attempt, bool? tlsEnabled = false)
         {

@@ -32,6 +32,9 @@ namespace Couchbase
         public const string PreferredServerGroup = "preferred_server_group";
 
         [InterfaceStability(Level.Volatile)]
+        public const string EnableAppTelemetry = "enable_app_telemetry";
+
+        [InterfaceStability(Level.Volatile)]
         public const string AppTelemetryEndpoint = "app_telemetry_endpoint";
 
         [InterfaceStability(Level.Volatile)]

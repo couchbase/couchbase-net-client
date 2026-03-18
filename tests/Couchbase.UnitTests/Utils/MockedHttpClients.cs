@@ -7,7 +7,6 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
@@ -69,7 +68,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object)
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance)
             {
                 EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
             };
@@ -115,7 +114,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
         }
 
         internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -158,7 +157,7 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(nodeMock.Object);
 
             return new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
         }
 
         internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses)

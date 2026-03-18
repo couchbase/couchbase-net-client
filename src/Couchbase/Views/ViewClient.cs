@@ -13,6 +13,7 @@ using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -50,7 +51,10 @@ namespace Couchbase.Views
             var uri = query.RawUri();
             rootSpan.WithRemoteAddress(uri);
 
-            bool success = false;
+            var requestStopwatch = LightweightStopwatch.StartNew();
+            TimeSpan? operationElapsed;
+
+            var success = false;
             try
             {
 
@@ -79,8 +83,10 @@ namespace Couchbase.Views
                         Content = content
                     };
 
+                    requestStopwatch.Restart();
                     var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, query.Token)
                         .ConfigureAwait(false);
+                    operationElapsed = requestStopwatch.Elapsed;
                     dispatchSpan.Dispose();
 
                     var serializer = query.Serializer ?? _serializer;
@@ -180,6 +186,7 @@ namespace Couchbase.Views
             }
             catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
             {
+                operationElapsed = requestStopwatch.Elapsed;
                 var context = new ViewContextError
                 {
                     DesignDocumentName = query.DesignDocName,
@@ -191,15 +198,10 @@ namespace Couchbase.Views
                 throw HandleHttpException(
                     e,
                     rootSpan,
-                    null, // ViewClient doesn't currently track elapsed time for app telemetry inside these catches
-                    default(AppTelemetryServiceType),
-                    null,
-                    null,
-                    null,
+                    operationElapsed,
                     true, // View queries are non-mutating, so UnambiguousTimeoutException
                     context,
-                    _logger,
-                    null); // ViewClient doesn't currently use app telemetry
+                    _logger);
             }
 
             UpdateLastActivity();

@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Http;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Collections;
 using Couchbase.UnitTests.Helpers;
@@ -40,9 +39,8 @@ namespace Couchbase.UnitTests.Management
             serviceUriProviderMock.Setup(x => x.GetRandomManagementNode()).Returns(nodeMock.Object);
             var serviceProvider = serviceUriProviderMock.Object;
             var bucketConfig = new Mock<BucketConfig>().Object;
-            var appTelemetryCollector = new Mock<IAppTelemetryCollector>().Object;
 
-            _collectionManager = new CollectionManager(BucketName, bucketConfig, serviceProvider, httpClientFactory, logger, redactor, appTelemetryCollector);
+            _collectionManager = new CollectionManager(BucketName, bucketConfig, serviceProvider, httpClientFactory, logger, redactor);
         }
 
         #region Uris

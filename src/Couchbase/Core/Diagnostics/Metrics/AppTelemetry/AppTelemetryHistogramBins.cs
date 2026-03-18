@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Couchbase.Core.Compatibility;
 
@@ -9,48 +7,45 @@ namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 [InterfaceStability(Level.Volatile)]
 internal class AppTelemetryHistogramBins
 {
-#if NET10_0_OR_GREATER
-    private readonly Lock _binLock = new();
-#else
-    private readonly object _binLock = new();
-#endif
-    /// <summary>
-    /// Count of all operations. This value is the cumulative sum of all smaller bins.
-    /// Sum of all operations' durations in seconds.
-    /// Key: double: Bin's Le (upper bound)
-    /// Value: uint: Bin's count, double: Bin's sum
-    /// </summary>
-    public List<Dictionary<double, KeyValuePair<uint, double>>> Bins { get; set; }
+    private readonly double[] _boundaries;
+    private readonly long[] _counts;
+    private readonly long[] _sumsInMicroseconds;
 
     public AppTelemetryHistogramBins(AppTelemetryRequestType requestType)
     {
-        Bins = new List<Dictionary<double, KeyValuePair<uint, double>>>();
-        foreach (var le in AppTelemetryHistogramUtils.GetPredefinedBucket(requestType))
-        {
-            Bins.Add(new Dictionary<double, KeyValuePair<uint, double>>()
-            {
-                {le, new KeyValuePair<uint, double>(0, 0)}
-            });
-        }
+        _boundaries = AppTelemetryHistogramUtils.GetPredefinedBucket(requestType);
+        _counts = new long[_boundaries.Length];
+        _sumsInMicroseconds = new long[_boundaries.Length];
     }
 
     public void IncrementCountAndSum(TimeSpan operationLatency)
     {
-        var opLatency = operationLatency.TotalMilliseconds;
+        var opLatencyMs = operationLatency.TotalMilliseconds;
+        var opLatencyUs = (long)(opLatencyMs * 1000.0);
 
-        lock (_binLock)
+        for (int i = 0; i < _boundaries.Length; i++)
         {
-            // For each bin, if the operation latency is less than or equal to the bin's upper bound,
-            // increment the count and add to the sum
-            foreach (var bin in Bins)
+            if (opLatencyMs <= _boundaries[i])
             {
-                var le = bin.Keys.First(); // There's only 1 key per bin
-
-                if (!(opLatency <= le)) continue;
-                var currentValue = bin[le];
-                bin[le] = new KeyValuePair<uint, double>(currentValue.Key + 1, currentValue.Value + opLatency);
-                break; //Break immediately after incrementing the bin, then we'll sum each bin cumulatively in the export method.
+                Interlocked.Increment(ref _counts[i]);
+                Interlocked.Add(ref _sumsInMicroseconds[i], opLatencyUs);
+                return;
             }
         }
+    }
+
+    /// <summary>
+    /// Atomically snapshots and resets all bins. Returns arrays for export.
+    /// </summary>
+    public BinSnapshot[] SnapshotAndReset()
+    {
+        var snapshot = new BinSnapshot[_boundaries.Length];
+        for (int i = 0; i < _boundaries.Length; i++)
+        {
+            var count = Interlocked.Exchange(ref _counts[i], 0);
+            var sumUs = Interlocked.Exchange(ref _sumsInMicroseconds[i], 0);
+            snapshot[i] = new BinSnapshot(_boundaries[i], (uint)count, sumUs / 1000.0);
+        }
+        return snapshot;
     }
 }

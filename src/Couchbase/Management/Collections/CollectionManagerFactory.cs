@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -11,6 +10,7 @@ using Couchbase.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
 
 namespace Couchbase.Management.Collections
 {
@@ -37,7 +37,6 @@ namespace Couchbase.Management.Collections
                 CouchbaseServiceProviderExtensions.GetRequiredService<ICouchbaseHttpClientFactory>(_serviceProvider),
                 CouchbaseServiceProviderExtensions.GetRequiredService<ILogger<CollectionManager>>(_serviceProvider),
                 CouchbaseServiceProviderExtensions.GetRequiredService<IRedactor>(_serviceProvider),
-                ServiceProviderServiceExtensions.GetRequiredService<IAppTelemetryCollector>(_serviceProvider),
                 ServiceProviderServiceExtensions.GetRequiredService<IRequestTracer>(_serviceProvider));
     }
 }

@@ -63,7 +63,6 @@ namespace Couchbase.Core
         private string _bucketName = BucketConfig.GlobalBucketName;
         private IBucket _owner;
         private readonly IOperationConfigurator _operationConfigurator;
-        private readonly IAppTelemetryCollector _appTelemetryCollector;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -79,7 +78,6 @@ namespace Couchbase.Core
             _tracer = tracer;
             _operationConfigurator = operationConfigurator;
             EndPoint = endPoint;
-            _appTelemetryCollector = _context.ServiceProvider.GetRequiredService<IAppTelemetryCollector>();
 
             try
             {
@@ -609,15 +607,16 @@ namespace Couchbase.Core
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
             LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
-            var operationStopwatch = _appTelemetryCollector?.StartNewLightweightStopwatch();
+            var operationStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationLatency;
+            var appTelemetryRequestType = AppTelemetryUtils.GetAppTelemetryKvRequestType(op);
 
             try
             {
-                operationStopwatch?.Restart();
+                operationStopwatch.Restart();
                 // Await the send in case the send throws an exception (i.e. SendQueueFullException)
                 await sender(op, state, tokenPair).ConfigureAwait(false);
-                operationLatency = operationStopwatch?.Elapsed;
+                operationLatency = operationStopwatch.Elapsed;
 
                 ResponseStatus status;
                 using (new OperationCancellationRegistration(op, tokenPair))
@@ -631,15 +630,18 @@ namespace Couchbase.Core
                 {
                     LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
 
-                    _appTelemetryCollector?.IncrementMetrics(
-                        operationLatency,
-                        _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
-                        _nodesAdapter?.AlternateHostname,
-                        NodeUuid,
-                        AppTelemetryServiceType.KeyValue,
-                        AppTelemetryCounterType.Total,
-                        AppTelemetryUtils.GetAppTelemetryKvRequestType(op),
-                        op.BucketName);
+                    if (appTelemetryRequestType.HasValue)
+                    {
+                        MetricTracker.AppTelemetry.TrackOperation(
+                            operationLatency,
+                            _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
+                            _nodesAdapter?.AlternateHostname,
+                            NodeUuid,
+                            AppTelemetryServiceType.KeyValue,
+                            AppTelemetryCounterType.Total,
+                            appTelemetryRequestType.Value,
+                            op.BucketName);
+                    }
 
                     return status;
                 }
@@ -718,12 +720,25 @@ namespace Couchbase.Core
                     op.LogOrphaned();
                 }
 
+                if (appTelemetryRequestType.HasValue)
+                {
+                    MetricTracker.AppTelemetry.TrackOperation(
+                        operationLatency,
+                        _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
+                        _nodesAdapter?.AlternateHostname,
+                        NodeUuid,
+                        AppTelemetryServiceType.KeyValue,
+                        AppTelemetryCounterType.Total,
+                        appTelemetryRequestType.Value,
+                        op.BucketName);
+                }
+
                 return status;
             }
             catch (OperationCanceledException ex)
             {
                 //Recording operation time if it failed
-                operationLatency = operationStopwatch?.Elapsed;
+                operationLatency = operationStopwatch.Elapsed;
 
                 // Timeout handling logic is also in RetryOrchestrator, however this method can also be reached without
                 // passing through RetryOrchestrator for cases like diagnostics or bootstrapping. Therefore, we need the logic
@@ -742,17 +757,18 @@ namespace Couchbase.Core
                     LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion, op.IsSent);
                     MetricTracker.KeyValue.TrackTimeout(op.OpCode);
 
-                    _appTelemetryCollector?.IncrementMetrics(
-                        operationLatency,
-                        _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
-                        _nodesAdapter?.AlternateHostname,
-                        NodeUuid,
-                        AppTelemetryServiceType.KeyValue,
-                        AppTelemetryCounterType.TimedOut,
-                        AppTelemetryUtils.GetAppTelemetryKvRequestType(op),
-                        op.BucketName);
-
-
+                    if (appTelemetryRequestType.HasValue)
+                    {
+                        MetricTracker.AppTelemetry.TrackOperation(
+                            operationLatency,
+                            _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
+                            _nodesAdapter?.AlternateHostname,
+                            NodeUuid,
+                            AppTelemetryServiceType.KeyValue,
+                            AppTelemetryCounterType.TimedOut,
+                            appTelemetryRequestType.Value,
+                            op.BucketName);
+                    }
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
@@ -771,15 +787,18 @@ namespace Couchbase.Core
                     });
                 }
 
-                _appTelemetryCollector?.IncrementMetrics(
-                    operationLatency,
-                    _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
-                    _nodesAdapter?.AlternateHostname,
-                    NodeUuid,
-                    AppTelemetryServiceType.KeyValue,
-                    AppTelemetryCounterType.Canceled,
-                    AppTelemetryUtils.GetAppTelemetryKvRequestType(op),
-                    op.BucketName);
+                if (appTelemetryRequestType.HasValue)
+                {
+                    MetricTracker.AppTelemetry.TrackOperation(
+                        operationLatency,
+                        _nodesAdapter?.CanonicalHostname ?? EndPoint.Host,
+                        _nodesAdapter?.AlternateHostname,
+                        NodeUuid,
+                        AppTelemetryServiceType.KeyValue,
+                        AppTelemetryCounterType.Canceled,
+                        appTelemetryRequestType.Value,
+                        op.BucketName);
+                }
 
                 throw;
             }

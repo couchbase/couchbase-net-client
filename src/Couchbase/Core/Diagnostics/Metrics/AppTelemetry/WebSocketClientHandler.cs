@@ -80,8 +80,12 @@ internal class WebSocketClientHandler : IDisposable
             }
             finally
             {
-                await BackoffAsync().ConfigureAwait(false);
                 _attempt++;
+                var endpointCount = _appTelemetryCollector.EndpointCount;
+                if (endpointCount <= 0 || _attempt >= endpointCount)
+                {
+                    await BackoffAsync(endpointCount).ConfigureAwait(false);
+                }
             }
         }
     }
@@ -158,7 +162,7 @@ internal class WebSocketClientHandler : IDisposable
 
     private async Task SendTelemetryAsync(CancellationToken cancellationToken)
     {
-        string? metrics;
+        string metrics;
 
         if (_pendingMetrics != null)
         {
@@ -171,7 +175,7 @@ internal class WebSocketClientHandler : IDisposable
         }
         else
         {
-            return;
+            metrics = string.Empty;
         }
 
         var metricsBytes = Encoding.UTF8.GetBytes(metrics);
@@ -213,8 +217,9 @@ internal class WebSocketClientHandler : IDisposable
 
     /// <summary>
     /// Awaits with an exponentially increasing backoff delay starting at 100ms capped at clampedExponent.
+    /// The backoff exponent is relative to the number of full cycles through all endpoints.
     /// </summary>
-    private async Task BackoffAsync()
+    private async Task BackoffAsync(int endpointCount)
     {
         var maxBackoff = _appTelemetryCollector.Backoff;
 
@@ -223,8 +228,14 @@ internal class WebSocketClientHandler : IDisposable
             await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
             return;
         }
+
+        // Compute the backoff exponent based on full cycles through endpoints,
+        // so the backoff only increases after all endpoints have been tried.
+        var backoffAttempt = endpointCount > 0 ? (_attempt / endpointCount) - 1 : _attempt;
+        backoffAttempt = Math.Max(0, backoffAttempt);
+
         //To prevent overflow, we clamp the exponent to a maximum value
-        var clampedAttempt = Math.Min(_attempt, _clampedExponent);
+        var clampedAttempt = Math.Min(backoffAttempt, _clampedExponent);
 
         var delayMs = 100L << clampedAttempt; //100ms * 2^attempt
         var cappedDelayMs = Math.Min(delayMs, (long)maxBackoff.TotalMilliseconds);

@@ -9,16 +9,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Queries.Vector;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -41,7 +44,6 @@ namespace Couchbase.Search
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
         private readonly IDataMapper _dataMapper;
-        private readonly IAppTelemetryCollector _appTelemetryCollector;
         private string Escape(string pathValue) => Uri.EscapeDataString(pathValue);
 
         //for log redaction
@@ -53,8 +55,7 @@ namespace Couchbase.Search
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
-            IRequestTracer tracer,
-            IAppTelemetryCollector appTelemetryCollector)
+            IRequestTracer tracer)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
@@ -62,7 +63,6 @@ namespace Couchbase.Search
             _tracer = tracer;
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
-            _appTelemetryCollector = appTelemetryCollector;
         }
 
         /// <summary>
@@ -87,205 +87,217 @@ namespace Couchbase.Search
 
             ftsSearchRequest.Query ??= new MatchNoneQuery();
 
-            bool success = false;
+            using var encodingSpan = rootSpan.EncodingSpan();
+
+            // try get Search nodes
+            var searchNode = _serviceUriProvider.GetRandomSearchNode();
+            var searchUri = searchNode.SearchUri;
+            var requestStopwatch = LightweightStopwatch.StartNew();
+            TimeSpan requestElapsed;
+
+            rootSpan.WithRemoteAddress(searchUri);
+
+            var path = scope?.Bucket?.Name is not null
+                ? $"api/bucket/{Escape(scope.Bucket.Name)}/scope/{Escape(scope.Name)}/index/{Escape(indexName)}/query"
+                : $"api/index/{Escape(indexName)}/query";
+            var uriBuilder = new UriBuilder(searchUri)
+            {
+                Path = path
+            };
+
+            _logger.LogDebug("Sending FTS query with a context id {contextId} to server {searchUri}",
+                ftsSearchRequest.ClientContextId, uriBuilder.ToString());
+
+            var searchResult = new SearchResult();
+
+            // still reliant on Newtonsoft.Json, for legacy reasons
+            // if the user specified only a VectorSearch,
+            // then ftsSearchRequest will have been replaced with a MatchNoneQuery
+            JObject requestJson = ftsSearchRequest.ToJObject();
+            if (vectorSearch is not null)
+            {
+                if (vectorSearch.VectorQueries.Count < 1)
+                {
+                    throw new InvalidArgumentException("The Vector Search query must contain at least 1 element.");
+                }
+                var vectorJson = JObject.FromObject(vectorSearch);
+                var vectorQueries = vectorJson[VectorSearch.PropVectorQueries];
+                requestJson.Add(VectorSearch.PropVectorQueries, vectorQueries);
+                if (vectorSearch.VectorQueryCombination is not null)
+                {
+                    requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
+                }
+            }
+            //Prevents the server from returning the original request in the response.
+            //Should only be sent for the new {Cluster, Scope}.SearchAsync() (not for the old {Cluster, Scope}.SearchQueryAsync())
+            //but we do not differentiate between those in the SDK. The parameter is ignored by older server versions.
+            requestJson.Add("showrequest", false);
+            var searchBody = requestJson.ToString(Formatting.None);
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace(searchBody);
+            }
+
+            string? errors = null;
             try
             {
-                using var encodingSpan = rootSpan.EncodingSpan();
-
-                // try get Search nodes
-                var searchNode = _serviceUriProvider.GetRandomSearchNode();
-                var searchUri = searchNode.SearchUri;
-                var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
-
-                rootSpan.WithRemoteAddress(searchUri);
-
-                var path = scope?.Bucket?.Name is not null
-                    ? $"api/bucket/{Escape(scope.Bucket.Name)}/scope/{Escape(scope.Name)}/index/{Escape(indexName)}/query"
-                    : $"api/index/{Escape(indexName)}/query";
-                var uriBuilder = new UriBuilder(searchUri)
+                using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
+                encodingSpan.Dispose();
+                using var dispatchSpan = rootSpan.DispatchSpan(ftsSearchRequest!);
+                using var httpClient = CreateHttpClient();
+                var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uriBuilder.Uri)
                 {
-                    Path = path
+                    Content = content
                 };
 
-                _logger.LogDebug("Sending FTS query with a context id {contextId} to server {searchUri}",
-                    ftsSearchRequest.ClientContextId, uriBuilder.ToString());
+                requestStopwatch.Restart();
 
-                var searchResult = new SearchResult();
+                // Search doesn't support streaming the response objects, however we can still get a small performance gain by reading
+                // the HTTP response body as it arrives instead of waiting for the entire response to arrive. Therefore, use the
+                // HttpClientFactory.DefaultCompletionOption here. However, the more complex logic to dispose of HttpClient used in other
+                // query clients is not required as the response body will be fully read before this method returns.
+                using var response = await httpClient.SendAsync(httpRequestMessage, HttpClientFactory.DefaultCompletionOption, cancellationToken)
+                    .ConfigureAwait(false);
+                requestElapsed = requestStopwatch.Elapsed;
 
-                // still reliant on Newtonsoft.Json, for legacy reasons
-                // if the user specified only a VectorSearch,
-                // then ftsSearchRequest will have been replaced with a MatchNoneQuery
-                JObject requestJson = ftsSearchRequest.ToJObject();
-                if (vectorSearch is not null)
+                MetricTracker.AppTelemetry.TrackOperation(
+                    requestElapsed,
+                    searchNode.NodesAdapter?.CanonicalHostname,
+                    searchNode.NodesAdapter?.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.Total);
+
+                dispatchSpan.Dispose();
+
+                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    if (vectorSearch.VectorQueries.Count < 1)
+                    if (response.IsSuccessStatusCode)
                     {
-                        throw new InvalidArgumentException("The Vector Search query must contain at least 1 element.");
+                        searchResult = await _dataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
                     }
-                    var vectorJson = JObject.FromObject(vectorSearch);
-                    var vectorQueries = vectorJson[VectorSearch.PropVectorQueries];
-                    requestJson.Add(VectorSearch.PropVectorQueries, vectorQueries);
-                    if (vectorSearch.VectorQueryCombination is not null)
+                    else
                     {
-                        requestJson.Add(VectorSearch.PropVectorQueryCombination, JValue.CreateString(vectorSearch.VectorQueryCombination));
-                    }
-                }
-                //Prevents the server from returning the original request in the response.
-                //Should only be sent for the new {Cluster, Scope}.SearchAsync() (not for the old {Cluster, Scope}.SearchQueryAsync())
-                //but we do not differentiate between those in the SDK. The parameter is ignored by older server versions.
-                requestJson.Add("showrequest", false);
-                var searchBody = requestJson.ToString(Formatting.None);
-                if (_logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace(searchBody);
-                }
+                        using var reader = new JsonTextReader(new StreamReader(stream));
+                        var json = await JObject.LoadAsync(reader, cancellationToken).ConfigureAwait(false);
+                        var queryError = json?.SelectToken("error");
 
-                string? errors = null;
-                try
-                {
-                    using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
-                    encodingSpan.Dispose();
-                    using var dispatchSpan = rootSpan.DispatchSpan(ftsSearchRequest!);
-                    using var httpClient = CreateHttpClient();
-                    var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uriBuilder.Uri)
-                    {
-                        Content = content
-                    };
-
-                    requestStopwatch?.Restart();
-
-                    // Search doesn't support streaming the response objects, however we can still get a small performance gain by reading
-                    // the HTTP response body as it arrives instead of waiting for the entire response to arrive. Therefore, use the
-                    // HttpClientFactory.DefaultCompletionOption here. However, the more complex logic to dispose of HttpClient used in other
-                    // query clients is not required as the response body will be fully read before this method returns.
-                    using var response = await httpClient.SendAsync(httpRequestMessage, HttpClientFactory.DefaultCompletionOption, cancellationToken)
-                        .ConfigureAwait(false);
-                    var requestElapsed = requestStopwatch?.Elapsed;
-                    dispatchSpan.Dispose();
-
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
-                        if (response.IsSuccessStatusCode)
+                        //If the query service returned a top level error then
+                        //use it otherwise the error is in the response body
+                        if(queryError != null)
                         {
-                            _appTelemetryCollector.IncrementMetrics(
-                                requestElapsed,
-                                searchNode.NodesAdapter.CanonicalHostname,
-                                searchNode.NodesAdapter?.AlternateHostname,
-                                searchNode.NodeUuid,
-                                AppTelemetryServiceType.Search,
-                                AppTelemetryCounterType.Total);
-
-                            searchResult = await _dataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
+                            errors = queryError.Value<string>() ?? "";
                         }
-                        else
+
+                        var ctx = new SearchErrorContext
                         {
-                            using var reader = new JsonTextReader(new StreamReader(stream));
-                            var json = await JObject.LoadAsync(reader, cancellationToken).ConfigureAwait(false);
-                            var queryError = json?.SelectToken("error");
+                            HttpStatus = response.StatusCode,
+                            IndexName = ftsSearchRequest!.Index,
+                            ClientContextId = ftsSearchRequest.ClientContextId,
+                            Statement = ftsSearchRequest.Statement,
+                            Errors = errors,
+                            Query = ftsSearchRequest.ToJson(),
+                            Message = errors
+                        };
 
-                            //If the query service returned a top level error then
-                            //use it otherwise the error is in the response body
-                            if(queryError != null)
+                        //Rate limiting errors
+                        if (response.StatusCode == (HttpStatusCode)429 && errors != null)
+                        {
+                            if (errors.Contains("num_concurrent_requests"))
                             {
-                                errors = queryError.Value<string>() ?? "";
+                                throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
+                                    ctx);
                             }
+                            if (errors.Contains("num_queries_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
+                                    ctx);
+                            }
+                            if (errors.Contains("ingress_mib_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached,
+                                    ctx);
+                            }
+                            if (errors.Contains("egress_mib_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached,
+                                    ctx);
+                            }
+                        }
+                        //Quota limiting errors
+                        if (response.StatusCode == HttpStatusCode.BadRequest && errors != null)
+                        {
+                            if (errors.Contains("index not found"))
+                            {
+                                throw new IndexNotFoundException("The search index was not found on the server.")
+                                {
+                                    Context = ctx
+                                };
+                            }
+                            if (errors.Contains("num_fts_indexes"))
+                            {
+                                throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached,
+                                    ctx);
+                            }
+                        }
 
-                            var ctx = new SearchErrorContext
+                        //Internal service errors
+                        if (response.StatusCode == HttpStatusCode.InternalServerError)
+                        {
+                            throw new InternalServerFailureException { Context = ctx };
+                        }
+
+                        //Authentication errors
+                        if (response.StatusCode == HttpStatusCode.Forbidden ||
+                            response.StatusCode == HttpStatusCode.Unauthorized)
+                        {
+                            throw new AuthenticationFailureException(ctx);
+                        }
+
+                        throw new CouchbaseException(errors ?? "") { Context = ctx };
+                    }
+                }
+
+                searchResult.HttpStatusCode = response.StatusCode;
+                if (searchResult.ShouldRetry())
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        searchResult.NoRetryException = new CouchbaseException()
+                        {
+                            Context = new SearchErrorContext
                             {
                                 HttpStatus = response.StatusCode,
                                 IndexName = ftsSearchRequest!.Index,
                                 ClientContextId = ftsSearchRequest.ClientContextId,
                                 Statement = ftsSearchRequest.Statement,
                                 Errors = errors,
-                                Query = ftsSearchRequest.ToJson(),
-                                Message = errors
-                            };
-
-                            //Rate limiting errors
-                            if (response.StatusCode == (HttpStatusCode)429 && errors != null)
-                            {
-                                if (errors.Contains("num_concurrent_requests"))
-                                {
-                                    throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
-                                        ctx);
-                                }
-                                if (errors.Contains("num_queries_per_min"))
-                                {
-                                    throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
-                                        ctx);
-                                }
-                                if (errors.Contains("ingress_mib_per_min"))
-                                {
-                                    throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached,
-                                        ctx);
-                                }
-                                if (errors.Contains("egress_mib_per_min"))
-                                {
-                                    throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached,
-                                        ctx);
-                                }
+                                Query = ftsSearchRequest.ToJson()
                             }
-                            //Quota limiting errors
-                            if (response.StatusCode == HttpStatusCode.BadRequest && errors != null)
-                            {
-                                if (errors.Contains("index not found"))
-                                {
-                                    throw new IndexNotFoundException("The search index was not found on the server.")
-                                    {
-                                        Context = ctx
-                                    };
-                                }
-                                if (errors.Contains("num_fts_indexes"))
-                                {
-                                    throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached,
-                                        ctx);
-                                }
-                            }
-
-                            //Internal service errors
-                            if (response.StatusCode == HttpStatusCode.InternalServerError)
-                            {
-                                throw new InternalServerFailureException { Context = ctx };
-                            }
-
-                            //Authentication errors
-                            if (response.StatusCode == HttpStatusCode.Forbidden ||
-                                response.StatusCode == HttpStatusCode.Unauthorized)
-                            {
-                                throw new AuthenticationFailureException(ctx);
-                            }
-
-                            throw new CouchbaseException(errors ?? "") { Context = ctx };
-                        }
+                        };
                     }
-
-                    searchResult.HttpStatusCode = response.StatusCode;
-                    if (searchResult.ShouldRetry())
-                    {
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            searchResult.NoRetryException = new CouchbaseException()
-                            {
-                                Context = new SearchErrorContext
-                                {
-                                    HttpStatus = response.StatusCode,
-                                    IndexName = ftsSearchRequest!.Index,
-                                    ClientContextId = ftsSearchRequest.ClientContextId,
-                                    Statement = ftsSearchRequest.Statement,
-                                    Errors = errors,
-                                    Query = ftsSearchRequest.ToJson()
-                                }
-                            };
-                        }
-                        UpdateLastActivity();
-                        rootSpan.SetStatus(RequestSpanStatusCode.Ok);
-                        success = true;
-                        return searchResult;
-                    }
+                    UpdateLastActivity();
+                    return searchResult;
                 }
-                catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
+            }
+            catch (OperationCanceledException e)
+            {
+                requestElapsed = requestStopwatch.Elapsed;
+                //treat as an orphaned response
+                rootSpan.LogOrphaned();
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    requestElapsed,
+                    searchNode.NodesAdapter!.CanonicalHostname,
+                    searchNode.NodesAdapter.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.TimedOut);
+
+                _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
+                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
                 {
-                    var context = new SearchErrorContext
+                    Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
                         IndexName = ftsSearchRequest!.Index,
@@ -293,33 +305,39 @@ namespace Couchbase.Search
                         Statement = ftsSearchRequest.Statement,
                         Errors = errors,
                         Query = ftsSearchRequest.ToJson()
-                    };
-
-                    throw HandleHttpException(
-                        e,
-                        rootSpan,
-                        requestStopwatch?.Elapsed,
-                        AppTelemetryServiceType.Search,
-                        searchNode.NodesAdapter!.CanonicalHostname,
-                        searchNode.NodesAdapter.AlternateHostname,
-                        searchNode.NodeUuid,
-                        true, // Search queries are non-mutating, so UnambiguousTimeoutException
-                        context,
-                        _logger,
-                        _appTelemetryCollector);
-                }
-                UpdateLastActivity();
-                rootSpan.SetStatus(RequestSpanStatusCode.Ok);
-                success = true;
-                return searchResult;
+                    }
+                };
             }
-            finally
+            catch (HttpRequestException e)
             {
-                if (!success)
+                requestElapsed = requestStopwatch.Elapsed;
+                //treat as an orphaned response
+                rootSpan.LogOrphaned();
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    requestElapsed,
+                    searchNode.NodesAdapter!.CanonicalHostname,
+                    searchNode.NodesAdapter.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.Canceled);
+
+                _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
+                throw new RequestCanceledException("The query was canceled.", e)
                 {
-                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
-                }
+                    Context = new SearchErrorContext
+                    {
+                        HttpStatus = HttpStatusCode.RequestTimeout,
+                        IndexName = ftsSearchRequest!.Index,
+                        ClientContextId = ftsSearchRequest.ClientContextId,
+                        Statement = ftsSearchRequest.Statement,
+                        Errors = errors,
+                        Query = ftsSearchRequest.ToJson()
+                    }
+                };
             }
+            UpdateLastActivity();
+            return searchResult;
         }
 
 #region tracing

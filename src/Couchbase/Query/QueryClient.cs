@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -41,7 +42,6 @@ namespace Couchbase.Query
         private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
-        private readonly IAppTelemetryCollector _appTelemetryCollector;
         internal bool EnhancedPreparedStatementsEnabled;
         internal bool UseReplicaEnabled;
 
@@ -51,8 +51,7 @@ namespace Couchbase.Query
             ITypeSerializer serializer,
             IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             ILogger<QueryClient> logger,
-            IRequestTracer tracer,
-            IAppTelemetryCollector appTelemetryCollector)
+            IRequestTracer tracer)
             : base(clientFactory)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
@@ -83,7 +82,6 @@ namespace Couchbase.Query
             _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider;
             _logger = logger;
             _tracer = tracer;
-            _appTelemetryCollector = appTelemetryCollector;
         }
 
         /// <inheritdoc />
@@ -231,7 +229,7 @@ namespace Couchbase.Query
             var queryNode = _serviceUriProvider.GetRandomQueryNode();
             var queryUri = options.LastDispatchedNode ?? queryNode.QueryUri;
 
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             span.WithRemoteAddress(queryUri);
@@ -265,7 +263,7 @@ namespace Couchbase.Query
                     request.Version = httpClient.DefaultRequestVersion;
     #endif
 
-                    requestStopwatch?.Restart();
+                    requestStopwatch.Restart();
 
                     var response = await httpClient.SendAsync(request,
                         options.StreamResultsInternal
@@ -273,7 +271,7 @@ namespace Couchbase.Query
                             : HttpClientFactory.DefaultCompletionOption,
                         cts.FallbackToToken(options.Token)).ConfigureAwait(false);
 
-                    operationElapsed = requestStopwatch?.Elapsed;
+                    operationElapsed = requestStopwatch.Elapsed;
 
                     dispatchSpan.Dispose();
 
@@ -319,10 +317,10 @@ namespace Couchbase.Query
 
                         if (queryResult.MetaData?.Status == QueryStatus.Timeout)
                         {
-                            _appTelemetryCollector.IncrementMetrics(
+                            MetricTracker.AppTelemetry.TrackOperation(
                                 operationElapsed,
-                                queryNode.NodesAdapter.CanonicalHostname,
-                                queryNode.NodesAdapter.AlternateHostname,
+                                queryNode.NodesAdapter?.CanonicalHostname,
+                                queryNode.NodesAdapter?.AlternateHostname,
                                 queryNode.NodeUuid,
                                 AppTelemetryServiceType.Query,
                                 AppTelemetryCounterType.TimedOut);
@@ -359,8 +357,20 @@ namespace Couchbase.Query
                     throw;
                 }
             }
-            catch (Exception e) when (e is OperationCanceledException || e is HttpRequestException)
+            catch (OperationCanceledException e)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                //treat as an orphaned response
+                span.LogOrphaned();
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    queryNode.NodesAdapter?.CanonicalHostname,
+                    queryNode.NodesAdapter?.AlternateHostname,
+                    queryNode.NodeUuid,
+                    AppTelemetryServiceType.Query,
+                    AppTelemetryCounterType.TimedOut);
+
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
@@ -370,24 +380,54 @@ namespace Couchbase.Query
                     QueryStatus = QueryStatus.Fatal
                 };
 
-                throw HandleHttpException(
-                    e,
-                    span,
-                    requestStopwatch?.Elapsed,
-                    AppTelemetryServiceType.Query,
-                    queryNode.NodesAdapter.CanonicalHostname,
-                    queryNode.NodesAdapter.AlternateHostname,
+                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
+                if (options.IsReadOnly)
+                {
+                    throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
+                    {
+                        Context = context
+                    };
+                }
+                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
+                {
+                    Context = context
+                };
+            }
+            catch (HttpRequestException e)
+            {
+                operationElapsed = requestStopwatch.Elapsed;
+                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
+
+                //treat as an orphaned response
+                span.LogOrphaned();
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    queryNode.NodesAdapter?.CanonicalHostname,
+                    queryNode.NodesAdapter?.AlternateHostname,
                     queryNode.NodeUuid,
-                    options.IsReadOnly,
-                    context,
-                    _logger,
-                    _appTelemetryCollector);
+                    AppTelemetryServiceType.Query,
+                    AppTelemetryCounterType.Canceled);
+
+                var context = new QueryErrorContext
+                {
+                    ClientContextId = options.CurrentContextId,
+                    Parameters = options.GetAllParametersAsJson(serializer),
+                    Statement = options.StatementValue,
+                    HttpStatus = HttpStatusCode.RequestTimeout,
+                    QueryStatus = QueryStatus.Fatal
+                };
+
+                throw new RequestCanceledException("The query was canceled.", e)
+                {
+                    Context = context
+                };
             }
 
-            _appTelemetryCollector.IncrementMetrics(
+            MetricTracker.AppTelemetry.TrackOperation(
                 operationElapsed,
-                queryNode.NodesAdapter.CanonicalHostname,
-                queryNode.NodesAdapter.AlternateHostname,
+                queryNode.NodesAdapter?.CanonicalHostname,
+                queryNode.NodesAdapter?.AlternateHostname,
                 queryNode.NodeUuid,
                 AppTelemetryServiceType.Query,
                 AppTelemetryCounterType.Total);

@@ -545,25 +545,29 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json",
                 InternalSerializationContext.Default.BucketConfig);
 
+            // The endpoint list is shuffled, but all 3 distinct nodes should be reachable
+            // across attempts 0, 1, 2 and the pattern should repeat.
             var node1 = config.GetAppTelemetryPath(0);
             var node2 = config.GetAppTelemetryPath(1);
-            Assert.NotEqual(node1, node2);
-
             var node3 = config.GetAppTelemetryPath(2);
+
+            // All 3 should be different (3 distinct endpoints)
+            Assert.NotEqual(node1, node2);
             Assert.NotEqual(node1, node3);
             Assert.NotEqual(node2, node3);
 
-            var node4 = config.GetAppTelemetryPath(3);
-            Assert.Equal(node1, node4);
+            // Pattern repeats after going through all endpoints
+            Assert.Equal(node1, config.GetAppTelemetryPath(3));
+            Assert.Equal(node2, config.GetAppTelemetryPath(4));
+            Assert.Equal(node3, config.GetAppTelemetryPath(5));
 
-
-            var node5 = config.GetAppTelemetryPath(4, true);
-            var node6 = config.GetAppTelemetryPath(5, true);
-            Assert.NotEqual(node5, node6);
-
-            var node7 = config.GetAppTelemetryPath(6, true);
-            Assert.NotEqual(node5, node7);
-            Assert.NotEqual(node6, node7);
+            // TLS endpoints should also cycle through 3 distinct nodes
+            var tlsNode1 = config.GetAppTelemetryPath(0, true);
+            var tlsNode2 = config.GetAppTelemetryPath(1, true);
+            var tlsNode3 = config.GetAppTelemetryPath(2, true);
+            Assert.NotEqual(tlsNode1, tlsNode2);
+            Assert.NotEqual(tlsNode1, tlsNode3);
+            Assert.NotEqual(tlsNode2, tlsNode3);
         }
 
         [Fact]

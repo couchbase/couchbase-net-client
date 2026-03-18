@@ -162,6 +162,10 @@ namespace Couchbase
                     {
                         ConnectionStringValue.RandomizeSeedHosts = randomizeSeedNodes;
                     }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.EnableAppTelemetry, out bool enableAppTelemetry))
+                    {
+                        AppTelemetry.Enabled = enableAppTelemetry;
+                    }
                     if (ConnectionStringValue.TryGetParameter(CStringParams.AppTelemetryEndpoint, out string appTelemetryEndpoint))
                     {
                         AppTelemetry.Endpoint = new Uri(appTelemetryEndpoint);

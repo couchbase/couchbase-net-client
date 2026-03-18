@@ -1,550 +1,124 @@
 using System;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
-namespace Couchbase.UnitTests.Search
+namespace Couchbase.UnitTests.Search;
+
+public class SearchClientTests
 {
-    //TODO: update tests with new way of constructing client
-    public class SearchClientTests
+    [Fact]
+    public async Task Query_IndexNotFound_Throws_IndexNotFoundException()
     {
-        [Fact]
-        public async Task Query_IndexNotFound_Throws_IndexNotFoundException()
+        const string indexName = "test-index";
+
+        using var responseStream = ResourceHelper.ReadResourceAsStream("query-error-index-not-found-400.json");
+        using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
         {
-            const string indexName = "test-index";
+            // ReSharper disable once AccessToDisposedClosure
+            Content = new StreamContent(responseStream),
+            StatusCode = HttpStatusCode.BadRequest
+        });
+        var httpClient = new HttpClient(handler);
+        var httpClientFactory = new MockHttpClientFactory(httpClient);
 
-            using var responseStream = ResourceHelper.ReadResourceAsStream("query-error-index-not-found-400.json");
-            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
-            {
-                // ReSharper disable once AccessToDisposedClosure
-                Content = new StreamContent(responseStream),
-                StatusCode = HttpStatusCode.BadRequest
-            });
-            var httpClient = new HttpClient(handler);
-            var httpClientFactory = new MockHttpClientFactory(httpClient);
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.SearchUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.SearchUri)
-                .Returns(new Uri("http://localhost:8093"));
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomSearchUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomSearchNode())
+            .Returns(nodeMock.Object);
 
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchNode())
-                .Returns(nodeMock.Object);
+        var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
+            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
-            var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<AppTelemetryCollector>().Object);
-
-            await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(indexName, new FtsSearchRequest {Index = indexName}, null, null, CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task Query_200_All_TimedOut_Does_Not_Throw()
-        {
-            const string indexName = "test-index";
-
-            using var responseStream = ResourceHelper.ReadResourceAsStream("alltimeouts.json");
-            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
-            {
-                // ReSharper disable once AccessToDisposedClosure
-                Content = new StreamContent(responseStream),
-                StatusCode = HttpStatusCode.OK
-            });
-            var httpClient = new HttpClient(handler);
-            var httpClientFactory = new MockHttpClientFactory(httpClient);
-
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock
-                .Setup(n => n.SearchUri)
-                .Returns(new Uri("http://localhost:8093"));
-
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
-
-            nodeMock.Setup(n => n.NodesAdapter)
-                .Returns(nodeAdapterMock.Object);
-
-            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchUri())
-                .Returns(new Uri("http://localhost:8093"));
-            mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchNode())
-                .Returns(nodeMock.Object);
-
-            var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new Mock<IAppTelemetryCollector>().Object);
-
-            var response =  await client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, null, CancellationToken.None);
-            Assert.Equal(6, response.MetaData.ErrorCount);
-            Assert.Equal(6, response.MetaData.TotalCount);
-            Assert.Equal(0, response.MetaData.SuccessCount);
-            Assert.Equal(6, response.MetaData.Errors.Count);
-        }
+        await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(indexName, new FtsSearchRequest {Index = indexName}, null, null, CancellationToken.None));
     }
-    //{
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_ReturnsErrorMessage()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.102:8091/"));//assume invalid uri
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
 
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.True(response.Errors.First().Contains("Requested resource not found."));
-    //    }
+    [Fact]
+    public async Task Query_200_All_TimedOut_Does_Not_Throw()
+    {
+        const string indexName = "test-index";
 
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_Returns403()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.True(response.Errors.First().Contains("rest_auth: preparePerm, err: index not found"));
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_Returns404()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.True(response.Exception.Message.Contains("404"));
-    //    }
-
-    //    [Fact]
-    //    public async Task QueryAsync_WhenInvalidIndexName_Returns403()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.True(response.Exception.Message.Contains("403"));
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_ReturnsErrorCountOfOne()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(1, response.Metrics.ErrorCount);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_ReturnsErrorCountOfOne()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(1, response.Metrics.ErrorCount);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_ReturnsTotalCountOfZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.TotalCount);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_ReturnsSuccessCountOfZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.SuccessCount);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_ReturnsSuccessCountOfZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.SuccessCount);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_ReturnsSuccessFalse()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.False(response.Success);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_ReturnsSuccessFalse()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.False(response.Success);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_ReturnsHitsEqualToZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.TotalHits);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_ReturnsHitsEqualToZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.TotalHits);
-    //    }
-
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_MaxScoreIsZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.MaxScore);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_MaxScoreIsZero()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Equal(0, response.Metrics.MaxScore);
-    //    }
-
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidIndexName_FacetsIsEmpty()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.Forbidden,
-    //            Content = new StringContent("rest_auth: preparePerm, err: index not found ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Empty(response.Facets);
-    //    }
-
-    //    [Fact]
-    //    public async Task Query_WhenInvalidUri_FacetsIsEmpty()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var fakeMessageHandler = new FakeMessageHandler
-    //        {
-    //            StatusCode = HttpStatusCode.NotFound,
-    //            Content = new StringContent("Requested resource not found. ")
-    //        };
-
-    //        var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
-    //        var response = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "indexdoesnotexist",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.Empty(response.Facets);
-    //    }
-
-    //    [Fact]
-    //    public void Query_Sets_LastActivity()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
-    //        {
-    //            Content = new StringContent("{ }")
-    //        });
-
-    //        var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
-    //        Assert.IsNull(client.LastActivity);
-
-    //        client.Query(new SearchQuery
-    //        {
-    //            Index = "index",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.NotNull(client.LastActivity);
-    //    }
-
-    //    [Fact]
-    //    public async Task QueryAsync_Sets_LastActivity()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-    //        var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
-    //        {
-    //            Content = new StringContent("{ }")
-    //        });
-
-    //        var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
-    //        Assert.Null(client.LastActivity);
-
-    //        await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "index",
-    //            Query = new MatchQuery("foo")
-    //        });
-    //        Assert.NotNull(client.LastActivity);
-    //    }
-
-    //    [Fact]
-    //    public async Task Failed_Query_With_Json_ContentType_Populates_ErrorResult()
-    //    {
-    //        var context = ContextFactory.GetCouchbaseContext();
-    //        context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
-
-    //        var content = new
-    //        {
-    //            error = "rest_index: Query, indexName: beer, err: bleve: QueryBleve parsing ftsSearchRequest, err: unknown query type",
-    //            request = new
-    //            {
-    //                query = new {what = "ever"}
-    //            },
-    //            status = "fail"
-    //        };
-    //        var json = JsonConvert.SerializeObject(content);
-
-    //        var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
-    //        {
-    //            StatusCode = HttpStatusCode.BadRequest,
-    //            Content = new StringContent(json, System.Text.Encoding.UTF8, MediaType.Json) // sets Content-Type to application/json
-    //        });
-
-    //        var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
-    //        var result = await client.QueryAsync(new SearchQuery
-    //        {
-    //            Index = "beer",
-    //            Query = new MatchQuery("foo")
-    //        });
-
-    //        Assert.False(result.Success);
-    //        Assert.Equal(content.error, result.Errors.First());
-    //    }
-
-        class FakeMessageHandler : HttpMessageHandler
+        using var responseStream = ResourceHelper.ReadResourceAsStream("alltimeouts.json");
+        using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
         {
-            public HttpRequestMessage RequestMessage { get; private set; }
+            // ReSharper disable once AccessToDisposedClosure
+            Content = new StreamContent(responseStream),
+            StatusCode = HttpStatusCode.OK
+        });
+        var httpClient = new HttpClient(handler);
+        var httpClientFactory = new MockHttpClientFactory(httpClient);
 
-            public HttpStatusCode StatusCode { get; set; }
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.SearchUri)
+            .Returns(new Uri("http://localhost:8093"));
 
-            public HttpContent Content { get; set; }
+        var nodeAdapterMock = new Mock<NodeAdapter>();
+        nodeAdapterMock.Object.CanonicalHostname = "localhost";
 
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-               RequestMessage = request;
-              var response = new HttpResponseMessage(StatusCode);
-              if (Content != null)
-              {
-                   response.Content = Content;
-               }
-               return Task.FromResult(response);
-           }
-       }
-    //}
+        nodeMock.Setup(n => n.NodesAdapter)
+            .Returns(nodeAdapterMock.Object);
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomSearchUri())
+            .Returns(new Uri("http://localhost:8093"));
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomSearchNode())
+            .Returns(nodeMock.Object);
+
+        var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
+            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+
+        var response =  await client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, null, CancellationToken.None);
+        Assert.Equal(6, response.MetaData.ErrorCount);
+        Assert.Equal(6, response.MetaData.TotalCount);
+        Assert.Equal(0, response.MetaData.SuccessCount);
+        Assert.Equal(6, response.MetaData.Errors.Count);
+    }
 }
 
-#region [ License information          ]
+internal class FakeMessageHandler : HttpMessageHandler
+{
+    public HttpRequestMessage RequestMessage { get; private set; }
+
+    public HttpStatusCode StatusCode { get; set; }
+
+    public HttpContent Content { get; set; }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+       RequestMessage = request;
+      var response = new HttpResponseMessage(StatusCode);
+      if (Content != null)
+      {
+           response.Content = Content;
+       }
+       return Task.FromResult(response);
+   }
+}
+
+#region [License information]
 
 /* ************************************************************
  *

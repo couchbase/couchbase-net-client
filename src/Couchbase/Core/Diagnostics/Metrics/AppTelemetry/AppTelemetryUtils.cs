@@ -11,24 +11,20 @@ internal static class AppTelemetryUtils
 {
     internal static readonly string Agent = $"sdk/couchbase-net-client v{Assembly.GetAssembly(typeof(Cluster))?.GetName().Version} OS: {RuntimeInformation.OSDescription} Framework: {RuntimeInformation.FrameworkDescription} Architecture: {RuntimeInformation.ProcessArchitecture} CPU Cores: {Environment.ProcessorCount}";
 
-    internal static AppTelemetryRequestType GetAppTelemetryKvRequestType(IOperation operation)
+    internal static AppTelemetryRequestType? GetAppTelemetryKvRequestType(IOperation operation)
     {
-        AppTelemetryRequestType requestType;
+        if (IsRetrievalOperation(operation.OpCode))
+            return AppTelemetryRequestType.KvRetrieval;
 
-        if (IsRetrievalOperation(operation.OpCode)) requestType = AppTelemetryRequestType.KvRetrieval;
-
-        else if (IsMutationOperation(operation.OpCode))
+        if (IsMutationOperation(operation.OpCode))
         {
-            requestType = operation.HasDurability
+            return operation.HasDurability
                 ? AppTelemetryRequestType.KvMutationDurable
                 : AppTelemetryRequestType.KvMutationNonDurable;
         }
-        else
-        {
-            requestType = AppTelemetryRequestType.KvRetrieval;
-        }
 
-        return requestType;
+        // Internal operations (Hello, GetCid, SaslAuth, etc.) should not be tracked.
+        return null;
     }
 
     private static bool IsRetrievalOperation(OpCode opCode)
@@ -88,39 +84,6 @@ internal static class AppTelemetryUtils
             OpCode.SubMultiMutation => true,
             _ => false
         };
-    }
-
-    /// <summary>
-    /// Helper method for Management services to increment the AppTelemetry metrics when an error occurs.
-    /// </summary>
-    internal static void IncrementAppTelemetryErrors(this IAppTelemetryCollector appTelemetryCollector, AppTelemetryServiceType serviceType, Exception ex, TimeSpan timeout, TimeSpan? elapsed, string node, string alternateNode, string nodeGuid)
-    {
-        // If the stopwatch's elapsed time is equal or higher than the timeout,
-        // consider the OperationCanceledException as a timeout.
-        // Else consider it as a cancellation.
-        if (ex is OperationCanceledException)
-        {
-            if (elapsed?.CompareTo(timeout) >= 0)
-            {
-                appTelemetryCollector.IncrementMetrics(
-                    elapsed,
-                    node,
-                    alternateNode,
-                    nodeGuid,
-                    serviceType,
-                    AppTelemetryCounterType.TimedOut);
-            }
-            else
-            {
-                appTelemetryCollector.IncrementMetrics(
-                    elapsed,
-                    node,
-                    alternateNode,
-                    nodeGuid,
-                    serviceType,
-                    AppTelemetryCounterType.Canceled);
-            }
-        }
     }
 
     /// <summary>

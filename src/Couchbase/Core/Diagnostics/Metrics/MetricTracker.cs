@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
@@ -389,6 +391,73 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
                 AddModernClusterLabels(ref modernTags, searchRequest.Options?.RequestSpanValue);
                 ModernOperations.Record(duration.TotalSeconds, modernTags);
+            }
+        }
+
+        public static class AppTelemetry
+        {
+#pragma warning disable CS0649 // Field is assigned via Volatile.Write
+            private static IAppTelemetryCollector? _collector;
+#pragma warning restore CS0649
+
+            /// <summary>
+            /// Register an AppTelemetryCollector to receive direct metric calls.
+            /// </summary>
+            internal static void Register(IAppTelemetryCollector collector)
+                => Volatile.Write(ref _collector, collector);
+
+            /// <summary>
+            /// Unregister the current AppTelemetryCollector.
+            /// </summary>
+            internal static void Unregister()
+                => Volatile.Write(ref _collector, null);
+
+            /// <summary>
+            /// Tracks an operation for AppTelemetry reporting.
+            /// Calls directly through to the registered collector with typed values,
+            /// avoiding TagList allocations and enum serialization overhead.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void TrackOperation(
+                TimeSpan? duration,
+                string? node,
+                string? altNode,
+                string? nodeUuid,
+                AppTelemetryServiceType serviceType,
+                AppTelemetryCounterType counterType,
+                AppTelemetryRequestType? requestType = null,
+                string? bucket = null)
+            {
+                Volatile.Read(ref _collector)?.IncrementMetrics(duration, node, altNode, nodeUuid,
+                    serviceType, counterType, requestType, bucket);
+            }
+
+            /// <summary>
+            /// Helper for Management/Eventing services to track errors as appropriate AppTelemetry counter types.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void TrackError(
+                AppTelemetryServiceType serviceType,
+                Exception ex,
+                TimeSpan timeout,
+                TimeSpan? elapsed,
+                string node,
+                string? altNode,
+                string? nodeGuid)
+            {
+                if (ex is OperationCanceledException)
+                {
+                    if (elapsed?.CompareTo(timeout) >= 0)
+                    {
+                        TrackOperation(elapsed, node, altNode, nodeGuid, serviceType,
+                            AppTelemetryCounterType.TimedOut);
+                    }
+                    else
+                    {
+                        TrackOperation(elapsed, node, altNode, nodeGuid, serviceType,
+                            AppTelemetryCounterType.Canceled);
+                    }
+                }
             }
         }
 

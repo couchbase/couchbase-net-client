@@ -1,29 +1,28 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Text;
 using System.Threading;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 #nullable enable
 
+[InterfaceStability(Level.Volatile)]
 internal class AppTelemetryCollector : IAppTelemetryCollector
 {
-    private bool _enabled;
+    private volatile bool _enabled;
     private ILogger<AppTelemetryCollector>? _logger;
     private IRedactor? _redactor;
     private WebSocketClientHandler? _webSocketClientHandler;
-    private readonly object _enableLock = new();
-    private readonly object _metricsLock = new();
     private readonly Uri? _endpoint;
     private CancellationTokenSource? _webSocketTokenSource;
     private ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> _metricSets = new();
 
+    //Shim for unit tests
     internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
 
     public AppTelemetryCollector()
@@ -52,7 +51,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
             _logger = ClusterContext.ServiceProvider.GetRequiredService<ILogger<AppTelemetryCollector>>();
         }
 
-        if (_enabled)
+        if (_enabled && EndpointCount > 0)
         {
             _webSocketClientHandler = new WebSocketClientHandler(this);
             Enable();
@@ -62,25 +61,19 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     public void Enable()
     {
-        lock (_enableLock)
-        {
-            _enabled = true;
-            _webSocketTokenSource = new CancellationTokenSource();
-            _ = _webSocketClientHandler?.StartAsync(_webSocketTokenSource.Token);
-        }
+        _enabled = true;
+        MetricTracker.AppTelemetry.Register(this);
+        _webSocketTokenSource = new CancellationTokenSource();
+        _ = _webSocketClientHandler?.StartAsync(_webSocketTokenSource.Token);
     }
 
     public void Disable()
     {
-        lock (_enableLock)
-        {
-            _enabled = false;
-            _webSocketTokenSource?.Cancel();
-        }
-        lock (_metricsLock)
-        {
-            _metricSets = new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>();
-        }
+        _enabled = false;
+        MetricTracker.AppTelemetry.Unregister();
+        _webSocketTokenSource?.Cancel();
+        // Writers that already hold a metricSet reference will complete into the old dict, avoid orphaning in-flight writes.
+        Interlocked.Exchange(ref _metricSets, new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>());
     }
 
     public ClusterContext? ClusterContext { get; set; }
@@ -98,55 +91,31 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     /// </summary>
     public Uri? Endpoint(int attempt) => _endpoint ?? ClusterContext?.GlobalConfig?.GetAppTelemetryPath(attempt, TlsEnabled);
 
-    public void IncrementMetrics(TimeSpan? operationLatency, string node, string? alternateNode, string nodeUuid,
+    public int EndpointCount => _endpoint != null ? 1 : ClusterContext?.GlobalConfig?.NodesWithAppTelemetry.Count ?? 0;
+
+    public void IncrementMetrics(TimeSpan? operationLatency, string? node, string? alternateNode, string? nodeUuid,
         AppTelemetryServiceType serviceType,
         AppTelemetryCounterType counterType,
         AppTelemetryRequestType? requestType = null,
         string? bucket = null)
     {
         if (!_enabled) return;
-        if (string.IsNullOrEmpty(nodeUuid)) return; //Do not capture operations before a config is fetched
-        if (!operationLatency.HasValue) return;
+        if (string.IsNullOrEmpty(nodeUuid)) return;
 
         requestType ??= AppTelemetryUtils.DetermineAppTelemetryRequestType(serviceType);
 
-        //Only incrementing histograms for successful operations.
-        //Timeouts and Cancellations histograms should only be incremented if an orphan is received, with its true latency.
-        if (counterType == AppTelemetryCounterType.Total)
+        var targetKey = new NodeAndBucket(node ?? string.Empty, alternateNode, nodeUuid, bucket);
+        var dict = Volatile.Read(ref _metricSets);
+        var metricSet = dict.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
+
+        if (counterType == AppTelemetryCounterType.Total && operationLatency.HasValue)
         {
-            IncrementHistogram(requestType.Value, operationLatency, node, alternateNode, nodeUuid, bucket);
-        }
-        IncrementCounter(serviceType, counterType, node, alternateNode, nodeUuid, bucket);
-    }
-
-    public void IncrementHistogram(AppTelemetryRequestType name, TimeSpan? operationLatency, string node, string? alternateNode, string nodeUuid, string? bucket = null)
-    {
-        if (!_enabled) return;
-        if (!operationLatency.HasValue) return;
-
-        var targetKey = new NodeAndBucket(node, alternateNode, nodeUuid, bucket);
-
-        AppTelemetryMetricSet metricSet;
-        lock (_metricsLock)
-        {
-            metricSet = _metricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
+            metricSet.IncrementHistogram(requestType.Value, operationLatency.Value);
         }
 
-        metricSet.IncrementHistogram(name, operationLatency.Value);
-    }
+        // KV counters require a bucket
+        if (serviceType == AppTelemetryServiceType.KeyValue && bucket == null) return;
 
-    public void IncrementCounter(AppTelemetryServiceType serviceType, AppTelemetryCounterType counterType, string node, string? alternateNode, string nodeUuid, string? bucket = null)
-    {
-        if (!_enabled) return;
-        if (serviceType is AppTelemetryServiceType.KeyValue && bucket is null) return;
-
-        var targetKey = new NodeAndBucket(node, alternateNode, nodeUuid, bucket);
-
-        AppTelemetryMetricSet metricSet;
-        lock (_metricsLock)
-        {
-            metricSet = _metricSets.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
-        }
         metricSet.IncrementCounter(serviceType, counterType);
     }
 
@@ -154,35 +123,26 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     {
         metricsString = string.Empty;
 
-        ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> oldMetrics;
-        lock (_metricsLock)
-        {
-            if (_metricSets.IsEmpty) return false;
-            oldMetrics = _metricSets;
-            _metricSets = new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>();
-        }
+        var dict = Volatile.Read(ref _metricSets);
+        if (dict.IsEmpty) return false;
 
         var sb = new StringBuilder();
-        foreach (var exported in oldMetrics.Select(entry => entry.Value.ExportAllMetrics(entry.Key)))
+        foreach (var entry in dict)
         {
-            sb.Append(exported);
+            var exported = entry.Value.ExportAllMetrics(entry.Key);
+            if (!string.IsNullOrEmpty(exported))
+            {
+                sb.Append(exported);
+            }
         }
 
         metricsString = sb.ToString();
-        return true;
-    }
-
-    public LightweightStopwatch? StartNewLightweightStopwatch()
-    {
-        if (_enabled)
-        {
-            return LightweightStopwatch.StartNew();
-        }
-        return null;
+        return metricsString.Length > 0;
     }
 
     public void Dispose()
     {
+        MetricTracker.AppTelemetry.Unregister();
         _webSocketTokenSource?.Cancel();
         _webSocketClientHandler?.Dispose();
     }

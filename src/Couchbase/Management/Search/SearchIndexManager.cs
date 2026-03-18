@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -7,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -15,9 +16,9 @@ using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 
+#nullable enable
 
 namespace Couchbase.Management.Search
 {
@@ -45,6 +46,16 @@ namespace Couchbase.Management.Search
         private Uri GetIndexUri(IScope? scope, string? indexName = null)
         {
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
+            return BuildSearchIndexUri(searchUri, scope, indexName);
+        }
+
+        private Uri GetIndexUri(IClusterNode searchNode, IScope? scope, string? indexName = null)
+        {
+            return BuildSearchIndexUri(searchNode.SearchUri, scope, indexName);
+        }
+
+        private Uri BuildSearchIndexUri(Uri searchUri, IScope? scope, string? indexName = null)
+        {
             var path = "api/index";
             if (scope is not null)
             {
@@ -113,6 +124,7 @@ namespace Couchbase.Management.Search
 
             using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.AllowQuerying, options.RequestSpanValue)
                 .WithCommonTags();
+
             var baseUri = GetQueryControlUri(indexName, true, scope);
             _logger.LogInformation("Trying to allow querying for index with name {indexName} - {baseUri}",
                 _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
@@ -256,9 +268,7 @@ namespace Couchbase.Management.Search
                 tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to freeze index with name {indexName} - {baseUri}",
                     _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Error);
-
                 throw;
             }
         }
@@ -266,13 +276,15 @@ namespace Couchbase.Management.Search
         public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions? options = null, IScope? scope = null)
         {
             options ??= GetAllSearchIndexesOptions.Default;
+            var searchNode = _serviceUriProvider.GetRandomSearchNode();
+            var baseUri = GetIndexUri(searchNode, scope);
 
             using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Search.GetAllIndexes, options.RequestSpanValue)
                 .WithCommonTags();
-            var baseUri = GetIndexUri(scope);
             _logger.LogInformation("Trying to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
+            var requestStopwatch = LightweightStopwatch.StartNew();
 
             using var tracker = MetricTracker.Management.StartOperation(
                 OuterRequestSpans.ManagerSpan.Search.GetAllIndexes,
@@ -283,9 +295,18 @@ namespace Couchbase.Management.Search
 
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(baseUri, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
+                var operationElapsed = requestStopwatch.Elapsed;
 
                 //Handle any errors that may exist
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    searchNode.NodesAdapter?.CanonicalHostname,
+                    searchNode.NodesAdapter?.AlternateHostname,
+                    searchNode.NodeUuid,
+                    AppTelemetryServiceType.Search,
+                    AppTelemetryCounterType.Total);
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
 
@@ -294,6 +315,15 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
+                var operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Search,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    searchNode.NodesAdapter?.CanonicalHostname ?? searchNode.EndPoint.Host,
+                    searchNode.NodesAdapter?.AlternateHostname,
+                    searchNode.NodeUuid);
                 tracker.SetError(exception);
                 _logger.LogError(exception, "Failed to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 

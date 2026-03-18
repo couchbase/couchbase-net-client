@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -10,8 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
@@ -22,6 +21,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+#nullable enable
 
 namespace Couchbase.Management.Collections
 {
@@ -34,7 +34,6 @@ namespace Couchbase.Management.Collections
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<CollectionManager> _logger;
         private readonly IRedactor _redactor;
-        private readonly IAppTelemetryCollector _appTelemetryCollector;
         private readonly IRequestTracer _tracer;
 
         /// <summary>
@@ -65,7 +64,9 @@ namespace Couchbase.Management.Collections
 
         public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider,
             ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<CollectionManager> logger, IRedactor redactor, IAppTelemetryCollector appTelemetryCollector, IRequestTracer? tracer = null)
+            ILogger<CollectionManager> logger,
+            IRedactor redactor,
+            IRequestTracer? tracer = null)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _bucketConfig = bucketConfig ?? throw new ArgumentNullException(nameof(bucketConfig));
@@ -73,8 +74,6 @@ namespace Couchbase.Management.Collections
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _appTelemetryCollector =
-                appTelemetryCollector ?? throw new ArgumentNullException(nameof(appTelemetryCollector));
             _tracer = tracer ?? NoopRequestTracer.Instance;
         }
 
@@ -190,17 +189,25 @@ namespace Couchbase.Management.Collections
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
 
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             try
             {
                 // get manifest
                 using var httpClient = _httpClientFactory.Create();
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 var result = await httpClient.GetAsync(uri, cts.FallbackToToken(options.TokenValue))
                     .ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -230,14 +237,6 @@ namespace Couchbase.Management.Collections
                     .ConfigureAwait(false);
                 var scopes = json.SelectToken("scopes")!;
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
 
                 return scopes.Select(scope => new ScopeSpec(scope["name"]?.Value<string>())
@@ -255,8 +254,15 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to get all scopes - {Uri}", _redactor.SystemData(uri));
 
                 rootSpan.SetStatus(RequestSpanStatusCode.Error);
@@ -285,7 +291,7 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting create collection {ScopeName}/{CollectionName} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
@@ -317,10 +323,18 @@ namespace Couchbase.Management.Collections
 
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 using var createResult = await httpClient
                     .PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -368,21 +382,20 @@ namespace Couchbase.Management.Collections
                     rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
                 tracker.SetError(exception);
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to create collection {ScopeName}/{Name} - {Uri}",
                     scopeName,
                     collectionName, _redactor.SystemData(uri));
@@ -412,7 +425,7 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting drop collection {Scope}/{Collection} - {Uri}", scopeName,
                 collectionName, _redactor.SystemData(uri));
 
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
@@ -426,10 +439,18 @@ namespace Couchbase.Management.Collections
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
                     .ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -461,21 +482,20 @@ namespace Couchbase.Management.Collections
                     rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
                 tracker.SetError(exception);
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to drop collection {Scope}/{Collection} - {Uri}", scopeName,
                     collectionName, _redactor.SystemData(uri));
 
@@ -549,7 +569,7 @@ namespace Couchbase.Management.Collections
                 .WithRemoteAddress(uri);
 
             _logger.LogInformation("Attempting create scope {Name} - {Uri}", scopeName, _redactor.SystemData(uri));
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
             // create scope
             var content = new FormUrlEncodedContent(new Dictionary<string, string>
@@ -567,10 +587,19 @@ namespace Couchbase.Management.Collections
             try
             {
                 using var httpClient = _httpClientFactory.Create();
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 using var createResult = await httpClient
                     .PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -601,21 +630,20 @@ namespace Couchbase.Management.Collections
                     rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
                 tracker.SetError(exception);
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to create scope {Name} - {Uri}", scopeName,
                     _redactor.SystemData(uri));
 
@@ -648,7 +676,7 @@ namespace Couchbase.Management.Collections
                 .WithRemoteAddress(uri);
 
             _logger.LogInformation("Attempting drop scope {ScopeName} - {Uri}", scopeName, _redactor.SystemData(uri));
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
@@ -662,10 +690,19 @@ namespace Couchbase.Management.Collections
             {
                 // drop scope
                 using var httpClient = _httpClientFactory.Create();
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 using var createResult = await httpClient.DeleteAsync(uri, cts.FallbackToToken(options.TokenValue))
                     .ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
+
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -694,21 +731,20 @@ namespace Couchbase.Management.Collections
                     rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
                 tracker.SetError(exception);
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to drop scope {ScopeName} - {Uri}", scopeName,
                     _redactor.SystemData(uri));
 
@@ -750,7 +786,7 @@ namespace Couchbase.Management.Collections
             _logger.LogInformation("Attempting to update collection {Collection} - {Uri}", collectionName,
                 _redactor.SystemData(uri));
 
-            var requestStopwatch = _appTelemetryCollector.StartNewLightweightStopwatch();
+            var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
 
             using var cts = options.TokenValue.FallbackToTimeout(options.TimeoutValue);
@@ -766,10 +802,18 @@ namespace Couchbase.Management.Collections
                 using var httpClient = _httpClientFactory.Create();
                 var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
                 request.Content = new FormUrlEncodedContent(dict);
-                requestStopwatch?.Restart();
+                requestStopwatch.Restart();
                 using var updateResult = await httpClient.SendAsync(request, cts.FallbackToToken(options.TokenValue))
                     .ConfigureAwait(false);
-                operationElapsed = requestStopwatch?.Elapsed;
+                operationElapsed = requestStopwatch.Elapsed;
+
+                MetricTracker.AppTelemetry.TrackOperation(
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid,
+                    AppTelemetryServiceType.Management,
+                    AppTelemetryCounterType.Total);
 
                 if (updateResult.StatusCode != HttpStatusCode.OK)
                 {
@@ -805,21 +849,22 @@ namespace Couchbase.Management.Collections
                     rootSpan.SetStatus(RequestSpanStatusCode.Error);
                 }
 
-                _appTelemetryCollector.IncrementMetrics(
-                    operationElapsed,
-                    mgmtNode.NodesAdapter.CanonicalHostname,
-                    mgmtNode.NodesAdapter.AlternateHostname,
-                    mgmtNode.NodeUuid,
-                    AppTelemetryServiceType.Management,
-                    AppTelemetryCounterType.Total);
-
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
             catch (Exception exception)
             {
+                operationElapsed = requestStopwatch.Elapsed;
+                MetricTracker.AppTelemetry.TrackError(
+                    AppTelemetryServiceType.Management,
+                    exception,
+                    options.TimeoutValue,
+                    operationElapsed,
+                    mgmtNode.NodesAdapter.CanonicalHostname,
+                    mgmtNode.NodesAdapter.AlternateHostname,
+                    mgmtNode.NodeUuid);
+                _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}", collectionName,
+                    _redactor.SystemData(uri));
                 tracker.SetError(exception);
-                operationElapsed = requestStopwatch?.Elapsed;
-                _appTelemetryCollector.IncrementAppTelemetryErrors(AppTelemetryServiceType.Management, exception, options.TimeoutValue, operationElapsed, mgmtNode.NodesAdapter.CanonicalHostname, mgmtNode.NodesAdapter.AlternateHostname, mgmtNode.NodeUuid);
                 _logger.LogError(exception, "Failed to update collection {Collection} - {Uri}",
                     collectionName, _redactor.SystemData(uri));
 
