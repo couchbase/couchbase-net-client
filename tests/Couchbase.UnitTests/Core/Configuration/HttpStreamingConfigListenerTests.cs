@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var mockLogger = new Mock<ILogger<HttpStreamingConfigListener>>(MockBehavior.Loose).Object;
             var mockBucket = new Mock<BucketBase>();
 
-            var clusterNodeCollection = new ClusterNodeCollection();
+            var nodeList = new BucketNodeList();
             var clusterNode = new Mock<IClusterNode>();
             clusterNode.Setup(x => x.NodesAdapter).Returns(new NodeAdapter
             {
@@ -42,7 +42,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             clusterNode.Setup(x => x.KeyEndPoints).Returns(new ReadOnlyObservableCollection<HostEndpointWithPort>(new ObservableCollection<HostEndpointWithPort>()));
             clusterNode.Setup(x => x.ManagementUri).Returns(new Uri($"http://NOSUCHHOST{nameof(Should_Continue_After_Failures)}:8091"));
             clusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort($"NOSUCHHOST{nameof(Should_Continue_After_Failures)}", 11210));
-            clusterNodeCollection.Add(clusterNode.Object);
+            nodeList.Add(clusterNode.Object);
             mockBucket.Object.Nodes.Add(clusterNode.Object);
 
             using var configListener = new HttpStreamingConfigListener(mockBucket.Object,

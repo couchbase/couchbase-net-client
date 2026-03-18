@@ -34,7 +34,7 @@ namespace Couchbase.Core
         protected readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
         private readonly ConcurrentDictionary<string, bool> _testedClusterCaps = new();
-        public readonly ClusterNodeCollection Nodes = new();
+        public readonly BucketNodeList Nodes = new();
         private readonly ILogger _logger;
         private volatile int _disposed;
 

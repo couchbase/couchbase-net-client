@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Net;
 using Couchbase.Core;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Moq;
@@ -9,7 +8,7 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Core
 {
-    public class ClusterNodeCollectionTests
+    public class BucketNodeListTests
     {
         #region Add
 
@@ -20,7 +19,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default", CreateEndpoint(1)).Object;
 
-            var nodes = new ClusterNodeCollection();
+            var nodes = new BucketNodeList();
 
             // Act
 
@@ -38,7 +37,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1));
 
-            var nodes = new ClusterNodeCollection();
+            var nodes = new BucketNodeList();
 
             // Act
 
@@ -56,7 +55,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node
             };
@@ -78,7 +77,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1), CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection();
+            var nodes = new BucketNodeList();
 
             // Act
 
@@ -102,7 +101,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var nodes = new ClusterNodeCollection();
+            var nodes = new BucketNodeList();
 
             // Act
 
@@ -120,7 +119,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node
             };
@@ -142,7 +141,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1));
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node.Object
             };
@@ -163,7 +162,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node
             };
@@ -186,7 +185,7 @@ namespace Couchbase.UnitTests.Core
             var node = CreateMockNode("default",CreateEndpoint(1)).Object;
             var node1 = CreateMockNode("default",CreateEndpoint(1)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node,
                 node1
@@ -209,7 +208,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default",CreateEndpoint(1), CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection()
+            var nodes = new BucketNodeList()
             {
                 node
             };
@@ -236,7 +235,7 @@ namespace Couchbase.UnitTests.Core
             var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
             var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node1,
                 node2
@@ -260,7 +259,7 @@ namespace Couchbase.UnitTests.Core
             var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
             var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node1,
                 node2
@@ -286,7 +285,7 @@ namespace Couchbase.UnitTests.Core
             var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
             var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node1,
                 node2
@@ -311,7 +310,7 @@ namespace Couchbase.UnitTests.Core
             var node1 = CreateMockNode("default", CreateEndpoint(1));
             var node2 = CreateMockNode("default", CreateEndpoint(2));
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node1.Object,
                 node2.Object
@@ -340,7 +339,7 @@ namespace Couchbase.UnitTests.Core
             var node1 = CreateMockNode("default",CreateEndpoint(1)).Object;
             var node2 = CreateMockNode("default",CreateEndpoint(2)).Object;
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node1,
                 node2
@@ -371,7 +370,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default", CreateEndpoint(1));
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node.Object
             };
@@ -397,7 +396,7 @@ namespace Couchbase.UnitTests.Core
 
             var node = CreateMockNode("default", CreateEndpoint(1), CreateEndpoint(2));
 
-            var nodes = new ClusterNodeCollection
+            var nodes = new BucketNodeList
             {
                 node.Object
             };
@@ -428,7 +427,7 @@ namespace Couchbase.UnitTests.Core
             var node3 = CreateMockNode("default2",CreateEndpoint(3));
             var node4 = CreateMockNode("default2",CreateEndpoint(4));
 
-            var nodes = new ClusterNodeCollection { node1.Object, node2.Object, node3.Object, node4.Object };
+            var nodes = new BucketNodeList { node1.Object, node2.Object, node3.Object, node4.Object };
             var result = nodes.Remove(node3.Object.EndPoint, "default2", out IClusterNode oldNode);
             Assert.True(result);
             Assert.Equal(3, nodes.Count);
