@@ -15,8 +15,8 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
-    // ThresholdTraceListener uses static ThresholdServiceQueue.CoreQueues, so tests using it
-    // must not run in parallel to avoid one test's timer draining another test's data.
+    // Tests using ThresholdTraceListener share a static ActivitySource, so they
+    // must not run in parallel to avoid listener interference.
     [Collection("NonParallel")]
     public class ThresholdTracerTests : IDisposable
     {
@@ -123,35 +123,29 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         }
 
         [Fact]
-        public async Task Test_Logs()
+        public void Test_Logs()
         {
+            // This test is fully synchronous: Start() registers the listener immediately,
+            // ActivityStopped fires synchronously during span Dispose, and ForceFlush()
+            // triggers report generation without depending on Timer/ThreadPool scheduling.
             var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
             using var tracer = new RequestTracer();
             using var listener = new ThresholdTraceListener(loggerFactory, new ThresholdOptions
             {
-                EmitInterval = TimeSpan.FromMilliseconds(100),
+                EmitInterval = TimeSpan.FromHours(1), // disabled; we flush manually
                 KvThreshold = TimeSpan.Zero
             });
             tracer.Start(listener);
-            // Delay to insure the tracer is registered with the ActivitySource
-            await Task.Delay(100);
 
             using (var parentSpan = tracer.RequestSpan("get"))
             {
                 parentSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
-                await Task.Delay(10); // Ensure span duration exceeds threshold
             }
 
-            // Brief yield to allow ActivityStopped callback to complete before polling
-            await Task.Yield();
+            listener.ForceFlush();
 
-            string report = null;
-            // Use async polling instead of SpinWait to avoid starving background tasks on overloaded CI
-            var finished = await AsyncTestHelper.WaitForConditionAsync(
-                () => loggerFactory.LoggedData.TryTake(out report),
-                timeout: TimeSpan.FromSeconds(30));
-            Assert.True(finished, userMessage: "Did not find a log entry for threshold data.");
-
+            Assert.True(loggerFactory.LoggedData.TryTake(out var report),
+                "Did not find a log entry for threshold data.");
             Assert.NotNull(report);
             Assert.StartsWith("{", report);
 

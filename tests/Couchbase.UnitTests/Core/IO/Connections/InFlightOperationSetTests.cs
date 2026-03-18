@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Connections
 {
+    // Assertions on IsCompleted are made without Task.Delay or Task.Yield because the
+    // async methods use SemaphoreSlim.WaitAsync / Task.WhenAll internally, which return
+    // structurally incomplete tasks when their preconditions are not met.
     public class InFlightOperationSetTests
     {
         #region AddAsync
@@ -47,8 +50,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Act
 
             var addTask = set.AddAsync(state);
-            await Task.Delay(10);
-            Assert.False(addTask.IsCompleted);
+            Assert.False(addTask.IsCompleted); // semaphore is full
 
             Assert.True(set.TryRemove(6, out _));
 
@@ -227,13 +229,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var task = set.WaitForAllOperationsAsync(TimeSpan.FromSeconds(10));
 
-            // Assert
-
-            await Task.Delay(10);
+            // See class comment — these are structurally incomplete (no states completed yet)
             Assert.False(task.IsCompleted, userMessage: "Task should not be complete before any states are complete.");
 
             state1.Complete(SlicedMemoryOwner<byte>.Empty);
-            await Task.Delay(10);
             Assert.False(task.IsCompleted, userMessage: "Task should not be complete before all states are complete");
 
             state2.Complete(SlicedMemoryOwner<byte>.Empty);

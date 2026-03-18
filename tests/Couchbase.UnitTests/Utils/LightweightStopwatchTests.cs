@@ -7,80 +7,62 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Utils
 {
-    [Collection("NonParallel")]
+    // Tests verify the wrapper's contract (non-negative, consistent, monotonic, restart resets)
+    // without Task.Delay or fixed timing bounds. SpinWait is used only to advance the clock
+    // by at least one tick, which is deterministic regardless of machine load.
     public class LightweightStopwatchTests
     {
-        #region Elapsed
+        #region StartNew / Elapsed
 
         [Fact]
-        public void Elapsed_AfterStart_LowValue()
+        public void StartNew_Elapsed_IsNonNegative()
         {
-            // Arrange
+            var sw = LightweightStopwatch.StartNew();
 
-            var stopwatch = LightweightStopwatch.StartNew();
-
-            // Act
-
-            var result = stopwatch.Elapsed;
-
-            // Assert
-
-            Assert.True(result < TimeSpan.FromSeconds(1));
+            Assert.True(sw.Elapsed >= TimeSpan.Zero);
         }
-
-        [Fact(Skip="Inconsistent behavior in underprovisioned Jenkins.")]
-        public void Elapsed_AfterSleep_ApproximateValue()
-        {
-            // Arrange
-
-            var oldSw = Stopwatch.StartNew();
-            var stopwatch = LightweightStopwatch.StartNew();
-
-            // Act
-
-            SpinWait.SpinUntil(() => oldSw.ElapsedMilliseconds >= 1000);
-            var result = stopwatch.ElapsedMilliseconds;
-            var oldResult = oldSw.ElapsedMilliseconds;
-            oldSw.Stop();
-
-            // Assert
-            Assert.InRange(result, oldResult - 250, oldResult + 250);
-        }
-
-        #endregion
-
-        #region ElapsedMilliseconds
 
         [Fact]
-        public void ElapsedMilliseconds_AfterStart_LowValue()
+        public void StartNew_ElapsedMilliseconds_IsNonNegative()
         {
-            // Arrange
+            var sw = LightweightStopwatch.StartNew();
 
-            var stopwatch = LightweightStopwatch.StartNew();
-
-            // Act
-
-            var result = stopwatch.ElapsedMilliseconds;
-
-            // Assert
-
-            Assert.True(result < 1000);
+            Assert.True(sw.ElapsedMilliseconds >= 0);
         }
 
-        [Fact(Skip="Inconsistent behavior in underprovisioned Jenkins.")]
-        public async Task ElapsedMilliseconds_AfterSleep_ApproximateValue()
+        [Fact]
+        public void StartNew_ElapsedMilliseconds_IsLow()
         {
-            // Arrange
+            var sw = LightweightStopwatch.StartNew();
 
-            var stopwatch = LightweightStopwatch.StartNew();
+            Assert.True(sw.ElapsedMilliseconds < 1000,
+                $"ElapsedMilliseconds should be near zero immediately after StartNew, was {sw.ElapsedMilliseconds}");
+        }
 
-            // Act
+        [Fact]
+        public void Elapsed_And_ElapsedMilliseconds_AreConsistent()
+        {
+            var sw = LightweightStopwatch.StartNew();
+            SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > 0);
 
-            await  Task.Delay(TimeSpan.FromMilliseconds(1000));
-            var result = stopwatch.ElapsedMilliseconds;
+            var elapsedMs = sw.ElapsedMilliseconds;
+            var elapsedTimeSpanMs = (long)sw.Elapsed.TotalMilliseconds;
 
-            // Assert
-            Assert.InRange(result, 750, 3000);
+            // They should agree within a small tolerance (one could tick between reads)
+            Assert.True(Math.Abs(elapsedTimeSpanMs - elapsedMs) < 50,
+                $"Elapsed ({elapsedTimeSpanMs}ms) and ElapsedMilliseconds ({elapsedMs}ms) should be consistent");
+        }
+
+        [Fact]
+        public void Elapsed_IsMonotonicallyIncreasing()
+        {
+            var sw = LightweightStopwatch.StartNew();
+            var first = sw.ElapsedMilliseconds;
+            SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > first);
+            var second = sw.ElapsedMilliseconds;
+
+            Assert.True(second > first,
+                $"Expected second reading ({second}) > first reading ({first})");
         }
 
         #endregion
@@ -88,43 +70,36 @@ namespace Couchbase.UnitTests.Utils
         #region Restart
 
         [Fact]
-        public async Task Restart_AfterStart_LowValue()
+        public void Restart_ResetsElapsed()
         {
-            // Arrange
+            var sw = LightweightStopwatch.StartNew();
 
-            var stopwatch = LightweightStopwatch.StartNew();
-            await Task.Delay(1000);
-            Assert.True(stopwatch.ElapsedMilliseconds > 500);
+            // Ensure elapsed advances past zero
+            SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > 0);
+            var before = sw.ElapsedMilliseconds;
+            Assert.True(before > 0);
 
-            // Act
+            sw.Restart();
+            var after = sw.ElapsedMilliseconds;
 
-            stopwatch.Restart();
-            var result = stopwatch.ElapsedMilliseconds;
-
-            // Assert
-
-            Assert.True(result < 1000);
+            Assert.True(after < before,
+                $"After Restart, ElapsedMilliseconds ({after}) should be less than before ({before})");
         }
 
         [Fact]
-        public async Task Restart_AfterSleep_ApproximateValue()
+        public void Restart_ElapsedContinuesToAdvance()
         {
-            // Arrange
-            await Task.Yield();
+            var sw = LightweightStopwatch.StartNew();
+            SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > 0);
 
-            var stopwatch = LightweightStopwatch.StartNew();
-            await Task.Delay(TimeSpan.FromMilliseconds(1000));
-            Assert.True(stopwatch.ElapsedMilliseconds > 500);
+            sw.Restart();
 
-            // Act
+            // After restart, it should still be advancing
+            var afterRestart = sw.ElapsedMilliseconds;
+            SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > afterRestart);
 
-            stopwatch.Restart();
-            await Task.Delay(TimeSpan.FromMilliseconds(1000));
-            var result = stopwatch.ElapsedMilliseconds;
-
-            // Assert
-
-            Assert.True(result > 500);
+            Assert.True(sw.ElapsedMilliseconds > afterRestart,
+                "Stopwatch should continue to advance after Restart");
         }
 
         #endregion

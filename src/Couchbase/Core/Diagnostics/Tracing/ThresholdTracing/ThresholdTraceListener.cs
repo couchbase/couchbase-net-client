@@ -98,6 +98,12 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             Listener.ShouldListenTo = s => s.Name == RequestTracer.ActivitySourceName;
         }
 
+        /// <summary>
+        /// Immediately generates and logs any pending threshold report.
+        /// Exposed for unit testing to avoid Timer/ThreadPool scheduling dependencies.
+        /// </summary>
+        internal void ForceFlush() => GenerateAndLogReport(this);
+
         public override void Dispose()
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 1)
