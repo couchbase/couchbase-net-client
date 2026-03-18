@@ -1,20 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Runtime.Serialization;
-using System.Text;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
-using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Test.Common.Utils;
-using Couchbase.UnitTests.Core.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
@@ -91,11 +83,13 @@ namespace Couchbase.UnitTests.Core
             using var clusterNode3 = MockClusterNode("default1", "localhost1");
             using var clusterNode4 = MockClusterNode("default2", "localhost2");
 
-            var nodes = new ClusterNodeCollection();
-            nodes.Add(clusterNode3);
-            nodes.Add(clusterNode1);
-            nodes.Add(clusterNode2);
-            nodes.Add(clusterNode4);
+            var nodes = new BucketNodeList
+            {
+                clusterNode3,
+                clusterNode1,
+                clusterNode2,
+                clusterNode4
+            };
 
             nodes.Remove(clusterNode1.EndPoint, "default1", out var node1);
             nodes.Remove(clusterNode2.EndPoint, "default2", out var node2);

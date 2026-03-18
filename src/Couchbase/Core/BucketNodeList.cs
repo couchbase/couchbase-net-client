@@ -17,7 +17,7 @@ namespace Couchbase.Core
     /// for the common operation <see cref="TryGet"/>, but uses locks for Add and Remove operations.
     /// Also monitors <see cref="IClusterNode.KeyEndPointsChanged"/> to update the lookup dictionary.
     /// </summary>
-    internal class ClusterNodeCollection : IEnumerable<IClusterNode>
+    internal class BucketNodeList : IEnumerable<IClusterNode>
     {
         private readonly object _syncObj = new();
 
