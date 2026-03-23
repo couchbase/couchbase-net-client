@@ -37,6 +37,7 @@ using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using static Couchbase.Client.Transactions.Error.ErrorBuilder;
@@ -670,6 +671,7 @@ namespace Couchbase.Client.Transactions
         private async Task<TransactionGetResult> CreateStagedReplace(TransactionGetResult doc, object content,
             string opId, bool accessDeleted, IRequestSpan? parentSpan, ITypeTranscoder? transcoder, TimeSpan? expiry)
         {
+            DateTimeOffset? absoluteExpiry = expiry?.ToEpochTtl();
             using var traceSpan = TraceSpan(parent: parentSpan);
             _ = _atr ?? throw new ArgumentNullException(nameof(_atr), "ATR should have already been initialized");
             try
@@ -680,7 +682,7 @@ namespace Couchbase.Client.Transactions
                     var contentWrapper = new JObjectContentWrapper(content, transcoder);
                     bool isTombstone = doc.Cas == 0;
                     (var updatedCas, var mutationToken) =
-                        await _docs.MutateStagedReplace(doc, contentWrapper, opId, _atr, accessDeleted, expiry).CAF();
+                        await _docs.MutateStagedReplace(doc, contentWrapper, opId, _atr, accessDeleted, absoluteExpiry).CAF();
                     Logger.LogDebug(
                         "{method} for {redactedId}, attemptId={attemptId}, preCase={preCas}, postCas={postCas}, accessDeleted={accessDeleted}",
                         nameof(CreateStagedReplace), Redactor.UserData(doc.Id), AttemptId, doc.Cas, updatedCas,
@@ -699,13 +701,13 @@ namespace Couchbase.Client.Transactions
                     {
                         // If doc is already in stagedMutations as an INSERT or INSERT_SHADOW, then remove that, and add this op as a new INSERT or INSERT_SHADOW(depending on what was replaced).
                         _stagedMutations.Add(new StagedMutation(doc, content, contentWrapper.Flags, StagedMutationType.Insert,
-                            mutationToken, expiry));
+                            mutationToken, absoluteExpiry));
                     }
                     else
                     {
                         // If doc is already in stagedMutations as a REPLACE, then overwrite it.
                         _stagedMutations.Add(
-                            new StagedMutation(doc, content, contentWrapper.Flags, StagedMutationType.Replace, mutationToken, expiry));
+                            new StagedMutation(doc, content, contentWrapper.Flags, StagedMutationType.Replace, mutationToken, absoluteExpiry));
                     }
 
                     return TransactionGetResult.FromInsert(
@@ -852,6 +854,7 @@ namespace Couchbase.Client.Transactions
             object content, string opId, ulong? cas = null, IRequestSpan? parentSpan = null,
             ITypeTranscoder? transcoder = null, TimeSpan? expiry = null)
         {
+            DateTimeOffset? absoluteExpiry = expiry?.ToEpochTtl();
             using var traceSpan = TraceSpan(parent: parentSpan);
             try
             {
@@ -871,7 +874,7 @@ namespace Couchbase.Client.Transactions
                         if (byteContent == null)
                             throw new InvalidArgumentException("couldn't convert content to byte[]");
                         (var updatedCas, var mutationToken) =
-                            await _docs.MutateStagedInsert(collection, id, contentWrapper, opId, _atr!, cas, expiry).CAF();
+                            await _docs.MutateStagedInsert(collection, id, contentWrapper, opId, _atr!, cas, absoluteExpiry).CAF();
                         Logger.LogDebug(
                             "{method} for {redactedId}, attemptId={attemptId}, preCas={preCas}, postCas={postCas}, opId={opId}",
                             nameof(CreateStagedInsert), Redactor.UserData(id), AttemptId, cas, updatedCas, opId);
@@ -893,7 +896,7 @@ namespace Couchbase.Client.Transactions
                         await _testHooks.AfterStagedInsertComplete(this, id).CAF();
 
                         var stagedMutation = new StagedMutation(getResult, byteContent, contentWrapper.Flags, StagedMutationType.Insert,
-                            mutationToken, expiry);
+                            mutationToken, absoluteExpiry);
                         _stagedMutations.Add(stagedMutation);
 
                         return (RepeatAction.NoRepeat, getResult);
@@ -949,7 +952,7 @@ namespace Couchbase.Client.Transactions
                                                     docWithMeta.GetPostTransactionResult();
                                                 var stagedMutation =
                                                     new StagedMutation(docAlreadyExistsResult,
-                                                        content, docAlreadyExistsResult.Flags, StagedMutationType.Insert, null, expiry);
+                                                        content, docAlreadyExistsResult.Flags, StagedMutationType.Insert, null, absoluteExpiry);
                                                 _stagedMutations.Add(stagedMutation);
                                                 return (RepeatAction.NoRepeat,
                                                     RepeatAction.NoRepeat);

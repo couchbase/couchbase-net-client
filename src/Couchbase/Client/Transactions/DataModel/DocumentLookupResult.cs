@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
@@ -46,12 +46,12 @@ namespace Couchbase.Client.Transactions.DataModel
 
         internal ICouchbaseCollection DocumentCollection { get; }
 
-        internal TimeSpan? Expiry {
+        internal DateTimeOffset? Expiry {
             get
             {
                 var txn = LookupInResult.ContentAs<JObject>(0);
                 var intValue = txn?["aux"]?["docexpiry"]?.Value<long?>();
-                return intValue.HasValue ? TimeSpan.FromMilliseconds(intValue.Value) : null;
+                return intValue.HasValue ? DateTimeOffset.FromUnixTimeSeconds(intValue.Value) : null;
             }
         }
 

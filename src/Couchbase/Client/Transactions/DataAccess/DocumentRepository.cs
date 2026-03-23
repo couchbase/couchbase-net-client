@@ -15,6 +15,7 @@ using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue.ZoneAware;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
@@ -47,7 +48,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _userDataTranscoder = new JsonTranscoder(userDataSerializer);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, IContentAsWrapper content, string opId, IAtrRepository atr, ulong? cas = null, TimeSpan? expiry = null)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, IContentAsWrapper content, string opId, IAtrRepository atr, ulong? cas = null, DateTimeOffset? expiry = null)
         {
             List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content, opId, expiry: expiry);
             var opts = GetMutateInOptions(StoreSemantics.Insert, collection)
@@ -77,7 +78,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             return (mutateResult.Cas, mutateResult.MutationToken);
         }
 
-        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, IContentAsWrapper content, string opId, IAtrRepository atr, bool accessDeleted, TimeSpan? expiry = null)
+        public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedReplace(TransactionGetResult doc, IContentAsWrapper content, string opId, IAtrRepository atr, bool accessDeleted, DateTimeOffset? expiry = null)
         {
             if (doc.Cas == 0)
             {
@@ -141,7 +142,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             return false;
         }
 
-        public async Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode, Flags flags, TimeSpan? expiry = null)
+        public async Task<(ulong updatedCas, MutationToken? mutationToken)> UnstageInsertOrReplace(ICouchbaseCollection collection, string docId, ulong cas, object finalDoc, bool insertMode, Flags flags, DateTimeOffset? expiry = null)
         {
             bool isBinary = flags.DataFormat == DataFormat.Binary;
             if (SupportsReplaceBodyWithXattr(collection))
@@ -159,7 +160,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 
                 if (expiry.HasValue)
                 {
-                    opts.Expiry(expiry.Value);
+                    opts.Expiry(expiry.Value.RemainingTtl());
                     opts.PreserveTtl(false);
                 }
                 opts.Transcoder(isBinary
@@ -187,7 +188,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                         : _userDataTranscoder);
                 if (expiry.HasValue)
                 {
-                    opts.Expiry(expiry.Value);
+                    opts.Expiry(expiry.Value.RemainingTtl());
                 }
                 var mutateResult = await collection.InsertAsync(docId, finalDoc, opts).CAF();
                 return (mutateResult.Cas, mutateResult.MutationToken);
@@ -201,7 +202,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                         : _userDataTranscoder);
                 if (expiry.HasValue)
                 {
-                    opts.Expiry(expiry.Value);
+                    opts.Expiry(expiry.Value.RemainingTtl());
                     opts.PreserveTtl(false);
                 }
                 var mutateResult = await collection.MutateInAsync(docId, specs =>
@@ -337,7 +338,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 .StoreSemantics(storeSemantics)
                 .PreserveTtl(collection.Scope.Bucket.SupportsCollections);
 
-        private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, IContentAsWrapper content, string opId, DocumentMetadata? dm = null, TimeSpan? expiry = null)
+        private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, IContentAsWrapper content, string opId, DocumentMetadata? dm = null, DateTimeOffset? expiry = null)
         {
             var specs = new List<MutateInSpec>
             {
@@ -355,7 +356,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             };
             if (expiry.HasValue)
             {
-                specs.Add(MutateInSpec.Upsert(TransactionFields.DocExpiry, expiry.Value.TotalMilliseconds,
+                specs.Add(MutateInSpec.Upsert(TransactionFields.DocExpiry, expiry.Value.ToUnixTimeSeconds(),
                     true, true));
             }
             switch (opType)

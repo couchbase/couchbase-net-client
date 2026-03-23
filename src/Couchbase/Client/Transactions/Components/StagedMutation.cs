@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Globalization;
 using Couchbase.Core;
@@ -18,9 +18,9 @@ namespace Couchbase.Client.Transactions.Components
 
         public Flags? Flags { get; }
 
-        public TimeSpan? Expiry { get; }
+        public DateTimeOffset? Expiry { get; }
 
-        public StagedMutation(TransactionGetResult doc, object? content, Flags? flags, StagedMutationType type, MutationToken? mutationToken = null, TimeSpan? expiry = null)
+        public StagedMutation(TransactionGetResult doc, object? content, Flags? flags, StagedMutationType type, MutationToken? mutationToken = null, DateTimeOffset? expiry = null)
         {
             Doc = doc;
             Content = content;

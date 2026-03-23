@@ -51,6 +51,33 @@ namespace Couchbase.Utils
         }
 
         /// <summary>
+        /// Converts a relative <see cref="TimeSpan"/> duration to an absolute <see cref="DateTimeOffset"/>
+        /// representing when the TTL should expire. Used by transactions to capture the expiry time
+        /// at staging, so the TTL clock starts from staging rather than unstaging.
+        /// </summary>
+        /// <param name="duration">The relative TTL duration.</param>
+        /// <returns>An absolute <see cref="DateTimeOffset"/> representing the expiry time.</returns>
+        public static DateTimeOffset ToEpochTtl(this TimeSpan duration)
+        {
+            return DateTimeOffset.UtcNow + duration;
+        }
+
+        /// <summary>
+        /// Converts an absolute expiry <see cref="DateTimeOffset"/> back to the remaining
+        /// <see cref="TimeSpan"/> relative to now. Returns a minimum of 1 second to avoid
+        /// passing 0 to the server, which would mean "never expire".
+        /// </summary>
+        /// <param name="absoluteExpiry">The absolute expiry time.</param>
+        /// <returns>The remaining TTL as a <see cref="TimeSpan"/>, minimum 1 second.</returns>
+        public static TimeSpan RemainingTtl(this DateTimeOffset absoluteExpiry)
+        {
+            var remaining = absoluteExpiry - DateTimeOffset.UtcNow;
+            return remaining > TimeSpan.FromSeconds(1)
+                ? remaining
+                : TimeSpan.FromSeconds(1);
+        }
+
+        /// <summary>
         /// Converts a duration expressed as milliseconds to a unix-based TTL.
         /// </summary>
         /// <param name="duration">Milliseconds to use as TTL.</param>

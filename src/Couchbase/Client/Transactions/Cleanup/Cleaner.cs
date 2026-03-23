@@ -13,6 +13,7 @@ using Couchbase.Client.Transactions.Internal.Test;
 using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 using Couchbase.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
 
@@ -234,7 +235,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                     {
                         options.Durability(durabilityLevel)
                             .Transcoder(op.StagedContent?.Transcoder);
-                        if (op.Expiry.HasValue) options.Expiry(op.Expiry.Value);
+                        if (op.Expiry.HasValue) options.Expiry(op.Expiry.Value.RemainingTtl());
                     }).CAF();
             }
             else
@@ -251,7 +252,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                         .PreserveTtl(coll.Scope.Bucket.SupportsCollections);
                     if (op.Expiry.HasValue)
                     {
-                        opts.Expiry(op.Expiry.Value);
+                        opts.Expiry(op.Expiry.Value.RemainingTtl());
                         opts.PreserveTtl(false);
                     }
                 }).CAF();
