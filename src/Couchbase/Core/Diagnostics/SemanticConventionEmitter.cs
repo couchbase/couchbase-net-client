@@ -44,6 +44,37 @@ internal static class SemanticConventionEmitter
         };
 #endif
 
+    // Value mapping: legacy attribute value -> modern attribute value.
+    // Applied only when emitting in Modern or Both mode for string-typed attributes.
+#if NET8_0_OR_GREATER
+    private static readonly FrozenDictionary<string, string> LegacyToModernValues =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+#else
+    private static readonly Dictionary<string, string> LegacyToModernValues =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+#endif
+            ["IP.TCP"] = "tcp",
+#if NET8_0_OR_GREATER
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+#else
+        };
+#endif
+
+    /// <summary>
+    /// Maps a legacy string value to its modern equivalent, if one exists.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T MapValue<T>(T value)
+    {
+        if (value is string strValue && LegacyToModernValues.TryGetValue(strValue, out var modernValue))
+        {
+            return (T)(object)modernValue;
+        }
+        return value;
+    }
+
     /// <summary>
     /// Emits an attribute using the appropriate semantic convention key(s).
     /// The <paramref name="state"/> parameter is forwarded to the callback, allowing
@@ -76,13 +107,13 @@ internal static class SemanticConventionEmitter
         {
             case ObservabilitySemanticConvention.Modern:
                 if (modernKey.Length == 0) return;
-                setAttribute(state, modernKey, value);
+                setAttribute(state, modernKey, MapValue(value));
                 return;
 
             case ObservabilitySemanticConvention.Both:
                 setAttribute(state, key, value);
                 if (modernKey.Length == 0) return;
-                setAttribute(state, modernKey, value);
+                setAttribute(state, modernKey, MapValue(value));
                 return;
 
             default:

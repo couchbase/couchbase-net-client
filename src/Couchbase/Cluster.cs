@@ -112,6 +112,7 @@ namespace Couchbase
             if (_tracer is RequestTracerWrapper wrapper)
             {
                 wrapper.ClusterContext = _context;
+                wrapper.ResolveAndSetConvention();
             }
             _retryStrategy = _context.ServiceProvider.GetRequiredService<IRetryStrategy>();
 

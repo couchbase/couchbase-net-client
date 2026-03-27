@@ -6,7 +6,15 @@ internal sealed class RequestTracerWrapper(IRequestTracer innerTracer, ClusterCo
     internal ClusterContext ClusterContext = clusterContext;
     internal ClusterLabels ClusterLabels => ClusterContext?.GlobalConfig?.ClusterLabels;
 
-    internal ObservabilitySemanticConvention Convention { get; } = ResolveConvention(clusterContext);
+    internal ObservabilitySemanticConvention Convention { get; private set; } = ResolveConvention(clusterContext);
+
+    /// <summary>
+    /// Re-resolves the Convention from ClusterContext. Call once after ClusterContext is assigned.
+    /// </summary>
+    internal void ResolveAndSetConvention()
+    {
+        Convention = ResolveConvention(ClusterContext);
+    }
 
     private static ObservabilitySemanticConvention ResolveConvention(ClusterContext clusterContext)
     {

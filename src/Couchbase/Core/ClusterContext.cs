@@ -932,8 +932,12 @@ namespace Couchbase.Core
             }
 #endif
 
-            // Change ClusterLabels if new ones have been received (can come from either Global or Bucket configs)
-            GlobalConfig?.UpdateClusterLabelsIfNecessary(globalConfig);
+            // Merge ClusterLabels: prefer incoming values (latest from server), carry forward current values as fallback.
+            // Both configs are updated so labels survive even if GlobalConfig is replaced.
+            if (GlobalConfig is not null)
+            {
+                globalConfig.MergeClusterLabels(GlobalConfig);
+            }
 
             if (globalConfig.Name == Name)
             {

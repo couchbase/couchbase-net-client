@@ -20,13 +20,14 @@ namespace Couchbase.Core.IO.Connections
         private readonly MultiplexingConnection _multiplexingConnection;
 
         public SslConnection(SslStream stream, int maximumInFlightOperations, EndPoint localEndPoint, EndPoint remoteEndPoint,
-            ILogger<SslConnection> logger, ILogger<MultiplexingConnection> multiplexingLogger)
+            ILogger<SslConnection> logger, ILogger<MultiplexingConnection> multiplexingLogger,
+            string? logicalRemoteHostname = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _sslStream = stream ?? throw new ArgumentNullException(nameof(stream));
             _multiplexingConnection = new MultiplexingConnection(_sslStream, maximumInFlightOperations,
-                localEndPoint, remoteEndPoint, multiplexingLogger);
+                localEndPoint, remoteEndPoint, multiplexingLogger, logicalRemoteHostname);
         }
 
         public string ContextId => _multiplexingConnection.ContextId;

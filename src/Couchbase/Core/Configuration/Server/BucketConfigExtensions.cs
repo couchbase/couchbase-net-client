@@ -36,18 +36,19 @@ namespace Couchbase.Core.Configuration.Server
             return !(config.NodesExt.AreEqual(other.NodesExt) && config.Nodes.AreEqual(other.Nodes));
         }
 
-        public static void UpdateClusterLabelsIfNecessary(this BucketConfig newConfig, BucketConfig oldConfig)
+        public static void MergeClusterLabels(this BucketConfig incomingConfig, BucketConfig currentConfig)
         {
-            if (newConfig.ClusterLabels.Equals(oldConfig.ClusterLabels!)) return;
-            if (newConfig.ClusterLabels.ClusterName is not null)
-            {
-                oldConfig.ClusterLabels.ClusterName = newConfig.ClusterLabels.ClusterName;
-            }
+            if (incomingConfig.ClusterLabels.Equals(currentConfig.ClusterLabels)) return;
 
-            if (newConfig.ClusterLabels.ClusterUuid is not null)
-            {
-                oldConfig.ClusterLabels.ClusterUuid = newConfig.ClusterLabels.ClusterUuid;
-            }
+            // Prefer incoming values (latest from server), fall back to current values
+            var name = incomingConfig.ClusterLabels.ClusterName ?? currentConfig.ClusterLabels.ClusterName;
+            var uuid = incomingConfig.ClusterLabels.ClusterUuid ?? currentConfig.ClusterLabels.ClusterUuid;
+
+            // Apply to both so labels are correct regardless of which config is used going forward
+            incomingConfig.ClusterLabels.ClusterName = name;
+            incomingConfig.ClusterLabels.ClusterUuid = uuid;
+            currentConfig.ClusterLabels.ClusterName = name;
+            currentConfig.ClusterLabels.ClusterUuid = uuid;
         }
         public static bool HasConfigChanges(this BucketConfig newConfig, BucketConfig? oldConfig, string bucketName)
         {

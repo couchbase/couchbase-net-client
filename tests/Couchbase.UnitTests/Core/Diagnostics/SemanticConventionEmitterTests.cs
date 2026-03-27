@@ -146,6 +146,55 @@ namespace Couchbase.UnitTests.Core.Diagnostics
             Assert.Equal((LegacyMappedKey, 42L), calls[0]);
             Assert.Equal((ModernMappedKey, 42L), calls[1]);
         }
+
+        [Fact]
+        public void EmitAttribute_NetTransport_Legacy_KeepsIpTcpValue()
+        {
+            var calls = new List<(string Key, string Value)>();
+
+            SemanticConventionEmitter.EmitAttribute(
+                ObservabilitySemanticConvention.Legacy,
+                key: "net.transport",
+                value: "IP.TCP",
+                state: calls,
+                setAttribute: static (s, k, v) => s.Add((k, v)));
+
+            Assert.Single(calls);
+            Assert.Equal(("net.transport", "IP.TCP"), calls[0]);
+        }
+
+        [Fact]
+        public void EmitAttribute_NetTransport_Modern_MapsValueToTcp()
+        {
+            var calls = new List<(string Key, string Value)>();
+
+            SemanticConventionEmitter.EmitAttribute(
+                ObservabilitySemanticConvention.Modern,
+                key: "net.transport",
+                value: "IP.TCP",
+                state: calls,
+                setAttribute: static (s, k, v) => s.Add((k, v)));
+
+            Assert.Single(calls);
+            Assert.Equal(("network.transport", "tcp"), calls[0]);
+        }
+
+        [Fact]
+        public void EmitAttribute_NetTransport_Both_EmitsLegacyValueAndModernValue()
+        {
+            var calls = new List<(string Key, string Value)>();
+
+            SemanticConventionEmitter.EmitAttribute(
+                ObservabilitySemanticConvention.Both,
+                key: "net.transport",
+                value: "IP.TCP",
+                state: calls,
+                setAttribute: static (s, k, v) => s.Add((k, v)));
+
+            Assert.Equal(2, calls.Count);
+            Assert.Equal(("net.transport", "IP.TCP"), calls[0]);
+            Assert.Equal(("network.transport", "tcp"), calls[1]);
+        }
     }
 }
 /* ************************************************************

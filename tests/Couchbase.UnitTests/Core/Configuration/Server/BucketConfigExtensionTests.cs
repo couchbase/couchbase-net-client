@@ -657,4 +657,82 @@ public class BucketConfigExtensionTests
 
         return bucket;
     }
+
+    #region MergeClusterLabels
+
+    [Fact]
+    public void MergeClusterLabels_IncomingHasNewName_BothConfigsGetNewName()
+    {
+        var current = new BucketConfig { ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        var incoming = new BucketConfig { ClusterName = "NewCluster", ClusterUuid = "uuid-1" };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Equal("NewCluster", current.ClusterName);
+        Assert.Equal("NewCluster", incoming.ClusterName);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_IncomingHasNullName_BothConfigsKeepCurrentName()
+    {
+        var current = new BucketConfig { ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        var incoming = new BucketConfig { ClusterName = null, ClusterUuid = "uuid-1" };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Equal("OldCluster", current.ClusterName);
+        Assert.Equal("OldCluster", incoming.ClusterName);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_BothNull_BothRemainNull()
+    {
+        var current = new BucketConfig { ClusterName = null, ClusterUuid = null };
+        var incoming = new BucketConfig { ClusterName = null, ClusterUuid = null };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Null(current.ClusterName);
+        Assert.Null(incoming.ClusterName);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_LabelsEqual_NoMutation()
+    {
+        var current = new BucketConfig { ClusterName = "Same", ClusterUuid = "uuid-1" };
+        var incoming = new BucketConfig { ClusterName = "Same", ClusterUuid = "uuid-1" };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Equal("Same", current.ClusterName);
+        Assert.Equal("Same", incoming.ClusterName);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_IncomingHasNewUuid_BothConfigsGetNewUuid()
+    {
+        var current = new BucketConfig { ClusterName = "Cluster", ClusterUuid = "old-uuid" };
+        var incoming = new BucketConfig { ClusterName = "Cluster", ClusterUuid = "new-uuid" };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Equal("new-uuid", current.ClusterUuid);
+        Assert.Equal("new-uuid", incoming.ClusterUuid);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_IncomingHasNewNameAndNullUuid_MergesBothFields()
+    {
+        var current = new BucketConfig { ClusterName = "OldCluster", ClusterUuid = "old-uuid" };
+        var incoming = new BucketConfig { ClusterName = "NewCluster", ClusterUuid = null };
+
+        incoming.MergeClusterLabels(current);
+
+        Assert.Equal("NewCluster", current.ClusterName);
+        Assert.Equal("NewCluster", incoming.ClusterName);
+        Assert.Equal("old-uuid", current.ClusterUuid);
+        Assert.Equal("old-uuid", incoming.ClusterUuid);
+    }
+
+    #endregion
 }

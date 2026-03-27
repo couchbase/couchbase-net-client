@@ -56,7 +56,7 @@ internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels c
     }
     public IRequestSpan ChildSpan(string name)
     {
-        return innerSpan.ChildSpan(name);
+        return new RequestSpanWrapper(innerSpan.ChildSpan(name), clusterLabels, convention);
     }
 
     public bool CanWrite => innerSpan.CanWrite;

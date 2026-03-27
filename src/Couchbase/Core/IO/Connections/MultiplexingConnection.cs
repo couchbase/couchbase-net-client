@@ -42,20 +42,23 @@ namespace Couchbase.Core.IO.Connections
         private readonly string _localHostString;
         private readonly string _remotePortString;
         private readonly string _localPortString;
+        private readonly string _logicalRemoteHostname;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
         // such as when running Diagnostics pings. We therefore need to prevent them ourselves, as the internal
         // implementation of socket writes may interleave large buffers written from different threads.
         private readonly SemaphoreSlim _writeMutex = new(1);
 
-        public MultiplexingConnection(Socket socket, int maximumInFlightOperations, ILogger<MultiplexingConnection> logger)
+        public MultiplexingConnection(Socket socket, int maximumInFlightOperations,
+            ILogger<MultiplexingConnection> logger, string? logicalRemoteHostname = null)
             : this(new NetworkStream(socket, true), maximumInFlightOperations,
-                socket.LocalEndPoint!, socket.RemoteEndPoint!, logger)
+                socket.LocalEndPoint!, socket.RemoteEndPoint!, logger, logicalRemoteHostname)
         {
         }
 
         public MultiplexingConnection(Stream stream, int maximumInFlightOperations,
-            EndPoint localEndPoint, EndPoint remoteEndPoint, ILogger<MultiplexingConnection> logger)
+            EndPoint localEndPoint, EndPoint remoteEndPoint, ILogger<MultiplexingConnection> logger,
+            string? logicalRemoteHostname = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             LocalEndPoint = localEndPoint ?? throw new ArgumentNullException(nameof(localEndPoint));
@@ -71,6 +74,7 @@ namespace Couchbase.Core.IO.Connections
             _localHostString = ((IPEndPoint) LocalEndPoint).Address.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
             _remotePortString = ((IPEndPoint) EndPoint).Port.ToStringInvariant();
             _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToStringInvariant();
+            _logicalRemoteHostname = logicalRemoteHostname ?? _remoteHostString;
 
             EndpointState = EndpointState.Connecting;
 
@@ -492,8 +496,10 @@ namespace Couchbase.Core.IO.Connections
             {
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalHostname, _localHostString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalPort, _localPortString);
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _remoteHostString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _logicalRemoteHostname);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, _remotePortString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerAddress, _remoteHostString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerPort, _remotePortString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, ContextId);
             }
         }

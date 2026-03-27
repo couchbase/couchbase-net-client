@@ -126,10 +126,10 @@ namespace Couchbase.Core.IO.Connections
                 if (!isSecure) throw new AuthenticationException($"The SSL/TLS connection could not be authenticated on [{targetHost}].");
 
                 return new SslConnection(sslStream, _clusterOptions.Tuning.MaximumInFlightOperationsPerConnection,
-                    socket.LocalEndPoint!, socket.RemoteEndPoint!, _sslLogger, _multiplexLogger);
+                    socket.LocalEndPoint!, socket.RemoteEndPoint!, _sslLogger, _multiplexLogger, hostEndpoint.Host);
             }
 
-            return new MultiplexingConnection(socket, _clusterOptions.Tuning.MaximumInFlightOperationsPerConnection, _multiplexLogger);
+            return new MultiplexingConnection(socket, _clusterOptions.Tuning.MaximumInFlightOperationsPerConnection, _multiplexLogger, hostEndpoint.Host);
         }
     }
 }

@@ -129,6 +129,16 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 /// The operation timeout in milliseconds
                 /// </summary>
                 public const string TimeoutMilliseconds = "timeout_ms";
+
+                /// <summary>
+                ///     The resolved IP address of the remote peer (modern OTel convention).
+                /// </summary>
+                public const string NetworkPeerAddress = "network.peer.address";
+
+                /// <summary>
+                ///     The port of the remote peer (modern OTel convention).
+                /// </summary>
+                public const string NetworkPeerPort = "network.peer.port";
             }
         }
     }
