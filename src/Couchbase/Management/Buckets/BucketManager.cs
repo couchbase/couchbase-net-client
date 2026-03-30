@@ -363,12 +363,6 @@ namespace Couchbase.Management.Buckets
                     Statement = uri.ToString()
                 };
 
-                if (result.IsSuccessStatusCode)
-                {
-                    rootSpan.SetStatus(RequestSpanStatusCode.Ok);
-                    return;
-                }
-
                 switch (result.StatusCode)
                 {
                     case HttpStatusCode.NotFound:
