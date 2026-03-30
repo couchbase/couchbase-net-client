@@ -186,8 +186,6 @@ namespace Couchbase
                     {
                         EnableTls = true;
                     }
-
-
                 }
             }
         }
@@ -783,10 +781,10 @@ namespace Couchbase
         /// This and the fluent methods <see cref="WithAuthenticator"/> are the preferred way to
         /// configure authentication in the SDK.
         /// </summary>
-        internal IAuthenticator? Authenticator
+        public IAuthenticator? Authenticator
         {
             get => Volatile.Read(ref field);
-            set => Interlocked.Exchange(ref field, value);
+            internal set => Interlocked.Exchange(ref field, value);
         }
 
         /// <summary>
