@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.GetMeta;
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             builder.WriteByte(0x02);
         }

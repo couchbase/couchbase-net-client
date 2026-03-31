@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Increment;
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             const int extrasLength = sizeof(ulong) * 2 + sizeof(uint);
 
@@ -37,7 +37,7 @@ namespace Couchbase.Core.IO.Operations
             builder.Advance(extrasLength);
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
     }

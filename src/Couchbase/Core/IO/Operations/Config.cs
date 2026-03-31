@@ -65,7 +65,7 @@ namespace Couchbase.Core.IO.Operations
             };
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             //We have GetClusterConfigWithKnownVersion enabled and the epoch
             //and revision can be sent to the server for deduping

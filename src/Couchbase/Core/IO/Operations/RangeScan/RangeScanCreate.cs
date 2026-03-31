@@ -13,19 +13,19 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public bool KeyOnly { private get; set; }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             //no extras
         }
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
             //no key
         }
 
         protected override bool SupportsJsonDataType => true;
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             Content.CollectionName = Cid?.ToString("x") ?? "";
             Content.Serialize(KeyOnly, Timeout, MutationToken, builder);

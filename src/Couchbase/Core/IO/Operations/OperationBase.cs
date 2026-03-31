@@ -520,11 +520,11 @@ namespace Couchbase.Core.IO.Operations
 
         #region Writing
 
-        private OperationRequestHeader CreateHeader(DataType dataType) =>
+        internal OperationRequestHeader CreateHeader(DataType dataType) =>
             new()
             {
                 OpCode = OpCode,
-                VBucketId = VBucketId,
+                VBucketId = RequiresVBucketId ? VBucketId : null,
                 Opaque = Opaque,
                 Cas = Cas,
                 DataType = dataType
@@ -534,7 +534,7 @@ namespace Couchbase.Core.IO.Operations
         /// Writes the key to an <see cref="OperationBuilder"/>.
         /// </summary>
         /// <param name="builder">The builder.</param>
-        protected virtual void WriteKey(OperationBuilder builder)
+        internal virtual void WriteKey(OperationBuilder builder)
         {
             var keyLength = Cid.HasValue ?
                 OperationHeader.MaxKeyLength + Leb128.MaxLength :
@@ -571,7 +571,7 @@ namespace Couchbase.Core.IO.Operations
         /// Writes the extras to an <see cref="OperationBuilder"/>.
         /// </summary>
         /// <param name="builder">The builder.</param>
-        protected virtual void WriteExtras(OperationBuilder builder)
+        internal virtual void WriteExtras(OperationBuilder builder)
         {
         }
 
@@ -587,7 +587,7 @@ namespace Couchbase.Core.IO.Operations
         /// Writes the body to an <see cref="OperationBuilder"/>.
         /// </summary>
         /// <param name="builder">The builder.</param>
-        protected virtual void WriteBody(OperationBuilder builder)
+        internal virtual void WriteBody(OperationBuilder builder)
         {
         }
 

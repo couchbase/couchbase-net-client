@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.Helo;
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             var bufferLength = Content.Length * 2;
 
@@ -28,7 +28,7 @@ namespace Couchbase.Core.IO.Operations
             builder.Advance(bufferLength);
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 

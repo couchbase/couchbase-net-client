@@ -13,7 +13,7 @@ namespace Couchbase.Core.IO.Operations
         [MaybeNull]
         public T Content { get; set; }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             if (typeof(T).GetTypeInfo().IsValueType || Content != null)
             {
@@ -54,7 +54,7 @@ namespace Couchbase.Core.IO.Operations
             return result;
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             var extras = builder.GetSpan(8);
 

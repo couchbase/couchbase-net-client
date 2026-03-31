@@ -247,6 +247,11 @@ namespace Couchbase.Core.IO.Operations
             {
                 ByteConverter.FromInt16(header.VBucketId.GetValueOrDefault(), headerBytes.Slice(HeaderOffsets.VBucket));
             }
+            else
+            {
+                // Clear the VBucket field when not needed (it shares bytes 6-7 with Status for responses)
+                ByteConverter.FromInt16(0, headerBytes.Slice(HeaderOffsets.VBucket));
+            }
 
             var totalLength = _framingExtrasLength + _extrasLength + _keyLength + _bodyLength;
             ByteConverter.FromInt32(totalLength, headerBytes.Slice(HeaderOffsets.BodyLength));

@@ -29,11 +29,11 @@ namespace Couchbase.Core.IO.Operations.Collections
             return 0u;
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
     }

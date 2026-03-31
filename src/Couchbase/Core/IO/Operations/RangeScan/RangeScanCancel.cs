@@ -10,17 +10,17 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public override bool RequiresVBucketId => true;
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             //no body
         }
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
             //no key
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             //write uuidbase
             var span = builder.GetSpan(16);

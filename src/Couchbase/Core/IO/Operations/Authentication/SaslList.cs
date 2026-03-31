@@ -7,7 +7,7 @@ namespace Couchbase.Core.IO.Operations.Authentication
     /// </summary>
     internal sealed class SaslList : OperationBase<string>
     {
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 

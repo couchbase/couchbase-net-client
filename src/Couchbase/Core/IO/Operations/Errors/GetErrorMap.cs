@@ -9,15 +9,15 @@ namespace Couchbase.Core.IO.Operations.Errors
 
         public ErrorMap ErrorMap { get; set; }
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             var body = builder.GetSpan(sizeof(ushort));
             ByteConverter.FromInt16(DefaultVersion, body);
@@ -30,6 +30,8 @@ namespace Couchbase.Core.IO.Operations.Errors
         }
 
         public override OpCode OpCode => OpCode.GetErrorMap;
+
+        public override bool RequiresVBucketId => false;
     }
 }
 

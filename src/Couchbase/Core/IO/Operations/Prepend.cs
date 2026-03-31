@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations
             Flags = Transcoder.GetFormat(Content);
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 

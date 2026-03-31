@@ -49,17 +49,17 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public ILogger<GetResult> Logger { get;set; }
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
             //no key
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             // No body
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             var extras = builder.GetSpan(28);
             Uuid.Memory.Span.CopyTo(extras);

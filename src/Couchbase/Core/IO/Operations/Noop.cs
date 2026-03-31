@@ -4,7 +4,7 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.NoOp;
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
         }
     }

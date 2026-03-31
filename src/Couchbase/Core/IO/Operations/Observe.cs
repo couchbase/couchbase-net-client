@@ -7,7 +7,7 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 
@@ -15,11 +15,11 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        protected override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder)
         {
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             const int vBucketAndLengthSize = sizeof(ushort) * 2;
             var buffer = builder.GetSpan(vBucketAndLengthSize + OperationHeader.MaxKeyLength + Leb128.MaxLength);

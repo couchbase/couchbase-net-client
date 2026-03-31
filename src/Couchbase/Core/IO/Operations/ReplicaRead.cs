@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations
             ReplicaIdx = replicaIndex;
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 
@@ -18,7 +18,7 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
     }

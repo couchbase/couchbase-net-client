@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations.Authentication
     {
         public override OpCode OpCode => OpCode.SaslStart;
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 

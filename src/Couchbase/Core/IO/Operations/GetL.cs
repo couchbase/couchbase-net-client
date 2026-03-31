@@ -8,14 +8,14 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public override bool IsReadOnly => false;
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             var extras = builder.GetSpan(sizeof(uint));
             ByteConverter.FromUInt32(Expiry, extras);
             builder.Advance(sizeof(uint));
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
 

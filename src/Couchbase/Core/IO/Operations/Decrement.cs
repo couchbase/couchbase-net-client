@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Decrement;
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             var extras = builder.GetSpan(20);
             ByteConverter.FromUInt64(Delta, extras);
@@ -24,7 +24,7 @@ namespace Couchbase.Core.IO.Operations
             builder.Advance(20);
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
     }

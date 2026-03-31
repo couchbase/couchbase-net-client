@@ -8,12 +8,12 @@ namespace Couchbase.Core.IO.Operations
         internal GetT(string bucketName, string key) : base(bucketName, key)
         { }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             Touch.WriteExpiry(builder, Expires);
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
         }
 

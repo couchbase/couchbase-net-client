@@ -17,7 +17,7 @@ namespace Couchbase.Core.IO.Operations.Collections
             };
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
         }
 

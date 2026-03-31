@@ -53,7 +53,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             MutateCommands = new ReadOnlyCollection<MutateInSpec>(commands);
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             // Lets get 1 buffer to hold everything. Given its max size is just 9
             // bytes, lets just get that each time.
@@ -108,7 +108,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             builder.Advance(framingExtra.Length + 1);
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             try
             {

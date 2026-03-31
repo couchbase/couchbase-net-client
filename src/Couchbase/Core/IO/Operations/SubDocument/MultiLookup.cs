@@ -42,7 +42,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             ReplicaIdx = replicaIndex;
         }
 
-        protected override void WriteExtras(OperationBuilder builder)
+        internal override void WriteExtras(OperationBuilder builder)
         {
             if (DocFlags != SubdocDocFlags.None)
             {
@@ -54,7 +54,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
         }
 
-        protected override void WriteBody(OperationBuilder builder)
+        internal override void WriteBody(OperationBuilder builder)
         {
             foreach (var lookup in LookupCommands)
             {
