@@ -60,7 +60,7 @@ namespace Couchbase.UnitTests.Management
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchNode())
+                .Setup(m => m.GetRandomSearchNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,

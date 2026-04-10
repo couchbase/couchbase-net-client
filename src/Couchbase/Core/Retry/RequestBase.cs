@@ -30,6 +30,12 @@ namespace Couchbase.Core.Retry
         public List<RetryReason> RetryReasons { get; set; } = new();
         public string? Statement { get; set; }
 
+        /// <summary>
+        /// Nodes that failed with transport errors during previous retry attempts.
+        /// Used to avoid re-selecting the same broken node on retry.
+        /// </summary>
+        internal List<Uri>? ExcludedNodes { get; set; }
+
         #region Tracing and Metrics
 
         /// <inheritdoc />

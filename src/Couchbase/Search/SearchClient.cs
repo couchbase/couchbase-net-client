@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
@@ -17,6 +18,7 @@ using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Search.Queries.Simple;
@@ -89,8 +91,8 @@ namespace Couchbase.Search
 
             using var encodingSpan = rootSpan.EncodingSpan();
 
-            // try get Search nodes
-            var searchNode = _serviceUriProvider.GetRandomSearchNode();
+            // try get Search nodes, excluding nodes that failed on prior retries
+            var searchNode = _serviceUriProvider.GetRandomSearchNode(ftsSearchRequest.ExcludedNodes);
             var searchUri = searchNode.SearchUri;
             var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan requestElapsed;
@@ -321,6 +323,33 @@ namespace Couchbase.Search
                     searchNode.NodeUuid,
                     AppTelemetryServiceType.Search,
                     AppTelemetryCounterType.Canceled);
+
+                // Search is always idempotent → exclude this node and let the orchestrator re-dispatch
+                if (e.TryExcludeFailedNode(isReadOnly: true, ftsSearchRequest, searchUri))
+                {
+                    _logger.LogDebug(LoggingEvents.SearchEvent,
+                        "Search request hit a retriable transport error on node {endpoint}, will retry.",
+                        searchUri);
+
+                    // Synthetic result flagged for retry so the orchestrator re-dispatches to another node;
+                    // NoRetryException is surfaced only if the retry strategy decides not to retry.
+                    searchResult = new SearchResult();
+                    searchResult.RetryReason = RetryReason.ServiceNotAvailable;
+                    searchResult.NoRetryException = new RequestCanceledException("The query was canceled.", e)
+                    {
+                        Context = new SearchErrorContext
+                        {
+                            HttpStatus = HttpStatusCode.RequestTimeout,
+                            IndexName = ftsSearchRequest!.Index,
+                            ClientContextId = ftsSearchRequest.ClientContextId,
+                            Statement = ftsSearchRequest.Statement,
+                            Errors = errors,
+                            Query = ftsSearchRequest.ToJson()
+                        }
+                    };
+                    UpdateLastActivity();
+                    return searchResult;
+                }
 
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
                 throw new RequestCanceledException("The query was canceled.", e)

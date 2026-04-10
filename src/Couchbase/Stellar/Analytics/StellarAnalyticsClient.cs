@@ -27,7 +27,7 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
 
     public DateTime? LastActivity { get; }
 
-    public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
+    public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options, IRequest? request = null)
     {
         var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
 
@@ -42,16 +42,16 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
             if (opts.ScopeName != null) childSpan.SetAttribute(OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
         }
 
-        var request = new AnalyticsQueryRequest
+        var analyticsRequest = new AnalyticsQueryRequest
         {
             Statement = statement,
             ReadOnly = opts.Readonly,
             Priority = opts.Priority == -1,
             ScanConsistency = opts.ScanConsistency.ToProtoScanConsistency()
         };
-        if (opts.BucketName != null) request.BucketName = opts.BucketName;
-        if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
-        if (opts.ClientContextId != null) request.ClientContextId = opts.ClientContextId;
+        if (opts.BucketName != null) analyticsRequest.BucketName = opts.BucketName;
+        if (opts.ScopeName != null) analyticsRequest.ScopeName = opts.ScopeName;
+        if (opts.ClientContextId != null) analyticsRequest.ClientContextId = opts.ClientContextId;
 
         var stellarRequest = new StellarRequest
         {
@@ -69,7 +69,7 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
         async Task<IAnalyticsResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
-            var response = _analyticsClient.AnalyticsQuery(request, callOptions);
+            var response = _analyticsClient.AnalyticsQuery(analyticsRequest, callOptions);
             return new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer);
         }
 

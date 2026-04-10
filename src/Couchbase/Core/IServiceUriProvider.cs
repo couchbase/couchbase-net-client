@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Couchbase.Core.Compatibility;
 
 #nullable enable
@@ -56,6 +57,13 @@ namespace Couchbase.Core
         IClusterNode GetRandomAnalyticsNode();
 
         /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Analytics service,
+        /// excluding nodes with the specified URIs.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomAnalyticsNode(IList<Uri>? excludedNodes);
+
+        /// <summary>
         /// Get the base <see cref="IClusterNode"/> for a random node with the Query service.
         /// </summary>
         /// <returns>The base <see cref="IClusterNode"/>.</returns>
@@ -63,11 +71,25 @@ namespace Couchbase.Core
         IClusterNode GetRandomQueryNode();
 
         /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Query service,
+        /// excluding nodes with the specified URIs.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomQueryNode(IList<Uri>? excludedNodes);
+
+        /// <summary>
         /// Get the base <see cref="IClusterNode"/> for a random node with the Search service.
         /// </summary>
         /// <returns>The base <see cref="IClusterNode"/>.</returns>
         [InterfaceStability(Level.Volatile)]
         IClusterNode GetRandomSearchNode();
+
+        /// <summary>
+        /// Get the base <see cref="IClusterNode"/> for a random node with the Search service,
+        /// excluding nodes with the specified URIs.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        IClusterNode GetRandomSearchNode(IList<Uri>? excludedNodes);
 
         /// <summary>
         /// Get the base <see cref="IClusterNode"/> for a random node with the Management service.

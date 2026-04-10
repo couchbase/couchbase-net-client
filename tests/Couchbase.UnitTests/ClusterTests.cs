@@ -101,9 +101,9 @@ namespace Couchbase.UnitTests
                 .SetupGet(m => m.RetryReason)
                 .Returns(RetryReason.NoRetry);
 
-                var queryClient = new Mock<IQueryClient>();
+            var queryClient = new Mock<IQueryClient>();
             queryClient
-                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<QueryOptions>()))
+                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<QueryOptions>(), It.IsAny<IRequest>()))
                 .ReturnsAsync(queryResult.Object);
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -151,7 +151,7 @@ namespace Couchbase.UnitTests
 
             var analyticsClient = new Mock<IAnalyticsClient>();
             analyticsClient
-                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<AnalyticsOptions>()))
+                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<AnalyticsOptions>(), It.IsAny<IRequest>()))
                 .ReturnsAsync(analyticsResult.Object);
 
 #pragma warning disable CS0618 // Type or member is obsolete

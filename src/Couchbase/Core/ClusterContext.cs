@@ -193,6 +193,9 @@ namespace Couchbase.Core
         }
 
         public IClusterNode GetRandomNodeForService(ServiceType service, string bucketName = null)
+            => GetRandomNodeForService(service, bucketName, excludedNodes: null);
+
+        public IClusterNode GetRandomNodeForService(ServiceType service, string bucketName, IList<Uri> excludedNodes)
         {
             IClusterNode node;
             switch (service)
@@ -211,13 +214,13 @@ namespace Couchbase.Core
 
                     break;
                 case ServiceType.Query:
-                    node = Nodes.RandomOrDefault(static x => x.HasQuery);
+                    node = GetNodeWithExclusion(static x => x.HasQuery, static x => x.QueryUri, excludedNodes);
                     break;
                 case ServiceType.Search:
-                    node = Nodes.RandomOrDefault(static x => x.HasSearch);
+                    node = GetNodeWithExclusion(static x => x.HasSearch, static x => x.SearchUri, excludedNodes);
                     break;
                 case ServiceType.Analytics:
-                    node = Nodes.RandomOrDefault(static x => x.HasAnalytics);
+                    node = GetNodeWithExclusion(static x => x.HasAnalytics, static x => x.AnalyticsUri, excludedNodes);
                     break;
                 case ServiceType.Eventing:
                     node = Nodes.RandomOrDefault(static x => x.HasEventing);
@@ -250,6 +253,28 @@ namespace Couchbase.Core
             }
 
             return node;
+        }
+
+        /// <summary>
+        /// Selects a random node for the given service, excluding any nodes whose service URI
+        /// is in the exclusion list. Falls back to any matching node if all are excluded.
+        /// </summary>
+        private IClusterNode GetNodeWithExclusion(
+            Func<IClusterNode, bool> hasService,
+            Func<IClusterNode, Uri> getUri,
+            IList<Uri> excludedNodes)
+        {
+            if (excludedNodes is not { Count: > 0 })
+            {
+                return Nodes.RandomOrDefault(hasService);
+            }
+
+            // Try to find a node that is not excluded
+            var node = Nodes.RandomOrDefault(x => hasService(x) && !excludedNodes.Contains(getUri(x)));
+
+            // If all nodes with this service are excluded, fall back to any node with the service.
+            // Better to try a previously-failed node than to throw ServiceNotAvailableException.
+            return node ?? Nodes.RandomOrDefault(hasService);
         }
 
         public IEnumerable<IClusterNode> GetNodes(string bucketName)

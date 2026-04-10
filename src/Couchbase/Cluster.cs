@@ -484,22 +484,24 @@ namespace Couchbase
             options ??= new QueryOptions();
             options.TimeoutValue ??= _context.ClusterOptions.QueryTimeout;
 
-            async Task<IQueryResult<T>> Func()
-            {
-                var client1 = LazyQueryClient.GetValueOrThrow();
-                var statement1 = statement;
-                var options1 = options!;
-                return await client1.QueryAsync<T>(statement1, options1).ConfigureAwait(false);
-            }
-
-            return await _retryOrchestrator.RetryAsync(Func, new QueryRequest
+            var request = new QueryRequest
             {
                 Options = options,
                 Statement = statement,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.GetValueOrDefault(),
                 RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy
-            }).ConfigureAwait(false);
+            };
+
+            async Task<IQueryResult<T>> Func()
+            {
+                var client1 = LazyQueryClient.GetValueOrThrow();
+                var statement1 = statement;
+                var options1 = options!;
+                return await client1.QueryAsync<T>(statement1, options1, request).ConfigureAwait(false);
+            }
+
+            return await _retryOrchestrator.RetryAsync(Func, request).ConfigureAwait(false);
         }
 
         #endregion
@@ -527,14 +529,16 @@ namespace Couchbase
                 options.RetryStrategy(_retryStrategy);
             }
 
+            var request = AnalyticsRequest.Create(statement, options);
+
             async Task<IAnalyticsResult<T>> Func()
             {
                 var client1 = LazyAnalyticsClient.GetValueOrThrow();
                 var options1 = options;
-                return await client1.QueryAsync<T>(statement, options1).ConfigureAwait(false);
+                return await client1.QueryAsync<T>(statement, options1, request).ConfigureAwait(false);
             }
 
-            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, options)).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, request).ConfigureAwait(false);
         }
 
         #endregion

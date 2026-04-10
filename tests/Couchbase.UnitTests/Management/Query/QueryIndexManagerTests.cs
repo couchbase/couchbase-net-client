@@ -88,7 +88,7 @@ namespace Couchbase.UnitTests.Management.Query
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -291,7 +291,7 @@ namespace Couchbase.UnitTests.Management.Query
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -402,7 +402,7 @@ namespace Couchbase.UnitTests.Management.Query
             }
 
             public DateTime? LastActivity { get; }
-            public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
+            public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options, IRequest? request = null)
             {
                 options.Statement("SELECT 1;");
                 FormValues = options.GetFormValues();

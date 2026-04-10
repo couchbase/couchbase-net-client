@@ -84,7 +84,7 @@ namespace Couchbase.UnitTests.Query
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = DefaultSerializer.Instance;
@@ -153,7 +153,7 @@ namespace Couchbase.UnitTests.Query
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             // Do not use JsonPropertyNaming.CamelCase here to confirm that non-standard
@@ -223,7 +223,7 @@ namespace Couchbase.UnitTests.Query
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
@@ -270,7 +270,7 @@ namespace Couchbase.UnitTests.Query
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};

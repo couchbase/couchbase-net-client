@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -14,6 +16,7 @@ using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -58,14 +61,15 @@ namespace Couchbase.Analytics
             Justification = "This type may not be constructed without encountering a warning.")]
         [UnconditionalSuppressMessage("AOT", "IL3051",
             Justification = "This type may not be constructed without encountering a warning.")]
-        public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
+        public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options, IRequest? request = null)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, options)
                 .WithOperationId(options)
                 .WithLocalAddress();
 
-            // try get Analytics node
-            var analyticsNode = _serviceUriProvider.GetRandomAnalyticsNode();
+            // try get Analytics node, excluding nodes that failed on prior retries
+            var requestBase = request as RequestBase;
+            var analyticsNode = _serviceUriProvider.GetRandomAnalyticsNode(requestBase?.ExcludedNodes);
             var analyticsUri = analyticsNode.AnalyticsUri;
             var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan operationElapsed;
@@ -84,14 +88,14 @@ namespace Couchbase.Analytics
             {
                 try
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Post, analyticsUri)
+                    var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, analyticsUri)
                     {
                         Content = content
                     };
 
                     if (options.PriorityValue != 0)
                     {
-                        request.Headers.Add(AnalyticsPriorityHeaderName, [
+                        httpRequestMessage.Headers.Add(AnalyticsPriorityHeaderName, [
                             options.PriorityValue.ToStringInvariant()
                         ]);
                     }
@@ -102,7 +106,7 @@ namespace Couchbase.Analytics
                     try
                     {
                         requestStopwatch.Restart();
-                        var response = await httpClient.SendAsync(request, HttpClientFactory.DefaultCompletionOption, options.Token)
+                        var response = await httpClient.SendAsync(httpRequestMessage, HttpClientFactory.DefaultCompletionOption, options.Token)
                             .ConfigureAwait(false);
                         operationElapsed = requestStopwatch.Elapsed;
 
@@ -222,6 +226,25 @@ namespace Couchbase.Analytics
                         Statement = statement,
                         Parameters = options.GetParametersAsJson()
                     };
+
+                    // Retriable transport error → exclude this node and let the orchestrator re-dispatch
+                    if (e.TryExcludeFailedNode(options.ReadonlyValue, requestBase, analyticsUri))
+                    {
+                        _logger.LogDebug(LoggingEvents.AnalyticsEvent,
+                            "Analytics request hit a retriable transport error on node {endpoint}, will retry.",
+                            analyticsUri);
+
+                        // Synthetic result flagged for retry so the orchestrator re-dispatches to another node;
+                        // NoRetryException is surfaced only if the retry strategy decides not to retry.
+                        result = new BlockAnalyticsResult<T>(Stream.Null, _typeSerializer);
+                        result.RetryReason = RetryReason.ServiceNotAvailable;
+                        result.NoRetryException = new RequestCanceledException("The query was canceled.", e)
+                        {
+                            Context = context
+                        };
+                        UpdateLastActivity();
+                        return result;
+                    }
 
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
                     throw new RequestCanceledException("The query was canceled.", e)

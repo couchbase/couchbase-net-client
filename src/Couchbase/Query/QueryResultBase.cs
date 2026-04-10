@@ -126,7 +126,7 @@ namespace Couchbase.Query
             return RetryReason.NoRetry;
         }
 
-        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; internal set; } = RetryReason.NoRetry;
 
         public Exception? NoRetryException { get; set; }
 

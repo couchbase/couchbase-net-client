@@ -84,7 +84,7 @@ public class CollectionQueryIndexManagerTests
         }
 
         public DateTime? LastActivity { get; }
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options, IRequest? request = null)
         {
             options.Statement("SELECT 1;");
             LastStatement = statement;

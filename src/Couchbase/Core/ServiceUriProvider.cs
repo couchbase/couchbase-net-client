@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 #nullable enable
 
@@ -47,12 +48,24 @@ namespace Couchbase.Core
             _clusterContext.GetRandomNodeForService(ServiceType.Analytics);
 
         /// <inheritdoc />
+        public IClusterNode GetRandomAnalyticsNode(IList<Uri>? excludedNodes) =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Analytics, null, excludedNodes);
+
+        /// <inheritdoc />
         public IClusterNode GetRandomQueryNode() =>
             _clusterContext.GetRandomNodeForService(ServiceType.Query);
 
         /// <inheritdoc />
+        public IClusterNode GetRandomQueryNode(IList<Uri>? excludedNodes) =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Query, null, excludedNodes);
+
+        /// <inheritdoc />
         public IClusterNode GetRandomSearchNode() =>
             _clusterContext.GetRandomNodeForService(ServiceType.Search);
+
+        /// <inheritdoc />
+        public IClusterNode GetRandomSearchNode(IList<Uri>? excludedNodes) =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Search, null, excludedNodes);
 
         /// <inheritdoc />
         public IClusterNode GetRandomManagementNode() =>

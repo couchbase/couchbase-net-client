@@ -71,7 +71,7 @@ namespace Couchbase.Search
             }
         }
 
-        public RetryReason RetryReason { get; private set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; internal set; } = RetryReason.NoRetry;
 
         public Exception NoRetryException { get; set; }
 

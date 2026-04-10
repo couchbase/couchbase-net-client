@@ -35,7 +35,7 @@ internal class StellarQueryClient : IQueryClient
 
     public DateTime? LastActivity { get; }
 
-    public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options)
+    public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options, IRequest? request = null)
     {
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
 
@@ -50,7 +50,7 @@ internal class StellarQueryClient : IQueryClient
             if (opts.ScopeName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
         }
 
-        var request = new QueryRequest
+        var protoRequest = new QueryRequest
         {
             Statement = statement,
             ReadOnly = opts.ReadOnly ?? false,
@@ -62,9 +62,9 @@ internal class StellarQueryClient : IQueryClient
 
         // because of the way the GRPC library handles Optional, we have to use if statements rather than the '??=' operator
         // setting the non-nullable SomeProperty sets the associated HasSomeProperty bool.
-        if (opts.BucketName != null) request.BucketName = opts.BucketName;
-        if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
-        if (opts.CurrentContextId != null) request.ClientContextId = opts.CurrentContextId;
+        if (opts.BucketName != null) protoRequest.BucketName = opts.BucketName;
+        if (opts.ScopeName != null) protoRequest.ScopeName = opts.ScopeName;
+        if (opts.CurrentContextId != null) protoRequest.ClientContextId = opts.CurrentContextId;
 
         var tuningOptions = new QueryRequest.Types.TuningOptions();
         if (opts.MaxServerParallelism.HasValue)
@@ -80,7 +80,7 @@ internal class StellarQueryClient : IQueryClient
         if (opts.Parameters.Values.Any()){
             foreach (var (key, value) in opts.Parameters)
             {
-                request.NamedParameters[key] =
+                protoRequest.NamedParameters[key] =
                     ByteString.CopyFrom(_typeSerializer.Serialize(value));
             }
         }
@@ -88,13 +88,13 @@ internal class StellarQueryClient : IQueryClient
         {
             foreach (var arg in opts.Arguments)
             {
-                request.PositionalParameters.Add(
+                protoRequest.PositionalParameters.Add(
                     ByteString.CopyFrom(_typeSerializer.Serialize(arg)));
             }
         }
 
-        request.TuningOptions = tuningOptions;
-        request.ProfileMode = opts.Profile.ToProto();
+        protoRequest.TuningOptions = tuningOptions;
+        protoRequest.ProfileMode = opts.Profile.ToProto();
 
         var stellarRequest = new StellarRequest
         {
@@ -112,7 +112,7 @@ internal class StellarQueryClient : IQueryClient
         async Task<IQueryResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
-            var asyncResponse = _queryClient.Query(request, callOptions);
+            var asyncResponse = _queryClient.Query(protoRequest, callOptions);
             var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer);
             await streamingResult.InitializeAsync(opts.Token).ConfigureAwait(false);
             return streamingResult;

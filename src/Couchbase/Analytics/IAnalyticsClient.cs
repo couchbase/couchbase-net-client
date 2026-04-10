@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry;
 using Couchbase.Management.Analytics;
 
 #nullable enable
@@ -19,8 +20,9 @@ namespace Couchbase.Analytics
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
         /// <param name="statement">The analytics statement to execute.</param>
         /// <param name="options">The analytics options - various methods have implementations.</param>
+        /// <param name="request">The underlying request representing this operation. Used internally for state tracking.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options);
+        Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options, IRequest? request = null);
     }
 }
 

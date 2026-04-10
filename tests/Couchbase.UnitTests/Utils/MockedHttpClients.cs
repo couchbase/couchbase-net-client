@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomQueryNode())
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -109,7 +109,7 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8095"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomAnalyticsNode())
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -153,7 +153,7 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomSearchNode())
+                .Setup(m => m.GetRandomSearchNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             return new SearchClient(httpClientFactory, mockServiceUriProvider.Object,

@@ -1,4 +1,5 @@
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Retry;
 using System;
 using System.Threading.Tasks;
 
@@ -22,8 +23,9 @@ namespace Couchbase.Query
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
         /// <param name="statement">The query statement.</param>
         /// <param name="options">The <see cref="QueryOptions"/> to execute.</param>
+        /// <param name="request">The underlying request representing this operation. Used internally for state tracking.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
+        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options, IRequest? request = null);
 
         void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities);
     }

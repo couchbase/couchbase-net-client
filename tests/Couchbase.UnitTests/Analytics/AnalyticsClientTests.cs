@@ -76,7 +76,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomAnalyticsNode())
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
@@ -132,7 +132,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomAnalyticsNode())
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -173,7 +173,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomAnalyticsNode())
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();
@@ -231,7 +231,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Setup(m => m.GetRandomAnalyticsUri())
                 .Returns(new Uri("http://localhost:8096"));
             mockServiceUriProvider
-                .Setup(m => m.GetRandomAnalyticsNode())
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
                 .Returns(nodeMock.Object);
 
             var serializer = new DefaultSerializer();

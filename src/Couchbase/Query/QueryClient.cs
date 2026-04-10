@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -17,6 +19,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -93,7 +96,7 @@ namespace Couchbase.Query
         }
 
         /// <inheritdoc />
-        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options, IRequest? request = null)
         {
             //It's possible to reuse the QueryOptions which may cause odd threading behaviour
             //So we'll clone it if it has already been used
@@ -122,7 +125,7 @@ namespace Couchbase.Query
                 {
                     // don't use prepared plan, execute query directly
                     options.Statement(statement);
-                    var resultAdhoc = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                    var resultAdhoc = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan, request).ConfigureAwait(false);
                     rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                     success = true;
                     return resultAdhoc;
@@ -138,7 +141,7 @@ namespace Couchbase.Query
 
                         // plan is valid, execute query with it
                         options.Prepared(queryPlan, statement);
-                        var resultCached = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                        var resultCached = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan, request).ConfigureAwait(false);
                         rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                         success = true;
                         return resultCached;
@@ -189,7 +192,7 @@ namespace Couchbase.Query
                 options.Prepared(queryPlan, statement);
 
                 // execute query using plan
-                var finalResult = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
+                var finalResult = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan, request).ConfigureAwait(false);
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
                 success = true;
                 return finalResult;
@@ -203,7 +206,7 @@ namespace Couchbase.Query
             }
         }
 
-        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span)
+        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span, IRequest? request = null)
         {
             using var cts = options.Token.FallbackToTimeout(options.TimeoutValue ?? ClusterOptions.Default.QueryTimeout);
 
@@ -225,8 +228,9 @@ namespace Couchbase.Query
                 };
             }
 
-            // try get Query node
-            var queryNode = _serviceUriProvider.GetRandomQueryNode();
+            // try get Query node, excluding nodes that failed on prior retries
+            var requestBase = request as RequestBase;
+            var queryNode = _serviceUriProvider.GetRandomQueryNode(requestBase?.ExcludedNodes);
             var queryUri = options.LastDispatchedNode ?? queryNode.QueryUri;
 
             var requestStopwatch = LightweightStopwatch.StartNew();
@@ -252,20 +256,20 @@ namespace Couchbase.Query
                 var httpClient = CreateHttpClient(options.TimeoutValue ?? ClusterOptions.Default.QueryTimeout);
                 try
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Post, queryUri)
+                    var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, queryUri)
                     {
                         Content = content
                     };
 
     #if NET5_0_OR_GREATER
                     //oddly only works when set on the HttpRequestMessage - this just forwards what was set from ClusterOptions.Experiments
-                    request.VersionPolicy = httpClient.DefaultVersionPolicy;
-                    request.Version = httpClient.DefaultRequestVersion;
+                    httpRequestMessage.VersionPolicy = httpClient.DefaultVersionPolicy;
+                    httpRequestMessage.Version = httpClient.DefaultRequestVersion;
     #endif
 
                     requestStopwatch.Restart();
 
-                    var response = await httpClient.SendAsync(request,
+                    var response = await httpClient.SendAsync(httpRequestMessage,
                         options.StreamResultsInternal
                             ? HttpCompletionOption.ResponseHeadersRead
                             : HttpClientFactory.DefaultCompletionOption,
@@ -417,6 +421,27 @@ namespace Couchbase.Query
                     HttpStatus = HttpStatusCode.RequestTimeout,
                     QueryStatus = QueryStatus.Fatal
                 };
+
+                // Retriable transport error → exclude this node and let the orchestrator re-dispatch
+                if (e.TryExcludeFailedNode(options.IsReadOnly, requestBase, queryUri))
+                {
+                    _logger.LogDebug(LoggingEvents.QueryEvent,
+                        "Request {currentContextId} hit a retriable transport error on node {endpoint}, will retry.",
+                        currentContextId, queryUri);
+
+                    // Clear LastDispatchedNode so the next retry picks a new node
+                    options.LastDispatchedNode = null;
+
+                    // Synthetic result flagged for retry so the orchestrator re-dispatches to another node;
+                    // NoRetryException is surfaced only if the retry strategy decides not to retry.
+                    var failResult = new BlockQueryResult<T>(Stream.Null, serializer);
+                    failResult.RetryReason = RetryReason.ServiceNotAvailable;
+                    failResult.NoRetryException = new RequestCanceledException("The query was canceled.", e)
+                    {
+                        Context = context
+                    };
+                    return failResult;
+                }
 
                 throw new RequestCanceledException("The query was canceled.", e)
                 {
