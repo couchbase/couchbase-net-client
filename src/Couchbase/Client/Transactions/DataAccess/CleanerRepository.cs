@@ -7,7 +7,6 @@ using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
@@ -15,7 +14,7 @@ namespace Couchbase.Client.Transactions.DataAccess
     {
         private static readonly int ExpiresSafetyMarginMillis = 20_000;
         private static readonly TimeSpan RemoveClientTimeout = TimeSpan.FromMilliseconds(500);
-        private static readonly object PlaceholderEmptyJObject = JObject.Parse("{}");
+        private static readonly object PlaceholderEmptyObject = new { };
         private readonly TimeSpan? _keyValueTimeout;
 
         public CleanerRepository(ICouchbaseCollection collection, TimeSpan? keyValueTimeout): base(collection)
@@ -39,7 +38,7 @@ namespace Couchbase.Client.Transactions.DataAccess
 
             var specs = new MutateInSpec[]
             {
-                MutateInSpec.Insert(ClientRecordsIndex.FIELD_CLIENTS_FULL, PlaceholderEmptyJObject, isXattr: true),
+                MutateInSpec.Insert(ClientRecordsIndex.FIELD_CLIENTS_FULL, PlaceholderEmptyObject, isXattr: true),
                 MutateInSpec.SetDoc(new byte?[] { null }), // ExtBinaryMetadata
             };
 

@@ -1,11 +1,10 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Client.Transactions.Support;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Components
 {
@@ -13,75 +12,57 @@ namespace Couchbase.Client.Transactions.Components
     {
         private static readonly IList<DocRecord> EmptyDocRecords = new List<DocRecord>().AsReadOnly();
 
-        [JsonProperty(TransactionFields.AtrFieldTransactionId)]
         [JsonPropertyName(TransactionFields.AtrFieldTransactionId)]
         public string? TransactionId { get; set; }
 
-        [JsonProperty(TransactionFields.AtrFieldStatus)]
         [JsonPropertyName(TransactionFields.AtrFieldStatus)]
         public AttemptStates State { get; set; }
 
-        [JsonProperty(TransactionFields.AtrFieldStartTimestamp)]
         [JsonPropertyName(TransactionFields.AtrFieldStartTimestamp)]
         public string? TimestampStartCas { get; set; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset? TimestampStartMsecs => ParseMutationCasField(TimestampStartCas);
 
-        [JsonProperty(TransactionFields.AtrFieldStartCommit)]
         [JsonPropertyName(TransactionFields.AtrFieldStartCommit)]
         public string? TimestampCommitCas { get; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset? TimestampCommitMsecs => ParseMutationCasField(TimestampCommitCas);
 
-        [JsonProperty(TransactionFields.AtrFieldTimestampComplete)]
         [JsonPropertyName(TransactionFields.AtrFieldTimestampComplete)]
         public string? TimestampCompleteCas { get; set; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset? TimestampCompleteMsecs => ParseMutationCasField(TimestampCompleteCas);
 
-        [JsonProperty(TransactionFields.AtrFieldTimestampRollbackStart)]
         [JsonPropertyName(TransactionFields.AtrFieldTimestampRollbackStart)]
         public string? TimestampRollBackCas { get; set; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset? TimestampRollBackMsecs => ParseMutationCasField(TimestampRollBackCas);
 
-        [JsonProperty(TransactionFields.AtrFieldTimestampRollbackComplete)]
         [JsonPropertyName(TransactionFields.AtrFieldTimestampRollbackComplete)]
         public string? TimestampRolledBackCas { get; set; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset? TimestampRolledBackMsecs => ParseMutationCasField(TimestampRolledBackCas);
 
-        [JsonProperty(TransactionFields.AtrFieldExpiresAfterMsecs)]
         [JsonPropertyName(TransactionFields.AtrFieldExpiresAfterMsecs)]
         public int? ExpiresAfterMsecs { get; set; }
 
-        [JsonProperty(TransactionFields.AtrFieldDocsInserted)]
         [JsonPropertyName(TransactionFields.AtrFieldDocsInserted)]
         public IList<DocRecord> InsertedIds { get; set; } = EmptyDocRecords;
 
-        [JsonProperty(TransactionFields.AtrFieldDocsReplaced)]
         [JsonPropertyName(TransactionFields.AtrFieldDocsReplaced)]
         public IList<DocRecord> ReplacedIds { get; set; } = EmptyDocRecords;
 
-        [JsonProperty(TransactionFields.AtrFieldDocsRemoved)]
         [JsonPropertyName(TransactionFields.AtrFieldDocsRemoved)]
         public IList<DocRecord> RemovedIds { get; set; } = EmptyDocRecords;
 
-        [JsonProperty("fc")]
         [JsonPropertyName("fc")]
-        public JObject? ForwardCompatibility { get; set; } = null;
+        public JsonElement? ForwardCompatibility { get; set; } = null;
 
-        [JsonProperty("d")]
         [JsonPropertyName("d")]
         public string? DurabilityLevel { get; set; } = null;
 
@@ -100,10 +81,9 @@ namespace Couchbase.Client.Transactions.Components
             }
         }
 
-        public static AtrEntry? CreateFrom(JToken entry)
+        public static AtrEntry? CreateFrom(JsonElement entry)
         {
-            _ = entry ?? throw new ArgumentNullException(nameof(entry));
-            return entry.ToObject<AtrEntry>();
+            return entry.Deserialize<AtrEntry>(Transactions.MetadataJsonOptions);
         }
 
         // ${Mutation.CAS} is written by kvengine with 'macroToString(htonll(info.cas))'.  Discussed this with KV team and,

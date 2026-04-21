@@ -11,7 +11,7 @@ using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Protostellar.KV.V1;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using DurabilityLevel = Couchbase.KeyValue.DurabilityLevel;
 
 namespace Couchbase.Client.Transactions.DataAccess
@@ -86,8 +86,8 @@ namespace Couchbase.Client.Transactions.DataAccess
                 return null;
             }
 
-            var asJson = lookupInResult.ContentAs<JObject>(0);
-            if (asJson?.TryGetValue(attemptId, out var entry) == true)
+            var asJson = lookupInResult.ContentAs<JsonElement>(0);
+            if (asJson.TryGetProperty(attemptId, out var entry))
             {
                 var atrEntry = AtrEntry.CreateFrom(entry);
                 if (atrEntry?.Cas == null && atrEntry?.State == default)
@@ -228,15 +228,12 @@ namespace Couchbase.Client.Transactions.DataAccess
             return refreshedStatus;
         }
 
-        private (JArray inserts, JArray replaces, JArray removes) SplitMutationsForStaging(IEnumerable<StagedMutation> stagedMutations)
+        private (DocRecord[] inserts, DocRecord[] replaces, DocRecord[] removes) SplitMutationsForStaging(IEnumerable<StagedMutation> stagedMutations)
         {
             var mutations = stagedMutations.ToList();
-            var stagedInserts = mutations.Where(sm => sm.Type == StagedMutationType.Insert);
-            var stagedReplaces = mutations.Where(sm => sm.Type == StagedMutationType.Replace);
-            var stagedRemoves = mutations.Where(sm => sm.Type == StagedMutationType.Remove);
-            var inserts = new JArray(stagedInserts.Select(sm => sm.ForAtr()));
-            var replaces = new JArray(stagedReplaces.Select(sm => sm.ForAtr()));
-            var removes = new JArray(stagedRemoves.Select(sm => sm.ForAtr()));
+            var inserts = mutations.Where(sm => sm.Type == StagedMutationType.Insert).Select(sm => sm.AsDocRecord()).ToArray();
+            var replaces = mutations.Where(sm => sm.Type == StagedMutationType.Replace).Select(sm => sm.AsDocRecord()).ToArray();
+            var removes = mutations.Where(sm => sm.Type == StagedMutationType.Remove).Select(sm => sm.AsDocRecord()).ToArray();
             return (inserts, replaces, removes);
         }
 

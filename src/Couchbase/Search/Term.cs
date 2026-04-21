@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Couchbase.Search
@@ -11,6 +12,7 @@ namespace Couchbase.Search
         /// The name.
         /// </value>
         [JsonProperty("term")]
+        [JsonPropertyName("term")]
         public string Name { get; set; }
 
         /// <summary>
@@ -20,6 +22,7 @@ namespace Couchbase.Search
         /// The count.
         /// </value>
         [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public long Count { get; set; }
     }
 }

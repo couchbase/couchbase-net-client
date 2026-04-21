@@ -1,9 +1,9 @@
 #nullable enable
 using System;
+using System.Text.Json;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.Internal;
-using Newtonsoft.Json.Linq;
 
 #pragma warning disable CS1591
 
@@ -49,9 +49,15 @@ namespace Couchbase.Client.Transactions.DataModel
         internal DateTimeOffset? Expiry {
             get
             {
-                var txn = LookupInResult.ContentAs<JObject>(0);
-                var intValue = txn?["aux"]?["docexpiry"]?.Value<long?>();
-                return intValue.HasValue ? DateTimeOffset.FromUnixTimeSeconds(intValue.Value) : null;
+                var txn = LookupInResult.ContentAs<JsonElement>(0);
+                if (txn.TryGetProperty("aux", out var aux) && aux.TryGetProperty("docexpiry", out var exp))
+                {
+                    if (exp.TryGetInt64(out var intValue))
+                    {
+                        return DateTimeOffset.FromUnixTimeSeconds(intValue);
+                    }
+                }
+                return null;
             }
         }
 

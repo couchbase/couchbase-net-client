@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Text.Json.Serialization;
 using Couchbase.Client.Transactions.Cleanup.LostTransactions;
-using Newtonsoft.Json;
 
 namespace Couchbase.Client.Transactions.DataModel
 {
@@ -13,16 +12,13 @@ namespace Couchbase.Client.Transactions.DataModel
         public const string FIELD_OVERRIDE_ENABLED = "enabled";
         public const string FIELD_OVERRIDE_EXPIRES = "expires";
 
-        [JsonProperty(FIELD_OVERRIDE_ENABLED)]
         [JsonPropertyName(FIELD_OVERRIDE_ENABLED)]
         public bool Enabled { get; init; }
 
-        [JsonProperty(FIELD_OVERRIDE_EXPIRES)]
         [JsonPropertyName(FIELD_OVERRIDE_EXPIRES)]
         public long ExpiresUnixNanos { get; init; }
 
-        [Newtonsoft.Json.JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
+        [JsonIgnore]
         public DateTimeOffset Expires => DateTimeOffset.FromUnixTimeMilliseconds(ExpiresUnixNanos / ClientRecordDetails.NanosecondsPerMillisecond);
     }
 }

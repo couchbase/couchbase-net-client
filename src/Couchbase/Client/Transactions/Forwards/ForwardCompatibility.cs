@@ -1,11 +1,11 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.External;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Forwards
 {
@@ -21,38 +21,41 @@ namespace Couchbase.Client.Transactions.Forwards
         public const string GetsReadingAtr = "G_A";
         public const string CleanupEntry = "CL_E";
 
-        public static readonly JArray extBinSupportActions = new(new JObject()
+        // Forward compatibility extension for binary support.
+        private static readonly Dictionary<string, object> ExtBinSupportAction = new()
         {
             ["b"] = "f",
             ["e"] = "BS",
-        });
+        };
 
-        public static readonly JObject extBinSupport = new JObject()
+        private static readonly Dictionary<string, object>[] ExtBinSupportActions = [ExtBinSupportAction];
+
+        internal static readonly Dictionary<string, object> extBinSupport = new()
         {
-            [CleanupEntry] = extBinSupportActions,
-            [Gets] = extBinSupportActions,
-            [WriteWriteConflictInserting] = extBinSupportActions,
-            [WriteWriteConflictInsertingGet] = extBinSupportActions,
+            [CleanupEntry] = ExtBinSupportActions,
+            [Gets] = ExtBinSupportActions,
+            [WriteWriteConflictInserting] = ExtBinSupportActions,
+            [WriteWriteConflictInsertingGet] = ExtBinSupportActions,
         };
 
 
-        public static async Task Check(AttemptContext? ctx, string interactionPoint, JObject? fc)
+        public static async Task Check(AttemptContext? ctx, string interactionPoint, JsonElement? fc)
         {
-            if (fc == null)
+            if (fc == null || fc.Value.ValueKind == JsonValueKind.Null || fc.Value.ValueKind == JsonValueKind.Undefined)
             {
                 return;
             }
 
             try
             {
-                foreach (var prop in fc.Children<JProperty>())
+                foreach (var prop in fc.Value.EnumerateObject())
                 {
                     if (interactionPoint != prop.Name)
                     {
                         continue;
                     }
 
-                    var checks = prop.Value.ToObject<CompatibilityCheck[]>();
+                    var checks = JsonSerializer.Deserialize<CompatibilityCheck[]>(prop.Value.GetRawText(), Transactions.MetadataJsonOptions);
                     foreach (var check in checks ?? Enumerable.Empty<CompatibilityCheck>())
                     {
                         string? failureMessage = null;
@@ -95,7 +98,7 @@ namespace Couchbase.Client.Transactions.Forwards
                     }
                 }
             }
-            catch (JsonSerializationException ex)
+            catch (JsonException ex)
             {
                 var fcf = new ForwardCompatibilityFailureException("Check failed", ex);
                 throw ErrorBuilder.CreateError(ctx, ErrorClass.FailOther, fcf)
@@ -109,20 +112,18 @@ namespace Couchbase.Client.Transactions.Forwards
     {
         public const char CheckBehaviorRetry = 'r';
 
-        [JsonProperty("p")]
         [JsonPropertyName("p")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public decimal? ProtocolVersion { get; set; } = null;
 
-        [JsonProperty("b")]
         [JsonPropertyName("b")]
         public char? Behavior { get; set; } = null;
 
-        [JsonProperty("e")]
         [JsonPropertyName("e")]
         public string? ExtensionCheck { get; set; } = null;
 
-        [JsonProperty("ra")]
         [JsonPropertyName("ra")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int? RetryDelay { get; set; } = null;
     }
 }

@@ -5,7 +5,6 @@ using Couchbase.Core;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
 using Couchbase.Core.IO.Operations;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Components
 {
@@ -30,17 +29,10 @@ namespace Couchbase.Client.Transactions.Components
             Expiry = expiry;
         }
 
-        public JObject ForAtr() => new JObject(
-            new JProperty(TransactionFields.AtrFieldPerDocId, Doc.Id),
-            new JProperty(TransactionFields.AtrFieldPerDocBucket, Doc.Collection.Scope.Bucket.Name),
-            new JProperty(TransactionFields.AtrFieldPerDocScope, Doc.Collection.Scope.Name),
-            new JProperty(TransactionFields.AtrFieldPerDocCollection, Doc.Collection.Name)
-        );
-
         public DocRecord AsDocRecord() => new DocRecord(
-            bkt: Doc.Collection.Scope.Bucket.Name,
-            scp: Doc.Collection.Scope.Name,
-            col: Doc.Collection.Name,
+            bucketName: Doc.Collection.Scope.Bucket.Name,
+            scopeName: Doc.Collection.Scope.Name,
+            collectionName: Doc.Collection.Name,
             id: Doc.Id);
 
         public TxDataMutation AsTxData() => new TxDataMutation(

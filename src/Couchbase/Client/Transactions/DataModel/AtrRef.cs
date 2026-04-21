@@ -1,6 +1,5 @@
-﻿#nullable enable
+#nullable enable
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
 #pragma warning disable CS1591
 
 namespace Couchbase.Client.Transactions.DataModel
@@ -8,19 +7,15 @@ namespace Couchbase.Client.Transactions.DataModel
     // TODO: this class should be made internal
     public class AtrRef
     {
-        [JsonProperty("id")]
         [JsonPropertyName("id")]
         public string? Id { get; set; }
 
-        [JsonProperty("bkt")]
         [JsonPropertyName("bkt")]
         public string? BucketName { get; set; }
 
-        [JsonProperty("scp")]
         [JsonPropertyName("scp")]
         public string? ScopeName { get; set; }
 
-        [JsonProperty("coll")]
         [JsonPropertyName("coll")]
         public string? CollectionName { get; set; }
 

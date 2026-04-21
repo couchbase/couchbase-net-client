@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Couchbase.Search
@@ -14,6 +15,7 @@ namespace Couchbase.Search
         /// The name.
         /// </value>
         [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
@@ -23,6 +25,7 @@ namespace Couchbase.Search
         /// The field.
         /// </value>
         [JsonProperty("field")]
+        [JsonPropertyName("field")]
         public string Field { get; set; }
 
         /// <summary>
@@ -32,6 +35,7 @@ namespace Couchbase.Search
         /// The total.
         /// </value>
         [JsonProperty("total")]
+        [JsonPropertyName("total")]
         public long Total { get; set; }
 
         /// <summary>
@@ -41,6 +45,7 @@ namespace Couchbase.Search
         /// The missing.
         /// </value>
         [JsonProperty("missing")]
+        [JsonPropertyName("missing")]
         public long Missing { get; set; }
 
         /// <summary>
@@ -50,6 +55,7 @@ namespace Couchbase.Search
         /// The other.
         /// </value>
         [JsonProperty("other")]
+        [JsonPropertyName("other")]
         public long Other { get; set; }
 
         /// <summary>
@@ -59,6 +65,7 @@ namespace Couchbase.Search
         /// The type of the facet result.
         /// </value>
         [JsonProperty("FacetResultType")]
+        [JsonPropertyName("FacetResultType")]
         public virtual FacetResultType FacetResultType => FacetResultType.Unknown;
     }
 }

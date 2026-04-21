@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -134,6 +135,7 @@ namespace Couchbase.Management.Analytics.Link
         ) : AnalyticsLinkResponseRecord(Name, DataverseFromDataverse, DataverseFromScope)
     {
         [JsonProperty("username")]
+        [JsonPropertyName("username")]
         public string? Username { get; init; }
 
         public CouchbaseRemoteAnalyticsLink AsRequest() => new CouchbaseRemoteAnalyticsLink(Name, DataverseFromEither, Hostname, new CouchbaseRemoteAnalyticsLink.EncryptionSettings(Encryption))

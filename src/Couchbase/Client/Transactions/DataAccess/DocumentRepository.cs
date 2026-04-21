@@ -16,9 +16,8 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue.ZoneAware;
 using Couchbase.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using JsonSerializer = Newtonsoft.Json.JsonSerializer;
+using System.Text.Json;
+using StjSerializer = System.Text.Json.JsonSerializer;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
@@ -28,8 +27,12 @@ namespace Couchbase.Client.Transactions.DataAccess
         private readonly TimeSpan? _keyValueTimeout;
         private readonly DurabilityLevel _durability;
         private readonly string _attemptId;
-        private readonly JsonSerializer _metadataSerializer;
-        private readonly ITypeTranscoder _userDataTranscoder;
+
+        /// <summary>
+        /// Transcoder for user data during unstaging. Always wraps the user's serializer
+        /// in a JsonTranscoder — binary content uses RawBinaryTranscoder instead (see UnstageInsertOrReplace).
+        /// </summary>
+        private readonly ITypeTranscoder _jsonUserDataTranscoder;
 
         public DocumentRepository(TransactionContext overallContext, TimeSpan? keyValueTimeout, DurabilityLevel durability, string attemptId, ITypeSerializer userDataSerializer)
         {
@@ -38,14 +41,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             _durability = durability;
             _attemptId = attemptId;
 
-
-            var metadataSerializerSettings = new JsonSerializerSettings()
-            {
-                NullValueHandling = NullValueHandling.Ignore
-            };
-
-            _metadataSerializer = JsonSerializer.Create(metadataSerializerSettings);
-            _userDataTranscoder = new JsonTranscoder(userDataSerializer);
+            _jsonUserDataTranscoder = new JsonTranscoder(userDataSerializer);
         }
 
         public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, IContentAsWrapper content, string opId, IAtrRepository atr, ulong? cas = null, DateTimeOffset? expiry = null)
@@ -53,8 +49,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             List<MutateInSpec> specs = CreateMutationSpecs(atr, "insert", content, opId, expiry: expiry);
             var opts = GetMutateInOptions(StoreSemantics.Insert, collection)
                 .AccessDeleted(true)
-                .CreateAsDeleted(true)
-                .Transcoder(content.Transcoder);
+                .CreateAsDeleted(true);
 
             // we always preserve TTLs - using SupportsCollections as a proxy for supporting TTLs
             opts.PreserveTtl(collection.Scope.Bucket.SupportsCollections);
@@ -90,7 +85,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             {
                 opts.AccessDeleted(true);
             }
-            opts.Transcoder(content.Transcoder);
+
             var updatedDoc = await doc.Collection.MutateInAsync(doc.Id, specs, opts).CAF();
             return (updatedDoc.Cas, updatedDoc.MutationToken);
         }
@@ -107,11 +102,11 @@ namespace Couchbase.Client.Transactions.DataAccess
                 RestoreMetadata = doc.DocumentMetadata
             };
 
-            var txnAsJObject = JObject.FromObject(txn, _metadataSerializer);
+            var txnAsJsonElement = StjSerializer.SerializeToElement(txn, Transactions.MetadataJsonOptions);
 
             var specs = new []
             {
-                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, txnAsJObject, isXattr: true),
+                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, txnAsJsonElement, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.Crc32, MutationMacro.ValueCRC32c, createPath: true, isXattr: true),
             };
 
@@ -165,7 +160,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 }
                 opts.Transcoder(isBinary
                     ? new RawBinaryTranscoder()
-                    : _userDataTranscoder);
+                    : _jsonUserDataTranscoder);
                 var stagedDataField = isBinary
                     ? TransactionFields.BinStagedData
                     : TransactionFields.StagedData;
@@ -185,7 +180,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout)
                     .Transcoder(isBinary
                         ? new RawBinaryTranscoder()
-                        : _userDataTranscoder);
+                        : _jsonUserDataTranscoder);
                 if (expiry.HasValue)
                 {
                     opts.Expiry(expiry.Value.RemainingTtl());
@@ -199,7 +194,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                     .Cas(cas)
                     .Transcoder(isBinary
                         ? new RawBinaryTranscoder()
-                        : _userDataTranscoder);
+                        : _jsonUserDataTranscoder);
                 if (expiry.HasValue)
                 {
                     opts.Expiry(expiry.Value.RemainingTtl());
@@ -245,11 +240,11 @@ namespace Couchbase.Client.Transactions.DataAccess
             if (_keyValueTimeout != null && timeout > _keyValueTimeout)
                 timeout = _keyValueTimeout.Value;
             return await LookupDocumentAsync(collection, docId, timeout, true, transcoder,
-                allowReplica).CAF();
+                allowReplica, _jsonUserDataTranscoder).CAF();
         }
 
-        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder, allowReplica).CAF();
-        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false)
+        public async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, bool fullDocument = true, ITypeTranscoder? transcoder = null, bool allowReplica = false) => await LookupDocumentAsync(collection, docId, _keyValueTimeout, fullDocument, transcoder, allowReplica, _jsonUserDataTranscoder).CAF();
+        internal static async Task<DocumentLookupResult> LookupDocumentAsync(ICouchbaseCollection collection, string docId, TimeSpan? keyValueTimeout, bool fullDocument = true, ITypeTranscoder? userTranscoder = null, bool allowReplica = false, ITypeTranscoder? defaultJsonTranscoder = null)
         {
             var specs = new List<LookupInSpec>()
             {
@@ -264,13 +259,15 @@ namespace Couchbase.Client.Transactions.DataAccess
                 specs.Add(LookupInSpec.GetFull());
                 fullDocIndex = specs.Count - 1;
             }
+
+            // The sub-doc lookup always uses the metadata transcoder (JSON with camelCase)
+            // regardless of the user's content transcoder.
             ILookupInResult? lookupInResult;
             if (allowReplica)
             {
                 var opts = new LookupInAnyReplicaOptions()
                     .Timeout(keyValueTimeout)
-                    .Transcoder(transcoder ??
-                                new JsonTranscoder(Transactions.MetadataSerializer))
+                    .Transcoder(Transactions.MetadataTranscoder)
                     .ReadPreference(InternalReadPreference.SelectedServerGroupWithFallback)
                     .AccessDeleted(true); // apply if supported
                 lookupInResult =
@@ -280,7 +277,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             {
                 var opts = new LookupInOptions().Defaults(keyValueTimeout)
                     .AccessDeleted(true) // apply if supported
-                    .Transcoder(transcoder ?? new JsonTranscoder(Transactions.MetadataSerializer));
+                    .Transcoder(Transactions.MetadataTranscoder);
                 lookupInResult = await collection.LookupInAsync(docId, specs, opts).CAF();
             }
 
@@ -291,30 +288,60 @@ namespace Couchbase.Client.Transactions.DataAccess
 
             var docMeta = lookupInResult.ContentAs<DocumentMetadata>(docMetaIndex);
             int dataIdx = stagedDataIndex; // just need a default
+
+            // Determine the appropriate transcoder for wrapping the document content.
+            // This is separate from the lookup transcoder used above.
+            // Note: We use separate transcoders for staged vs unstaged content because:
+            // - Staged content format is determined by whether BinStagedData or StagedData exists
+            // - Unstaged content format is unknown; we use JSON unless we know it's binary
+            defaultJsonTranscoder ??= new JsonTranscoder(NonStreamingSerializerWrapper.FromCluster(collection.Scope.Bucket.Cluster));
+
+            ITypeTranscoder stagedContentTranscoder;
+            bool isBinaryStaged = false;
             if (lookupInResult.Exists(txnIndex))
             {
-                // only StageData or BinStagedData - figure out which...
-                dataIdx = lookupInResult.Exists(stagedDataIndex)
-                    ? stagedDataIndex
-                    : stagedBinDataIndex;
+                // Determine which staged data field exists (if any).
+                // For removes, neither StagedData nor BinStagedData exists.
+                bool hasStagedData = lookupInResult.Exists(stagedDataIndex);
+                bool hasBinStagedData = lookupInResult.Exists(stagedBinDataIndex);
 
-                // several possibilities for the transcoder...
-                if (dataIdx == stagedBinDataIndex && transcoder == null)
+                if (hasBinStagedData)
                 {
-                    transcoder = new RawBinaryTranscoder();
+                    dataIdx = stagedBinDataIndex;
+                    isBinaryStaged = true;
+                    stagedContentTranscoder = new RawBinaryTranscoder();
                 }
-
+                else if (hasStagedData)
+                {
+                    dataIdx = stagedDataIndex;
+                    stagedContentTranscoder = userTranscoder ?? defaultJsonTranscoder;
+                }
+                else
+                {
+                    // Neither exists (e.g., remove operation) - use defaults
+                    dataIdx = stagedDataIndex;
+                    stagedContentTranscoder = userTranscoder ?? defaultJsonTranscoder;
+                }
+            }
+            else
+            {
+                stagedContentTranscoder = userTranscoder ?? defaultJsonTranscoder;
             }
 
-            transcoder ??= new JsonTranscoder(
-                NonStreamingSerializerWrapper.FromCluster(collection.Scope.Bucket.Cluster));
+            // For unstaged (pre-transaction) content, we need to be careful:
+            // - If the staged content is binary, the pre-transaction content was also binary
+            // - Otherwise, use JSON transcoder as a safe default
+            //   (the user's binary transcoder would fail on JSON pre-transaction content)
+            ITypeTranscoder unstagedContentTranscoder = isBinaryStaged
+                ? new RawBinaryTranscoder()
+                : defaultJsonTranscoder;
 
             IContentAsWrapper? unstagedContent = fullDocIndex.HasValue
-                ? new LookupInContentAsWrapper(lookupInResult, fullDocIndex.Value, transcoder)
+                ? new LookupInContentAsWrapper(lookupInResult, fullDocIndex.Value, unstagedContentTranscoder)
                 : null;
 
             var stagedContent = lookupInResult.Exists(dataIdx)
-                ? new LookupInContentAsWrapper(lookupInResult, dataIdx, transcoder)
+                ? new LookupInContentAsWrapper(lookupInResult, dataIdx, stagedContentTranscoder)
                 : null;
 
             var result = new DocumentLookupResult(docId,
@@ -342,7 +369,7 @@ namespace Couchbase.Client.Transactions.DataAccess
         {
             var specs = new List<MutateInSpec>
             {
-                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, new JObject(), createPath: true, isXattr: true),
+                MutateInSpec.Upsert(TransactionFields.TransactionInterfacePrefixOnly, new { }, createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.TransactionId, _overallContext.TransactionId,
                     createPath: true, isXattr: true),
                 MutateInSpec.Upsert(TransactionFields.AttemptId, _attemptId, createPath: true, isXattr: true),
@@ -371,13 +398,20 @@ namespace Couchbase.Client.Transactions.DataAccess
                     if (content.Flags.DataFormat == DataFormat.Binary)
                     {
                         specs.Add(MutateInSpec.Upsert(TransactionFields.BinStagedData, content.ContentAs<byte[]>(),
-                            createPath: true, isXattr: true, removeBrackets:false, isBinary: true));
+                            createPath: true, isXattr: true, removeBrackets: false, isBinary: true));
                         specs.Add(MutateInSpec.Upsert(TransactionFields.ForwardCompatibility,
-                            ForwardCompatibility.extBinSupport, true, true));
+                            ForwardCompatibility.extBinSupport, createPath: true, isXattr: true));
                     }
                     else
                     {
-                        specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, content.ContentAs<object>(),
+                        // The content is already encoded by the user's serializer in TranscodedContentWrapper.
+                        // Write it as raw JSON bytes — avoids decoding to object then re-encoding with the
+                        // metadata serializer, which would break if the two serializers are different
+                        // (e.g., System.Text.Json content decoded as JsonElement, then re-encoded by a different
+                        // serializer would produce incorrect output instead of the actual JSON).
+                        var stagedBytes = content.ContentAs<byte[]>()!;
+                        var rawJsonElement = StjSerializer.Deserialize<JsonElement>(stagedBytes);
+                        specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, rawJsonElement,
                             createPath: true, isXattr: true));
                     }
                     // convert flags to a uint

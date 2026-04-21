@@ -1,20 +1,18 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Components
 {
     [Obsolete("Use " + nameof(AtrEntry) + " instead.")]
     internal class ActiveTransactionRecord
     {
-        [JsonProperty("attempts")]
         [JsonPropertyName("attempts")]
         public Dictionary<string, AtrEntry> Attempts { get; set; } = new Dictionary<string, AtrEntry>();
 
-        public static AtrEntry? CreateFrom(string bucketName, string atrId, JToken entry, string attemptId, string transactionId, ulong? cas) => throw new NotSupportedException();
+        public static AtrEntry? CreateFrom(string bucketName, string atrId, JsonElement entry, string attemptId, string transactionId, ulong? cas) => throw new NotSupportedException();
 
         internal static DateTimeOffset? ParseMutationCasField(string? casString) => throw new NotSupportedException();
     }

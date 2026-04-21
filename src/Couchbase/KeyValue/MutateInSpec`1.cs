@@ -51,10 +51,15 @@ namespace Couchbase.KeyValue
                 if (this is { OpCode: OpCode.Set, Path.Length: 0 } ||
                     PathFlags.HasFlag(SubdocPathFlags.BinaryValue))
                 {
-                    if (typedValue is byte?[] bytes)
+                    if (typedValue is byte[] byteArray)
                     {
-                        // If we are given bytes, lets just write them directly.
-                        builder.Write(bytes.Select(b => b ?? 0).ToArray());
+                        // If we are given bytes, write them directly.
+                        builder.Write(byteArray);
+                    }
+                    else if (typedValue is byte?[] nullableBytes)
+                    {
+                        // Handle nullable byte array for backward compatibility.
+                        builder.Write(nullableBytes.Select(b => b ?? 0).ToArray());
                     }
                     else
                     {

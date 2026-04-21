@@ -1,36 +1,32 @@
-﻿using System;
+using System;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Newtonsoft.Json;
 
 namespace Couchbase.Client.Transactions.Components
 {
     internal class DocRecord
     {
-        [JsonProperty("bkt")]
         [JsonPropertyName("bkt")]
-        public string BucketName { get; }
+        public string BucketName { get; init; } = null!;
 
-        [JsonProperty("scp")]
         [JsonPropertyName("scp")]
-        public string ScopeName { get; }
+        public string ScopeName { get; init; } = null!;
 
-        [JsonProperty("col")]
         [JsonPropertyName("col")]
-        public string CollectionName { get; }
+        public string CollectionName { get; init; } = null!;
 
-        [JsonProperty("id")]
         [JsonPropertyName("id")]
-        public string Id { get; }
+        public string Id { get; init; } = null!;
 
-        [Newtonsoft.Json.JsonConstructor]
-        [System.Text.Json.Serialization.JsonConstructor]
-        public DocRecord(string bkt, string scp, string col, string id)
+        [JsonConstructor]
+        public DocRecord() { }
+
+        public DocRecord(string bucketName, string scopeName, string collectionName, string id)
         {
-            BucketName = bkt ?? throw new ArgumentNullException(nameof(bkt));
-            ScopeName = scp ?? throw new ArgumentNullException(nameof(scp));
-            CollectionName = col ?? throw new ArgumentNullException(nameof(col));
+            BucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
+            ScopeName = scopeName ?? throw new ArgumentNullException(nameof(scopeName));
+            CollectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
             Id = id ?? throw new ArgumentNullException(nameof(id));
         }
 

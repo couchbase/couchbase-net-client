@@ -1,5 +1,6 @@
 #nullable enable
 using Couchbase.Core.Compatibility;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -102,12 +103,15 @@ namespace Couchbase.Management.Analytics.Link
         string? DataverseFromScope) : AnalyticsLinkResponseRecord(Name, DataverseFromDataverse, DataverseFromScope)
     {
         [JsonProperty("accountName")]
+        [JsonPropertyName("accountName")]
         public string? AccountName { get; init; }
 
         [JsonProperty("blobEndpoint")]
+        [JsonPropertyName("blobEndpoint")]
         public string? BlobEndpoint { get; init; }
 
         [JsonProperty("endpointSuffix")]
+        [JsonPropertyName("endpointSuffix")]
         public string? EndpointSuffix { get; init; }
 
         public AzureBlobExternalAnalyticsLink AsRequest() => new AzureBlobExternalAnalyticsLink(Name, DataverseFromEither) with

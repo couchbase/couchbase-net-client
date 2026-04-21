@@ -1,11 +1,10 @@
-﻿#nullable enable
+#nullable enable
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Internal;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions
 {
@@ -32,7 +31,7 @@ namespace Couchbase.Client.Transactions
         {
             Id = id;
             FullyQualifiedId = GetFullyQualifiedId(collection, id);
-            _content = content ?? new JObjectContentWrapper(new { });
+            _content = content ?? new TranscodedContentWrapper(new { });
             Cas = cas;
             Collection = collection;
             TransactionXattrs = transactionXattrs;
@@ -46,7 +45,6 @@ namespace Couchbase.Client.Transactions
 
         internal TransactionXattrs? TransactionXattrs { get; }
 
-        internal ITypeTranscoder Transcoder { set  => _content.Transcoder = value; }
 
         /// <summary>
         /// Gets the ID of the document.
@@ -167,11 +165,14 @@ namespace Couchbase.Client.Transactions
                 );
         }
 
-        internal static TransactionGetResult FromQueryGet(ICouchbaseCollection collection, string id, QueryGetResult queryResult)
+        // transcoder is required (no default): query-staged content must be wrapped with the
+        // cluster-derived user transcoder. Allowing it to default to null would let the wrapper
+        // fall back to a camelCase JsonTranscoder and silently re-encode user content (CBSE-22995).
+        internal static TransactionGetResult FromQueryGet(ICouchbaseCollection collection, string id, QueryGetResult queryResult, ITypeTranscoder transcoder)
         {
             return new TransactionGetResult(
                 id,
-                new JObjectContentWrapper(queryResult.doc),
+                new TranscodedContentWrapper(queryResult.doc, transcoder),
                 ulong.Parse(queryResult.scas),
                 collection,
                 null,
@@ -182,11 +183,12 @@ namespace Couchbase.Client.Transactions
             };
         }
 
-        internal static TransactionGetResult FromQueryInsert(ICouchbaseCollection collection, string id, object originalDoc, QueryInsertResult queryResult)
+        // transcoder is required (no default): see FromQueryGet above (CBSE-22995).
+        internal static TransactionGetResult FromQueryInsert(ICouchbaseCollection collection, string id, object originalDoc, QueryInsertResult queryResult, ITypeTranscoder transcoder)
         {
             return new TransactionGetResult(
                 id,
-                new JObjectContentWrapper(originalDoc),
+                new TranscodedContentWrapper(originalDoc, transcoder),
                 ulong.Parse(queryResult.scas),
                 collection,
                 null,

@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -72,6 +73,7 @@ namespace Couchbase.Management.Analytics.Link
     ) : AnalyticsLinkResponseRecord(Name, DataverseFromDataverse, DataverseFromScope)
     {
         [JsonProperty("serviceEndpoint")]
+        [JsonPropertyName("serviceEndpoint")]
         public string? ServiceEndpoint { get; init; }
 
         public S3ExternalAnalyticsLink AsRequest() => new S3ExternalAnalyticsLink(Name, DataverseFromEither, AccessKeyId, string.Empty, Region)

@@ -1,8 +1,7 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.DataModel
 {
@@ -13,17 +12,6 @@ namespace Couchbase.Client.Transactions.DataModel
         AtrRef? atr,
         IEnumerable<TxDataMutation> mutations)
     {
-        public JObject ToJson()
-        {
-            var jobj = JObject.FromObject(this);
-            if (atr == null)
-            {
-                jobj.Remove("atr");
-            }
-
-            return jobj;
-        }
-
         public Dictionary<string, object?> ToDictionary()
         {
             var returnDict = new Dictionary<string, object?>();

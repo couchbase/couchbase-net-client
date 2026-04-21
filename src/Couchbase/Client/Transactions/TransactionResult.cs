@@ -1,7 +1,7 @@
-﻿#nullable enable
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace Couchbase.Client.Transactions
 {
@@ -23,7 +23,7 @@ namespace Couchbase.Client.Transactions
         /// <inheritdoc />
         public override string ToString()
         {
-            return JObject.FromObject(this).ToString();
+            return JsonSerializer.Serialize(this, Transactions.MetadataJsonOptions);
         }
 
         /// <summary>

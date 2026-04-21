@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -16,18 +17,23 @@ namespace Couchbase.Diagnostics
         }
 
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; }
 
         [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public short Version { get; } = 1;
 
         [JsonProperty("config_rev")]
+        [JsonPropertyName("config_rev")]
         public ulong ConfigRev { get; }
 
         [JsonProperty("sdk")]
+        [JsonPropertyName("sdk")]
         public string Sdk { get; } = ClientIdentifier.GetClientDescription();
 
         [JsonProperty("services")]
+        [JsonPropertyName("services")]
         public IDictionary<string, IEnumerable<IEndpointDiagnostics>> Services { get; }
 
         public override string ToString() =>

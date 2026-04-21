@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Views;
 using Newtonsoft.Json;
 
@@ -8,10 +9,12 @@ namespace Couchbase.Management.Views
     [Obsolete("The View service has been deprecated use the Query service instead.")]
     public class DesignDocument
     {
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public string Name { get; set; }
 
         [JsonProperty("views")]
+        [JsonPropertyName("views")]
         public Dictionary<string, View> Views { get; set; } = new Dictionary<string, View>();
     }
 }

@@ -2,10 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -20,8 +23,6 @@ using Couchbase.Client.Transactions.Error.External;
 using Couchbase.Client.Transactions.Internal.Test;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Couchbase.Client.Transactions
 {
@@ -35,19 +36,23 @@ namespace Couchbase.Client.Transactions
         /// </summary>
         public static readonly TimeSpan OpRetryDelay = TimeSpan.FromMilliseconds(3);
 
-        internal static readonly ITypeSerializer MetadataSerializer = new DefaultSerializer(
-            deserializationSettings: new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+        /// <summary>
+        /// JsonSerializerOptions used for transaction metadata serialization.
+        /// </summary>
+        /// <remarks>
+        /// Note: We intentionally do NOT use PropertyNamingPolicy here because:
+        /// 1. All transaction metadata classes have explicit [JsonPropertyName] attributes
+        /// 2. Dictionary keys (like forward compatibility maps) must preserve exact casing
+        /// 3. The transaction protocol defines specific field names that must not be transformed
+        /// </remarks>
+        internal static readonly JsonSerializerOptions MetadataJsonOptions = new()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new JsonStringEnumConverter() },
+        };
 
-                DateParseHandling = DateParseHandling.DateTimeOffset
-            },
-            serializerSettings: new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-
-                DateParseHandling = DateParseHandling.DateTimeOffset
-            });
+        internal static readonly ITypeSerializer MetadataSerializer =
+            SystemTextJsonSerializer.Create(MetadataJsonOptions);
 
         internal static readonly ITypeTranscoder MetadataTranscoder = new JsonTranscoder(MetadataSerializer);
 

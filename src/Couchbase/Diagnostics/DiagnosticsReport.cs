@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -15,19 +16,24 @@ namespace Couchbase.Diagnostics
             Services = services;
         }
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; }
 
         [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public short Version { get; } = 1;
 
         [JsonProperty("sdk")]
+        [JsonPropertyName("sdk")]
         public string Sdk { get; } = ClientIdentifier.GetClientDescription();
 
         [JsonProperty("services")]
+        [JsonPropertyName("services")]
         public IDictionary<string, IEnumerable<IEndpointDiagnostics>> Services { get; }
 
         public override string ToString() =>

@@ -1,7 +1,6 @@
-﻿#nullable enable
+#nullable enable
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json;
 
 namespace Couchbase.Client.Transactions.DataModel
 {
@@ -17,11 +16,9 @@ namespace Couchbase.Client.Transactions.DataModel
         public const string FIELD_CLIENTS_FULL = FIELD_RECORDS + "." + FIELD_CLIENTS;
         public const string FIELD_OVERRIDE = "override";
 
-        [JsonProperty(FIELD_CLIENTS)]
         [JsonPropertyName(FIELD_CLIENTS)]
         public Dictionary<string, ClientRecordEntry> Clients { get; init; } = new Dictionary<string, ClientRecordEntry>();
 
-        [JsonProperty(FIELD_OVERRIDE)]
         [JsonPropertyName(FIELD_OVERRIDE)]
         public ClientRecordsOverride? Override { get; init; } = null;
     }

@@ -8,15 +8,19 @@ namespace Couchbase.Query
     public class Reason
     {
         [JsonProperty("caller")]
+        [JsonPropertyName("caller")]
         public string Caller { get; set; }
 
         [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
         [JsonProperty("key")]
+        [JsonPropertyName("key")]
         public string Key { get; set; }
 
         [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string Message { get; set; }
     }
 
@@ -27,21 +31,27 @@ namespace Couchbase.Query
         public string Message { get; set; }
 
         [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
         [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         [JsonProperty("sev")]
+        [JsonPropertyName("sev")]
         public Severity Severity { get; set; }
 
         [JsonProperty("temp")]
+        [JsonPropertyName("temp")]
         public bool Temp { get; set; }
 
         [JsonProperty("reason")]
+        [JsonPropertyName("reason")]
         public Reason Reason { get; set; }
 
         [JsonProperty("retry")]
+        [JsonPropertyName("retry")]
         public bool Retry { get; set; }
 
         [InterfaceStability(Level.Volatile)]

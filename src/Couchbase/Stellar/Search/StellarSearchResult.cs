@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Retry;
 using Couchbase.Search;
 using Newtonsoft.Json;
@@ -31,18 +32,21 @@ public class StellarSearchResult : ISearchResult, IDisposable
     /// The rows returned by the search request.
     /// </summary>
     [JsonProperty("hits")]
+    [JsonPropertyName("hits")]
     public IList<ISearchQueryRow> Hits { get; internal set; }
 
     /// <summary>
     /// The facets for the result.
     /// </summary>
     [JsonProperty("facets")]
+    [JsonPropertyName("facets")]
     public IDictionary<string, IFacetResult> Facets { get; internal set; }
 
     /// <summary>
     /// The search result metadata.
     /// </summary>
     [JsonProperty("metaData")]
+    [JsonPropertyName("metaData")]
     public MetaData MetaData { get; internal set; }
 
     public RetryReason RetryReason { get; }

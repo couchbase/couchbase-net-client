@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Client.Transactions.DataModel;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 {
@@ -14,7 +13,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public IReadOnlyList<string> ExpiredClientIds { get; }
         public IReadOnlyList<string> ActiveClientIds { get; }
 
-        [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public IReadOnlyList<string> AtrsHandledByThisClient { get; }
         public TimeSpan CheckAtrTimeWindow { get; }
 
@@ -106,7 +105,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public override string ToString()
         {
-            return JObject.FromObject(this).ToString();
+            return JsonSerializer.Serialize(this, Transactions.MetadataJsonOptions);
         }
     }
 }

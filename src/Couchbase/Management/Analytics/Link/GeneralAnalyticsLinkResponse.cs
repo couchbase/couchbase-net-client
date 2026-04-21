@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -15,12 +16,18 @@ namespace Couchbase.Management.Analytics.Link
         string Dataverse) : AnalyticsLink(Name, Dataverse)
     {
         [JsonProperty("type")]
+        [JsonPropertyName("type")]
         protected string Type { get; init; }
 
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public override string LinkType => Type;
 
-        [JsonExtensionData]
+        // Known issue: when using STJ as the cluster serializer, ExtraData is always null.
+        // STJ requires Dictionary<string, JsonElement> for [JsonExtensionData], but changing
+        // the type here would be a breaking API change. This will be fixed in the SDK-wide
+        // Newtonsoft removal.
+        [Newtonsoft.Json.JsonExtensionData]
         public IDictionary<string, JToken> ExtraData { get; set; }
     }
 }

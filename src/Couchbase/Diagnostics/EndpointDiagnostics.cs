@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -7,33 +8,50 @@ namespace Couchbase.Diagnostics
 {
     internal class EndpointDiagnostics : IEndpointDiagnostics
     {
-        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public ServiceType Type { get; internal set; }
 
         [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("id")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Id { get; internal set; }
 
         [JsonProperty("state", NullValueHandling = NullValueHandling.Ignore)]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+        [JsonPropertyName("state")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ServiceState? State { get; internal set; }
 
         [JsonProperty("endpoint_state", NullValueHandling = NullValueHandling.Ignore)]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+        [JsonPropertyName("endpoint_state")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public EndpointState? EndpointState { get; internal set; }
 
         [JsonProperty("local", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("local")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Local { get; internal set; }
 
         [JsonProperty("remote", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("remote")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Remote { get; internal set; }
 
         [JsonProperty("last_activity_us", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("last_activity_us")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? LastActivity { get; internal set; }
 
         [JsonProperty("latency_us", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("latency_us")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? Latency { get; internal set; }
 
         [JsonProperty("scope", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("scope")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Scope { get; internal set; }
 
         public override string ToString() =>

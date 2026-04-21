@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Couchbase.Views
@@ -7,9 +8,12 @@ namespace Couchbase.Views
     public class View
     {
         [JsonProperty("map")]
+        [JsonPropertyName("map")]
         public string Map { get; set; }
 
         [JsonProperty("reduce", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [JsonPropertyName("reduce")]
+        [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public string Reduce { get; set; }
     }
 }

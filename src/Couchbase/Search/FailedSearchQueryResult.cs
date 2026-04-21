@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Couchbase.Search
@@ -5,9 +6,11 @@ namespace Couchbase.Search
     internal class FailedSearchQueryResult
     {
         [JsonProperty("error")]
+        [JsonPropertyName("error")]
         internal string Message { get; set; }
 
         [JsonProperty("status")]
+        [JsonPropertyName("status")]
         internal string Status { get; set; }
     }
 }

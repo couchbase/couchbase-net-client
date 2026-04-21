@@ -39,7 +39,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using static Couchbase.Client.Transactions.Error.ErrorBuilder;
 using Exception = System.Exception;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
@@ -74,6 +73,7 @@ namespace Couchbase.Client.Transactions
         private readonly ILoggerFactory _loggerFactory;
         private readonly ICluster _cluster;
         private readonly ITypeSerializer _nonStreamingTypeSerializer;
+        private readonly ITypeTranscoder _defaultUserTranscoder;
         private readonly IRequestTracer _requestTracer;
         private Uri? _lastDispatchedQueryNode = null;
         private bool _singleQueryTransactionMode = false;
@@ -109,6 +109,7 @@ namespace Couchbase.Client.Transactions
         {
             _cluster = cluster;
             _nonStreamingTypeSerializer = NonStreamingSerializerWrapper.FromCluster(_cluster);
+            _defaultUserTranscoder = new JsonTranscoder(_nonStreamingTypeSerializer);
             _requestTracer = requestTracer ?? new NoopRequestTracer();
             AttemptId = attemptId ?? throw new ArgumentNullException(nameof(attemptId));
             _overallContext = overallContext ?? throw new ArgumentNullException(nameof(overallContext));
@@ -346,7 +347,7 @@ namespace Couchbase.Client.Transactions
                     return null;
                 }
 
-                var getResult = TransactionGetResult.FromQueryGet(collection, id, firstResult);
+                var getResult = TransactionGetResult.FromQueryGet(collection, id, firstResult, _defaultUserTranscoder);
                 Logger.LogDebug("GetWithQuery found doc (id = {id}, cas = {cas})", id, getResult.Cas);
                 return getResult;
             }
@@ -588,9 +589,10 @@ namespace Couchbase.Client.Transactions
 
         private void CheckForBinaryContent(object content, ITypeTranscoder? transcoder)
         {
-            // we use the same logic as when we stage this in KV
-            var wrapper = new JObjectContentWrapper(content, transcoder);
-            if (wrapper.Flags.DataFormat == DataFormat.Binary)
+            // Binary content isn't supported for transactional queries.
+            // Check if transcoder is binary-specific or if content is a byte array.
+            transcoder ??= _defaultUserTranscoder;
+            if (transcoder is RawBinaryTranscoder || content is byte[])
             {
                 throw ErrorBuilder.CreateError(this, ErrorClass.FailOther,
                     new FeatureNotAvailableException(
@@ -625,7 +627,7 @@ namespace Couchbase.Client.Transactions
                     throw new DocumentNotFoundException();
                 }
 
-                var getResult = TransactionGetResult.FromQueryGet(doc.Collection, doc.Id, firstResult);
+                var getResult = TransactionGetResult.FromQueryGet(doc.Collection, doc.Id, firstResult, _defaultUserTranscoder);
                 return getResult;
             }
             catch (TransactionOperationFailedException)
@@ -679,7 +681,7 @@ namespace Couchbase.Client.Transactions
                 try
                 {
                     await _testHooks.BeforeStagedReplace(this, doc.Id).CAF();
-                    var contentWrapper = new JObjectContentWrapper(content, transcoder);
+                    var contentWrapper = new TranscodedContentWrapper(content, transcoder ?? _defaultUserTranscoder);
                     bool isTombstone = doc.Cas == 0;
                     (var updatedCas, var mutationToken) =
                         await _docs.MutateStagedReplace(doc, contentWrapper, opId, _atr, accessDeleted, absoluteExpiry).CAF();
@@ -818,7 +820,7 @@ namespace Couchbase.Client.Transactions
                 using var queryResult = await QueryWrapper<QueryInsertResult>(0, _queryContextScope, "EXECUTE __insert",
                     options: queryOptions,
                     hookPoint: DefaultTestHooks.HOOK_QUERY_KV_INSERT,
-                    txdata: JObject.FromObject(new { kv = true }),
+                    txdata: new { kv = true },
                     parentSpan: traceSpan.Item).CAF();
 
                 var firstResult = await queryResult.FirstOrDefaultAsync().CAF();
@@ -827,7 +829,7 @@ namespace Couchbase.Client.Transactions
                     throw new DocumentExistsException();
                 }
 
-                var getResult = TransactionGetResult.FromQueryInsert(collection, id, content, firstResult);
+                var getResult = TransactionGetResult.FromQueryInsert(collection, id, content, firstResult, _defaultUserTranscoder);
                 return getResult;
 
             }
@@ -869,7 +871,7 @@ namespace Couchbase.Client.Transactions
                         ErrorIfExpiredAndNotInExpiryOvertimeMode(DefaultTestHooks.HOOK_CREATE_STAGED_INSERT, id);
 
                         await _testHooks.BeforeStagedInsert(this, id).CAF();
-                        var contentWrapper = new JObjectContentWrapper(content, transcoder);
+                        var contentWrapper = new TranscodedContentWrapper(content, transcoder ?? _defaultUserTranscoder);
                         byte[]? byteContent = contentWrapper.ContentAs<byte[]>();
                         if (byteContent == null)
                             throw new InvalidArgumentException("couldn't convert content to byte[]");
@@ -2704,7 +2706,6 @@ namespace Couchbase.Client.Transactions
                         {
                             var errorCause = causeObj switch
                             {
-                                JToken jToken => jToken.ToObject<QueryErrorCause>(),
                                 JsonElement jsonElement => jsonElement.Deserialize(DataModelSerializerContext.Default.QueryErrorCause),
                                 _ => new QueryErrorCause(null, null, null, null)
                             };

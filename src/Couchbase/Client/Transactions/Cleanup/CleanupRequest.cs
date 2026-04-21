@@ -1,12 +1,12 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text.Json;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Support;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Client.Transactions.Cleanup
 {
@@ -20,7 +20,7 @@ namespace Couchbase.Client.Transactions.Cleanup
             AttemptStates State,
             DateTimeOffset WhenReadyToBeProcessed,
             ConcurrentQueue<Exception> ProcessingErrors,
-            JObject? ForwardCompatibility = null,
+            JsonElement? ForwardCompatibility = null,
             string? DurabilityLevel = null)
     {
         public Couchbase.KeyValue.DurabilityLevel GetDurabilityLevel() =>

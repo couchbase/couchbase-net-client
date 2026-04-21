@@ -1,6 +1,5 @@
-﻿#nullable enable
-using Newtonsoft.Json;
-using Stj = System.Text.Json.Serialization;
+#nullable enable
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Client.Transactions.Components
 {
@@ -12,29 +11,29 @@ namespace Couchbase.Client.Transactions.Components
         /// <summary>
         /// Gets the stringified CAS value.
         /// </summary>
-        [JsonProperty("CAS")]
-        [Stj.JsonPropertyName("CAS")]
+        [JsonPropertyName("CAS")]
+        [JsonInclude]
         public string? Cas { get; internal set; }
 
         /// <summary>
         /// Gets the Revision ID.
         /// </summary>
-        [JsonProperty("revid")]
-        [Stj.JsonPropertyName("revid")]
+        [JsonPropertyName("revid")]
+        [JsonInclude]
         public string? RevId { get; internal set; }
 
         /// <summary>
         /// Gets the expiration time
         /// </summary>
-        [JsonProperty("exptime")]
-        [Stj.JsonPropertyName("exptime")]
+        [JsonPropertyName("exptime")]
+        [JsonInclude]
         public ulong? ExpTime { get; internal set; }
 
         /// <summary>
         /// Gets the CRC32 checksum.
         /// </summary>
-        [JsonProperty("value_crc32c")]
-        [Stj.JsonPropertyName("value_crc32c")]
+        [JsonPropertyName("value_crc32c")]
+        [JsonInclude]
         public string? Crc32c { get; internal set; }
     }
 }

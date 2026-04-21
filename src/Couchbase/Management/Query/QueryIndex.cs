@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Management.Views;
 using Newtonsoft.Json;
 
@@ -7,33 +8,43 @@ namespace Couchbase.Management.Query
     public class QueryIndex
     {
         [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         [JsonProperty("is_primary")]
+        [JsonPropertyName("is_primary")]
         public bool IsPrimary { get; set; }
 
         [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public IndexType Type { get; set; }
 
         [JsonProperty("state")]
+        [JsonPropertyName("state")]
         public string State { get; set; }
 
         [JsonProperty("keyspace_id")]
+        [JsonPropertyName("keyspace_id")]
         public string Keyspace { get; set; }
 
         [JsonProperty("partition")]
+        [JsonPropertyName("partition")]
         public string Partition { get; set; }
 
         [JsonProperty("condition")]
+        [JsonPropertyName("condition")]
         public string Condition { get; set; }
 
         [JsonProperty("index_key")]
+        [JsonPropertyName("index_key")]
         public List<string> IndexKey { get; set; }
 
         [JsonProperty("scope_id")]
+        [JsonPropertyName("scope_id")]
         public string ScopeName { get; set; }
 
         [JsonProperty("bucket_id")]
+        [JsonPropertyName("bucket_id")]
         internal string BucketNameField { get; set; }
 
         public string BucketName
