@@ -127,7 +127,7 @@ namespace Couchbase.Core.IO.Connections
         public bool IsSecure => false;
 
         /// <inheritdoc />
-        public bool IsDead => Volatile.Read(ref _disposed) > 0;
+        public bool IsDead => Volatile.Read(ref _disposed) > 0 || Volatile.Read(ref _closing) > 0;
 
         /// <inheritdoc />
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;

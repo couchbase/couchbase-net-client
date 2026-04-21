@@ -60,6 +60,7 @@ public class ClusterNodeReauthenticationTests
         mockConnectionPool
             .SetupGet(p => p.Size)
             .Returns(connections.Count);
+        SetupPoolRefillDefaults(mockConnectionPool);
 
         var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
         var mockMechanism = new Mock<ISaslMechanism>();
@@ -122,18 +123,22 @@ public class ClusterNodeReauthenticationTests
     }
 
     /// <summary>
-    /// Edge case: if the connection pool is empty (e.g., all connections were recently closed),
-    /// re-authentication should complete successfully without errors. New connections will
-    /// be created by the pool as needed and will use the updated authenticator.
+    /// Edge case: the connection pool has already drained to zero (e.g. all connections
+    /// died when the previous JWT expired). Re-authentication must proactively refill the
+    /// pool to MinimumSize using the freshly-swapped authenticator — otherwise every KV
+    /// op times out until the 30s scale-controller tick fires.
     /// </summary>
     [Fact]
-    public async Task ReauthenticateKvConnectionsAsync_EmptyPool_CompletesSuccessfully()
+    public async Task ReauthenticateKvConnectionsAsync_EmptyPool_RefillsToMinimumSize()
     {
         // Arrange
         var mockConnectionPool = new Mock<IConnectionPool>();
         mockConnectionPool
             .Setup(p => p.GetConnections())
             .Returns(Array.Empty<IConnection>());
+        mockConnectionPool.SetupGet(p => p.Size).Returns(0);
+        SetupPoolRefillDefaults(mockConnectionPool);
+        mockConnectionPool.SetupGet(p => p.MinimumSize).Returns(2);
 
         var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
         var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
@@ -142,6 +147,10 @@ public class ClusterNodeReauthenticationTests
         // Act & Assert - Should not throw
         var exception = await Record.ExceptionAsync(() => clusterNode.ReauthenticateKvConnectionsAsync());
         Assert.Null(exception);
+
+        // Pool should be asked to refill back to MinimumSize under a freeze.
+        mockConnectionPool.Verify(p => p.FreezePoolAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockConnectionPool.Verify(p => p.ScaleAsync(2), Times.Once);
     }
 
     /// <summary>
@@ -161,6 +170,7 @@ public class ClusterNodeReauthenticationTests
         mockConnectionPool
             .SetupGet(p => p.Size)
             .Returns(1);
+        SetupPoolRefillDefaults(mockConnectionPool);
 
         var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
         var mockMechanism = new Mock<ISaslMechanism>();
@@ -205,6 +215,7 @@ public class ClusterNodeReauthenticationTests
         mockConnectionPool
             .SetupGet(p => p.Size)
             .Returns(3);
+        SetupPoolRefillDefaults(mockConnectionPool);
 
         var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
 
@@ -310,6 +321,100 @@ public class ClusterNodeReauthenticationTests
         mockConnectionPool.Verify(p => p.GetConnections(), Times.Never);
     }
 
+    /// <summary>
+    /// When every connection fails re-auth (e.g. the new JWT is still invalid on the server),
+    /// each connection is graceful-closed and the pool must still be refilled back to
+    /// MinimumSize. This guards against the failure mode where all connections get stuck in
+    /// the _closing graceful window, and the pool is never repopulated.
+    /// </summary>
+    [Fact]
+    public async Task ReauthenticateKvConnectionsAsync_AllReauthsFail_RefillsPool()
+    {
+        // Arrange
+        var connections = new List<Mock<IConnection>>
+        {
+            CreateMockConnection(1),
+            CreateMockConnection(2)
+        };
+
+        // By the time we enter the refill path, the graceful-closed connections have been
+        // evicted by the pool (IsDead now returns true once _closing is set, so the pool
+        // processor removes them promptly). Reflect that by reporting Size=0.
+        var mockConnectionPool = new Mock<IConnectionPool>();
+        mockConnectionPool
+            .Setup(p => p.GetConnections())
+            .Returns(connections.ConvertAll(c => c.Object));
+        mockConnectionPool.SetupGet(p => p.Size).Returns(0);
+        SetupPoolRefillDefaults(mockConnectionPool);
+        mockConnectionPool.SetupGet(p => p.MinimumSize).Returns(2);
+
+        var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
+        var mockMechanism = new Mock<ISaslMechanism>();
+        mockMechanism
+            .Setup(m => m.AuthenticateAsync(It.IsAny<IConnection>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new AuthenticationFailureException("Auth failed"));
+        mockSaslMechanismFactory
+            .Setup(f => f.CreateOAuthBearerMechanism(It.IsAny<string>()))
+            .Returns(mockMechanism.Object);
+
+        var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
+        var clusterNode = CreateClusterNode(mockConnectionPool.Object, mockSaslMechanismFactory.Object, jwtAuthenticator);
+
+        // Act
+        await clusterNode.ReauthenticateKvConnectionsAsync();
+
+        // Assert
+        foreach (var c in connections)
+        {
+            c.Verify(x => x.CloseAsync(It.IsAny<TimeSpan>()), Times.Once);
+        }
+        mockConnectionPool.Verify(p => p.FreezePoolAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockConnectionPool.Verify(p => p.ScaleAsync(2), Times.Once);
+    }
+
+    /// <summary>
+    /// Freeze-before-scale contract: ScaleAsync must be called only after FreezePoolAsync has
+    /// produced its disposable (per IConnectionPool doc: "the caller has already frozen the
+    /// pool before calling ScalePool").
+    /// </summary>
+    [Fact]
+    public async Task ReauthenticateKvConnectionsAsync_PoolBelowMinimum_ScalesUpUnderFreeze()
+    {
+        // Arrange
+        var mockConnectionPool = new Mock<IConnectionPool>();
+        mockConnectionPool
+            .Setup(p => p.GetConnections())
+            .Returns(Array.Empty<IConnection>());
+        mockConnectionPool.SetupGet(p => p.Size).Returns(0);
+        mockConnectionPool.SetupGet(p => p.MinimumSize).Returns(3);
+        mockConnectionPool.Setup(p => p.ScaleAsync(It.IsAny<int>())).Returns(Task.CompletedTask);
+
+        var events = new List<string>();
+        var mockFreezeDisposable = new Mock<IAsyncDisposable>();
+        mockFreezeDisposable
+            .Setup(d => d.DisposeAsync())
+            .Callback(() => events.Add("unfreeze"))
+            .Returns(default(ValueTask));
+        mockConnectionPool
+            .Setup(p => p.FreezePoolAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => events.Add("freeze"))
+            .Returns(new ValueTask<IAsyncDisposable>(mockFreezeDisposable.Object));
+        mockConnectionPool
+            .Setup(p => p.ScaleAsync(It.IsAny<int>()))
+            .Callback<int>(_ => events.Add("scale"))
+            .Returns(Task.CompletedTask);
+
+        var mockSaslMechanismFactory = new Mock<ISaslMechanismFactory>();
+        var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
+        var clusterNode = CreateClusterNode(mockConnectionPool.Object, mockSaslMechanismFactory.Object, jwtAuthenticator);
+
+        // Act
+        await clusterNode.ReauthenticateKvConnectionsAsync();
+
+        // Assert - freeze, then scale, then unfreeze.
+        Assert.Equal(new[] { "freeze", "scale", "unfreeze" }, events);
+    }
+
     #endregion
 
     #region Helper Methods
@@ -323,6 +428,22 @@ public class ClusterNodeReauthenticationTests
         mockConnection.SetupGet(c => c.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210));
         mockConnection.Setup(c => c.CloseAsync(It.IsAny<TimeSpan>())).Returns(default(ValueTask));
         return mockConnection;
+    }
+
+    /// <summary>
+    /// Sets up <see cref="IConnectionPool.FreezePoolAsync"/>, <see cref="IConnectionPool.MinimumSize"/>,
+    /// and <see cref="IConnectionPool.ScaleAsync"/> with inert defaults so that the refill code path at
+    /// the end of ReauthenticateKvConnectionsAsync is a no-op unless the test overrides these.
+    /// </summary>
+    private static void SetupPoolRefillDefaults(Mock<IConnectionPool> mockConnectionPool)
+    {
+        var mockFreezeDisposable = new Mock<IAsyncDisposable>();
+        mockFreezeDisposable.Setup(d => d.DisposeAsync()).Returns(default(ValueTask));
+        mockConnectionPool
+            .Setup(p => p.FreezePoolAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<IAsyncDisposable>(mockFreezeDisposable.Object));
+        mockConnectionPool.SetupGet(p => p.MinimumSize).Returns(0);
+        mockConnectionPool.Setup(p => p.ScaleAsync(It.IsAny<int>())).Returns(Task.CompletedTask);
     }
 
     private ClusterNode CreateClusterNode(

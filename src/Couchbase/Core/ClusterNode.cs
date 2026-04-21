@@ -959,18 +959,42 @@ namespace Couchbase.Core
                 return;
             }
 
-            var connectionCount = ConnectionPool.Size;
-            if (connectionCount == 0)
+            // Re-auth existing connections (best-effort). Failures graceful-close the
+            // connection below, which marks it dead (via _closing) and causes the pool
+            // to evict it on the next removal pass.
+            var existing = ConnectionPool.GetConnections().ToList();
+            if (existing.Count > 0)
             {
-                return;
+                LogReauthenticationStarting(_redactor.SystemData(EndPoint), existing.Count);
+
+                var tasks = existing.Select(connection => ReauthenticateConnectionAsync(connection, authenticator, cancellationToken));
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+
+                LogReauthenticationCompleted(_redactor.SystemData(EndPoint));
             }
 
-            LogReauthenticationStarting(_redactor.SystemData(EndPoint), connectionCount);
-
-            var tasks = ConnectionPool.GetConnections().Select(connection => ReauthenticateConnectionAsync(connection, authenticator, cancellationToken));
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            LogReauthenticationCompleted(_redactor.SystemData(EndPoint));
+            // Ensure the pool is back at MinimumSize. Required when the pool has already
+            // drained to zero (new bootstraps were failing with the old credentials) or
+            // when every existing connection just failed re-auth. Without this, recovery
+            // would wait on the 30s scale-controller tick and KV ops would time out.
+            // New connections pick up the authenticator from ClusterOptions, which the
+            // caller updated atomically before invoking this method.
+            await using (await ConnectionPool.FreezePoolAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var deficit = ConnectionPool.MinimumSize - ConnectionPool.Size;
+                if (deficit > 0)
+                {
+                    try
+                    {
+                        await ConnectionPool.ScaleAsync(deficit).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Leave recovery to the scale controller.
+                        LogPoolRefillAfterReauthFailed(ex, _redactor.SystemData(EndPoint));
+                    }
+                }
+            }
         }
 
         private async Task ReauthenticateConnectionAsync(IConnection connection, IAuthenticator authenticator, CancellationToken cancellationToken)
@@ -1219,6 +1243,9 @@ namespace Couchbase.Core
 
         [LoggerMessage(304, LogLevel.Information, "JWT re-authentication completed for {endpoint}.")]
         private partial void LogReauthenticationCompleted(Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(305, LogLevel.Warning, "Failed to refill connection pool after JWT re-authentication on {endpoint}. The scale controller will retry.")]
+        private partial void LogPoolRefillAfterReauthFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }
