@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,8 +29,11 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private readonly SemaphoreSlim _timerCallbackMutex = new (1);
         private readonly Action<Keyspace>? _onCollectionNotFound;
         private long _runCount;
-        private readonly object _atrsToCleanLock = new();
-        private ConcurrentBag<string> _atrsToClean = new ConcurrentBag<string>();
+        private readonly TimeProvider _timeProvider;
+        // ATRs still to clean on the current lap, plus the lap-scoped schedule state. Persists across cleanup
+        // windows so an unfinished lap resumes (rather than restarting) on the next pass. Only ever touched from
+        // ProcessClient, which the timer-callback mutex serializes - so no concurrent collection is needed.
+        private readonly AtrCleanupQueue _atrsToClean;
         private readonly CancellationTokenSource _cancelToken = new ();
 
 
@@ -39,13 +41,15 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public long RunCount => Interlocked.Read(ref _runCount);
         private bool Running => !_cancelToken.IsCancellationRequested;
 
-        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepositoryBase repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false, Action<Keyspace>? onCollectionNotFound = null)
+        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepositoryBase repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false, Action<Keyspace>? onCollectionNotFound = null, TimeProvider? timeProvider = null)
         {
             ClientUuid = clientUuid;
             _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into CleanerRepositoryBase, and then that should be made a property, eliminating the need for a _repository variable here.
             _repository = repository;
             _cleanupWindow = cleanupWindow;
             _onCollectionNotFound = onCollectionNotFound;
+            _timeProvider = timeProvider ?? TimeProvider.System;
+            _atrsToClean = new AtrCleanupQueue(_timeProvider);
             _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
             _processCleanupTimer = new Timer(
                 callback: TimerCallback,
@@ -164,6 +168,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 TryReleaseMutex();
                 await DisposeAsync().CAF();
             }
+            catch (OperationCanceledException)
+            {
+                // Expected during shutdown: the cancellation token tripped mid-cycle (a pending
+                // Task.Delay or an early ThrowIfCancellationRequested in CleanupAtr). Exit quietly.
+                _logger.LogDebug("Cleanup of '{bkt}' cancelled during shutdown.", FullBucketName);
+                TryReleaseMutex();
+            }
             catch (Exception ex) when (IsCollectionNotFound(ex))
             {
                 // The server doesn't recognize this collection (deleted, or a misconfigured keyspace
@@ -205,7 +216,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // method referred to as "Per Bucket Algo" in the RFC
         internal async Task<ClientRecordDetails> ProcessClient(bool cleanupAtrs = true)
         {
-            _logger.LogDebug("Looking for lost transactions on bucket '{bkt}'", FullBucketName);
+            _logger.LogTrace("Looking for lost transactions on bucket '{bkt}'", FullBucketName);
             ClientRecordDetails clientRecordDetails = await EnsureClientRecordIsUpToDate().CAF();
             if (_cancelToken.IsCancellationRequested)
             {
@@ -218,62 +229,65 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 return clientRecordDetails;
             }
 
-            var sw = Stopwatch.StartNew();
-
             // for fit tests, we may want to manipulate the client records without actually bothering with cleanup.
             if (cleanupAtrs)
             {
-                // we may not have enough time to process every ATR in the configured window.  Process a random member.
-                // heuristic: fill a bag with random members, process each until the bag is empty, then re-fill the bag.
-                //            This avoids the pathological case where randomization means ATRs get skipped and never/seldom processed.
-                long cleanedThisCycle = 0;
-                long atrsHandledByThisClient = ActiveTransactionRecords.AtrIds.NumAtrs;
-                while (cleanedThisCycle < ActiveTransactionRecords.AtrIds.NumAtrs)
+                // Process this client's assigned ATRs as a "lap" - one complete pass in deterministic order, evenly
+                // paced across the cleanup window. Adaptive batching scales the batch size up when we fall behind
+                // so we still try to clean the whole lap within the window. If even that can't keep up (a too-short
+                // window, or a CPU-starved host), we stop at the window boundary rather than overrunning it: the
+                // remainder stays queued and resumes on the next pass, so every ATR is eventually cleaned and no
+                // tail is starved. Bounding each pass by the window also keeps this client's heartbeat fresh (it is
+                // refreshed once per pass, above), avoiding spurious expiry and ATR reassignment by its peers.
+                var totalAtrs = clientRecordDetails.AtrsHandledByThisClient.Count;
+                var batchProcessor = new AtrBatchProcessor(_cleanupWindow, totalAtrs, _timeProvider);
+
+                // Start a fresh lap, or resume one a previous (window-bounded) pass left unfinished. Also rebuilds
+                // the lap if the topology changed and this client's slice of ATRs is now different.
+                _atrsToClean.SyncLap(
+                    clientRecordDetails.AtrsHandledByThisClient,
+                    clientRecordDetails.IndexOfThisClient,
+                    clientRecordDetails.NumActiveClients);
+
+                var passStartTimestamp = _timeProvider.GetTimestamp();
+
+                while (!_cancelToken.IsCancellationRequested
+                       && _timeProvider.GetElapsedTime(passStartTimestamp) < _cleanupWindow
+                       && !_atrsToClean.LapComplete)
                 {
-                    var checkAtrLimitWatch = Stopwatch.StartNew();
-                    if (!_atrsToClean.TryTake(out var atrId))
-                    {
-                        lock (_atrsToCleanLock)
-                        {
-                            _atrsToClean = new ConcurrentBag<string>(clientRecordDetails.AtrsHandledByThisClient);
-                            if (!_atrsToClean.TryTake(out atrId))
-                            {
-                                _logger.LogWarning("No ATRs handled by this client?");
-                                break;
-                            }
+                    var batchStartTimestamp = _timeProvider.GetTimestamp();
 
-                            _logger.LogDebug("Refilled bag with {totalAtrs} ATRids to process for on {bkt}", atrsHandledByThisClient, FullBucketName);
-                        }
-                    }
+                    // Batch size is driven by lap-scoped elapsed/progress (which persist across windows), so a lap
+                    // resumed from a previous pass reports itself as behind from its first batch and sprints.
+                    var batchSize = batchProcessor.CalculateBatchSize(_atrsToClean.LapElapsed, _atrsToClean.LapProcessed);
 
-                    if (_cancelToken.IsCancellationRequested)
+                    // Take up to batchSize distinct ATRs from the queue. TakeBatch never refills, so a batch only
+                    // ever holds distinct ids - they can be cleaned concurrently without double-cleaning one ATR.
+                    var batch = _atrsToClean.TakeBatch(batchSize);
+                    if (batch.Count == 0)
                     {
-                        sw.Stop();
-                        _logger.LogDebug("Exiting cleanup of ATR {atr} on {bkt} early due to cancellation after {elapsedMs}ms and {cleanedThisCycle}/{totalAtrs} processed.", atrId, FullBucketName, sw.Elapsed.TotalMilliseconds, cleanedThisCycle, atrsHandledByThisClient);
+                        // Nothing is assigned to this client (empty lap).
+                        _logger.LogWarning("No ATRs handled by this client?");
                         break;
                     }
 
-                    // Every checkAtrEveryNMillis, handle an ATR with id atrId
-                    await CleanupAtr(atrId, _cancelToken.Token).CAF();
-                    Interlocked.Increment(ref _runCount);
-                    Interlocked.Increment(ref cleanedThisCycle);
-                    sw.Stop();
-                    _logger.LogDebug($"Cleanup of ATR {atrId} complete in {sw.Elapsed.TotalMilliseconds}ms");
-                    var necessaryDelay = (int)Math.Max(0, Math.Min(_cleanupWindow.TotalMilliseconds, (clientRecordDetails.CheckAtrTimeWindow - checkAtrLimitWatch.Elapsed).TotalMilliseconds));
-                    if (_cancelToken.IsCancellationRequested) break;
-                    // under normal circumstances, the cleanup window will be 60 seconds, the delay will be significant,
-                    // and Task.Delay is appropriate and efficient
-                    if (necessaryDelay >= 10)
-                    {
-                        await Task.Delay(necessaryDelay).CAF();
-                    }
-                    // if the user has specified a short cleanup window (most likely tests), then the delay will be short
-                    // and Task.Delay's non-guaranteed behavior will result in extra delay and be too slow to maintain rhythm.
-                    else if (necessaryDelay >= 1)
-                    {
-                        SpinWait.SpinUntil(() => checkAtrLimitWatch.Elapsed > clientRecordDetails.CheckAtrTimeWindow, _cleanupWindow);
-                    }
+                    // Process batch (parallel if > 1)
+                    await AtrBatchProcessor.ProcessBatchAsync(batch, CleanupAtr, _cancelToken.Token).CAF();
+
+                    _atrsToClean.RecordCleaned(batch.Count);
+                    Interlocked.Add(ref _runCount, batch.Count);
+
+                    var batchDuration = _timeProvider.GetElapsedTime(batchStartTimestamp);
+                    _logger.LogTrace("Cleaned {count} ATRs in {elapsed}ms (batch size: {batchSize}) on {bkt}",
+                        batch.Count, batchDuration.TotalMilliseconds, batchSize, FullBucketName);
+
+                    // Delay to maintain schedule (returns immediately when behind, letting the batching sprint).
+                    await batchProcessor.ApplyDelayAsync(batch.Count, batchDuration, _cancelToken.Token).CAF();
                 }
+
+                _logger.LogDebug("Cleanup pass on {bkt}: {processed}/{total} ATRs done this lap, {remaining} remaining, {elapsedMs}ms elapsed in pass.",
+                    FullBucketName, _atrsToClean.LapProcessed, totalAtrs, _atrsToClean.Remaining,
+                    _timeProvider.GetElapsedTime(passStartTimestamp).TotalMilliseconds);
             }
             return clientRecordDetails;
         }
@@ -298,7 +312,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     }
 
                     clientRecordDetails = new ClientRecordDetails(clientRecord, parsedHlc, ClientUuid, _cleanupWindow);
-                    _logger.LogDebug("Found client record for '{bkt}':\n{clientRecordDetails}\n{clientRecord}", FullBucketName, clientRecordDetails, System.Text.Json.JsonSerializer.Serialize(clientRecord, Transactions.MetadataJsonOptions));
+                    _logger.LogTrace("Found client record for '{bkt}':\n{clientRecordDetails}\n{clientRecord}", FullBucketName, clientRecordDetails, System.Text.Json.JsonSerializer.Serialize(clientRecord, Transactions.MetadataJsonOptions));
                     break;
                 }
                 catch (Exception ex)
@@ -321,7 +335,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             // NOTE: The RFC says to retry with an exponential backoff, but neither the java implementation nor the FIT tests agree with that.
             await TestHooks.BeforeUpdateRecord(ClientUuid).CAF();
             await _repository.UpdateClientRecord(ClientUuid, _cleanupWindow, ActiveTransactionRecords.AtrIds.NumAtrs, clientRecordDetails.ExpiredClientIds, _cancelToken.Token).CAF();
-            _logger.LogDebug("Successfully updated Client Record Entry for {clientUuid} on {bkt}", ClientUuid, FullBucketName);
+            _logger.LogTrace("Successfully updated Client Record Entry for {clientUuid} on {bkt}", ClientUuid, FullBucketName);
 
             return clientRecordDetails;
         }
@@ -367,9 +381,11 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         private async Task CleanupAtr(string atrId, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Dictionary<string, AtrEntry> attempts;
             ParsedHLC? parsedHlc;
-            _logger.LogDebug("{clientUUID} Attempting to cleanup {atrId}",ClientUuid, atrId);
+            _logger.LogTrace("{clientUUID} Attempting to cleanup {atrId}",ClientUuid, atrId);
             try
             {
                 await TestHooks.BeforeAtrGet(atrId).CAF();
