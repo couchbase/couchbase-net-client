@@ -189,7 +189,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // upsert bucket
-                var content = new FormUrlEncodedContent(settings!.ToFormValues());
+                var content = new FormUrlEncodedContent(settings!.ToFormValues(isUpdate: true));
                 using var httpClient = _httpClientFactory.Create();
                 requestStopwatch.Restart();
                 var result = await httpClient.PostAsync(uri, content, cts.FallbackToToken(options.TokenValue)).ConfigureAwait(false);

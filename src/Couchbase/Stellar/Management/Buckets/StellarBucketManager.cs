@@ -36,20 +36,20 @@ internal class StellarBucketManager : IBucketManager
         var opts = options?.AsReadOnly() ?? CreateBucketOptions.DefaultReadOnly;
         var createBucketRequest = new CreateBucketRequest
         {
-            BucketName = settings.Name,
-            BucketType = settings.BucketType.ToProto(),
-            RamQuotaMb = (ulong)settings.RamQuotaMB,
-            NumReplicas = (uint)settings.NumReplicas,
-            FlushEnabled = settings.FlushEnabled,
-            ReplicaIndexes = settings.ReplicaIndexes,
-            MaxExpirySecs = (uint)settings.MaxTtl
+            BucketName = settings.Name
         };
 
+        if (settings.IsSet(nameof(BucketSettings.BucketType))) createBucketRequest.BucketType = settings.BucketType.ToProto();
+        if (settings.IsSet(nameof(BucketSettings.RamQuotaMB))) createBucketRequest.RamQuotaMb = (ulong)settings.RamQuotaMB;
+        if (settings.IsSet(nameof(BucketSettings.NumReplicas))) createBucketRequest.NumReplicas = (uint)settings.NumReplicas;
+        if (settings.IsSet(nameof(BucketSettings.FlushEnabled))) createBucketRequest.FlushEnabled = settings.FlushEnabled;
+        if (settings.IsSet(nameof(BucketSettings.ReplicaIndexes))) createBucketRequest.ReplicaIndexes = settings.ReplicaIndexes;
+        if (settings.IsSet(nameof(BucketSettings.MaxTtl))) createBucketRequest.MaxExpirySecs = (uint)settings.MaxTtl;
         if (settings.EvictionPolicy.HasValue) createBucketRequest.EvictionMode = settings.EvictionPolicy.Value.ToProto();
         if (settings.CompressionMode.HasValue) createBucketRequest.CompressionMode = settings.CompressionMode.Value.ToProto();
         if (settings.StorageBackend.HasValue) createBucketRequest.StorageBackend = settings.StorageBackend.Value.ToProto();
         if (settings.ConflictResolutionType.HasValue) createBucketRequest.ConflictResolutionType = settings.ConflictResolutionType.Value.ToProto();
-        if (settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) createBucketRequest.MinimumDurabilityLevel = protoDurability;
+        if (settings.IsSet(nameof(BucketSettings.DurabilityMinimumLevel)) && settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) createBucketRequest.MinimumDurabilityLevel = protoDurability;
 
         var stellarRequest = new StellarRequest
         {
@@ -70,15 +70,16 @@ internal class StellarBucketManager : IBucketManager
         var opts = options?.AsReadOnly() ?? UpdateBucketOptions.DefaultReadOnly;
         var updateBucketRequest = new UpdateBucketRequest
         {
-            BucketName = settings.Name,
-            RamQuotaMb = (ulong)settings.RamQuotaMB,
-            NumReplicas = (uint)settings.NumReplicas,
-            FlushEnabled = settings.FlushEnabled,
-            MaxExpirySecs = (uint)settings.MaxTtl
+            BucketName = settings.Name
         };
+
+        if (settings.IsSet(nameof(BucketSettings.RamQuotaMB))) updateBucketRequest.RamQuotaMb = (ulong)settings.RamQuotaMB;
+        if (settings.IsSet(nameof(BucketSettings.NumReplicas))) updateBucketRequest.NumReplicas = (uint)settings.NumReplicas;
+        if (settings.IsSet(nameof(BucketSettings.FlushEnabled))) updateBucketRequest.FlushEnabled = settings.FlushEnabled;
+        if (settings.IsSet(nameof(BucketSettings.MaxTtl))) updateBucketRequest.MaxExpirySecs = (uint)settings.MaxTtl;
         if (settings.EvictionPolicy.HasValue) updateBucketRequest.EvictionMode = settings.EvictionPolicy.Value.ToProto();
         if (settings.CompressionMode.HasValue) updateBucketRequest.CompressionMode = settings.CompressionMode.Value.ToProto();
-        if (settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) updateBucketRequest.MinimumDurabilityLevel = protoDurability;
+        if (settings.IsSet(nameof(BucketSettings.DurabilityMinimumLevel)) && settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) updateBucketRequest.MinimumDurabilityLevel = protoDurability;
 
         var stellarRequest = new StellarRequest
         {
