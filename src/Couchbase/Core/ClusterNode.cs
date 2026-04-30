@@ -128,6 +128,13 @@ namespace Couchbase.Core
         /// </summary>
         public ConfigVersion? ConfigVersion => NodesAdapter?.ConfigVersion;
 
+        /// <summary>
+        /// Returns the operation's <see cref="IOperation.ConfigVersion"/> when set, otherwise
+        /// falls back to this node's current <see cref="ConfigVersion"/>. Used for logging so
+        /// non-vBucket-mapped operations (e.g. GetClusterConfig, Hello) don't log "null".
+        /// </summary>
+        private ConfigVersion? EffectiveConfigVersion(IOperation op) => op.ConfigVersion ?? ConfigVersion;
+
         public bool IsAssigned => Owner != null;
 
         public IBucket Owner
@@ -606,7 +613,7 @@ namespace Couchbase.Core
 
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
+            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
             var operationStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationLatency;
             var appTelemetryRequestType = AppTelemetryUtils.GetAppTelemetryKvRequestType(op);
@@ -628,7 +635,7 @@ namespace Couchbase.Core
 
                 if (!status.Failure(op.OpCode))
                 {
-                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
+                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
 
                     if (appTelemetryRequestType.HasValue)
                     {
@@ -646,7 +653,7 @@ namespace Couchbase.Core
                     return status;
                 }
 
-                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion);
+                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -754,7 +761,7 @@ namespace Couchbase.Core
                         _logger.LogWarning("KV Operation timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", op.Elapsed, op.Timeout, op.Opaque);
                     }
 
-                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.ConfigVersion, op.IsSent);
+                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op), op.IsSent);
                     MetricTracker.KeyValue.TrackTimeout(op.OpCode);
 
                     if (appTelemetryRequestType.HasValue)
@@ -804,7 +811,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.UserData(op.Key), op.Opaque, op.Header.Status, op.ConfigVersion);
+                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.UserData(op.Key), op.Opaque, op.Header.Status, EffectiveConfigVersion(op));
 
                 throw;
             }
@@ -1045,7 +1052,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(exception))
                 {
-                    LogCircuitBreakerMarkFailure(op.OpCode,_redactor.SystemData(ConnectionPool.EndPoint), _redactor.SystemData(op.Key), op.Opaque, op.ConfigVersion);
+                    LogCircuitBreakerMarkFailure(op.OpCode,_redactor.SystemData(ConnectionPool.EndPoint), _redactor.SystemData(op.Key), op.Opaque, EffectiveConfigVersion(op));
 
                     _circuitBreaker.MarkFailure();
                 }
