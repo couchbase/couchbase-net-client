@@ -38,15 +38,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<GetIndexResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.GetIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<GetIndexResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.GetIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
         return new SearchIndex
@@ -68,15 +69,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         var opts = options?.AsReadOnly() ?? GetAllSearchIndexesOptions.DefaultReadOnly;
         var protoRequest = new ListIndexesRequest();
 
-        async Task<ListIndexesResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.ListIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<ListIndexesResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.ListIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
         return response.Indexes.Select(protoIndex => new SearchIndex
@@ -118,15 +120,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
                 protoRequest.Index.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
-            async Task<UpdateIndexResponse> GrpcCall()
-            {
-                return await _stellarSearchAdminClient.UpdateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-            }
             var stellarRequest = new StellarRequest
             {
                 Idempotent = false,
-                Token = opts.TokenValue
+                Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
             };
+            async Task<UpdateIndexResponse> GrpcCall()
+            {
+                return await _stellarSearchAdminClient.UpdateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+            }
             _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         }
         else
@@ -150,15 +153,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
                 protoRequest.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
-            async Task<CreateIndexResponse> GrpcCall()
-            {
-                return await _stellarSearchAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-            }
             var stellarRequest = new StellarRequest
             {
                 Idempotent = false,
-                Token = opts.TokenValue
+                Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
             };
+            async Task<CreateIndexResponse> GrpcCall()
+            {
+                return await _stellarSearchAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+            }
 
             _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         }
@@ -172,15 +176,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<DeleteIndexResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.DeleteIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<DeleteIndexResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.DeleteIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -193,15 +198,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<GetIndexedDocumentsCountResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.GetIndexedDocumentsCountAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<GetIndexedDocumentsCountResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.GetIndexedDocumentsCountAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
@@ -216,15 +222,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<PauseIndexIngestResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.PauseIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<PauseIndexIngestResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.PauseIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -237,15 +244,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<ResumeIndexIngestResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.ResumeIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<ResumeIndexIngestResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.ResumeIndexIngestAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -258,15 +266,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<AllowIndexQueryingResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.AllowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<AllowIndexQueryingResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.AllowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -279,15 +288,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<DisallowIndexQueryingResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.DisallowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<DisallowIndexQueryingResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.DisallowIndexQueryingAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -300,15 +310,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<FreezeIndexPlanResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.FreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<FreezeIndexPlanResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.FreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -321,15 +332,16 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
-        async Task<UnfreezeIndexPlanResponse> GrpcCall()
-        {
-            return await _stellarSearchAdminClient.UnfreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(opts.TokenValue)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<UnfreezeIndexPlanResponse> GrpcCall()
+        {
+            return await _stellarSearchAdminClient.UnfreezeIndexPlanAsync(protoRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }

@@ -13,12 +13,40 @@ namespace Couchbase.Stellar.Core.Retry;
  */
 public class StellarRequest : IRequest
 {
+    private readonly TimeProvider _timeProvider;
+
+    public StellarRequest() : this(TimeProvider.System) { }
+
+    /// <summary>
+    /// Creates a StellarRequest with a custom TimeProvider for deterministic testing.
+    /// </summary>
+    internal StellarRequest(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+        CreatedAt = _timeProvider.GetUtcNow().UtcDateTime;
+    }
+
     public uint Attempts { get; set; }
     public bool Idempotent { get; set; }
     public List<RetryReason> RetryReasons { get; set; } = new();
     public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
     public TimeSpan Timeout { get; set; }
     public TimeSpan Elapsed { get; }
+
+    /// <summary>
+    /// The time this request was created. Used to compute remaining timeout.
+    /// </summary>
+    public DateTime CreatedAt { get; }
+
+    /// <summary>
+    /// Returns the remaining time before this request should time out,
+    /// or null if no timeout was set (Timeout is zero).
+    /// Used to set shrinking gRPC deadlines on each retry attempt.
+    /// </summary>
+    public TimeSpan? RemainingTimeout =>
+        Timeout > TimeSpan.Zero
+            ? Timeout - (_timeProvider.GetUtcNow().UtcDateTime - CreatedAt)
+            : null;
     public CancellationToken Token { get; set; }
     public string? ClientContextId { get; set; }
     public string? Statement { get; set; }
@@ -40,5 +68,4 @@ public class StellarRequest : IRequest
     }
 
     public GenericErrorContext Context { get; set; } = new();
-    public int MaxRetryAttempts { get; set; } = 10;
 }

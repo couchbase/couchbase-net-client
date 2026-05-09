@@ -69,21 +69,22 @@ namespace Couchbase.Stellar.Search
             if (opts.CollectionNames != null) searchQueryRequest.Collections.AddRange(opts.CollectionNames);
             opts.Facets?.ToList().ForEach(facet => searchQueryRequest.Facets.Add(facet.Name, facet.ToProto()));
 
+            var stellarRequest = new StellarRequest
+            {
+                Idempotent = true,
+                Token = opts.Token,
+                Timeout = opts.TimeoutValue ?? _stellarCluster.ClusterOptions.SearchTimeout
+            };
             var grpcCall = async () =>
             {
 
                 var response = _searchClient.SearchQuery(searchQueryRequest,
-                    _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.Token));
+                    _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token));
                 return await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
             };
-            var stellarRequest = new StellarRequest
-            {
-                Idempotent = true,
-                Token = opts.Token
-            };
-            var response = _retryHandler.RetryAsync(grpcCall, stellarRequest);
+            var searchResponse = _retryHandler.RetryAsync(grpcCall, stellarRequest);
 
-            return await response.ConfigureAwait(false);
+            return await searchResponse.ConfigureAwait(false);
         }
 
         private Couchbase.Protostellar.Search.V1.Query QueryConverter(ISearchQuery searchRequest,

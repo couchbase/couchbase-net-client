@@ -38,13 +38,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        var grpcCall = async () => await _stellarQueryAdminClient
-            .GetAllIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = true,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient
+            .GetAllIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
 
         var response = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
 
@@ -80,13 +81,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         protoRequest.Fields.AddRange(indexKeys);
 
-        var grpcCall = async () => await _stellarQueryAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions())
-            .ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient.CreateIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
+            .ConfigureAwait(false);
 
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
@@ -104,13 +106,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         if (opts.IndexNameValue != null) protoRequest.Name = opts.IndexNameValue;
 
-        var grpcCall = async () => await _stellarQueryAdminClient
-            .CreatePrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions()).ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient
+            .CreatePrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue)).ConfigureAwait(false);
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
 
@@ -126,13 +129,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        var grpcCall = async () => await _stellarQueryAdminClient.DropIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions())
-            .ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient.DropIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
+            .ConfigureAwait(false);
 
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
@@ -149,13 +153,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        var grpcCall = async () => await _stellarQueryAdminClient.DropPrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions())
-            .ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient.DropPrimaryIndexAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
+            .ConfigureAwait(false);
 
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
@@ -170,13 +175,14 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
-        var grpcCall = async () => await _stellarQueryAdminClient.BuildDeferredIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions())
-            .ConfigureAwait(false);
         var request = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.TokenValue
+            Token = opts.TokenValue,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        var grpcCall = async () => await _stellarQueryAdminClient.BuildDeferredIndexesAsync(protoRequest, _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
+            .ConfigureAwait(false);
 
         _ = await _retryHandler.RetryAsync(grpcCall, request).ConfigureAwait(false);
     }
@@ -193,12 +199,12 @@ internal class StellarQueryIndexManager : IQueryIndexManager
                 CollectionName = opts.CollectionNameValue ?? "_default",
                 ScopeName = opts.ScopeNameValue ?? "_default"
             };
+            var request = new StellarRequest { Idempotent = false, Token = opts.TokenValue, Timeout = opts.TimeoutValue };
             async Task<WaitForIndexOnlineResponse> GrpcCall() =>
                 await _stellarQueryAdminClient.WaitForIndexOnlineAsync(protoRequest,
-                        _stellarCluster.GrpcCallOptions(opts.TimeoutValue, opts.TokenValue))
+                        _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
                     .ConfigureAwait(false);
 
-            var request = new StellarRequest { Idempotent = false, Token = opts.TokenValue };
             return _retryHandler.RetryAsync((Func<Task<WaitForIndexOnlineResponse>>?)GrpcCall,
                 request);
         });

@@ -54,14 +54,15 @@ internal class StellarBucketManager : IBucketManager
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return;
 
         async Task<CreateBucketResponse> GrpcCall()
         {
-            return await _bucketAdminClient.CreateBucketAsync(createBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
+            return await _bucketAdminClient.CreateBucketAsync(createBucketRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
         }
     }
 
@@ -84,14 +85,15 @@ internal class StellarBucketManager : IBucketManager
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return;
 
         async Task<UpdateBucketResponse> GrpcCall()
         {
-            return await _bucketAdminClient.UpdateBucketAsync(updateBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
+            return await _bucketAdminClient.UpdateBucketAsync(updateBucketRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
         }
     }
 
@@ -106,14 +108,15 @@ internal class StellarBucketManager : IBucketManager
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return;
 
         async Task<DeleteBucketResponse> GrpcCall()
         {
-            return await _bucketAdminClient.DeleteBucketAsync(dropBucketRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
+            return await _bucketAdminClient.DeleteBucketAsync(dropBucketRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
         }
     }
 
@@ -124,8 +127,9 @@ internal class StellarBucketManager : IBucketManager
 
         var stellarRequest = new StellarRequest
         {
-            Idempotent = false,
-            Token = opts.CancellationToken
+            Idempotent = true,
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
@@ -148,7 +152,7 @@ internal class StellarBucketManager : IBucketManager
 
         async Task<ListBucketsResponse> GrpcCall()
         {
-            return await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
+            return await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
         }
     }
 

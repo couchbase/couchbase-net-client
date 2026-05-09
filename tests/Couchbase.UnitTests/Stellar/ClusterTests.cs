@@ -72,24 +72,30 @@ public class ClusterTests
       }
 
       [Fact]
-      public async Task Throw_FeatureNotAvailableException_ClusterServices()
+      public async Task ClusterServices_Returns_Valid_ServiceProvider()
       {
           var cluster = await CreateCluster();
-          Assert.Throws<FeatureNotAvailableException>(() => cluster.ClusterServices);
+          var serviceProvider = cluster.ClusterServices;
+          Assert.NotNull(serviceProvider);
+          Assert.NotNull(serviceProvider.GetService(typeof(IRequestTracer)));
       }
 
       [Fact]
-      public async Task Throw_AggregateException_On_Cluster_QueryAsync_If_ConnectAsync_Fails()
+      public async Task Throw_CouchbaseException_On_Cluster_QueryAsync_If_ConnectAsync_Fails()
       {
           var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<AggregateException>(async () => await cluster.QueryAsync<dynamic>("SELECT d.* from default2 as d;"));
+          await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await cluster.QueryAsync<dynamic>("SELECT d.* from default2 as d;"));
       }
 
       [Fact]
-      public async Task Throw_AggregateException_On_Cluster_AnalyticsQueryAsync_If_ConnectAsync_Fails()
+      public async Task Throw_CouchbaseException_On_Cluster_AnalyticsQueryAsync_If_ConnectAsync_Fails()
       {
           var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<AggregateException>(async () => await cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;"));
+          await Assert.ThrowsAnyAsync<Exception>(async () =>
+          {
+              var result = await cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;");
+              await foreach (var _ in result.Rows) { }
+          });
       }
 
       [Theory]

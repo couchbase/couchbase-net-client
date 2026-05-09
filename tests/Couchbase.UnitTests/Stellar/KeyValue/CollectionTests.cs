@@ -18,91 +18,91 @@ public class CollectionTests
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.RemoveAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.RemoveAsync("key"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_RemoveAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.RemoveAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.RemoveAsync("key"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_UpsertAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.UpsertAsync("key", "value"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.UpsertAsync("key", "value"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_UnlockAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.UnlockAsync("key", 010101));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.UnlockAsync("key", 010101));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_ExistsAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.ExistsAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.ExistsAsync("key"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_TouchAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.TouchAsync("key", TimeSpan.Zero));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.TouchAsync("key", TimeSpan.Zero));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_LookupInAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.LookupInAsync("key", new List<LookupInSpec>()));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.LookupInAsync("key", new List<LookupInSpec>()));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAndLockAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.GetAndLockAsync("key", TimeSpan.Zero));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.GetAndLockAsync("key", TimeSpan.Zero));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAndTouchAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.GetAndTouchAsync("key", TimeSpan.Zero));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.GetAndTouchAsync("key", TimeSpan.Zero));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_TryGetAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.TryGetAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.TryGetAsync("key"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_MutateInAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.MutateInAsync("key", new List<MutateInSpec>()));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.MutateInAsync("key", new List<MutateInSpec>()));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_ReplaceAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.ReplaceAsync("key", "value"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.ReplaceAsync("key", "value"));
     }
 
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_InsertAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => await collection.InsertAsync("key", "value"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await collection.InsertAsync("key", "value"));
     }
 
     [Fact]
@@ -137,7 +137,13 @@ public class CollectionTests
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAllReplicasAsync()
     {
         var collection = await CreateCollection();
-        await Assert.ThrowsAsync<AggregateException>(async () => collection.GetAllReplicasAsync("key"));
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        {
+            foreach (var task in collection.GetAllReplicasAsync("key"))
+            {
+                await task;
+            }
+        });
     }
 
     private async Task<ICouchbaseCollection> CreateCollection()

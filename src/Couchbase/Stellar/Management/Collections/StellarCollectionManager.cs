@@ -39,14 +39,15 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
 
         var callOptions = cancellationToken.HasValue ? _stellarCluster.GrpcCallOptions() : _stellarCluster.GrpcCallOptions(cancellationToken!.Value);
 
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
+        };
         async Task<ListCollectionsResponse> grpcCall()
         {
             return await _collectionAdminClient.ListCollectionsAsync(listCollectionsRequest, callOptions).ConfigureAwait(false);
         }
-        var stellarRequest = new StellarRequest
-        {
-            Idempotent = false
-        };
         var response = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
 
         return response;
@@ -82,15 +83,16 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
         };
         if (settings.MaxExpiry.HasValue) createCollectionRequest.MaxExpirySecs = (uint)settings.MaxExpiry.Value.TotalSeconds;
 
-        async Task<CreateCollectionResponse> grpcCall()
-        {
-            return await _collectionAdminClient.CreateCollectionAsync(createCollectionRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<CreateCollectionResponse> grpcCall()
+        {
+            return await _collectionAdminClient.CreateCollectionAsync(createCollectionRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
+        }
         _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
 
@@ -109,15 +111,16 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
-        async Task<DeleteCollectionResponse> grpcCall()
-        {
-            return await _collectionAdminClient.DeleteCollectionAsync(dropCollectionRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<DeleteCollectionResponse> grpcCall()
+        {
+            return await _collectionAdminClient.DeleteCollectionAsync(dropCollectionRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -136,15 +139,16 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
-        async Task<CreateScopeResponse> grpcCall()
-        {
-            return await _collectionAdminClient.CreateScopeAsync(createScopeRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<CreateScopeResponse> grpcCall()
+        {
+            return await _collectionAdminClient.CreateScopeAsync(createScopeRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }
@@ -158,15 +162,16 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
-        async Task<DeleteScopeResponse> grpcCall()
-        {
-            return await _collectionAdminClient.DeleteScopeAsync(dropScopeRequest, _stellarCluster.GrpcCallOptions(opts.CancellationToken)).ConfigureAwait(false);
-        }
         var stellarRequest = new StellarRequest
         {
             Idempotent = false,
-            Token = opts.CancellationToken
+            Token = opts.CancellationToken,
+            Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
+        async Task<DeleteScopeResponse> grpcCall()
+        {
+            return await _collectionAdminClient.DeleteScopeAsync(dropScopeRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
+        }
 
         _ = await _retryHandler.RetryAsync(grpcCall, stellarRequest).ConfigureAwait(false);
     }

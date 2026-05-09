@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -19,9 +20,21 @@ namespace Couchbase.Stellar.Core.Retry;
 
 internal class StellarRetryHandler : IRetryOrchestrator
 {
+    private readonly TimeProvider _timeProvider;
+
+    public StellarRetryHandler() : this(TimeProvider.System) { }
+
+    /// <summary>
+    /// Creates a StellarRetryHandler with a custom TimeProvider for deterministic testing.
+    /// </summary>
+    internal StellarRetryHandler(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
     public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
     {
-        var backoff = ControlledBackoff.Create();
+        var backoff = ControlledBackoff.Create(_timeProvider);
         var context = new GenericErrorContext();
 
         while (true)
@@ -47,6 +60,15 @@ internal class StellarRetryHandler : IRetryOrchestrator
                     HandleException(e, request, context);
                     await backoff.Delay(request).ConfigureAwait(false);
                 }
+            }
+            catch (Exception e) when (IsTransientTransportException(e))
+            {
+                // HTTP/2 transport failures (e.g. connection reset, broken pipe) can
+                // surface as HttpRequestException or IOException rather than RpcException.
+                // Treat these like Unavailable and retry.
+                context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
+                request.Attempts++;
+                await backoff.Delay(request).ConfigureAwait(false);
             }
         }
     }
@@ -205,6 +227,15 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 if (request.Idempotent) throw new UnambiguousTimeoutException(detail);
                 throw new AmbiguousTimeoutException();
             case StatusCode.Internal:
+                if (IsTransientGrpcTransportError(protoException))
+                {
+                    // HTTP/2 connection failures surface as StatusCode.Internal in .NET's
+                    // gRPC library. These are transient transport issues, not server errors.
+                    // Retry them like Unavailable, matching Java SDK behavior.
+                    context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
+                    request.Attempts++;
+                    break;
+                }
                 throw new InternalServerFailureException(detail);
             case StatusCode.Unavailable:
                 context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
@@ -252,5 +283,33 @@ internal class StellarRetryHandler : IRetryOrchestrator
     public Task<ResponseStatus> RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default)
     {
         throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Determines whether a gRPC Internal status error is actually a transient transport
+    /// failure (e.g. HTTP/2 connection reset) rather than a genuine server-side error.
+    /// In production, Grpc.Net.Client wraps transport exceptions (HttpRequestException,
+    /// IOException) as the InnerException of the RpcException.
+    /// </summary>
+    private static bool IsTransientGrpcTransportError(RpcException ex)
+    {
+        return ex.InnerException is not null && IsTransientTransportException(ex.InnerException);
+    }
+
+    /// <summary>
+    /// Determines whether an exception (or any exception in its InnerException chain)
+    /// represents a transient transport failure that should be retried.
+    /// </summary>
+    private static bool IsTransientTransportException(Exception? e)
+    {
+        while (e is not null)
+        {
+            if (e is HttpRequestException or System.IO.IOException)
+            {
+                return true;
+            }
+            e = e.InnerException;
+        }
+        return false;
     }
 }

@@ -63,6 +63,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly ILogger<StellarCluster> _logger;
     private readonly IRedactor _redactor;
     private volatile bool _disposed;
+    private readonly IServiceProvider _clusterServices;
     private readonly bool _isCompressionEnabled;
 
 
@@ -91,6 +92,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         RetryHandler = retryHandler;
         _redactor = new Redactor(new TypedRedactor(_clusterOptions));
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
+        _clusterServices = new StellarServiceProvider(this);
     }
 
     private StellarCluster(ClusterOptions clusterOptions)
@@ -107,7 +109,13 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         var compressionAlgorithm = serviceProvider.GetRequiredService<ICompressionAlgorithm>();
         _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm.Algorithm != CompressionAlgorithm.None;
 
-        var socketsHandler = new SocketsHttpHandler();
+        var socketsHandler = new SocketsHttpHandler
+        {
+            EnableMultipleHttp2Connections = true,
+            PooledConnectionIdleTimeout = Timeout.InfiniteTimeSpan,
+            KeepAlivePingDelay = TimeSpan.FromSeconds(20),
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+        };
         var authenticator = _clusterOptions.GetEffectiveAuthenticator() ?? throw new NullReferenceException($"{nameof(_clusterOptions.Authenticator)} should not be null");
         var certificateCallbackFactory = new CertificateValidationCallbackFactory(_clusterOptions, new Logger<CertificateValidationCallbackFactory>(_clusterOptions.Logging ?? new NullLoggerFactory()), _redactor);
 
@@ -135,6 +143,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _searchClient = new StellarSearchClient(this);
 
         authenticator.AuthenticateGrpcMetadata(_metaData);
+        _clusterServices = new StellarServiceProvider(this);
     }
 
     public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? clusterOptions = null)
@@ -144,11 +153,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return await ConnectAsync(opts).ConfigureAwait(false);
     }
 
-    public static async Task<ICluster> ConnectAsync(ClusterOptions clusterOptions)
+    public static Task<ICluster> ConnectAsync(ClusterOptions clusterOptions)
     {
+        // Note: We intentionally do NOT call GrpcChannel.ConnectAsync() here.
+        // Pre-connecting creates a raw TCP socket via the subchannel transport
+        // that sits idle until the first RPC. Proxies (HAProxy/nginx on OpenShift)
+        // kill idle sockets before HTTP/2 can be negotiated, causing permanent
+        // "unable to establish HTTP/2 connection" failures (grpc-dotnet#2343).
+        // Instead, the channel connects lazily on the first RPC, ensuring the
+        // socket connect and HTTP/2 negotiation happen in one shot.
         var cluster = new StellarCluster(clusterOptions);
-        await cluster.ConnectGrpcAsync(clusterOptions.KvConnectTimeout).ConfigureAwait(false);
-        return cluster;
+        return Task.FromResult<ICluster>(cluster);
     }
 
     internal IRequestTracer RequestTracer { get; }
@@ -208,10 +223,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     internal GrpcChannel GrpcChannel { get; }
 
+    internal ClusterOptions ClusterOptions => _clusterOptions;
+
     internal ITypeSerializer TypeSerializer { get; }
 
-    public IServiceProvider ClusterServices =>
-        throw ThrowHelper.ThrowFeatureNotAvailableException("Cluster Service Provider", "Protostellar");
+    public IServiceProvider ClusterServices => _clusterServices;
 
     public IQueryIndexManager QueryIndexes
     {
@@ -372,6 +388,34 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     bool IClusterExtended.BucketExists(string bucketName)
     {
         return _buckets.TryGetValue(bucketName, out _);
+    }
+
+    /// <summary>
+    /// Minimal <see cref="IServiceProvider"/> that exposes the services already
+    /// held by <see cref="StellarCluster"/> through the standard
+    /// <see cref="ICluster.ClusterServices"/> contract.
+    /// </summary>
+    private sealed class StellarServiceProvider : IServiceProvider
+    {
+        private readonly StellarCluster _cluster;
+
+        public StellarServiceProvider(StellarCluster cluster) => _cluster = cluster;
+
+        public object? GetService(Type serviceType)
+        {
+            if (serviceType == typeof(IRequestTracer))
+                return _cluster.RequestTracer;
+            if (serviceType == typeof(ITypeTranscoder))
+                return _cluster.TypeTranscoder;
+            if (serviceType == typeof(ITypeSerializer))
+                return _cluster.TypeSerializer;
+            if (serviceType == typeof(IRedactor))
+                return _cluster._redactor;
+            if (serviceType == typeof(ILoggerFactory))
+                return _cluster._clusterOptions.Logging;
+
+            return null;
+        }
     }
 }
 #endif

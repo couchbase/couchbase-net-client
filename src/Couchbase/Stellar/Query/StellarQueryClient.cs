@@ -85,20 +85,21 @@ internal class StellarQueryClient : IQueryClient
         request.TuningOptions = tuningOptions;
         request.ProfileMode = opts.Profile.ToProto();
 
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token,
+            Timeout = opts.TimeOut ?? _stellarCluster.ClusterOptions.QueryTimeout
+        };
+
         async Task<IQueryResult<T>> GrpcCall()
         {
-            var callOptions = _stellarCluster.GrpcCallOptions(opts!.TimeOut, opts.Token);
+            var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var asyncResponse = _queryClient.Query(request, callOptions);
             var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer);
             await streamingResult.InitializeAsync(opts.Token).ConfigureAwait(false);
             return streamingResult;
         }
-
-        var stellarRequest = new StellarRequest
-        {
-            Idempotent = true,
-            Token = opts.Token
-        };
 
         return _retryHandler.RetryAsync(GrpcCall, stellarRequest);
     }
