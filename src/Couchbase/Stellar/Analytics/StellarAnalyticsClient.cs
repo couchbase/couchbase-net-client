@@ -2,8 +2,11 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Core.Retry;
 
 namespace Couchbase.Stellar.Analytics;
 
@@ -13,18 +16,32 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
 {
     private readonly StellarCluster _stellarCluster;
     private readonly AnalyticsService.AnalyticsServiceClient _analyticsClient;
+    private readonly IRetryOrchestrator _retryHandler;
 
-    public StellarAnalyticsClient(StellarCluster stellarCluster)
+    public StellarAnalyticsClient(StellarCluster stellarCluster, AnalyticsService.AnalyticsServiceClient analyticsClient, IRetryOrchestrator retryHandler)
     {
         _stellarCluster = stellarCluster;
-        _analyticsClient = new AnalyticsService.AnalyticsServiceClient(_stellarCluster.GrpcChannel);
+        _analyticsClient = analyticsClient;
+        _retryHandler = retryHandler;
     }
 
     public DateTime? LastActivity { get; }
 
-    public Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
+    public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
     {
         var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
+
+        using var childSpan = _stellarCluster.RequestTracer.RequestSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, opts.RequestSpan);
+        if (childSpan.CanWrite)
+        {
+            childSpan.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            childSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.AnalyticsQuery);
+            childSpan.SetAttribute(OuterRequestSpans.Attributes.Operation, OuterRequestSpans.ServiceSpan.AnalyticsQuery);
+            childSpan.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            if (opts.BucketName != null) childSpan.SetAttribute(OuterRequestSpans.Attributes.BucketName, opts.BucketName);
+            if (opts.ScopeName != null) childSpan.SetAttribute(OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
+        }
+
         var request = new AnalyticsQueryRequest
         {
             Statement = statement,
@@ -34,12 +51,29 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
         };
         if (opts.BucketName != null) request.BucketName = opts.BucketName;
         if (opts.ScopeName != null) request.ScopeName = opts.ScopeName;
-        if (opts.ClientContextId != null) request.ReadOnly = opts.Readonly;
+        if (opts.ClientContextId != null) request.ClientContextId = opts.ClientContextId;
 
-        var callOptions = _stellarCluster.GrpcCallOptions(opts.Timeout, opts.Token);
-        var response = _analyticsClient.AnalyticsQuery(request, callOptions);
+        var stellarRequest = new StellarRequest
+        {
+            Idempotent = true,
+            Token = opts.Token,
+            Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.AnalyticsTimeout
+        };
+        stellarRequest.SetMetrics(
+            OuterRequestSpans.ServiceSpan.AnalyticsQuery,
+            OuterRequestSpans.ServiceSpan.AnalyticsQuery,
+            childSpan,
+            opts.BucketName,
+            opts.ScopeName);
 
-        return Task.FromResult<IAnalyticsResult<T>>(new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer));
+        async Task<IAnalyticsResult<T>> GrpcCall()
+        {
+            var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
+            var response = _analyticsClient.AnalyticsQuery(request, callOptions);
+            return new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer);
+        }
+
+        return await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
 }
 #endif

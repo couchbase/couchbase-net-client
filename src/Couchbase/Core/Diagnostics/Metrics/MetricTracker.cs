@@ -173,6 +173,8 @@ namespace Couchbase.Core.Diagnostics.Metrics
         /// </summary>
         private static class ModernAttributes
         {
+            public const string SystemName = "db.system.name";
+            public const string SystemValue = "couchbase";
             public const string Service = "couchbase.service";
             public const string Operation = "db.operation.name";
             public const string Namespace = "db.namespace";
@@ -210,6 +212,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    { ModernAttributes.SystemName, ModernAttributes.SystemValue },
                     { ModernAttributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name },
                     { ModernAttributes.Operation, operation.OpCode.ToMetricTag() },
                     { ModernAttributes.Namespace, operation.BucketName },
@@ -316,6 +319,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
                     new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery),
                     new(ModernAttributes.Operation, OuterRequestSpans.ServiceSpan.N1QLQuery),
                     new(ModernAttributes.Namespace, queryRequest.Options?.BucketName),
@@ -351,6 +355,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
                     new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.AnalyticsQuery),
                     new(ModernAttributes.Namespace, analyticsRequest.Options?.BucketName),
                     new(ModernAttributes.ScopeName, analyticsRequest.Options?.ScopeName),
@@ -384,6 +389,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
                     new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.SearchQuery),
                     new(ModernAttributes.ScopeName, searchRequest.Options?.ScopeName),
                     new(ModernAttributes.Outcome, GetOutcome(errorType))
@@ -484,6 +490,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
                     new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.ViewQuery),
                     new(ModernAttributes.Namespace, viewQuery.BucketName),
                     new(ModernAttributes.Outcome, GetOutcome(errorType))
@@ -591,11 +598,66 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 // Modern metrics
                 var modernTags = new TagList
                 {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
                     new(ModernAttributes.Service, OuterRequestSpans.ServiceSpan.Management),
                     new(ModernAttributes.Operation, operationName),
                     new(ModernAttributes.Outcome, GetOutcome(errorType))
                 };
                 // Add these tags conditionally
+                if (bucketName is not null) modernTags.Add(ModernAttributes.Namespace, bucketName);
+                if (scopeName is not null) modernTags.Add(ModernAttributes.ScopeName, scopeName);
+                if (collectionName is not null) modernTags.Add(ModernAttributes.CollectionName, collectionName);
+
+                AddModernClusterLabels(ref modernTags, span);
+                ModernOperations.Record(duration.TotalSeconds, modernTags);
+            }
+        }
+
+        /// <summary>
+        /// Metrics for Stellar (Protostellar / CNG) operations that flow through
+        /// <see cref="Couchbase.Stellar.Core.Retry.StellarRetryHandler"/>.
+        /// Mirrors the tag schema of <see cref="KeyValue"/> and <see cref="Management"/>
+        /// so that the same OTel dashboards work across both paths.
+        /// </summary>
+        public static class Stellar
+        {
+            /// <summary>
+            /// Tracks a completed Stellar operation (success or failure).
+            /// Called from <c>StellarRequest.StopRecording</c>.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void TrackOperation(
+                string serviceName,
+                string operationName,
+                TimeSpan duration,
+                Type? errorType,
+                string? bucketName = null,
+                string? scopeName = null,
+                string? collectionName = null,
+                IRequestSpan? span = null)
+            {
+                // Legacy metrics
+                var legacyTags = new TagList
+                {
+                    new(OuterRequestSpans.Attributes.Service, serviceName),
+                    new(OuterRequestSpans.Attributes.Operation, operationName),
+                    new(OuterRequestSpans.Attributes.Outcome, GetOutcome(errorType))
+                };
+                if (bucketName is not null) legacyTags.Add(OuterRequestSpans.Attributes.BucketName, bucketName);
+                if (scopeName is not null) legacyTags.Add(OuterRequestSpans.Attributes.ScopeName, scopeName);
+                if (collectionName is not null) legacyTags.Add(OuterRequestSpans.Attributes.CollectionName, collectionName);
+
+                legacyTags.AddClusterLabelsIfProvided(span);
+                LegacyOperations.Record(duration.ToMicroseconds(), legacyTags);
+
+                // Modern metrics
+                var modernTags = new TagList
+                {
+                    new(ModernAttributes.SystemName, ModernAttributes.SystemValue),
+                    new(ModernAttributes.Service, serviceName),
+                    new(ModernAttributes.Operation, operationName),
+                    new(ModernAttributes.Outcome, GetOutcome(errorType))
+                };
                 if (bucketName is not null) modernTags.Add(ModernAttributes.Namespace, bucketName);
                 if (scopeName is not null) modernTags.Add(ModernAttributes.ScopeName, scopeName);
                 if (collectionName is not null) modernTags.Add(ModernAttributes.CollectionName, collectionName);

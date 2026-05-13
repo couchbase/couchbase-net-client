@@ -35,9 +35,20 @@ internal class StellarQueryClient : IQueryClient
 
     public DateTime? LastActivity { get; }
 
-    public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options)
+    public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options)
     {
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
+
+        using var childSpan = _stellarCluster.RequestTracer.RequestSpan(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
+        if (childSpan.CanWrite)
+        {
+            childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Key, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Value);
+            childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Service, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery);
+            childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Operation, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery);
+            childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Statement, statement);
+            if (opts.BucketName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.BucketName, opts.BucketName);
+            if (opts.ScopeName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
+        }
 
         var request = new QueryRequest
         {
@@ -91,6 +102,12 @@ internal class StellarQueryClient : IQueryClient
             Token = opts.Token,
             Timeout = opts.TimeOut ?? _stellarCluster.ClusterOptions.QueryTimeout
         };
+        stellarRequest.SetMetrics(
+            Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery,
+            Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery,
+            childSpan,
+            opts.BucketName,
+            opts.ScopeName);
 
         async Task<IQueryResult<T>> GrpcCall()
         {
@@ -101,7 +118,7 @@ internal class StellarQueryClient : IQueryClient
             return streamingResult;
         }
 
-        return _retryHandler.RetryAsync(GrpcCall, stellarRequest);
+        return await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
     }
 
     public void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)

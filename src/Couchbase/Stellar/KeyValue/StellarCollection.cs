@@ -96,6 +96,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new ExistsResult(Exists: response.Result, Cas: response.Cas);
 
@@ -147,6 +148,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.GetAndLock, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
 
@@ -178,6 +180,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
 
@@ -209,6 +212,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Get, childSpan, _bucketName, _scopeName, Name);
         if (opts.ProjectList.Count > 0)
         {
             request.Project.Add(opts.ProjectList);
@@ -250,6 +254,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.AddInsert, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new MutationResult(response.Cas)
         {
@@ -285,6 +290,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.LookupIn, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new LookupInResult(response, request, _stellarCluster.TypeTranscoder);
 
@@ -306,7 +312,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
         var opts = options?.AsReadOnly() ?? MutateInOptions.DefaultReadOnly;
 
-        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, opts.RequestSpan);
 
         var request = KeyedRequest<MutateInRequest>(id);
         if (opts.Cas > 0)
@@ -346,6 +352,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.MutateIn, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new MutateInResult(response, request, _stellarCluster.TypeTranscoder);
 
@@ -373,6 +380,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, childSpan, _bucketName, _scopeName, Name);
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return;
 
@@ -413,6 +421,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Replace, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
 
         return new MutationResult(response.Cas)
@@ -450,6 +459,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Touch, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new MutationResult(response.Cas)
         {
@@ -481,6 +491,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Unlock, childSpan, _bucketName, _scopeName, Name);
         _ = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return;
 
@@ -519,6 +530,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.SetUpsert, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
         return new MutationResult(response.Cas)
         {
@@ -560,6 +572,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Append, childSpan, _bucketName, _scopeName, Name);
         async Task<AppendResponse> GrpcCall()
         {
             return await _kvClient.AppendAsync(request, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token)).ConfigureAwait(false);
@@ -598,6 +611,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Prepend, childSpan, _bucketName, _scopeName, Name);
         async Task<PrependResponse> GrpcCall()
         {
             return await _kvClient.PrependAsync(request, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token)).ConfigureAwait(false);
@@ -635,6 +649,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Increment, childSpan, _bucketName, _scopeName, Name);
         async Task<IncrementResponse> GrpcCall()
         {
             return await _kvClient.IncrementAsync(request, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token)).ConfigureAwait(false);
@@ -669,6 +684,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
                 : _stellarCluster.ClusterOptions.KvTimeout)
         };
+        stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.Decrement, childSpan, _bucketName, _scopeName, Name);
         async Task<DecrementResponse> GrpcCall()
         {
             return await _kvClient.DecrementAsync(request, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token)).ConfigureAwait(false);
@@ -811,7 +827,21 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return request;
     }
 
-    private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>
-        _stellarCluster.RequestTracer.RequestSpan(attr, parentSpan);
+    private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan)
+    {
+        var span = _stellarCluster.RequestTracer.RequestSpan(attr, parentSpan);
+
+        if (span.CanWrite)
+        {
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, attr);
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucketName);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, _scopeName);
+            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
+        }
+
+        return span;
+    }
 }
 #endif

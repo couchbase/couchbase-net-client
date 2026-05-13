@@ -36,40 +36,56 @@ internal class StellarRetryHandler : IRetryOrchestrator
     {
         var backoff = ControlledBackoff.Create(_timeProvider);
         var context = new GenericErrorContext();
+        System.Type? finalErrorType = null;
 
-        while (true)
+        try
         {
-            if (request.Token.IsCancellationRequested)
+            while (true)
             {
-                if (request.Idempotent)
+                if (request.Token.IsCancellationRequested)
                 {
-                    throw new UnambiguousTimeoutException("The request timed out.", context);
+                    if (request.Idempotent)
+                    {
+                        throw new UnambiguousTimeoutException("The request timed out.", context);
+                    }
+
+                    throw new AmbiguousTimeoutException("The request timed out.", context);
                 }
 
-                throw new AmbiguousTimeoutException("The request timed out.", context);
-            }
-
-            try
-            {
-                return await send().ConfigureAwait(false);
-            }
-            catch (RpcException e)
-            {
-                if (e.StatusCode != StatusCode.OK)
+                try
                 {
-                    HandleException(e, request, context);
+                    return await send().ConfigureAwait(false);
+                }
+                catch (RpcException e)
+                {
+                    if (e.StatusCode != StatusCode.OK)
+                    {
+                        HandleException(e, request, context);
+                        await backoff.Delay(request).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception e) when (IsTransientTransportException(e))
+                {
+                    // HTTP/2 transport failures (e.g. connection reset, broken pipe) can
+                    // surface as HttpRequestException or IOException rather than RpcException.
+                    // Treat these like Unavailable and retry.
+                    context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
+                    request.Attempts++;
                     await backoff.Delay(request).ConfigureAwait(false);
                 }
             }
-            catch (Exception e) when (IsTransientTransportException(e))
-            {
-                // HTTP/2 transport failures (e.g. connection reset, broken pipe) can
-                // surface as HttpRequestException or IOException rather than RpcException.
-                // Treat these like Unavailable and retry.
-                context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
-                request.Attempts++;
-                await backoff.Delay(request).ConfigureAwait(false);
-            }
+        }
+        catch (Exception ex)
+        {
+            finalErrorType = ex.GetType();
+            throw;
+        }
+        finally
+        {
+            if (request is StellarRequest stellarRequest)
+                stellarRequest.StopRecording(finalErrorType);
+            else
+                request.StopRecording();
         }
     }
 

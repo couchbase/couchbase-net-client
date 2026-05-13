@@ -75,6 +75,23 @@ namespace Couchbase.Stellar.Search
                 Token = opts.Token,
                 Timeout = opts.TimeoutValue ?? _stellarCluster.ClusterOptions.SearchTimeout
             };
+
+            using var childSpan = _stellarCluster.RequestTracer.RequestSpan(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.SearchQuery, opts.RequestSpan);
+            if (childSpan.CanWrite)
+            {
+                childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Key, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Value);
+                childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Service, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.SearchQuery);
+                childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Operation, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.SearchQuery);
+                if (opts.ScopeName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
+                if (opts.CollectionNames?.FirstOrDefault() != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.CollectionName, opts.CollectionNames.FirstOrDefault()!);
+            }
+
+            stellarRequest.SetMetrics(
+                Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.SearchQuery,
+                Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.SearchQuery,
+                childSpan,
+                scopeName: opts.ScopeName,
+                collectionName: opts.CollectionNames?.FirstOrDefault());
             var grpcCall = async () =>
             {
 

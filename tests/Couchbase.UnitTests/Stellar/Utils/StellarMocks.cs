@@ -33,6 +33,7 @@ internal static class StellarMocks
         var queryIndexManager = new Mock<IQueryIndexManager>();
         var metaData = new Metadata();
         var requestTracer = new Mock<IRequestTracer>();
+        requestTracer.Setup(x => x.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(new NoopRequestSpan());
         var typeSerializer = new Mock<ITypeSerializer>();
         var clusterOptions = new ClusterOptions();
         var requestOrchestrator = new Mock<IRetryOrchestrator>();
@@ -73,6 +74,7 @@ internal static class StellarMocks
         var queryIndexManager = new Mock<IQueryIndexManager>();
         var metaData = new Metadata();
         var requestTracer = new Mock<IRequestTracer>();
+        requestTracer.Setup(x => x.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(new NoopRequestSpan());
         var typeSerializer = new Mock<ITypeSerializer>();
         var clusterOptions = new ClusterOptions();
         configureOptions?.Invoke(clusterOptions);

@@ -26,6 +26,7 @@ using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
+using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -139,7 +140,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             TypeSerializer,
             RetryHandler);
         _metaData = new Metadata();
-        _analyticsClient = new StellarAnalyticsClient(this);
+        _analyticsClient = new StellarAnalyticsClient(this,
+            new AnalyticsService.AnalyticsServiceClient(GrpcChannel),
+            RetryHandler);
         _searchClient = new StellarSearchClient(this);
 
         authenticator.AuthenticateGrpcMetadata(_metaData);
