@@ -73,10 +73,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         var protoRequest = new CreateIndexRequest
         {
             BucketName = bucketName,
-            Name = indexName,
-            Deferred = opts.DeferredValue,
-            IgnoreIfExists = opts.IgnoreIfExistsValue
+            Name = indexName
         };
+        if (opts.DeferredValue) protoRequest.Deferred = true;
+        if (opts.IgnoreIfExistsValue) protoRequest.IgnoreIfExists = true;
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         protoRequest.Fields.AddRange(indexKeys);
@@ -98,10 +98,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         var opts = options?.AsReadOnly() ?? CreatePrimaryQueryIndexOptions.DefaultReadOnly;
         var protoRequest = new CreatePrimaryIndexRequest
         {
-            BucketName = bucketName,
-            Deferred = opts.DeferredValue,
-            IgnoreIfExists = opts.IgnoreIfExistsValue
+            BucketName = bucketName
         };
+        if (opts.DeferredValue) protoRequest.Deferred = true;
+        if (opts.IgnoreIfExistsValue) protoRequest.IgnoreIfExists = true;
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         if (opts.IndexNameValue != null) protoRequest.Name = opts.IndexNameValue;
@@ -123,9 +123,9 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         var protoRequest = new DropIndexRequest
         {
             BucketName = bucketName,
-            Name = indexName,
-            IgnoreIfMissing = !opts.IgnoreIfExistsValue //TODO: is this right?
+            Name = indexName
         };
+        if (opts.IgnoreIfExistsValue) protoRequest.IgnoreIfMissing = true;
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
@@ -146,9 +146,9 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         var opts = options?.AsReadOnly() ?? DropPrimaryQueryIndexOptions.DefaultReadOnly;
         var protoRequest = new DropPrimaryIndexRequest
         {
-            BucketName = bucketName,
-            IgnoreIfMissing = !opts.IgnoreIfExistsValue //TODO: Is this right?
+            BucketName = bucketName
         };
+        if (opts.IgnoreIfExistsValue) protoRequest.IgnoreIfMissing = true;
         if (opts.IndexNameValue != null) protoRequest.Name = opts.IndexNameValue;
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;

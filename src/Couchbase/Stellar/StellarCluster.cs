@@ -18,6 +18,7 @@ using Couchbase.Diagnostics;
 using Couchbase.Client.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Analytics;
@@ -59,7 +60,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly IAnalyticsClient _analyticsClient;
     private readonly IStellarSearchClient _searchClient;
     private readonly IQueryClient _queryClient;
-    private readonly Metadata _metaData;
+    private Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private readonly ILogger<StellarCluster> _logger;
     private readonly IRedactor _redactor;
@@ -380,6 +381,23 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     }
 
     #endregion
+
+    /// <summary>
+    /// Updates the authenticator used by this cluster.
+    /// </summary>
+    /// <param name="authenticator">The new authenticator to use.</param>
+    public void Authenticator(IAuthenticator authenticator)
+    {
+        if (authenticator == null) throw new ArgumentNullException(nameof(authenticator));
+
+        _clusterOptions.Authenticator = authenticator;
+
+        var newMetaData = new Metadata();
+        authenticator.AuthenticateGrpcMetadata(newMetaData);
+
+        // Update the metadata instance used for all subsequent gRPC calls
+        _metaData = newMetaData;
+    }
 
     /// <inheritdoc />
     void IClusterExtended.RemoveBucket(string bucketName)
