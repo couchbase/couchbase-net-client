@@ -63,7 +63,8 @@ internal static class StellarMocks
 
     public static StellarCluster CreateClusterFromMocksWithOptions(
         IOperationCompressor? compressor = null,
-        Action<ClusterOptions>? configureOptions = null)
+        Action<ClusterOptions>? configureOptions = null,
+        Mock<IRetryOrchestrator>? requestOrchestratorMock = null)
     {
         var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));
         var bucketManager = new Mock<IBucketManager>();
@@ -78,7 +79,7 @@ internal static class StellarMocks
         var typeSerializer = new Mock<ITypeSerializer>();
         var clusterOptions = new ClusterOptions();
         configureOptions?.Invoke(clusterOptions);
-        var requestOrchestrator = new Mock<IRetryOrchestrator>();
+        var requestOrchestrator = requestOrchestratorMock ?? new Mock<IRetryOrchestrator>();
 
         var effectiveCompressor = compressor ?? new Mock<IOperationCompressor>().Object;
         var algorithm = compressor != null ? CompressionAlgorithm.Snappy : CompressionAlgorithm.None;

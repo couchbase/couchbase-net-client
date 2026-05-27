@@ -8,7 +8,10 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
 using Couchbase.Stellar;
 using Couchbase.Stellar.KeyValue;
 using Couchbase.UnitTests.Stellar.Utils;
@@ -282,5 +285,43 @@ public class StellarCollectionTests
     }
 
     #endregion
+
+    [Fact]
+    public async Task GetAsync_WithProjectionsAndNullPayload_TranslatesToEmptyObject()
+    {
+        // Arrange
+        var mockOrchestrator = new Mock<IRetryOrchestrator>();
+        var getResponse = new Couchbase.Protostellar.KV.V1.GetResponse
+        {
+            Cas = 1,
+            ContentUncompressed = Google.Protobuf.ByteString.CopyFromUtf8("null")
+        };
+
+        mockOrchestrator
+            .Setup(x => x.RetryAsync(It.IsAny<Func<Task<Couchbase.Protostellar.KV.V1.GetResponse>>>(), It.IsAny<IRequest>()))
+            .ReturnsAsync(getResponse);
+
+        var cluster = StellarMocks.CreateClusterFromMocksWithOptions(
+            requestOrchestratorMock: mockOrchestrator);
+
+        var bucket = (StellarBucket)await cluster.BucketAsync("test");
+        var collection = (StellarCollection)bucket.DefaultCollection();
+
+        // Act
+        var options = new GetOptions()
+            .Projection("foo")
+            .Transcoder(new JsonTranscoder(DefaultSerializer.Instance));
+
+        var result = await collection.GetAsync("key", options);
+        var content = result.ContentAs<dynamic>();
+
+        // Assert
+        Assert.NotNull(content);
+
+        // Assert that the decoded dynamic object is completely empty.
+        // The default transcoder returns a JObject or JsonObject, both of which implement IEnumerable.
+        Assert.Empty((System.Collections.IEnumerable)content);
+    }
+
 }
 #endif

@@ -218,6 +218,16 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             request.Project.Add(opts.ProjectList);
         }
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
+
+        // When projections are requested but none of the paths exist, the Protostellar
+        // gateway returns the JSON literal 'null' (4 bytes) as the content body. Substitute
+        // an empty JSON object so that ContentAs<T>() returns an empty object rather than
+        // null, matching classic SDK behavior (see ProjectionsApplier.reconstructDocument).
+        if (opts.ProjectList.Count > 0 && response.ContentUncompressed.Span.SequenceEqual("null"u8))
+        {
+            response.ContentUncompressed = ByteString.CopyFromUtf8("{}");
+        }
+
         return response.AsGetResult(transcoder, _stellarCluster.IsCompressionEnabled ? _stellarCluster.OperationCompressor : null, childSpan);
 
         async Task<GetResponse> GrpcCall()
