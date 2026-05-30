@@ -17,6 +17,7 @@ using Couchbase.Stellar;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
+using Couchbase.UnitTests.Utils;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Moq;
@@ -109,7 +110,9 @@ public class ClusterTests
 #pragma warning disable CS0618 // Type or member is obsolete
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
 #pragma warning restore CS0618 // Type or member is obsolete
-          options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
+          // Classic schemes do DNS SRV lookup during bootstrap which adds several seconds
+          // before bootstrap gives up against the unreachable "xxx" host.
+          options.WithFastFailTimeouts(FastFailServices.DisableDnsSrv);
           var cluster = await Cluster.ConnectAsync(connectionString,options);
 
           Assert.IsType(type, cluster);
@@ -121,7 +124,9 @@ public class ClusterTests
 
 #pragma warning disable CS0618 // Type or member is obsolete
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
-          options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
+          // Tests using this helper exercise Query/Analytics; shorten those so the failing op
+          // surfaces a CouchbaseException quickly instead of waiting the default 75s.
+          options.WithFastFailTimeouts(FastFailServices.Query | FastFailServices.Analytics);
           options.HttpIgnoreRemoteCertificateMismatch = true;
           options.KvIgnoreRemoteCertificateNameMismatch = true;
 #pragma warning restore CS0618 // Type or member is obsolete

@@ -8,6 +8,7 @@ using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Stellar;
 using Couchbase.Stellar.Util;
+using Couchbase.UnitTests.Utils;
 using Xunit;
 
 namespace Couchbase.UnitTests.Stellar.KeyValue;
@@ -154,7 +155,9 @@ public class CollectionTests
 #pragma warning disable CS0618 // Type or member is obsolete
         var options = new ClusterOptions().WithCredentials("Administrator", "password");
 #pragma warning restore CS0618 // Type or member is obsolete
-        options.KvConnectTimeout = TimeSpan.FromMilliseconds(1);
+        // All tests using this helper drive KV ops against an unreachable host; without a short
+        // KvTimeout each failing op would block on the default 2.5s.
+        options.WithFastFailTimeouts(FastFailServices.Kv);
 
         var cluster = await Cluster.ConnectAsync(connectionString, options);
         var bucket = await cluster.BucketAsync("default");
