@@ -39,7 +39,7 @@ using Couchbase.Core.IO.Operations;
 
 namespace Couchbase
 {
-    public partial class Cluster : ICluster, IBootstrappable, IClusterAuthenticator
+    public partial class Cluster : ICluster, IBootstrappable
     {
         internal const string RequiresUnreferencedCodeMessage =
             "The Couchbase SDK might require types that cannot be statically analyzed. Make sure all required types are preserved.";

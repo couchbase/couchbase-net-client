@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Diagnostics;
 using Couchbase.Client.Transactions;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -93,6 +94,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public Client.Transactions.Transactions Transactions => throw new NotImplementedException();
 
         public Task<ISearchResult> SearchAsync(string searchIndexName, SearchRequest searchRequest, SearchOptions? options)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Authenticator(IAuthenticator authenticator)
         {
             throw new NotImplementedException();
         }

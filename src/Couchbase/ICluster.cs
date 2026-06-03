@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
@@ -17,7 +18,7 @@ using Couchbase.Search;
 
 namespace Couchbase
 {
-    public interface ICluster : ISearchRequester, IDisposable, IAsyncDisposable
+    public interface ICluster : ISearchRequester, IDisposable, IAsyncDisposable, IClusterAuthenticator
     {
         /// <summary>
         /// An <see cref="IServiceProvider"/> which provides access to cluster services, such as <see cref="ITypeSerializer"/>.
