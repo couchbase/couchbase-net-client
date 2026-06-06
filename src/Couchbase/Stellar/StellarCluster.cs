@@ -68,6 +68,13 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly IServiceProvider _clusterServices;
     private readonly bool _isCompressionEnabled;
 
+    // The SocketsHttpHandler backing the gRPC channel when this cluster created the channel
+    // itself (the real-connect path). gRPC does not take ownership of a caller-supplied handler
+    // unless GrpcChannelOptions.DisposeHttpClient is set, so we keep a reference and dispose it
+    // ourselves. Null when the channel was injected (e.g. unit tests), in which case the channel
+    // owns its transport.
+    private readonly SocketsHttpHandler? _socketsHandler;
+
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
         IQueryIndexManager queryIndexManager, IQueryClient queryClient,
@@ -118,6 +125,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             KeepAlivePingDelay = TimeSpan.FromSeconds(20),
             KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
         };
+        _socketsHandler = socketsHandler;
         var authenticator = _clusterOptions.GetEffectiveAuthenticator() ?? throw new NullReferenceException($"{nameof(_clusterOptions.Authenticator)} should not be null");
         var certificateCallbackFactory = new CertificateValidationCallbackFactory(_clusterOptions, new Logger<CertificateValidationCallbackFactory>(_clusterOptions.Logging ?? new NullLoggerFactory()), _redactor);
 
@@ -227,6 +235,12 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     internal GrpcChannel GrpcChannel { get; }
 
+    /// <summary>
+    /// The <see cref="SocketsHttpHandler"/> this cluster created and owns, or <c>null</c> when the
+    /// gRPC channel was injected. Exposed for tests to verify it is disposed with the cluster.
+    /// </summary>
+    internal SocketsHttpHandler? OwnedHttpHandler => _socketsHandler;
+
     internal ClusterOptions ClusterOptions => _clusterOptions;
 
     internal ITypeSerializer TypeSerializer { get; }
@@ -310,6 +324,10 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             bucket.Dispose();
         }
         GrpcChannel.Dispose();
+
+        // Dispose the handler we own so its connection pool and keep-alive ping timers are torn
+        // down promptly. GrpcChannel.Dispose() does not do this for a caller-supplied handler.
+        _socketsHandler?.Dispose();
     }
 
     public ValueTask DisposeAsync()

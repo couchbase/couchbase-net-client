@@ -1,5 +1,6 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -32,28 +33,28 @@ public class ClusterTests
       [Fact]
       public async Task Throw_FeatureNotAvailableException_Diagnostics()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.DiagnosticsAsync());
       }
 
       [Fact]
       public async Task Throw_FeatureNotAvailableException_Ping()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.PingAsync());
       }
 
       [Fact]
       public async Task Throw_FeatureNotAvailableException_Users()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           Assert.Throws<FeatureNotAvailableException>(() => cluster.Users);
       }
 
       [Fact]
       public async Task Throw_FeatureNotAvailableException_EventingFunctions()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           Assert.Throws<FeatureNotAvailableException>(() => cluster.EventingFunctions);
       }
 
@@ -61,21 +62,21 @@ public class ClusterTests
       [Fact]
       public async Task Throw_FeatureNotAvailableException_WaitUntilReadyAsync()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.Zero));
       }
 
       [Fact]
       public async Task Throw_FeatureNotAvailableException_AnalyticsIndexes()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           Assert.Throws<FeatureNotAvailableException>(() => cluster.AnalyticsIndexes);
       }
 
       [Fact]
       public async Task ClusterServices_Returns_Valid_ServiceProvider()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           var serviceProvider = cluster.ClusterServices;
           Assert.NotNull(serviceProvider);
           Assert.NotNull(serviceProvider.GetService(typeof(IRequestTracer)));
@@ -84,14 +85,14 @@ public class ClusterTests
       [Fact]
       public async Task Throw_CouchbaseException_On_Cluster_QueryAsync_If_ConnectAsync_Fails()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await cluster.QueryAsync<dynamic>("SELECT d.* from default2 as d;"));
       }
 
       [Fact]
       public async Task Throw_CouchbaseException_On_Cluster_AnalyticsQueryAsync_If_ConnectAsync_Fails()
       {
-          var cluster = await CreateCluster();
+          await using var cluster = await CreateCluster();
           await Assert.ThrowsAnyAsync<Exception>(async () =>
           {
               var result = await cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;");
@@ -113,7 +114,7 @@ public class ClusterTests
           // Classic schemes do DNS SRV lookup during bootstrap which adds several seconds
           // before bootstrap gives up against the unreachable "xxx" host.
           options.WithFastFailTimeouts(FastFailServices.DisableDnsSrv);
-          var cluster = await Cluster.ConnectAsync(connectionString,options);
+          await using var cluster = await Cluster.ConnectAsync(connectionString,options);
 
           Assert.IsType(type, cluster);
       }
@@ -132,6 +133,26 @@ public class ClusterTests
 #pragma warning restore CS0618 // Type or member is obsolete
 
           return await Cluster.ConnectAsync(connectionString,options);
+      }
+
+      [Fact]
+      public async Task Dispose_Disposes_Owned_HttpHandler()
+      {
+#pragma warning disable CS0618 // Type or member is obsolete
+          var options = new ClusterOptions().WithCredentials("Administrator", "password");
+#pragma warning restore CS0618 // Type or member is obsolete
+
+          // Real-connect path: the cluster builds and owns the SocketsHttpHandler behind the channel.
+          var cluster = (StellarCluster)await Cluster.ConnectAsync("couchbase2://xxx", options);
+          var handler = cluster.OwnedHttpHandler;
+          Assert.NotNull(handler);
+
+          await cluster.DisposeAsync();
+
+          // A disposed SocketsHttpHandler throws ObjectDisposedException when used, proving the
+          // cluster released the transport (and its keep-alive timers) rather than leaking it.
+          using var client = new HttpClient(handler!, disposeHandler: false);
+          await Assert.ThrowsAsync<ObjectDisposedException>(() => client.GetAsync("http://localhost/"));
       }
       #endregion
 
