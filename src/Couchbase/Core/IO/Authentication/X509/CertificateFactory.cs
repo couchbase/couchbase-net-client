@@ -134,6 +134,15 @@ namespace Couchbase.Core.IO.Authentication.X509
 
                 if (certificate is X509Certificate2 cert2)
                 {
+                    // The X509Chain passed to this callback was pre-populated by SslStream with
+                    // the certificates the server sent on the wire (the chain's intermediates).
+                    // Those need to be copied into the ExtraStore on each attempt, or any chain that depends on
+                    // a server-presented intermediate will fail to validate even when it is otherwise valid.
+                    var wireIntermediates = chain.ChainElements
+                        .Cast<X509ChainElement>()
+                        .Select(el => new X509Certificate2(el.Certificate))
+                        .ToArray();
+
                     // first attempt - validation from system trust store plus whatever certs have been provided
                     // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
 
@@ -144,6 +153,11 @@ namespace Couchbase.Core.IO.Authentication.X509
                         {
                             MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
                             chain.ChainPolicy.ExtraStore.Add(new X509Certificate2(defaultCert));
+                        }
+
+                        foreach (var intermediate in wireIntermediates)
+                        {
+                            chain.ChainPolicy.ExtraStore.Add(intermediate);
                         }
 
                         MaybeLogChainElements("X509 chain element cert is", chain, logger);
@@ -176,14 +190,6 @@ namespace Couchbase.Core.IO.Authentication.X509
                         }
 
                         // second attempt - using only the certs that have been provided in CustomRootTrust
-                        if (chain.ChainElements.Count > 1)
-                        {
-                            logger?.LogDebug("X509 chain had {elementCount} certificate(s) including intermediate CAs, but not adding them to CustomTrustStore", chain.ChainElements.Count);
-                        }
-                        else
-                        {
-                            logger?.LogDebug("X509 chain has only {elementCount} certificate element(s)", chain.ChainElements.Count);
-                        }
                         chain.Reset();
                         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
 
@@ -193,6 +199,13 @@ namespace Couchbase.Core.IO.Authentication.X509
                         {
                             MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
                             chain.ChainPolicy.CustomTrustStore.Add(defaultCert);
+                        }
+
+                        // Re-supply the server-presented intermediates as ExtraStore (not
+                        // CustomTrustStore, since they are not themselves trust anchors).
+                        foreach (var intermediate in wireIntermediates)
+                        {
+                            chain.ChainPolicy.ExtraStore.Add(intermediate);
                         }
 
                         MaybeLogChainElements("X509 Retry chain element cert is ", chain, logger);
