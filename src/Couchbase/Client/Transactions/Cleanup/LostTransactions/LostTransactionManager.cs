@@ -74,7 +74,12 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _keyValueTimeout = keyValueTimeout;
             _logger.LogDebug("Starting LostTransactionManager");
 
-            if (collections == null) return;
+            // No configured collections: nothing to register up front. Avoids the sync-over-async
+            // block for the common no-transactions case (NCBC-4218).
+            if (collections is null or { Count: 0 }) return;
+
+            // Configured collections must be in the cleanup set before we return. Task.Run isolates the
+            // await from any caller SynchronizationContext; this opt-in path never runs for a default cluster.
             Task.Run(async () =>
             {
                 var tasks = new List<Task>();

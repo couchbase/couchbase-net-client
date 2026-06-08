@@ -223,9 +223,10 @@ namespace Couchbase
                 // to do this because extSDKIntegration means we may configure the cleanup
                 // to clean one or several collections when creating the cluster, and intend
                 // for this to happen even in absence of this instance creating transactions.
-                // Also, if we don't configure transactions cleanup, by default no cleanup
-                // tasks are launched, so it does nothing until you start making transactions.
-                _ = cluster.LazyTransactions.Value;
+                if (ShouldEagerlyInitializeTransactions(options.TransactionsConfig))
+                {
+                    _ = cluster.LazyTransactions.Value;
+                }
                 return cluster;
             }
             catch (Exception)
@@ -235,6 +236,25 @@ namespace Couchbase
 
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Decides whether the Transactions subsystem should be initialized eagerly at connect time.
+        /// </summary>
+        /// <remarks>
+        /// Eager init is only worthwhile when there is startup cleanup work to do: lost cleanup is
+        /// enabled AND collections were explicitly configured (the EXT_SDK_INTEGRATION "cleanup-only
+        /// client" case). For a default cluster the cleanup set is empty until the first transaction
+        /// runs, and that first transaction materializes Transactions anyway, so eager init would only
+        /// spin up idle cleanup machinery and permanently consume a thread-pool thread, hurting
+        /// non-transaction applications (NCBC-4218).
+        /// </remarks>
+        internal static bool ShouldEagerlyInitializeTransactions(Client.Transactions.Config.TransactionsConfig transactionsConfig)
+        {
+            var cleanupConfig = transactionsConfig.CleanupConfig;
+            var hasConfiguredCollections = cleanupConfig.CollectionsList.Count > 0
+                || transactionsConfig.MetadataCollection != null;
+            return cleanupConfig.CleanupLostAttempts && hasConfiguredCollections;
         }
 
         #endregion
