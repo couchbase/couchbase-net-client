@@ -1,0 +1,12 @@
+# Keep the Docker build context small and avoid copying stale build output
+# from the host into the image (the build restores/publishes fresh).
+**/bin/
+**/obj/
+**/out/
+.git/
+.github/
+.idea/
+.vs/
+.vscode/
+BenchmarkDotNet.Artifacts/
+**/.DS_Store

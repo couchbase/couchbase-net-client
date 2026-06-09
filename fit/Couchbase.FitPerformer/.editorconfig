@@ -1,0 +1,7 @@
+# Performer-specific overrides on top of the repository root .editorconfig.
+# The FIT performer is an executable test harness, not a shipped library, so
+# the SDK's library-oriented analyzer escalations don't apply here.
+[*.cs]
+# CA2007 (ConfigureAwait) is escalated to an error for the SDK libraries, but
+# is irrelevant for an application with no SynchronizationContext to capture.
+dotnet_diagnostic.CA2007.severity = none

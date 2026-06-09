@@ -1,0 +1,10 @@
+<Project>
+  <!-- Opt the FIT performer out of the repository's Central Package Management.
+       The performer pins its own dependency versions inline in the .csproj.
+       It may be fine to use the central Directory.Packages.Props but there aren't
+       really any reasons to do so, the perfomer is internal and not meant
+       to be published. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

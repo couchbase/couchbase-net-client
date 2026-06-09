@@ -22,3 +22,4 @@ Couchbase.snk
 BenchmarkDotNet.Artifacts/
 */.DS_Store
 .DS_Store
+/fit/Couchbase.FitPerformer/out/
