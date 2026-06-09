@@ -1,0 +1,40 @@
+name: Publish FIT Performer Image
+
+# Builds the .NET FIT performer (together with the SDK it is built against) as a
+# Docker image and publishes it to ghcr.io/couchbase/dotnet-fit-performer.
+#
+# The image is tagged with the SDK version: a push of a release tag like `3.9.3`
+# produces `ghcr.io/couchbase/dotnet-fit-performer:3.9.3`. It can also be run
+# manually for an arbitrary branch, tag, commit, or PR ref.
+#
+# See: https://github.com/couchbaselabs/sdk-docker-build-action
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build: branch, tag, full commit hash, or 'refs/pull/<n>/merge'. Leave blank to build the default branch."
+        required: false
+        type: string
+
+jobs:
+  publish:
+    name: Build & publish dotnet-fit-performer
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Build and publish performer image
+        uses: couchbaselabs/sdk-docker-build-action@v1
+        with:
+          sdk: dotnet
+          # Blank on a tag push (the action then uses the pushed tag as the
+          # version); supplied explicitly for manual runs.
+          ref: ${{ inputs.ref }}
+          dockerfile: fit/Couchbase.FitPerformer/Dockerfile
+        env:
+          DOCKER_BUILD_SUMMARY: false

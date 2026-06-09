@@ -4,6 +4,9 @@
 #   docker build -f fit/Couchbase.FitPerformer/Dockerfile --build-arg DOTNET_VERSION=10.0 -t couchbase-net-fit-performer .
 
 ARG DOTNET_VERSION=10.0
+# Short SDK name supplied by sdk-docker-build-action (build-arg SDK=dotnet).
+# Declared here only so the build arg is consumed and doesn't warn, but unused otherwise.
+ARG SDK
 
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build-env
 # Re-declare ARG to make it available in this build stage.
