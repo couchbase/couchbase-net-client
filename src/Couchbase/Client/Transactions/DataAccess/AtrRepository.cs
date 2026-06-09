@@ -79,7 +79,11 @@ namespace Couchbase.Client.Transactions.DataAccess
 
             var lookupInResult = await atrCollection.LookupInAsync(atrId,
                 specs => specs.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-                opts => opts.Defaults(keyValueTimeout).AccessDeleted(true)).CAF();
+                // Read the attempts xattr through the metadata (System.Text.Json) transcoder so it
+                // deserializes into a JsonElement. Without this it uses the collection's default
+                // serializer (Newtonsoft), which cannot produce a JsonElement and yields a default
+                // (Undefined) one, breaking the lookup below.
+                opts => opts.Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(Transactions.MetadataTranscoder)).CAF();
 
             if (!lookupInResult.Exists(0))
             {
@@ -87,7 +91,9 @@ namespace Couchbase.Client.Transactions.DataAccess
             }
 
             var asJson = lookupInResult.ContentAs<JsonElement>(0);
-            if (asJson.TryGetProperty(attemptId, out var entry))
+            // Guard against a non-object/Undefined element: TryGetProperty throws on a default
+            // JsonElement (unlike the old null-safe JObject?.TryGetValue), so treat it as "not found".
+            if (asJson.ValueKind == JsonValueKind.Object && asJson.TryGetProperty(attemptId, out var entry))
             {
                 var atrEntry = AtrEntry.CreateFrom(entry);
                 if (atrEntry?.Cas == null && atrEntry?.State == default)
