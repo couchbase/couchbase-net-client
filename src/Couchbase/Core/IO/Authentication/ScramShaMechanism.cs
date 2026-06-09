@@ -9,6 +9,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -16,17 +17,43 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.IO.Authentication
 {
     /// <summary>
-    /// Provides a SCRAM-SHA1 authentication implementation for Couchbase Server 4.5 and greater.
+    /// Provides a SCRAM-SHA authentication implementation for Couchbase Server.
+    /// Supports SHA-256 and SHA-512 on .NET 8+, and SHA-1 on netstandard2.x targets.
     /// </summary>
     /// <seealso cref="ISaslMechanism" />
     internal class ScramShaMechanism : SaslMechanismBase
     {
         private const string ClientKey = "Client Key";
-        private const int ShaByteLength = 20;
+
+        /// <summary>
+        /// Client-supported SCRAM mechanisms in strongest-first preference order, constrained by the
+        /// target framework. On .NET 8+, SHA-256/512 are available via <c>Rfc2898DeriveBytes.Pbkdf2</c>
+        /// and SHA-1 is disallowed for new HMAC/PBKDF2 use (NIST SP 800-131A Rev 2). On netstandard2.x,
+        /// <see cref="Rfc2898DeriveBytes"/> only supports SHA-1 PBKDF2, so SHA-1 remains the only option.
+        /// </summary>
+#if NET8_0_OR_GREATER
+        internal static readonly MechanismType[] ClientSupportedMechanisms =
+            { MechanismType.ScramSha512, MechanismType.ScramSha256 };
+#else
+#pragma warning disable CS0618 // ScramSha1 is obsolete but is the only supported mechanism on netstandard
+        internal static readonly MechanismType[] ClientSupportedMechanisms =
+            { MechanismType.ScramSha1 };
+#pragma warning restore CS0618
+#endif
+
+        /// <summary>
+        /// Output byte length for PBKDF2 and HMAC, determined by the negotiated hash algorithm:
+        /// SHA-1 → 20 bytes, SHA-256 → 32 bytes, SHA-512 → 64 bytes.
+        /// </summary>
+        private int ShaByteLength => MechanismType switch
+        {
+            MechanismType.ScramSha512 => 64,
+            MechanismType.ScramSha256 => 32,
+            _ => 20
+        };
+
         private readonly string _username;
         private readonly string _password;
-
-        // private Func<string, object> User = RedactableArgument.UserAction;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScramShaMechanism"/> class.
@@ -66,6 +93,9 @@ namespace Couchbase.Core.IO.Authentication
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.AuthenticateScramSha);
             try
             {
+                // MechanismType is resolved authoritatively by SaslMechanismFactory before construction, using the
+                // server's SASL_LIST_MECHS list cached on the connection (see ClientSupportedMechanisms /
+                // TrySelectMechanism). The handshake below simply executes with the negotiated algorithm.
                 var clientFirstMessage = "n,,n=" + _username + ",r=" + ClientNonce;
                 var clientFirstMessageBare = clientFirstMessage.Substring(3);
 
@@ -99,24 +129,68 @@ namespace Couchbase.Core.IO.Authentication
         }
 
         /// <summary>
-        /// Gets the salted password using <see cref="Rfc2898DeriveBytes"/> - SHA1 only!
+        /// Selects the strongest client-supported mechanism (<see cref="ClientSupportedMechanisms"/>, in
+        /// strongest-first order) that appears in the server's space-delimited SASL_LIST_MECHS response.
+        /// </summary>
+        /// <param name="serverListRaw">The raw SASL_LIST_MECHS payload, e.g. <c>"SCRAM-SHA512 SCRAM-SHA256 PLAIN"</c>.</param>
+        /// <param name="selected">The negotiated mechanism, when a common one is found.</param>
+        /// <returns><c>true</c> if a mutually-supported mechanism was found; otherwise <c>false</c>.</returns>
+        internal static bool TrySelectMechanism(string serverListRaw, out MechanismType selected)
+        {
+            var serverMechanisms = (serverListRaw ?? string.Empty)
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var candidate in ClientSupportedMechanisms)
+            {
+                if (serverMechanisms.Contains(candidate.GetDescription()!, StringComparer.OrdinalIgnoreCase))
+                {
+                    selected = candidate;
+                    return true;
+                }
+            }
+
+            selected = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Returns the <see cref="HashAlgorithmName"/> corresponding to the current mechanism type.
+        /// </summary>
+        private HashAlgorithmName GetHashAlgorithmName() => MechanismType switch
+        {
+            MechanismType.ScramSha512 => HashAlgorithmName.SHA512,
+            MechanismType.ScramSha256 => HashAlgorithmName.SHA256,
+            _ => HashAlgorithmName.SHA1
+        };
+
+        /// <summary>
+        /// Derives a salted password via PBKDF2 using the algorithm negotiated by <see cref="MechanismType"/>.
         /// </summary>
         /// <param name="password">The password.</param>
         /// <param name="salt">The salt.</param>
-        /// <param name="iterationCount">Number of times to iterate.</param>
-        /// <returns></returns>
+        /// <param name="iterationCount">Number of PBKDF2 iterations.</param>
+        /// <returns>Derived key bytes.</returns>
+        /// <remarks>
+        /// On .NET 8+, <c>Rfc2898DeriveBytes.Pbkdf2</c> supports SHA-256 and SHA-512.
+        /// On earlier runtimes (netstandard2.x), <see cref="Rfc2898DeriveBytes"/> only supports SHA-1;
+        /// SHA-256 and SHA-512 SCRAM variants require .NET 8 or later.
+        /// </remarks>
         internal byte[] GetSaltedPassword(string password, byte[] salt, int iterationCount)
         {
-            //.NET only officially supports SHA1 of PBKDF2 - a later commit could allow
-            //support using the PBKDF2 class included in this patchset which supports SHA256
-            //and SHA512 - given caveat emptor!
-            // TODO: Update to investigate modernizing this to SHA256
-            #if NET8_0_OR_GREATER
-                return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterationCount, HashAlgorithmName.SHA1, ShaByteLength);
-            #else
+#if NET8_0_OR_GREATER
+            return Rfc2898DeriveBytes.Pbkdf2(password, salt, iterationCount, GetHashAlgorithmName(), ShaByteLength);
+#else
+            // Rfc2898DeriveBytes on netstandard only supports SHA-1 (PBKDF2-HMAC-SHA1).
+            // ScramSha256 and ScramSha512 require .NET 8+. Guard here in case ScramShaMechanism
+            // is constructed directly (bypassing SaslMechanismFactory) with a stronger algorithm.
+#pragma warning disable CS0618 // ScramSha1 is obsolete but is the only valid mechanism on netstandard
+            if (MechanismType != MechanismType.ScramSha1)
+#pragma warning restore CS0618
+                throw new NotSupportedException(
+                    $"{MechanismType} requires .NET 8 or later. Use ScramSha256 or ScramSha512 on .NET 8+.");
             using var bytes = new Rfc2898DeriveBytes(password, salt, iterationCount);
             return bytes.GetBytes(ShaByteLength);
-            #endif
+#endif
         }
 
         /// <summary>
@@ -130,32 +204,45 @@ namespace Couchbase.Core.IO.Authentication
         }
 
         /// <summary>
-        /// Generate the HMAC with the given SHA algorithm
+        /// Computes HMAC over <paramref name="data"/> using the algorithm negotiated by <see cref="MechanismType"/>.
         /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="data">The data.</param>
-        /// <returns></returns>
+        /// <param name="key">The HMAC key.</param>
+        /// <param name="data">The data to authenticate.</param>
+        /// <returns>HMAC bytes.</returns>
         internal byte[] ComputeHash(byte[] key, string data)
         {
-            using var hmac = new HMACSHA1(key);
+            using HMAC hmac = MechanismType switch
+            {
+                MechanismType.ScramSha512 => new HMACSHA512(key),
+                MechanismType.ScramSha256 => new HMACSHA256(key),
+                _ => new HMACSHA1(key)
+            };
             return hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         }
 
         /// <summary>
-        /// Computes the digest using SHA1.
+        /// Computes the hash digest using the algorithm negotiated by <see cref="MechanismType"/>.
         /// </summary>
-        /// <param name="key">The key.</param>
-        /// <returns></returns>
+        /// <param name="key">The data to hash.</param>
+        /// <returns>Hash bytes.</returns>
         internal byte[] ComputeDigest(byte[] key)
         {
-            using var sha = SHA1.Create();
+            using HashAlgorithm sha = MechanismType switch
+            {
+                MechanismType.ScramSha512 => SHA512.Create(),
+                MechanismType.ScramSha256 => SHA256.Create(),
+                _ => SHA1.Create()
+            };
             return sha.ComputeHash(key);
         }
 
         /// <summary>
-        /// Gets the client proof so that the client and server can "prove" they have the same auth variable.
+        /// Computes the SCRAM ClientProof: <c>ClientKey XOR HMAC(H(ClientKey), authMessage)</c>.
+        /// Both parties can verify the shared secret without transmitting it directly (RFC 5802 §3).
         /// </summary>
-        /// <returns></returns>
+        /// <param name="saltedPassword">Output of <see cref="GetSaltedPassword"/>.</param>
+        /// <param name="authMessage">The SCRAM auth-message string.</param>
+        /// <returns>ClientProof bytes, base64-encoded and sent in the client-final-message.</returns>
         internal byte[] GetClientProof(byte[] saltedPassword, string authMessage)
         {
             var clientKey = ComputeHash(saltedPassword, ClientKey);

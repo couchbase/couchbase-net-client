@@ -81,6 +81,13 @@ namespace Couchbase.Core.IO.Connections
         ServerFeatureSet ServerFeatures { get; set; }
 
         /// <summary>
+        /// The raw, space-delimited list of SASL mechanisms advertised by the server (SASL_LIST_MECHS),
+        /// captured during connection bootstrap. <c>null</c> when not negotiated (e.g. TLS connections,
+        /// which use PLAIN without negotiation).
+        /// </summary>
+        string? SupportedSaslMechanisms { get; set; }
+
+        /// <summary>
         /// Sends a request packet as an asynchronous operation.
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>

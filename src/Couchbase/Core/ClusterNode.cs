@@ -28,6 +28,7 @@ using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Configuration;
 using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
@@ -277,6 +278,26 @@ namespace Couchbase.Core
             return await ExecuteInternalOperationAsync(connection, errorMapOp,
                 ExecuteOp,
                 static (_, op) => new ErrorMap(op.GetValue()),
+                cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        private async Task<string> GetSaslMechanisms(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
+        {
+            using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslListMechs);
+            using var saslListOp = new SaslList
+            {
+                // SASL_LIST_MECHS returns a raw space-delimited string (e.g. "SCRAM-SHA512 SCRAM-SHA256 PLAIN"),
+                // so it must not be JSON-decoded by the global transcoder.
+                Transcoder = new RawStringTranscoder(InternalSerializationContext.DefaultTypeSerializer),
+                OperationBuilderPool = _operationBuilderPool,
+                Opaque = SequenceGenerator.GetNext(),
+                Span = childSpan
+            };
+
+            return await ExecuteInternalOperationAsync(connection, saslListOp,
+                ExecuteOp,
+                static (_, op) => op.GetValue(),
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -860,6 +881,16 @@ namespace Couchbase.Core
                 {
                     throw new AuthenticationFailureException(
                         $"Authenticator {authenticator.GetType().Name} requires TLS connections");
+                }
+
+                // Pre-fetch and cache the server's SASL mechanism list on non-TLS connections so the
+                // authenticator can negotiate the strongest mutually-supported SCRAM mechanism without an
+                // extra round-trip per auth. TLS connections use PLAIN without negotiation, so we skip it.
+                if (!_context.ClusterOptions.EffectiveEnableTls)
+                {
+                    using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
+                    connection.SupportedSaslMechanisms =
+                        await GetSaslMechanisms(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
                 }
 
                 await authenticator.AuthenticateKvConnectionAsync(

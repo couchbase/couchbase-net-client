@@ -133,6 +133,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string AuthenticatePlain = "authn_plain";
                 public const string SaslStart = "sasl_start";
                 public const string SaslStep = "sasl_step";
+                public const string SaslListMechs = "sasl_list_mechs";
             }
         }
 

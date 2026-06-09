@@ -74,6 +74,13 @@ namespace Couchbase.Core.IO.Connections
             set => _multiplexingConnection.ServerFeatures = value;
         }
 
+        /// <inheritdoc />
+        public string? SupportedSaslMechanisms
+        {
+            get => _multiplexingConnection.SupportedSaslMechanisms;
+            set => _multiplexingConnection.SupportedSaslMechanisms = value;
+        }
+
         public string RemoteHost => _multiplexingConnection.RemoteHost;
 
         public string LocalHost => _multiplexingConnection.LocalHost;

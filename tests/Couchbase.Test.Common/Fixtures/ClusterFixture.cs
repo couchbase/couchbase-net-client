@@ -23,6 +23,10 @@ public class ClusterFixture : IAsyncLifetime, IAsyncDisposable
 
     public ICluster? Cluster { get; private set; }
 
+    public ClusterFixture() : this(null)
+    {
+    }
+
     internal ClusterFixture(Action<ClusterOptions>? configureOptions)
     {
         _settings = GetSettings();

@@ -48,15 +48,14 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 .CreateAndConnectAsync(endPoint)
                 ;
 
-#pragma warning disable CS0618 // Type or member is obsolete
-            var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
+            var sha256Mechanism = new ScramShaMechanism(MechanismType.ScramSha256, options.Password,
                 options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
-#pragma warning restore CS0618 // Type or member is obsolete
                 new OperationConfigurator(new JsonTranscoder(), Mock.Of<IOperationCompressor>(),
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new BestEffortRetryStrategy()));
 
-            await sha1Mechanism.AuthenticateAsync(connection);
+
+            await sha256Mechanism.AuthenticateAsync(connection);
         }
     }
 }

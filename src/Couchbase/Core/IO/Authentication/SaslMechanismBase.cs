@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Authentication
         }
 
         /// <summary>
-        /// The type of SASL mechanism to use: SCRAM-SHA1.
+        /// The type of SASL mechanism to use.
         /// </summary>
         public MechanismType MechanismType { get; internal set; }
 
@@ -45,7 +45,9 @@ namespace Couchbase.Core.IO.Authentication
             using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStart);
             using var authOp = new SaslStart
             {
-                Key = MechanismType.GetDescription()!,
+                Key = MechanismType.GetDescription()
+                    ?? throw new InvalidOperationException(
+                        $"MechanismType.{MechanismType} has no [Description] attribute; cannot derive SASL wire key."),
                 Content = message,
                 Timeout = Timeout,
                 Span = childSpan
@@ -61,23 +63,12 @@ namespace Couchbase.Core.IO.Authentication
             using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStep);
             using var op = new SaslStep()
             {
-                Key = "SCRAM-SHA1",//MechanismType.GetDescription(),
+                Key = MechanismType.GetDescription()
+                    ?? throw new InvalidOperationException(
+                        $"MechanismType.{MechanismType} has no [Description] attribute; cannot derive SASL wire key."),
                 Content = message,
                 Timeout = Timeout,
                 Span = childSpan,
-            };
-
-            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, token);
-            OperationConfigurator.Configure(op, SaslOptions.Instance);
-            return await SendAsync(op, connection, ctp.TokenPair).ConfigureAwait(false);
-        }
-
-        protected async Task<string> SaslList(IConnection connection, IRequestSpan span, CancellationToken token)
-        {
-            using var op = new SaslList()
-            {
-                Timeout = Timeout,
-                Span = span,
             };
 
             using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, token);

@@ -30,6 +30,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public TimeSpan IdleTime { get; }
         public ServerFeatureSet ServerFeatures { get; set; }
 
+        public string SupportedSaslMechanisms { get; set; }
+
         public string RemoteHost => throw new NotImplementedException();
 
         public string LocalHost => throw new NotImplementedException();

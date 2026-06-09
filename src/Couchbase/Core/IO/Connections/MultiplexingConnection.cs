@@ -133,6 +133,9 @@ namespace Couchbase.Core.IO.Connections
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
         /// <inheritdoc />
+        public string? SupportedSaslMechanisms { get; set; }
+
+        /// <inheritdoc />
         public async ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation, CancellationToken cancellationToken = default)
         {
             if (request.Length >= MaxDocSize)

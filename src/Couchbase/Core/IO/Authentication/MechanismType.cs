@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 
 namespace Couchbase.Core.IO.Authentication
@@ -14,7 +15,7 @@ namespace Couchbase.Core.IO.Authentication
         ScramSha512,
 
         /// <summary>
-        /// The username and password will be sent encrypted using salted Sha256 and will not be human-readable on the wire.
+        /// The username and password will be sent encrypted using salted Sha256 and will not be human-readable on the wir  e.
         /// </summary>
         [Description("SCRAM-SHA256")]
         ScramSha256,
@@ -22,12 +23,25 @@ namespace Couchbase.Core.IO.Authentication
         /// <summary>
         /// The username and password will be sent encrypted using salted Sha1 and will not be human-readable on the wire.
         /// </summary>
+        /// <remarks>
+        /// SHA-1 is disallowed for new HMAC and PBKDF2 use by NIST SP 800-131A Rev 2 (November 2020).
+        /// Use <see cref="ScramSha256"/> or <see cref="ScramSha512"/> instead.
+        /// </remarks>
+        [Obsolete("SCRAM-SHA1 is deprecated. NIST SP 800-131A Rev 2 disallows SHA-1 for HMAC and PBKDF2. " +
+                  "Use MechanismType.ScramSha256 or MechanismType.ScramSha512 instead. " +
+                  "On netstandard2.x targets ScramSha1 remains the only supported non-TLS mechanism " +
+                  "because Rfc2898DeriveBytes does not support SHA-256/512 PBKDF2 prior to .NET 8.")]
         [Description("SCRAM-SHA1")]
         ScramSha1,
 
         /// <summary>
         /// The username and password will be sent encrypted using CramMD5 and will not be human-readable on the wire.
         /// </summary>
+        /// <remarks>
+        /// CRAM-MD5 relies on MD5 which is cryptographically broken. Use <see cref="ScramSha256"/> or <see cref="ScramSha512"/> instead.
+        /// </remarks>
+        [Obsolete("CRAM-MD5 is deprecated due to MD5's cryptographic weaknesses. " +
+                  "Use MechanismType.ScramSha256 or MechanismType.ScramSha512 instead.", error: true)]
         [Description("CRAM-MD5")]
         CramMd5,
 

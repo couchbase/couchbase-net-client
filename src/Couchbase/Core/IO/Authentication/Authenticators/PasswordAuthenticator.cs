@@ -58,10 +58,11 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
         ISaslMechanismFactory saslMechanismFactory,
         CancellationToken cancellationToken)
     {
-        // PLAIN is safe over TLS, SCRAM-SHA1 is used on insecure connections
-        var mechanismType = _enableTls ? MechanismType.Plain : MechanismType.ScramSha1;
-
-        var saslMechanism = saslMechanismFactory.CreatePasswordMechanism(mechanismType, Username, Password);
+        // The factory resolves the mechanism authoritatively: PLAIN over TLS, otherwise the strongest
+        // SCRAM mechanism mutually supported by this target framework and the server (negotiated from the
+        // SASL_LIST_MECHS list cached on the connection during bootstrap).
+        var saslMechanism = saslMechanismFactory.CreatePasswordMechanism(
+            connection, _enableTls, Username, Password);
 
         await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
     }

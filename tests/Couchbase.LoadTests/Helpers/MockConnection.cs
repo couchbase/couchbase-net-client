@@ -32,6 +32,7 @@ namespace Couchbase.LoadTests.Helpers
         public bool IsDead { get; set; }
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
+        public string SupportedSaslMechanisms { get; set; }
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, CancellationToken cancellationToken = default)
         {
