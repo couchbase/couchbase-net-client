@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Core;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
@@ -12,6 +13,7 @@ using Couchbase.Query;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace Couchbase.UnitTests.Query
@@ -264,6 +266,83 @@ namespace Couchbase.UnitTests.Query
         }
 
         [Fact]
+        public async Task GetRequestBody_WithRawTxdataSerializerOverride_UsesMetadataSerializer()
+        {
+            var options = new QueryOptions("BEGIN WORK");
+            var txdata = CreateTxData();
+
+            options.RawWithSerializer("txdata", txdata, Client.Transactions.Transactions.MetadataSerializer);
+
+            using var content = options.GetRequestBody(GetPascalSerializer(), NullFallbackTypeSerializerProvider.Instance);
+            var values = await ExtractValuesAsync(content);
+
+            var txdataJson = (JObject) values["txdata"];
+
+            Assert.Equal("txn-id", txdataJson["id"]?["txn"]?.Value<string>());
+            Assert.Equal("atr-id", txdataJson["atr"]?["id"]?.Value<string>());
+            Assert.Null(txdataJson["id"]?["Transactionid"]);
+            Assert.Null(txdataJson["atr"]?["BucketName"]);
+        }
+
+        [Fact]
+        public async Task GetRequestBody_WithRawTxdataWithoutOverride_UsesRequestSerializer()
+        {
+            var options = new QueryOptions("BEGIN WORK");
+            var txdata = CreateTxData();
+
+            options.Raw("txdata", txdata);
+
+            using var content = options.GetRequestBody(GetPascalSerializer(), NullFallbackTypeSerializerProvider.Instance);
+            var values = await ExtractValuesAsync(content);
+
+            var txdataJson = (JObject) values["txdata"];
+
+            Assert.Equal("txn-id", txdataJson["id"]?["Transactionid"]?.Value<string>());
+            Assert.Equal("atr-id", txdataJson["atr"]?["Id"]?.Value<string>());
+            Assert.Null(txdataJson["id"]?["txn"]);
+            Assert.Null(txdataJson["atr"]?["id"]);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void GetAllParametersAsJson_WithRawTxdataSerializerOverride_UsesMetadataSerializer(bool systemTextJson)
+        {
+            var options = new QueryOptions("BEGIN WORK");
+            var txdata = CreateTxData();
+            var serializer = GetSerializer(systemTextJson);
+
+            options.RawWithSerializer("txdata", txdata, Client.Transactions.Transactions.MetadataSerializer);
+
+            var payload = options.GetAllParametersAsJson(serializer);
+            var payloadJson = JObject.Parse(payload);
+            var txdataJson = (JObject) payloadJson["Raw"]!["txdata"]!;
+
+            Assert.Equal("txn-id", txdataJson["id"]?["txn"]?.Value<string>());
+            Assert.Equal("atr-id", txdataJson["atr"]?["id"]?.Value<string>());
+            Assert.Null(txdataJson["id"]?["Transactionid"]);
+            Assert.Null(txdataJson["atr"]?["BucketName"]);
+        }
+
+        [Fact]
+        public void GetAllParametersAsJson_WithRawTxdataWithoutOverride_UsesRequestSerializer()
+        {
+            var options = new QueryOptions("BEGIN WORK");
+            var txdata = CreateTxData();
+
+            options.Raw("txdata", txdata);
+
+            var payload = options.GetAllParametersAsJson(GetPascalSerializer());
+            var payloadJson = JObject.Parse(payload);
+            var txdataJson = (JObject) payloadJson["Raw"]!["txdata"]!;
+
+            Assert.Equal("txn-id", txdataJson["id"]?["Transactionid"]?.Value<string>());
+            Assert.Equal("atr-id", txdataJson["atr"]?["Id"]?.Value<string>());
+            Assert.Null(txdataJson["id"]?["txn"]);
+            Assert.Null(txdataJson["atr"]?["id"]);
+        }
+
+        [Fact]
         public async Task GetRequestBody_QueryContext_Is_NotNull()
         {
             // Arrange
@@ -486,6 +565,19 @@ namespace Couchbase.UnitTests.Query
             systemTextJson
                 ? SystemTextJsonSerializer.Create()
                 : DefaultSerializer.Instance;
+
+        private static ITypeSerializer GetPascalSerializer()
+        {
+            var settings = new JsonSerializerSettings { ContractResolver = new DefaultContractResolver() };
+            return new DefaultSerializer(settings, settings);
+        }
+
+        private static QueryTxData CreateTxData() => new(
+            new CompositeId { Transactionid = "txn-id", AttemptId = "attempt-id" },
+            new TxDataState(5_000),
+            new TxDataReportedConfig(10_000, 1_024, "MAJORITY"),
+            new AtrRef { Id = "atr-id", BucketName = "bucket", ScopeName = "scope", CollectionName = "collection" },
+            new[] { new TxDataMutation("scope", "collection", "bucket", "doc-id", "123", "insert") });
 
         private static async Task<IDictionary<string, object>> ExtractValuesAsync(HttpContent content)
         {

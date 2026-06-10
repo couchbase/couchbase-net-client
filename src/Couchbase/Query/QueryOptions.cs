@@ -280,7 +280,7 @@ namespace Couchbase.Query
             foreach (var parameter in _parameters)
             {
                 writer.WritePropertyName(parameter.Key);
-                serializer.Serialize(writer, parameter.Value);
+                WriteParameterAsSystemTextJson(writer, serializer, parameter.Value);
             }
             writer.WriteEndObject();
 
@@ -288,14 +288,14 @@ namespace Couchbase.Query
             foreach (var parameter in _rawParameters)
             {
                 writer.WritePropertyName(parameter.Key);
-                serializer.Serialize(writer, parameter.Value);
+                WriteParameterAsSystemTextJson(writer, serializer, parameter.Value);
             }
             writer.WriteEndObject();
 
             writer.WriteStartArray("Positional");
             foreach (var parameter in _arguments)
             {
-                serializer.Serialize(writer, parameter);
+                WriteParameterAsSystemTextJson(writer, serializer, parameter);
             }
             writer.WriteEndArray();
 
@@ -310,7 +310,7 @@ namespace Couchbase.Query
             foreach (var parameter in _parameters)
             {
                 writer.WritePropertyName(parameter.Key);
-                writer.WriteRawValue(serializer.Serialize(parameter.Value));
+                WriteParameterAsGenericJson(writer, serializer, parameter.Value);
             }
             writer.WriteEndObject();
 
@@ -318,18 +318,51 @@ namespace Couchbase.Query
             foreach (var parameter in _rawParameters)
             {
                 writer.WritePropertyName(parameter.Key);
-                writer.WriteRawValue(serializer.Serialize(parameter.Value));
+                WriteParameterAsGenericJson(writer, serializer, parameter.Value);
             }
             writer.WriteEndObject();
 
             writer.WriteStartArray("Positional");
             foreach (var parameter in _arguments)
             {
-                writer.WriteRawValue(serializer.Serialize(parameter));
+                WriteParameterAsGenericJson(writer, serializer, parameter);
             }
             writer.WriteEndArray();
 
             writer.WriteEndObject();
+        }
+
+        private static void WriteParameterAsSystemTextJson(Utf8JsonWriter writer, SystemTextJsonSerializer serializer, object? value)
+        {
+            if (value is TypeSerializerWrapper wrappedValue)
+            {
+                // Some parameters (for example txdata in transactions) are pinned to a specific serializer.
+                if (wrappedValue.Serializer is SystemTextJsonSerializer wrappedSerializer)
+                {
+                    wrappedSerializer.Serialize(writer, wrappedValue.Value);
+                }
+                else
+                {
+                    writer.WriteRawValue(wrappedValue.Serializer.Serialize(wrappedValue.Value));
+                }
+            }
+            else
+            {
+                serializer.Serialize(writer, value);
+            }
+        }
+
+        private static void WriteParameterAsGenericJson(Utf8JsonWriter writer, ITypeSerializer serializer, object? value)
+        {
+            if (value is TypeSerializerWrapper wrappedValue)
+            {
+                // Respect the explicit serializer override for this parameter.
+                writer.WriteRawValue(wrappedValue.Serializer.Serialize(wrappedValue.Value));
+            }
+            else
+            {
+                writer.WriteRawValue(serializer.Serialize(value));
+            }
         }
 
         /// <summary>
@@ -724,6 +757,14 @@ namespace Couchbase.Query
             return this;
         }
 
+        internal QueryOptions RawWithSerializer(string name, object value, ITypeSerializer serializer)
+        {
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Parameter name cannot be null or empty.");
+
+            _rawParameters.Add(name, WrapWithSerializer(serializer, value));
+            return this;
+        }
+
         /// <summary>
         ///     Sets maximum buffered channel size between the indexer client
         ///     and the query service for index scans.
@@ -897,7 +938,7 @@ namespace Couchbase.Query
 
             if (_arguments is {Count: > 0})
             {
-                dto.Arguments = _arguments.Select(p => new TypeSerializerWrapper(serializer, p)).ToList();
+                dto.Arguments = _arguments.Select(p => WrapWithSerializer(serializer, p)).ToList();
             }
 
             if (_parameters is {Count: > 0})
@@ -908,7 +949,7 @@ namespace Couchbase.Query
                 {
                     dto.AdditionalProperties.Add(
                         parameter.Key.Contains("$") ? parameter.Key : "$" + parameter.Key,
-                        new TypeSerializerWrapper(serializer, parameter.Value));
+                        WrapWithSerializer(serializer, parameter.Value));
                 }
             }
 
@@ -918,11 +959,21 @@ namespace Couchbase.Query
 
                 foreach (var parameter in _rawParameters)
                 {
-                    dto.AdditionalProperties.Add(parameter.Key, new TypeSerializerWrapper(serializer, parameter.Value));
+                    dto.AdditionalProperties.Add(parameter.Key, WrapWithSerializer(serializer, parameter.Value));
                 }
             }
 
             return dto;
+        }
+
+        private static TypeSerializerWrapper WrapWithSerializer(ITypeSerializer serializer, object? value)
+        {
+            if (value is TypeSerializerWrapper wrappedValue)
+            {
+                return wrappedValue;
+            }
+
+            return new TypeSerializerWrapper(serializer, value);
         }
 
         /// <summary>

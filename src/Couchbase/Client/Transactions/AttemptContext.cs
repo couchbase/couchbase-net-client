@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -649,17 +650,32 @@ namespace Couchbase.Client.Transactions
             }
         }
 
-        private static object TxDataForReplaceAndRemove(TransactionGetResult doc)
+        private object TxDataForReplaceAndRemove(TransactionGetResult doc)
         {
             var txdata = new Dictionary<string, object?>();
             txdata["kv"] = true;
             txdata["scas"] = doc.Cas.ToString(CultureInfo.InvariantCulture);
             if (doc.TxnMeta != null)
             {
-                txdata["txnMeta"] = doc.TxnMeta;
+                txdata["txnMeta"] = NormalizeToJsonElement(doc.TxnMeta);
             }
 
             return txdata;
+        }
+
+        private JsonElement NormalizeToJsonElement(object value)
+        {
+            if (value is JsonElement jsonElement)
+            {
+                return jsonElement;
+            }
+
+            using var stream = new MemoryStream();
+            _nonStreamingTypeSerializer.Serialize(stream, value);
+
+            return stream.TryGetBuffer(out var buffer)
+                ? JsonSerializer.Deserialize<JsonElement>(buffer.AsSpan())
+                : JsonSerializer.Deserialize<JsonElement>(stream.ToArray());
         }
 
         private async Task SetAtrPendingIfFirstMutation(IRequestSpan? parentSpan)
@@ -2520,15 +2536,15 @@ namespace Couchbase.Client.Transactions
 
             if (txdata != null)
             {
-                options = options.Raw("txdata", txdata);
+                options = options.RawWithSerializer("txdata", txdata, Transactions.MetadataSerializer);
             }
 
             if (txImplicit)
             {
                 options = options.Raw("tximplicit", true);
-                var txdataSingleQuery = CreateBeginWorkTxData().ToDictionary();
+                var txdataSingleQuery = CreateBeginWorkTxData();
                 options = InitializeBeginWorkQueryOptions(options);
-                options = options.Raw("txdata", txdataSingleQuery);
+                options = options.RawWithSerializer("txdata", txdataSingleQuery, Transactions.MetadataSerializer);
             }
 
             options = options.Metrics(true);
@@ -2793,7 +2809,7 @@ namespace Couchbase.Client.Transactions
                     hookPoint: DefaultTestHooks.HOOK_QUERY_BEGIN_WORK,
                     isBeginWork: true,
                     existingErrorCheck: true,
-                    txdata: txdata.ToDictionary(),
+                    txdata: txdata,
                     parentSpan: traceSpan.Item
                 ).CAF();
 
