@@ -5,6 +5,18 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- net48 is an unsupported (but functional) TFM for some test-only packages such as
+       Microsoft.Extensions.TimeProvider.Testing. Suppress the TFM-support build warning there. -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net48' ">
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+  </PropertyGroup>
+
+  <!-- Force the patched System.Text.RegularExpressions to override the vulnerable 4.3.0
+       pulled in transitively (NU1903) on net48. -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
+    <PackageReference Include="System.Text.RegularExpressions" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Remove="Utils\ConfigUtil.cs" />
   </ItemGroup>

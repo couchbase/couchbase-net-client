@@ -1467,12 +1467,12 @@ namespace Couchbase.Client.Transactions
                         await UnstageRemove(sm).CAF();
                         break;
                     case StagedMutationType.Insert:
-                        await UnstageInsertOrReplace(sm, cas, content, insertMode: true,
+                        await UnstageInsertOrReplace(sm, cas, content!, insertMode: true,
                                 ambiguityResolutionMode: false)
                             .CAF();
                         break;
                     case StagedMutationType.Replace:
-                        await UnstageInsertOrReplace(sm, cas, content, insertMode: false,
+                        await UnstageInsertOrReplace(sm, cas, content!, insertMode: false,
                             ambiguityResolutionMode: false).CAF();
                         break;
                     default:
