@@ -22,12 +22,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public string ClientUuid { get; }
 
         private readonly Cleaner _cleaner;
-        private readonly ICleanerRepository _repository;
+        private readonly CleanerRepositoryBase _repository;
         private readonly TimeSpan _cleanupWindow;
         private readonly ILogger<PerCollectionCleaner> _logger;
         private readonly Timer _processCleanupTimer;
         private readonly Random _jitter = new Random();
         private readonly SemaphoreSlim _timerCallbackMutex = new (1);
+        private readonly Action<Keyspace>? _onCollectionNotFound;
         private long _runCount;
         private readonly object _atrsToCleanLock = new();
         private ConcurrentBag<string> _atrsToClean = new ConcurrentBag<string>();
@@ -38,12 +39,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public long RunCount => Interlocked.Read(ref _runCount);
         private bool Running => !_cancelToken.IsCancellationRequested;
 
-        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, ICleanerRepository repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false)
+        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepositoryBase repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false, Action<Keyspace>? onCollectionNotFound = null)
         {
             ClientUuid = clientUuid;
-            _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into ICleanerRepository, and then that should be made a property, eliminating the need for a _repository variable here.
+            _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into CleanerRepositoryBase, and then that should be made a property, eliminating the need for a _repository variable here.
             _repository = repository;
             _cleanupWindow = cleanupWindow;
+            _onCollectionNotFound = onCollectionNotFound;
             _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
             _processCleanupTimer = new Timer(
                 callback: TimerCallback,
@@ -52,7 +54,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 period: (int)cleanupWindow.TotalMilliseconds);
 
             FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
-            _logger.LogInformation("Started PerCollectionCleaner on '{coll}'", new Keyspace(repository.Collection));
+            _logger.LogInformation("Started PerCollectionCleaner on '{coll}'", repository.Keyspace);
         }
 
         public void Start()
@@ -117,6 +119,22 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
         }
 
+        // Releasing the timer-callback mutex must never mask the cleanup that follows it: the auth-error
+        // and collection-not-found paths release and then await DisposeAsync (which re-acquires it), so a
+        // throw from Release (e.g. SemaphoreFullException, ObjectDisposedException) would skip disposal.
+        // Swallow it - the only contract this mutex enforces is "one ProcessClient at a time".
+        private void TryReleaseMutex()
+        {
+            try
+            {
+                _timerCallbackMutex.Release();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("Ignoring error releasing timer callback mutex on {bkt}: {ex}", FullBucketName, ex);
+            }
+        }
+
         private async void TimerCallback(object? state)
         {
             if (_cancelToken.IsCancellationRequested)
@@ -136,21 +154,52 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             try
             {
                 _ = await ProcessClient().CAF();
-                _timerCallbackMutex.Release();
+                TryReleaseMutex();
             }
             catch (AuthenticationFailureException)
             {
                 // BF-CBD-3794
                 _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", FullBucketName);
                 // must release the mutex before disposing (because we acquire it in DisposeAsync)
-                _timerCallbackMutex.Release();
+                TryReleaseMutex();
+                await DisposeAsync().CAF();
+            }
+            catch (Exception ex) when (IsCollectionNotFound(ex))
+            {
+                // The server doesn't recognize this collection (deleted, or a misconfigured keyspace
+                // that never existed) - stop cleaning it.
+                _logger.LogWarning("Stopping lost cleanup of '{bkt}': collection not found (deleted or misconfigured).", FullBucketName);
+                // release the mutex before DisposeAsync, which also acquires it.
+                TryReleaseMutex();
+                _onCollectionNotFound?.Invoke(_repository.Keyspace);
                 await DisposeAsync().CAF();
             }
             catch (Exception ex)
             {
                 _logger.LogWarning("Processing of bucket '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
-                _timerCallbackMutex.Release();
+                TryReleaseMutex();
             }
+        }
+
+        // True only when a cleanup op timed out and the SOLE retry reason was collection/scope not found
+        // (server returned UnknownCollection/UnknownScope). Mixed reasons (network, etc.) keep retrying.
+        // The server can't distinguish a deleted collection from one that never existed.
+        internal static bool IsCollectionNotFound(Exception ex)
+        {
+            if (ex is not Couchbase.Core.Exceptions.TimeoutException timeout)
+            {
+                return false;
+            }
+
+            var reasons = timeout.Context?.RetryReasons;
+            if (reasons is null || reasons.Count == 0)
+            {
+                return false;
+            }
+
+            return reasons.All(static r =>
+                r is Couchbase.Core.Retry.RetryReason.CollectionNotFound
+                  or Couchbase.Core.Retry.RetryReason.ScopeNotFound);
         }
 
         // method referred to as "Per Bucket Algo" in the RFC
@@ -240,7 +289,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 {
                     // Parse the client record.
                     await TestHooks.BeforeGetRecord(ClientUuid).CAF();
-                    (ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas) = await _repository.GetClientRecord().CAF();
+                    (ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas) = await _repository.GetClientRecord(_cancelToken.Token).CAF();
                     if (clientRecord == null)
                     {
                         _logger.LogDebug("No client record found on '{bkt}', cas = {cas}", this, cas);
@@ -271,7 +320,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
             // NOTE: The RFC says to retry with an exponential backoff, but neither the java implementation nor the FIT tests agree with that.
             await TestHooks.BeforeUpdateRecord(ClientUuid).CAF();
-            await _repository.UpdateClientRecord(ClientUuid, _cleanupWindow, ActiveTransactionRecords.AtrIds.NumAtrs, clientRecordDetails.ExpiredClientIds).CAF();
+            await _repository.UpdateClientRecord(ClientUuid, _cleanupWindow, ActiveTransactionRecords.AtrIds.NumAtrs, clientRecordDetails.ExpiredClientIds, _cancelToken.Token).CAF();
             _logger.LogDebug("Successfully updated Client Record Entry for {clientUuid} on {bkt}", ClientUuid, FullBucketName);
 
             return clientRecordDetails;
@@ -287,7 +336,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     {
                         // Client record needs to be created.
                         await TestHooks.BeforeCreateRecord(ClientUuid).CAF();
-                        await _repository.CreatePlaceholderClientRecord(pathNotFoundCas).CAF();
+                        await _repository.CreatePlaceholderClientRecord(pathNotFoundCas, _cancelToken.Token).CAF();
                         _logger.LogDebug("Created placeholder Client Record for '{bkt}', cas = {cas}", FullBucketName, pathNotFoundCas);
 
                         // On success, call the processClient algo again.
@@ -324,7 +373,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             try
             {
                 await TestHooks.BeforeAtrGet(atrId).CAF();
-                (attempts, parsedHlc) = await _repository.LookupAttempts(atrId).CAF();
+                (attempts, parsedHlc) = await _repository.LookupAttempts(atrId, cancellationToken).CAF();
             }
             catch (AuthenticationFailureException)
             {
@@ -339,7 +388,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     case ErrorClass.FailDocNotFound:
                     case ErrorClass.FailPathNotFound:
                         // If the ATR is not present, continue as success.
-                        _logger.LogTrace("{clientUUID} ATR {atrId} not present on {collection}: {ec}", ClientUuid, atrId,_repository.Collection.MakeKeyspace(), ec);
+                        _logger.LogTrace("{clientUUID} ATR {atrId} not present on {collection}: {ec}", ClientUuid, atrId,_repository.Keyspace, ec);
                         return;
                     default:
                         // Else if there’s an error, continue as success.
@@ -372,7 +421,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     ScopeName = ScopeName,
                     CollectionName = CollectionName,
                     Id = atrId
-                }, _repository.Collection).CAF();
+                }, await _repository.GetCollectionAsync().CAF()).CAF();
 
                 if (atrCollection == null)
                 {
@@ -410,6 +459,8 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 try
                 {
                     await TestHooks.BeforeRemoveClient(ClientUuid).CAF();
+                    // No cancellation token here: this runs from DisposeAsync after _cancelToken is already
+                    // cancelled, and we still want the client record removed during shutdown.
                     await _repository.RemoveClient(ClientUuid).CAF();
                     _logger.LogDebug("Removed client {clientUuid} for {bkt}", ClientUuid, FullBucketName);
                     return;

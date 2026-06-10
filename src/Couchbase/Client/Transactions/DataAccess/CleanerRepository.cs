@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Couchbase.Client.Transactions.Components;
@@ -10,24 +11,33 @@ using Couchbase.Client.Transactions.Support;
 
 namespace Couchbase.Client.Transactions.DataAccess
 {
-    internal class CleanerRepository : ICleanerRepository
+    internal class CleanerRepository : CleanerRepositoryBase
     {
         private static readonly int ExpiresSafetyMarginMillis = 20_000;
         private static readonly TimeSpan RemoveClientTimeout = TimeSpan.FromMilliseconds(500);
         private static readonly object PlaceholderEmptyObject = new { };
         private readonly TimeSpan? _keyValueTimeout;
 
-        public CleanerRepository(ICouchbaseCollection collection, TimeSpan? keyValueTimeout): base(collection)
+        // Primary ctor: identify the collection by keyspace and resolve it lazily. Prefer this.
+        public CleanerRepository(Keyspace keyspace, ICluster cluster, TimeSpan? keyValueTimeout, ICouchbaseCollection? resolved = null)
+            : base(keyspace, cluster, resolved)
         {
             _keyValueTimeout = keyValueTimeout;
         }
 
-        public override async Task CreatePlaceholderClientRecord(ulong? cas = null)
+        // Convenience for callers that already hold a live collection; seeds the cache (no re-resolve).
+        public CleanerRepository(ICouchbaseCollection collection, TimeSpan? keyValueTimeout)
+            : this(new Keyspace(collection), collection.Scope.Bucket.Cluster, keyValueTimeout, resolved: collection)
+        {
+        }
+
+        public override async Task CreatePlaceholderClientRecord(ulong? cas = null, CancellationToken cancellationToken = default)
         {
             var opts = new MutateInOptions()
                 .Timeout(_keyValueTimeout)
                 .StoreSemantics(StoreSemantics.Insert)
-                .Transcoder(Transactions.MetadataTranscoder);
+                .Transcoder(Transactions.MetadataTranscoder)
+                .CancellationToken(cancellationToken);
 
             if (cas != null)
             {
@@ -42,34 +52,34 @@ namespace Couchbase.Client.Transactions.DataAccess
                 MutateInSpec.SetDoc(new byte?[] { null }), // ExtBinaryMetadata
             };
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await (await GetCollectionAsync(cancellationToken).CAF()).MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public override async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord()
+        public override async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord(CancellationToken cancellationToken = default)
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder).CancellationToken(cancellationToken);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(ClientRecordsIndex.FIELD_RECORDS, isXattr: true),
                 LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
             };
 
-            var lookupInResult = await Collection.LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            var lookupInResult = await (await GetCollectionAsync(cancellationToken).CAF()).LookupInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
             var parsedRecord = lookupInResult.ContentAs<ClientRecordsIndex>(0);
             var parsedHlc = lookupInResult.ContentAs<ParsedHLC>(1);
             return (parsedRecord, parsedHlc, lookupInResult.Cas);
         }
 
-        public override async Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
+        public override async Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId, CancellationToken cancellationToken = default)
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder).CancellationToken(cancellationToken);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
                 LookupInSpec.Get(ClientRecordsIndex.VBUCKET_HLC, isXattr: true)
             };
 
-            var lookupInResult = await Collection.LookupInAsync(atrId, specs, opts).CAF();
+            var lookupInResult = await (await GetCollectionAsync(cancellationToken).CAF()).LookupInAsync(atrId, specs, opts).CAF();
             // insure an empty dictionary if we can't serialize to one...
             var attempts = lookupInResult.ContentAs<Dictionary<string, AtrEntry>>(0) ?? new Dictionary<string, AtrEntry>();
             // HLC can be nil so that's ok
@@ -77,25 +87,26 @@ namespace Couchbase.Client.Transactions.DataAccess
             return (attempts, parsedHlc);
         }
 
-        public override async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None)
+        public override async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None, CancellationToken cancellationToken = default)
         {
             var opts = new MutateInOptions()
                 .Timeout(RemoveClientTimeout)
                 .Durability(DurabilityLevel.None)
-                .Transcoder(Transactions.MetadataTranscoder);
+                .Transcoder(Transactions.MetadataTranscoder)
+                .CancellationToken(cancellationToken);
 
             var specs = new MutateInSpec[]
             {
                 MutateInSpec.Remove(ClientRecordEntry.PathForEntry(clientUuid), isXattr: true),
             };
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await (await GetCollectionAsync(cancellationToken).CAF()).MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public override async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds)
+        public override async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds, CancellationToken cancellationToken = default)
         {
             var prefix = ClientRecordEntry.PathForEntry(clientUuid);
-            var opts = new MutateInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder);
+            var opts = new MutateInOptions().Timeout(_keyValueTimeout).Transcoder(Transactions.MetadataTranscoder).CancellationToken(cancellationToken);
             var specs = new List<MutateInSpec>
             {
                 MutateInSpec.Upsert(ClientRecordEntry.PathForHeartbeat(clientUuid), MutationMacro.Cas, createPath: true),
@@ -111,7 +122,7 @@ namespace Couchbase.Client.Transactions.DataAccess
                 specs.Add(spec);
             }
 
-            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            _ = await (await GetCollectionAsync(cancellationToken).CAF()).MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
     }
 }

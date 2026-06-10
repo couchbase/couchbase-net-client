@@ -42,26 +42,22 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public List<Keyspace> CollectionsBeingCleaned => CollectionsToClean.Keys.ToList();
 
         public void AddCollection(ICouchbaseCollection collection)
-
         {
             // we need to add _only_ if the collection isn't already being cleaned...
             _logger.LogInformation($"AddCollection called, currently cleaning {CollectionsToClean.Count} collections");
-            // We have to get the value of the lazy, and assign to a variable (even though unused) to insure the lazy actually gets instantiated
-            var perCollectionCleanerWeDontUse = CollectionsToClean.GetOrAdd(new Keyspace(collection), _ => new Lazy<PerCollectionCleaner> (() => CleanerForCollection(collection, false))).Value;
+            // We already hold a live collection here, so seed the cache to avoid re-resolving.
+            // Force the lazy's Value so the cleaner is actually created.
+            var keyspace = new Keyspace(collection);
+            _ = CollectionsToClean.GetOrAdd(keyspace,
+                ks => new Lazy<PerCollectionCleaner>(() => CleanerForCollection(ks, startDisabled: false, resolved: collection))).Value;
         }
 
-        private async Task AddCollection(Keyspace? collection = null)
+        // Register a configured collection by keyspace; the collection resolves lazily on the cleaner's
+        // loop. Synchronous — no resolution, no blocking.
+        private void RegisterCollection(Keyspace keyspace)
         {
-            if (collection != null)
-            {
-                try
-                {
-                    AddCollection(await collection.ToCouchbaseCollection(_cluster).CAF());
-                } catch (CouchbaseException e) {
-                    // that's just fine - we couldn't get the collection so let's just proceed without doing so
-                    _logger.LogError(e, "Couldn't set the metadataCollection");
-                }
-            }
+            _ = CollectionsToClean.GetOrAdd(keyspace,
+                ks => new Lazy<PerCollectionCleaner>(() => CleanerForCollection(ks, startDisabled: false))).Value;
         }
 
         internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, TimeSpan? keyValueTimeout, string? clientUuid = null, bool startDisabled = false,  List<Keyspace>? collections = null)
@@ -74,24 +70,17 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _keyValueTimeout = keyValueTimeout;
             _logger.LogDebug("Starting LostTransactionManager");
 
-            // No configured collections: nothing to register up front. Avoids the sync-over-async
-            // block for the common no-transactions case (NCBC-4218).
+            // No configured collections: nothing to register up front (the common no-transactions case).
             if (collections is null or { Count: 0 }) return;
 
-            // Configured collections must be in the cleanup set before we return. Task.Run isolates the
-            // await from any caller SynchronizationContext; this opt-in path never runs for a default cluster.
-            Task.Run(async () =>
+            // Register configured collections synchronously by keyspace; each resolves lazily on its
+            // cleaner's loop (no blocking).
+            foreach (var keyspace in collections)
             {
-                var tasks = new List<Task>();
-                collections.ForEach(collection =>
-                {
-                    _logger.LogDebug($"Starting cleanup of metadata collection {collection}");
-                    tasks.Add(AddCollection(collection));
-                });
-                await Task.WhenAll(tasks.ToArray()).CAF();
-            }).GetAwaiter().GetResult();
-            _logger.LogDebug($"LostTransactionManager {ClientUuid} started with ${CollectionsToClean.Count} collections to be cleaned");
-
+                _logger.LogDebug("Registering configured cleanup collection {keyspace}", keyspace);
+                RegisterCollection(keyspace);
+            }
+            _logger.LogDebug($"LostTransactionManager {ClientUuid} started with {CollectionsToClean.Count} collections to be cleaned");
         }
 
         public void Start()
@@ -146,12 +135,22 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _logger.LogDebug("Client entries all removed.");
         }
 
-        private PerCollectionCleaner CleanerForCollection(ICouchbaseCollection collection, bool startDisabled)
+        private PerCollectionCleaner CleanerForCollection(Keyspace keyspace, bool startDisabled, ICouchbaseCollection? resolved = null)
         {
-            _logger.LogDebug("New cleaner for {collection}", collection.MakeKeyspace());
-            var repository = new CleanerRepository(collection, _keyValueTimeout);
+            _logger.LogDebug("New cleaner for {collection}", keyspace);
+            var repository = new CleanerRepository(keyspace, _cluster, _keyValueTimeout, resolved);
             var cleaner = new Cleaner(_cluster, _keyValueTimeout, _loggerFactory, creatorName: nameof(LostTransactionManager));
-            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled) { TestHooks = TestHooks };
+            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled, onCollectionNotFound: RemoveFromCleanupSet) { TestHooks = TestHooks };
+        }
+
+        // Invoked by a PerCollectionCleaner when the server reports its collection as not found; drops the
+        // dictionary entry (the cleaner stops its own timer).
+        private void RemoveFromCleanupSet(Keyspace keyspace)
+        {
+            if (CollectionsToClean.TryRemove(keyspace, out _))
+            {
+                _logger.LogInformation("Removed collection {keyspace} from the cleanup set (not found)", keyspace);
+            }
         }
     }
 }
