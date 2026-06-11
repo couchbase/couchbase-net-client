@@ -28,6 +28,7 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 [assembly: InternalsVisibleTo("Couchbase.Stellar.CombinationTests")]
 [assembly: InternalsVisibleTo("Couchbase.FitPerformer")]
+[assembly: InternalsVisibleTo("Couchbase.Transactions.FitPerformer")]
 #endif
 
 /* ************************************************************
