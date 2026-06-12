@@ -2718,22 +2718,21 @@ namespace Couchbase.Client.Transactions
                                 return new CasMismatchException(qec);
                         }
 
-                        if (chosenError.AdditionalData != null && chosenError.AdditionalData.TryGetValue("cause", out var causeObj))
+                        // The query error 'cause' (retry/rollback/raise hints) is transaction-protocol data.
+                        // It is deserialized into a typed property on Query.Error by whichever serializer the
+                        // cluster uses (Newtonsoft or System.Text.Json), so this code no longer depends on the
+                        // runtime JSON representation of that node - the coupling that regressed in NCBC-4036.
+                        var errorCause = chosenError.Cause;
+                        if (errorCause != null)
                         {
-                            var errorCause = causeObj switch
-                            {
-                                JsonElement jsonElement => jsonElement.Deserialize(DataModelSerializerContext.Default.QueryErrorCause),
-                                _ => new QueryErrorCause(null, null, null, null)
-                            };
-
                             Logger.LogWarning("query code={code} cause={cause} raise={raise}",
                                 code,
-                                Redactor.UserData(errorCause?.cause ?? string.Empty),
-                                errorCause?.raise ?? string.Empty
+                                Redactor.UserData(errorCause.cause ?? string.Empty),
+                                errorCause.raise ?? string.Empty
                             );
 
                             var builder = CreateError(this, ErrorClass.FailOther, err);
-                            TransactionOperationFailedException.FinalError toRaise = errorCause?.raise switch
+                            TransactionOperationFailedException.FinalError toRaise = errorCause.raise switch
                             {
                                 "failed_post_commit" => TransactionOperationFailedException.FinalError.TransactionFailedPostCommit,
                                 "commit_ambiguous" => TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous,

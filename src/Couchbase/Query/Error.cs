@@ -54,6 +54,14 @@ namespace Couchbase.Query
         [JsonPropertyName("retry")]
         public bool Retry { get; set; }
 
+        // The transaction-protocol "cause" (retry/rollback/raise hints). Typed so it is populated by
+        // whichever serializer the cluster uses, rather than read out of AdditionalData as a
+        // serializer-specific node (JObject vs JsonElement) - the coupling that regressed in NCBC-4036.
+        [InterfaceStability(Level.Volatile)]
+        [JsonProperty("cause")]
+        [JsonPropertyName("cause")]
+        public QueryErrorCause Cause { get; set; }
+
         [InterfaceStability(Level.Volatile)]
         [Newtonsoft.Json.JsonExtensionData]
         [System.Text.Json.Serialization.JsonExtensionData]
