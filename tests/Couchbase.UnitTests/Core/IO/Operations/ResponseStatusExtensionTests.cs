@@ -9,7 +9,9 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
@@ -117,6 +119,41 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 Assert.False(ex is CasMismatchException);
                 Assert.True(ex is DocumentLockedException);
             }
+        }
+
+        #endregion
+
+        #region Sub-document multi-path failure mapping
+
+        // A SubDocMultiPathFailure carries the failing spec's index + status in the body:
+        // [index(1)][status(2, NBO)]. CreateException must map that inner status to the right
+        // exception type for both lookups and mutations.
+        [Theory]
+        [InlineData(ResponseStatus.SubDocCannotInsert, typeof(ValueInvalidException))] // e.g. counter overflow
+        [InlineData(ResponseStatus.SubDocDeltaRange, typeof(DeltaInvalidException))]
+        [InlineData(ResponseStatus.SubDocNumRange, typeof(NumberTooBigException))]
+        [InlineData(ResponseStatus.SubDocPathNotFound, typeof(PathNotFoundException))]
+        [InlineData(ResponseStatus.SubDocPathExists, typeof(PathExistsException))]
+        [InlineData(ResponseStatus.SubDocPathMismatch, typeof(PathMismatchException))]
+        [InlineData(ResponseStatus.SubDocPathInvalid, typeof(PathInvalidException))]
+        [InlineData(ResponseStatus.SubDocPathTooBig, typeof(PathTooBigException))]
+        public void CreateException_SubDocMultiPathFailure_MapsInnerStatus(ResponseStatus innerStatus, Type expectedType)
+        {
+            // Arrange
+            var body = new byte[3];
+            body[0] = 0; // spec index
+            ByteConverter.FromUInt16((ushort)innerStatus, body.AsSpan(1), true);
+
+            var mockOp = new Mock<IOperation>();
+            mockOp.SetupGet(op => op.OpCode).Returns(OpCode.SubMultiMutation);
+            mockOp.Setup(op => op.ExtractBody())
+                .Returns(new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(body)));
+
+            // Act
+            var ex = ResponseStatus.SubDocMultiPathFailure.CreateException(new KeyValueErrorContext(), mockOp.Object);
+
+            // Assert
+            Assert.IsType(expectedType, ex);
         }
 
         #endregion

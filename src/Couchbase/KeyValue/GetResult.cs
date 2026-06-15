@@ -195,6 +195,13 @@ namespace Couchbase.KeyValue
                     continue;
                 }
 
+                //paths that don't exist (or otherwise didn't return a value) must be omitted from
+                //the projection, not emitted as null
+                if (spec.Status != ResponseStatus.Success)
+                {
+                    continue;
+                }
+
                 builder.AddPath(spec.Path, spec.Bytes);
             }
 

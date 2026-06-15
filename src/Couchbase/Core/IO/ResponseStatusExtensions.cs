@@ -227,7 +227,7 @@ namespace Couchbase.Core.IO
             }
         }
 
-        private static SubDocException SubDocPathException(KeyValueErrorContext ctx, IOperation op)
+        private static CouchbaseException SubDocPathException(KeyValueErrorContext ctx, IOperation op)
         {
             byte index;
             ResponseStatus subdocErrorStatus;
@@ -235,6 +235,18 @@ namespace Couchbase.Core.IO
             {
                 index = subdocStatusBody.Memory.Span[0];
                 subdocErrorStatus = (ResponseStatus)ByteConverter.ToUInt16(subdocStatusBody.Memory.Span.Slice(1));
+            }
+
+            // A few sub-document statuses surface as non-SubDocException error types.
+            switch (subdocErrorStatus)
+            {
+                case ResponseStatus.SubDocCannotInsert:
+                    // e.g. a counter increment/decrement whose result would fall outside the valid range.
+                    return new ValueInvalidException { Context = ctx };
+                case ResponseStatus.SubDocDeltaRange:
+                    return new DeltaInvalidException { Context = ctx };
+                case ResponseStatus.SubDocNumRange:
+                    return new NumberTooBigException { Context = ctx };
             }
 
             SubDocException ex = subdocErrorStatus switch

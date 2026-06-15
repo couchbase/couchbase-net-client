@@ -52,11 +52,27 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public void AddChildren(IReadOnlyCollection<string> children, ReadOnlyMemory<byte> specValue)
         {
-            foreach (var child in _serializer.Deserialize<JToken>(specValue)!.Children())
+            var content = _serializer.Deserialize<JToken>(specValue)!;
+            foreach (var child in children)
             {
-                if (children.Contains(child.Path))
+                // child may be a nested, dot-separated path (e.g. "foo.bar"). Resolve it against the
+                // full document, omitting paths that don't exist, and reconstruct the nesting.
+                var token = content.SelectToken(child);
+                if (token is null)
                 {
-                    _root.Add(child);
+                    continue;
+                }
+
+                var projection = CreateProjection(child, token);
+                try
+                {
+                    _root.Add(projection.First);
+                }
+                catch (Exception e)
+                {
+                    //these are cases where a root attribute is already mapped
+                    //for example "attributes" and "attributes.hair" will cause exceptions
+                    _logger.LogInformation(e, "Deserialization failed.");
                 }
             }
         }

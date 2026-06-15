@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Xunit;
@@ -119,6 +120,66 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
             Assert.NotNull(result.A.Attributes);
             Assert.Equal("foo", result.A.Name);
             Assert.Equal("bar", result.A.Attributes.HairColor);
+        }
+
+        #endregion
+
+        #region AddChildren
+
+        // AddChildren is used when the projection exceeds the subdoc spec limit and the SDK falls back
+        // to fetching the full document and projecting client-side.
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void AddChildren_NestedPath_ReconstructsNesting(bool withContext)
+        {
+            // Arrange
+            var fullDoc = Encoding.UTF8.GetBytes("{\"a\":{\"name\":\"bar\"},\"ignored\":5}");
+            var builder = CreateProjectionBuilder(withContext);
+
+            // Act - request a nested, dot-separated path
+            builder.AddChildren(new[] { "a.name" }, fullDoc);
+            var result = builder.ToObject<ProjectionWrapper>();
+
+            // Assert - reconstructed as { "a": { "name": "bar" } }
+            Assert.NotNull(result);
+            Assert.NotNull(result.A);
+            Assert.Equal("bar", result.A.Name);
+            Assert.Null(result.B);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void AddChildren_TopLevelPath_Adds(bool withContext)
+        {
+            var fullDoc = Encoding.UTF8.GetBytes("{\"a\":{\"name\":\"bar\"},\"ignored\":5}");
+            var builder = CreateProjectionBuilder(withContext);
+
+            builder.AddChildren(new[] { "a" }, fullDoc);
+            var result = builder.ToObject<ProjectionWrapper>();
+
+            Assert.NotNull(result);
+            Assert.NotNull(result.A);
+            Assert.Equal("bar", result.A.Name);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void AddChildren_NonExistentPath_IsOmitted(bool withContext)
+        {
+            var fullDoc = Encoding.UTF8.GetBytes("{\"a\":{\"name\":\"bar\"}}");
+            var builder = CreateProjectionBuilder(withContext);
+
+            builder.AddChildren(new[] { "does.not.exist" }, fullDoc);
+            var result = builder.ToObject<ProjectionWrapper>();
+
+            Assert.NotNull(result);
+            Assert.Null(result.A);
+            Assert.Null(result.B);
+            Assert.Null(result.C);
         }
 
         #endregion

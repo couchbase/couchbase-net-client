@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
@@ -188,6 +189,37 @@ namespace Couchbase.UnitTests.KeyValue
 
             var result = readResult.ContentAs<Dictionary<string, dynamic>>();
             Assert.Equal(result["name"], "Emmy-lou Dickerson");
+        }
+
+        [Fact]
+        public void Test_Projection_NonExistentPaths_AreOmitted_NotNull()
+        {
+            // A projection of paths that don't exist must yield an empty document, NOT entries
+            // mapped to null (e.g. {"does-not-exist-1":null,...}).
+            // Subdoc multi-lookup body is repeated [status(2, NBO)][length(4, NBO)][value]; here two
+            // specs each return SubDocPathNotFound with a zero-length value.
+            var body = new byte[12];
+            ByteConverter.FromUInt16((ushort)ResponseStatus.SubDocPathNotFound, body.AsSpan(0), true);
+            ByteConverter.FromUInt16((ushort)ResponseStatus.SubDocPathNotFound, body.AsSpan(6), true);
+
+            var specs = new List<LookupInSpec>
+            {
+                new() { OpCode = OpCode.SubGet, Path = "does-not-exist-1" },
+                new() { OpCode = OpCode.SubGet, Path = "does-not-exist-2" }
+            };
+
+            var readResult = new GetResult(
+                new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(body)),
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                NullFallbackTypeSerializerProvider.Instance, specs)
+            {
+                OpCode = OpCode.MultiLookup
+            };
+
+            var decoded = readResult.ContentAs<Dictionary<string, object>>();
+
+            Assert.NotNull(decoded);
+            Assert.Empty(decoded);
         }
 
         [Fact]

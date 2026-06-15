@@ -60,11 +60,29 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
             foreach (var child in children)
             {
-                if (document.RootElement.TryGetProperty(child, out var property))
+                // child may be a nested, dot-separated path (e.g. "foo.bar"). Resolve it against the
+                // full document, omitting paths that don't exist; AddChild reconstructs the nesting.
+                if (TryResolvePath(document.RootElement, child, out var element))
                 {
-                    AddChild(RootNode, child, property.Clone());
+                    AddChild(child, element.Clone());
                 }
             }
+        }
+
+        private static bool TryResolvePath(JsonElement root, string path, out JsonElement result)
+        {
+            var current = root;
+            foreach (var segment in path.Split('.'))
+            {
+                if (current.ValueKind != JsonValueKind.Object || !current.TryGetProperty(segment, out current))
+                {
+                    result = default;
+                    return false;
+                }
+            }
+
+            result = current;
+            return true;
         }
 
         /// <inheritdoc />

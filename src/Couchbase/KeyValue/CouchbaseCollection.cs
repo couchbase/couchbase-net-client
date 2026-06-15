@@ -838,7 +838,9 @@ namespace Couchbase.KeyValue
 
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-            if (specs.Count() > 16) throw new InvalidArgumentException("Too many specs in Lookup operation (Limited to 16)");
+            // A top-level failure of the lookup (here, too many specs) must produce an empty stream
+            // rather than throwing - unlike LookupIn/LookupInAnyReplica.
+            if (specs.Count() > 16) yield break;
             var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
@@ -875,7 +877,20 @@ namespace Couchbase.KeyValue
 
             foreach (var lookupTask in tasks)
             {
-                var lookup = await lookupTask.ConfigureAwait(false);
+                MultiLookup<byte[]> lookup;
+                try
+                {
+                    lookup = await lookupTask.ConfigureAwait(false);
+                }
+                catch (CouchbaseException)
+                {
+                    // A replica (or the active) failed this lookup at the top level - e.g. an invalid
+                    // or too-long path. Per the lookupInAllReplicas contract such failures are omitted
+                    // from the stream (yielding an empty stream when they all fail) rather than
+                    // faulting it.
+                    continue;
+                }
+
                 var responseStatus = lookup.Header.Status;
                 var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                                 responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
