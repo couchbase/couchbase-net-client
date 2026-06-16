@@ -10,6 +10,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.FitPerformer.Utils;
 using Couchbase.FitPerformer.Utils.Options;
 using Couchbase.FitPerformer.Utils.Results;
+using Couchbase.FitPerformer.Workload;
 using Couchbase.FitPerformer.Workload.Streams;
 using Google.Protobuf.WellKnownTypes;
 using Couchbase.Grpc.Protocol.Streams;

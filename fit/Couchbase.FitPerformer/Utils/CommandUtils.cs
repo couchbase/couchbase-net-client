@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.FitPerformer.Utils.Results;
+using Couchbase.FitPerformer.Workload;
 using Couchbase.Grpc.Protocol.Shared;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;

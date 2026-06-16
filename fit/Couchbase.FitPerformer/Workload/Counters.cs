@@ -1,6 +1,8 @@
-using System.Collections.Generic;
-using System.Threading;
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
+
+namespace Couchbase.FitPerformer.Workload;
 
 public class Counter {
     private int _count = 0;
@@ -20,22 +22,19 @@ public class Counter {
     }
 
     public int Get() {
-        return _count;
+        return Volatile.Read(ref _count);
+    }
+
+    public void Set(int newCount) {
+        Interlocked.Exchange(ref _count, newCount);
     }
 }
 
 public class Counters {
-    private Dictionary<string, Counter> _counters = new Dictionary<string, Counter>();
+    private readonly ConcurrentDictionary<string, Counter> _counters = new ConcurrentDictionary<string, Counter>();
 
     public Counter GetCounter(string counterId, int initialCount) {
-        lock (_counters) {
-            if (_counters.ContainsKey(counterId)) {
-                return _counters[counterId];
-            }
-            var counter = new Counter(initialCount);
-            _counters[counterId] = counter;
-            return counter;
-        }
+        return _counters.GetOrAdd(counterId, _ => new Counter(initialCount));
     }
 
     public Counter GetCounter(Couchbase.Grpc.Protocol.Shared.Counter counter) {
@@ -43,5 +42,16 @@ public class Counters {
             return GetCounter(counter.CounterId, counter.Global.Count);
         }
         throw new NotSupportedException();
+    }
+
+    public void SetCounter(string counterId, int newCount) {
+        if (!_counters.TryGetValue(counterId, out var counter)) {
+            throw new NotSupportedException($"Counter does not exist: {counterId}");
+        }
+        counter.Set(newCount);
+    }
+
+    public void ClearCounters() {
+        _counters.Clear();
     }
 }

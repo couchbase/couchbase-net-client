@@ -24,6 +24,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.FitPerformer.Utils;
 using Couchbase.FitPerformer.Utils.Options;
 using Couchbase.FitPerformer.Utils.Results;
+using Couchbase.FitPerformer.Workload;
 using Couchbase.FitPerformer.Workload.Streams;
 using Couchbase.Grpc.Protocol.Observability;
 using Couchbase.Grpc.Protocol.Streams;
@@ -40,6 +41,8 @@ namespace Couchbase.FitPerformer
         private readonly ConcurrentDictionary<string, Transactions> _transactionFactory = new ConcurrentDictionary<string, Transactions>();
 
         private readonly StreamOwner _streamOwner = new StreamOwner();
+
+        private readonly Counters _counters = new Counters();
 
         private ConcurrentDictionary<string, IRequestSpan> _spans = new ConcurrentDictionary<string, IRequestSpan>();
 
@@ -802,6 +805,7 @@ namespace Couchbase.FitPerformer
                         await channel.Writer.WriteAsync(x, CancellationToken.None).ConfigureAwait(false);
                         Interlocked.Increment(ref itemsProduced);
                     },
+                    _counters,
                     connection,
                     runId,
                     _streamOwner,
@@ -851,6 +855,34 @@ namespace Couchbase.FitPerformer
             {
                 Serilog.Log.Debug(notSupportedException, "Error in Stream RequestItems : Not supported");
                 return Task.FromException<RequestItemsResponse>(notSupportedException);
+            }
+        }
+
+        public override Task<SetCounterResponse> setCounter(Couchbase.Grpc.Protocol.Shared.Counter request, ServerCallContext context)
+        {
+            try
+            {
+                LogMethodAndRequest(request);
+                _counters.SetCounter(request.CounterId, request.Global.Count);
+                return Task.FromResult(new SetCounterResponse());
+            }
+            catch (System.Exception err)
+            {
+                throw MapException(err);
+            }
+        }
+
+        public override Task<ClearAllCountersResponse> clearAllCounters(ClearAllCountersRequest request, ServerCallContext context)
+        {
+            try
+            {
+                LogMethodAndRequest(request);
+                _counters.ClearCounters();
+                return Task.FromResult(new ClearAllCountersResponse());
+            }
+            catch (System.Exception err)
+            {
+                throw MapException(err);
             }
         }
 

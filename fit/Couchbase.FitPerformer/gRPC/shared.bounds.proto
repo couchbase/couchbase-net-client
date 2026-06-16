@@ -38,7 +38,26 @@ message ForTime {
 // seeing what the latency is, for 60 seconds.
 message Bounds {
   oneof bounds {
+    // The performer decrements the counter and continues iff counter is now > 0
     Counter counter = 1;
     ForTime for_time = 2;
+    // The performer should not change the counter, just continue iff its equal to the initial value
+    Counter counter_eq = 3;
+
   }
+}
+
+// Empty but included anyway per GRPC best practices.
+message SetCounterResponse {
+
+}
+
+// Clear all counters for a given performer.
+message ClearAllCountersRequest {
+
+}
+
+// Empty but included anyway per GRPC best practices.
+message ClearAllCountersResponse {
+
 }

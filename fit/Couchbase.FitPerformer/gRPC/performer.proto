@@ -19,6 +19,7 @@ import "shared.echo.proto";
 import "observability.config.proto";
 import "observability.top.proto";
 import "sdk.cluster.wait_until_ready.proto";
+import "shared.bounds.proto";
 
 // All rpcs related to transactions and SDK performance and integration testing.
 service PerformerService {
@@ -118,6 +119,12 @@ service PerformerService {
   // rpcs.
   rpc streamCancel (streams.CancelRequest) returns (streams.CancelResponse);
   rpc streamRequestItems (streams.RequestItemsRequest) returns (streams.RequestItemsResponse);
+
+  // Set the counter with the given id to a new value
+  rpc setCounter (shared.Counter) returns (shared.SetCounterResponse);
+
+  // Clear all counters for a given performer
+  rpc clearAllCounters (shared.ClearAllCountersRequest) returns (shared.ClearAllCountersResponse);
 
   // Observability-related requests.
   rpc spanCreate(observability.SpanCreateRequest) returns (observability.SpanCreateResponse);

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.FitPerformer.Workload;
 using Couchbase.FitPerformer.Workload.Streams;
 
 namespace Couchbase.FitPerformer
@@ -10,9 +11,8 @@ namespace Couchbase.FitPerformer
 
     static class WorkloadRunExecutor
     {
-        public static async Task RunWorkloadsAsync(Couchbase.Grpc.Protocol.Run.Workloads workloads, Func<Couchbase.Grpc.Protocol.Run.Result, Task> writeToChannel, Utils.ClusterConnection connection, string runId, StreamOwner streamOwner, ConcurrentDictionary<string, IRequestSpan> spans)
+        public static async Task RunWorkloadsAsync(Couchbase.Grpc.Protocol.Run.Workloads workloads, Func<Couchbase.Grpc.Protocol.Run.Result, Task> writeToChannel, Counters counters, Utils.ClusterConnection connection, string runId, StreamOwner streamOwner, ConcurrentDictionary<string, IRequestSpan> spans)
         {
-            var counters = new Counters();
             var runners = new List<Task>();
 
             foreach (var runnerTask in workloads.HorizontalScaling)

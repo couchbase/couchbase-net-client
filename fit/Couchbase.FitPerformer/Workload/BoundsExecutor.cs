@@ -15,7 +15,7 @@ namespace Couchbase.FitPerformer.Workload
 
     internal class BoundsCounterBased : BoundsExecutor
     {
-        private Counter counter;
+        protected Counter counter;
 
         public BoundsCounterBased(Counter counter)
         {
@@ -28,21 +28,36 @@ namespace Couchbase.FitPerformer.Workload
         }
     }
 
+    internal class BoundsCounterEquals : BoundsCounterBased
+    {
+        private readonly int _initialCounterValue;
+
+        public BoundsCounterEquals(Counter counter) : base(counter)
+        {
+            _initialCounterValue = counter.Get();
+        }
+
+        public override bool CanExecute()
+        {
+            return counter.Get() == _initialCounterValue;
+        }
+    }
+
     internal class BoundsForTime : BoundsExecutor
     {
-        private Stopwatch start = new Stopwatch();
-        private int untilSeconds;
+        private Stopwatch _start = new Stopwatch();
+        private int _untilSeconds;
 
         public BoundsForTime(int untilSeconds)
         {
-            start.Start();
-            this.untilSeconds = untilSeconds;
+            _start.Start();
+            _untilSeconds = untilSeconds;
         }
 
         public override bool CanExecute()
         {
             // Serilog.Log.Information("Time {V} vs {X}", start.Elapsed.TotalSeconds, untilSeconds);
-            return start.Elapsed.TotalSeconds < untilSeconds;
+            return _start.Elapsed.TotalSeconds < _untilSeconds;
         }
     }
 }

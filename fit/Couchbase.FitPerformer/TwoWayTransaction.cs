@@ -21,6 +21,7 @@ using Exception = System.Exception;
 using Couchbase.FitPerformer.Utils;
 using Couchbase.FitPerformer.Utils.Options;
 using Couchbase.FitPerformer.Utils.Results;
+using Couchbase.FitPerformer.Workload;
 using TransactionGetMultiOptions = Couchbase.Grpc.Protocol.Transactions.TransactionGetMultiOptions;
 
 namespace Couchbase.FitPerformer

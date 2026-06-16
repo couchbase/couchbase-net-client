@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.FitPerformer.Workload;
 using Couchbase.FitPerformer.Workload.Streams;
+using Counter = Couchbase.FitPerformer.Workload.Counter;
 
 namespace Couchbase.FitPerformer
 {
@@ -39,6 +40,11 @@ namespace Couchbase.FitPerformer
             {
                 var counter = counters.GetCounter(bounds.Counter);
                 return new BoundsCounterBased(counter);
+            }
+            if (bounds.BoundsCase == Bounds.BoundsOneofCase.CounterEq)
+            {
+                var counter = counters.GetCounter(bounds.CounterEq);
+                return new BoundsCounterEquals(counter);
             }
             if (bounds.BoundsCase == Bounds.BoundsOneofCase.ForTime)
             {
