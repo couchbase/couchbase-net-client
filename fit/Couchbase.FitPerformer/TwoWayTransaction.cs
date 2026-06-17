@@ -136,8 +136,11 @@ namespace Couchbase.FitPerformer
                     var collection = await connection.GetCollectionAsync(insertRequest.DocId)
                         .ConfigureAwait(false);
                     var options = TransactionInsertOptionsBuilder.Default;
-                    options.Transcoder(
-                        OptionsUtil.GetTranscoder(insertRequest.Options?.Transcoder?.TranscoderCase));
+                    if (insertRequest.Options?.Transcoder != null)
+                    {
+                        options.Transcoder(
+                            OptionsUtil.GetTranscoder(insertRequest.Options.Transcoder.TranscoderCase));
+                    }
                     if (insertRequest.Options?.Expiry != null)
                     {
                         if (insertRequest.Options.Expiry.HasRelativeSecs)
@@ -187,8 +190,11 @@ namespace Couchbase.FitPerformer
                     }
                     var options = TransactionReplaceOptionsBuilder.Default;
                     Serilog.Log.Debug("default options expiry: {Expiry}", options.Build().Expiry);
-                    options.Transcoder(
-                        OptionsUtil.GetTranscoder(replaceRequest.Options?.Transcoder?.TranscoderCase));
+                    if (replaceRequest.Options?.Transcoder != null)
+                    {
+                        options.Transcoder(
+                            OptionsUtil.GetTranscoder(replaceRequest.Options.Transcoder.TranscoderCase));
+                    }
                     if (replaceRequest.Options?.Expiry != null)
                     {
                         if (replaceRequest.Options.Expiry.HasRelativeSecs)
