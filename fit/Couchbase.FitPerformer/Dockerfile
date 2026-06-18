@@ -32,7 +32,7 @@ RUN dotnet publish Couchbase.FitPerformer.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
 WORKDIR /app
 
-ENV FIT_LOG_LEVEL="info"
+ENV LOG_LEVEL="info"
 
 COPY --from=publish /app/out .
 ENTRYPOINT ["dotnet", "Couchbase.FitPerformer.dll", "disableConsoleRead=true", "includeClientLogs=true"]

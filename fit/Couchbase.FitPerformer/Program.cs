@@ -21,7 +21,7 @@ namespace Couchbase.FitPerformer
             var port = 8060;
             var hostname = "0.0.0.0";
             // ReSharper disable once StringLiteralTypo
-            var logLevel = Environment.GetEnvironmentVariable("FIT_LOG_LEVEL")?.Parse() ?? LogLevel.Information;
+            var logLevel = Environment.GetEnvironmentVariable("LOG_LEVEL")?.Parse() ?? LogLevel.Information;
 
             string? logFile = null;
             var includeClientLogs = false;
