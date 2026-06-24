@@ -36,7 +36,10 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         /// <summary>
         /// Time budget per ATR based on cleanup window and total ATR count.
         /// </summary>
-        public TimeSpan TimePerAtr => TimeSpan.FromMilliseconds(_cleanupWindow.TotalMilliseconds / _totalAtrs);
+        /// <remarks>
+        /// Uses ticks because TimeSpan.FromMilliseconds rounds to whole milliseconds on .NET Framework.
+        /// </remarks>
+        public TimeSpan TimePerAtr => TimeSpan.FromTicks(_cleanupWindow.Ticks / _totalAtrs);
 
         /// <summary>
         /// Calculates the appropriate batch size based on how far behind schedule we are.
@@ -73,7 +76,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         public TimeSpan CalculateDelayAfterBatch(int batchSize, TimeSpan batchDuration)
         {
             // Time budget for this batch
-            var budgetForBatch = TimeSpan.FromMilliseconds(TimePerAtr.TotalMilliseconds * batchSize);
+            var budgetForBatch = TimeSpan.FromTicks(TimePerAtr.Ticks * batchSize);
 
             // How much time remains in our budget?
             var remaining = budgetForBatch - batchDuration;

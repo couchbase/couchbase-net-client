@@ -26,13 +26,16 @@ namespace Couchbase.UnitTests.Transactions
         [Fact]
         public void TimePerAtr_With1024Atrs_CalculatesCorrectly()
         {
-            var processor = new AtrBatchProcessor(
-                cleanupWindow: TimeSpan.FromSeconds(60),
-                totalAtrs: 1024);
+            var cleanupWindow = TimeSpan.FromSeconds(60);
+            const int totalAtrs = 1024;
 
-            // 60000ms / 1024 = ~58.59ms
-            Assert.True(processor.TimePerAtr.TotalMilliseconds > 58);
-            Assert.True(processor.TimePerAtr.TotalMilliseconds < 59);
+            var processor = new AtrBatchProcessor(cleanupWindow, totalAtrs);
+
+            // 60s / 1024 = ~58.59ms. Must keep sub-ms precision, so check the ticks-based value
+            // rather than whole-millisecond bounds.
+            var expected = TimeSpan.FromTicks(cleanupWindow.Ticks / totalAtrs);
+            Assert.Equal(expected, processor.TimePerAtr);
+            Assert.InRange(processor.TimePerAtr.TotalMilliseconds, 58.5, 58.7);
         }
 
         [Theory]
