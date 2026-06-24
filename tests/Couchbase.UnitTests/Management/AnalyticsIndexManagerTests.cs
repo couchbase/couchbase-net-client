@@ -377,7 +377,7 @@ namespace Couchbase.UnitTests.Management
             {
                 Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
                 mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals("CONNECT LINK test_link")),
+                        It.Is<string>(s => s.Equals("CONNECT LINK `test_link`")),
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
@@ -393,7 +393,7 @@ namespace Couchbase.UnitTests.Management
             {
                 Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
                 mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals("CONNECT LINK Local")),
+                        It.Is<string>(s => s.Equals("CONNECT LINK `Local`")),
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
@@ -409,7 +409,7 @@ namespace Couchbase.UnitTests.Management
             {
                 Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
                 mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals("DISCONNECT LINK test_link")),
+                        It.Is<string>(s => s.Equals("DISCONNECT LINK `test_link`")),
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
@@ -425,7 +425,7 @@ namespace Couchbase.UnitTests.Management
             {
                 Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
                 mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals("DISCONNECT LINK Local")),
+                        It.Is<string>(s => s.Equals("DISCONNECT LINK `Local`")),
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
@@ -665,6 +665,54 @@ namespace Couchbase.UnitTests.Management
             {
                 Assert.NotEmpty(errors);
                 Assert.Throws<ArgumentException>(link.ValidateForRequest);
+            }
+        }
+
+        [Fact]
+        public async Task ConnectLink_EscapesEmbeddedBackticksInLinkName()
+        {
+            using (var stream = GenerateStreamFromString("Here is a stream."))
+            {
+                Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
+                mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
+                        It.Is<string>(s => s.Equals("CONNECT LINK `malicious``link`")),
+                        It.IsAny<AnalyticsOptions>()))
+                    .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
+                var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
+                await manager.ConnectLinkAsync(new ConnectAnalyticsLinkOptions().LinkName("malicious`link"));
+                mockAnalyticsClient.VerifyAll();
+            }
+        }
+
+        [Fact]
+        public async Task DisconnectLink_EscapesEmbeddedBackticksInLinkName()
+        {
+            using (var stream = GenerateStreamFromString("Here is a stream."))
+            {
+                Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
+                mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
+                        It.Is<string>(s => s.Equals("DISCONNECT LINK `malicious``link`")),
+                        It.IsAny<AnalyticsOptions>()))
+                    .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
+                var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
+                await manager.DisconnectLinkAsync(new DisconnectAnalyticsLinkOptions().LinkName("malicious`link"));
+                mockAnalyticsClient.VerifyAll();
+            }
+        }
+
+        [Fact]
+        public async Task CreateDataverse_EscapesEmbeddedBackticks()
+        {
+            using (var stream = GenerateStreamFromString("Here is a stream."))
+            {
+                var mockAnalyticsClient = new Mock<IAnalyticsClient>();
+                mockAnalyticsClient.Setup(x => x.QueryAsync<dynamic>(
+                    It.Is<string>(s => s.Equals("CREATE DATAVERSE `malicious``dataverse`")), It.IsAny<AnalyticsOptions>()))
+                    .ReturnsAsync(new StreamingAnalyticsResult<object>(stream, new DefaultSerializer()));
+
+                var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClientFactory);
+                await manager.CreateDataverseAsync("malicious`dataverse");
+                mockAnalyticsClient.VerifyAll();
             }
         }
     }
