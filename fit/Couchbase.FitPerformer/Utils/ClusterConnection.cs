@@ -219,18 +219,14 @@ namespace Couchbase.FitPerformer.Utils
         {
             if (request.ClusterConfig.HasCert && !string.IsNullOrWhiteSpace(request.ClusterConfig.Cert))
             {
-                var serverCert = new X509Certificate2(
-                    rawData: System.Text.Encoding.ASCII.GetBytes(request.ClusterConfig.Cert),
-                    password: (string)null!);
-
-                var serverCertCollection = new X509Certificate2Collection(serverCert);
+                // Load all certs in the PEM chain, not just the first like X509Certificate2(byte[]) does
+                var serverCertCollection = new X509Certificate2Collection();
+                serverCertCollection.ImportFromPem(request.ClusterConfig.Cert);
 
                 clusterOptions.WithTrustedServerCertificates(serverCertCollection);
                 Serilog.Log.Information(
-                    "Using new WithTrustedServerCertificates API to add a trusted server certificate to TlsSettings");
-
-
-
+                    "Using new WithTrustedServerCertificates API to add {CertCount} trusted server certificate(s) to TlsSettings",
+                    serverCertCollection.Count);
             }
         }
 
