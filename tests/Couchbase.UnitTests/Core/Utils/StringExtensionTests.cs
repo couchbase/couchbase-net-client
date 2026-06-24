@@ -13,6 +13,9 @@ namespace Couchbase.UnitTests.Core.Utils
         [InlineData("default`", "`default`")]
         [InlineData("beer-sample", "`beer-sample`")]
         [InlineData("`beer-sample`", "`beer-sample`")]
+        [InlineData("foo`bar", "`foo``bar`")]
+        [InlineData("`foo`bar`", "`foo``bar`")]
+        [InlineData("`inject``here`", "`inject````here`")]
         public void EscapeIfRequired_Input_ExpectedOutput(string input, string expectedOutput)
         {
             // Act

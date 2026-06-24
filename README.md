@@ -2,7 +2,7 @@ The Official Couchbase .NET SDK
 
 [Chat with us on Discord](https://discord.com/invite/sQ5qbPZuTh) | [Couchbase Forums](https://forums.couchbase.com/c/net-sdk/6)
 
-* master is 3.4 development branch
+* master is 3.9 development branch
 * release27 is 2.7.X development branch
 * release13 is 1.3.X development branch
 
@@ -46,6 +46,6 @@ NOTE: Couchbase Server 5.0+ uses Role-Based Access Control (RBAC) for authentica
 Please checkout this [README](https://github.com/couchbase/couchbase-net-client/blob/master/src/Couchbase.Stellar.CodeGen/README.md) for how to generate the gRPC proxies and stubs for Protostellar.
 
 ## Pull Requests and Submissions ##
-Being an Open Source project, the Couchbase SDK depends upon feedback and submissions from the community. If you feel as if you want to submit a bug fix or a feature, please post a Pull Request. The Pull Request will go through a formal code review process and merged after being +2'd by a Couchbase Engineer. In order to accept a submission, Couchbase requires that all contributors sign the Contributor License Agreement (CLA). You can do this by creating an account in [Gerrit](http://review.couchbase.org), our official Code Review system. After you have created your account, login and check the CLA checkbox.
+Being an Open Source project, the Couchbase SDK depends upon feedback and submissions from the community. If you feel as if you want to submit a bug fix or a feature, please post a Pull Request. The Pull Request will go through a formal code review process and merged after being +2'd by a Couchbase Engineer. In order to accept a submission, Couchbase requires that all contributors sign the Contributor License Agreement (CLA). When you push a pull-request (PR) a prompt will be displayed which allows you to sign the CLA.
 
-Once the CLA is signed, a Couchbase engineer will push the pull request to Gerrit and one or more Couchbase engineers will review the submission. If it looks good they will then +2 the changeset and merge it with master. In addition, if the submission needs more work, you will need to amend the Changeset with another Patchset. Note that is strongly encouraged to submit a Unit Test with each submission and also include a description of the submission, what changed and what the result is.
+Once the CLA is signed, a Couchbase engineer will review your PR. If needed, you may need to amend the PR with additional changes as requested. Note that is strongly encouraged to submit a Unit Test with each submission and also include a description of the submission, what changed and what the result is.

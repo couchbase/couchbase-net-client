@@ -11,6 +11,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Utils;
 using Couchbase.Management.Analytics.Link;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -163,7 +164,7 @@ namespace Couchbase.Management.Analytics
                     whereStr += conditionValue.StartsWith(" ") ? conditionValue : " " + conditionValue;
                 }
 
-                var statement = $"CREATE DATASET {ignoreStr}{datasetName} ON `{bucketName}`{whereStr}";
+                var statement = $"CREATE DATASET {ignoreStr}{datasetName} ON {bucketName.EscapeIfRequired()}{whereStr}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -305,7 +306,7 @@ namespace Couchbase.Management.Analytics
                     _redactor.MetaData(datasetName),
                     _redactor.MetaData(joinedFields));
                 var ignoreStr = options.IgnoreIfExistsValue ? "IF NOT EXISTS " : string.Empty;
-                var statement = $"CREATE INDEX `{indexName}` {ignoreStr}ON {datasetName} {joinedFields}";
+                var statement = $"CREATE INDEX {indexName.EscapeIfRequired()} {ignoreStr}ON {datasetName} {joinedFields}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -359,7 +360,7 @@ namespace Couchbase.Management.Analytics
                 }
 
                 var ignoreStr = options.IgnoreIfNotExistsValue ? " IF EXISTS" : string.Empty;
-                var statement = $"DROP INDEX {datasetName}.`{indexName}`{ignoreStr}";
+                var statement = $"DROP INDEX {datasetName}.{indexName.EscapeIfRequired()}{ignoreStr}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -445,7 +446,7 @@ namespace Couchbase.Management.Analytics
                 rootSpan);
             try
             {
-                var statement = $"CONNECT LINK {options.LinkNameValue}";
+                var statement = $"CONNECT LINK {options.LinkNameValue.EscapeIfRequired()}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -486,7 +487,7 @@ namespace Couchbase.Management.Analytics
                 rootSpan);
             try
             {
-                var statement = $"DISCONNECT LINK {options.LinkNameValue}";
+                var statement = $"DISCONNECT LINK {options.LinkNameValue.EscapeIfRequired()}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -781,18 +782,13 @@ namespace Couchbase.Management.Analytics
                 throw new InvalidArgumentException("dataverseName is a required parameter");
             }
 
-            if (!dataverseName.StartsWith("`"))
-            {
-                dataverseName = string.Concat("`", dataverseName, "`");
-            }
-
             if (!dataverseName.Contains('/'))
             {
-                return dataverseName;
+                return dataverseName.EscapeIfRequired();
             }
 
             var pieces = dataverseName.Split('/');
-            return string.Join("`.`", pieces);
+            return string.Join(".", pieces.Select(p => p.EscapeIfRequired()));
         }
 
         private string DataSetWithDataVerse(string datasetName, string? dataverseName)
@@ -803,8 +799,8 @@ namespace Couchbase.Management.Analytics
             }
 
             return string.IsNullOrWhiteSpace(dataverseName) ?
-                           $"`{datasetName}`" :
-                           $"{UncompoundName(dataverseName!)}.`{datasetName}`";
+                           datasetName.EscapeIfRequired() :
+                           $"{UncompoundName(dataverseName!)}.{datasetName.EscapeIfRequired()}";
         }
     }
 }

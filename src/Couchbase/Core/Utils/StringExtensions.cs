@@ -14,6 +14,7 @@ namespace Couchbase.Core.Utils
 
         /// <summary>
         /// Adds back ticks to the beginning and end of a string if they do not already exist.
+        /// Internal backticks are doubled to prevent SQL++ identifier injection.
         /// </summary>
         /// <param name="value">A value such as a bucket or scope name.</param>
         /// <returns>The original value escaped with back ticks.</returns>
@@ -21,29 +22,18 @@ namespace Couchbase.Core.Utils
         {
             const char backtick = '`';
 
-            if (value.Length == 0)
+            // Strip any existing enclosing backticks to get the raw identifier,
+            // then double all internal backticks and wrap.
+            if (value.Length > 0 && value[0] == backtick)
             {
-                return "``";
+                value = value.Substring(1);
+            }
+            if (value.Length > 0 && value[value.Length - 1] == backtick)
+            {
+                value = value.Substring(0, value.Length - 1);
             }
 
-            if (value[0] != backtick)
-            {
-                if (value[value.Length - 1] != backtick)
-                {
-                    // hot path is no backticks at all
-                    return $"`{value}`";
-                }
-
-                return backtick + value;
-            }
-
-            if (value[value.Length - 1] != backtick)
-            {
-                return value + backtick;
-            }
-
-            // Already has backticks
-            return value;
+            return backtick + value.Replace("`", "``") + backtick;
         }
 
         /// <summary>
