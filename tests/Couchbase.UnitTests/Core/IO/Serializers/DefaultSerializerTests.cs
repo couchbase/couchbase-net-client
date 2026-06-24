@@ -147,6 +147,27 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         }
 
         [Fact]
+        public void Deserialize_ByteArray_FromJsonBase64String_RoundTrips()
+        {
+            // Regression test for CBSE-22994 / NCBC-4069.
+            // A byte[] stored as a JSON value is a quoted Base64 string (e.g. the sub-document
+            // array elements used by PersistentQueue<byte[]> / PersistentList<byte[]>).
+            // Deserialize<byte[]> must JSON-decode that string back to the original bytes,
+            // NOT return the raw buffer (the quote chars + Base64 text), which silently corrupts.
+
+            // Arrange
+            var serializer = new DefaultSerializer();
+            var original = new byte[] { 10, 36, 102, 50, 56, 98, 49, 51 };
+            var json = Encoding.UTF8.GetBytes("\"" + Convert.ToBase64String(original) + "\"");
+
+            // Act
+            var result = serializer.Deserialize<byte[]>(new ReadOnlyMemory<byte>(json));
+
+            // Assert
+            Assert.Equal(original, result);
+        }
+
+        [Fact]
         public void Deserialize_BoundarySurrogatePair_Success()
         {
             // Arrange
