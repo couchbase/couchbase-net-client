@@ -1,0 +1,29 @@
+name: Run FIT-CLI
+
+on:
+  schedule:
+    # Each day at midnight (UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      fit_cli_preset:
+        description: FIT preset to run.
+        required: false
+        type: string
+        default: qe-set
+      fit_cli_channel:
+        description: fit-cli install channel ("latest" or "ci").
+        required: false
+        type: string
+        default: ci
+
+permissions:
+  id-token: write   # required for GitHub OIDC
+
+jobs:
+  run-dotnet-fit:
+    uses: ./.github/workflows/fit-testing-shared.yml
+    with:
+      preset: ${{ vars.FIT_CLI_PRESET || inputs.fit_cli_preset || 'qe-set' }}
+      performer_image_name: 'dotnet-fit-performer:main'
+      fit_cli_channel: ${{ vars.FIT_CLI_CHANNEL || inputs.fit_cli_channel || 'ci' }}
