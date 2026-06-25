@@ -126,6 +126,16 @@ namespace Couchbase.FitPerformer.Utils
 
                 ret.Couchbase = sdk;
             }
+            else
+            {
+                // Not a CouchbaseException, so report it raw rather than dropping it.
+                // Leaving this unset returns an empty Exception that hides the real error.
+                ret.Other = new ExceptionOther
+                {
+                    Name = raw.GetType().Name,
+                    Serialized = raw.ToString()
+                };
+            }
 
             return ret;
         }
