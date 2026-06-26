@@ -147,24 +147,25 @@ public class SearchHelper
                 in fitVectorSearch.VectorQuery
             select vq.HasBase64VectorQuery
                 ? CoreSearch.Queries.Vector.VectorQuery.Create(
-                vectorFieldName: vq.VectorFieldName,
-                base64EncodedVector: vq.Base64VectorQuery,
-                options: new VectorQueryOptions
-                {
-                    Boost = vq.Options?.HasBoost == true ? vq.Options.Boost : null,
-                    NumCandidates = vq.Options?.HasNumCandidates == true ? (uint)vq.Options.NumCandidates : (uint?)null,
-                    Filter = vq.Options?.Prefilter.IsInitialized() == true ? ProtoSearchQueryToCore(vq.Options.Prefilter) : null,
-                })
+                    vectorFieldName: vq.VectorFieldName,
+                    base64EncodedVector: vq.Base64VectorQuery,
+                    options: ProtoVectorQueryOptionsToCore(vq.Options))
                 : CoreSearch.Queries.Vector.VectorQuery.Create(
                     vectorFieldName: vq.VectorFieldName,
                     vector: vq.VectorQuery_.ToArray(),
-                    options: new VectorQueryOptions
-                    {
-                        Boost = vq.Options?.HasBoost == true ? vq.Options.Boost : null,
-                        NumCandidates = vq.Options?.HasNumCandidates == true ? (uint)vq.Options.NumCandidates : (uint?)null,
-                        Filter = vq.Options?.Prefilter.IsInitialized() == true ? ProtoSearchQueryToCore(vq.Options.Prefilter) : null,
-                    }
-                )).ToList();
+                    options: ProtoVectorQueryOptionsToCore(vq.Options))
+            ).ToList();
+    }
+
+    private static VectorQueryOptions ProtoVectorQueryOptionsToCore(ProtoSearch.VectorQueryOptions? options)
+    {
+        return new VectorQueryOptions
+        {
+            Boost = options?.HasBoost == true ? options.Boost : null,
+            NumCandidates = options?.HasNumCandidates == true ? (uint)options.NumCandidates : (uint?)null,
+            // Prefilter is an unset proto message (null) when no filter was sent, so guard before converting.
+            Filter = options?.Prefilter is { } prefilter ? ProtoSearchQueryToCore(prefilter) : null,
+        };
     }
 
 
