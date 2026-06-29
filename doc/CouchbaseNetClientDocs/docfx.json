@@ -3,15 +3,10 @@
     {
       "src": [
         {
-          "src": "../../",
+          "src": "../../src",
           "files": [
-            "src/Couchbase/Couchbase.csproj",
-            "src/Couchbase.Extensions.DependencyInjection/Couchbase.Extensions.DependencyInjection.csproj"
-          ],
-          "exclude": [
-            "**/obj/**",
-            "**/bin/**",
-            "_site/**"
+            "Couchbase/bin/Release/net10.0/Couchbase.NetClient.dll",
+            "Couchbase.Extensions.DependencyInjection/bin/Release/net10.0/Couchbase.Extensions.DependencyInjection.dll"
           ]
         }
       ],

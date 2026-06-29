@@ -1,5 +1,15 @@
 Building the API documentation
 
-1. Use your favorite tool to find/replace __CB_SDK_VERSION__ with the appriopriate SDK version
-2. dotnet build docfx.csproj
-3. API docs are in the _site folder
+Metadata is generated from the compiled assemblies, because the
+SDK uses newer C# syntax than DocFX's bundled Roslyn can parse.
+
+1. Build the SDK first so the DLLs and XML doc files exist:
+     dotnet build ../../src/Couchbase/Couchbase.csproj -c Release -f net10.0
+     dotnet build ../../src/Couchbase.Extensions.DependencyInjection/Couchbase.Extensions.DependencyInjection.csproj -c Release -f net10.0
+2. Replace __CB_SDK_VERSION__ in index.md with the SDK version.
+3. Generate API metadata and the site:
+     docfx metadata docfx.json
+     docfx build docfx.json
+4. The API docs are in the _site folder.
+
+The apidocs GitHub Actions workflow automates these steps.

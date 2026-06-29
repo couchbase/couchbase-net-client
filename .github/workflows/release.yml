@@ -1,0 +1,402 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Git tag to release (e.g. 3.9.4 or 3.9.4-rc1)'
+        required: true
+      publish:
+        description: 'Publish to NuGet and S3 (leave false for a smoke run)'
+        type: boolean
+        required: false
+        default: false
+      include_couchbase_net_client:
+        description: 'Pack and publish CouchbaseNetClient'
+        type: boolean
+        required: false
+        default: true
+      include_dependency_injection:
+        description: 'Pack and publish Couchbase.Extensions.DependencyInjection'
+        type: boolean
+        required: false
+        default: true
+      include_open_telemetry:
+        description: 'Pack and publish Couchbase.Extensions.OpenTelemetry'
+        type: boolean
+        required: false
+        default: true
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  validate-inputs:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.compute.outputs.tag }}
+      version: ${{ steps.compute.outputs.version }}
+      minor: ${{ steps.compute.outputs.minor }}
+      publish: ${{ steps.compute.outputs.publish }}
+      include_main: ${{ steps.compute.outputs.include_main }}
+      include_di: ${{ steps.compute.outputs.include_di }}
+      include_otel: ${{ steps.compute.outputs.include_otel }}
+    steps:
+      - id: compute
+        name: Compute tag, version, and flags
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.version_tag }}
+          INPUT_PUBLISH: ${{ github.event.inputs.publish }}
+          INPUT_MAIN: ${{ github.event.inputs.include_couchbase_net_client }}
+          INPUT_DI: ${{ github.event.inputs.include_dependency_injection }}
+          INPUT_OTEL: ${{ github.event.inputs.include_open_telemetry }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG_INPUT="$INPUT_TAG"
+            PUBLISH_INPUT="$INPUT_PUBLISH"
+            INCLUDE_MAIN="$INPUT_MAIN"
+            INCLUDE_DI="$INPUT_DI"
+            INCLUDE_OTEL="$INPUT_OTEL"
+          else
+            TAG_INPUT="$REF_NAME"
+            PUBLISH_INPUT="true"
+            INCLUDE_MAIN="true"
+            INCLUDE_DI="true"
+            INCLUDE_OTEL="true"
+          fi
+
+          if [ -z "$TAG_INPUT" ]; then
+            echo "Tag input is required." >&2
+            exit 1
+          fi
+          if ! echo "$TAG_INPUT" | grep -Eq '^(v)?[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$'; then
+            echo "Tag must be a semantic version (e.g. 3.9.4 or v3.9.4-rc1)." >&2
+            exit 1
+          fi
+          if [ "$INCLUDE_MAIN" != "true" ] && [ "$INCLUDE_DI" != "true" ] && [ "$INCLUDE_OTEL" != "true" ]; then
+            echo "At least one package must be included." >&2
+            exit 1
+          fi
+
+          VER="${TAG_INPUT#v}"
+          MINOR="$(echo "$VER" | cut -d. -f1-2)"
+          {
+            echo "tag=$TAG_INPUT"
+            echo "version=$VER"
+            echo "minor=$MINOR"
+            echo "publish=$PUBLISH_INPUT"
+            echo "include_main=$INCLUDE_MAIN"
+            echo "include_di=$INCLUDE_DI"
+            echo "include_otel=$INCLUDE_OTEL"
+          } >> "$GITHUB_OUTPUT"
+
+  build-and-test:
+    name: Build & Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    needs: validate-inputs
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu
+            os: ubuntu-latest
+          - name: windows
+            os: windows-latest
+          - name: macos
+            os: macos-latest
+    steps:
+      - name: Checkout master (smoke)
+        if: needs.validate-inputs.outputs.publish != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Checkout tag
+        if: needs.validate-inputs.outputs.publish == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-inputs.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      - name: Restore
+        run: dotnet restore couchbase-net-client.sln
+
+      - name: Build (Release)
+        run: dotnet build couchbase-net-client.sln --configuration Release --no-restore /p:Version=${{ needs.validate-inputs.outputs.version }}
+
+      - name: Test - Couchbase.UnitTests (net8.0)
+        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --framework net8.0 --no-build --logger "trx;LogFileName=unit-tests-net8.0.trx" --results-directory "TestResults"
+
+      - name: Test - Couchbase.UnitTests (net10.0)
+        if: ${{ !cancelled() }}
+        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --framework net10.0 --no-build --logger "trx;LogFileName=unit-tests-net10.0.trx" --results-directory "TestResults"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-${{ matrix.name }}
+          path: TestResults
+
+  pack:
+    name: Pack & Sign (Windows)
+    runs-on: windows-latest
+    needs: [validate-inputs, build-and-test]
+    env:
+      NETSDK_SIGNKEY: ${{ secrets.NETSDK_SIGNKEY }}
+    steps:
+      - name: Checkout master (smoke)
+        if: needs.validate-inputs.outputs.publish != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Checkout tag
+        if: needs.validate-inputs.outputs.publish == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-inputs.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      - name: Prepare strong-name key (SNK)
+        shell: pwsh
+        run: |
+          if ("${{ env.NETSDK_SIGNKEY }}" -eq '') { Write-Error "NETSDK_SIGNKEY secret is required"; exit 1 }
+          $bytes = [System.Convert]::FromBase64String("${{ env.NETSDK_SIGNKEY }}")
+          [IO.File]::WriteAllBytes("signkey.snk", $bytes)
+          $signPath = (Resolve-Path "signkey.snk").Path
+          "SIGNKEY_PATH=$signPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Pack (Release, signed)
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.validate-inputs.outputs.version }}
+          INCLUDE_MAIN: ${{ needs.validate-inputs.outputs.include_main }}
+          INCLUDE_DI: ${{ needs.validate-inputs.outputs.include_di }}
+          INCLUDE_OTEL: ${{ needs.validate-inputs.outputs.include_otel }}
+        run: |
+          $projects = @()
+          if ($env:INCLUDE_MAIN -eq 'true')  { $projects += "src/Couchbase/Couchbase.csproj" }
+          if ($env:INCLUDE_DI -eq 'true')    { $projects += "src/Couchbase.Extensions.DependencyInjection/Couchbase.Extensions.DependencyInjection.csproj" }
+          if ($env:INCLUDE_OTEL -eq 'true')  { $projects += "src/Couchbase.Extensions.OpenTelemetry/Couchbase.Extensions.OpenTelemetry.csproj" }
+
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          foreach ($proj in $projects) {
+            Write-Host "Packing $proj"
+            dotnet pack $proj `
+              -c Release `
+              --output artifacts `
+              /p:ContinuousIntegrationBuild=true `
+              /p:Version="$env:VERSION" `
+              /p:IncludeSymbols=true `
+              /p:SymbolPackageFormat=snupkg `
+              /p:SignAssembly=true `
+              /p:AssemblyOriginatorKeyFile="$env:SIGNKEY_PATH"
+            if ($LASTEXITCODE -ne 0) { Write-Error "Pack failed for $proj"; exit 1 }
+          }
+
+      - name: Verify package contents (DLL <-> PDB parity)
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.validate-inputs.outputs.version }}
+        run: |
+          $ver = $env:VERSION
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+          function Get-LibEntries($path, $extension) {
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($path)
+            try {
+              return @($zip.Entries | Where-Object { $_.FullName -like "lib/*$extension" } | ForEach-Object { $_.FullName })
+            } finally {
+              $zip.Dispose()
+            }
+          }
+
+          $nupkgs = Get-ChildItem -Path artifacts -Filter "*.$ver.nupkg" | Where-Object { $_.Name -notlike "*.symbols.nupkg" }
+          if (-not $nupkgs) { Write-Error "No .nupkg matching version $ver found in artifacts"; exit 1 }
+
+          foreach ($nupkg in $nupkgs) {
+            $snupkg = Get-ChildItem -Path artifacts -Filter "$($nupkg.BaseName).snupkg" | Select-Object -First 1
+            if (-not $snupkg) { Write-Error "No .snupkg found for $($nupkg.Name)"; exit 1 }
+
+            $dlls = Get-LibEntries $nupkg.FullName  ".dll"
+            $pdbs = Get-LibEntries $snupkg.FullName ".pdb"
+            Write-Host "$($nupkg.Name): $($dlls.Count) DLL(s), $($pdbs.Count) PDB(s)"
+
+            $missing = @()
+            foreach ($dll in $dlls) {
+              $expectedPdb = [System.IO.Path]::ChangeExtension($dll, ".pdb")
+              if (-not ($pdbs -contains $expectedPdb)) { $missing += $expectedPdb }
+            }
+            if ($missing.Count -gt 0) {
+              Write-Error ("$($snupkg.Name) is missing PDB(s):`n  " + ($missing -join "`n  "))
+              exit 1
+            }
+          }
+          Write-Host "All packages contain matching PDBs for their bundled DLLs."
+
+      - name: Verify assemblies are strong-name signed
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.validate-inputs.outputs.version }}
+        run: |
+          $ver = $env:VERSION
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $nupkgs = Get-ChildItem -Path artifacts -Filter "*.$ver.nupkg" | Where-Object { $_.Name -notlike "*.symbols.nupkg" }
+          $tmp = Join-Path $env:RUNNER_TEMP "snverify"
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          foreach ($nupkg in $nupkgs) {
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($nupkg.FullName)
+            try {
+              foreach ($entry in $zip.Entries | Where-Object { $_.FullName -like "lib/*.dll" }) {
+                $dest = Join-Path $tmp ([IO.Path]::GetFileName($entry.FullName))
+                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
+                $asm = [System.Reflection.AssemblyName]::GetAssemblyName($dest)
+                $token = $asm.GetPublicKeyToken()
+                if (-not $token -or $token.Length -eq 0) {
+                  Write-Error "$($nupkg.Name) -> $($entry.FullName) is NOT strong-name signed"
+                  exit 1
+                }
+                Write-Host "$($entry.FullName) token=$([BitConverter]::ToString($token).Replace('-',''))"
+              }
+            } finally {
+              $zip.Dispose()
+            }
+          }
+          Write-Host "All bundled assemblies are strong-name signed."
+
+      - name: Upload Packages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+
+  publish-nuget:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, pack]
+    if: needs.validate-inputs.outputs.publish == 'true'
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    steps:
+      - name: Download Packages Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: false
+
+      - name: Publish packages and symbols to NuGet
+        shell: bash
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_API_KEY secret is required to publish." >&2
+            exit 1
+          fi
+          shopt -s nullglob
+          pkgs=(./artifacts/*.nupkg)
+          if [ ${#pkgs[@]} -eq 0 ]; then
+            echo "No .nupkg found in artifacts to publish." >&2
+            exit 1
+          fi
+          for pkg in "${pkgs[@]}"; do
+            echo "Pushing $pkg"
+            dotnet nuget push "$pkg" \
+              --source "https://api.nuget.org/v3/index.json" \
+              --api-key "$NUGET_API_KEY" \
+              --skip-duplicate
+          done
+
+  publish-s3:
+    name: Publish ZIP to S3
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, pack]
+    if: needs.validate-inputs.outputs.publish == 'true'
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      MINOR: ${{ needs.validate-inputs.outputs.minor }}
+      S3_BUCKET: packages.couchbase.com
+      AWS_REGION: us-east-1
+    steps:
+      - name: Download Packages Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts
+
+      - name: Create release ZIP
+        shell: bash
+        run: |
+          ZIP="Couchbase-Net-Client-${VERSION}.zip"
+          (cd artifacts && zip -j -q "../$ZIP" *.nupkg *.snupkg)
+          echo "Created $ZIP:"
+          unzip -l "$ZIP"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        shell: bash
+        run: |
+          ZIP="Couchbase-Net-Client-${VERSION}.zip"
+          aws s3 cp "$ZIP" "s3://$S3_BUCKET/clients/net/$MINOR/$ZIP" --acl public-read
+
+  smoke-summary:
+    name: Smoke Summary
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, build-and-test, pack]
+    if: github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.publish != 'true'
+    steps:
+      - name: Download Packages Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## Release smoke run"
+            echo ""
+            echo "- Tag: \`${{ needs.validate-inputs.outputs.tag }}\`"
+            echo "- Version: \`${{ needs.validate-inputs.outputs.version }}\`"
+            echo "- Packages built:"
+            for pkg in ./artifacts/*.nupkg; do echo "  - \`$(basename "$pkg")\`"; done
+          } >> "$GITHUB_STEP_SUMMARY"

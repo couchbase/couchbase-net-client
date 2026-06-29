@@ -40,7 +40,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         /// <inheritdoc cref="Task{T}.GetAwaiter" />
         public TaskAwaiter<T> GetAwaiter() => Value.GetAwaiter();
 
-        /// <inheritdoc cref="Task{T}.ConfigureAwait" />
+        /// <inheritdoc cref="Task{T}.ConfigureAwait(bool)" />
         public ConfiguredTaskAwaitable<T> ConfigureAwait(bool continueOnCapturedContext) =>
             Value.ConfigureAwait(continueOnCapturedContext);
 
