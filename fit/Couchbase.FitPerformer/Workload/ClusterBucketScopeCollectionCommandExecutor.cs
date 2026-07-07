@@ -317,6 +317,18 @@ namespace Couchbase.FitPerformer
                 {
                     var request = op.CollectionCommand.LookupIn;
                     var options = OptionsUtil.ConvertLookupInOptions(request.Options);
+                    // contentAs(byte[]) is a raw-passthrough read cross-SDK (see the Java performer /
+                    // DefaultJsonSerializer). .NET's default serializer base64s byte[], so a bare
+                    // contentAs<byte[]> base64-decodes instead of returning the raw wire bytes. When a
+                    // spec reads byte[], supply a passthrough serializer (mirroring Java) via a per-op
+                    // transcoder so the raw fragment bytes are returned. Opt-in per-op; does not change
+                    // the SDK default (Queue<byte[]>/CBSE-22994 unaffected). Non-byte[] specs still use
+                    // normal JSON, so mixed-spec lookups behave correctly.
+                    if (request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray))
+                    {
+                        options = options.Transcoder(new Couchbase.Core.IO.Transcoders.JsonTranscoder(
+                            new Couchbase.Core.IO.Serializers.RawByteArraySerializer(new Couchbase.Core.IO.Serializers.DefaultSerializer())));
+                    }
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);

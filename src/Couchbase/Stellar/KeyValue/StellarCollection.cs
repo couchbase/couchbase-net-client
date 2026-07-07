@@ -282,6 +282,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
         var request = KeyedRequest<LookupInRequest>(id);
         foreach (var spec in specs)
@@ -302,7 +303,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         };
         stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.LookupIn, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new LookupInResult(response, request, _stellarCluster.TypeTranscoder);
+        return new LookupInResult(response, request, transcoder);
 
         async Task<LookupInResponse> GrpcCall()
         {
@@ -364,7 +365,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         };
         stellarRequest.SetMetrics(OuterRequestSpans.ServiceSpan.Kv.Name, OuterRequestSpans.ServiceSpan.Kv.MutateIn, childSpan, _bucketName, _scopeName, Name);
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
-        return new MutateInResult(response, request, _stellarCluster.TypeTranscoder);
+        return new MutateInResult(response, request, transcoder);
 
         async Task<MutateInResponse> GrpcCall()
         {
