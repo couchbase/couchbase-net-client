@@ -317,6 +317,9 @@ namespace Couchbase.FitPerformer
                 {
                     var request = op.CollectionCommand.LookupIn;
                     var options = OptionsUtil.ConvertLookupInOptions(request.Options);
+                    var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
+                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                    if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
@@ -331,6 +334,9 @@ namespace Couchbase.FitPerformer
                 {
                     var request = op.CollectionCommand.LookupInAllReplicas;
                     var options = OptionsUtil.ConvertLookupInAllReplicasOptions(request.Options, _spans);
+                    var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
+                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                    if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
@@ -356,6 +362,9 @@ namespace Couchbase.FitPerformer
                 {
                     var request = op.CollectionCommand.LookupInAnyReplica;
                     var options = OptionsUtil.ConvertLookupInAnyReplicasOptions(request.Options, _spans);
+                    var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
+                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                    if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
@@ -369,6 +378,27 @@ namespace Couchbase.FitPerformer
                 default:
                     throw new NotSupportedException("Unknown Collection Command");
             }
+        }
+
+        // contentAs(byte[]) is a raw-passthrough read cross-SDK (see the Java performer /
+        // DefaultJsonSerializer). .NET's default serializer base64s byte[], so a bare
+        // contentAs<byte[]> base64-decodes instead of returning the raw wire bytes. When any spec
+        // reads byte[], supply a passthrough serializer (mirroring Java) via a per-op transcoder so
+        // the raw fragment bytes are returned. Opt-in per-op; does not change the SDK default
+        // (Queue<byte[]>/CBSE-22994 unaffected). Decorate the cluster's *configured* serializer
+        // (honoring UseCustomSerializer) rather than hard-coding DefaultSerializer, so non-byte[]
+        // specs in a mixed-spec lookup keep the cluster's serialization semantics. Shared by the
+        // LookupIn / LookupInAllReplicas / LookupInAnyReplica paths.
+        private static Couchbase.Core.IO.Transcoders.ITypeTranscoder? RawByteArrayTranscoderIfNeeded(
+            bool anyByteArraySpec, ClusterConnection connection)
+        {
+            if (!anyByteArraySpec) return null;
+            var configuredSerializer =
+                connection.Cluster.ClusterServices.GetService(typeof(Couchbase.Core.IO.Serializers.ITypeSerializer))
+                    as Couchbase.Core.IO.Serializers.ITypeSerializer
+                ?? new Couchbase.Core.IO.Serializers.DefaultSerializer();
+            return new Couchbase.Core.IO.Transcoders.JsonTranscoder(
+                new Couchbase.Core.IO.Serializers.RawByteArraySerializer(configuredSerializer));
         }
 
         private static async Task HandleScopeLevelCommand(Grpc.Protocol.Sdk.Command op, ClusterConnection connection, Result result)

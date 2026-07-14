@@ -96,6 +96,9 @@ namespace Couchbase.Stellar.KeyValue
             var spec = SpecOrInvalid(index);
             if (spec.Status == null || spec.Status.Code == (int)StatusCode.OK)
             {
+                // ContentFlags is 0 by design: protostellar's LookupIn/MutateIn responses carry no per-spec
+                // content flags. Subdoc fragments are JSON and decode via the serializer (flags unused);
+                // whole-doc reads that need flags go through Get/GetResponse, which does carry them. Matches classic.
                 var contentWrapper = new GrpcContentWrapper(Content: spec.Content.Memory, ContentFlags: 0,
                     Transcoder, IsFullDoc: OriginalRequest.Specs[index].Path.Length == 0);
                 return contentWrapper.ContentAs<T>();
@@ -159,6 +162,9 @@ namespace Couchbase.Stellar.KeyValue
         public T? ContentAs<T>(int index)
         {
             var spec = SpecOrInvalid(index);
+            // ContentFlags is 0 by design: protostellar's LookupIn/MutateIn responses carry no per-spec
+            // content flags. Subdoc fragments are JSON and decode via the serializer (flags unused);
+            // whole-doc reads that need flags go through Get/GetResponse, which does carry them. Matches classic.
             var contentWrapper = new GrpcContentWrapper(Content: spec.Content.Memory, ContentFlags: 0, Transcoder: Transcoder, IsFullDoc: false);
             return contentWrapper.ContentAs<T>();
         }
