@@ -322,12 +322,18 @@ namespace Couchbase.FitPerformer
                     // contentAs<byte[]> base64-decodes instead of returning the raw wire bytes. When a
                     // spec reads byte[], supply a passthrough serializer (mirroring Java) via a per-op
                     // transcoder so the raw fragment bytes are returned. Opt-in per-op; does not change
-                    // the SDK default (Queue<byte[]>/CBSE-22994 unaffected). Non-byte[] specs still use
-                    // normal JSON, so mixed-spec lookups behave correctly.
+                    // the SDK default (Queue<byte[]>/CBSE-22994 unaffected). Decorate the cluster's
+                    // *configured* serializer (honoring UseCustomSerializer) rather than hard-coding
+                    // DefaultSerializer, so non-byte[] specs in a mixed-spec lookup keep the cluster's
+                    // serialization semantics.
                     if (request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray))
                     {
+                        var configuredSerializer =
+                            connection.Cluster.ClusterServices.GetService(typeof(Couchbase.Core.IO.Serializers.ITypeSerializer))
+                                as Couchbase.Core.IO.Serializers.ITypeSerializer
+                            ?? new Couchbase.Core.IO.Serializers.DefaultSerializer();
                         options = options.Transcoder(new Couchbase.Core.IO.Transcoders.JsonTranscoder(
-                            new Couchbase.Core.IO.Serializers.RawByteArraySerializer(new Couchbase.Core.IO.Serializers.DefaultSerializer())));
+                            new Couchbase.Core.IO.Serializers.RawByteArraySerializer(configuredSerializer)));
                     }
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
