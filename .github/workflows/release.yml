@@ -344,11 +344,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-inputs, pack]
     if: needs.validate-inputs.outputs.publish == 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
     env:
       VERSION: ${{ needs.validate-inputs.outputs.version }}
       MINOR: ${{ needs.validate-inputs.outputs.minor }}
       S3_BUCKET: packages.couchbase.com
-      AWS_REGION: us-east-1
+      AWS_REGION: us-west-1
     steps:
       - name: Download Packages Artifact
         uses: actions/download-artifact@v4
@@ -364,12 +367,11 @@ jobs:
           echo "Created $ZIP:"
           unzip -l "$ZIP"
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
 
       - name: Upload to S3
         shell: bash
@@ -382,12 +384,38 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-inputs, build-and-test, pack]
     if: github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.publish != 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
+    env:
+      S3_BUCKET: packages.couchbase.com
+      AWS_REGION: us-west-1
     steps:
       - name: Download Packages Artifact
         uses: actions/download-artifact@v4
         with:
           name: nuget-packages
           path: ./artifacts
+
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
+
+      - name: Smoke test AWS S3 publish access
+        shell: bash
+        run: |
+          # Reversible round-trip against the SAME role and prefix the real publish-s3
+          # job uses, so publish=false exercises OIDC trust + s3:PutObject + s3:PutObjectAcl
+          # (the --acl public-read) without publishing a real release artifact.
+          KEY="clients/net/_smoke/smoke-${{ github.run_id }}.txt"
+          echo "release-smoke ${{ github.run_id }}" > smoke.txt
+          aws s3 cp smoke.txt "s3://${S3_BUCKET}/${KEY}" --acl public-read
+          curl -fsSI "https://${S3_BUCKET}/${KEY}" > /dev/null
+          echo "✓ Uploaded and publicly readable: https://${S3_BUCKET}/${KEY}"
+          aws s3 rm "s3://${S3_BUCKET}/${KEY}" \
+            || echo "⚠ Could not delete smoke object (role may lack s3:DeleteObject) — harmless, remove manually."
 
       - name: Summary
         shell: bash
@@ -397,6 +425,7 @@ jobs:
             echo ""
             echo "- Tag: \`${{ needs.validate-inputs.outputs.tag }}\`"
             echo "- Version: \`${{ needs.validate-inputs.outputs.version }}\`"
+            echo "- AWS S3 publish access: ✅ verified via OIDC role \`SDK_GHA\`"
             echo "- Packages built:"
             for pkg in ./artifacts/*.nupkg; do echo "  - \`$(basename "$pkg")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
