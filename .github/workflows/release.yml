@@ -138,7 +138,7 @@ jobs:
         run: dotnet restore couchbase-net-client.sln
 
       - name: Build (Release)
-        run: dotnet build couchbase-net-client.sln --configuration Release --no-restore /p:Version=${{ needs.validate-inputs.outputs.version }}
+        run: dotnet build couchbase-net-client.sln --configuration Release /p:Version=${{ needs.validate-inputs.outputs.version }}
 
       - name: Test - Couchbase.UnitTests (net8.0)
         run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --framework net8.0 --no-build --logger "trx;LogFileName=unit-tests-net8.0.trx" --results-directory "TestResults"
@@ -211,6 +211,7 @@ jobs:
             dotnet pack $proj `
               -c Release `
               --output artifacts `
+              /p:GeneratePackageOnBuild=false `
               /p:ContinuousIntegrationBuild=true `
               /p:Version="$env:VERSION" `
               /p:IncludeSymbols=true `
@@ -429,3 +430,17 @@ jobs:
             echo "- Packages built:"
             for pkg in ./artifacts/*.nupkg; do echo "  - \`$(basename "$pkg")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Build (and, on a real release, publish) the API docs using the same publish
+  # value this release was invoked with. apidocs.yml stays independently
+  # dispatchable; here it runs automatically as part of the release.
+  publish-docs:
+    name: API Docs
+    needs: [validate-inputs, pack]
+    permissions:
+      id-token: write   # apidocs.yml uses OIDC to reach the docs S3 bucket
+      contents: read
+    uses: ./.github/workflows/apidocs.yml
+    with:
+      version_tag: ${{ needs.validate-inputs.outputs.tag }}
+      publish: ${{ needs.validate-inputs.outputs.publish == 'true' }}

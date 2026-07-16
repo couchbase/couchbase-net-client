@@ -15,6 +15,19 @@ on:
         type: boolean
         required: false
         default: false
+  workflow_call:
+    inputs:
+      version_tag:
+        type: string
+        required: true
+      build_ref:
+        type: string
+        required: false
+        default: ''
+      publish:
+        type: boolean
+        required: false
+        default: false
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -34,9 +47,10 @@ jobs:
         name: Compute version, ref, publish flag
         shell: bash
         env:
-          INPUT_TAG: ${{ github.event.inputs.version_tag }}
-          INPUT_BUILD_REF: ${{ github.event.inputs.build_ref }}
-          INPUT_PUBLISH: ${{ github.event.inputs.publish }}
+          # `inputs` is populated for both workflow_dispatch and workflow_call.
+          INPUT_TAG: ${{ inputs.version_tag }}
+          INPUT_BUILD_REF: ${{ inputs.build_ref }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
           TAG_INPUT="$INPUT_TAG"
           BUILD_REF_INPUT="$INPUT_BUILD_REF"
@@ -130,6 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-inputs, build-docs]
     if: needs.validate-inputs.outputs.publish == 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
     env:
       VERSION: ${{ needs.validate-inputs.outputs.version }}
       API_NAME: couchbase-net-client
@@ -147,13 +164,46 @@ jobs:
           mkdir -p site
           unzip -q "./apidocs/$API_NAME-$VERSION.zip" -d site
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
 
       - name: Publish to S3
         run: |
           aws s3 sync ./site/ "s3://$S3_BUCKET/sdk-api/$API_NAME-$VERSION/" --acl public-read --delete
+
+  smoke-docs-s3:
+    name: Smoke test docs S3 access
+    runs-on: ubuntu-latest
+    needs: [validate-inputs]
+    if: needs.validate-inputs.outputs.publish != 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
+    env:
+      AWS_REGION: us-west-1
+      S3_BUCKET: docs.couchbase.com
+    steps:
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
+
+      - name: Smoke test docs S3 write access
+        shell: bash
+        run: |
+          # Reversible round-trip under the same sdk-api/ prefix the real publish
+          # uses. The real publish is `aws s3 sync --delete`, so exercise every op
+          # it needs -- PutObject, PutObjectAcl, ListBucket, DeleteObject -- so a
+          # green smoke guarantees the real docs publish will work. bash runs with
+          # -eo pipefail, so any denied op fails the step (no best-effort here).
+          KEY="sdk-api/_smoke/smoke-${{ github.run_id }}.txt"
+          echo "docs-smoke ${{ github.run_id }}" > smoke.txt
+          aws s3 cp smoke.txt "s3://${S3_BUCKET}/${KEY}" --acl public-read   # PutObject + PutObjectAcl
+          curl -fsSI "https://${S3_BUCKET}/${KEY}" > /dev/null               # public-read landed
+          aws s3 ls "s3://${S3_BUCKET}/sdk-api/_smoke/" > /dev/null          # ListBucket (sync diffs the prefix)
+          aws s3 rm "s3://${S3_BUCKET}/${KEY}"                               # DeleteObject (sync --delete)
+          echo "✓ docs S3 access verified (put + public-read acl + list + delete)"
