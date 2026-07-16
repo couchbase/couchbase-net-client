@@ -196,12 +196,14 @@ jobs:
         shell: bash
         run: |
           # Reversible round-trip under the same sdk-api/ prefix the real publish
-          # uses, so publish=false exercises the OIDC role's write + public-read ACL
-          # to the docs bucket without publishing real docs.
+          # uses. The real publish is `aws s3 sync --delete`, so exercise every op
+          # it needs -- PutObject, PutObjectAcl, ListBucket, DeleteObject -- so a
+          # green smoke guarantees the real docs publish will work. bash runs with
+          # -eo pipefail, so any denied op fails the step (no best-effort here).
           KEY="sdk-api/_smoke/smoke-${{ github.run_id }}.txt"
           echo "docs-smoke ${{ github.run_id }}" > smoke.txt
-          aws s3 cp smoke.txt "s3://${S3_BUCKET}/${KEY}" --acl public-read
-          curl -fsSI "https://${S3_BUCKET}/${KEY}" > /dev/null
-          echo "✓ docs S3 write/read OK: https://${S3_BUCKET}/${KEY}"
-          aws s3 rm "s3://${S3_BUCKET}/${KEY}" \
-            || echo "⚠ Could not delete smoke object (role may lack s3:DeleteObject) — harmless, remove manually."
+          aws s3 cp smoke.txt "s3://${S3_BUCKET}/${KEY}" --acl public-read   # PutObject + PutObjectAcl
+          curl -fsSI "https://${S3_BUCKET}/${KEY}" > /dev/null               # public-read landed
+          aws s3 ls "s3://${S3_BUCKET}/sdk-api/_smoke/" > /dev/null          # ListBucket (sync diffs the prefix)
+          aws s3 rm "s3://${S3_BUCKET}/${KEY}"                               # DeleteObject (sync --delete)
+          echo "✓ docs S3 access verified (put + public-read acl + list + delete)"
