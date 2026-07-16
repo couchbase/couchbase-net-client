@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       fit_cli_preset:
-        description: FIT preset to run.
+        description: FIT preset to run (run `fit preset list` to view all)
         required: false
         type: string
-        default: qe-set
+        default: op-multi-lite
       fit_cli_channel:
         description: fit-cli install channel ("latest" or "ci").
         required: false
@@ -24,6 +24,6 @@ jobs:
   run-dotnet-fit:
     uses: ./.github/workflows/fit-testing-shared.yml
     with:
-      preset: ${{ vars.FIT_CLI_PRESET || inputs.fit_cli_preset || 'qe-set' }}
+      preset: ${{ vars.FIT_CLI_PRESET || inputs.fit_cli_preset || 'op-multi-lite' }}
       performer_image_name: 'dotnet-fit-performer:main'
       fit_cli_channel: ${{ vars.FIT_CLI_CHANNEL || inputs.fit_cli_channel || 'ci' }}
