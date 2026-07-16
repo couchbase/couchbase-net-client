@@ -430,3 +430,15 @@ jobs:
             echo "- Packages built:"
             for pkg in ./artifacts/*.nupkg; do echo "  - \`$(basename "$pkg")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Build (and, on a real release, publish) the API docs using the same publish
+  # value this release was invoked with. apidocs.yml stays independently
+  # dispatchable; here it runs automatically as part of the release.
+  publish-docs:
+    name: API Docs
+    needs: [validate-inputs, pack]
+    uses: ./.github/workflows/apidocs.yml
+    with:
+      version_tag: ${{ needs.validate-inputs.outputs.tag }}
+      publish: ${{ needs.validate-inputs.outputs.publish == 'true' }}
+    secrets: inherit
