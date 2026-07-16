@@ -211,6 +211,7 @@ jobs:
             dotnet pack $proj `
               -c Release `
               --output artifacts `
+              /p:GeneratePackageOnBuild=false `
               /p:ContinuousIntegrationBuild=true `
               /p:Version="$env:VERSION" `
               /p:IncludeSymbols=true `
