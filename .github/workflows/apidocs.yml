@@ -144,6 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-inputs, build-docs]
     if: needs.validate-inputs.outputs.publish == 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
     env:
       VERSION: ${{ needs.validate-inputs.outputs.version }}
       API_NAME: couchbase-net-client
@@ -161,13 +164,44 @@ jobs:
           mkdir -p site
           unzip -q "./apidocs/$API_NAME-$VERSION.zip" -d site
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
 
       - name: Publish to S3
         run: |
           aws s3 sync ./site/ "s3://$S3_BUCKET/sdk-api/$API_NAME-$VERSION/" --acl public-read --delete
+
+  smoke-docs-s3:
+    name: Smoke test docs S3 access
+    runs-on: ubuntu-latest
+    needs: [validate-inputs]
+    if: needs.validate-inputs.outputs.publish != 'true'
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for AWS
+      contents: read
+    env:
+      AWS_REGION: us-west-1
+      S3_BUCKET: docs.couchbase.com
+    steps:
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::786014483886:role/SDK_GHA
+
+      - name: Smoke test docs S3 write access
+        shell: bash
+        run: |
+          # Reversible round-trip under the same sdk-api/ prefix the real publish
+          # uses, so publish=false exercises the OIDC role's write + public-read ACL
+          # to the docs bucket without publishing real docs.
+          KEY="sdk-api/_smoke/smoke-${{ github.run_id }}.txt"
+          echo "docs-smoke ${{ github.run_id }}" > smoke.txt
+          aws s3 cp smoke.txt "s3://${S3_BUCKET}/${KEY}" --acl public-read
+          curl -fsSI "https://${S3_BUCKET}/${KEY}" > /dev/null
+          echo "✓ docs S3 write/read OK: https://${S3_BUCKET}/${KEY}"
+          aws s3 rm "s3://${S3_BUCKET}/${KEY}" \
+            || echo "⚠ Could not delete smoke object (role may lack s3:DeleteObject) — harmless, remove manually."

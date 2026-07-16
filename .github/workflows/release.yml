@@ -437,8 +437,10 @@ jobs:
   publish-docs:
     name: API Docs
     needs: [validate-inputs, pack]
+    permissions:
+      id-token: write   # apidocs.yml uses OIDC to reach the docs S3 bucket
+      contents: read
     uses: ./.github/workflows/apidocs.yml
     with:
       version_tag: ${{ needs.validate-inputs.outputs.tag }}
       publish: ${{ needs.validate-inputs.outputs.publish == 'true' }}
-    secrets: inherit
