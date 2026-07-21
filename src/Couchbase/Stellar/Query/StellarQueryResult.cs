@@ -9,6 +9,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Core.Retry;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.Core;
@@ -22,15 +23,17 @@ internal class StellarQueryResult<T> : IQueryResult<T>
     private readonly AsyncServerStreamingCall<QueryResponse> _streamingQueryResponse;
     private readonly ITypeSerializer _serializer;
     private readonly IAsyncStreamReader<QueryResponse> _streamReader;
+    private readonly Action<Exception> _onStreamError;
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private volatile bool _disposed;
 
-    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer)
+    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer, Action<Exception> onStreamError)
     {
         _streamingQueryResponse = streamingQueryResponse;
         _streamReader = _streamingQueryResponse.ResponseStream;
         _serializer = serializer;
+        _onStreamError = onStreamError;
     }
     public void Dispose()
     {
@@ -96,9 +99,26 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         }
         _tempResults.Clear();
 
-        //enumerate the rest of te responses
-        while (await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false))
+        //enumerate the rest of the responses. The first response was already read under the retry
+        //orchestrator (see StellarQueryClient); anything that fails here is mid-stream and cannot be
+        //retried. Per RFC 77 a retryable error is surfaced as RequestCancelled and a terminal error is
+        //mapped normally, both via _onStreamError. (MoveNext is read inside the try; the yields stay
+        //outside it because C# forbids `yield return` inside a try that has a catch.)
+        while (true)
         {
+            bool hasNext;
+            try
+            {
+                hasNext = await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+            {
+                _onStreamError(e); // always throws
+                throw; // unreachable, satisfies definite assignment
+            }
+
+            if (!hasNext) break;
+
             foreach (var queryResponse in _streamReader.Current.Rows)
             {
                 if (queryResponse == null) continue;
@@ -106,27 +126,6 @@ internal class StellarQueryResult<T> : IQueryResult<T>
                 if (deserializedObj == null)
                 {
                     Errors.Add(new Error { Message = "Failed to deserialize item." });
-                }
-                else
-                {
-                    yield return deserializedObj;
-                }
-            }
-        }
-    }
-
-    public async IAsyncEnumerator<T> GetAsyncEnumerator2(CancellationToken cancellationToken = new())
-    {
-        var responseStream = _streamingQueryResponse.ResponseStream;
-        while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
-        {
-            foreach (var queryResponse in responseStream.Current.Rows)
-            {
-                if (queryResponse == null) continue;
-                var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
-                if (deserializedObj == null)
-                {
-                    Errors.Add(new Error { Message = "Failed to deserialize item."});
                 }
                 else
                 {

@@ -1,4 +1,5 @@
 #if NETCOREAPP3_1_OR_GREATER
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,6 +7,7 @@ using Couchbase.Analytics;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Analytics.V1;
+using Couchbase.Stellar.Core.Retry;
 using Grpc.Core;
 
 namespace Couchbase.Stellar.Analytics;
@@ -16,11 +18,13 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
 {
     private readonly AsyncServerStreamingCall<AnalyticsQueryResponse> _streamingAnalyticsResponse;
     private readonly ITypeSerializer _serializer;
+    private readonly Action<Exception> _onStreamError;
 
-    public ProtoAnalyticsResult(AsyncServerStreamingCall<AnalyticsQueryResponse> streamingAnalyticsResponse, ITypeSerializer serializer)
+    public ProtoAnalyticsResult(AsyncServerStreamingCall<AnalyticsQueryResponse> streamingAnalyticsResponse, ITypeSerializer serializer, Action<Exception> onStreamError)
     {
         _streamingAnalyticsResponse = streamingAnalyticsResponse;
         _serializer = serializer;
+        _onStreamError = onStreamError;
     }
 
     public void Dispose()
@@ -31,8 +35,26 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new())
     {
         var responseStream = _streamingAnalyticsResponse.ResponseStream;
-        while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
+
+        // Analytics results stream lazily to the caller, so a failure while reading is mid-stream and
+        // cannot be retried. Per RFC 77 it is mapped via _onStreamError (retryable → RequestCancelled,
+        // terminal → standard mapping). MoveNext is read inside the try; the yields stay outside it
+        // because C# forbids `yield return` inside a try that has a catch.
+        while (true)
         {
+            bool hasNext;
+            try
+            {
+                hasNext = await responseStream.MoveNext(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+            {
+                _onStreamError(e); // always throws
+                throw; // unreachable, satisfies definite assignment
+            }
+
+            if (!hasNext) break;
+
             var responseMetaData = responseStream.Current.MetaData;
             MetaData = new AnalyticsMetaData
             {

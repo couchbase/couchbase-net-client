@@ -78,6 +78,77 @@ public class StellarRetryHandlerTests
             async () => await handler.RetryAsync(GrpcCall, request));
     }
 
+    // ──────────────────────────────────────────────────────────
+    //  CNG-16: mid-stream streaming errors (RFC 77 Streaming → Error handling).
+    //  A retryable error that occurs after the first response cannot be retried
+    //  (rows may already have been delivered), so it must surface as
+    //  RequestCancelled; a terminal error keeps its normal mapped type.
+    // ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ThrowMidStreamException_RetryableError_ThrowsRequestCancelled()
+    {
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+        var e = new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
+
+        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
+            () => handler.ThrowMidStreamException(e, request));
+    }
+
+    [Fact]
+    public void ThrowMidStreamException_TransientTransportError_ThrowsRequestCancelled()
+    {
+        // A mid-stream HTTP/2 transport failure surfaces as RpcException(Internal) with an inner
+        // transport exception; it is retryable, so mid-stream it becomes RequestCancelled.
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+        var inner = new System.Net.Http.HttpRequestException("Connection reset by peer");
+        var e = new RpcExceptionWithInner(new Status(StatusCode.Internal, "Internal error"), inner);
+
+        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
+            () => handler.ThrowMidStreamException(e, request));
+    }
+
+    [Fact]
+    public void ThrowMidStreamException_BareTransportException_ThrowsRequestCancelled()
+    {
+        // A transport failure that surfaces outside an RpcException (a bare HttpRequestException or
+        // IOException, mid-stream) is retryable, so it becomes RequestCancelled.
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+        var e = new System.Net.Http.HttpRequestException("Connection reset by peer");
+
+        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
+            () => handler.ThrowMidStreamException(e, request));
+    }
+
+    [Fact]
+    public void ThrowMidStreamException_TerminalError_ThrowsMappedException()
+    {
+        // A terminal (non-retryable) mid-stream error keeps its mapped type rather than being
+        // converted to RequestCancelled.
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+        var e = new RpcException(new Status(StatusCode.PermissionDenied, "denied"));
+
+        Assert.Throws<Couchbase.AuthenticationFailureException>(
+            () => handler.ThrowMidStreamException(e, request));
+    }
+
+    [Fact]
+    public void ThrowMidStreamException_GenuineInternalError_ThrowsMappedException()
+    {
+        // A genuine server Internal error (no transport inner) is terminal and maps to
+        // InternalServerFailureException, not RequestCancelled.
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+        var e = new RpcException(new Status(StatusCode.Internal, "Internal server error processing request"));
+
+        Assert.Throws<Couchbase.Core.Exceptions.InternalServerFailureException>(
+            () => handler.ThrowMidStreamException(e, request));
+    }
+
     [Fact]
     public async Task NestedIOException_InHttpRequestException_IsRetried()
     {

@@ -89,6 +89,48 @@ internal class StellarRetryHandler : IRetryOrchestrator
         }
     }
 
+    /// <summary>
+    /// Maps an <see cref="RpcException"/> raised while reading a streaming result <b>after</b> the
+    /// first response has already been returned to the caller. Per RFC 77 (Streaming → Error
+    /// handling), a mid-stream error cannot be retried because rows may already have been delivered:
+    /// a retryable error is surfaced as <see cref="RequestCanceledException"/>, while a terminal
+    /// error is mapped through the standard <see cref="HandleException"/> handling. This method
+    /// always throws.
+    /// </summary>
+    internal void ThrowMidStreamException(Exception e, IRequest request)
+    {
+        var context = new GenericErrorContext();
+
+        if (e is RpcException rpc && rpc.StatusCode != StatusCode.OK)
+        {
+            // Throws a mapped exception for terminal codes; for retryable codes it records a retry
+            // reason on the context and returns (we must not actually retry mid-stream).
+            HandleException(rpc, request, context);
+        }
+        else if (IsTransientTransportException(e))
+        {
+            // A transport failure (connection reset / broken pipe) that surfaced outside an
+            // RpcException, mirroring RetryAsync's transient-transport catch — retryable.
+            context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
+        }
+        else
+        {
+            // Not a gRPC status error and not a recognised transient transport failure — nothing we
+            // map here; let it propagate unchanged.
+            throw e;
+        }
+
+        // Reached only for a retryable error. Per RFC 77 a mid-stream error cannot be retried (rows
+        // may already have been delivered), so fail as RequestCancelled, carrying the SDK error
+        // context (retry reason / server detail). Per RFC 77 we deliberately do NOT nest the raw gRPC
+        // exception as an InnerException (TODO CNG-4: add lastException/lastError to the context).
+        throw new RequestCanceledException(
+            "A retryable error occurred mid-stream; the request was cancelled and cannot be retried.")
+        {
+            Context = context
+        };
+    }
+
     private void HandleException(RpcException protoException, IRequest request, GenericErrorContext context)
     {
         var status = protoException.StatusCode;
@@ -316,7 +358,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
     /// Determines whether an exception (or any exception in its InnerException chain)
     /// represents a transient transport failure that should be retried.
     /// </summary>
-    private static bool IsTransientTransportException(Exception? e)
+    internal static bool IsTransientTransportException(Exception? e)
     {
         while (e is not null)
         {

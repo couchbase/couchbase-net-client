@@ -23,9 +23,9 @@ internal class StellarQueryClient : IQueryClient
     private readonly StellarCluster _stellarCluster;
     private readonly QueryService.QueryServiceClient _queryClient;
     private readonly ITypeSerializer _typeSerializer;
-    private readonly IRetryOrchestrator _retryHandler;
+    private readonly StellarRetryHandler _retryHandler;
 
-    internal StellarQueryClient(StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient, ITypeSerializer typeSerializer, IRetryOrchestrator  retryHandler)
+    internal StellarQueryClient(StellarCluster stellarCluster, QueryService.QueryServiceClient queryClient, ITypeSerializer typeSerializer, StellarRetryHandler retryHandler)
     {
         _stellarCluster = stellarCluster;
         _queryClient = queryClient;
@@ -109,11 +109,14 @@ internal class StellarQueryClient : IQueryClient
             opts.BucketName,
             opts.ScopeName);
 
+        // The Stellar retry orchestrator maps mid-stream errors (RFC 77): retryable → RequestCancelled,
+        // terminal → standard mapping.
         async Task<IQueryResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var asyncResponse = _queryClient.Query(protoRequest, callOptions);
-            var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer);
+            var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer,
+                e => _retryHandler.ThrowMidStreamException(e, stellarRequest));
             await streamingResult.InitializeAsync(opts.Token).ConfigureAwait(false);
             return streamingResult;
         }

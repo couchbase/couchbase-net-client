@@ -16,9 +16,9 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
 {
     private readonly StellarCluster _stellarCluster;
     private readonly AnalyticsService.AnalyticsServiceClient _analyticsClient;
-    private readonly IRetryOrchestrator _retryHandler;
+    private readonly StellarRetryHandler _retryHandler;
 
-    public StellarAnalyticsClient(StellarCluster stellarCluster, AnalyticsService.AnalyticsServiceClient analyticsClient, IRetryOrchestrator retryHandler)
+    public StellarAnalyticsClient(StellarCluster stellarCluster, AnalyticsService.AnalyticsServiceClient analyticsClient, StellarRetryHandler retryHandler)
     {
         _stellarCluster = stellarCluster;
         _analyticsClient = analyticsClient;
@@ -66,11 +66,14 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
             opts.BucketName,
             opts.ScopeName);
 
+        // The Stellar retry orchestrator maps mid-stream errors (RFC 77): retryable → RequestCancelled,
+        // terminal → standard mapping.
         async Task<IAnalyticsResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var response = _analyticsClient.AnalyticsQuery(analyticsRequest, callOptions);
-            return new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer);
+            return new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer,
+                e => _retryHandler.ThrowMidStreamException(e, stellarRequest));
         }
 
         return await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
