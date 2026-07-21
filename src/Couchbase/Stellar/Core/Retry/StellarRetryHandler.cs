@@ -189,13 +189,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
                                 throw new CasMismatchException(context);
                             case StellarRetryStrings.PreconditionLocked:
                             {
-                                // CNG reports a locked document as a PreconditionFailure "LOCKED"
-                                // detail block. Per RFC 77 this is a retryable condition (KV_LOCKED):
-                                // the document is only temporarily locked, so retry with backoff until
-                                // the timeout is exceeded rather than failing immediately. Mirrors the
-                                // FailedPrecondition/LOCKED path below and matches Java's KV_LOCKED
-                                // retry and Go's KVLockedRetryReason. Returns (rather than breaks) so
-                                // the retry loop resumes without falling through to the status switch.
+                                // Retryable per RFC 77 (KV_LOCKED). return (not break) so we retry with
+                                // backoff rather than falling through to the status switch.
                                 context.RetryReasons.Add(RetryReason.KvLocked);
                                 request.Attempts++;
                                 return;
@@ -232,6 +227,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.FailedPrecondition:
                 if (detail.Contains(StellarRetryStrings.Locked))
                 {
+                    // Same locked-document condition as the PreconditionFailure/LOCKED path above.
+                    context.RetryReasons.Add(RetryReason.KvLocked);
                     request.Attempts++;
                     break;
                 }

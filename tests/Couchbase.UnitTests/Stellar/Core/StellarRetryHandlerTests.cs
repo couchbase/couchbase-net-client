@@ -80,7 +80,9 @@ public class StellarRetryHandlerTests
 
         Assert.NotNull(result);
         Assert.Equal(3, callCount);
-        Assert.True(request.Attempts > 0, "Expected the LOCKED document to be retried.");
+        // Exactly one increment per failed call: guards against falling through to the status
+        // switch (which would increment Attempts a second time on a LOCKED detail string).
+        Assert.Equal(2u, request.Attempts);
     }
 
     [Fact]
