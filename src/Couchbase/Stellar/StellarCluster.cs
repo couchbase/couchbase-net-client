@@ -135,7 +135,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         {
             LoggerFactory = clusterOptions.Logging,
             HttpHandler = socketsHandler,
-            MaxReceiveMessageSize = null, // gRPC default is 4MB, which is too small for Couchbase documents
+            MaxReceiveMessageSize = 25 * 1024 * 1024, // 25 MiB (26214400 bytes) per RFC 77; accommodates the 20MB max doc plus overhead (gRPC default of 4MB is too small)
         };
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
