@@ -90,12 +90,10 @@ internal class StellarRetryHandler : IRetryOrchestrator
     }
 
     /// <summary>
-    /// Maps an <see cref="RpcException"/> raised while reading a streaming result <b>after</b> the
-    /// first response has already been returned to the caller. Per RFC 77 (Streaming → Error
-    /// handling), a mid-stream error cannot be retried because rows may already have been delivered:
-    /// a retryable error is surfaced as <see cref="RequestCanceledException"/>, while a terminal
-    /// error is mapped through the standard <see cref="HandleException"/> handling. This method
-    /// always throws.
+    /// Maps an error raised mid-stream — after the first response was returned — while reading a
+    /// streaming result. Per RFC 77 a mid-stream error cannot be retried (rows may already have been
+    /// delivered): retryable and transport errors become <see cref="RequestCanceledException"/>,
+    /// terminal errors are mapped via <see cref="HandleException"/>. Always throws.
     /// </summary>
     internal void ThrowMidStreamException(Exception e, IRequest request)
     {
@@ -103,27 +101,22 @@ internal class StellarRetryHandler : IRetryOrchestrator
 
         if (e is RpcException rpc && rpc.StatusCode != StatusCode.OK)
         {
-            // Throws a mapped exception for terminal codes; for retryable codes it records a retry
-            // reason on the context and returns (we must not actually retry mid-stream).
+            // Terminal codes throw here; retryable codes record a reason and return.
             HandleException(rpc, request, context);
         }
         else if (IsTransientTransportException(e))
         {
-            // A transport failure (connection reset / broken pipe) that surfaced outside an
-            // RpcException, mirroring RetryAsync's transient-transport catch — retryable.
+            // Transport failure outside an RpcException (e.g. connection reset) — retryable.
             context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
         }
         else
         {
-            // Not a gRPC status error and not a recognised transient transport failure — nothing we
-            // map here; let it propagate unchanged.
+            // Not something we map — let it propagate.
             throw e;
         }
 
-        // Reached only for a retryable error. Per RFC 77 a mid-stream error cannot be retried (rows
-        // may already have been delivered), so fail as RequestCancelled, carrying the SDK error
-        // context (retry reason / server detail). Per RFC 77 we deliberately do NOT nest the raw gRPC
-        // exception as an InnerException (TODO CNG-4: add lastException/lastError to the context).
+        // Retryable: carry the SDK error context. Per RFC 77 we don't nest the raw gRPC
+        // exception (TODO CNG-4: put the cause in lastException/lastError).
         throw new RequestCanceledException(
             "A retryable error occurred mid-stream; the request was cancelled and cannot be retried.")
         {

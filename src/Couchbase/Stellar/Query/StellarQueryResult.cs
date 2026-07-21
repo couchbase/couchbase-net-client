@@ -99,11 +99,9 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         }
         _tempResults.Clear();
 
-        //enumerate the rest of the responses. The first response was already read under the retry
-        //orchestrator (see StellarQueryClient); anything that fails here is mid-stream and cannot be
-        //retried. Per RFC 77 a retryable error is surfaced as RequestCancelled and a terminal error is
-        //mapped normally, both via _onStreamError. (MoveNext is read inside the try; the yields stay
-        //outside it because C# forbids `yield return` inside a try that has a catch.)
+        // First response was already read under the retry orchestrator; a failure here is
+        // mid-stream. Map it (see ThrowMidStreamException). MoveNext sits in the try because
+        // a yield can't live inside a catch.
         while (true)
         {
             bool hasNext;

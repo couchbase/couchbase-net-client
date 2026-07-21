@@ -78,12 +78,7 @@ public class StellarRetryHandlerTests
             async () => await handler.RetryAsync(GrpcCall, request));
     }
 
-    // ──────────────────────────────────────────────────────────
-    //  CNG-16: mid-stream streaming errors (RFC 77 Streaming → Error handling).
-    //  A retryable error that occurs after the first response cannot be retried
-    //  (rows may already have been delivered), so it must surface as
-    //  RequestCancelled; a terminal error keeps its normal mapped type.
-    // ──────────────────────────────────────────────────────────
+    // Mid-stream errors: retryable -> RequestCancelled, terminal -> mapped.
 
     [Fact]
     public void ThrowMidStreamException_RetryableError_ThrowsRequestCancelled()

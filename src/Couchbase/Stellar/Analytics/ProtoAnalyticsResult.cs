@@ -36,10 +36,8 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     {
         var responseStream = _streamingAnalyticsResponse.ResponseStream;
 
-        // Analytics results stream lazily to the caller, so a failure while reading is mid-stream and
-        // cannot be retried. Per RFC 77 it is mapped via _onStreamError (retryable → RequestCancelled,
-        // terminal → standard mapping). MoveNext is read inside the try; the yields stay outside it
-        // because C# forbids `yield return` inside a try that has a catch.
+        // A read failure here is mid-stream; map it (see ThrowMidStreamException).
+        // MoveNext sits in the try because a yield can't live inside a catch.
         while (true)
         {
             bool hasNext;

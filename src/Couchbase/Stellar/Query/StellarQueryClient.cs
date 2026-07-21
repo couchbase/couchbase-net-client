@@ -109,8 +109,6 @@ internal class StellarQueryClient : IQueryClient
             opts.BucketName,
             opts.ScopeName);
 
-        // The Stellar retry orchestrator maps mid-stream errors (RFC 77): retryable → RequestCancelled,
-        // terminal → standard mapping.
         async Task<IQueryResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
