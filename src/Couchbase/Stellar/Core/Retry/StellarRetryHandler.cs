@@ -89,13 +89,11 @@ internal class StellarRetryHandler : IRetryOrchestrator
         }
     }
 
-    // Ambiguous-vs-unambiguous timeout classification must be based on whether the operation
-    // mutates server state (read-only), not on idempotency. An idempotent-but-mutating op such as
-    // an upsert or MutateIn is safe to retry yet may still have applied on timeout, so it must
-    // surface as AmbiguousTimeoutException. StellarRequest exposes ReadOnly for this; fall back to
-    // Idempotent for any other IRequest implementation.
+    // Timeout ambiguity keys on whether the op mutates server state, not on idempotency: an
+    // idempotent-but-mutating op (GetAndLock, MutateIn, ...) is safe to retry yet may have applied
+    // on timeout, so it must surface as Ambiguous. Fall back to Idempotent for non-StellarRequest.
     private static bool IsReadOnly(IRequest request) =>
-        request is StellarRequest stellarRequest ? stellarRequest.ReadOnly : request.Idempotent;
+        (request as StellarRequest)?.ReadOnly ?? request.Idempotent;
 
     private void HandleException(RpcException protoException, IRequest request, GenericErrorContext context)
     {

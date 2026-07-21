@@ -33,22 +33,14 @@ public class StellarRequest : IRequest
     public uint Attempts { get; set; }
     public bool Idempotent { get; set; }
 
-    private bool? _readOnly;
-
     /// <summary>
-    /// Whether the operation only reads server state (i.e. never mutates data, expiry, or locks).
-    /// This drives ambiguous-vs-unambiguous timeout classification: a read-only op that times out
-    /// definitively did not mutate state (<see cref="Couchbase.Core.Exceptions.UnambiguousTimeoutException"/>),
-    /// whereas a mutating op might have (<see cref="Couchbase.Core.Exceptions.AmbiguousTimeoutException"/>).
-    /// Mirrors the classic SDK, where <c>IRequest.Idempotent</c> is defined as <c>IsReadOnly</c>
-    /// (see OperationBase). Defaults to <see cref="Idempotent"/> when not set explicitly, as the two
-    /// coincide for most operations; KV operations that are idempotent yet mutate state
-    /// (GetAndLock, GetAndTouch, MutateIn) set this to <c>false</c> explicitly.
+    /// Whether the operation only reads server state. Drives timeout ambiguity classification
+    /// (see <see cref="StellarRetryHandler"/>). Defaults to <see cref="Idempotent"/> when not set.
     /// </summary>
-    public bool ReadOnly
+    public bool? ReadOnly
     {
-        get => _readOnly ?? Idempotent;
-        set => _readOnly = value;
+        get => field ?? Idempotent;
+        set;
     }
 
     public List<RetryReason> RetryReasons { get; set; } = new();

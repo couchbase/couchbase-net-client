@@ -34,5 +34,28 @@ public class StellarQueryClientTests
 
         await result.GetAsyncEnumerator().MoveNextAsync();
     }
+
+    // CNG-2 regression: query idempotency (and thus timeout ambiguity) must track the ReadOnly option.
+    // A mutating query that times out may have applied, so it must surface as Ambiguous; a read-only
+    // one definitively did not, so it is Unambiguous.
+    [Theory]
+    [InlineData(true, typeof(Couchbase.Core.Exceptions.UnambiguousTimeoutException))]
+    [InlineData(false, typeof(Couchbase.Core.Exceptions.AmbiguousTimeoutException))]
+    public async Task QueryAsync_TimeoutAmbiguity_TracksReadOnlyOption(bool readOnly, System.Type expected)
+    {
+        var cluster = StellarMocks.CreateClusterFromMocks();
+        var queryServiceClient = new Mock<QueryService.QueryServiceClient>();
+        queryServiceClient
+            .Setup(x => x.Query(It.IsAny<QueryRequest>(), It.IsAny<CallOptions>()))
+            .Throws(new RpcException(new Status(StatusCode.DeadlineExceeded, "Deadline exceeded")));
+
+        var queryClient = new StellarQueryClient(cluster, queryServiceClient.Object,
+            SystemTextJsonSerializer.Create(), new StellarRetryHandler());
+
+        var ex = await Assert.ThrowsAnyAsync<System.Exception>(
+            () => queryClient.QueryAsync<dynamic>("SELECT 1;", new QueryOptions().Readonly(readOnly)));
+
+        Assert.IsType(expected, ex);
+    }
 }
 #endif
