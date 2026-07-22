@@ -44,7 +44,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
             {
                 if (request.Token.IsCancellationRequested)
                 {
-                    if (request.Idempotent)
+                    if (IsReadOnly(request))
                     {
                         throw new UnambiguousTimeoutException("The request timed out.", context);
                     }
@@ -88,6 +88,12 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 request.StopRecording();
         }
     }
+
+    // Timeout ambiguity keys on whether the op mutates server state, not on idempotency: an
+    // idempotent-but-mutating op (GetAndLock, MutateIn, ...) is safe to retry yet may have applied
+    // on timeout, so it must surface as Ambiguous. Fall back to Idempotent for non-StellarRequest.
+    private static bool IsReadOnly(IRequest request) =>
+        (request as StellarRequest)?.ReadOnly ?? request.Idempotent;
 
     private void HandleException(RpcException protoException, IRequest request, GenericErrorContext context)
     {
@@ -245,7 +251,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.Cancelled:
                 throw new RequestCanceledException();
             case StatusCode.DeadlineExceeded:
-                if (request.Idempotent) throw new UnambiguousTimeoutException(detail);
+                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail);
                 throw new AmbiguousTimeoutException();
             case StatusCode.Internal:
                 if (IsTransientGrpcTransportError(protoException))

@@ -55,7 +55,8 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
 
         var stellarRequest = new StellarRequest
         {
-            Idempotent = true,
+            // A read-only query is safe to retry and unambiguous on timeout; a mutating one is neither.
+            Idempotent = opts.Readonly,
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.AnalyticsTimeout
         };
