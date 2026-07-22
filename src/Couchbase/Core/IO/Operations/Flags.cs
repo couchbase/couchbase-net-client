@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using Couchbase.Core.IO.Converters;
 
@@ -14,6 +15,19 @@ namespace Couchbase.Core.IO.Operations
         public TypeCode TypeCode { get; set; }
 
         internal const int Size = 4; // we explicitly serialize into 4 bytes
+
+        /// <summary>
+        /// The canonical common flags for JSON content (a JSON object). Used as a fallback
+        /// when a persisted flags value is unavailable (e.g. a staged transaction mutation
+        /// written by an older/other SDK that did not record <c>txn.aux.uf</c>). Mirrors what
+        /// <see cref="Transcoders.JsonTranscoder.GetFormat{T}"/> emits for an object body.
+        /// </summary>
+        internal static Flags JsonCommonFlags => new()
+        {
+            DataFormat = DataFormat.Json,
+            Compression = Compression.None,
+            TypeCode = TypeCode.Object
+        };
 
         /// <summary>
         /// Read flags from a buffer. The buffer must be at least 4 bytes long.
@@ -49,6 +63,33 @@ namespace Couchbase.Core.IO.Operations
             buffer[0] = unchecked((byte)(((int) DataFormat & 0xf) | ((int) Compression & 0xe0)));  // DataFormat is lower 4 bits, compression higher 3 bits
             buffer[1] = 0;
             ByteConverter.FromUInt16((ushort)TypeCode, buffer.Slice(2));
+        }
+
+        /// <summary>
+        /// Encode these flags as the 32-bit "user flags" integer used to persist them in a document
+        /// xattr (e.g. the transaction <c>txn.aux.uf</c> staged user-flags field). Uses network byte
+        /// order (big-endian) so the common-flags/format nibble lands in the top byte, matching the
+        /// Common Flags SDK RFC and the other SDKs — i.e. <c>(ToUInt32() >> 24) &amp; 0xF</c> is the
+        /// document format. <see cref="Write"/> already emits that byte first, so a big-endian read
+        /// places it in the most-significant byte.
+        /// </summary>
+        internal readonly uint ToUInt32()
+        {
+            Span<byte> span = stackalloc byte[Size];
+            Write(span);
+            return BinaryPrimitives.ReadUInt32BigEndian(span);
+        }
+
+        /// <summary>
+        /// The exact inverse of <see cref="ToUInt32"/>: reconstruct flags from a persisted network
+        /// byte order (big-endian) 32-bit user-flags value. Round-trips byte-for-byte with
+        /// <see cref="ToUInt32"/>.
+        /// </summary>
+        internal static Flags FromUInt32(uint value)
+        {
+            Span<byte> span = stackalloc byte[Size];
+            BinaryPrimitives.WriteUInt32BigEndian(span, value);
+            return Read(span);
         }
 
         private static void ThrowArgumentException()

@@ -93,16 +93,18 @@ namespace Couchbase.Client.Transactions.Internal
 
         public bool IsBinary { get; init; }
 
-        public LookupInContentAsWrapper(ILookupInResult lookupInResult, int specIndex, ITypeTranscoder? transcoder = null)
+        public LookupInContentAsWrapper(ILookupInResult lookupInResult, int specIndex, ITypeTranscoder? transcoder = null, Flags? flagsOverride = null)
         {
             _lookupInResult = lookupInResult;
             if (lookupInResult is not ILookupInResultInternal res)
             {
                 throw new InvalidArgumentException("lookupInResult is not a LookupInResult");
             }
-            // NOTE: this Flags isn't necessarily what we want to use for the flags if this specIndex
-            // becomes the document body.
-            Flags = res.Flags;
+            // res.Flags is the flags of the top-level (live) document body. That is correct for
+            // pre-transaction (unstaged) content, but wrong for staged content: the staged user
+            // flags are recorded separately in txn.aux.uf. Callers wrapping staged content pass
+            // flagsOverride so this wrapper carries the flags the content was actually staged with.
+            Flags = flagsOverride ?? res.Flags;
             _specIndex = specIndex;
             IsBinary = (res.Specs[specIndex].PathFlags & SubdocPathFlags.BinaryValue) != 0;
             Transcoder = transcoder ?? new JsonTranscoder();
