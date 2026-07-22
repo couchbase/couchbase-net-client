@@ -44,7 +44,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
             {
                 if (request.Token.IsCancellationRequested)
                 {
-                    if (request.Idempotent)
+                    if (IsReadOnly(request))
                     {
                         throw new UnambiguousTimeoutException("The request timed out.", context);
                     }
@@ -123,6 +123,12 @@ internal class StellarRetryHandler : IRetryOrchestrator
             Context = context
         };
     }
+
+    // Timeout ambiguity keys on whether the op mutates server state, not on idempotency: an
+    // idempotent-but-mutating op (GetAndLock, MutateIn, ...) is safe to retry yet may have applied
+    // on timeout, so it must surface as Ambiguous. Fall back to Idempotent for non-StellarRequest.
+    private static bool IsReadOnly(IRequest request) =>
+        (request as StellarRequest)?.ReadOnly ?? request.Idempotent;
 
     private void HandleException(RpcException protoException, IRequest request, GenericErrorContext context)
     {
@@ -224,8 +230,11 @@ internal class StellarRetryHandler : IRetryOrchestrator
                                 throw new CasMismatchException(context);
                             case StellarRetryStrings.PreconditionLocked:
                             {
+                                // Retryable per RFC 77 (KV_LOCKED). return (not break) so we retry with
+                                // backoff rather than falling through to the status switch.
                                 context.RetryReasons.Add(RetryReason.KvLocked);
-                                throw new UnambiguousTimeoutException("Document is locked", context);
+                                request.Attempts++;
+                                return;
                             }
                             case StellarRetryStrings.Unlocked:
                                 throw new DocumentNotLockedException();
@@ -259,6 +268,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.FailedPrecondition:
                 if (detail.Contains(StellarRetryStrings.Locked))
                 {
+                    // Same locked-document condition as the PreconditionFailure/LOCKED path above.
+                    context.RetryReasons.Add(RetryReason.KvLocked);
                     request.Attempts++;
                     break;
                 }
@@ -275,7 +286,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.Cancelled:
                 throw new RequestCanceledException();
             case StatusCode.DeadlineExceeded:
-                if (request.Idempotent) throw new UnambiguousTimeoutException(detail);
+                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail);
                 throw new AmbiguousTimeoutException();
             case StatusCode.Internal:
                 if (IsTransientGrpcTransportError(protoException))

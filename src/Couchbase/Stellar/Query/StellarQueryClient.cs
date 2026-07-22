@@ -98,7 +98,8 @@ internal class StellarQueryClient : IQueryClient
 
         var stellarRequest = new StellarRequest
         {
-            Idempotent = true,
+            // A read-only query is safe to retry and unambiguous on timeout; a mutating one is neither.
+            Idempotent = opts.ReadOnly ?? false,
             Token = opts.Token,
             Timeout = opts.TimeOut ?? _stellarCluster.ClusterOptions.QueryTimeout
         };

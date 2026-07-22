@@ -45,6 +45,47 @@ public class StellarRetryHandlerTests
     }
 
     [Fact]
+    public async Task Locked_IsRetried_NotThrownImmediately()
+    {
+        // CNG-5 regression: CNG reports a locked document as a PreconditionFailure "LOCKED"
+        // detail block. It must be retried with backoff, not raised immediately as an
+        // UnambiguousTimeoutException.
+        var preconditionFailure = new Google.Rpc.PreconditionFailure();
+        preconditionFailure.Violations.Add(
+            new Google.Rpc.PreconditionFailure.Types.Violation { Type = StellarRetryStrings.PreconditionLocked });
+        var any = new Any
+        {
+            TypeUrl = StellarRetryStrings.TypeUrlPreconditionFailure,
+            Value = preconditionFailure.ToByteString()
+        };
+
+        var retryMock = new Mock<StellarRetryHandler>();
+        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns(any);
+
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            if (callCount < 3)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, "LOCKED"));
+            }
+
+            return Task.FromResult(new GetResponse());
+        }
+
+        var result = await retryMock.Object.RetryAsync(GrpcCall, request);
+
+        Assert.NotNull(result);
+        Assert.Equal(3, callCount);
+        // Exactly one increment per failed call: guards against falling through to the status
+        // switch (which would increment Attempts a second time on a LOCKED detail string).
+        Assert.Equal(2u, request.Attempts);
+    }
+
+    [Fact]
     public async Task Throw_CouchbaseException_On_Unknown_Error()
     {
         var retryMock = new StellarRetryHandler();
@@ -312,6 +353,56 @@ public class StellarRetryHandlerTests
 
         await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
+    }
+
+    [Fact]
+    public async Task Timeout_ThrowsAmbiguousTimeout_ForIdempotentButMutating_AfterRetries()
+    {
+        // CNG-2 regression: timeout ambiguity must key on read-only status, not idempotency.
+        // An op such as GetAndLock/GetAndTouch/MutateIn is idempotent (safe to retry) yet mutates
+        // server state, so on timeout it must surface as Ambiguous — it may have applied.
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+
+        var handler = new StellarRetryHandler(fakeTime);
+        var request = new StellarRequest(fakeTime)
+        {
+            Timeout = TimeSpan.FromMilliseconds(5000),
+            Idempotent = true,
+            ReadOnly = false
+        };
+
+        Task<GetResponse> GrpcCall()
+        {
+            if (request.RemainingTimeout is { } remaining && remaining <= TimeSpan.Zero)
+            {
+                throw new RpcException(new Status(StatusCode.DeadlineExceeded, "Deadline exceeded"));
+            }
+
+            throw new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
+        }
+
+        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
+
+        while (!retryTask.IsCompleted)
+        {
+            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
+            await Task.Delay(1);
+        }
+
+        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+            () => retryTask);
+    }
+
+    [Fact]
+    public void ReadOnly_DefaultsToIdempotent_WhenNotSet()
+    {
+        Assert.True(new StellarRequest { Idempotent = true }.ReadOnly);
+        Assert.False(new StellarRequest { Idempotent = false }.ReadOnly);
+
+        // Explicit override wins over the Idempotent default.
+        Assert.False(new StellarRequest { Idempotent = true, ReadOnly = false }.ReadOnly);
+        Assert.True(new StellarRequest { Idempotent = false, ReadOnly = true }.ReadOnly);
     }
 
     [Fact]

@@ -32,6 +32,17 @@ public class StellarRequest : IRequest
 
     public uint Attempts { get; set; }
     public bool Idempotent { get; set; }
+
+    /// <summary>
+    /// Whether the operation only reads server state. Drives timeout ambiguity classification
+    /// (see <see cref="StellarRetryHandler"/>). Defaults to <see cref="Idempotent"/> when not set.
+    /// </summary>
+    public bool? ReadOnly
+    {
+        get => field ?? Idempotent;
+        set;
+    }
+
     public List<RetryReason> RetryReasons { get; set; } = new();
     public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
     public TimeSpan Timeout { get; set; }

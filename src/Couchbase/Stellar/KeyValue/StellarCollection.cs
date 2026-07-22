@@ -145,6 +145,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
+            ReadOnly = false, // acquires a lock
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
@@ -177,6 +178,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
+            ReadOnly = false, // updates the document expiry
             Token = opts.Token,
             Timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout
         };
@@ -358,6 +360,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
+            ReadOnly = false, // applies subdocument mutations
             Token = opts.Token,
             Timeout = opts.Timeout ?? (opts.DurabilityLevel != Couchbase.KeyValue.DurabilityLevel.None
                 ? _stellarCluster.ClusterOptions.KvDurabilityTimeout
