@@ -13,6 +13,9 @@ on:
   push:
     tags:
       - '*'
+  schedule:
+    # Each day at 23:00 UTC, an hour before fit-testing-dotnet.yml runs
+    - cron: '0 23 * * *'
   workflow_dispatch:
     inputs:
       ref:
