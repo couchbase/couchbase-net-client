@@ -45,6 +45,47 @@ public class StellarRetryHandlerTests
     }
 
     [Fact]
+    public async Task Locked_IsRetried_NotThrownImmediately()
+    {
+        // CNG-5 regression: CNG reports a locked document as a PreconditionFailure "LOCKED"
+        // detail block. It must be retried with backoff, not raised immediately as an
+        // UnambiguousTimeoutException.
+        var preconditionFailure = new Google.Rpc.PreconditionFailure();
+        preconditionFailure.Violations.Add(
+            new Google.Rpc.PreconditionFailure.Types.Violation { Type = StellarRetryStrings.PreconditionLocked });
+        var any = new Any
+        {
+            TypeUrl = StellarRetryStrings.TypeUrlPreconditionFailure,
+            Value = preconditionFailure.ToByteString()
+        };
+
+        var retryMock = new Mock<StellarRetryHandler>();
+        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns(any);
+
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            if (callCount < 3)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, "LOCKED"));
+            }
+
+            return Task.FromResult(new GetResponse());
+        }
+
+        var result = await retryMock.Object.RetryAsync(GrpcCall, request);
+
+        Assert.NotNull(result);
+        Assert.Equal(3, callCount);
+        // Exactly one increment per failed call: guards against falling through to the status
+        // switch (which would increment Attempts a second time on a LOCKED detail string).
+        Assert.Equal(2u, request.Attempts);
+    }
+
+    [Fact]
     public async Task Throw_CouchbaseException_On_Unknown_Error()
     {
         var retryMock = new StellarRetryHandler();

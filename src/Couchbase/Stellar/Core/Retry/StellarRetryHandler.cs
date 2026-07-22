@@ -189,8 +189,11 @@ internal class StellarRetryHandler : IRetryOrchestrator
                                 throw new CasMismatchException(context);
                             case StellarRetryStrings.PreconditionLocked:
                             {
+                                // Retryable per RFC 77 (KV_LOCKED). return (not break) so we retry with
+                                // backoff rather than falling through to the status switch.
                                 context.RetryReasons.Add(RetryReason.KvLocked);
-                                throw new UnambiguousTimeoutException("Document is locked", context);
+                                request.Attempts++;
+                                return;
                             }
                             case StellarRetryStrings.Unlocked:
                                 throw new DocumentNotLockedException();
@@ -224,6 +227,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.FailedPrecondition:
                 if (detail.Contains(StellarRetryStrings.Locked))
                 {
+                    // Same locked-document condition as the PreconditionFailure/LOCKED path above.
+                    context.RetryReasons.Add(RetryReason.KvLocked);
                     request.Attempts++;
                     break;
                 }
