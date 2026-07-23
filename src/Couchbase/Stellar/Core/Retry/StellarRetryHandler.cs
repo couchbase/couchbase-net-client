@@ -214,7 +214,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                                     new ValueInvalidException(); //Prone to change as it's unclear what this Precondition failure maps to.
                             default:
                                 // Unknown precondition (e.g. the removed "CAS") — terminal, not retried.
-                                throw TerminalException(context, status, detail);
+                                throw CreateTerminalException(context, status, detail);
                         }
                     }
                 }
@@ -246,7 +246,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 if (detail.Contains(StellarRetryStrings.PathValueOutOfRange)) throw new NumberTooBigException();
                 if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException(detail);
                 // Unmapped FAILED_PRECONDITION is non-retryable (LOCKED aside) — terminal.
-                throw TerminalException(context, status, detail);
+                throw CreateTerminalException(context, status, detail);
             case StatusCode.PermissionDenied:
             case StatusCode.Unauthenticated:
                 throw new AuthenticationFailureException(context);
@@ -274,12 +274,13 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 throw new InvalidArgumentException(context);
             // RESOURCE_EXHAUSTED (rate-limit only, not in RFC 77) is unmapped — falls through to default.
             default:
-                throw TerminalException(context, status, detail);
+                throw CreateTerminalException(context, status, detail);
         }
     }
 
-    // Non-retryable terminal outcome: record the gRPC status and throw CouchbaseException.
-    private static CouchbaseException TerminalException(GenericErrorContext context, StatusCode status, string detail)
+    // Non-retryable terminal outcome: record the gRPC status and return a CouchbaseException for the
+    // caller to throw.
+    private static CouchbaseException CreateTerminalException(GenericErrorContext context, StatusCode status, string detail)
     {
         context.Fields.Add("status", status);
         return new CouchbaseException(context, detail);
