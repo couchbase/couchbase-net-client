@@ -1,6 +1,5 @@
 using System;
 using System.Net.Http;
-using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -92,18 +91,27 @@ internal class StellarRetryHandler : IRetryOrchestrator
 
     /// <summary>
     /// Maps an error raised mid-stream — after the first response was returned — while reading a
-    /// streaming result. Per RFC 77 a mid-stream error cannot be retried (rows may already have been
-    /// delivered): retryable and transport errors become <see cref="RequestCanceledException"/>,
-    /// terminal errors are mapped via <see cref="HandleException"/>. Always throws.
+    /// streaming result, returning the exception the caller should throw. Per RFC 77 a mid-stream
+    /// error cannot be retried (rows may already have been delivered): retryable and transport errors
+    /// map to <see cref="RequestCanceledException"/>, terminal errors to their mapped SDK exception,
+    /// and anything we don't recognise is returned unchanged for the caller to rethrow.
     /// </summary>
-    internal void ThrowMidStreamException(Exception e, IRequest request)
+    internal Exception MapMidStreamException(Exception e, IRequest request)
     {
         var context = new GenericErrorContext();
 
         if (e is RpcException rpc && rpc.StatusCode != StatusCode.OK)
         {
-            // Terminal codes throw here; retryable codes record a reason and return.
-            HandleException(rpc, request, context);
+            try
+            {
+                // HandleException returns after recording a retry reason for retryable codes, and
+                // throws the mapped SDK exception for terminal ones — capture it to return.
+                HandleException(rpc, request, context);
+            }
+            catch (Exception mapped)
+            {
+                return mapped;
+            }
         }
         else if (IsTransientTransportException(e))
         {
@@ -112,13 +120,13 @@ internal class StellarRetryHandler : IRetryOrchestrator
         }
         else
         {
-            // Not something we map — let it propagate with its original stack trace preserved.
-            ExceptionDispatchInfo.Capture(e).Throw();
+            // Not something we map — return it unchanged for the caller to rethrow.
+            return e;
         }
 
         // Retryable: carry the SDK error context. Per RFC 77 we don't nest the raw gRPC
         // exception (TODO CNG-4: put the cause in lastException/lastError).
-        throw new RequestCanceledException(
+        return new RequestCanceledException(
             "A retryable error occurred mid-stream; the request was cancelled and cannot be retried.")
         {
             Context = context

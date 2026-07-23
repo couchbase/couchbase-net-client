@@ -23,17 +23,17 @@ internal class StellarQueryResult<T> : IQueryResult<T>
     private readonly AsyncServerStreamingCall<QueryResponse> _streamingQueryResponse;
     private readonly ITypeSerializer _serializer;
     private readonly IAsyncStreamReader<QueryResponse> _streamReader;
-    private readonly Action<Exception> _onStreamError;
+    private readonly Func<Exception, Exception> _mapMidStreamError;
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private volatile bool _disposed;
 
-    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer, Action<Exception> onStreamError)
+    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer, Func<Exception, Exception> mapMidStreamError)
     {
         _streamingQueryResponse = streamingQueryResponse;
         _streamReader = _streamingQueryResponse.ResponseStream;
         _serializer = serializer;
-        _onStreamError = onStreamError;
+        _mapMidStreamError = mapMidStreamError;
     }
     public void Dispose()
     {
@@ -100,8 +100,8 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         _tempResults.Clear();
 
         // First response was already read under the retry orchestrator; a failure here is
-        // mid-stream. Map it (see ThrowMidStreamException). MoveNext sits in the try because
-        // a yield can't live inside a catch.
+        // mid-stream. Map it to the exception to throw (see MapMidStreamException). MoveNext sits in
+        // the try because a yield can't live inside a catch.
         while (true)
         {
             bool hasNext;
@@ -111,8 +111,7 @@ internal class StellarQueryResult<T> : IQueryResult<T>
             }
             catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
             {
-                _onStreamError(e); // always throws
-                throw; // unreachable, satisfies definite assignment
+                throw _mapMidStreamError(e);
             }
 
             if (!hasNext) break;

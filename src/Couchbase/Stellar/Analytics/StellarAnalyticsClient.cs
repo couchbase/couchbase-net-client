@@ -72,7 +72,7 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var response = _analyticsClient.AnalyticsQuery(analyticsRequest, callOptions);
             var result = new ProtoAnalyticsResult<T>(response, _stellarCluster.TypeSerializer,
-                e => _retryHandler.ThrowMidStreamException(e, stellarRequest));
+                e => _retryHandler.MapMidStreamException(e, stellarRequest));
             // Read the first response here, inside the retry orchestrator, so a retryable
             // first-response failure is retried (matching StellarQueryClient). Only genuinely
             // mid-stream failures — after this point — are mapped to RequestCanceled.

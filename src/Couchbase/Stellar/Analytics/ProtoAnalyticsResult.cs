@@ -20,17 +20,17 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     private readonly AsyncServerStreamingCall<AnalyticsQueryResponse> _streamingAnalyticsResponse;
     private readonly IAsyncStreamReader<AnalyticsQueryResponse> _responseStream;
     private readonly ITypeSerializer _serializer;
-    private readonly Action<Exception> _onStreamError;
+    private readonly Func<Exception, Exception> _mapMidStreamError;
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private bool _firstResponseHadRows;
 
-    public ProtoAnalyticsResult(AsyncServerStreamingCall<AnalyticsQueryResponse> streamingAnalyticsResponse, ITypeSerializer serializer, Action<Exception> onStreamError)
+    public ProtoAnalyticsResult(AsyncServerStreamingCall<AnalyticsQueryResponse> streamingAnalyticsResponse, ITypeSerializer serializer, Func<Exception, Exception> mapMidStreamError)
     {
         _streamingAnalyticsResponse = streamingAnalyticsResponse;
         _responseStream = _streamingAnalyticsResponse.ResponseStream;
         _serializer = serializer;
-        _onStreamError = onStreamError;
+        _mapMidStreamError = mapMidStreamError;
     }
 
     public void Dispose()
@@ -43,7 +43,7 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     /// StellarAnalyticsClient.GrpcCall inside RetryAsync), so a retryable failure on the first
     /// response propagates and is retried per RFC 77 — no rows have been delivered yet. There is
     /// deliberately no try/catch here: only genuinely mid-stream failures (in the enumerator, after
-    /// the first response) are mapped to RequestCanceled via <see cref="_onStreamError"/>.
+    /// the first response) are mapped to RequestCanceled via <see cref="_mapMidStreamError"/>.
     /// </summary>
     internal async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -92,8 +92,8 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
         }
 
         // Subsequent responses are genuinely mid-stream: a failure here cannot be retried (rows may
-        // already have been delivered), so map it (see ThrowMidStreamException). MoveNext sits in the
-        // try because a yield can't live inside a catch.
+        // already have been delivered), so map it to the exception to throw (see MapMidStreamException).
+        // MoveNext sits in the try because a yield can't live inside a catch.
         while (true)
         {
             bool hasNext;
@@ -103,8 +103,7 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
             }
             catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
             {
-                _onStreamError(e); // always throws
-                throw; // unreachable, satisfies definite assignment
+                throw _mapMidStreamError(e);
             }
 
             if (!hasNext) break;

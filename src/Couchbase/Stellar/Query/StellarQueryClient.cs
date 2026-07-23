@@ -115,7 +115,7 @@ internal class StellarQueryClient : IQueryClient
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var asyncResponse = _queryClient.Query(protoRequest, callOptions);
             var streamingResult = new StellarQueryResult<T>(asyncResponse, _typeSerializer,
-                e => _retryHandler.ThrowMidStreamException(e, stellarRequest));
+                e => _retryHandler.MapMidStreamException(e, stellarRequest));
             await streamingResult.InitializeAsync(opts.Token).ConfigureAwait(false);
             return streamingResult;
         }

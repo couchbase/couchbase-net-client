@@ -119,21 +119,22 @@ public class StellarRetryHandlerTests
             async () => await handler.RetryAsync(GrpcCall, request));
     }
 
-    // Mid-stream errors: retryable -> RequestCancelled, terminal -> mapped.
+    // Mid-stream errors: retryable -> RequestCancelled, terminal -> mapped. MapMidStreamException
+    // returns the exception the caller should throw (the caller does `throw _mapMidStreamError(e)`).
 
     [Fact]
-    public void ThrowMidStreamException_RetryableError_ThrowsRequestCancelled()
+    public void MapMidStreamException_RetryableError_ReturnsRequestCancelled()
     {
         var handler = new StellarRetryHandler();
         var request = new StellarRequest();
         var e = new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
 
-        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
-            () => handler.ThrowMidStreamException(e, request));
+        Assert.IsType<Couchbase.Core.Exceptions.RequestCanceledException>(
+            handler.MapMidStreamException(e, request));
     }
 
     [Fact]
-    public void ThrowMidStreamException_TransientTransportError_ThrowsRequestCancelled()
+    public void MapMidStreamException_TransientTransportError_ReturnsRequestCancelled()
     {
         // A mid-stream HTTP/2 transport failure surfaces as RpcException(Internal) with an inner
         // transport exception; it is retryable, so mid-stream it becomes RequestCancelled.
@@ -142,12 +143,12 @@ public class StellarRetryHandlerTests
         var inner = new System.Net.Http.HttpRequestException("Connection reset by peer");
         var e = new RpcExceptionWithInner(new Status(StatusCode.Internal, "Internal error"), inner);
 
-        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
-            () => handler.ThrowMidStreamException(e, request));
+        Assert.IsType<Couchbase.Core.Exceptions.RequestCanceledException>(
+            handler.MapMidStreamException(e, request));
     }
 
     [Fact]
-    public void ThrowMidStreamException_BareTransportException_ThrowsRequestCancelled()
+    public void MapMidStreamException_BareTransportException_ReturnsRequestCancelled()
     {
         // A transport failure that surfaces outside an RpcException (a bare HttpRequestException or
         // IOException, mid-stream) is retryable, so it becomes RequestCancelled.
@@ -155,12 +156,12 @@ public class StellarRetryHandlerTests
         var request = new StellarRequest();
         var e = new System.Net.Http.HttpRequestException("Connection reset by peer");
 
-        Assert.Throws<Couchbase.Core.Exceptions.RequestCanceledException>(
-            () => handler.ThrowMidStreamException(e, request));
+        Assert.IsType<Couchbase.Core.Exceptions.RequestCanceledException>(
+            handler.MapMidStreamException(e, request));
     }
 
     [Fact]
-    public void ThrowMidStreamException_TerminalError_ThrowsMappedException()
+    public void MapMidStreamException_TerminalError_ReturnsMappedException()
     {
         // A terminal (non-retryable) mid-stream error keeps its mapped type rather than being
         // converted to RequestCancelled.
@@ -168,12 +169,12 @@ public class StellarRetryHandlerTests
         var request = new StellarRequest();
         var e = new RpcException(new Status(StatusCode.PermissionDenied, "denied"));
 
-        Assert.Throws<Couchbase.AuthenticationFailureException>(
-            () => handler.ThrowMidStreamException(e, request));
+        Assert.IsType<Couchbase.AuthenticationFailureException>(
+            handler.MapMidStreamException(e, request));
     }
 
     [Fact]
-    public void ThrowMidStreamException_GenuineInternalError_ThrowsMappedException()
+    public void MapMidStreamException_GenuineInternalError_ReturnsMappedException()
     {
         // A genuine server Internal error (no transport inner) is terminal and maps to
         // InternalServerFailureException, not RequestCancelled.
@@ -181,8 +182,8 @@ public class StellarRetryHandlerTests
         var request = new StellarRequest();
         var e = new RpcException(new Status(StatusCode.Internal, "Internal server error processing request"));
 
-        Assert.Throws<Couchbase.Core.Exceptions.InternalServerFailureException>(
-            () => handler.ThrowMidStreamException(e, request));
+        Assert.IsType<Couchbase.Core.Exceptions.InternalServerFailureException>(
+            handler.MapMidStreamException(e, request));
     }
 
     [Fact]
