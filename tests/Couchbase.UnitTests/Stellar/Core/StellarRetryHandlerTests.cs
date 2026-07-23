@@ -120,6 +120,74 @@ public class StellarRetryHandlerTests
     }
 
     [Fact]
+    public async Task ResourceExhausted_FallsBackToCouchbaseException()
+    {
+        // NCBC-4265: unmapped RESOURCE_EXHAUSTED -> CouchbaseException, not ValueToolarge.
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest();
+
+        Task<GetResponse> GrpcCall()
+        {
+            throw new RpcException(new Status(StatusCode.ResourceExhausted, "rate limited"));
+        }
+
+        // Exact-type match also proves it is not a ValueToolargeException (a subtype).
+        await Assert.ThrowsAsync<CouchbaseException>(
+            async () => await handler.RetryAsync(GrpcCall, request));
+    }
+
+    [Fact]
+    public async Task UnrecognizedPreconditionType_IsTerminalCouchbaseException_NotRetried()
+    {
+        // NCBC-4265: an unknown precondition type (e.g. the removed "CAS") is terminal, not retried.
+        var preconditionFailure = new Google.Rpc.PreconditionFailure();
+        preconditionFailure.Violations.Add(
+            new Google.Rpc.PreconditionFailure.Types.Violation { Type = "CAS" });
+        var any = new Any
+        {
+            TypeUrl = StellarRetryStrings.TypeUrlPreconditionFailure,
+            Value = preconditionFailure.ToByteString()
+        };
+
+        var retryMock = new Mock<StellarRetryHandler>();
+        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns(any);
+
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, "CAS"));
+        }
+
+        await Assert.ThrowsAsync<CouchbaseException>(
+            async () => await retryMock.Object.RetryAsync(GrpcCall, request));
+        Assert.Equal(1, callCount); // thrown on the first attempt, never retried
+    }
+
+    [Fact]
+    public async Task UnmappedFailedPrecondition_NoDetailBlock_IsTerminal_NotRetried()
+    {
+        // NCBC-4265: an unmapped FAILED_PRECONDITION with no detail block is terminal, not retried.
+        var retryMock = new Mock<StellarRetryHandler>();
+        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns((Any?)null);
+
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, "SOME_UNKNOWN_PRECONDITION"));
+        }
+
+        await Assert.ThrowsAsync<CouchbaseException>(
+            async () => await retryMock.Object.RetryAsync(GrpcCall, request));
+        Assert.Equal(1, callCount); // thrown on the first attempt, never retried
+    }
+
+    [Fact]
     public async Task NestedIOException_InHttpRequestException_IsRetried()
     {
         // IOException wrapped inside HttpRequestException (the real-world pattern

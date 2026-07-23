@@ -191,8 +191,6 @@ internal class StellarRetryHandler : IRetryOrchestrator
 
                         switch (type)
                         {
-                            case StellarRetryStrings.PreconditionCas:
-                                throw new CasMismatchException(context);
                             case StellarRetryStrings.PreconditionLocked:
                             {
                                 // Retryable per RFC 77 (KV_LOCKED). return (not break) so we retry with
@@ -214,6 +212,9 @@ internal class StellarRetryHandler : IRetryOrchestrator
                             case StellarRetryStrings.PreconditionValueOutOfRange:
                                 throw
                                     new ValueInvalidException(); //Prone to change as it's unclear what this Precondition failure maps to.
+                            default:
+                                // Unknown precondition (e.g. the removed "CAS") — terminal, not retried.
+                                throw CreateTerminalException(context, status, detail);
                         }
                     }
                 }
@@ -244,7 +245,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 if (detail.Contains(StellarRetryStrings.ValueOutOfRange)) throw new ValueInvalidException();
                 if (detail.Contains(StellarRetryStrings.PathValueOutOfRange)) throw new NumberTooBigException();
                 if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException(detail);
-                break;
+                // Unmapped FAILED_PRECONDITION is non-retryable (LOCKED aside) — terminal.
+                throw CreateTerminalException(context, status, detail);
             case StatusCode.PermissionDenied:
             case StatusCode.Unauthenticated:
                 throw new AuthenticationFailureException(context);
@@ -270,15 +272,18 @@ internal class StellarRetryHandler : IRetryOrchestrator
                 break;
             case StatusCode.InvalidArgument:
                 throw new InvalidArgumentException(context);
-            case StatusCode.ResourceExhausted:
-                throw new ValueToolargeException(
-                    "Request exceeds maximum message size.");
+            // RESOURCE_EXHAUSTED (rate-limit only, not in RFC 77) is unmapped — falls through to default.
             default:
-            {
-                context.Fields.Add("status", status);
-                throw new CouchbaseException(context, protoException.Status.Detail);
-            }
+                throw CreateTerminalException(context, status, detail);
         }
+    }
+
+    // Non-retryable terminal outcome: record the gRPC status and return a CouchbaseException for the
+    // caller to throw.
+    private static CouchbaseException CreateTerminalException(GenericErrorContext context, StatusCode status, string detail)
+    {
+        context.Fields.Add("status", status);
+        return new CouchbaseException(context, detail);
     }
 
     internal virtual Any? StatusDeserializer(RpcException ex)

@@ -17,7 +17,6 @@ public static class StellarRetryStrings
     public const string TypeUrlErrorInfo = "type.googleapis.com/google.rpc.ErrorInfo";
     public const string TypeUrlBadRequest = "type.googleapis.com/google.rpc.BadRequest";
 
-    public const string PreconditionCas = "CAS";
     public const string PreconditionLocked = "LOCKED";
     public const string PreconditionPathMismatch = "PATH_MISMATCH";
     public const string PreconditionDocNotJson = "DOC_NOT_JSON";
