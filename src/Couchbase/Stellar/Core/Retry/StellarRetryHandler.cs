@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -111,8 +112,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
         }
         else
         {
-            // Not something we map — let it propagate.
-            throw e;
+            // Not something we map — let it propagate with its original stack trace preserved.
+            ExceptionDispatchInfo.Capture(e).Throw();
         }
 
         // Retryable: carry the SDK error context. Per RFC 77 we don't nest the raw gRPC

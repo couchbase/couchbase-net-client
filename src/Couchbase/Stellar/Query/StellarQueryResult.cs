@@ -87,10 +87,10 @@ internal class StellarQueryResult<T> : IQueryResult<T>
 
     public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
     {
-        if (_hasReadHeader)
-        {
-            await InitializeAsync(cancellationToken).ConfigureAwait(false);
-        }
+        // Idempotent (guarded by _hasReadHeader): normally the first response was already read inside
+        // the retry orchestrator via GrpcCall, but call it unconditionally so direct enumeration still
+        // reads the header/first response rather than treating it as mid-stream.
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
 
         //enumerate the first response
         foreach (var result in _tempResults)
