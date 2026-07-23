@@ -76,5 +76,60 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         }
 
         #endregion
+
+        #region ToUInt32 / FromUInt32
+
+        [Theory]
+        [InlineData(DataFormat.Json, TypeCode.Object)]
+        [InlineData(DataFormat.Json, TypeCode.String)]
+        [InlineData(DataFormat.Binary, TypeCode.Object)]
+        [InlineData(DataFormat.Private, TypeCode.String)]
+        [InlineData(DataFormat.String, TypeCode.String)]
+        public void ToUInt32_FromUInt32_RoundTrips(DataFormat dataFormat, TypeCode typeCode)
+        {
+            // Arrange
+
+            var flags = new Flags
+            {
+                DataFormat = dataFormat,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
+                TypeCode = typeCode
+            };
+
+            // Act
+
+            var roundTripped = Flags.FromUInt32(flags.ToUInt32());
+
+            // Assert
+
+            Assert.Equal(flags.DataFormat, roundTripped.DataFormat);
+            Assert.Equal(flags.Compression, roundTripped.Compression);
+            Assert.Equal(flags.TypeCode, roundTripped.TypeCode);
+        }
+
+        [Fact]
+        public void ToUInt32_UsesNetworkByteOrder_CommonFlagsInTopByte()
+        {
+            // JSON + Object writes bytes [0x02, 0x00, 0x00, 0x01]; read big-endian => 0x02000001.
+            // The common-flags/format nibble must be in the top byte so cross-SDK readers get it
+            // via (uf >> 24) & 0xF — matching Java's CodecFlags (format << 24).
+            var flags = Flags.JsonCommonFlags;
+
+            Assert.Equal(0x02000001u, flags.ToUInt32());
+            Assert.Equal((uint)DataFormat.Json, flags.ToUInt32() >> 24);
+            Assert.Equal(DataFormat.Json, Flags.FromUInt32(0x02000001u).DataFormat);
+        }
+
+        [Fact]
+        public void JsonCommonFlags_IsJsonObject()
+        {
+            var flags = Flags.JsonCommonFlags;
+
+            Assert.Equal(DataFormat.Json, flags.DataFormat);
+            Assert.Equal(Couchbase.Core.IO.Operations.Compression.None, flags.Compression);
+            Assert.Equal(TypeCode.Object, flags.TypeCode);
+        }
+
+        #endregion
     }
 }

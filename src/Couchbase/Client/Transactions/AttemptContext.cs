@@ -1561,7 +1561,7 @@ namespace Couchbase.Client.Transactions
 
                     await _testHooks.BeforeDocCommitted(this, sm.Doc.Id).CAF();
                     var (updatedCas, mutationToken) = await _docs
-                        .UnstageInsertOrReplace(sm.Doc.Collection, sm.Doc.Id, cas, content, insertMode, sm.Flags ?? new Flags(), sm.Expiry).CAF();
+                        .UnstageInsertOrReplace(sm.Doc.Collection, sm.Doc.Id, cas, content, insertMode, sm.Flags ?? Flags.JsonCommonFlags, sm.Expiry).CAF();
                     Logger.LogInformation(
                         "Unstaged mutation successfully on {redactedId}, attempt={attemptId}, insertMode={insertMode}, ambiguityResolutionMode={ambiguityResolutionMode}, preCas={cas}, postCas={updatedCas}",
                         Redactor.UserData(sm.Doc.FullyQualifiedId),
