@@ -89,6 +89,50 @@ internal class StellarRetryHandler : IRetryOrchestrator
         }
     }
 
+    /// <summary>
+    /// Maps an error raised mid-stream — after the first response was returned — while reading a
+    /// streaming result, returning the exception the caller should throw. Per RFC 77 a mid-stream
+    /// error cannot be retried (rows may already have been delivered): retryable and transport errors
+    /// map to <see cref="RequestCanceledException"/>, terminal errors to their mapped SDK exception,
+    /// and anything we don't recognise is returned unchanged for the caller to rethrow.
+    /// </summary>
+    internal Exception MapMidStreamException(Exception e, IRequest request)
+    {
+        var context = new GenericErrorContext();
+
+        if (e is RpcException rpc && rpc.StatusCode != StatusCode.OK)
+        {
+            try
+            {
+                // HandleException returns after recording a retry reason for retryable codes, and
+                // throws the mapped SDK exception for terminal ones — capture it to return.
+                HandleException(rpc, request, context);
+            }
+            catch (Exception mapped)
+            {
+                return mapped;
+            }
+        }
+        else if (IsTransientTransportException(e))
+        {
+            // Transport failure outside an RpcException (e.g. connection reset) — retryable.
+            context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
+        }
+        else
+        {
+            // Not something we map — return it unchanged for the caller to rethrow.
+            return e;
+        }
+
+        // Retryable: carry the SDK error context. Per RFC 77 we don't nest the raw gRPC
+        // exception (TODO CNG-4: put the cause in lastException/lastError).
+        return new RequestCanceledException(
+            "A retryable error occurred mid-stream; the request was cancelled and cannot be retried.")
+        {
+            Context = context
+        };
+    }
+
     // Timeout ambiguity keys on whether the op mutates server state, not on idempotency: an
     // idempotent-but-mutating op (GetAndLock, MutateIn, ...) is safe to retry yet may have applied
     // on timeout, so it must surface as Ambiguous. Fall back to Idempotent for non-StellarRequest.
@@ -332,7 +376,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
     /// Determines whether an exception (or any exception in its InnerException chain)
     /// represents a transient transport failure that should be retried.
     /// </summary>
-    private static bool IsTransientTransportException(Exception? e)
+    internal static bool IsTransientTransportException(Exception? e)
     {
         while (e is not null)
         {

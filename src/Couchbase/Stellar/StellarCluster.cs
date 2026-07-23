@@ -139,7 +139,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         };
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
-        RetryHandler = new StellarRetryHandler();
+        var retryHandler = new StellarRetryHandler();
+        RetryHandler = retryHandler;
 
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
@@ -147,11 +148,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _queryClient = new StellarQueryClient(this,
             new QueryService.QueryServiceClient(GrpcChannel),
             TypeSerializer,
-            RetryHandler);
+            retryHandler);
         _metaData = new Metadata();
         _analyticsClient = new StellarAnalyticsClient(this,
             new AnalyticsService.AnalyticsServiceClient(GrpcChannel),
-            RetryHandler);
+            retryHandler);
         _searchClient = new StellarSearchClient(this);
 
         authenticator.AuthenticateGrpcMetadata(_metaData);
