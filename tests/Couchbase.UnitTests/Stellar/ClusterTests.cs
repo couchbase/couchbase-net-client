@@ -60,10 +60,13 @@ public class ClusterTests
 
 
       [Fact]
-      public async Task Throw_FeatureNotAvailableException_WaitUntilReadyAsync()
+      public async Task WaitUntilReadyAsync_ZeroTimeout_ThrowsUnambiguousTimeout()
       {
+          // NCBC-4269 / RFC 77 CNG-1: WaitUntilReady is now implemented (no longer FeatureNotAvailable).
+          // A non-positive timeout has already elapsed, matching the classic cluster contract. The
+          // serving/retry/delegation behavior is covered in StellarWaitUntilReadyTests.
           await using var cluster = await CreateCluster();
-          await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.Zero));
+          await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.Zero));
       }
 
       [Fact]

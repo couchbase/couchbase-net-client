@@ -41,6 +41,7 @@ using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
 using Couchbase.Utils;
 using Grpc.Core;
+using Grpc.Health.V1;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -75,6 +76,10 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     // owns its transport.
     private readonly SocketsHttpHandler? _socketsHandler;
 
+    // Standard gRPC health-check client used by WaitUntilReady (NCBC-4269 / RFC 77 CNG-1).
+    // Settable so unit tests can inject a mock.
+    internal Health.HealthClient HealthClient { get; set; }
+
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
         IQueryIndexManager queryIndexManager, IQueryClient queryClient,
@@ -94,6 +99,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _metaData = metaData;
         RequestTracer = requestTracer;
         GrpcChannel = grpcChannel;
+        HealthClient = new Health.HealthClient(grpcChannel);
         TypeSerializer = typeSerializer;
         TypeTranscoder = _clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
         OperationCompressor = operationCompressor;
@@ -141,6 +147,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
         var retryHandler = new StellarRetryHandler();
         RetryHandler = retryHandler;
+        HealthClient = new Health.HealthClient(GrpcChannel);
 
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
@@ -353,8 +360,89 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return await _searchClient.QueryAsync(indexName, query, options).ConfigureAwait(false);
     }
 
-    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)=>
-        throw ThrowHelper.ThrowFeatureNotAvailableException("WaitUntilReady", "Protostellar");
+    public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
+    {
+        CheckIfDisposed();
+
+        // Mirror the classic cluster contract: a non-positive timeout has already elapsed. Guarding
+        // here also prevents an unbounded retry loop — a zero/negative Timeout makes RemainingTimeout
+        // null (no gRPC deadline), so without this the health-check loop would spin forever.
+        // Timeout.InfiniteTimeSpan is the documented "wait forever" sentinel and is allowed through.
+        if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+        {
+            throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+        }
+
+        var opts = options ?? new WaitUntilReadyOptions();
+        var userToken = opts.CancellationTokenValue;
+
+        // RFC 77 (couchbase2 WaitUntilReady): ping the standard gRPC health-check RPC until the
+        // server reports SERVING or the timeout is exceeded. The ServiceTypes and DesiredState
+        // options are silently ignored (the health check exposes no per-service or cluster-state
+        // granularity), no Authorization header is sent, and no metrics are emitted.
+        using var traceSpan = RequestTracer.RequestSpan("wait_until_ready", null);
+
+        // Bound the whole operation, not just each attempt: the per-attempt gRPC deadline caps a
+        // single Check, while this token caps the retry/backoff loop and makes a backoff sleep
+        // interruptible. Linked to the caller's token so their cancellation is honored too.
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(userToken);
+        if (timeout != Timeout.InfiniteTimeSpan)
+        {
+            cts.CancelAfter(timeout);
+        }
+
+        var request = new StellarRequest
+        {
+            // A health check is read-only: safe to retry, and unambiguous on timeout.
+            Idempotent = true,
+            Timeout = timeout,
+            Token = cts.Token,
+            Span = traceSpan,
+        };
+
+        try
+        {
+            await RetryHandler.RetryAsync(async () =>
+            {
+                // No Authorization header per RFC (the server does not inspect it). The per-attempt
+                // deadline is the remaining WaitUntilReady budget, so once it is exhausted the call
+                // fails DEADLINE_EXCEEDED and is mapped to an UnambiguousTimeoutException. Only the
+                // caller's token cancels the in-flight call (the timeout is enforced by the deadline),
+                // so a timeout deterministically surfaces as UnambiguousTimeoutException rather than
+                // racing the linked token into a RequestCanceledException.
+                var callOptions = new CallOptions(
+                    headers: new Metadata(),
+                    deadline: request.RemainingTimeout.FromNow(),
+                    cancellationToken: userToken);
+
+                var response = await HealthClient.CheckAsync(new HealthCheckRequest(), callOptions);
+
+                if (response.Status != HealthCheckResponse.Types.ServingStatus.Serving)
+                {
+                    // Not SERVING: retry per RFC (SERVICE_NOT_AVAILABLE). Signalled as UNAVAILABLE so the
+                    // standard retry path handles it and records the serving status as the last error.
+                    throw new RpcException(new Status(StatusCode.Unavailable,
+                        $"couchbase2 server reported serving status {response.Status}"));
+                }
+
+                return WaitUntilReadyResult.Instance;
+            }, request).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested && !userToken.IsCancellationRequested)
+        {
+            // The overall timeout elapsed during a retry backoff (the caller did not cancel):
+            // surface it as a timeout, consistent with the per-attempt deadline path.
+            throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+        }
+    }
+
+    // WaitUntilReady has no service payload; this satisfies the IServiceResult constraint on
+    // StellarRetryHandler.RetryAsync so the health check reuses the standard retry rules.
+    private sealed class WaitUntilReadyResult : IServiceResult
+    {
+        public static readonly WaitUntilReadyResult Instance = new();
+        public RetryReason RetryReason => RetryReason.NoRetry;
+    }
 
     public CallOptions GrpcCallOptions() => new (headers: _metaData);
 

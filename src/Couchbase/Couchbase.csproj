@@ -53,6 +53,7 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.HealthCheck" />
     <PackageReference Include="Google.Api.CommonProtos" />
     <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
