@@ -9,6 +9,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Stellar.Core;
+using Couchbase.Stellar.Core.Retry;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using Grpc.Core;
@@ -22,15 +23,17 @@ internal class StellarQueryResult<T> : IQueryResult<T>
     private readonly AsyncServerStreamingCall<QueryResponse> _streamingQueryResponse;
     private readonly ITypeSerializer _serializer;
     private readonly IAsyncStreamReader<QueryResponse> _streamReader;
+    private readonly Func<Exception, Exception> _mapMidStreamError;
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private volatile bool _disposed;
 
-    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer)
+    public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer, Func<Exception, Exception> mapMidStreamError)
     {
         _streamingQueryResponse = streamingQueryResponse;
         _streamReader = _streamingQueryResponse.ResponseStream;
         _serializer = serializer;
+        _mapMidStreamError = mapMidStreamError;
     }
     public void Dispose()
     {
@@ -84,10 +87,10 @@ internal class StellarQueryResult<T> : IQueryResult<T>
 
     public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
     {
-        if (_hasReadHeader)
-        {
-            await InitializeAsync(cancellationToken).ConfigureAwait(false);
-        }
+        // Idempotent (guarded by _hasReadHeader): normally the first response was already read inside
+        // the retry orchestrator via GrpcCall, but call it unconditionally so direct enumeration still
+        // reads the header/first response rather than treating it as mid-stream.
+        await InitializeAsync(cancellationToken).ConfigureAwait(false);
 
         //enumerate the first response
         foreach (var result in _tempResults)
@@ -96,9 +99,23 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         }
         _tempResults.Clear();
 
-        //enumerate the rest of te responses
-        while (await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false))
+        // First response was already read under the retry orchestrator; a failure here is
+        // mid-stream. Map it to the exception to throw (see MapMidStreamException). MoveNext sits in
+        // the try because a yield can't live inside a catch.
+        while (true)
         {
+            bool hasNext;
+            try
+            {
+                hasNext = await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+            {
+                throw _mapMidStreamError(e);
+            }
+
+            if (!hasNext) break;
+
             foreach (var queryResponse in _streamReader.Current.Rows)
             {
                 if (queryResponse == null) continue;
@@ -106,27 +123,6 @@ internal class StellarQueryResult<T> : IQueryResult<T>
                 if (deserializedObj == null)
                 {
                     Errors.Add(new Error { Message = "Failed to deserialize item." });
-                }
-                else
-                {
-                    yield return deserializedObj;
-                }
-            }
-        }
-    }
-
-    public async IAsyncEnumerator<T> GetAsyncEnumerator2(CancellationToken cancellationToken = new())
-    {
-        var responseStream = _streamingQueryResponse.ResponseStream;
-        while (await responseStream.MoveNext(cancellationToken).ConfigureAwait(false))
-        {
-            foreach (var queryResponse in responseStream.Current.Rows)
-            {
-                if (queryResponse == null) continue;
-                var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
-                if (deserializedObj == null)
-                {
-                    Errors.Add(new Error { Message = "Failed to deserialize item."});
                 }
                 else
                 {
