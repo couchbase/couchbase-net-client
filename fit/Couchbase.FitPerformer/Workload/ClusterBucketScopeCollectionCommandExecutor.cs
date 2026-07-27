@@ -318,7 +318,7 @@ namespace Couchbase.FitPerformer
                     var request = op.CollectionCommand.LookupIn;
                     var options = OptionsUtil.ConvertLookupInOptions(request.Options);
                     var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
-                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                        request.Spec.Any(s => s.ContentAs?.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
                     if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
@@ -335,7 +335,7 @@ namespace Couchbase.FitPerformer
                     var request = op.CollectionCommand.LookupInAllReplicas;
                     var options = OptionsUtil.ConvertLookupInAllReplicasOptions(request.Options, _spans);
                     var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
-                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                        request.Spec.Any(s => s.ContentAs?.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
                     if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);
@@ -363,7 +363,7 @@ namespace Couchbase.FitPerformer
                     var request = op.CollectionCommand.LookupInAnyReplica;
                     var options = OptionsUtil.ConvertLookupInAnyReplicasOptions(request.Options, _spans);
                     var rawByteTranscoder = RawByteArrayTranscoderIfNeeded(
-                        request.Spec.Any(s => s.ContentAs.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
+                        request.Spec.Any(s => s.ContentAs?.AsCase == ContentAs.AsOneofCase.AsByteArray), connection);
                     if (rawByteTranscoder != null) options = options.Transcoder(rawByteTranscoder);
                     var specs = request.Spec.Select(ResultsUtil.ConvertLookupInSpec);
                     var (coll, id) = await CommandUtils.DetermineLocation(request.Location, connection, _counters).ConfigureAwait(false);

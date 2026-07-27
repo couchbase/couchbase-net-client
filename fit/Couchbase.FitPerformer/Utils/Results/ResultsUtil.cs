@@ -206,7 +206,7 @@ public static class ResultsUtil
                 ExistsResult = new BooleanOrError()
             };
 
-            var contentAs = specs[i].ContentAs.AsCase;
+            var contentAs = specs[i].ContentAs?.AsCase ?? ContentAs.AsOneofCase.None;
             Serilog.Log.Debug("Adding a Spec({I}) Result with Exists = {E}", i, lookupResult.Exists(i));
 
             try
@@ -271,7 +271,7 @@ public static class ResultsUtil
                 ExistsResult = new BooleanOrError()
             };
 
-            var contentAs = specs[i].ContentAs.AsCase;
+            var contentAs = specs[i].ContentAs?.AsCase ?? ContentAs.AsOneofCase.None;
 
             try
             {
@@ -322,7 +322,7 @@ public static class ResultsUtil
                 ContentAsResult = new ContentOrError(),
                 ExistsResult = new BooleanOrError()
             };
-            var contentAs = specs[i].ContentAs.AsCase;
+            var contentAs = specs[i].ContentAs?.AsCase ?? ContentAs.AsOneofCase.None;
 
             Serilog.Log.Debug("Adding a Spec({I}) Result with Exists = {E}", i, lookupResult.Exists(i));
 

@@ -44,6 +44,8 @@ public static class CommandUtils
             case ContentAs.AsOneofCase.AsJsonObject:
                 ret.ContentAsBytes = ByteString.CopyFromUtf8(result.ContentAs<dynamic>(index)?.ToString());
                 break;
+            case ContentAs.AsOneofCase.None:
+                return null;
             default:
                 throw new ArgumentException("Unknown ContentType case.");
         }
