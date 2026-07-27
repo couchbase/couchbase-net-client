@@ -782,10 +782,7 @@ namespace Couchbase.KeyValue
                 {
                     if (opts.ReadPreferenceValue != InternalReadPreference.SelectedServerGroupWithFallback)
                     {
-                        throw new DocumentUnretrievableException(
-                            $"Either neither the primary or replicas for Document: {id}" +
-                            $" live in the selected Server Group: {_preferredServerGroup}," +
-                            $" or no node/group matches could be made from the config.");
+                        throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
                     }
                     // We did ask for the fallback, so fallback to LookupIn...
                     Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
@@ -830,9 +827,31 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
         }
 
-        public async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id,
+        public IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasAsync(string id,
             IEnumerable<LookupInSpec> specs,
             LookupInAllReplicasOptions? options = null)
+        {
+            var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
+
+            if (opts.ReadPreferenceValue == InternalReadPreference.SelectedServerGroup)
+            {
+                _bucket.ThrowIfBootStrapFailed();
+                if (_preferredServerGroup is null)
+                {
+                    throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
+                }
+                if (!PreferredServerGroupHoldsDocument(VBucketForReplicas(id)))
+                {
+                    throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
+                }
+            }
+
+            return LookupInAllReplicasStreamAsync(id, specs, opts);
+        }
+
+        private async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasStreamAsync(string id,
+            IEnumerable<LookupInSpec> specs,
+            LookupInOptions.ReadOnly opts)
         {
             _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
 
@@ -841,7 +860,6 @@ namespace Couchbase.KeyValue
             // A top-level failure of the lookup (here, too many specs) must produce an empty stream
             // rather than throwing - unlike LookupIn/LookupInAnyReplica.
             if (specs.Count() > 16) yield break;
-            var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
 
             //Check to see if the CID is needed
             if (RequiresCid())
@@ -925,7 +943,7 @@ namespace Couchbase.KeyValue
             // 3 - The preferred group does not have an entry in the above, or if it does but is null/empty
             if (_preferredServerGroup is null)
             {
-                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
             }
             if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
                 !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
@@ -1312,10 +1330,7 @@ namespace Couchbase.KeyValue
                     if (options.ReadPreferenceValue !=
                         InternalReadPreference.SelectedServerGroupWithFallback)
                     {
-                        throw new DocumentUnretrievableException(
-                            $"Either neither the primary or replicas for Document: {id}" +
-                            $" live in the selected Server Group: {_preferredServerGroup}," +
-                            $" or no node/group matches could be made from the config.");
+                        throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
                     }
                     // Fallback when TryGetZoneAwareReplica fails, if asked.
                     Logger.LogDebug("Falling back to GetPrimary for {id}", Redactor.UserData(id));
@@ -1345,6 +1360,28 @@ namespace Couchbase.KeyValue
             }
 
             return firstCompleted.Result;
+        }
+
+        private const string NoPreferredServerGroupMessage =
+            "No preferred Server group was set in the ClusterOptions.";
+
+        private string ZoneAwareUnretrievableMessage(string id) =>
+            $"Either neither the primary or replicas for Document: {id}" +
+            $" live in the selected Server Group: {_preferredServerGroup}," +
+            $" or no node/group matches could be made from the config.";
+
+        private bool PreferredServerGroupHoldsDocument(VBucket vBucket)
+        {
+            if (_preferredServerGroup is null
+                || _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes
+                || !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup)
+                || indexesInGroup is null || indexesInGroup.Length == 0)
+            {
+                return false;
+            }
+
+            return indexesInGroup.Contains(vBucket.Primary)
+                   || vBucket.Replicas.Any(index => index > -1 && indexesInGroup.Contains(index));
         }
 
         private VBucket VBucketForReplicas(string id, [CallerMemberName]string caller = "AnyReplica")
@@ -1381,13 +1418,14 @@ namespace Couchbase.KeyValue
                 {
                     tasks.AddRange(zoneAwareTasks);
                 }
+                else if (options.ReadPreferenceValue ==
+                         InternalReadPreference.SelectedServerGroupWithFallback)
+                {
+                    AddAllReplicaTasks();
+                }
                 else
                 {
-                    if (options.ReadPreferenceValue ==
-                        InternalReadPreference.SelectedServerGroupWithFallback)
-                    {
-                        AddAllReplicaTasks();
-                    }
+                    throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
                 }
             }
             else
@@ -1422,7 +1460,7 @@ namespace Couchbase.KeyValue
             // 3, 4 - The preferred group does not have an entry in the above, or if it does but is null/empty
             if (_preferredServerGroup is null)
             {
-                throw new DocumentUnretrievableException("No preferred Server group was set in the ClusterOptions.");
+                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
             }
             if (_bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes ||
                      !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup) ||
