@@ -133,8 +133,7 @@ internal class StellarBucket : IBucket
     public Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null) =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("View Queries", "Protostellar");
 
-    // Per RFC 77, bucket and cluster WaitUntilReady are identical in couchbase2 (the health check
-    // is cluster-wide, not per-bucket), so delegate to the cluster implementation.
+    // Per RFC 77, the couchbase2 health check is cluster-wide, not per-bucket.
     public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null) =>
         _stellarCluster.WaitUntilReadyAsync(timeout, options);
 
