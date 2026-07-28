@@ -101,7 +101,7 @@ namespace Couchbase.Query
                     return new DmlFailureException(context);
                 }
 
-                if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014)
+                if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014 || error.Code == 2120)
                     return new AuthenticationFailureException(context);
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
@@ -125,11 +125,6 @@ namespace Couchbase.Query
                 //query_context *was* included in the request, but the server doesn't support it
                 if (error.Code == 1065 && error.Message.Contains("query_context"))
                     return new FeatureNotAvailableException("query_context not available on this server version");
-
-                if (error.Code == 2120 && error.Message.Contains("Failure to authenticate user"))
-                {
-                    return new AuthenticationFailureException(context);
-                }
             }
 
             return new CouchbaseException(context);
