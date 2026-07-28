@@ -76,6 +76,10 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     // owns its transport.
     private readonly SocketsHttpHandler? _socketsHandler;
 
+    // Drives the WaitUntilReady timeout budget. Injectable so tests can run the health-check
+    // retry loop on a FakeTimeProvider instead of the wall clock.
+    private readonly TimeProvider _timeProvider = TimeProvider.System;
+
     internal Health.HealthClient HealthClient { get; set; }
 
 
@@ -85,8 +89,10 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         Metadata metaData, IRequestTracer requestTracer, GrpcChannel grpcChannel,
         ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions,
         IOperationCompressor operationCompressor,
-        CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.None)
+        CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.None,
+        TimeProvider? timeProvider = null)
     {
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _bucketManager = bucketManager;
         _searchIndexManager = searchIndexManager;
         _queryClient = queryClient;
@@ -372,13 +378,15 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
         using var traceSpan = RequestTracer.RequestSpan("wait_until_ready", null);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(userToken);
-        if (timeout != Timeout.InfiniteTimeSpan)
-        {
-            cts.CancelAfter(timeout);
-        }
+        // Keep the timeout in its own source rather than using cts.CancelAfter: it lets the catch
+        // below identify a timeout exactly instead of inferring it, and it routes the timer through
+        // the injected TimeProvider so tests can drive the budget without the wall clock.
+        using var timeoutCts = timeout != Timeout.InfiniteTimeSpan
+            ? _timeProvider.CreateCancellationTokenSource(timeout)
+            : new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(userToken, timeoutCts.Token);
 
-        var request = new StellarRequest
+        var request = new StellarRequest(_timeProvider)
         {
             Idempotent = true,
             Timeout = timeout,
@@ -409,7 +417,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
                 return WaitUntilReadyResult.Instance;
             }, request).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested && !userToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !userToken.IsCancellationRequested)
         {
             throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
         }
