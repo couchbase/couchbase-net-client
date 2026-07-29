@@ -11,6 +11,7 @@ using Couchbase.Stellar.Core.Retry;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -286,6 +287,30 @@ public class StellarRetryHandlerTests
     //  Timeout enforcement tests using FakeTimeProvider
     // ──────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Advances <paramref name="fakeTime"/> in <paramref name="stepMs"/> increments until
+    /// <paramref name="task"/> completes. The retry loop runs on a background task and parks on
+    /// backoff timers owned by the fake clock, so it only makes progress when this pump advances it.
+    /// <para>
+    /// Bounded on purpose: an unbounded pump turns a regression that never completes into a hung test
+    /// that burns the CI job timeout with no diagnostic, rather than a failure that names the problem.
+    /// </para>
+    /// </summary>
+    private static async Task PumpUntilCompleteAsync(FakeTimeProvider fakeTime, Task task,
+        int stepMs, int maxAdvances = 200)
+    {
+        var step = TimeSpan.FromMilliseconds(stepMs);
+
+        for (var i = 0; i < maxAdvances && !task.IsCompleted; i++)
+        {
+            fakeTime.Advance(step);
+            await Task.Delay(1); // real yield so the retry loop can register its next timer
+        }
+
+        Assert.True(task.IsCompleted,
+            $"Operation did not complete after {maxAdvances} advances of {step} on the fake clock.");
+    }
+
     [Fact]
     public void RemainingTimeout_ShrinkAsTimeAdvances()
     {
@@ -381,12 +406,11 @@ public class StellarRetryHandlerTests
         // Run RetryAsync on a background task, advance time from this thread
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        // Pump time forward until the task completes or we give up
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1); // yield to let continuations run
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 500);
+
+        // A read-only op that exhausts its budget must be Unambiguous: it cannot have applied.
+        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(
+            () => retryTask);
     }
 
     [Fact]
@@ -414,11 +438,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 500);
 
         await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
@@ -453,11 +473,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 500);
 
         await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
@@ -505,11 +521,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 100);
 
         var result = await retryTask;
         Assert.NotNull(result);
@@ -555,12 +567,8 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            // Each advance covers the backoff delay and simulates elapsed time
-            fakeTime.Advance(TimeSpan.FromMilliseconds(1500));
-            await Task.Delay(1);
-        }
+        // Each advance covers the backoff delay and simulates elapsed time
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 1500);
 
         await retryTask;
 
@@ -604,11 +612,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 100);
 
         var result = await retryTask;
         Assert.NotNull(result);
@@ -635,11 +639,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 100);
 
         var result = await retryTask;
         Assert.NotNull(result);
@@ -670,11 +670,7 @@ public class StellarRetryHandlerTests
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
 
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
+        await PumpUntilCompleteAsync(fakeTime, retryTask, stepMs: 100);
 
         var result = await retryTask;
         Assert.NotNull(result);
