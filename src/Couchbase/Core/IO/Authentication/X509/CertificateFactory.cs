@@ -148,126 +148,152 @@ namespace Couchbase.Core.IO.Authentication.X509
 
                 if (certificate is X509Certificate2 cert2)
                 {
-                    // Snapshot what the server presented before the first build, because the ExtraStore
-                    // is cleared afterwards and the second attempt still needs those intermediates.
-                    var serverSuppliedCerts = new X509Certificate2Collection();
-                    foreach (var wireCert in chain.ChainPolicy.ExtraStore)
-                    {
-                        serverSuppliedCerts.Add(new X509Certificate2(wireCert));
-                    }
-
-                    // first attempt - validation from system trust store plus whatever certs have been provided
-                    // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
-
-                    bool built;
+                    // Anything placed in a chain store is a copy owned by this callback, so .NET's cleanup
+                    // after the callback returns can never dispose a caller's certificate (NCBC-4120).
+                    var ownedCopies = new List<X509Certificate2>();
                     try
                     {
-                        foreach (var defaultCert in certs)
+                        // Snapshot what the server presented before the first build, because the ExtraStore
+                        // is cleared afterwards and the second attempt still needs those intermediates.
+                        var serverSuppliedCerts = new X509Certificate2Collection();
+                        foreach (var wireCert in chain.ChainPolicy.ExtraStore)
                         {
-                            MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
-                            chain.ChainPolicy.ExtraStore.Add(new X509Certificate2(defaultCert));
+                            serverSuppliedCerts.Add(Own(wireCert, ownedCopies));
                         }
 
-                        MaybeLogChainElements("X509 chain element cert is", chain, logger);
+                        // first attempt - validation from system trust store plus whatever certs have been provided
+                        // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
 
-                        built = chain.Build(cert2);
-                    }
-                    finally
-                    {
-                        // Remove the extra certs so they aren't disposed during .NET cleanup after
-                        // the callback completes.
-                        chain.ChainPolicy.ExtraStore.Clear();
-                    }
-
-                    if (!built &&
-                        (chain.ChainStatus.First().Status ==
-                         X509ChainStatusFlags.UntrustedRoot /* probably Capella self-signed KV */ ||
-                         chain.ChainStatus.First().Status ==
-                         X509ChainStatusFlags.PartialChain /* probably Capella self-signed http */))
-                    {
-#if NET5_0_OR_GREATER
-                        if (logger?.IsEnabled(LogLevel.Debug) == true)
+                        bool built;
+                        try
                         {
-                            logger.LogDebug(
-                                "X509 validation using system truststore failed with UntrustedRoot or PartialChain, will retry using CustomRootTrust with {certCount} provided certificate(s)", certs.Count);
+                            foreach (var defaultCert in certs)
+                            {
+                                MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
+                                chain.ChainPolicy.ExtraStore.Add(Own(defaultCert, ownedCopies));
+                            }
+
+                            MaybeLogChainElements("X509 chain element cert is", chain, logger);
+
+                            built = chain.Build(cert2);
+                        }
+                        finally
+                        {
+                            chain.ChainPolicy.ExtraStore.Clear();
+                        }
+
+                        if (!built &&
+                            (chain.ChainStatus.First().Status ==
+                             X509ChainStatusFlags.UntrustedRoot /* probably Capella self-signed KV */ ||
+                             chain.ChainStatus.First().Status ==
+                             X509ChainStatusFlags.PartialChain /* probably Capella self-signed http */))
+                        {
+#if NET5_0_OR_GREATER
+                            if (logger?.IsEnabled(LogLevel.Debug) == true)
+                            {
+                                logger.LogDebug(
+                                    "X509 validation using system truststore failed with UntrustedRoot or PartialChain, will retry using CustomRootTrust with {certCount} provided certificate(s)", certs.Count);
+                                foreach (var status in chain.ChainStatus)
+                                {
+                                    logger.LogDebug("{status}: {statusInformation}", status.Status,
+                                        status.StatusInformation);
+                                }
+                            }
+
+                            // second attempt - using only the certs that have been provided in CustomRootTrust
+                            chain.Reset();
+                            chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+
+                            // user supplied or Capella. If self-signed, they *will* be sufficient for CustomTrustMode
+                            logger?.LogDebug("X509 adding {certCount} certificate(s) to CustomTrustStore", certs.Count);
+                            foreach (var defaultCert in certs)
+                            {
+                                MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
+                                chain.ChainPolicy.CustomTrustStore.Add(Own(defaultCert, ownedCopies));
+                            }
+
+                            // Re-supply the server-presented certificates as ExtraStore (not
+                            // CustomTrustStore, since they are not themselves trust anchors).
+                            foreach (var wireCert in serverSuppliedCerts)
+                            {
+                                chain.ChainPolicy.ExtraStore.Add(wireCert);
+                            }
+
+                            MaybeLogChainElements("X509 Retry chain element cert is ", chain, logger);
+
+                            built = chain.Build(cert2);
+#else
+                            // There doesn't seem to be a functional way to make this work on earlier versions.
+                            // The user will have to add the cert to their personal store manually.
+                            // built will remain false, validation fails
+#endif
+                        }
+
+                        if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+#if NET5_0_OR_GREATER
+                            logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
+                                cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
+#else
+                            logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
+                                cert2.Subject, cert2.Thumbprint);
+#endif
+                            logger.LogDebug("X509 chain contains {chainElementCount} element(s)", chain.ChainElements.Count);
                             foreach (var status in chain.ChainStatus)
                             {
-                                logger.LogDebug("{status}: {statusInformation}", status.Status,
-                                    status.StatusInformation);
+                                logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
                             }
-                        }
 
-                        // second attempt - using only the certs that have been provided in CustomRootTrust
-                        chain.Reset();
-                        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-
-                        // user supplied or Capella. If self-signed, they *will* be sufficient for CustomTrustMode
-                        logger?.LogDebug("X509 adding {certCount} certificate(s) to CustomTrustStore", certs.Count);
-                        foreach (var defaultCert in certs)
-                        {
-                            MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
-                            chain.ChainPolicy.CustomTrustStore.Add(defaultCert);
-                        }
-
-                        // Re-supply the server-presented certificates as ExtraStore (not
-                        // CustomTrustStore, since they are not themselves trust anchors).
-                        foreach (var wireCert in serverSuppliedCerts)
-                        {
-                            chain.ChainPolicy.ExtraStore.Add(wireCert);
-                        }
-
-                        MaybeLogChainElements("X509 Retry chain element cert is ", chain, logger);
-
-                        built = chain.Build(cert2);
-#else
-                        // There doesn't seem to be a functional way to make this work on earlier versions.
-                        // The user will have to add the cert to their personal store manually.
-                        // built will remain false, validation fails
-#endif
-                    }
-
-                    if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
-                    {
-#if NET5_0_OR_GREATER
-                        logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
-                            cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
-#else
-                        logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
-                            cert2.Subject, cert2.Thumbprint);
-#endif
-                        logger.LogDebug("X509 chain contains {chainElementCount} element(s)", chain.ChainElements.Count);
-                        foreach (var status in chain.ChainStatus)
-                        {
-                            logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
-                        }
-
-                        if (logger.IsEnabled(LogLevel.Trace))
-                        {
-                            foreach (var chainElement in chain.ChainElements)
+                            if (logger.IsEnabled(LogLevel.Trace))
                             {
-                                logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
-                                foreach (var chainStatus in chainElement.ChainElementStatus)
+                                foreach (var chainElement in chain.ChainElements)
                                 {
-                                    logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
+                                    logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
+                                    foreach (var chainStatus in chainElement.ChainElementStatus)
+                                    {
+                                        logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
+                        else
+                        {
 #if NET5_0_OR_GREATER
-                        logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
-                            cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
+                            logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
+                                cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
 #else
-                        logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
-                            cert2.Subject, cert2.Thumbprint);
+                            logger?.LogDebug("X509 validation SUCCEEDED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
+                                cert2.Subject, cert2.Thumbprint);
 #endif
-                    }
+                        }
 
-                    return built;
+                        return built;
+                    }
+                    finally
+                    {
+                        // Detach the copies before disposing them, so the chain never holds a disposed handle.
+                        chain.ChainPolicy.ExtraStore.Clear();
+#if NET5_0_OR_GREATER
+                        chain.ChainPolicy.CustomTrustStore.Clear();
+#endif
+                        foreach (var copy in ownedCopies)
+                        {
+                            copy.Dispose();
+                        }
+                    }
                 }
                 return false;
             };
+
+        /// <summary>
+        /// Copies a certificate for placement in a chain store and records the copy for disposal.
+        /// </summary>
+        private static X509Certificate2 Own(X509Certificate2 cert, List<X509Certificate2> ownedCopies)
+        {
+            var copy = new X509Certificate2(cert);
+            ownedCopies.Add(copy);
+            return copy;
+        }
 
         private static readonly X509Certificate2Collection DefaultCertificatesCollection = new X509Certificate2Collection(DefaultCertificates.ToArray());
 
