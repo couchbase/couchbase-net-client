@@ -17,12 +17,6 @@ on:
     # 06:00 UTC daily.
     - cron: '0 6 * * *'
   workflow_dispatch:
-  # TEMPORARY - REMOVE BEFORE MERGE. Restored to validate the project-discovery step and the
-  # ubuntu-22.04-arm leg, neither of which existed when this was last validated. Scoped to this
-  # file so that if it does slip through it can only ever trigger on changes to itself.
-  pull_request:
-    paths:
-      - '.github/workflows/nightly-unit-tests.yml'
 
 # Checkout is the only thing here that needs the GITHUB_TOKEN; upload-artifact authenticates with
 # ACTIONS_RUNTIME_TOKEN instead. Declared explicitly so the scope stays least-privilege even if the
