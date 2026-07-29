@@ -29,12 +29,19 @@ internal class CallbackCreator
         _certs =  certs;
     }
 
+    /// <summary>
+    /// Validates the server certificate. Returns false rather than throwing for any rejection, so a
+    /// failure is reported as a certificate error instead of an unrelated exception.
+    /// </summary>
     public bool Callback(object sender, X509Certificate? certificate, X509Chain? chain,
         SslPolicyErrors sslPolicyErrors)
     {
-
-        certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
-        chain = chain ?? throw new ArgumentNullException(nameof(chain));
+        // A server that presents no certificate (RemoteCertificateNotAvailable) is a rejection, not a bug.
+        if (certificate is null || chain is null)
+        {
+            _sslLogger.LogInformation("X509 no server certificate was presented ({sslPolicyErrors}).", sslPolicyErrors);
+            return false;
+        }
 
         if (sslPolicyErrors == SslPolicyErrors.None)
         {
