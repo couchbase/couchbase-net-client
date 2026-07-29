@@ -182,11 +182,14 @@ namespace Couchbase.Core.IO.Authentication.X509
                             chain.ChainPolicy.ExtraStore.Clear();
                         }
 
-                        if (!built &&
-                            (chain.ChainStatus.First().Status ==
-                             X509ChainStatusFlags.UntrustedRoot /* probably Capella self-signed KV */ ||
-                             chain.ChainStatus.First().Status ==
-                             X509ChainStatusFlags.PartialChain /* probably Capella self-signed http */))
+                        // UntrustedRoot or PartialChain means the chain did not reach a system-trusted anchor,
+                        // which is the expected first-attempt outcome for a self-signed or privately issued
+                        // cluster. Test as flags across every status, since a chain can report several at once
+                        // and their order is not defined.
+                        const X509ChainStatusFlags retryableStatuses =
+                            X509ChainStatusFlags.UntrustedRoot | X509ChainStatusFlags.PartialChain;
+
+                        if (!built && chain.ChainStatus.Any(s => (s.Status & retryableStatuses) != 0))
                         {
 #if NET5_0_OR_GREATER
                             if (logger?.IsEnabled(LogLevel.Debug) == true)
