@@ -24,6 +24,12 @@ on:
     paths:
       - '.github/workflows/nightly-unit-tests.yml'
 
+# Checkout is the only thing here that needs the GITHUB_TOKEN; upload-artifact authenticates with
+# ACTIONS_RUNTIME_TOKEN instead. Declared explicitly so the scope stays least-privilege even if the
+# repository default changes.
+permissions:
+  contents: read
+
 jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
