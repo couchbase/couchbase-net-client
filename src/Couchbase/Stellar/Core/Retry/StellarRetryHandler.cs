@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -30,7 +31,16 @@ internal class StellarRetryHandler : IRetryOrchestrator
     internal StellarRetryHandler(TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
+        Delay = _timeProvider.Delay;
     }
+
+    /// <summary>
+    /// The backoff wait between retry attempts, as a delegate so tests can substitute it — the same seam
+    /// <see cref="Couchbase.Core.Retry.RetryOrchestrator"/> exposes. Tests advance an injected
+    /// <see cref="TimeProvider"/> by the backoff and return synchronously, which keeps the timeout budget
+    /// honest without leaving a real timer for the test to wait on.
+    /// </summary>
+    internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; }
 
     public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
     {
@@ -61,7 +71,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                     if (e.StatusCode != StatusCode.OK)
                     {
                         HandleException(e, request, context);
-                        await backoff.Delay(request).ConfigureAwait(false);
+                        await Delay(backoff.CalculateBackoff(request), request.Token).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e) when (IsTransientTransportException(e))
@@ -71,7 +81,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
                     // Treat these like Unavailable and retry.
                     context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
                     request.Attempts++;
-                    await backoff.Delay(request).ConfigureAwait(false);
+                    await Delay(backoff.CalculateBackoff(request), request.Token).ConfigureAwait(false);
                 }
             }
         }

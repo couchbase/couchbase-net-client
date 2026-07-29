@@ -77,8 +77,13 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly SocketsHttpHandler? _socketsHandler;
 
     // Drives the WaitUntilReady timeout budget. Injectable so tests can run the health-check
-    // retry loop on a FakeTimeProvider instead of the wall clock.
+    // retry loop on a FakeTimeProvider instead of the wall clock. The initializer is what the
+    // public ClusterOptions constructor below gets; the internal constructor overwrites it.
     private readonly TimeProvider _timeProvider = TimeProvider.System;
+
+    // The trace span name for WaitUntilReady. Not in OuterRequestSpans: it names no service and is
+    // not an operation span.
+    private const string WaitUntilReadySpanName = "wait_until_ready";
 
     internal Health.HealthClient HealthClient { get; set; }
 
@@ -376,7 +381,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         var opts = options ?? new WaitUntilReadyOptions();
         var userToken = opts.CancellationTokenValue;
 
-        using var traceSpan = RequestTracer.RequestSpan("wait_until_ready", null);
+        // A caller token that has already fired aborts before any health check, matching the
+        // loop-top check in the classic Cluster.WaitUntilReadyAsync.
+        userToken.ThrowIfCancellationRequested();
+
+        using var traceSpan = TraceSpan(WaitUntilReadySpanName, null);
 
         // Keep the timeout in its own source rather than using cts.CancelAfter: it lets the catch
         // below identify a timeout exactly instead of inferring it, and it routes the timer through
@@ -394,6 +403,14 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             Span = traceSpan,
         };
 
+        // The last non-SERVING status seen, if any. The fabricated RpcException that drives the retry
+        // is swallowed by the retry loop, so without this a server stuck in NOT_SERVING is reported as
+        // a bare timeout with no hint of why. (RFC 77 defers the full lastException to CNG-4.)
+        HealthCheckResponse.Types.ServingStatus? lastStatus = null;
+        string TimeoutMessage() => lastStatus is null
+            ? $"Timed out after {timeout}."
+            : $"Timed out after {timeout}. The last health check reported serving status {lastStatus}.";
+
         try
         {
             await RetryHandler.RetryAsync(async () =>
@@ -410,6 +427,11 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
                 if (response.Status != HealthCheckResponse.Types.ServingStatus.Serving)
                 {
+                    lastStatus = response.Status;
+                    _logger.LogDebug(
+                        "WaitUntilReady: couchbase2 health check reported serving status {status} after {attempts} attempt(s); retrying.",
+                        response.Status, request.Attempts + 1);
+
                     throw new RpcException(new Status(StatusCode.Unavailable,
                         $"couchbase2 server reported serving status {response.Status}"));
                 }
@@ -417,11 +439,38 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
                 return WaitUntilReadyResult.Instance;
             }, request).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !userToken.IsCancellationRequested)
+        catch (Exception e) when (userToken.IsCancellationRequested && IsCancellationOutcome(e))
         {
-            throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+            // Classic parity (Cluster/BucketBase.WaitUntilReadyAsync): when the caller's own token is
+            // what fired, rethrow as OperationCanceledException — normal .NET cancellation semantics —
+            // and let it win over a timeout raised in the same moment. Left alone, the same user action
+            // would surface as a timeout (the retry loop's cancelled-token check) or as
+            // RequestCanceledException (gRPC CANCELLED), depending on where the token landed.
+            throw new OperationCanceledException(
+                "WaitUntilReady was canceled by the CancellationToken supplied in the options.", e, userToken);
+        }
+        catch (UnambiguousTimeoutException e)
+        {
+            // The timeout is spotted in three places — the gRPC deadline, the retry loop's cancelled-token
+            // check, and timeoutCts below — each with its own wording. Normalize the message so callers see
+            // one, carrying the retry context forward.
+            var timedOut = new UnambiguousTimeoutException(TimeoutMessage(), e) { Context = e.Context };
+            timedOut.RetryReasons.AddRange(e.RetryReasons);
+            throw timedOut;
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            throw new UnambiguousTimeoutException(TimeoutMessage());
         }
     }
+
+    /// <summary>
+    /// Whether <paramref name="e"/> is one of the outcomes the retry loop or gRPC produce for a
+    /// cancelled token, as opposed to a genuine failure that happened to race the cancellation.
+    /// </summary>
+    private static bool IsCancellationOutcome(Exception e) =>
+        e is OperationCanceledException or RequestCanceledException
+            or UnambiguousTimeoutException or AmbiguousTimeoutException;
 
     private sealed class WaitUntilReadyResult : IServiceResult
     {

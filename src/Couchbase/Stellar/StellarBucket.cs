@@ -134,8 +134,11 @@ internal class StellarBucket : IBucket
         throw ThrowHelper.ThrowFeatureNotAvailableException("View Queries", "Protostellar");
 
     // Per RFC 77, the couchbase2 health check is cluster-wide, not per-bucket.
-    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null) =>
-        _stellarCluster.WaitUntilReadyAsync(timeout, options);
+    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
+    {
+        CheckIfDisposed();
+        return _stellarCluster.WaitUntilReadyAsync(timeout, options);
+    }
 
     private void CheckIfDisposed()
     {
