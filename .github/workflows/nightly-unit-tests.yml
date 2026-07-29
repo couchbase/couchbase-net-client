@@ -28,16 +28,17 @@ jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # Wider than the PR gate's 30min: same build, but three test projects per leg.
+    # Wider than the PR gate's 30min: same build, but every unit test project per leg.
     timeout-minutes: 45
     strategy:
-      # One platform failing should never hide the results for the other six.
+      # One platform failing should never hide the results for the others.
       fail-fast: false
       matrix:
         os:
           - ubuntu-24.04
           - ubuntu-24.04-arm
           - ubuntu-22.04
+          - ubuntu-22.04-arm
           - windows-2025
           - windows-2022
           - macos-latest    # arm64
@@ -63,23 +64,60 @@ jobs:
       - name: Build (Release)
         run: dotnet build couchbase-net-client.sln --configuration Release
 
+      # Discover the unit test projects rather than listing them. build-and-test.yml names one
+      # project by hand, which is how the DependencyInjection and OpenTelemetry tests went unrun
+      # from the GHA migration onwards; hardcoding them here would set up the same trap for the
+      # next project added. This mirrors the **UnitTest** glob the Jenkins nightly used.
+      #
+      # Enumerated from the solution rather than the filesystem: it keeps the set to projects the
+      # build step above actually built (which --no-build requires), and avoids `find` resolving to
+      # Windows' unrelated find.exe under Git Bash.
+      #
       # No --framework: the TFMs come from SdkTestTargets in Directory.Build.props, so these run
       # net8.0 and net10.0 everywhere and additionally net48 on the Windows legs.
       #
       # --blame-hang turns an intermittent hung test host into a fast red plus a dump, instead of a
       # job that sits until the timeout with no diagnostics.
-      - name: Test - Couchbase.UnitTests
-        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+      - name: Test - all unit test projects
+        shell: bash
+        run: |
+          set -uo pipefail
 
-      # `!cancelled()` rather than the default: a failure in one test project should not hide the
-      # results of the others. The job still fails overall.
-      - name: Test - Couchbase.Extensions.DependencyInjection.UnitTests
-        if: ${{ !cancelled() }}
-        run: dotnet test tests/Couchbase.Extensions.DependencyInjection.UnitTests/Couchbase.Extensions.DependencyInjection.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=dependency-injection-unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+          projects=$(dotnet sln couchbase-net-client.sln list | tr '\\' '/' \
+            | grep -iE '^tests/.*UnitTest.*\.csproj$' | sort)
 
-      - name: Test - Couchbase.Extensions.OpenTelemetry.UnitTests
-        if: ${{ !cancelled() }}
-        run: dotnet test tests/Couchbase.Extensions.OpenTelemetry.UnitTests/Couchbase.Extensions.OpenTelemetry.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=opentelemetry-unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+          # Matching nothing has to be loud. A silently empty run reporting green is precisely the
+          # failure mode this step exists to prevent.
+          if [ -z "$projects" ]; then
+            echo "::error::No unit test projects matched in couchbase-net-client.sln"
+            exit 1
+          fi
+
+          echo "Discovered:"
+          echo "$projects" | while read -r p; do echo "  $p"; done
+
+          failed=""
+          for proj in $projects; do
+            name=$(basename "$proj" .csproj)
+            echo "::group::$name"
+            if dotnet test "$proj" --configuration Release --no-build \
+                 --logger "trx;LogFileName=$name.trx" --results-directory TestResults \
+                 --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full; then
+              echo "$name: PASSED"
+            else
+              echo "::error::$name FAILED"
+              failed="$failed $name"
+            fi
+            echo "::endgroup::"
+          done
+
+          # Every project runs even when an earlier one fails, then the step fails once at the end.
+          # Same accumulate-then-report behaviour as the Jenkins pipeline, and the reason the old
+          # per-step `if: !cancelled()` conditions are no longer needed.
+          if [ -n "$failed" ]; then
+            echo "Failed:$failed"
+            exit 1
+          fi
 
       - name: Upload Test Results
         if: always()
