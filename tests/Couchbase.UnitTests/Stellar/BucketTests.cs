@@ -54,10 +54,13 @@ public class BucketTests
     }
 
     [Fact]
-    public async Task Throw_FeatureNotAvailableException_WaitUntileReadyAsync()
+    public async Task WaitUntilReadyAsync_ZeroTimeout_ThrowsUnambiguousTimeout()
     {
+        // NCBC-4269 / RFC 77 CNG-1: bucket WaitUntilReady now delegates to the cluster health check
+        // (no longer FeatureNotAvailable). A non-positive timeout has already elapsed. Delegation and
+        // the serving/retry paths are covered in StellarWaitUntilReadyTests.
         var bucket = await CreateBucket();
-        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await bucket.WaitUntilReadyAsync(TimeSpan.Zero));
+        await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () => await bucket.WaitUntilReadyAsync(TimeSpan.Zero));
     }
 
     private async Task<IBucket> CreateBucket()

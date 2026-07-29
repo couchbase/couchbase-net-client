@@ -41,6 +41,7 @@ using Couchbase.Stellar.Search;
 using Couchbase.Stellar.Util;
 using Couchbase.Utils;
 using Grpc.Core;
+using Grpc.Health.V1;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -75,6 +76,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     // owns its transport.
     private readonly SocketsHttpHandler? _socketsHandler;
 
+    // Drives the WaitUntilReady timeout budget. Injectable so tests can run the health-check
+    // retry loop on a FakeTimeProvider instead of the wall clock. The initializer is what the
+    // public ClusterOptions constructor below gets; the internal constructor overwrites it.
+    private readonly TimeProvider _timeProvider = TimeProvider.System;
+
+    // The trace span name for WaitUntilReady. Not in OuterRequestSpans: it names no service and is
+    // not an operation span.
+    private const string WaitUntilReadySpanName = "wait_until_ready";
+
+    internal Health.HealthClient HealthClient { get; set; }
+
 
     internal StellarCluster(IBucketManager bucketManager, ISearchIndexManager searchIndexManager,
         IQueryIndexManager queryIndexManager, IQueryClient queryClient,
@@ -82,8 +94,10 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         Metadata metaData, IRequestTracer requestTracer, GrpcChannel grpcChannel,
         ITypeSerializer typeSerializer, IRetryOrchestrator retryHandler, ClusterOptions clusterOptions,
         IOperationCompressor operationCompressor,
-        CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.None)
+        CompressionAlgorithm compressionAlgorithm = CompressionAlgorithm.None,
+        TimeProvider? timeProvider = null)
     {
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _bucketManager = bucketManager;
         _searchIndexManager = searchIndexManager;
         _queryClient = queryClient;
@@ -94,6 +108,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _metaData = metaData;
         RequestTracer = requestTracer;
         GrpcChannel = grpcChannel;
+        HealthClient = new Health.HealthClient(grpcChannel);
         TypeSerializer = typeSerializer;
         TypeTranscoder = _clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
         OperationCompressor = operationCompressor;
@@ -141,6 +156,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
         var retryHandler = new StellarRetryHandler();
         RetryHandler = retryHandler;
+        HealthClient = new Health.HealthClient(GrpcChannel);
 
         _bucketManager = new StellarBucketManager(this);
         _searchIndexManager = new StellarSearchIndexManager(this);
@@ -353,8 +369,114 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         return await _searchClient.QueryAsync(indexName, query, options).ConfigureAwait(false);
     }
 
-    public Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)=>
-        throw ThrowHelper.ThrowFeatureNotAvailableException("WaitUntilReady", "Protostellar");
+    public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
+    {
+        CheckIfDisposed();
+
+        if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+        {
+            throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+        }
+
+        var opts = options ?? new WaitUntilReadyOptions();
+        var userToken = opts.CancellationTokenValue;
+
+        // A caller token that has already fired aborts before any health check, matching the
+        // loop-top check in the classic Cluster.WaitUntilReadyAsync.
+        userToken.ThrowIfCancellationRequested();
+
+        using var traceSpan = TraceSpan(WaitUntilReadySpanName, null);
+
+        // Keep the timeout in its own source rather than using cts.CancelAfter: it lets the catch
+        // below identify a timeout exactly instead of inferring it, and it routes the timer through
+        // the injected TimeProvider so tests can drive the budget without the wall clock.
+        using var timeoutCts = timeout != Timeout.InfiniteTimeSpan
+            ? _timeProvider.CreateCancellationTokenSource(timeout)
+            : new CancellationTokenSource();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(userToken, timeoutCts.Token);
+
+        var request = new StellarRequest(_timeProvider)
+        {
+            Idempotent = true,
+            Timeout = timeout,
+            Token = cts.Token,
+            Span = traceSpan,
+        };
+
+        // The last non-SERVING status seen, if any. The fabricated RpcException that drives the retry
+        // is swallowed by the retry loop, so without this a server stuck in NOT_SERVING is reported as
+        // a bare timeout with no hint of why. (RFC 77 defers the full lastException to CNG-4.)
+        HealthCheckResponse.Types.ServingStatus? lastStatus = null;
+        string TimeoutMessage() => lastStatus is null
+            ? $"Timed out after {timeout}."
+            : $"Timed out after {timeout}. The last health check reported serving status {lastStatus}.";
+
+        try
+        {
+            await RetryHandler.RetryAsync(async () =>
+            {
+                // Pass the caller's token, not cts.Token: the timeout must surface via the gRPC
+                // deadline as UnambiguousTimeoutException, not race the linked token into a
+                // RequestCanceledException.
+                var callOptions = new CallOptions(
+                    headers: new Metadata(),
+                    deadline: request.RemainingTimeout.FromNow(),
+                    cancellationToken: userToken);
+
+                var response = await HealthClient.CheckAsync(new HealthCheckRequest(), callOptions);
+
+                if (response.Status != HealthCheckResponse.Types.ServingStatus.Serving)
+                {
+                    lastStatus = response.Status;
+                    _logger.LogDebug(
+                        "WaitUntilReady: couchbase2 health check reported serving status {status} after {attempts} attempt(s); retrying.",
+                        response.Status, request.Attempts + 1);
+
+                    throw new RpcException(new Status(StatusCode.Unavailable,
+                        $"couchbase2 server reported serving status {response.Status}"));
+                }
+
+                return WaitUntilReadyResult.Instance;
+            }, request).ConfigureAwait(false);
+        }
+        catch (Exception e) when (userToken.IsCancellationRequested && IsCancellationOutcome(e))
+        {
+            // Classic parity (Cluster/BucketBase.WaitUntilReadyAsync): when the caller's own token is
+            // what fired, rethrow as OperationCanceledException — normal .NET cancellation semantics —
+            // and let it win over a timeout raised in the same moment. Left alone, the same user action
+            // would surface as a timeout (the retry loop's cancelled-token check) or as
+            // RequestCanceledException (gRPC CANCELLED), depending on where the token landed.
+            throw new OperationCanceledException(
+                "WaitUntilReady was canceled by the CancellationToken supplied in the options.", e, userToken);
+        }
+        catch (UnambiguousTimeoutException e)
+        {
+            // The timeout is spotted in three places — the gRPC deadline, the retry loop's cancelled-token
+            // check, and timeoutCts below — each with its own wording. Normalize the message so callers see
+            // one, carrying the retry context forward.
+            var timedOut = new UnambiguousTimeoutException(TimeoutMessage(), e) { Context = e.Context };
+            timedOut.RetryReasons.AddRange(e.RetryReasons);
+            throw timedOut;
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            throw new UnambiguousTimeoutException(TimeoutMessage());
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="e"/> is one of the outcomes the retry loop or gRPC produce for a
+    /// cancelled token, as opposed to a genuine failure that happened to race the cancellation.
+    /// </summary>
+    private static bool IsCancellationOutcome(Exception e) =>
+        e is OperationCanceledException or RequestCanceledException
+            or UnambiguousTimeoutException or AmbiguousTimeoutException;
+
+    private sealed class WaitUntilReadyResult : IServiceResult
+    {
+        public static readonly WaitUntilReadyResult Instance = new();
+        public RetryReason RetryReason => RetryReason.NoRetry;
+    }
 
     public CallOptions GrpcCallOptions() => new (headers: _metaData);
 

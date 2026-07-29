@@ -11,6 +11,8 @@ jobs:
   build-and-test:
     name: Build and Unit Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # The suite runs in ~5 minutes; without a cap, a hung test host sits on the 6h default.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -36,8 +38,11 @@ jobs:
       - name: Build (Release)
         run: dotnet build couchbase-net-client.sln --configuration Release
 
+      # --blame-hang turns an intermittent hung test host into a fast red plus a dump, instead of a job
+      # that sits until the timeout with no diagnostics. The suite finishes in well under a minute per
+      # TFM, so 5min of no test activity means it is stuck.
       - name: Test - Couchbase.UnitTests
-        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults"
+        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
 
       - name: Upload Test Results
         if: always()
