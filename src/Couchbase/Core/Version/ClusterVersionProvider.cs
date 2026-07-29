@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
@@ -18,7 +19,7 @@ namespace Couchbase.Core.Version
     /// <summary>
     /// Default implementation of <see cref="IClusterVersionProvider"/>.
     /// </summary>
-    internal class ClusterVersionProvider : IClusterVersionProvider
+    internal class ClusterVersionProvider : IClusterVersionProviderCancellable
     {
         private readonly ClusterContext _clusterContext;
         private readonly ILogger<ClusterVersionProvider> _logger;
@@ -32,7 +33,10 @@ namespace Couchbase.Core.Version
         }
 
         /// <inheritdoc />
-        public async ValueTask<ClusterVersion?> GetVersionAsync()
+        public ValueTask<ClusterVersion?> GetVersionAsync() => GetVersionAsync(CancellationToken.None);
+
+        /// <inheritdoc />
+        public async ValueTask<ClusterVersion?> GetVersionAsync(CancellationToken cancellationToken)
         {
             var version = _cachedVersion;
             if (version != null)
@@ -42,7 +46,7 @@ namespace Couchbase.Core.Version
 
             var httpClient = _clusterContext.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>().Create();
 
-            version = await GetVersionAsync(_clusterContext.Nodes.Select(p => p.ManagementUri).Distinct(), httpClient)
+            version = await GetVersionAsync(_clusterContext.Nodes.Select(p => p.ManagementUri).Distinct(), httpClient, cancellationToken)
                 .ConfigureAwait(false);
 
             if (version != null)
@@ -59,7 +63,7 @@ namespace Couchbase.Core.Version
             _cachedVersion = null;
         }
 
-        private async Task<ClusterVersion?> GetVersionAsync(IEnumerable<Uri> servers, HttpClient httpClient)
+        private async Task<ClusterVersion?> GetVersionAsync(IEnumerable<Uri> servers, HttpClient httpClient, CancellationToken cancellationToken)
         {
             if (servers == null)
             {
@@ -68,11 +72,12 @@ namespace Couchbase.Core.Version
 
             foreach (var server in servers.ToList().Shuffle())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
                     _logger.LogTrace("Getting cluster version from {server}", server);
 
-                    var config = await DownloadConfigAsync(httpClient, server).ConfigureAwait(false);
+                    var config = await DownloadConfigAsync(httpClient, server, cancellationToken).ConfigureAwait(false);
                     if (config != null && config.Nodes != null)
                     {
                         ClusterVersion? compatibilityVersion = null;
@@ -91,6 +96,12 @@ namespace Couchbase.Core.Version
                         }
                     }
                 }
+                // Our own cancellation must propagate, not be swallowed as "couldn't reach this server"
+                // and silently return null from the servers loop below.
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Unable to load config from {server}", server);
@@ -102,18 +113,19 @@ namespace Couchbase.Core.Version
             return null;
         }
 
-        protected virtual async Task<Pools> DownloadConfigAsync(HttpClient httpClient, Uri server)
+        protected virtual async Task<Pools> DownloadConfigAsync(HttpClient httpClient, Uri server, CancellationToken cancellationToken)
         {
             try
             {
                 var uri = new Uri(server, "/pools/default");
 
-                var response = await httpClient.GetAsync(uri).ConfigureAwait(false);
+                var response = await httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
+                // HttpContent.ReadAsStreamAsync has no CancellationToken overload on netstandard2.0.
                 using var responseBody = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                return (await JsonSerializer.DeserializeAsync(responseBody, InternalSerializationContext.Default.Pools)
+                return (await JsonSerializer.DeserializeAsync(responseBody, InternalSerializationContext.Default.Pools, cancellationToken)
                     .ConfigureAwait(false))!;
             }
             catch (AggregateException ex)

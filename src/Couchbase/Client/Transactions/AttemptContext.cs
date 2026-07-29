@@ -2250,7 +2250,23 @@ namespace Couchbase.Client.Transactions
 
             // quick check without taking a lock
             if (_atr != null) return;
-            await _attemptLock.WaitAsync().CAF();
+
+            // Bound the wait by the attempt's own remaining budget - not KeyValueTimeout, which is
+            // unset by default and unrelated to this lock - so a stuck holder can't block this waiter
+            // past the transaction's own expiry.
+            var lockTimeout = _overallContext.RemainingUntilExpiration;
+            if (lockTimeout < TimeSpan.Zero) lockTimeout = TimeSpan.Zero;
+            if (!await _attemptLock.WaitAsync(lockTimeout).CAF())
+            {
+                // We waited the entire remaining transaction budget, so we're expired - no need to
+                // re-check via CheckExpiryAndThrow.
+                _expirationOvertimeMode = true;
+                throw CreateError(this, ErrorClass.FailExpiry)
+                    .Cause(new AttemptExpiredException(this,
+                        $"Expired after {lockTimeout} waiting to initialize the ATR"))
+                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .Build();
+            }
             try
             {
                 // TODO: AtrRepository should be built via factory to actually support mocking.
