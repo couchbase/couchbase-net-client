@@ -117,6 +117,20 @@ namespace Couchbase.Core.IO.Authentication.X509
             return errors;
         }
 
+        /// <summary>
+        /// Builds a server certificate validation callback that trusts <paramref name="certs"/> as trust anchors.
+        /// </summary>
+        /// <remarks>
+        /// Validation runs in two attempts. The first uses the system trust store, so a publicly issued server
+        /// certificate is accepted without any configuration. If that fails because the chain does not terminate
+        /// at a system-trusted root, the second attempt rebuilds it under <c>CustomRootTrust</c> using only
+        /// <paramref name="certs"/>, which is what accepts a self-signed or privately issued cluster. The second
+        /// attempt is unavailable on netstandard targets, where validation fails instead.
+        ///
+        /// Both attempts rely on the certificates the server presented on the wire, which <c>SslStream</c> supplies
+        /// in the chain policy ExtraStore. They are intermediates, not anchors, so they are never promoted into the
+        /// trust store.
+        /// </remarks>
         internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(X509Certificate2Collection certs, ILogger? logger, IRedactor? redactor) =>
             (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
             {
@@ -134,14 +148,13 @@ namespace Couchbase.Core.IO.Authentication.X509
 
                 if (certificate is X509Certificate2 cert2)
                 {
-                    // The X509Chain passed to this callback was pre-populated by SslStream with
-                    // the certificates the server sent on the wire (the chain's intermediates).
-                    // Those need to be copied into the ExtraStore on each attempt, or any chain that depends on
-                    // a server-presented intermediate will fail to validate even when it is otherwise valid.
-                    var wireIntermediates = chain.ChainElements
-                        .Cast<X509ChainElement>()
-                        .Select(el => new X509Certificate2(el.Certificate))
-                        .ToArray();
+                    // Snapshot what the server presented before the first build, because the ExtraStore
+                    // is cleared afterwards and the second attempt still needs those intermediates.
+                    var serverSuppliedCerts = new X509Certificate2Collection();
+                    foreach (var wireCert in chain.ChainPolicy.ExtraStore)
+                    {
+                        serverSuppliedCerts.Add(new X509Certificate2(wireCert));
+                    }
 
                     // first attempt - validation from system trust store plus whatever certs have been provided
                     // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
@@ -153,11 +166,6 @@ namespace Couchbase.Core.IO.Authentication.X509
                         {
                             MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
                             chain.ChainPolicy.ExtraStore.Add(new X509Certificate2(defaultCert));
-                        }
-
-                        foreach (var intermediate in wireIntermediates)
-                        {
-                            chain.ChainPolicy.ExtraStore.Add(intermediate);
                         }
 
                         MaybeLogChainElements("X509 chain element cert is", chain, logger);
@@ -201,11 +209,11 @@ namespace Couchbase.Core.IO.Authentication.X509
                             chain.ChainPolicy.CustomTrustStore.Add(defaultCert);
                         }
 
-                        // Re-supply the server-presented intermediates as ExtraStore (not
+                        // Re-supply the server-presented certificates as ExtraStore (not
                         // CustomTrustStore, since they are not themselves trust anchors).
-                        foreach (var intermediate in wireIntermediates)
+                        foreach (var wireCert in serverSuppliedCerts)
                         {
-                            chain.ChainPolicy.ExtraStore.Add(intermediate);
+                            chain.ChainPolicy.ExtraStore.Add(wireCert);
                         }
 
                         MaybeLogChainElements("X509 Retry chain element cert is ", chain, logger);
