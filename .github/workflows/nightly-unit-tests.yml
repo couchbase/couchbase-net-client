@@ -1,0 +1,89 @@
+name: Nightly Unit Tests
+
+# Reproduces the cross-platform nightly the project ran under Jenkins: every unit test project,
+# on every supported OS family and architecture, across every framework we ship.
+#
+# This is deliberately broader than the PR gate in build-and-test.yml, which stays narrow and fast.
+# Two things only the nightly covers:
+#   - the DependencyInjection and OpenTelemetry unit test projects, which the PR gate builds but
+#     never executes
+#   - x64 macOS and the older Ubuntu/Windows images, since the gate runs one image per OS family
+#     and macos-latest is arm64
+#
+# Note: GitHub only runs `schedule` on the default branch, and it disables scheduled workflows
+# after 60 days with no repository activity.
+on:
+  schedule:
+    # 06:00 UTC daily.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  # TEMPORARY - REMOVE BEFORE MERGE. `schedule` and `workflow_dispatch` only work once this file is
+  # on the default branch, so this is the only way to prove the matrix builds before merging. Scoped
+  # to this file so that if it does slip through it can only ever trigger on changes to itself.
+  pull_request:
+    paths:
+      - '.github/workflows/nightly-unit-tests.yml'
+
+jobs:
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # Wider than the PR gate's 30min: same build, but three test projects per leg.
+    timeout-minutes: 45
+    strategy:
+      # One platform failing should never hide the results for the other six.
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - ubuntu-22.04
+          - windows-2025
+          - windows-2022
+          - macos-latest    # arm64
+          - macos-15-intel  # x64
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      - name: Restore
+        run: dotnet restore couchbase-net-client.sln
+
+      - name: Build (Release)
+        run: dotnet build couchbase-net-client.sln --configuration Release
+
+      # No --framework: the TFMs come from SdkTestTargets in Directory.Build.props, so these run
+      # net8.0 and net10.0 everywhere and additionally net48 on the Windows legs.
+      #
+      # --blame-hang turns an intermittent hung test host into a fast red plus a dump, instead of a
+      # job that sits until the timeout with no diagnostics.
+      - name: Test - Couchbase.UnitTests
+        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+
+      # `!cancelled()` rather than the default: a failure in one test project should not hide the
+      # results of the others. The job still fails overall.
+      - name: Test - Couchbase.Extensions.DependencyInjection.UnitTests
+        if: ${{ !cancelled() }}
+        run: dotnet test tests/Couchbase.Extensions.DependencyInjection.UnitTests/Couchbase.Extensions.DependencyInjection.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=dependency-injection-unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+
+      - name: Test - Couchbase.Extensions.OpenTelemetry.UnitTests
+        if: ${{ !cancelled() }}
+        run: dotnet test tests/Couchbase.Extensions.OpenTelemetry.UnitTests/Couchbase.Extensions.OpenTelemetry.UnitTests.csproj --configuration Release --no-build --logger "trx;LogFileName=opentelemetry-unit-tests.trx" --results-directory "TestResults" --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-unit-test-results-${{ matrix.os }}
+          path: TestResults
