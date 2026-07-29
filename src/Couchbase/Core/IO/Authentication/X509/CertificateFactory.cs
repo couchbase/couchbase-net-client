@@ -232,29 +232,32 @@ namespace Couchbase.Core.IO.Authentication.X509
 #endif
                         }
 
-                        if (!built && logger?.IsEnabled(LogLevel.Debug) == true)
+                        if (!built)
                         {
+                            if (logger?.IsEnabled(LogLevel.Debug) == true)
+                            {
 #if NET5_0_OR_GREATER
-                            logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
-                                cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
+                                logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\" using TrustMode={trustMode}",
+                                    cert2.Subject, cert2.Thumbprint, chain.ChainPolicy.TrustMode);
 #else
-                            logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
-                                cert2.Subject, cert2.Thumbprint);
+                                logger.LogDebug("X509 validation FAILED for certificate Subject=\"{subject}\" Thumbprint=\"{thumbprint}\"",
+                                    cert2.Subject, cert2.Thumbprint);
 #endif
-                            logger.LogDebug("X509 chain contains {chainElementCount} element(s)", chain.ChainElements.Count);
-                            foreach (var status in chain.ChainStatus)
-                            {
-                                logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
-                            }
-
-                            if (logger.IsEnabled(LogLevel.Trace))
-                            {
-                                foreach (var chainElement in chain.ChainElements)
+                                logger.LogDebug("X509 chain contains {chainElementCount} element(s)", chain.ChainElements.Count);
+                                foreach (var status in chain.ChainStatus)
                                 {
-                                    logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
-                                    foreach (var chainStatus in chainElement.ChainElementStatus)
+                                    logger.LogDebug("{status}: {statusInformation}", status.Status, status.StatusInformation);
+                                }
+
+                                if (logger.IsEnabled(LogLevel.Trace))
+                                {
+                                    foreach (var chainElement in chain.ChainElements)
                                     {
-                                        logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
+                                        logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
+                                        foreach (var chainStatus in chainElement.ChainElementStatus)
+                                        {
+                                            logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
+                                        }
                                     }
                                 }
                             }
