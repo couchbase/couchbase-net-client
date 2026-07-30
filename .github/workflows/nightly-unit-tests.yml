@@ -123,8 +123,11 @@ jobs:
 
             ran=$((ran + 1))
             echo "::group::$name ($TFM)"
+            # LogFilePrefix, not LogFileName: the logger appends _<tfm>_<timestamp>, so results can
+            # never overwrite each other. LogFileName pins one path, and a project run against
+            # several frameworks then silently keeps only the last one's results.
             if dotnet test "$proj" --configuration Release --framework "$TFM" --no-build \
-                 --logger "trx;LogFileName=$name-$TFM.trx" --results-directory TestResults \
+                 --logger "trx;LogFilePrefix=$name" --results-directory TestResults \
                  --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full; then
               echo "$name: PASSED"
             else
