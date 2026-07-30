@@ -1,0 +1,161 @@
+name: Nightly Unit Tests
+
+# Reproduces the cross-platform nightly the project ran under Jenkins: every unit test project,
+# on every supported OS family and architecture, across every framework we ship.
+#
+# This is deliberately broader than the PR gate in build-and-test.yml, which stays narrow and fast.
+# Two things only the nightly covers:
+#   - the DependencyInjection and OpenTelemetry unit test projects, which the PR gate builds but
+#     never executes
+#   - x64 macOS and the older Ubuntu/Windows images, since the gate runs one image per OS family
+#     and macos-latest is arm64
+#
+# Note: GitHub only runs `schedule` on the default branch, and it disables scheduled workflows
+# after 60 days with no repository activity.
+on:
+  schedule:
+    # 06:00 UTC daily.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+# Checkout is the only thing here that needs the GITHUB_TOKEN; upload-artifact authenticates with
+# ACTIONS_RUNTIME_TOKEN instead. Declared explicitly so the scope stays least-privilege even if the
+# repository default changes.
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }}, ${{ matrix.tfm }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # One leg failing should never hide the results for the others.
+      fail-fast: false
+      # TFM is an axis rather than letting one `dotnet test` run them all together. It puts the
+      # framework in the job name, so a red leg says which one broke, and it keeps each test host
+      # on its own runner: running three TFMs side by side on one machine adds CPU contention that
+      # makes pool/timing-sensitive tests flakier (see SlicedMemoryOwnerTests on net48). The cost
+      # is building the solution once per leg instead of once per OS, which is free on a public
+      # repo and does not change wall clock, since the legs run in parallel.
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - windows-2025
+          - windows-2022
+          - macos-latest    # arm64
+          - macos-15-intel  # x64
+        tfm: [net8.0, net10.0]
+        # net48 is Windows-only: Directory.Build.props adds it to SdkTestTargets only on Windows.
+        include:
+          - os: windows-2025
+            tfm: net48
+          - os: windows-2022
+            tfm: net48
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      - name: Restore
+        run: dotnet restore couchbase-net-client.sln
+
+      - name: Build (Release)
+        run: dotnet build couchbase-net-client.sln --configuration Release
+
+      # Discover the unit test projects rather than listing them. build-and-test.yml names one
+      # project by hand, which is how the DependencyInjection and OpenTelemetry tests went unrun
+      # from the GHA migration onwards; hardcoding them here would set up the same trap for the
+      # next project added. This mirrors the **UnitTest** glob the Jenkins nightly used.
+      #
+      # Enumerated from the solution rather than the filesystem: it keeps the set to projects the
+      # build step above actually built (which --no-build requires), and avoids `find` resolving to
+      # Windows' unrelated find.exe under Git Bash.
+      #
+      # --blame-hang turns an intermittent hung test host into a fast red plus a dump, instead of a
+      # job that sits until the timeout with no diagnostics.
+      - name: Test - all unit test projects
+        shell: bash
+        env:
+          TFM: ${{ matrix.tfm }}
+        run: |
+          set -uo pipefail
+
+          projects=$(dotnet sln couchbase-net-client.sln list | tr '\\' '/' \
+            | grep -iE '^tests/.*UnitTest.*\.csproj$' | sort)
+
+          # Matching nothing has to be loud. A silently empty run reporting green is precisely the
+          # failure mode this step exists to prevent.
+          if [ -z "$projects" ]; then
+            echo "::error::No unit test projects matched in couchbase-net-client.sln"
+            exit 1
+          fi
+
+          echo "Discovered:"
+          echo "$projects" | while read -r p; do echo "  $p"; done
+
+          ran=0
+          failed=""
+          for proj in $projects; do
+            name=$(basename "$proj" .csproj)
+
+            # Not every project targets every TFM: only Couchbase.UnitTests picks up net48, via
+            # SdkTestTargets. Asking for a TFM a project does not target is a build error, so skip
+            # it. Queried from MSBuild rather than assumed, so this keeps working as targets change.
+            frameworks=$(dotnet msbuild "$proj" -getProperty:TargetFrameworks -nologo 2>/dev/null | tr -d '[:space:]')
+            case ";$frameworks;" in
+              *";$TFM;"*) ;;
+              *) echo "Skipping $name: targets $frameworks, not $TFM"; continue ;;
+            esac
+
+            ran=$((ran + 1))
+            echo "::group::$name ($TFM)"
+            # LogFilePrefix, not LogFileName: the logger appends _<tfm>_<timestamp>, so results can
+            # never overwrite each other. LogFileName pins one path, and a project run against
+            # several frameworks then silently keeps only the last one's results.
+            if dotnet test "$proj" --configuration Release --framework "$TFM" --no-build \
+                 --logger "trx;LogFilePrefix=$name" --results-directory TestResults \
+                 --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full; then
+              echo "$name: PASSED"
+            else
+              echo "::error::$name ($TFM) FAILED"
+              failed="$failed $name"
+            fi
+            echo "::endgroup::"
+          done
+
+          # A leg that tested nothing must fail rather than report green. On the net48 legs this is
+          # also what asserts net48 is still in SdkTestTargets: if that ever stops applying on
+          # Windows, this goes red instead of silently dropping the framework.
+          if [ "$ran" -eq 0 ]; then
+            echo "::error::No project targets $TFM - nothing was tested"
+            exit 1
+          fi
+
+          # Every project runs even when an earlier one fails, then the step fails once at the end.
+          # Same accumulate-then-report behaviour as the Jenkins pipeline, and the reason the old
+          # per-step `if: !cancelled()` conditions are no longer needed.
+          if [ -n "$failed" ]; then
+            echo "Failed:$failed"
+            exit 1
+          fi
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-unit-test-results-${{ matrix.os }}-${{ matrix.tfm }}
+          path: TestResults
