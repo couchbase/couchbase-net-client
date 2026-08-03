@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
-using Couchbase.UnitTests.Core.IO.Authentication.X509;
+using Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;

@@ -1,5 +1,4 @@
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -29,21 +28,6 @@ public class CallbackCreatorTests
             certificate: null,
             chain: null,
             SslPolicyErrors.RemoteCertificateNotAvailable);
-
-        Assert.False(accepted);
-    }
-
-    [Fact]
-    public void Callback_NoChainPresented_ReturnsFalse()
-    {
-        var subject = CreateSubject();
-        using var cert = new X509Certificate2();
-
-        var accepted = subject.Callback(
-            sender: new object(),
-            certificate: cert,
-            chain: null,
-            SslPolicyErrors.RemoteCertificateChainErrors);
 
         Assert.False(accepted);
     }

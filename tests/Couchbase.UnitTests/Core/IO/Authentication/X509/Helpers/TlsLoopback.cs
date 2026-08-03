@@ -9,22 +9,11 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
 using Xunit.Abstractions;
 
 #nullable enable
 
-namespace Couchbase.UnitTests.Core.IO.Authentication.X509;
-
-/// <summary>
-/// The handshake verdict plus what the validation callback actually did, so a test can tell a deliberate
-/// rejection apart from a throw or from a failure that never reached the callback.
-/// </summary>
-internal sealed record HandshakeResult(
-    bool Accepted,
-    bool ValidatorInvoked,
-    bool? ValidatorVerdict,
-    Exception? ValidatorException);
+namespace Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 
 /// <summary>
 /// Drives a validation callback over a real loopback TLS handshake.
@@ -57,12 +46,21 @@ internal static class TlsLoopback
         var wireCollection = new X509Certificate2Collection();
         foreach (var extra in wireExtras)
         {
+            if (IsSelfSigned(extra))
+            {
+                throw new InvalidOperationException(
+                    $"\"{extra.Subject}\" is self-signed. SslStreamCertificateContext drops self-signed "
+                    + "certificates from the chain it serves, so this one would never reach the validator "
+                    + "and the test would pass without proving anything. Use DirectChain.Validate to put a "
+                    + "root in the ExtraStore.");
+            }
+
             wireCollection.Add(TlsTestPki.CopyOf(extra));
         }
 
         // The root, if any, is intentionally absent unless the caller passed it as a wire extra.
-        var serverContext = SslStreamCertificateContext.Create(
-            TlsTestPki.CopyOf(serverLeaf), wireCollection, offline: true);
+        var leafCopy = TlsTestPki.CopyOf(serverLeaf);
+        var serverContext = SslStreamCertificateContext.Create(leafCopy, wireCollection, offline: true);
 
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -155,43 +153,13 @@ internal static class TlsLoopback
             {
                 cert.Dispose();
             }
+
+            leafCopy.Dispose();
         }
     }
-}
 
-/// <summary>
-/// Assertions that hold the validator to account for the verdict, not just for the handshake outcome.
-/// </summary>
-internal static class HandshakeAssert
-{
-    public static void Accepted(HandshakeResult result, string because)
-    {
-        RanCleanly(result, because);
-        Assert.True(result.ValidatorVerdict, because);
-        Assert.True(result.Accepted, because);
-    }
-
-    public static void RejectedByValidator(HandshakeResult result, string because)
-    {
-        RanCleanly(result, because);
-        Assert.False(result.ValidatorVerdict, because);
-        Assert.False(result.Accepted, because);
-    }
-
-    private static void RanCleanly(HandshakeResult result, string because)
-    {
-        if (!result.ValidatorInvoked)
-        {
-            Assert.Fail($"{because}{Environment.NewLine}" +
-                        "The validator was never invoked, so the handshake result says nothing about it.");
-        }
-
-        if (result.ValidatorException is not null)
-        {
-            Assert.Fail($"{because}{Environment.NewLine}" +
-                        $"The validator threw instead of returning a verdict: {result.ValidatorException}");
-        }
-    }
+    private static bool IsSelfSigned(X509Certificate2 cert) =>
+        cert.SubjectName.RawData.AsSpan().SequenceEqual(cert.IssuerName.RawData);
 }
 
 #endif

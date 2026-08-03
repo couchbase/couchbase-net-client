@@ -4,6 +4,8 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -71,15 +73,16 @@ public sealed class CertificateFactoryWireIntermediateTests : IDisposable
     }
 
     [Fact]
-    public async Task ServerAlsoSendsRoot_BundleHasRootAndIntermediate_Accepts()
+    public async Task MultiEntryTrustBundle_Accepts()
     {
-        // A server that sends its whole chain including the root, validated against a multi-entry bundle.
+        // The bundle holds the real anchor plus the intermediate. The extra non-anchor entry must not stop
+        // the chain validating. The root cannot be put on the wire, see WireCertificatesNeverBecomeTrustAnchors.
         using var bundle = new TrustBundle(_root, _intermediate);
 
-        var result = await Handshake(_leaf, new[] { _intermediate, _root }, bundle);
+        var result = await Handshake(_leaf, new[] { _intermediate }, bundle);
 
         HandshakeAssert.Accepted(result,
-            "A server-sent root plus a bundle holding the real anchor should validate.");
+            "A bundle holding the real anchor alongside a non-anchor should validate.");
     }
 
     [Fact]
@@ -127,42 +130,69 @@ public sealed class CertificateFactoryWireIntermediateTests : IDisposable
     }
 
     [Fact]
-    public async Task WireCertificatesNeverBecomeTrustAnchors()
+    public void WireCertificatesNeverBecomeTrustAnchors()
     {
-        // The whole chain is attacker-supplied on the wire and the bundle is unrelated. If wire
-        // certificates were promoted into the trust store this would be accepted.
+        // The whole rogue chain, its self-signed root included, is placed where SslStream puts the
+        // server-presented certificates. If anything in the ExtraStore were promoted into the trust store
+        // this would be accepted. Driven directly rather than over a handshake, because
+        // SslStreamCertificateContext drops self-signed certificates from the chain it serves, so a rogue
+        // root can never reach the validator that way.
         using var rogueRoot = TlsTestPki.CreateCa("Rogue Root CA");
         using var rogueIntermediate = TlsTestPki.CreateCa("Rogue Intermediate CA", issuer: rogueRoot);
         using var rogueLeaf = TlsTestPki.CreateServerLeaf("Rogue Leaf", LeafDnsName, issuer: rogueIntermediate);
         using var bundle = new TrustBundle(_root);
 
-        var result = await Handshake(rogueLeaf, new[] { rogueIntermediate, rogueRoot }, bundle);
+        var validator = CertificateFactory.GetValidatorWithPredefinedCertificates(
+            bundle.Certificates, logger: null, redactor: null);
 
-        HandshakeAssert.RejectedByValidator(result,
-            "A fully server-supplied chain must not validate against an unrelated trust bundle.");
+        var accepted = DirectChain.Validate(validator, rogueLeaf, new[] { rogueIntermediate, rogueRoot });
+
+        Assert.False(accepted,
+            "A server-presented root must not become a trust anchor for the chain that presented it.");
     }
 
     [Fact]
-    public async Task ExpiredLeaf_Rejects()
+    public void WireCertificates_AreNotTrustedWhenNoAnchorsAreConfigured()
     {
-        // Also guards the retry gate: an expired leaf reports NotTimeValid alongside UntrustedRoot, and the
-        // status flags must be matched as flags rather than by comparing one entry.
+        // The strongest form of the same property: with an empty trust bundle there is nothing to chain to,
+        // so a fully server-supplied chain has only itself to offer.
+        using var rogueRoot = TlsTestPki.CreateCa("Anchorless Rogue Root CA");
+        using var rogueIntermediate = TlsTestPki.CreateCa("Anchorless Rogue Intermediate CA", issuer: rogueRoot);
+        using var rogueLeaf = TlsTestPki.CreateServerLeaf("Anchorless Rogue Leaf", LeafDnsName, issuer: rogueIntermediate);
+
+        var validator = CertificateFactory.GetValidatorWithPredefinedCertificates(
+            new X509Certificate2Collection(), logger: null, redactor: null);
+
+        var accepted = DirectChain.Validate(validator, rogueLeaf, new[] { rogueIntermediate, rogueRoot });
+
+        Assert.False(accepted, "With no configured trust anchors nothing the server sends may be trusted.");
+    }
+
+    [Fact]
+    public async Task ExpiredLeaf_Rejects_AfterTheRetryRuns()
+    {
+        // An expired leaf reports NotTimeValid as well as UntrustedRoot, so the first attempt comes back
+        // with more than one status entry. The retry gate has to match those as flags across every entry,
+        // since their order is not defined. Asserting the retry actually ran is what separates this from a
+        // gate that compares a single entry and skips the second attempt.
         using var expiredLeaf = TlsTestPki.CreateServerLeaf(
             "Expired Leaf", LeafDnsName, issuer: _intermediate,
             notBefore: DateTimeOffset.UtcNow.AddDays(-30),
             notAfter: DateTimeOffset.UtcNow.AddDays(-1));
         using var bundle = new TrustBundle(_root);
+        var logger = new RecordingLogger(debugEnabled: true);
 
-        var result = await Handshake(expiredLeaf, new[] { _intermediate }, bundle);
+        var result = await Handshake(expiredLeaf, new[] { _intermediate }, bundle, logger);
 
         HandshakeAssert.RejectedByValidator(result, "An expired leaf must be rejected even when its root is trusted.");
+        AssertRetried(logger);
     }
 
     [Fact]
-    public async Task ExpiredIntermediate_Rejects()
+    public async Task ExpiredIntermediate_Rejects_AfterTheRetryRuns()
     {
-        // The leaf cannot outlive its issuer, so it expires with it. The point is that an expired CA in the
-        // path is rejected rather than skipped.
+        // The leaf cannot outlive its issuer, so it expires with it. An expired CA in the path must be
+        // rejected rather than skipped, and again only after the multi-status first attempt triggers a retry.
         using var expiredIntermediate = TlsTestPki.CreateCa(
             "Expired Intermediate CA", issuer: _root,
             notBefore: DateTimeOffset.UtcNow.AddDays(-30),
@@ -171,10 +201,27 @@ public sealed class CertificateFactoryWireIntermediateTests : IDisposable
             "Leaf Under Expired CA", LeafDnsName, issuer: expiredIntermediate,
             notBefore: DateTimeOffset.UtcNow.AddDays(-30));
         using var bundle = new TrustBundle(_root);
+        var logger = new RecordingLogger(debugEnabled: true);
 
-        var result = await Handshake(leafUnderExpiredCa, new[] { expiredIntermediate }, bundle);
+        var result = await Handshake(leafUnderExpiredCa, new[] { expiredIntermediate }, bundle, logger);
 
         HandshakeAssert.RejectedByValidator(result, "An expired intermediate must be rejected.");
+        AssertRetried(logger);
+    }
+
+    [Fact]
+    public async Task FailedValidation_WithDebugLoggingOff_IsNotLoggedAsSuccess()
+    {
+        // The failure and success log branches were one if/else on (!built && IsEnabled(Debug)), so a
+        // rejection with debug logging off was reported as SUCCEEDED.
+        using var bundle = new TrustBundle(_unrelatedRoot);
+        var logger = new RecordingLogger(debugEnabled: false);
+
+        var result = await Handshake(_leaf, new[] { _intermediate }, bundle, logger);
+
+        HandshakeAssert.RejectedByValidator(result, "An unrelated root must not validate the leaf's chain.");
+        Assert.NotEmpty(logger.Messages);
+        Assert.DoesNotContain(logger.Messages, m => m.Contains("SUCCEEDED"));
     }
 
     [Fact]
@@ -251,12 +298,18 @@ public sealed class CertificateFactoryWireIntermediateTests : IDisposable
     }
 
     private Task<HandshakeResult> Handshake(
-        X509Certificate2 serverLeaf, X509Certificate2[] wireExtras, TrustBundle bundle)
+        X509Certificate2 serverLeaf, X509Certificate2[] wireExtras, TrustBundle bundle, ILogger? logger = null)
     {
         var validator = CertificateFactory.GetValidatorWithPredefinedCertificates(
-            bundle.Certificates, logger: null, redactor: null);
+            bundle.Certificates, logger, redactor: null);
         return TlsLoopback.RunAsync(serverLeaf, wireExtras, validator, LeafDnsName, _output);
     }
+
+    /// <summary>
+    /// The retry is only observable through the log line the gate emits before the second attempt.
+    /// </summary>
+    private static void AssertRetried(RecordingLogger logger) =>
+        Assert.Contains(logger.Messages, m => m.Contains("will retry using CustomRootTrust"));
 
     public void Dispose()
     {

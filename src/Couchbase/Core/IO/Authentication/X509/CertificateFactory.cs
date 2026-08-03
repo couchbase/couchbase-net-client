@@ -151,6 +151,9 @@ namespace Couchbase.Core.IO.Authentication.X509
                     // Anything placed in a chain store is a copy owned by this callback, so .NET's cleanup
                     // after the callback returns can never dispose a caller's certificate (NCBC-4120).
                     var ownedCopies = new List<X509Certificate2>();
+#if NET5_0_OR_GREATER
+                    var originalTrustMode = chain.ChainPolicy.TrustMode;
+#endif
                     try
                     {
                         // Snapshot what the server presented before the first build, because the ExtraStore
@@ -164,13 +167,19 @@ namespace Couchbase.Core.IO.Authentication.X509
                         // first attempt - validation from system trust store plus whatever certs have been provided
                         // user supplied or Capella. If self-signed, will not be sufficient and need to be CustomTrustStore
 
+                        // Kept so the second attempt can reuse them, since the ExtraStore is cleared between
+                        // the two and a copy is only ever in one store at a time.
+                        var anchorCopies = new List<X509Certificate2>();
+
                         bool built;
                         try
                         {
                             foreach (var defaultCert in certs)
                             {
                                 MaybeLogCert("X509 adding from certs to ExtraStore", defaultCert, logger);
-                                chain.ChainPolicy.ExtraStore.Add(Own(defaultCert, ownedCopies));
+                                var anchorCopy = Own(defaultCert, ownedCopies);
+                                anchorCopies.Add(anchorCopy);
+                                chain.ChainPolicy.ExtraStore.Add(anchorCopy);
                             }
 
                             MaybeLogChainElements("X509 chain element cert is", chain, logger);
@@ -209,10 +218,10 @@ namespace Couchbase.Core.IO.Authentication.X509
 
                             // user supplied or Capella. If self-signed, they *will* be sufficient for CustomTrustMode
                             logger?.LogDebug("X509 adding {certCount} certificate(s) to CustomTrustStore", certs.Count);
-                            foreach (var defaultCert in certs)
+                            foreach (var anchorCopy in anchorCopies)
                             {
-                                MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", defaultCert, logger);
-                                chain.ChainPolicy.CustomTrustStore.Add(Own(defaultCert, ownedCopies));
+                                MaybeLogCert("X509 Retry adding from certs to CustomTrustStore", anchorCopy, logger);
+                                chain.ChainPolicy.CustomTrustStore.Add(anchorCopy);
                             }
 
                             // Re-supply the server-presented certificates as ExtraStore (not
@@ -278,9 +287,11 @@ namespace Couchbase.Core.IO.Authentication.X509
                     finally
                     {
                         // Detach the copies before disposing them, so the chain never holds a disposed handle.
+                        // The chain belongs to SslStream, so its policy is left as it was found.
                         chain.ChainPolicy.ExtraStore.Clear();
 #if NET5_0_OR_GREATER
                         chain.ChainPolicy.CustomTrustStore.Clear();
+                        chain.ChainPolicy.TrustMode = originalTrustMode;
 #endif
                         foreach (var copy in ownedCopies)
                         {
