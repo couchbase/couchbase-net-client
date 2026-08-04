@@ -172,4 +172,53 @@ public class QueryResultExtensionsTests
         Assert.Equal(2120, error.Code);
         Assert.Equal(serverMessage, error.Message);
     }
+
+    [Theory]
+    // "msg" and "reason" are both optional in the server's error payload - the fixture in
+    // Test_QueryContext_UnknownParameter shows a real response carrying "reason": null. Mapping must fall
+    // through to the code-only result rather than throwing an NRE while building the exception, which would
+    // replace the server's error with a meaningless one.
+    [InlineData(null, null)]
+    [InlineData("Some DML failure the SDK has no special mapping for", null)]
+    [InlineData(null, 99999)]
+    public void Test_Missing_Message_And_Reason_Do_Not_Throw(string message, int? reasonCode)
+    {
+        List<Error> errors = new()
+        {
+            new Error
+            {
+                Code = 12009,
+                Message = message,
+                Reason = reasonCode.HasValue ? new Reason { Code = reasonCode.Value } : null,
+                Severity = 0,
+                Retry = false
+            }
+        };
+
+        var mockQueryResult = new Mock<IQueryResult<object>>(MockBehavior.Strict);
+        mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
+        var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, new QueryErrorContext());
+        Assert.IsAssignableFrom<DmlFailureException>(ex);
+    }
+
+    [Fact]
+    public void Test_Reason_Code_Still_Maps_When_Message_Is_Null()
+    {
+        List<Error> errors = new()
+        {
+            new Error
+            {
+                Code = 12009,
+                Message = null,
+                Reason = new Reason { Code = 17014 },
+                Severity = 0,
+                Retry = false
+            }
+        };
+
+        var mockQueryResult = new Mock<IQueryResult<object>>(MockBehavior.Strict);
+        mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
+        var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, new QueryErrorContext());
+        Assert.IsAssignableFrom<DocumentNotFoundException>(ex);
+    }
 }
