@@ -769,49 +769,11 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAnyReplica, opts.RequestSpan);
             var vBucket = VBucketForReplicas(id);
             var enumeratedSpecs = specs.ToList();
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreferenceValue);
 
-            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
-            var tasks = new List<Task<MultiLookup<byte[]>>>();
-
-            if (readWithPreference)
-            {
-                if (TryExecuteZoneAwareLookupInReplica(vBucket, id, enumeratedSpecs, rootSpan, opts, out var zoneAwareTasks))
-                {
-                    tasks.AddRange(zoneAwareTasks);
-                }
-                else
-                {
-                    if (opts.ReadPreferenceValue != InternalReadPreference.SelectedServerGroupWithFallback)
-                    {
-                        throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
-                    }
-                    // We did ask for the fallback, so fallback to LookupIn...
-                    Logger.LogDebug("Falling back to LookupIn for {id}", Redactor.UserData(id));
-                    tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
-                    if (vBucket.HasReplicas)
-                    {
-                        tasks.AddRange(vBucket.Replicas.Select(replica =>
-                        {
-                            var replicaOpts = opts with { ReplicaIndex = replica };
-                            return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
-                        }));
-                    }
-                }
-            }
-            else
-            {
-                //LookupIn on primary
-                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
-
-                if (vBucket.HasReplicas)
-                {
-                    tasks.AddRange(vBucket.Replicas.Select(replica =>
-                    {
-                        var replicaOpts = opts with { ReplicaIndex = replica };
-                        return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
-                    }));
-                }
-            }
+            var tasks = indexesInGroup is null
+                ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, opts)
+                : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, opts);
 
             var completed = TaskHelpers.WhenAnySuccessful(tasks, opts.Token);
             try
@@ -832,29 +794,26 @@ namespace Couchbase.KeyValue
             IEnumerable<LookupInSpec> specs,
             LookupInAllReplicasOptions? options = null)
         {
+            // The stream below only runs once enumerated, so anything that must fail at the call site
+            // like LookupInAnyReplica does is resolved here. The key is mapped once and handed over.
+            _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
+
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
             var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
+            var vBucket = VBucketForReplicas(id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreferenceValue);
 
-            // The stream below only runs once enumerated, so an unusable server group is rejected here
-            // to fail at the call site like LookupInAnyReplica does. What it resolves is handed to the
-            // stream so the key mapping and the config walk are not repeated there.
-            ZoneAwareTarget? target = null;
-            if (opts.ReadPreferenceValue == InternalReadPreference.SelectedServerGroup)
-            {
-                target = ResolveZoneAwareTarget(id);
-            }
-
-            return LookupInAllReplicasStreamAsync(id, specs, opts, target);
+            return LookupInAllReplicasStreamAsync(id, specs, opts, vBucket, indexesInGroup);
         }
 
         private async IAsyncEnumerable<ILookupInReplicaResult> LookupInAllReplicasStreamAsync(string id,
             IEnumerable<LookupInSpec> specs,
             LookupInOptions.ReadOnly opts,
-            ZoneAwareTarget? target)
+            VBucket vBucket,
+            int[]? indexesInGroup)
         {
-            _bucket.AssertCap(BucketCapabilities.SUBDOC_REPLICA_READ);
-
-            //sanity check for deferred bootstrapping errors
-            _bucket.ThrowIfBootStrapFailed();
             // A top-level failure of the lookup (here, too many specs) must produce an empty stream
             // rather than throwing - unlike LookupIn/LookupInAnyReplica.
             if (specs.Count() > 16) yield break;
@@ -867,32 +826,11 @@ namespace Couchbase.KeyValue
             }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAllReplicas, opts.RequestSpan);
-            var vBucket = target?.VBucket ?? VBucketForReplicas(id, nameof(LookupInAllReplicasAsync));
             var enumeratedSpecs = specs.ToList();
 
-            var readWithPreference = opts.ReadPreferenceValue != InternalReadPreference.NoPreference;
-            var tasks = new List<Task<MultiLookup<byte[]>>>();
-
-            if (readWithPreference)
-            {
-                if (TryExecuteZoneAwareLookupInReplica(vBucket, id, enumeratedSpecs, rootSpan, opts,
-                        out var zoneAwareTasks, target?.IndexesInGroup))
-                {
-                    tasks.AddRange(zoneAwareTasks);
-                }
-                else if (opts.ReadPreferenceValue ==
-                         InternalReadPreference.SelectedServerGroupWithFallback)
-                {
-                    Logger.LogDebug("Falling back to LookupInAllReplica with no server group preference for {id}", Redactor.UserData(id));
-                    AddLookupInAllReplicaTasks();
-                }
-                // Without the fallback there is nothing to read, but that case has already been
-                // rejected by LookupInAllReplicasAsync.
-            }
-            else
-            {
-                AddLookupInAllReplicaTasks();
-            }
+            var tasks = indexesInGroup is null
+                ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, opts)
+                : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, opts);
 
             foreach (var lookupTask in tasks)
             {
@@ -915,74 +853,33 @@ namespace Couchbase.KeyValue
                                 responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
                 yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
             }
-
-            yield break;
-
-            void AddLookupInAllReplicaTasks()
-            {
-                //LookupIn on primary
-                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, opts, rootSpan));
-
-                if (vBucket.HasReplicas)
-                {
-                    tasks.AddRange(vBucket.Replicas.Select(replica =>
-                    {
-                        var replicaOpts = opts with { ReplicaIndex = replica };
-                        return ExecuteLookupIn(id, enumeratedSpecs, replicaOpts, rootSpan);
-                    }));
-                }
-            }
         }
 
-        /// <summary>
-        /// Resolves the group the read will be served from, throwing when it cannot serve the document.
-        /// </summary>
-        private ZoneAwareTarget ResolveZoneAwareTarget(string id)
+        private List<Task<MultiLookup<byte[]>>> LookupInTasksForAllReplicas(VBucket vBucket, string id,
+            List<LookupInSpec> specs, IRequestSpan span, LookupInOptions.ReadOnly options)
         {
-            //sanity check for deferred bootstrapping errors
-            _bucket.ThrowIfBootStrapFailed();
+            var tasks = new List<Task<MultiLookup<byte[]>>> { ExecuteLookupIn(id, specs, options, span) };
 
-            if (_preferredServerGroup is null)
-            {
-                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
-            }
+            tasks.AddRange(GetReplicaIndexes(vBucket).Select(index =>
+                ExecuteLookupIn(id, specs, options with { ReplicaIndex = index }, span)));
 
-            var vBucket = VBucketForReplicas(id, nameof(LookupInAllReplicasAsync));
-            if (GetPreferredServerGroupIndexes() is not { } indexesInGroup ||
-                !GroupHoldsDocument(vBucket, indexesInGroup))
-            {
-                throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
-            }
-
-            return new ZoneAwareTarget(vBucket, indexesInGroup);
+            return tasks;
         }
 
-        // indexesInGroup carries the preferred group's node indexes when the caller already resolved them.
-        private bool TryExecuteZoneAwareLookupInReplica(VBucket vBucket, string id, List<LookupInSpec> enumeratedSpecs, IRequestSpan rootSpan, LookupInOptions.ReadOnly options, out List<Task<MultiLookup<byte[]>>> tasks, int[]? indexesInGroup = null)
+        private List<Task<MultiLookup<byte[]>>> LookupInTasksForServerGroup(VBucket vBucket, int[] indexesInGroup,
+            string id, List<LookupInSpec> specs, IRequestSpan span, LookupInOptions.ReadOnly options)
         {
-            tasks = new List<Task<MultiLookup<byte[]>>>();
-
-            if (_preferredServerGroup is null)
-            {
-                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
-            }
-            indexesInGroup ??= GetPreferredServerGroupIndexes();
-            if (indexesInGroup is null)
-            {
-                return false;
-            }
-
-            var preferredIndexes = vBucket.Replicas
-                .Where(index => index > -1 && indexesInGroup.Contains(index))
+            var tasks = GetReplicaIndexes(vBucket)
+                .Where(index => indexesInGroup.Contains(index))
+                .Select(index => ExecuteLookupIn(id, specs, options with { ReplicaIndex = index }, span))
                 .ToList();
 
-            tasks.AddRange(preferredIndexes.Select(index =>
-                ExecuteLookupIn(id, enumeratedSpecs, options with { ReplicaIndex = index }, rootSpan)));
-
             if (indexesInGroup.Contains(vBucket.Primary))
-                tasks.Add(ExecuteLookupIn(id, enumeratedSpecs, options, rootSpan));
+            {
+                tasks.Add(ExecuteLookupIn(id, specs, options, span));
+            }
 
-            return tasks.Count != 0;
+            return tasks;
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs,
@@ -1335,39 +1232,11 @@ namespace Couchbase.KeyValue
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
             var vBucket = VBucketForReplicas(id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
 
-            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
-            var tasks = new List<Task<IGetReplicaResult>>();
-
-            if (readWithPreference)
-            {
-                if (TryGetZoneAwareReplicas(vBucket, id, rootSpan, options.TokenValue, options, out var zoneAwareTasks))
-                {
-                    tasks.AddRange(zoneAwareTasks);
-                }
-                else
-                {
-                    if (options.ReadPreferenceValue !=
-                        InternalReadPreference.SelectedServerGroupWithFallback)
-                    {
-                        throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
-                    }
-                    // Fallback when TryGetZoneAwareReplica fails, if asked.
-                    Logger.LogDebug("Falling back to GetPrimary for {Id}", Redactor.UserData(id));
-                    tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
-                }
-            }
-            else
-            {
-                //get a list of replica indexes
-                var replicas = GetReplicaIndexes(vBucket);
-
-                // get the primary
-                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
-
-                // get the replicas
-                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
-            }
+            var tasks = indexesInGroup is null
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
 
             var firstCompleted = TaskHelpers.WhenAnySuccessful(tasks, options.TokenValue);
             try
@@ -1386,6 +1255,41 @@ namespace Couchbase.KeyValue
             $"Either neither the primary or replicas for Document: {id}" +
             $" live in the selected Server Group: {_preferredServerGroup}," +
             $" or no node/group matches could be made from the config.";
+
+        /// <summary>
+        /// The preferred server group node indexes to read the document from, or null when every replica
+        /// should be read: either no preference was asked for, or the group cannot serve the document and
+        /// the fallback was asked for.
+        /// </summary>
+        /// <exception cref="DocumentUnretrievableException">
+        /// The group cannot serve the document and no fallback was asked for, or no group was selected in
+        /// the <see cref="ClusterOptions"/> at all, which no read preference can work around.
+        /// </exception>
+        private int[]? ResolveZoneAwareGroupIndexes(string id, VBucket vBucket, InternalReadPreference readPreference)
+        {
+            if (readPreference == InternalReadPreference.NoPreference)
+            {
+                return null;
+            }
+
+            if (_preferredServerGroup is null)
+            {
+                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
+            }
+
+            if (GetPreferredServerGroupIndexes() is { } indexesInGroup && GroupHoldsDocument(vBucket, indexesInGroup))
+            {
+                return indexesInGroup;
+            }
+
+            if (readPreference != InternalReadPreference.SelectedServerGroupWithFallback)
+            {
+                throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
+            }
+
+            Logger.LogDebug("Falling back to all replicas with no server group preference for {Id}", Redactor.UserData(id));
+            return null;
+        }
 
         /// <summary>
         /// The node indexes of the preferred server group, or null when the group is unset, when no
@@ -1415,7 +1319,6 @@ namespace Couchbase.KeyValue
             indexesInGroup.Contains(vBucket.Primary)
             || vBucket.Replicas.Any(index => index > -1 && indexesInGroup.Contains(index));
 
-
         private VBucket VBucketForReplicas(string id, [CallerMemberName]string caller = "AnyReplica")
         {
             var vBucket = (VBucket)_bucket.KeyMapper!.MapKey(id);
@@ -1435,45 +1338,12 @@ namespace Couchbase.KeyValue
             options ??= GetAllReplicasOptions.Default;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, options.RequestSpanValue);
-            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
-            if (!vBucket.HasReplicas)
-                Logger.LogWarning("Call to GetAllReplicas for key [{Id}] but none are configured. Only the active document will be retrieved", id);
+            var vBucket = VBucketForReplicas(id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
 
-            var readWithPreference = options.ReadPreferenceValue != InternalReadPreference.NoPreference;
-            var tasks = new List<Task<IGetReplicaResult>>();
-
-            if (readWithPreference)
-            {
-                if (TryGetZoneAwareReplicas(vBucket, id, rootSpan, options.TokenValue, options, out var zoneAwareTasks))
-                {
-                    tasks.AddRange(zoneAwareTasks);
-                }
-                else if (options.ReadPreferenceValue ==
-                         InternalReadPreference.SelectedServerGroupWithFallback)
-                {
-                    // Fallback when TryGetZoneAwareReplicas fails, if asked.
-                    Logger.LogDebug("Falling back to all replicas with no server group preference for {Id}", Redactor.UserData(id));
-                    AddAllReplicaTasks();
-                }
-                else
-                {
-                    throw new DocumentUnretrievableException(ZoneAwareUnretrievableMessage(id));
-                }
-            }
-            else
-            {
-                AddAllReplicaTasks();
-            }
-
-            return tasks;
-
-            // local function to capture variables
-            void AddAllReplicaTasks()
-            {
-                var replicas = GetReplicaIndexes(vBucket);
-                tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
-                tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
-            }
+            return indexesInGroup is null
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
         }
 
         private static List<short> GetReplicaIndexes(VBucket vBucket)
@@ -1482,35 +1352,30 @@ namespace Couchbase.KeyValue
             return replicas;
         }
 
-        private bool TryGetZoneAwareReplicas(VBucket vBucket, string id, IRequestSpan rootSpan, CancellationToken token, ITranscoderOverrideOptions options, out List<Task<IGetReplicaResult>> tasks)
+        private List<Task<IGetReplicaResult>> GetTasksForAllReplicas(VBucket vBucket, string id, IRequestSpan span,
+            CancellationToken token, ITranscoderOverrideOptions options)
         {
-            tasks = new List<Task<IGetReplicaResult>>();
+            var tasks = new List<Task<IGetReplicaResult>> { GetPrimary(id, span, token, options) };
 
-            if (_preferredServerGroup is null)
-            {
-                throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
-            }
-            if (GetPreferredServerGroupIndexes() is not { } indexesInGroup)
-            {
-                return false;
-            }
+            tasks.AddRange(GetReplicaIndexes(vBucket).Select(index => GetReplica(id, index, span, token, options)));
 
-            // Get all valid replica indexes that are in the preferred server group
-            var preferredIndexes = vBucket.Replicas
-                .Where(index => index > -1 && indexesInGroup.Contains(index))
+            return tasks;
+        }
+
+        private List<Task<IGetReplicaResult>> GetTasksForServerGroup(VBucket vBucket, int[] indexesInGroup, string id,
+            IRequestSpan span, CancellationToken token, ITranscoderOverrideOptions options)
+        {
+            var tasks = GetReplicaIndexes(vBucket)
+                .Where(index => indexesInGroup.Contains(index))
+                .Select(index => GetReplica(id, index, span, token, options))
                 .ToList();
 
-            // Add replicas
-            tasks.AddRange(preferredIndexes.Select(index =>
-                GetReplica(id, index, rootSpan, token, options)));
-
-            // Add primary if it's in the preferred group
             if (indexesInGroup.Contains(vBucket.Primary))
             {
-                tasks.Add(GetPrimary(id, rootSpan, token, options));
+                tasks.Add(GetPrimary(id, span, token, options));
             }
 
-            return tasks.Count > 0;
+            return tasks;
         }
 
         private async Task<IGetReplicaResult> GetPrimary(string id, IRequestSpan span,
