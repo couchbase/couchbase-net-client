@@ -61,39 +61,44 @@ namespace Couchbase.Query
         {
             foreach (var error in result.Errors)
             {
+                // The server may omit "msg"/"reason" entirely, or send them as null, so neither can be
+                // dereferenced directly - an NRE here would mask the very error we are trying to report.
+                var message = error.Message ?? string.Empty;
+                var reasonCode = error.Reason?.Code;
+
                 if (error.Code == 3000) return new ParsingFailureException(context);
 
                 if (PreparedErrorCodes.Contains(error.Code)) return new PreparedStatementException(context);
 
-                if (error.Code == 4300 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
-                    error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                if (error.Code == 4300 && message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
                     return new IndexExistsException(context);
 
                 if (error.Code >= 4000 && error.Code < 5000) return new PlanningFailureException(context);
 
                 if (error.Code == 12004 || error.Code == 12016 ||
-                    (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
-                    error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)) ||
-                    (error.Code == 5000 && error.Message.Contains("does not exist")))
+                    (error.Code == 5000 && message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    message.Contains("not found", StringComparison.OrdinalIgnoreCase)) ||
+                    (error.Code == 5000 && message.Contains("does not exist")))
                     return new IndexNotFoundException(context);
 
-                if (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
-                    error.Message.Contains("already exist", StringComparison.OrdinalIgnoreCase))
+                if (error.Code == 5000 && message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    message.Contains("already exist", StringComparison.OrdinalIgnoreCase))
                     return new IndexExistsException(context);
 
                 if (error.Code >= 5000 && error.Code < 6000) return new InternalServerFailureException(context);
 
                 if (error.Code == 12009)
                 {
-                    if (error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase) || error.Reason.Code == 12033)
+                    if (message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase) || reasonCode == 12033)
                     {
                         return new CasMismatchException(context);
                     }
-                    if (error.Reason.Code == 17014)
+                    if (reasonCode == 17014)
                     {
                         return new DocumentNotFoundException(context);
                     }
-                    if (error.Reason.Code == 17012)
+                    if (reasonCode == 17012)
                     {
                         return new DocumentExistsException(context);
                     }
@@ -101,7 +106,7 @@ namespace Couchbase.Query
                     return new DmlFailureException(context);
                 }
 
-                if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014)
+                if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014 || error.Code == 2120)
                     return new AuthenticationFailureException(context);
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
@@ -123,13 +128,8 @@ namespace Couchbase.Query
                 if (error.Code == 1080) return new UnambiguousTimeoutException("Query timed out while streaming/receiving rows.", context);
 
                 //query_context *was* included in the request, but the server doesn't support it
-                if (error.Code == 1065 && error.Message.Contains("query_context"))
+                if (error.Code == 1065 && message.Contains("query_context"))
                     return new FeatureNotAvailableException("query_context not available on this server version");
-
-                if (error.Code == 2120 && error.Message.Contains("Failure to authenticate user"))
-                {
-                    return new AuthenticationFailureException(context);
-                }
             }
 
             return new CouchbaseException(context);
