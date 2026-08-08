@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Linq;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.Utils;
@@ -9,6 +8,13 @@ namespace Couchbase.UnitTests.Utils
 {
     public class SlicedMemoryOwnerTests
     {
+        // These tests use FakeMemoryOwner rather than MemoryPool<byte>.Shared.Rent, because Rent
+        // only promises *at least* the requested size. On .NET Framework the pool falls back to a
+        // larger bucket when the requested one is exhausted, so a Rent(32) under load returns 64
+        // and every assertion below that depends on the buffer being exactly 32 bytes fails.
+        private static FakeMemoryOwner<byte> ExactlySized(int length) =>
+            new FakeMemoryOwner<byte>(new byte[length]);
+
         #region ctor1
 
         [Fact]
@@ -27,7 +33,7 @@ namespace Couchbase.UnitTests.Utils
         public void ctor1_StartOutsideRange_ArgumentOutOfRangeException(int start)
         {
             // Act/Assert
-            using (var memory = MemoryPool<byte>.Shared.Rent(32))
+            using (var memory = ExactlySized(32))
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() => new SlicedMemoryOwner<byte>(memory, start));
             }
@@ -40,7 +46,7 @@ namespace Couchbase.UnitTests.Utils
         public void ctor1_StartWithinRange_SliceUntilEnd(int start, int expectedLength)
         {
             // Act/Assert
-            using (var memory = new SlicedMemoryOwner<byte>(MemoryPool<byte>.Shared.Rent(32), start))
+            using (var memory = new SlicedMemoryOwner<byte>(ExactlySized(32), start))
             {
                 Assert.Equal(expectedLength, memory.Memory.Length);
             }
@@ -82,7 +88,7 @@ namespace Couchbase.UnitTests.Utils
         public void ctor2_NegativeStart_ArgumentOutOfRangeException()
         {
             // Act/Assert
-            using (var memory = MemoryPool<byte>.Shared.Rent(32))
+            using (var memory = ExactlySized(32))
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() => new SlicedMemoryOwner<byte>(memory, -1, 10));
             }
@@ -96,7 +102,7 @@ namespace Couchbase.UnitTests.Utils
         public void ctor2_StartOutsideRange_ArgumentOutOfRangeException(int start)
         {
             // Act/Assert
-            using (var memory = MemoryPool<byte>.Shared.Rent(32))
+            using (var memory = ExactlySized(32))
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() => new SlicedMemoryOwner<byte>(memory, start, 1));
             }
@@ -109,7 +115,7 @@ namespace Couchbase.UnitTests.Utils
         public void ctor2_StartWithinRange_SliceLength(int start, int length)
         {
             // Act/Assert
-            using (var memory = new SlicedMemoryOwner<byte>(MemoryPool<byte>.Shared.Rent(32), start, length))
+            using (var memory = new SlicedMemoryOwner<byte>(ExactlySized(32), start, length))
             {
                 Assert.Equal(length, memory.Memory.Length);
             }
