@@ -494,73 +494,83 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             Assert.Equal(currentCapacity, builder.Capacity);
         }
 
+        // The growth tests below assert an inequality. EnsureCapacity rents from ArrayPool and
+        // promises only that the buffer is at least as large as requested; any doubling is the
+        // pool's bucket rounding, not something OperationBuilder implements. Asserting an exact
+        // size makes these depend on pool internals, which on .NET Framework overshoot to a larger
+        // bucket when the requested one is exhausted.
+
         [Fact]
-        private void EnsureCapacity_OneMore_Doubles()
+        private void EnsureCapacity_OneMore_Grows()
         {
             // Arrange
 
             using var builder = new OperationBuilder();
-            var currentCapacity = builder.Capacity;
+            var requested = builder.Capacity + 1;
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity + 1);
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 2, builder.Capacity);
+            AssertAtLeast(requested, builder.Capacity);
         }
 
         [Fact]
-        private void EnsureCapacity_Double_Doubles()
+        private void EnsureCapacity_Double_Grows()
         {
             // Arrange
 
             using var builder = new OperationBuilder();
-            var currentCapacity = builder.Capacity;
+            var requested = builder.Capacity * 2;
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 2);
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 2, builder.Capacity);
+            AssertAtLeast(requested, builder.Capacity);
         }
 
         [Fact]
-        private void EnsureCapacity_OneMoreThanDouble_Quadruples()
+        private void EnsureCapacity_OneMoreThanDouble_Grows()
         {
             // Arrange
 
             using var builder = new OperationBuilder();
-            var currentCapacity = builder.Capacity;
+            var requested = builder.Capacity * 2 + 1;
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 2 + 1);
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 4, builder.Capacity);
+            AssertAtLeast(requested, builder.Capacity);
         }
 
         [Fact]
-        private void EnsureCapacity_Quadruple_Quadruples()
+        private void EnsureCapacity_Quadruple_Grows()
         {
             // Arrange
 
             using var builder = new OperationBuilder();
-            var currentCapacity = builder.Capacity;
+            var requested = builder.Capacity * 4;
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 4);
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 4, builder.Capacity);
+            AssertAtLeast(requested, builder.Capacity);
         }
+
+        private static void AssertAtLeast(int requested, int actualCapacity) =>
+            Assert.True(actualCapacity >= requested,
+                $"Expected a capacity of at least {requested}, found {actualCapacity}.");
 
         #endregion
 
