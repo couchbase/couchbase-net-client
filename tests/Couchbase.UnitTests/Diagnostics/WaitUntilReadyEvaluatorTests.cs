@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Diagnostics;
 using Xunit;
 
@@ -240,6 +241,65 @@ namespace Couchbase.UnitTests.Diagnostics
 
             Assert.Equal(TimeSpan.FromSeconds(1), delay);
         }
+
+        [Fact]
+        public void ExpectedServices_Includes_The_Http_Services_Without_Their_Clients()
+        {
+            //arrange
+
+            var config = CreateConfig();
+
+            //act
+
+            var expected = WaitUntilReadyEvaluator.ExpectedServices(null, config,
+                new[] { ServiceType.Query, ServiceType.Search, ServiceType.Analytics }, bucketLevel: true);
+
+            //assert
+
+            Assert.Equal(new HashSet<ServiceType>
+            {
+                ServiceType.Query, ServiceType.Search, ServiceType.Analytics
+            }, expected);
+        }
+
+        [Fact]
+        public void ExpectedServices_Drops_Views_Without_A_View_Client()
+        {
+            //arrange
+
+            var config = CreateConfig();
+
+            //act
+
+            var expected = WaitUntilReadyEvaluator.ExpectedServices(null, config,
+                new[] { ServiceType.Views }, bucketLevel: true);
+
+            //assert
+
+            Assert.Empty(expected);
+        }
+
+        private static BucketConfig CreateConfig() =>
+            new()
+            {
+                Name = "default",
+                BucketCapabilities = new List<string> { BucketCapabilities.COUCHAPI },
+                NodesExt = new List<NodesExt>
+                {
+                    new()
+                    {
+                        Hostname = "node1",
+                        Services = new Services
+                        {
+                            Kv = 11210,
+                            Capi = 8092,
+                            N1Ql = 8093,
+                            Fts = 8094,
+                            Cbas = 8095
+                        }
+                    }
+                }
+            };
 
         private static IPingReport CreateReport(params (string Key, ServiceState[] States)[] services)
         {

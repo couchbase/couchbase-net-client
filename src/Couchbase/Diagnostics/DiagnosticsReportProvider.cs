@@ -5,18 +5,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.RateLimiting;
-using Couchbase.Query;
-using Couchbase.Search;
-using Couchbase.Search.Queries;
 using Couchbase.Views;
 
 #nullable enable
@@ -27,6 +23,10 @@ namespace Couchbase.Diagnostics
     {
         internal const string UnknownEndpointValue = "Unknown";
         private const long TicksPerMicrosecond = 10;
+
+        // Health endpoints of the HTTP services, same paths the other SDKs ping.
+        internal const string AdminPingPath = "/admin/ping";
+        internal const string SearchPingPath = "/api/ping";
 
         private static readonly ServiceType[] AllServiceTypes =
         {
@@ -68,6 +68,10 @@ namespace Couchbase.Diagnostics
 
             IOperationConfigurator? operationConfigurator = ping
                 ? context.ServiceProvider.GetRequiredService<IOperationConfigurator>()
+                : null;
+
+            ICouchbaseHttpClientFactory? httpClientFactory = ping
+                ? context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>()
                 : null;
 
             var pingTasks = new List<Task>();
@@ -141,83 +145,22 @@ namespace Couchbase.Diagnostics
 
             foreach (var clusterNode in clusterNodes)
             {
-                if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery &&
-                    context.ServiceProvider.IsService<IQueryClient>())
+                if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
                 {
-                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("n1ql", new List<IEndpointDiagnostics>());
-                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
-
-                    if (ping)
-                    {
-                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics, () =>
-                         {
-                             var token1 = token;
-                             var queryOptions = new QueryOptions();
-                             if (token1 != CancellationToken.None)
-                             {
-                                 queryOptions.CancellationToken(token1);
-                             }
-                             return context.Cluster.QueryAsync<dynamic>("SELECT 1;", queryOptions);
-                         }, token));
-                    }
-
-                    kvEndpoints.Add(endPointDiagnostics);
+                    AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "n1ql", ServiceType.Query,
+                        clusterNode, AdminPingPath, context.ClusterOptions.QueryTimeout, ping, token);
                 }
 
-                if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics &&
-                    context.ServiceProvider.IsService<IAnalyticsClient>())
+                if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics)
                 {
-                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("cbas", new List<IEndpointDiagnostics>());
-                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
-
-                    if (ping)
-                    {
-                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics, () =>
-                        {
-                            var token1 = token;
-                            var analyticsOptions = new AnalyticsOptions();
-                            if (token1 != CancellationToken.None)
-                            {
-                                analyticsOptions.CancellationToken(token1);
-                            }
-                            return context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;", analyticsOptions);
-                        }, token));
-                    }
-
-                    kvEndpoints.Add(endPointDiagnostics);
+                    AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "cbas", ServiceType.Analytics,
+                        clusterNode, AdminPingPath, context.ClusterOptions.AnalyticsTimeout, ping, token);
                 }
 
-                if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch &&
-                    context.ServiceProvider.IsService<ISearchClient>())
+                if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch)
                 {
-                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("fts", new List<IEndpointDiagnostics>());
-                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
-
-                    if (ping)
-                    {
-                        var index = "ping";
-                        pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
-                            async () =>
-                            {
-                                try
-                                {
-                                    var token1 = token;
-                                    var searchOptions = new SearchOptions();
-                                    if (token1 != CancellationToken.None)
-                                    {
-                                        searchOptions.CancellationToken(token1);
-                                    }
-                                    await context.Cluster.SearchQueryAsync(index, new NoOpQuery(), searchOptions)
-                                        .ConfigureAwait(false);
-                                }
-                                catch (IndexNotFoundException)
-                                {
-                                    // This exception is expected for pings, the ping index does not exist
-                                }
-                            }, token));
-                    }
-
-                    kvEndpoints.Add(endPointDiagnostics);
+                    AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "fts", ServiceType.Search,
+                        clusterNode, SearchPingPath, context.ClusterOptions.SearchTimeout, ping, token);
                 }
             }
 
@@ -228,6 +171,84 @@ namespace Couchbase.Diagnostics
             }
 
             return endpoints;
+        }
+
+        /// <summary>
+        /// Adds the entry for one HTTP service on one node and, when pinging, the ping of that node's own health endpoint.
+        /// </summary>
+        /// <remarks>
+        /// The ping must go to the node being reported, a load balanced client would let several entries hit the same
+        /// node and report the whole service as healthy.
+        /// </remarks>
+        private static void AddHttpServiceEndpoint(
+            ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>> endpoints, List<Task> pingTasks,
+            ICouchbaseHttpClientFactory? httpClientFactory, string reportKey, ServiceType serviceType,
+            IClusterNode clusterNode, string pingPath, TimeSpan fallbackTimeout, bool ping,
+            CancellationToken token)
+        {
+            // The activity must be read first, the service URI getter stamps it with the current time.
+            var lastActivity = LastActivity(clusterNode, serviceType);
+
+            // Only a ping needs the service URI, so a diagnostics report leaves the activity alone.
+            var pingUri = ping ? BuildPingUri(ServiceUri(clusterNode, serviceType), pingPath) : null;
+
+            var serviceEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd(reportKey, new List<IEndpointDiagnostics>());
+            var endPointDiagnostics = CreateEndpointHealth("Cluster", serviceType, DateTime.UtcNow, lastActivity,
+                pingUri?.ToString() ?? clusterNode.EndPoint.ToString(), ping);
+
+            // Without a URI there is nothing to ping, the entry is still reported so it counts as not Ok.
+            if (ping && pingUri is not null)
+            {
+                Debug.Assert(httpClientFactory is not null,
+                    $"{nameof(httpClientFactory)} should not be null when {nameof(ping)} is true.");
+
+                pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
+                    () => PingHttpServiceAsync(httpClientFactory!, pingUri, fallbackTimeout, token), token));
+            }
+
+            serviceEndpoints.Add(endPointDiagnostics);
+        }
+
+        private static DateTime? LastActivity(IClusterNode clusterNode, ServiceType serviceType) => serviceType switch
+        {
+            ServiceType.Query => clusterNode.LastQueryActivity,
+            ServiceType.Analytics => clusterNode.LastAnalyticsActivity,
+            ServiceType.Search => clusterNode.LastSearchActivity,
+            _ => null
+        };
+
+        /// <remarks>
+        /// Each of these getters stamps the matching last activity, so only read one when it is needed.
+        /// </remarks>
+        private static Uri? ServiceUri(IClusterNode clusterNode, ServiceType serviceType) => serviceType switch
+        {
+            ServiceType.Query => clusterNode.QueryUri,
+            ServiceType.Analytics => clusterNode.AnalyticsUri,
+            ServiceType.Search => clusterNode.SearchUri,
+            _ => null
+        };
+
+        /// <summary>
+        /// The node's own service URI with the health endpoint path.
+        /// </summary>
+        internal static Uri? BuildPingUri(Uri? serviceUri, string pingPath) =>
+            serviceUri is null
+                ? null
+                : new UriBuilder(serviceUri) { Path = pingPath, Query = string.Empty }.Uri;
+
+        /// <summary>
+        /// Pings a single HTTP service endpoint, anything but a success status code is a failure.
+        /// </summary>
+        internal static async Task PingHttpServiceAsync(ICouchbaseHttpClientFactory httpClientFactory, Uri pingUri,
+            TimeSpan fallbackTimeout, CancellationToken token)
+        {
+            using var timeoutSource = token == CancellationToken.None
+                ? new CancellationTokenSource(fallbackTimeout)
+                : null;
+
+            using var httpClient = httpClientFactory.Create();
+            using var response = await httpClient.GetAsync(pingUri, timeoutSource?.Token ?? token).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
         }
 
         private static EndpointDiagnostics CreateEndpointHealth(string? bucketName, DateTime createdAt, IConnection connection, bool ping)
@@ -245,13 +266,17 @@ namespace Couchbase.Diagnostics
         }
 
        internal static EndpointDiagnostics CreateEndpointHealth(string? bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
-            HostEndpointWithPort? endPoint, bool ping)
+            HostEndpointWithPort? endPoint, bool ping) =>
+            CreateEndpointHealth(bucketName, serviceType, createdAt, lastActivity, endPoint?.ToString(), ping);
+
+        internal static EndpointDiagnostics CreateEndpointHealth(string? bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
+            string? remote, bool ping)
         {
             return new EndpointDiagnostics
             {
                 Type = serviceType,
                 LastActivity = ping ? null : CalculateLastActivity(createdAt, lastActivity),
-                Remote = endPoint?.ToString() ?? UnknownEndpointValue,
+                Remote = remote ?? UnknownEndpointValue,
                 State = lastActivity.HasValue ? ServiceState.Active : ServiceState.New,
                 Scope = bucketName
             };

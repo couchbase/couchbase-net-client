@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Query;
-using Couchbase.Search;
 using Couchbase.Views;
 
 #nullable enable
@@ -80,9 +77,6 @@ namespace Couchbase.Diagnostics
                                          && HasCouchApi(config)
                                          && serviceProvider?.IsService<IViewClient>() == true,
 #pragma warning restore CS0618 // Type or member is obsolete
-                    ServiceType.Query => serviceProvider?.IsService<IQueryClient>() == true,
-                    ServiceType.Search => serviceProvider?.IsService<ISearchClient>() == true,
-                    ServiceType.Analytics => serviceProvider?.IsService<IAnalyticsClient>() == true,
                     _ => true
                 };
 
