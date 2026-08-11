@@ -40,9 +40,9 @@ namespace Couchbase.Diagnostics
 
         internal static async Task<IPingReport> CreatePingReportAsync(ClusterContext context, BucketConfig? config, PingOptions options)
         {
-            var clusterNodes = context.GetNodes(config?.Name ?? BucketConfig.GlobalBucketName);
+            var bucketNodes = context.GetNodes(config?.Name ?? BucketConfig.GlobalBucketName);
             var endpoints =
-                await GetEndpointDiagnosticsAsync(context, clusterNodes, true, options.ServiceTypesValue,
+                await GetEndpointDiagnosticsAsync(context, bucketNodes, context.Nodes, true, options.ServiceTypesValue,
                    options.Token).ConfigureAwait(false);
             return new PingReport(options.ReportIdValue ?? Guid.NewGuid().ToString(), config?.Rev ?? 0, endpoints);
         }
@@ -51,13 +51,18 @@ namespace Couchbase.Diagnostics
         {
             var clusterNodes = context.Nodes;
             var endpoints =
-                await GetEndpointDiagnosticsAsync(context, clusterNodes, false, AllServiceTypes,
+                await GetEndpointDiagnosticsAsync(context, clusterNodes, clusterNodes, false, AllServiceTypes,
                     CancellationToken.None).ConfigureAwait(false);
             return new DiagnosticsReport(reportId, endpoints);
         }
 
+        /// <remarks>
+        /// KV and Views are scoped to the nodes owned by the bucket, the other services are cluster scoped. A node
+        /// without KV never joins a bucket node set, so scoping them the same way would skip them on an MDS cluster.
+        /// </remarks>
         private static async ValueTask<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
-           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
+           IEnumerable<IClusterNode> bucketNodes, IEnumerable<IClusterNode> clusterNodes, bool ping,
+           ICollection<ServiceType> serviceTypes, CancellationToken token)
         {
             var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 
@@ -67,14 +72,17 @@ namespace Couchbase.Diagnostics
 
             var pingTasks = new List<Task>();
 
-            foreach (var clusterNode in clusterNodes)
+            foreach (var clusterNode in bucketNodes)
             {
                 if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
                 {
-                    var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
+                    // Only created once there is a connection, an empty entry would report a service that has nothing behind it.
+                    List<IEndpointDiagnostics>? kvEndpoints = null;
 
                     foreach (var connection in clusterNode.ConnectionPool.GetConnections())
                     {
+                        kvEndpoints ??= (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
+
                         var endPointDiagnostics =
                             CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection, ping);
 
@@ -129,7 +137,10 @@ namespace Couchbase.Diagnostics
                         kvEndpoints.Add(endPointDiagnostics);
                     }
                 }
+            }
 
+            foreach (var clusterNode in clusterNodes)
+            {
                 if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery &&
                     context.ServiceProvider.IsService<IQueryClient>())
                 {
