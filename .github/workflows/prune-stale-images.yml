@@ -1,0 +1,46 @@
+name: Prune stale images
+
+# Nothing else prunes ghcr.io/couchbase/dotnet-fit-performer. Most of the growth is
+# publish-fit-performer.yml rebuilding `:main` nightly: moving the tag leaves the
+# previous digest behind as an untagged version.
+#
+# Only two things are kept indefinitely: release tags, so a released SDK can still
+# be FIT tested (fit-cli can pin a performer version), and `main`, which is what
+# fit-testing-dotnet.yml pulls. Everything else ages out - untagged digests, the
+# `refs-`/`sha-` tags sdk-docker-build-action generates for Gerrit, PR and commit
+# builds, and per-branch `dk-*` tags. Losing a branch image costs nothing: it is
+# one publish-fit-performer.yml dispatch away, and a rebuild picks up new commits.
+#
+# Modelled on couchbase/couchbase-jvm-clients/.github/workflows/prune-stale-images.yml
+
+on:
+  schedule:
+    # 03:53 UTC, clear of the 23:00 performer publish and the 00:00 FIT run
+    - cron: '53 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  prune:
+    name: Prune dotnet-fit-performer
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Prune
+        uses: vlaurin/action-ghcr-prune@0cf7d39f88546edd31965acba78cdcb0be14d641 # v0.6.0
+        with:
+          token: ${{ github.token }}
+          organization: ${{ github.repository_owner }}
+          container: dotnet-fit-performer
+          keep-younger-than: 7 # days
+          prune-untagged: true
+          keep-tags: |
+            main
+          # Release tags: 3.9.5, and the 3.9.x style used by other SDKs.
+          keep-tags-regexes: |
+            ^[0-9]+\.[0-9]+
+          # Catch-all. Checked only after the two keep rules above, so it means
+          # "any tag that isn't a release tag or `main`".
+          prune-tags-regexes: |
+            .+
