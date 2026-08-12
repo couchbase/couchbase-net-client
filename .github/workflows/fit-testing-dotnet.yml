@@ -29,6 +29,14 @@ on:
         required: false
         type: string
         default: ci
+      performer_tag:
+        description: >-
+          Tag of the ghcr.io/couchbase/dotnet-fit-performer image to test. Defaults to the branch
+          this workflow is run from. The SDK under test lives inside that image, so build it first
+          via "Publish FIT Performer Image" with ref=<your-branch> — otherwise the run fails to
+          pull the image. Use "main" to test master's SDK from a branch.
+        required: false
+        type: string
 
 permissions:
   id-token: write   # required for GitHub OIDC
@@ -36,10 +44,39 @@ permissions:
   checks: write
 
 jobs:
+  # The SDK under test is baked into the performer image, not taken from the branch this workflow
+  # runs on, so the image tag has to track the branch for a branch run to test that branch's code.
+  # A `uses:` job cannot also have `steps`, hence the separate job to derive the tag.
+  performer-tag:
+    runs-on: ubuntu-latest
+    permissions: {}   # no OIDC token needed here, unlike the fit job
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - id: resolve
+        env:
+          # Via env, not inlined into the script: ${{ }} is substituted before bash parses it.
+          PERFORMER_TAG: ${{ inputs.performer_tag }}
+        run: |
+          TAG="$PERFORMER_TAG"
+          if [[ -z "$TAG" ]]; then
+            # No input (a branch run with the default, or the nightly, which passes no inputs at
+            # all) — derive the tag the same way the publish side does. See
+            # couchbaselabs/sdk-docker-build-action, which renames master to main, and
+            # docker/metadata-action, which collapses runs of [^a-zA-Z0-9._-] to '-' (so a branch
+            # like dk/ncbc-4300 is published as dk-ncbc-4300).
+            TAG="$GITHUB_REF_NAME"
+            [[ "$TAG" == "master" ]] && TAG=main
+            TAG=$(printf '%s' "$TAG" | sed -E 's/[^a-zA-Z0-9._-]+/-/g')
+          fi
+          echo "Testing performer image dotnet-fit-performer:$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
   fit:
+    needs: performer-tag
     uses: couchbaselabs/fit-cli/.github/workflows/fit-cli.yaml@main
     with:
       preset: ${{ vars.FIT_CLI_PRESET || inputs.preset || 'op-multi-lite' }}
       collect_extra_diagnostics: ${{ inputs.collect_extra_diagnostics == '' && true || inputs.collect_extra_diagnostics }}
-      performer: 'dotnet-fit-performer:main'
+      performer: dotnet-fit-performer:${{ needs.performer-tag.outputs.tag }}
       channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'ci' }}
