@@ -299,13 +299,30 @@ jobs:
             artifacts/*.nupkg
             artifacts/*.snupkg
 
+  # Publishes via NuGet Trusted Publishing (OIDC) rather than a stored API key.
+  # nuget.org holds a trusted publishing policy naming this repository owner, this
+  # repository, and this workflow file - so renaming release.yml breaks publishing,
+  # and no other workflow file in this repo can obtain a key. The policy is
+  # configured in the nuget.org UI (username -> Trusted Publishing), and is owned
+  # by the `couchbase` organization because that is the only nuget.org account that
+  # owns all three package IDs. A policy covers every package its owner owns.
+  #
+  # NUGET_USER is not a credential: it is the nuget.org username of the person who
+  # *created* the policy, which is not the same as the organization that owns it.
+  # Passing the org name gets HTTP 401 "No matching trust policy owned by user" -
+  # verified on run 33427080103. That also means the policy is tied to one person's
+  # account: if they leave the org it goes inactive, and releases stop.
+  #
+  # Nothing else in this repo records that the policy exists, so if publishing starts
+  # failing with no code change, check that it is still active in the nuget.org UI.
   publish-nuget:
     name: Publish to NuGet
     runs-on: ubuntu-latest
     needs: [validate-inputs, pack]
     if: needs.validate-inputs.outputs.publish == 'true'
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    permissions:
+      id-token: write   # required to mint the GitHub OIDC token for nuget.org
+      contents: read
     steps:
       - name: Download Packages Artifact
         uses: actions/download-artifact@v4
@@ -319,11 +336,21 @@ jobs:
           dotnet-version: 10.0.x
           cache: false
 
+      # Deliberately the last step before the push: the key nuget.org issues is
+      # valid for one hour, and all three pushes must complete inside it.
+      - name: NuGet login (OIDC -> short-lived API key)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Publish packages and symbols to NuGet
         shell: bash
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then
-            echo "NUGET_API_KEY secret is required to publish." >&2
+            echo "NuGet login did not return an API key." >&2
             exit 1
           fi
           shopt -s nullglob
@@ -418,6 +445,30 @@ jobs:
           aws s3 rm "s3://${S3_BUCKET}/${KEY}" \
             || echo "⚠ Could not delete smoke object (role may lack s3:DeleteObject) — harmless, remove manually."
 
+      # The NuGet equivalent of the S3 round-trip above. Obtaining the key is a
+      # separate step from pushing, so publish=false can prove the whole trust
+      # path - OIDC token, policy match, key issuance - without publishing. This
+      # is what a stored NUGET_API_KEY could never do: it was only ever exercised
+      # by a real release, so an expired or wrongly scoped key stayed invisible
+      # until the release was already half done.
+      - name: Smoke test NuGet publish access (OIDC)
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Verify NuGet key was issued
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+        run: |
+          # Never echo the key itself, only whether one came back.
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NuGet login returned no API key." >&2
+            exit 1
+          fi
+          echo "✓ nuget.org issued a short-lived API key for this workflow."
+
       - name: Summary
         shell: bash
         run: |
@@ -426,7 +477,8 @@ jobs:
             echo ""
             echo "- Tag: \`${{ needs.validate-inputs.outputs.tag }}\`"
             echo "- Version: \`${{ needs.validate-inputs.outputs.version }}\`"
-            echo "- AWS S3 publish access: ✅ verified via OIDC role \`SDK_GHA\`"
+            echo "- AWS S3 publish access (packages bucket): ✅ verified via OIDC role \`SDK_GHA\`"
+            echo "- NuGet publish access: ✅ short-lived key issued via Trusted Publishing"
             echo "- Packages built:"
             for pkg in ./artifacts/*.nupkg; do echo "  - \`$(basename "$pkg")\`"; done
           } >> "$GITHUB_STEP_SUMMARY"
