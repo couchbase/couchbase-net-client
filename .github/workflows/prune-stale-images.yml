@@ -37,9 +37,12 @@ jobs:
           prune-untagged: true
           keep-tags: |
             main
-          # Release tags: 3.9.5, and the 3.9.x style used by other SDKs.
+          # Release tags: 3.9.5, and the 3.9.x style used by other SDKs. Anchored
+          # at both ends - the action matches unanchored, so `^[0-9]+\.[0-9]+`
+          # alone would keep pre-release images forever too: publish-fit-performer.yml
+          # triggers on `tags: '*'`, and this repo pushes 3.9.3-rc1 style tags.
           keep-tags-regexes: |
-            ^[0-9]+\.[0-9]+
+            ^[0-9]+\.[0-9]+\.([0-9]+|x)$
           # Catch-all. Checked only after the two keep rules above, so it means
           # "any tag that isn't a release tag or `main`".
           prune-tags-regexes: |
