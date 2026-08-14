@@ -1,11 +1,10 @@
-name: PR FIT Performer
+name: PR Performer Bot
 
 # Publishes a performer image for each PR, then comments the image name and the
-# command to run FIT against it. The tag is the head branch name, sanitized the
-# way Docker tags are, so `dk/ncbc-4261` gives `dk-ncbc-4261`.
+# command to run FIT against it.
 # prune-stale-images.yml deletes the image 7 days later.
 #
-# Fork PRs are skipped: their token cannot push to ghcr.io. Build those with
+# Fork PRs are skipped. Build those with
 # publish-fit-performer.yml and ref `refs/pull/<n>/merge`.
 
 on:
@@ -50,10 +49,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE: ${{ steps.build.outputs.image }}
-          PINNED_IMAGE: ${{ steps.build.outputs.pinned-image }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FIT_WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/fit-testing-dotnet.yml
         run: |
           set -euo pipefail
 
@@ -62,33 +59,27 @@ jobs:
           <!-- pr-fit-performer -->
           ### FIT performer image
 
-          `__IMAGE__`
-
-          Built from `__HEAD_SHA__` in [this run](__RUN_URL__).
+          Published:
+          ```sh
+          __IMAGE__
+          ```
 
           Run FIT locally against this PR:
 
           ```sh
-          fit run preset op-multi-lite --performer __PERFORMER__
+          fit run preset <preset-name> --performer __PERFORMER__
           ```
 
-          Pull the image directly:
+          Or run it from the workflow [here](__FIT_WORKFLOW_URL__).
 
-          ```sh
-          docker pull __IMAGE__
-          ```
-
-          Exact image for a repeatable run: `__PINNED_IMAGE__`
-
-          Each push to this PR replaces the image. It is deleted 7 days after the last push.
+          > [!NOTE]
+          > _Each push to this PR replaces the image and edits this comment. The image is deleted 7 days after the last push._
           EOF
 
           sed -i \
             -e "s|__IMAGE__|${IMAGE}|g" \
-            -e "s|__PINNED_IMAGE__|${PINNED_IMAGE}|g" \
             -e "s|__PERFORMER__|${IMAGE##*/}|g" \
-            -e "s|__HEAD_SHA__|${HEAD_SHA}|g" \
-            -e "s|__RUN_URL__|${RUN_URL}|g" \
+            -e "s|__FIT_WORKFLOW_URL__|${FIT_WORKFLOW_URL}|g" \
             body.md
 
           COMMENT_ID=$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
