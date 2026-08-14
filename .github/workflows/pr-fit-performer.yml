@@ -1,0 +1,103 @@
+name: PR FIT Performer
+
+# Publishes a performer image for each PR, then comments the image name and the
+# command to run FIT against it. The tag is the head branch name, sanitized the
+# way Docker tags are, so `dk/ncbc-4261` gives `dk-ncbc-4261`.
+# prune-stale-images.yml deletes the image 7 days later.
+#
+# Fork PRs are skipped: their token cannot push to ghcr.io. Build those with
+# publish-fit-performer.yml and ref `refs/pull/<n>/merge`.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'fit/**'
+      - '*.sln'
+      - 'Directory.*.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
+      - 'NuGet.Config'
+      - '.github/workflows/pr-fit-performer.yml'
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: pr-fit-performer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build & publish performer for this PR
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and publish performer image
+        id: build
+        uses: couchbaselabs/sdk-docker-build-action@v1
+        with:
+          sdk: dotnet
+          ref: ${{ github.head_ref }}
+          dockerfile: fit/Couchbase.FitPerformer/Dockerfile
+        env:
+          DOCKER_BUILD_SUMMARY: false
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ steps.build.outputs.image }}
+          PINNED_IMAGE: ${{ steps.build.outputs.pinned-image }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Keep the body at this indentation. YAML strips it before bash sees it.
+          cat > body.md <<'EOF'
+          <!-- pr-fit-performer -->
+          ### FIT performer image
+
+          `__IMAGE__`
+
+          Built from `__HEAD_SHA__` in [this run](__RUN_URL__).
+
+          Run FIT locally against this PR:
+
+          ```sh
+          fit run preset op-multi-lite --performer __PERFORMER__
+          ```
+
+          Pull the image directly:
+
+          ```sh
+          docker pull __IMAGE__
+          ```
+
+          Exact image for a repeatable run: `__PINNED_IMAGE__`
+
+          Each push to this PR replaces the image. It is deleted 7 days after the last push.
+          EOF
+
+          sed -i \
+            -e "s|__IMAGE__|${IMAGE}|g" \
+            -e "s|__PINNED_IMAGE__|${PINNED_IMAGE}|g" \
+            -e "s|__PERFORMER__|${IMAGE##*/}|g" \
+            -e "s|__HEAD_SHA__|${HEAD_SHA}|g" \
+            -e "s|__RUN_URL__|${RUN_URL}|g" \
+            body.md
+
+          COMMENT_ID=$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("<!-- pr-fit-performer -->")) | .id' | head -1)
+
+          jq -n --rawfile body body.md '{body: $body}' > payload.json
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "/repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" --input payload.json --silent
+          else
+            gh api -X POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input payload.json --silent
+          fi
