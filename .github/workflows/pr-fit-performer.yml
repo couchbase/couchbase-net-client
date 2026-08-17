@@ -83,7 +83,7 @@ jobs:
             body.md
 
           COMMENT_ID=$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select(.body | startswith("<!-- pr-fit-performer -->")) | .id' | head -1)
+            --jq '.[] | select(.body | startswith("<!-- pr-fit-performer -->")) | .id' | tail -n 1)
 
           jq -n --rawfile body body.md '{body: $body}' > payload.json
 
