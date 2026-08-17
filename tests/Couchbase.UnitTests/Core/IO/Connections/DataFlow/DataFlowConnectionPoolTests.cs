@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -56,6 +57,121 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             connectionFactory.Verify(
                 m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(size));
+        }
+
+        [Fact]
+        public async Task InitializeAsync_SomeConnectionsFail_KeepsPartialPool()
+        {
+            // Arrange
+
+            // A host is not always equally reachable on every connection attempt, so one connection can
+            // succeed while a sibling times out. The node is still usable and must not be discarded.
+            var attempt = 0;
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() => Interlocked.Increment(ref attempt) == 1
+                    ? Task.FromResult(new Mock<IConnection>().Object)
+                    : Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut)));
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act
+
+            await pool.InitializeAsync();
+
+            // Assert
+
+            Assert.Equal(1, pool.Size);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_AllConnectionsFail_Throws()
+        {
+            // Arrange
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() => Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut)));
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act / Assert
+
+            // An empty pool is not a usable node, so this must still fail rather than be tolerated.
+            await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync());
+            Assert.Equal(0, pool.Size);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_DeadConnection_IsDisposed()
+        {
+            // Arrange
+
+            // A dead connection has already connected, so it owns a socket which nothing else will
+            // close once the pool drops the reference.
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(m => m.IsDead).Returns(true);
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+
+            // Act
+
+            // This pool tolerates an empty result and recovers on send, so initialization succeeds.
+            await pool.InitializeAsync();
+
+            // Assert
+
+            Assert.Equal(0, pool.Size);
+            connection.Verify(m => m.Dispose(), Times.Once);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_Cancelled_ThrowsEvenWithAWorkingConnection()
+        {
+            // Arrange
+
+            // A partial pool is only tolerable when the caller still wants the node. If the caller
+            // cancelled, the failure must surface rather than be swallowed.
+            var attempt = 0;
+            using var cts = new CancellationTokenSource();
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    if (Interlocked.Increment(ref attempt) == 1)
+                    {
+                        return Task.FromResult(new Mock<IConnection>().Object);
+                    }
+
+                    cts.Cancel();
+                    return Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut));
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act / Assert
+
+            // Without the cancellation check this would be swallowed as a partial pool, since one
+            // connection did come up.
+            await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync(cts.Token));
+            Assert.Equal(1, pool.Size);
         }
 
         #endregion

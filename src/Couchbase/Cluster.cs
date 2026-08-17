@@ -52,6 +52,11 @@ namespace Couchbase
         private bool _disposed;
         private readonly ClusterContext _context;
         private bool _hasBootStrapped = false;
+
+        // Warn once on entering the failed state, not on every bootstrapper poll (2.5s by
+        // default), which would warn forever on a cluster that stays down.
+        private bool _bootstrapFailureLogged;
+
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
         private readonly IRedactor _redactor;
         private readonly IBootstrapper _bootstrapper;
@@ -218,6 +223,16 @@ namespace Couchbase
             {
                 await ((IBootstrappable)cluster).BootStrapAsync(cancellationToken).ConfigureAwait(false);
                 cluster.StartBootstrapper();
+
+                // BootStrapAsync defers most failures rather than throwing, so reaching here
+                // does not mean the cluster is usable.
+                if (!cluster.IsBootstrapped)
+                {
+                    cluster._logger.LogWarning(
+                        "ConnectAsync is returning a cluster which has not bootstrapped; cluster-level operations will fail "
+                        + "until it does. If the cluster is 6.5 or earlier this is expected — it bootstraps per-bucket, so "
+                        + "open a bucket instead. Otherwise, await WaitUntilReadyAsync(..) to wait for bootstrapping to complete.");
+                }
 
                 // We can re-ify the Transactions now that we are bootstrapped.  We need
                 // to do this because extSDKIntegration means we may configure the cleanup
@@ -670,6 +685,7 @@ namespace Couchbase
                 //if we succeeded set the state of the cluster to bootstrapped
                 _hasBootStrapped = _context.GlobalConfig != null;
                 _deferredExceptions.Clear();
+                _bootstrapFailureLogged = false;
 
                 //start the collector here now that we have bootstrapped and global bootstrap is not null
                 _appTelemetryCollector.Initialize();
@@ -698,7 +714,23 @@ namespace Couchbase
             catch (Exception e)
             {
                 _deferredExceptions.Add(e);
-                _logger.LogDebug("Error encountered bootstrapping cluster; if the cluster is 6.5 or earlier, this can be ignored. {exception}.", e);
+
+                // Deferring is only excusable for 6.5-or-earlier, which bootstraps per-bucket.
+                // Anything else deferred here fails every cluster-level operation until a later
+                // attempt succeeds, so entering that state warrants more than Debug.
+                if (!_bootstrapFailureLogged)
+                {
+                    _bootstrapFailureLogged = true;
+
+                    _logger.LogWarning(e,
+                        "Error encountered bootstrapping the cluster; cluster-level operations will fail until it bootstraps. "
+                        + "This is expected only for clusters at 6.5 or earlier, which bootstrap per-bucket instead. "
+                        + "Further failures will be logged at Debug until it bootstraps.");
+                }
+                else
+                {
+                    _logger.LogDebug(e, "The cluster still has not bootstrapped.");
+                }
             }
         }
 

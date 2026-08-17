@@ -70,12 +70,16 @@ namespace Couchbase.Core.Bootstrapping
                 if (!subject.IsBootstrapped)
                 {
                     _logger.LogDebug("The subject is not bootstrapped.");
+
+                    // A subject may record a failure in DeferredExceptions instead of throwing, so a
+                    // normal return is not success — clearing the list would report the failed attempt
+                    // as bootstrapped and stop the retry loop. Discard only the failures already
+                    // present, by identity: subjects clear the list themselves on success, so removing
+                    // by position could take this attempt's instead.
+                    var staleFailures = subject.DeferredExceptions.ToArray();
                     try
                     {
                         await subject.BootStrapAsync(token).ConfigureAwait(false);
-                        subject.DeferredExceptions.Clear();
-
-                        _logger.LogDebug("The subject has successfully bootstrapped.");
                     }
                     catch (Exception e)
                     {
@@ -83,6 +87,25 @@ namespace Couchbase.Core.Bootstrapping
 
                         //catch any errors not caught in the bootstrap catch clause
                         subject.DeferredExceptions.Add(e);
+                    }
+                    finally
+                    {
+                        // In a finally, so a subject which throws every attempt does not accumulate
+                        // one exception per poll indefinitely.
+                        foreach (var staleFailure in staleFailures)
+                        {
+                            subject.DeferredExceptions.Remove(staleFailure);
+                        }
+                    }
+
+                    if (subject.IsBootstrapped)
+                    {
+                        _logger.LogDebug("The subject has successfully bootstrapped.");
+                    }
+                    else
+                    {
+                        _logger.LogDebug("The subject did not bootstrap; {failureCount} deferred failure(s) recorded.",
+                            subject.DeferredExceptions.Count);
                     }
                 }
 
