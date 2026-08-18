@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -105,11 +106,29 @@ namespace Couchbase.Core.IO.Connections.Channels
                 return;
             }
 
-            await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (Size > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                // One working connection is enough to keep the node; the scale controller backfills
+                // the rest. A lossy path can drop one connection's handshake while its sibling
+                // succeeds, and discarding the node then throws away a usable connection.
+                LogPartialPoolInitialization(_redactor.SystemData(EndPoint), Size, MinimumSize, ex);
+            }
+
+            // AddConnectionsAsync drops a dead connection without throwing, so the pool can end up
+            // empty with nothing for the filter above to catch. Unlike DataFlowConnectionPool there
+            // is no recovery on send here, so reject it.
+            if (MinimumSize > 0 && Size == 0)
+            {
+                throw new ConnectException($"Unable to open any connections to {EndPoint}.");
+            }
 
             _scaleController.Start(this);
 
-            InitializedConnectionPool(_redactor.SystemData(EndPoint), MinimumSize);
+            InitializedConnectionPool(_redactor.SystemData(EndPoint), Size);
 
             _initialized = true;
             _disposed = false;
@@ -295,7 +314,9 @@ namespace Couchbase.Core.IO.Connections.Channels
 
                 if (connection.IsDead)
                 {
+                    // Already connected, so it owns a socket even though it is unusable.
                     LogConnectionToEndpointError(EndPoint);
+                    connection.Dispose();
                     return;
                 }
 
@@ -378,6 +399,9 @@ namespace Couchbase.Core.IO.Connections.Channels
 
         [LoggerMessage(102, LogLevel.Debug, "Disposing pool for {endpoint} that was already disposed")]
         private partial void LogAlreadyDisposedConnectionPool(HostEndpointWithPort endpoint);
+
+        [LoggerMessage(103, LogLevel.Warning, "Connection pool for {endpoint} started with {size} of {minimumSize} connections; continuing with a partial pool.")]
+        private partial void LogPartialPoolInitialization(object endpoint, int size, int minimumSize, Exception exception);
 
         #endregion
     }

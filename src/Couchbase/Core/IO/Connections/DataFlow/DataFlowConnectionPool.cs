@@ -85,12 +85,27 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 return;
             }
 
-            await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (Size > 0 && !cancellationToken.IsCancellationRequested)
+            {
+                // One working connection is enough to keep the node; the scale controller backfills
+                // the rest. A lossy path can drop one connection's handshake while its sibling
+                // succeeds, and discarding the node then throws away a usable connection.
+                _logger.LogWarning(ex,
+                    "Connection pool for {endpoint} started with {size} of {minimumSize} connections; continuing with a partial pool.",
+                    _redactor.SystemData(EndPoint), Size, MinimumSize);
+            }
+
+            // An empty pool is tolerated here: SendAsync recovers via CleanupDeadConnectionsAsync.
+            // ChannelConnectionPool has no such path and rejects it.
 
             _scaleController.Start(this);
 
             _logger.LogDebug("Connection pool for {endpoint} initialized with {size} connections.",
-                _redactor.SystemData(EndPoint), MinimumSize);
+                _redactor.SystemData(EndPoint), Size);
 
             _initialized = true;
         }
@@ -297,7 +312,9 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
                 if (connection.IsDead)
                 {
+                    // Already connected, so it owns a socket even though it is unusable.
                     _logger.LogDebug("Connection for {endpoint} could not be started.", EndPoint);
+                    connection.Dispose();
                     return;
                 }
                 _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
