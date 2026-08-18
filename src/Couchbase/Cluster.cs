@@ -418,12 +418,14 @@ namespace Couchbase
 
             options ??= new WaitUntilReadyOptions();
             if(options.DesiredStateValue == ClusterState.Offline)
-                throw new ArgumentException(nameof(options.DesiredStateValue));
+                throw new InvalidArgumentException(
+                    $"{nameof(ClusterState.Offline)} is not a valid desired state for WaitUntilReady.");
 
             using var ctps = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
             CancellationToken token = ctps.Token;
 
             var bootstrappable = (IBootstrappable)this;
+            var backoff = new WaitUntilReadyBackoff();
             try
             {
                 while (true)
@@ -447,39 +449,39 @@ namespace Couchbase
                             "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
                             "If you think this exception is caused by another error, please check your SDK logs for detail.");
 
+                    // Recomputed every pass because the topology can change while we wait.
+                    var requested = options.EffectiveServiceTypes(_context).ToList();
+                    var expected = WaitUntilReadyEvaluator.ExpectedServices(_context, null, requested, bucketLevel: false);
+
+                    if (expected.Count == 0)
+                    {
+                        LogWaitUntilReadyNoServices(string.Join(", ", requested));
+                    }
+
+                    // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
                     var pingReport =
                         await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
                             new PingOptions
                             {
-                                ServiceTypesValue = options.EffectiveServiceTypes(_context).ToList()
+                                ServiceTypesValue = expected.ToList(),
+                                Token = token
                             }).ConfigureAwait(false);
 
-                    var status = new Dictionary<string, bool>();
-                    foreach (var service in pingReport.Services)
-                    {
-                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
-                        if (failures)
-                        {
-                            //mark a service as failed
-                            status.Add(service.Key, failures);
-                        }
-                    }
+                    var readiness = WaitUntilReadyEvaluator.Evaluate(pingReport, expected, options.DesiredStateValue);
+                    _clusterState = readiness.State;
 
-                    //everything is up
-                    if (status.Count == 0)
-                    {
-                        _clusterState = ClusterState.Online;
-                        return;
-                    }
-
-                    //determine if completely offline or degraded
-                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
-                    if(_clusterState == options.DesiredStateValue)
+                    if (readiness.Ready)
                     {
                         return;
                     }
 
-                    await Task.Delay(100, token).ConfigureAwait(false);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        LogWaitUntilReadyStillWaiting(readiness.State, options.DesiredStateValue,
+                            WaitUntilReadyEvaluator.Describe(pingReport, expected));
+                    }
+
+                    await backoff.DelayAsync(token).ConfigureAwait(false);
                 }
             }
             catch (RateLimitedException)
@@ -852,6 +854,12 @@ namespace Couchbase
 
         [LoggerMessage(LogLevel.Warning, "Exception in AuthenticationStale event handler for connection {connectionId}")]
         partial void LogExceptionInAuthStaleEventHandlerForConnectionId(Exception ex, ulong connectionId);
+
+        [LoggerMessage(LogLevel.Debug, "WaitUntilReady is {state} but wants {desiredState}, services: {services}")]
+        partial void LogWaitUntilReadyStillWaiting(ClusterState state, ClusterState desiredState, string services);
+
+        [LoggerMessage(LogLevel.Warning, "WaitUntilReady has no verifiable service from the requested set {requested}, returning immediately")]
+        partial void LogWaitUntilReadyNoServices(string requested);
 
         #endregion
     }

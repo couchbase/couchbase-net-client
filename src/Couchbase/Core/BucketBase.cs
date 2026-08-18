@@ -205,53 +205,60 @@ namespace Couchbase.Core
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
+            if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+            {
+                // Already timed out
+                throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+            }
+
             options ??= new WaitUntilReadyOptions();
             if (options.DesiredStateValue == ClusterState.Offline)
-                throw new ArgumentException(nameof(options.DesiredStateValue));
+                throw new InvalidArgumentException(
+                    $"{nameof(ClusterState.Offline)} is not a valid desired state for WaitUntilReady.");
 
             using var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
             var token = ctsp.Token;
 
+            var backoff = new WaitUntilReadyBackoff();
             try
             {
                 while (true)
                 {
                     token.ThrowIfCancellationRequested();
 
+                    // Recomputed every pass because the topology can change while we wait.
+                    var requested = options.EffectiveServiceTypes(Context).ToList();
+                    var expected = WaitUntilReadyEvaluator.ExpectedServices(Context, CurrentConfig, requested, bucketLevel: true);
+
+                    if (expected.Count == 0)
+                    {
+                        LogWaitUntilReadyNoServices(string.Join(", ", requested));
+                    }
+
+                    // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
                     var pingReport =
                         await DiagnosticsReportProvider.CreatePingReportAsync(Context, CurrentConfig,
                             new PingOptions
                             {
-                                ServiceTypesValue = options.EffectiveServiceTypes(Context).ToList(),
+                                ServiceTypesValue = expected.ToList(),
                                 Token = token,
                             }).ConfigureAwait(false);
 
-                    var status = new Dictionary<string, bool>();
-                    foreach (var service in pingReport.Services)
-                    {
-                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
-                        if (failures)
-                        {
-                            //mark a service as failed
-                            status.Add(service.Key, failures);
-                        }
-                    }
+                    var readiness = WaitUntilReadyEvaluator.Evaluate(pingReport, expected, options.DesiredStateValue);
+                    _clusterState = readiness.State;
 
-                    //everything is up
-                    if (status.Count == 0)
-                    {
-                        _clusterState = ClusterState.Online;
-                        return;
-                    }
-
-                    //determine if completely offline or degraded
-                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
-                    if (_clusterState == options.DesiredStateValue)
+                    if (readiness.Ready)
                     {
                         return;
                     }
 
-                    await Task.Delay(100, token).ConfigureAwait(false);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        LogWaitUntilReadyStillWaiting(readiness.State, options.DesiredStateValue,
+                            WaitUntilReadyEvaluator.Describe(pingReport, expected));
+                    }
+
+                    await backoff.DelayAsync(token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException e)
@@ -361,6 +368,12 @@ namespace Couchbase.Core
 
         [LoggerMessage(100, LogLevel.Debug, "Disposing bucket [{name}]!")]
         private partial void LogDispose(Redacted<string> name);
+
+        [LoggerMessage(101, LogLevel.Debug, "WaitUntilReady is {state} but wants {desiredState}, services: {services}")]
+        private partial void LogWaitUntilReadyStillWaiting(ClusterState state, ClusterState desiredState, string services);
+
+        [LoggerMessage(102, LogLevel.Warning, "WaitUntilReady has no verifiable service from the requested set {requested}, returning immediately")]
+        private partial void LogWaitUntilReadyNoServices(string requested);
 
         #endregion
     }
