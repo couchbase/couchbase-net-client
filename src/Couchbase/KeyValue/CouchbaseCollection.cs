@@ -1381,6 +1381,13 @@ namespace Couchbase.KeyValue
         private async Task<IGetReplicaResult> GetPrimary(string id, IRequestSpan span,
             CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+
             using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.Get, span);
             using var getOp = new Get<object>
             {
