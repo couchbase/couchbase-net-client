@@ -26,12 +26,17 @@ public class StagedUserFlagsTests
         Encoding.UTF8.GetBytes("""{"key":"value"}""");
     private static readonly ReadOnlyMemory<byte> BinaryBytes = new byte[] { 0x01, 0x02, 0x03 };
 
-    private static TransactionXattrs XattrsWithAux(string? auxJson) => new()
+    private static TransactionXattrs XattrsWithAux(string? auxJson)
     {
-        AuxiliaryData = auxJson is null
-            ? null
-            : JsonDocument.Parse(auxJson).RootElement.Clone()
-    };
+        if (auxJson is null)
+        {
+            return new TransactionXattrs { AuxiliaryData = null };
+        }
+
+        // Clone() detaches the element from the document, so the document can be disposed here.
+        using var doc = JsonDocument.Parse(auxJson);
+        return new TransactionXattrs { AuxiliaryData = doc.RootElement.Clone() };
+    }
 
     // Builds an aux JSON object carrying the user flags for the given format, computed via ToUInt32
     // so the test stays correct regardless of the (network byte order) encoding.
@@ -43,7 +48,8 @@ public class StagedUserFlagsTests
     [Fact]
     public void ParseStagedUserFlags_JsonUf_ReturnsStagedFlags()
     {
-        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux(AuxWithUf(DataFormat.Json)));
+        var flags = DocumentRepository.ParseStagedUserFlags(
+            XattrsWithAux(AuxWithUf(DataFormat.Json)), isBinaryStaged: false);
 
         Assert.Equal(DataFormat.Json, flags.DataFormat);
         Assert.Equal(TypeCode.Object, flags.TypeCode);
@@ -52,7 +58,8 @@ public class StagedUserFlagsTests
     [Fact]
     public void ParseStagedUserFlags_BinaryUf_ReturnsBinaryFlags()
     {
-        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux(AuxWithUf(DataFormat.Binary)));
+        var flags = DocumentRepository.ParseStagedUserFlags(
+            XattrsWithAux(AuxWithUf(DataFormat.Binary)), isBinaryStaged: true);
 
         Assert.Equal(DataFormat.Binary, flags.DataFormat);
     }
@@ -60,7 +67,7 @@ public class StagedUserFlagsTests
     [Fact]
     public void ParseStagedUserFlags_NoAux_FallsBackToJsonCommonFlags()
     {
-        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux(null));
+        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux(null), isBinaryStaged: false);
 
         Assert.Equal(DataFormat.Json, flags.DataFormat);
         Assert.Equal(TypeCode.Object, flags.TypeCode);
@@ -69,7 +76,8 @@ public class StagedUserFlagsTests
     [Fact]
     public void ParseStagedUserFlags_AuxWithoutUf_FallsBackToJsonCommonFlags()
     {
-        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux("""{"docexpiry":123}"""));
+        var flags = DocumentRepository.ParseStagedUserFlags(
+            XattrsWithAux("""{"docexpiry":123}"""), isBinaryStaged: false);
 
         Assert.Equal(DataFormat.Json, flags.DataFormat);
     }
@@ -77,16 +85,59 @@ public class StagedUserFlagsTests
     [Fact]
     public void ParseStagedUserFlags_NullXattrs_FallsBackToJsonCommonFlags()
     {
-        var flags = DocumentRepository.ParseStagedUserFlags(null);
+        var flags = DocumentRepository.ParseStagedUserFlags(null, isBinaryStaged: false);
 
         Assert.Equal(DataFormat.Json, flags.DataFormat);
     }
 
     #endregion
 
+    #region txn.bin overrides a disagreeing uf
+
+    // Content staged at txn.bin is binary, full stop. A uf that says otherwise cannot be trusted:
+    // committing binary content with JSON flags makes ContentAs<byte[]> throw on read. This is what
+    // covers a uf written byte-reversed by .NET 3.8.0-3.9.4, which we do not otherwise detect.
+    [Theory]
+    [InlineData(DataFormat.Json)]
+    [InlineData(DataFormat.String)]
+    [InlineData(DataFormat.Private)]
+    [InlineData(DataFormat.Reserved)]
+    public void ParseStagedUserFlags_BinaryStaged_NonBinaryUf_FallsBackToBinaryCommonFlags(DataFormat ufFormat)
+    {
+        var flags = DocumentRepository.ParseStagedUserFlags(
+            XattrsWithAux(AuxWithUf(ufFormat)), isBinaryStaged: true);
+
+        Assert.Equal(DataFormat.Binary, flags.DataFormat);
+        Assert.Equal(TypeCode.Object, flags.TypeCode);
+    }
+
+    [Fact]
+    public void ParseStagedUserFlags_BinaryStaged_NoUf_FallsBackToBinaryCommonFlags()
+    {
+        var flags = DocumentRepository.ParseStagedUserFlags(XattrsWithAux(null), isBinaryStaged: true);
+
+        Assert.Equal(DataFormat.Binary, flags.DataFormat);
+        Assert.Equal(TypeCode.Object, flags.TypeCode);
+    }
+
+    // The override is one-way: it must not touch non-binary staged content, so a legitimate
+    // non-JSON uf (e.g. a raw string) still comes through untouched.
+    [Fact]
+    public void ParseStagedUserFlags_NotBinaryStaged_StringUf_IsUnchanged()
+    {
+        var flags = DocumentRepository.ParseStagedUserFlags(
+            XattrsWithAux(AuxWithUf(DataFormat.String, TypeCode.String)), isBinaryStaged: false);
+
+        Assert.Equal(DataFormat.String, flags.DataFormat);
+        Assert.Equal(TypeCode.String, flags.TypeCode);
+    }
+
+    #endregion
+
     #region End-to-end via LookupDocumentAsync
 
-    private static Mock<ILookupInResultInternal> BuildLookupResult(Flags bodyFlags, TransactionXattrs txnXattrs)
+    private static Mock<ILookupInResultInternal> BuildLookupResult(Flags bodyFlags, TransactionXattrs txnXattrs,
+        bool binaryStaged = false)
     {
         var specs = new List<LookupInSpec>
         {
@@ -102,8 +153,8 @@ public class StagedUserFlagsTests
         mock.Setup(r => r.Flags).Returns(bodyFlags);
         mock.Setup(r => r.ContentAs<TransactionXattrs>(0)).Returns(txnXattrs);
         mock.Setup(r => r.Exists(0)).Returns(true);
-        mock.Setup(r => r.Exists(2)).Returns(true);   // JSON staged
-        mock.Setup(r => r.Exists(3)).Returns(false);
+        mock.Setup(r => r.Exists(2)).Returns(!binaryStaged); // txn.stgd
+        mock.Setup(r => r.Exists(3)).Returns(binaryStaged);  // txn.bin
         mock.Setup(r => r.Exists(4)).Returns(true);
         mock.Setup(r => r.IsDeleted).Returns(false);
         mock.Setup(r => r.Cas).Returns(0UL);
@@ -172,6 +223,22 @@ public class StagedUserFlagsTests
 
         Assert.NotNull(result.StagedContent);
         Assert.Equal(DataFormat.Json, result.StagedContent!.Flags.DataFormat);
+    }
+
+    [Fact]
+    public async Task StagedContent_BinaryStaged_JsonUf_StillCommitsAsBinary()
+    {
+        // Staged at txn.bin, but with a uf claiming JSON — as a byte-reversed pre-3.10 .NET uf
+        // decodes. txn.bin wins, or the committed doc would be unreadable as byte[].
+        var bodyFlags = new Flags { DataFormat = DataFormat.Json };
+        var mock = BuildLookupResult(bodyFlags, XattrsWithAux(AuxWithUf(DataFormat.Json)), binaryStaged: true);
+
+        var result = await DocumentRepository.LookupDocumentAsync(
+            BuildCollection(mock), "doc-id", keyValueTimeout: null,
+            defaultJsonTranscoder: new JsonTranscoder(SystemTextJsonSerializer.Create()));
+
+        Assert.NotNull(result.StagedContent);
+        Assert.Equal(DataFormat.Binary, result.StagedContent!.Flags.DataFormat);
     }
 
     #endregion

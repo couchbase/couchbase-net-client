@@ -353,7 +353,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             // stage (lost-transaction cleanup) or when resolving ambiguity from a re-read doc.
             var stagedContent = lookupInResult.Exists(dataIdx)
                 ? new LookupInContentAsWrapper(lookupInResult, dataIdx, stagedContentTranscoder,
-                    flagsOverride: ParseStagedUserFlags(txnXattrs))
+                    flagsOverride: ParseStagedUserFlags(txnXattrs, isBinaryStaged))
                 : null;
 
             var result = new DocumentLookupResult(docId,
@@ -372,18 +372,34 @@ namespace Couchbase.Client.Transactions.DataAccess
         /// Reconstruct the user flags recorded in <c>txn.aux.uf</c> at staging time. Falls back to
         /// JSON common flags when the field is absent (e.g. staged by an older/other SDK that did
         /// not record it — such content was always JSON), mirroring Java's
-        /// <c>stagedUserFlags().orElse(CodecFlags.JSON_COMMON_FLAGS)</c>.
+        /// <c>stagedUserFlags().orElse(CodecFlags.JSON_COMMON_FLAGS)</c>. When the staged content
+        /// is binary the fallback is binary common flags instead.
+        /// <para>
+        /// <paramref name="isBinaryStaged"/> (i.e. the content is staged at <c>txn.bin</c>) is
+        /// authoritative and overrides a <c>uf</c> that disagrees. Committing binary content with
+        /// JSON flags is not cosmetic: reading it back through the default JsonTranscoder throws
+        /// ("JsonTranscoder does not support byte arrays"), so we never let a bad <c>uf</c> produce
+        /// an unreadable document. This is also the backstop for a <c>uf</c> written by .NET
+        /// 3.8.0-3.9.4, which encoded the value byte-reversed (little-endian) — see
+        /// <see cref="Flags.ToUInt32"/>. We deliberately do not try to detect that byte order:
+        /// the value carries no version marker, any such rule is guesswork, and the only
+        /// non-benign case (binary) is covered deterministically here.
+        /// </para>
         /// </summary>
-        internal static Flags ParseStagedUserFlags(TransactionXattrs? txnXattrs)
+        internal static Flags ParseStagedUserFlags(TransactionXattrs? txnXattrs, bool isBinaryStaged)
         {
             if (txnXattrs?.AuxiliaryData is { ValueKind: JsonValueKind.Object } aux
                 && aux.TryGetProperty("uf", out var ufElement)
                 && ufElement.TryGetUInt32(out var uf))
             {
-                return Flags.FromUInt32(uf);
+                var stagedFlags = Flags.FromUInt32(uf);
+                if (!isBinaryStaged || stagedFlags.DataFormat == DataFormat.Binary)
+                {
+                    return stagedFlags;
+                }
             }
 
-            return Flags.JsonCommonFlags;
+            return isBinaryStaged ? Flags.BinaryCommonFlags : Flags.JsonCommonFlags;
         }
 
         private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics, ICouchbaseCollection collection) =>

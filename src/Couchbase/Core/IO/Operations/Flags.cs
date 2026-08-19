@@ -20,11 +20,26 @@ namespace Couchbase.Core.IO.Operations
         /// The canonical common flags for JSON content (a JSON object). Used as a fallback
         /// when a persisted flags value is unavailable (e.g. a staged transaction mutation
         /// written by an older/other SDK that did not record <c>txn.aux.uf</c>). Mirrors what
-        /// <see cref="Transcoders.JsonTranscoder.GetFormat{T}"/> emits for an object body.
+        /// <see cref="Couchbase.Core.IO.Transcoders.JsonTranscoder.GetFormat{T}"/> emits for
+        /// an object body.
         /// </summary>
         internal static Flags JsonCommonFlags => new()
         {
             DataFormat = DataFormat.Json,
+            Compression = Compression.None,
+            TypeCode = TypeCode.Object
+        };
+
+        /// <summary>
+        /// The canonical common flags for raw binary content. The binary counterpart of
+        /// <see cref="JsonCommonFlags"/>, used as the fallback when we know the content is
+        /// binary but have no usable persisted flags value. Mirrors what
+        /// <see cref="Couchbase.Core.IO.Transcoders.RawBinaryTranscoder.GetFormat{T}"/> emits
+        /// for a <c>byte[]</c>.
+        /// </summary>
+        internal static Flags BinaryCommonFlags => new()
+        {
+            DataFormat = DataFormat.Binary,
             Compression = Compression.None,
             TypeCode = TypeCode.Object
         };
