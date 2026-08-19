@@ -9,6 +9,7 @@ using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataAccess;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.Error;
+using Couchbase.Client.Transactions.Internal;
 using Couchbase.Client.Transactions.Internal.Test;
 using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
@@ -230,11 +231,14 @@ namespace Couchbase.Client.Transactions.Cleanup
             var coll = op.DocumentCollection;
             if (op.IsDeleted)
             {
+                // InsertAsync has no flags option; the persisted flags are whatever the transcoder's
+                // GetFormat returns. Pin them to the staged flags (txn.aux.uf) — we did not stage
+                // this doc, so re-deriving from the transcoder would not preserve the user's flags.
                 await coll.InsertAsync(op.Id, content,
                     options =>
                     {
                         options.Durability(durabilityLevel)
-                            .Transcoder(op.StagedContent?.Transcoder);
+                            .Transcoder(new FixedFlagsTranscoder(op.StagedContent!.Transcoder, op.StagedContent.Flags));
                         if (op.Expiry.HasValue) options.Expiry(op.Expiry.Value.RemainingTtl());
                     }).CAF();
             }
@@ -246,7 +250,9 @@ namespace Couchbase.Client.Transactions.Cleanup
                 {
                     opts.Durability(durabilityLevel)
                         .Transcoder(op.StagedContent?.Transcoder)
-                        .Flags(op.StagedContent!.Transcoder.GetFormat(content))
+                        // Use the flags recorded at staging time (txn.aux.uf), not flags
+                        // re-derived from this cleaner's transcoder — we did not stage this doc.
+                        .Flags(op.StagedContent!.Flags)
                         .Timeout(_keyValueTimeout)
                         .Cas(op.Cas)
                         .PreserveTtl(coll.Scope.Bucket.SupportsCollections);
