@@ -5,6 +5,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
     /// </summary>
     internal class SaslStep : SaslStart
     {
+        /// <inheritdoc />
+        // authentication runs after HELO but before any collection exists.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.SaslStep;
     }
 }

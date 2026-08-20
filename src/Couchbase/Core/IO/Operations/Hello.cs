@@ -12,6 +12,10 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Hello : OperationBase<ServerFeatures[]>
     {
+        /// <inheritdoc />
+        // the key is a connection identifier, and this runs before any bucket is selected.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.Helo;
 
         internal override void WriteBody(OperationBuilder builder)

@@ -2,6 +2,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
 {
     internal sealed class SelectBucket : OperationBase
     {
+        /// <inheritdoc />
+        // the key is the bucket name.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.SelectBucket;
     }
 }

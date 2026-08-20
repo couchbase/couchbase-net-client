@@ -7,6 +7,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
     /// </summary>
     internal sealed class SaslList : OperationBase<string>
     {
+        /// <inheritdoc />
+        // mechanism negotiation, no document key.
+        internal override bool RequiresCollectionId => false;
+
         internal override void WriteExtras(OperationBuilder builder)
         {
         }
