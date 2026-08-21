@@ -107,8 +107,6 @@ namespace Couchbase.Core
 
         public ICluster Cluster { get; }
 
-        public bool SupportsCollections { get; set; }
-
         public bool SupportsGlobalConfig { get; private set; }
 
         public bool SupportsPreserveTtl { get; internal set; }
@@ -310,7 +308,45 @@ namespace Couchbase.Core
                 _logger.LogDebug(
                     "Added node {endPoint} on {bucket} to {nodes}",
                     _redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
+
+                RecomputeClusterFeatureSupport();
             }
+        }
+
+        /// <summary>
+        /// Recomputes the cluster-wide feature flags from every node currently managed.
+        /// </summary>
+        /// <remarks>
+        /// SupportsPreserveTtl and SupportsBinaryXattr describe the cluster, but they used to be
+        /// assigned from whichever single node was initialized last - eight separate sites, each
+        /// overwriting the one before, so the answer depended on ordering. A feature is only safe to
+        /// use if every node offers it, so this takes the conjunction. Nodes that have not negotiated
+        /// yet are skipped rather than counted as unsupporting, so the flags do not flap to false
+        /// while a node is still coming up.
+        ///
+        /// This stays a field rather than a computed property because it is read on every mutation.
+        /// </remarks>
+        internal void RecomputeClusterFeatureSupport()
+        {
+            var seenAnyNode = false;
+            var preserveTtl = true;
+            var binaryXattr = true;
+
+            foreach (var node in Nodes)
+            {
+                var features = node.ServerFeatures;
+                if (features is null)
+                {
+                    continue;
+                }
+
+                seenAnyNode = true;
+                preserveTtl &= features.PreserveTtl;
+                binaryXattr &= features.SubdocBinaryXattr;
+            }
+
+            SupportsPreserveTtl = seenAnyNode && preserveTtl;
+            SupportsBinaryXattr = seenAnyNode && binaryXattr;
         }
 
         public bool RemoveNode(IClusterNode removedNode)
@@ -322,6 +358,9 @@ namespace Couchbase.Core
                 _logger.LogDebug(
                     "Removed node {endPoint} from {nodes}", _redactor.SystemData(removedNode.EndPoint), Nodes);
                 removedNode.Dispose();
+
+                //A node leaving can restore a feature the whole cluster now offers.
+                RecomputeClusterFeatureSupport();
                 return true;
             }
             return false;
@@ -493,8 +532,6 @@ namespace Couchbase.Core
                                 node.NodesAdapter = nodeAdapter;
                                 if (node.ServerFeatures != null)
                                 {
-                                    SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
-                                    SupportsBinaryXattr = node.ServerFeatures.SubdocBinaryXattr;
                                 }
 
                                 AddNode(node);
@@ -511,8 +548,6 @@ namespace Couchbase.Core
 
                                 if (newNode.ServerFeatures != null)
                                 {
-                                    SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
-                                    SupportsBinaryXattr = newNode.ServerFeatures.SubdocBinaryXattr;
                                 }
 
                                 AddNode(newNode);
@@ -825,8 +860,6 @@ namespace Couchbase.Core
                             {
                                 clusterNode.Owner = bucket;
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                                SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
-                                SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
 
                             continue;
@@ -840,8 +873,6 @@ namespace Couchbase.Core
                             {
                                 clusterNode.Owner = bucket;
                                 await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                                SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
-                                SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                             }
                         }
 
@@ -866,8 +897,6 @@ namespace Couchbase.Core
                         {
                             clusterNode.Owner = bucket;
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
-                            SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
                     }
                     else
@@ -885,8 +914,6 @@ namespace Couchbase.Core
                         {
                             clusterNode.Owner = bucket;
                             await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
-                            SupportsBinaryXattr = clusterNode.ServerFeatures.SubdocBinaryXattr;
                         }
 
                         AddNode(clusterNode);
@@ -989,10 +1016,6 @@ namespace Couchbase.Core
 
                             if (newNode.ServerFeatures != null)
                             {
-                                SupportsPreserveTtl =
-                                    newNode.ServerFeatures.PreserveTtl;
-                                SupportsBinaryXattr = newNode.ServerFeatures
-                                    .SubdocBinaryXattr;
                             }
 
                             AddNode(newNode);

@@ -5,6 +5,10 @@ namespace Couchbase.Core.IO.Operations.Collections
 {
     internal sealed class GetManifest :  OperationBase<Manifest>
     {
+        /// <inheritdoc />
+        // manifest request, no document key.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode  => OpCode.GetCollectionsManifest;
 
         protected override void BeginSend()

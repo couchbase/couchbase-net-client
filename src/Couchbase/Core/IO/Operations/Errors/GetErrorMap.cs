@@ -5,11 +5,15 @@ namespace Couchbase.Core.IO.Operations.Errors
 {
     internal sealed class GetErrorMap : OperationBase<ErrorMapDto>
     {
+        /// <inheritdoc />
+        // writes no key at all.
+        internal override bool RequiresCollectionId => false;
+
         private const int DefaultVersion = 2; // will be configurable at some point
 
         public ErrorMap ErrorMap { get; set; }
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
         }
 

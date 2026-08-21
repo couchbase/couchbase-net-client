@@ -367,7 +367,21 @@ namespace Couchbase.Core
 
             return await ExecuteInternalOperationAsync(connection, heloOp,
                 ExecuteOp,
-                static (_, op) => op.GetValue(),
+                static (status, op) =>
+                {
+                    //A failed HELO used to be swallowed: the status was discarded here, GetValue()
+                    //returned null on anything but success, and the caller quietly assigned
+                    //ServerFeatureSet.Empty. The connection then stayed in the pool with no
+                    //negotiated features while still being framed as though it had them, which is
+                    //how a rejected HELO produces corrupted document keys. There is no usable
+                    //connection without a HELO, so fail it.
+                    if (status != ResponseStatus.Success)
+                    {
+                        ThrowHelper.ThrowHelloFailedException(status);
+                    }
+
+                    return op.GetValue();
+                },
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -731,7 +745,13 @@ namespace Couchbase.Core
                 }
 
                 var code = (short)status;
-                if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
+
+                //The error map is fetched immediately after HELO, so it is still null for anything
+                //that fails during connection initialization - HELO itself above all. Dereferencing
+                //it turned every such failure into a NullReferenceException here, before the caller
+                //could act on the status, which is why a rejected HELO could never be handled.
+                ErrorCode errorCode = null;
+                if (ErrorMap is null || !ErrorMap.TryGetGetErrorCode(code, out errorCode))
                 {
                     //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
                     if (code != 0x0500)
@@ -856,6 +876,11 @@ namespace Couchbase.Core
                         ? new ServerFeatureSet(serverFeatureList)
                         : ServerFeatureSet.Empty;
                     ServerFeatures = connection.ServerFeatures;
+
+                    //Cluster-wide feature support is the conjunction over every node, so it has to
+                    //be recomputed when a node finishes negotiating - a node may well have been
+                    //added before its features were known.
+                    _context.RecomputeClusterFeatureSupport();
 
                     #if DEBUG
                     _logger.LogDebug("{Features}", ServerFeatures.ToString());
