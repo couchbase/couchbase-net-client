@@ -35,15 +35,6 @@ namespace Couchbase.Utils
             throw new ServiceNotAvailableException(serviceType);
 
         /// <summary>
-        /// The connection negotiated collections, so the server will read a leb128 collection ID at
-        /// offset 0 of the key, but the operation has no collection ID to write. Sending it would
-        /// make the server treat the first byte of the document key as the collection.
-        /// </summary>
-        /// <remarks>
-        /// This is an SDK bug rather than a user error: an operation reached the wire without going
-        /// through collection ID resolution. See NCBC-4285 and NCBC-4287.
-        /// </remarks>
-        /// <summary>
         /// HELO did not succeed, so nothing about the connection's feature set is known. Keeping the
         /// connection would mean framing operations for features that were never negotiated.
         /// </summary>
@@ -74,6 +65,15 @@ namespace Couchbase.Utils
                 $"The server returned a successful GET_CID for '{scopeName}.{collectionName}' with no " +
                 "usable collection ID in the body, so there is nothing to frame operations with.");
 
+        /// <summary>
+        /// The connection negotiated collections, so the server will read a leb128 collection ID at
+        /// offset 0 of the key, but the operation has no collection ID to write. Sending it would
+        /// make the server treat the first byte of the document key as the collection.
+        /// </summary>
+        /// <remarks>
+        /// This is an SDK bug rather than a user error: an operation reached the wire without going
+        /// through collection ID resolution. See NCBC-4285 and NCBC-4287.
+        /// </remarks>
         [DoesNotReturn]
         public static void ThrowMissingCollectionIdException(OpCode opCode) =>
             throw new CouchbaseException(
