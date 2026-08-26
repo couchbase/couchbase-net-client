@@ -857,6 +857,11 @@ namespace Couchbase.Core
                         : ServerFeatureSet.Empty;
                     ServerFeatures = connection.ServerFeatures;
 
+                    //Cluster-wide feature support is the conjunction over every node, so it has to
+                    //be recomputed when a node finishes negotiating - a node may well have been
+                    //added before its features were known.
+                    _context.RecomputeClusterFeatureSupport();
+
                     #if DEBUG
                     _logger.LogDebug("{Features}", ServerFeatures.ToString());
                     #endif

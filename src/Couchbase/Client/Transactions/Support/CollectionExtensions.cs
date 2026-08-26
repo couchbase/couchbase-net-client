@@ -1,10 +1,27 @@
 ﻿using System;
+using Couchbase.Core;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Client.Transactions.Support
 {
     internal static class CollectionExtensions
     {
+        /// <summary>
+        /// Whether the cluster behind this collection can preserve expiry on a mutation.
+        /// </summary>
+        /// <remarks>
+        /// This used to be <c>Bucket.SupportsCollections</c>, with a comment calling it "a proxy for
+        /// supporting TTLs". They are unrelated capabilities: every node in a mixed-version cluster
+        /// can support collections while some node has not negotiated PreserveTtl, and
+        /// CouchbaseCollection throws FeatureNotAvailableException for exactly that combination - so
+        /// the proxy asked transactions to request something the cluster would then refuse.
+        /// Protostellar has no ClusterContext to ask, so it keeps the old proxy.
+        /// </remarks>
+        public static bool SupportsPreserveTtl(this ICouchbaseCollection collection) =>
+            collection.Scope.Bucket is BucketBase bucket
+                ? bucket.Context.SupportsPreserveTtl
+                : collection.Scope.Bucket.SupportsCollections;
+
         public static RemoveOptions Timeout(this RemoveOptions opts, TimeSpan? timeout)
         {
             if (timeout.HasValue)
