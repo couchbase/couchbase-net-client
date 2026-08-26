@@ -99,6 +99,33 @@ namespace Couchbase.Utils
                 $"The server returned a successful GET_CID for '{scopeName}.{collectionName}' with no " +
                 "usable collection ID in the body, so there is nothing to frame operations with.");
 
+        /// <summary>
+        /// The document key plus its leb128 collection ID prefix exceeds the 250 byte key field.
+        /// </summary>
+        [DoesNotReturn]
+        public static void ThrowKeyTooLongForCollectionIdException(int length) =>
+            throw new InvalidArgumentException(
+                $"The key is too long: {length} bytes including the collection ID prefix, and the " +
+                $"maximum is {OperationHeader.MaxKeyLength}. On a connection that has negotiated " +
+                "collections the prefix shares the key field with the document ID, so the document " +
+                "ID has to be shorter than the maximum by the size of the prefix.");
+
+        /// <summary>
+        /// The connection negotiated collections, so the server will read a leb128 collection ID at
+        /// offset 0 of the key, but the operation has no collection ID to write. Sending it would
+        /// make the server treat the first byte of the document key as the collection.
+        /// </summary>
+        /// <remarks>
+        /// This is an SDK bug rather than a user error: an operation reached the wire without going
+        /// through collection ID resolution. See NCBC-4285 and NCBC-4287.
+        /// </remarks>
+        [DoesNotReturn]
+        public static void ThrowMissingCollectionIdException(OpCode opCode) =>
+            throw new CouchbaseException(
+                $"The {opCode} operation has no collection ID, but the connection has negotiated " +
+                "collections and the server will read one from the start of the key. The operation " +
+                "was dispatched without resolving a collection ID.");
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T EnsureNotNullForDataStructures<T>(this T? value)
             where T : notnull
