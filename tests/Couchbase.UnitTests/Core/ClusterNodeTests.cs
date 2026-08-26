@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Test.Common.Utils;
@@ -111,6 +112,38 @@ namespace Couchbase.UnitTests.Core
             nodes.Remove(clusterNode2.EndPoint, "default2", out node2);
             nodes.Remove(clusterNode3.EndPoint, "default1", out node3);
             nodes.Remove(clusterNode4.EndPoint, "default2", out node4);
+        }
+
+        /// <summary>
+        /// A failed HELO used to be swallowed: the status was discarded, GetValue() returned null,
+        /// and the caller quietly assigned ServerFeatureSet.Empty - leaving a connection in the pool
+        /// with no negotiated features while operations were still framed as though it had them,
+        /// which is how a rejected HELO produces corrupted document keys (NCBC-4146, NCBC-4287).
+        /// </summary>
+        [Fact]
+        public async Task Failed_Hello_Fails_The_Connection()
+        {
+            using var clusterNode = MockClusterNode("default");
+
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(c => c.ConnectionId).Returns(1UL);
+            connection.SetupGet(c => c.ServerFeatures).Returns(ServerFeatureSet.Empty);
+            connection
+                .Setup(c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((ReadOnlyMemory<byte> _, IOperation op, CancellationToken _) =>
+                {
+                    //Anything but Success. Not TransportFailure, which already had its own
+                    //ConnectException path, so this exercises the new check rather than the old one.
+                    op.HandleOperationCompleted(
+                        AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.InternalError));
+                    return default;
+                });
+
+            var exception = await Assert.ThrowsAsync<ConnectException>(() =>
+                ((IConnectionInitializer) clusterNode).InitializeConnectionAsync(connection.Object, default));
+
+            Assert.Contains("HELO failed", exception.Message);
         }
 
         private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost")
