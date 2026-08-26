@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -177,10 +176,13 @@ namespace Couchbase.Client.Transactions.DataAccess
             // if bucket doesn't support ReplaceBodyWithXattr (and ReviveDocument)
             if (insertMode)
             {
+                // InsertAsync has no flags option; the persisted flags are whatever the transcoder's
+                // GetFormat returns. Pin them to the staged flags so the committed doc keeps them.
+                ITypeTranscoder insertTranscoder = isBinary
+                    ? new RawBinaryTranscoder()
+                    : _jsonUserDataTranscoder;
                 var opts = new InsertOptions().Defaults(_durability, _keyValueTimeout)
-                    .Transcoder(isBinary
-                        ? new RawBinaryTranscoder()
-                        : _jsonUserDataTranscoder);
+                    .Transcoder(new FixedFlagsTranscoder(insertTranscoder, flags));
                 if (expiry.HasValue)
                 {
                     opts.Expiry(expiry.Value.RemainingTtl());
@@ -289,6 +291,12 @@ namespace Couchbase.Client.Transactions.DataAccess
             var docMeta = lookupInResult.ContentAs<DocumentMetadata>(docMetaIndex);
             int dataIdx = stagedDataIndex; // just need a default
 
+            // Deserialize the transaction xattr once; reused below for the staged user-flags
+            // (txn.aux.uf) and stored on the result.
+            var txnXattrs = lookupInResult.Exists(txnIndex)
+                ? lookupInResult.ContentAs<TransactionXattrs>(txnIndex)
+                : null;
+
             // Determine the appropriate transcoder for wrapping the document content.
             // This is separate from the lookup transcoder used above.
             // Note: We use separate transcoders for staged vs unstaged content because:
@@ -340,8 +348,12 @@ namespace Couchbase.Client.Transactions.DataAccess
                 ? new LookupInContentAsWrapper(lookupInResult, fullDocIndex.Value, unstagedContentTranscoder)
                 : null;
 
+            // Staged content carries the user flags recorded in txn.aux.uf when it was staged,
+            // NOT the live document body's flags. This matters when committing content we didn't
+            // stage (lost-transaction cleanup) or when resolving ambiguity from a re-read doc.
             var stagedContent = lookupInResult.Exists(dataIdx)
-                ? new LookupInContentAsWrapper(lookupInResult, dataIdx, stagedContentTranscoder)
+                ? new LookupInContentAsWrapper(lookupInResult, dataIdx, stagedContentTranscoder,
+                    flagsOverride: ParseStagedUserFlags(txnXattrs, isBinaryStaged))
                 : null;
 
             var result = new DocumentLookupResult(docId,
@@ -351,12 +363,43 @@ namespace Couchbase.Client.Transactions.DataAccess
                 docMeta,
                 collection);
 
-            if (lookupInResult.Exists(txnIndex))
-            {
-                result.TransactionXattrs = lookupInResult.ContentAs<TransactionXattrs>(txnIndex);
-            }
+            result.TransactionXattrs = txnXattrs;
 
             return result;
+        }
+
+        /// <summary>
+        /// Reconstruct the user flags recorded in <c>txn.aux.uf</c> at staging time. Falls back to
+        /// JSON common flags when the field is absent (e.g. staged by an older/other SDK that did
+        /// not record it — such content was always JSON), mirroring Java's
+        /// <c>stagedUserFlags().orElse(CodecFlags.JSON_COMMON_FLAGS)</c>. When the staged content
+        /// is binary the fallback is binary common flags instead.
+        /// <para>
+        /// <paramref name="isBinaryStaged"/> (i.e. the content is staged at <c>txn.bin</c>) is
+        /// authoritative and overrides a <c>uf</c> that disagrees. Committing binary content with
+        /// JSON flags is not cosmetic: reading it back through the default JsonTranscoder throws
+        /// ("JsonTranscoder does not support byte arrays"), so we never let a bad <c>uf</c> produce
+        /// an unreadable document. This is also the backstop for a <c>uf</c> written by .NET
+        /// 3.8.0-3.9.4, which encoded the value byte-reversed (little-endian) — see
+        /// <see cref="Flags.ToUInt32"/>. We deliberately do not try to detect that byte order:
+        /// the value carries no version marker, any such rule is guesswork, and the only
+        /// non-benign case (binary) is covered deterministically here.
+        /// </para>
+        /// </summary>
+        internal static Flags ParseStagedUserFlags(TransactionXattrs? txnXattrs, bool isBinaryStaged)
+        {
+            if (txnXattrs?.AuxiliaryData is { ValueKind: JsonValueKind.Object } aux
+                && aux.TryGetProperty("uf", out var ufElement)
+                && ufElement.TryGetUInt32(out var uf))
+            {
+                var stagedFlags = Flags.FromUInt32(uf);
+                if (!isBinaryStaged || stagedFlags.DataFormat == DataFormat.Binary)
+                {
+                    return stagedFlags;
+                }
+            }
+
+            return isBinaryStaged ? Flags.BinaryCommonFlags : Flags.JsonCommonFlags;
         }
 
         private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics, ICouchbaseCollection collection) =>
@@ -414,11 +457,8 @@ namespace Couchbase.Client.Transactions.DataAccess
                         specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, rawJsonElement,
                             createPath: true, isXattr: true));
                     }
-                    // convert flags to a uint
-                    Span<byte> span = stackalloc byte[4];
-                    content.Flags.Write(span);
-                    var flagCompact = BinaryPrimitives.ReadUInt32LittleEndian(span);
-                    // now add it
+                    // record the user flags (reconstructed on read by Flags.FromUInt32)
+                    var flagCompact = content.Flags.ToUInt32();
                     specs.Add(MutateInSpec.Upsert(TransactionFields.UserFlags, flagCompact,
                         createPath: true, isXattr: true));
                     break;
