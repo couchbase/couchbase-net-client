@@ -44,7 +44,7 @@ namespace Couchbase.UnitTests.KeyValue
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object);
+            await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
             op.Read(new FakeMemoryOwner<byte>(responsePacket));
 
             var result = new MutateInResult(op);
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.KeyValue
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object);
+            await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
             op.Read(new FakeMemoryOwner<byte>(bytes));
 
             var result = new MutateInResult(op);
@@ -102,7 +102,7 @@ namespace Couchbase.UnitTests.KeyValue
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object);
+            await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
             op.Read(new FakeMemoryOwner<byte>(bytes));
 
             var result = new MutateInResult(op);

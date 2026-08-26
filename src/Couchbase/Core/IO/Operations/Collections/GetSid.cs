@@ -5,6 +5,10 @@ namespace Couchbase.Core.IO.Operations.Collections
 {
     internal sealed class GetSid : OperationBase<uint?>
     {
+        /// <inheritdoc />
+        // the key is the scope name.
+        internal override bool RequiresCollectionId => false;
+
         public override bool RequiresVBucketId => false;
 
         public override OpCode OpCode => OpCode.GetSidByName;

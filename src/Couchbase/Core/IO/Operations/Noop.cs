@@ -2,9 +2,13 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Noop : OperationBase
     {
+        /// <inheritdoc />
+        // writes no key at all.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.NoOp;
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
         }
     }

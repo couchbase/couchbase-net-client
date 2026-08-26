@@ -341,7 +341,7 @@ namespace Couchbase.UnitTests.KeyValue
                 new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
                 CouchbaseCollection.DefaultCollectionName,
-                Mock.Of<IScope>(),
+                Mock.Of<IScope>(scope => scope.IsDefaultScope == true && scope.Name == Scope.DefaultScopeName),
                 new NoopRequestTracer(),
                 NullFallbackTypeSerializerProvider.Instance,
                 serviceProviderMock.Object);
