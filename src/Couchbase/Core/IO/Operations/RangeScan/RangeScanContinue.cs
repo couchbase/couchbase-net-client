@@ -11,6 +11,10 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 {
     internal sealed class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
+        /// <inheritdoc />
+        // writes no key - identified by the scan UUID.
+        internal override bool RequiresCollectionId => false;
+
         //To hold the intermediate responses
         private List<SlicedMemoryOwner<byte>> _responses = new();
 
@@ -49,7 +53,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public ILogger<GetResult> Logger { get;set; }
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
             //no key
         }

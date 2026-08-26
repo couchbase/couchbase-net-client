@@ -6,6 +6,10 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 {
     internal sealed class RangeScanCancel : OperationBase<SlicedMemoryOwner<byte>>, IPreMappedVBucketOperation
     {
+        /// <inheritdoc />
+        // writes no key - identified by the scan UUID.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.RangeScanCancel;
 
         public override bool RequiresVBucketId => true;
@@ -15,7 +19,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
             //no body
         }
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
             //no key
         }

@@ -5,6 +5,10 @@ namespace Couchbase.Core.IO.Operations.Collections
 {
     internal sealed class GetCid : OperationBase<string>
     {
+        /// <inheritdoc />
+        // the key is the fully qualified collection name - this is what resolves a CID.
+        internal override bool RequiresCollectionId => false;
+
         /// <summary>
         /// Creates a key either by the Key property or the Content property.
         /// <remarks>Early server versions used the Key for the collection name; later versions use the Content property.</remarks>

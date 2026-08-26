@@ -86,6 +86,18 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public uint? Cid { get; set; }
 
+        /// <summary>
+        /// Whether this operation addresses a document, and must therefore carry a leb128 collection
+        /// ID when the connection has negotiated collections.
+        /// </summary>
+        /// <remarks>
+        /// True is the default because it is the safe value: an operation added without a thought
+        /// about framing then fails loudly instead of silently addressing the wrong collection.
+        /// Connection and cluster level operations - HELO, SASL, SELECT_BUCKET, GET_CID and the like
+        /// - carry a key that is not a document ID and must override this to false.
+        /// </remarks>
+        internal virtual bool RequiresCollectionId => true;
+
         public byte[]? EncodedKey { get; set; }
 
         /// <inheritdoc />
@@ -534,35 +546,63 @@ namespace Couchbase.Core.IO.Operations
         /// Writes the key to an <see cref="OperationBuilder"/>.
         /// </summary>
         /// <param name="builder">The builder.</param>
-        internal virtual void WriteKey(OperationBuilder builder)
+        /// <param name="collectionsEnabled">
+        /// Whether the connection this operation is being written for negotiated collections in
+        /// HELO, and will therefore read a leb128 collection ID from the start of the key.
+        /// </param>
+        internal virtual void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
-            var keyLength = Cid.HasValue ?
+            var keyLength = collectionsEnabled && RequiresCollectionId ?
                 OperationHeader.MaxKeyLength + Leb128.MaxLength :
                 OperationHeader.MaxKeyLength;
 
             var buffer = builder.GetSpan(keyLength);
 
-            var length = WriteKey(buffer);
+            var length = WriteKey(buffer, collectionsEnabled);
 
             builder.Advance(length);
         }
 
         /// <summary>
-        /// Write the <see cref="Key"/>, with <see cref="Cid"/> if present, to a buffer.
+        /// Write the <see cref="Key"/> to a buffer, prefixed with the leb128 <see cref="Cid"/> when
+        /// the connection has negotiated collections and this operation addresses a document.
         /// </summary>
         /// <param name="buffer">Target buffer.</param>
+        /// <param name="collectionsEnabled">
+        /// Whether the connection this operation is being written for negotiated collections in
+        /// HELO, and will therefore read a leb128 collection ID from the start of the key.
+        /// </param>
         /// <returns>Number of bytes written.</returns>
-        protected int WriteKey(Span<byte> buffer)
+        protected int WriteKey(Span<byte> buffer, bool collectionsEnabled)
         {
             var length = 0;
 
-            //Default collection does not need the CID
-            if (Cid.HasValue)
+            //Whether the server parses a leb128 collection ID at offset 0 is fixed by what this
+            //connection negotiated in HELO, not by whether we happen to be holding a CID. Deciding
+            //it from client-side state is what corrupted document keys in NCBC-4146, in both
+            //directions: a prefix the server does not parse becomes part of the document ID, and a
+            //missing prefix makes the server read the first byte of the key as the collection.
+            if (collectionsEnabled && RequiresCollectionId)
             {
+                if (!Cid.HasValue)
+                {
+                    ThrowHelper.ThrowMissingCollectionIdException(OpCode);
+                }
+
                 length += Leb128.Write(buffer, Cid.GetValueOrDefault());
             }
 
             length += ByteConverter.FromString(Key, buffer.Slice(length));
+
+            if (length > OperationHeader.MaxKeyLength)
+            {
+                //The key field carries the collection ID as well as the document ID, so the prefix
+                //eats into the same 250 byte budget - a 250 byte key does not fit once a CID is
+                //prepended. The Key setter only validates the document ID on its own, so this used
+                //to surface from OperationHeader.KeyLength as a bare ArgumentOutOfRangeException
+                //from inside the write path. Java validates the same way, prefix included.
+                ThrowHelper.ThrowKeyTooLongForCollectionIdException(length);
+            }
 
             return length;
         }
@@ -626,7 +666,7 @@ namespace Couchbase.Core.IO.Operations
                 WriteExtras(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Key);
-                WriteKey(builder);
+                WriteKey(builder, connection.ServerFeatures.Collections);
 
                 builder.AdvanceToSegment(OperationSegment.Body);
                 WriteBody(builder);
