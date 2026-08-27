@@ -28,7 +28,7 @@ on:
         description: fit-cli install channel ("latest" or "ci").
         required: false
         type: string
-        default: ci
+        default: latest
       performer_tag:
         description: >-
           Tag of the ghcr.io/couchbase/dotnet-fit-performer image to test. Defaults to the branch
@@ -79,4 +79,9 @@ jobs:
       preset: ${{ vars.FIT_CLI_PRESET || inputs.preset || 'op-multi-lite' }}
       collect_extra_diagnostics: ${{ inputs.collect_extra_diagnostics == '' && true || inputs.collect_extra_diagnostics }}
       performer: dotnet-fit-performer:${{ needs.performer-tag.outputs.tag }}
-      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'ci' }}
+      # 'latest', not 'ci': the ci channel went stale at a 2026-08-10 build and stopped
+      # picking up fixes, which killed Capella cluster allocation from 2026-08-21 - see
+      # NCBC-4288. Note the input default above does NOT apply to the
+      # nightly: scheduled runs supply no inputs and workflow_dispatch defaults only apply to
+      # dispatches, so this literal is what the nightly actually uses.
+      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'latest' }}
