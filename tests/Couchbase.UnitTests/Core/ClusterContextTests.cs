@@ -228,6 +228,50 @@ namespace Couchbase.UnitTests.Core
         }
 
         /// <summary>
+        /// Cluster teardown clears the node list in bulk rather than removing nodes one at a time, so
+        /// it has to recompute as well - otherwise the flags keep describing a cluster that is gone.
+        /// </summary>
+        [Fact]
+        public void Cluster_Feature_Support_Is_Cleared_When_All_Nodes_Are_Removed()
+        {
+            using var context = new ClusterContext(null,
+                new ClusterOptions().WithPasswordAuthentication("username", "password"));
+
+            context.AddNode(NodeSupporting("host1", ServerFeatures.PreserveTtl));
+            Assert.True(context.SupportsPreserveTtl);
+
+            context.RemoveAllNodes();
+
+            Assert.False(context.SupportsPreserveTtl);
+        }
+
+        /// <summary>
+        /// Disposing one bucket leaves the other buckets' nodes in place, so the flags must be
+        /// recomputed from what remains rather than simply cleared.
+        /// </summary>
+        [Fact]
+        public void Cluster_Feature_Support_Recomputes_When_One_Bucket_Is_Removed()
+        {
+            using var context = new ClusterContext(null,
+                new ClusterOptions().WithPasswordAuthentication("username", "password"));
+
+            var disposedBucket = Mock.Of<IBucket>(bucket => bucket.Name == "restrictive");
+
+            //The restrictive node belongs to the bucket going away, so its departure should restore
+            //the feature the remaining node offers.
+            var restrictive = NodeSupporting("host1");
+            restrictive.Owner = disposedBucket;
+            context.AddNode(restrictive);
+            context.AddNode(NodeSupporting("host2", ServerFeatures.PreserveTtl));
+
+            Assert.False(context.SupportsPreserveTtl);
+
+            context.RemoveAllNodes(disposedBucket);
+
+            Assert.True(context.SupportsPreserveTtl);
+        }
+
+        /// <summary>
         /// Endpoints must differ: ClusterNodeList.Remove matches on EndPoint and BucketName, so nodes
         /// sharing a default endpoint are indistinguishable and removing one removes both.
         /// </summary>
