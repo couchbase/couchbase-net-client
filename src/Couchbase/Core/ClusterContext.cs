@@ -372,6 +372,9 @@ namespace Couchbase.Core
             {
                 removedNode.Dispose();
             }
+
+            //The bulk paths clear the list directly, so they must recompute too.
+            RecomputeClusterFeatureSupport();
         }
 
         public void RemoveAllNodes(IBucket bucket)
@@ -380,6 +383,9 @@ namespace Couchbase.Core
             {
                 removedNode.Dispose();
             }
+
+            //Nodes owned by other buckets may remain, so recompute from what is left.
+            RecomputeClusterFeatureSupport();
         }
 
         public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint)

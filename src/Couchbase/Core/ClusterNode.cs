@@ -754,7 +754,10 @@ namespace Couchbase.Core
                 if (ErrorMap is null || !ErrorMap.TryGetGetErrorCode(code, out errorCode))
                 {
                     //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
-                    if (code != 0x0500)
+                    //Only report a code as missing from the error map when there was a map to look
+                    //in: before HELO completes there is none, so the code was never looked up and
+                    //saying it was "not found in Error Map" points at the wrong thing entirely.
+                    if (code != 0x0500 && ErrorMap is not null)
                     {
                         LogKvStatusNotFound(code);
                     }
