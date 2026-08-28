@@ -39,6 +39,7 @@ namespace Couchbase.Search
         private readonly Dictionary<string, object> _rawParameters = new();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new();
         private bool _disableScoring;
+        private SearchScoring? _scoring;
         private string? _scopeName;
         private string[]? _collectionNames;
         private bool _includeLocations;
@@ -72,10 +73,51 @@ namespace Couchbase.Search
             return this;
         }
 
+        [Obsolete("Use Scoring(SearchScoring.None()) instead.")]
         public SearchOptions DisableScoring(bool disableScoring)
         {
             _disableScoring = disableScoring;
             return this;
+        }
+
+        /// <summary>
+        /// How the search service should score the results of this request, including the score fusion
+        /// strategies which control how a hybrid request's FTS and vector result sets are merged.
+        /// </summary>
+        /// <param name="scoring">The <see cref="SearchScoring"/> to use.</param>
+        /// <returns>The <see cref="SearchOptions"/> for chaining method calls.</returns>
+        /// <remarks>
+        /// The fusion strategies require Couchbase Server 8.1 or above, and are not available over
+        /// couchbase2. Cannot be combined with <c>DisableScoring(true)</c>, as both set the score of a
+        /// request; doing so raises an <see cref="Core.Exceptions.InvalidArgumentException"/>.
+        /// </remarks>
+        [InterfaceStability(Level.Uncommitted)]
+        public SearchOptions Scoring(SearchScoring scoring)
+        {
+            _scoring = scoring;
+            return this;
+        }
+
+        /// <summary>
+        /// The <see cref="SearchScoring"/> set on these options, if any.
+        /// </summary>
+        internal SearchScoring? ScoringValue => _scoring;
+
+        /// <summary>
+        /// Checks that the scoring options do not conflict, before the request is sent.
+        /// </summary>
+        /// <remarks>
+        /// Both write the top-level "score" field, so they cannot be set together, even when they agree.
+        /// </remarks>
+        internal void ValidateScoring() => ValidateScoring(_disableScoring, _scoring);
+
+        internal static void ValidateScoring(bool disableScoring, SearchScoring? scoring)
+        {
+            if (disableScoring && scoring is not null)
+            {
+                ThrowHelper.ThrowInvalidArgumentException(
+                    "DisableScoring and Scoring both set the score of a search request, so they cannot be used together. Use Scoring(SearchScoring.None()) alone instead.");
+            }
         }
 
         public SearchOptions CancellationToken(CancellationToken token)
@@ -316,6 +358,8 @@ namespace Couchbase.Search
         [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]
         public JObject ToJson(string? indexName = null)
         {
+            ValidateScoring();
+
             var ctl = new JObject();
             if (TimeoutValue.HasValue)
             {
@@ -376,6 +420,17 @@ namespace Couchbase.Search
                 parameters.Add(new JProperty("score", "none"));
             }
 
+            if (_scoring is not null)
+            {
+                parameters.Add(new JProperty("score", _scoring.ScoreValue));
+
+                var scoringParams = _scoring.ExportParams();
+                if (scoringParams is not null)
+                {
+                    parameters.Add(new JProperty(SearchScoring.PropParams, scoringParams));
+                }
+            }
+
             if (_scopeName != null)
             {
                 parameters.Add(new JProperty("scope", _scopeName));
@@ -420,6 +475,7 @@ namespace Couchbase.Search
             out IReadOnlyDictionary<string, object> rawParameters,
             out IReadOnlyDictionary<string, Dictionary<string, List<object>>> scanVectors,
             out bool disableScoring,
+            out SearchScoring? scoring,
             out string? scopeName,
             out string[]? collectionNames,
             out bool includeLocations,
@@ -441,6 +497,7 @@ namespace Couchbase.Search
             rawParameters = _rawParameters;
             scanVectors = _scanVectors;
             disableScoring = _disableScoring;
+            scoring = _scoring;
             scopeName = _scopeName;
             collectionNames = _collectionNames;
             includeLocations = _includeLocations;
@@ -466,6 +523,7 @@ namespace Couchbase.Search
                 out IReadOnlyDictionary<string, object> rawParameters,
                 out IReadOnlyDictionary<string, Dictionary<string, List<object>>> scanVectors,
                 out bool disableScoring,
+                out SearchScoring? scoring,
                 out string? scopeName,
                 out string[]? collectionNames,
                 out bool includeLocations,
@@ -488,6 +546,7 @@ namespace Couchbase.Search
                 rawParameters,
                 scanVectors,
                 disableScoring,
+                scoring,
                 scopeName,
                 collectionNames,
                 includeLocations,
@@ -511,6 +570,7 @@ namespace Couchbase.Search
             IReadOnlyDictionary<string, object> RawParameters,
             IReadOnlyDictionary<string, Dictionary<string, List<object>>> ScanVectors,
             bool DisableScoring,
+            SearchScoring? Scoring,
             string? ScopeName,
             string[]? CollectionNames,
             bool IncludeLocations,

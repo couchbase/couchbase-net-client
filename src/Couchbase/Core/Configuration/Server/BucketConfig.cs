@@ -492,7 +492,7 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public bool HasClusterCap(string sectionDotCapability) => _clusterCapsSet.Contains(sectionDotCapability);
+        public bool HasClusterCap(string sectionDotCapability) => _clusterCapsSet?.Contains(sectionDotCapability) == true;
         internal void AssertClusterCap(string clusterCap, string message = null)
         {
             if (!HasClusterCap(clusterCap))
@@ -593,6 +593,7 @@ namespace Couchbase.Core.Configuration.Server
         // flattened section.capabilityName constants for set-based lookup.
         public const string SCOPED_SEARCH_INDEX = "search.scopedSearchIndex";
         public const string VECTOR_SEARCH = "search.vectorSearch";
+        public const string SCORE_FUSION = "search.scoreFusion";
 
         [JsonPropertyName("clusterCapabilitiesVer")] public IEnumerable<int> Version { get; set; }
         [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> Capabilities { get; set; }

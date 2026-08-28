@@ -18,6 +18,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using NumericRangeFacet = Couchbase.Search.NumericRangeFacet;
 using SearchFacet = Couchbase.Grpc.Protocol.Sdk.Search.SearchFacet;
 using SearchOptions = Couchbase.Search.SearchOptions;
+using SearchScoring = Couchbase.Search.SearchScoring;
 
 namespace Couchbase.FitPerformer.Utils.Options;
 
@@ -97,9 +98,44 @@ public static class SearchUtil
 
                 _ = protoOptions.Raw.Select(kvp => ret.Raw(kvp.Key, kvp.Value));
                 if (protoOptions.ConsistentWith?.Tokens?.Count > 0) ret.ConsistentWith(OptionsUtil.ConvertMutationState(protoOptions.ConsistentWith));
+                if (protoOptions.Scoring is not null) ret.Scoring(SearchScoringToCore(protoOptions.Scoring));
+#pragma warning disable CS0618 // The driver still drives the deprecated option, so the performer has to support it.
+                if (protoOptions.HasDisableScoring) ret.DisableScoring(protoOptions.DisableScoring);
+#pragma warning restore CS0618
             }
 
             return ret;
+        }
+
+        public static SearchScoring SearchScoringToCore(Grpc.Protocol.Sdk.Search.SearchScoring protoScoring)
+        {
+            switch (protoScoring.ModeCase)
+            {
+                case Grpc.Protocol.Sdk.Search.SearchScoring.ModeOneofCase.ReciprocalRankFusion:
+                {
+                    var scoring = SearchScoring.ReciprocalRankFusion();
+                    if (protoScoring.ReciprocalRankFusion.HasRankConstant)
+                        scoring.RankConstant(protoScoring.ReciprocalRankFusion.RankConstant);
+                    if (protoScoring.ReciprocalRankFusion.HasWindowSize)
+                        scoring.WindowSize(protoScoring.ReciprocalRankFusion.WindowSize);
+                    return scoring;
+                }
+                case Grpc.Protocol.Sdk.Search.SearchScoring.ModeOneofCase.RelativeScoreFusion:
+                {
+                    var scoring = SearchScoring.RelativeScoreFusion();
+                    if (protoScoring.RelativeScoreFusion.HasWindowSize)
+                        scoring.WindowSize(protoScoring.RelativeScoreFusion.WindowSize);
+                    return scoring;
+                }
+                // None_ is the "none" mode. ModeOneofCase.None is protobuf's "no mode set" sentinel,
+                // which falls through to the error below.
+                case Grpc.Protocol.Sdk.Search.SearchScoring.ModeOneofCase.None_:
+                    return SearchScoring.None();
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(protoScoring), protoScoring.ModeCase,
+                        "Provided SearchScoring could not be parsed to Core scoring.");
+            }
         }
 
         public static ISearchFacet[] SearchFacetToCore(MapField<string, SearchFacet> protoFacets)

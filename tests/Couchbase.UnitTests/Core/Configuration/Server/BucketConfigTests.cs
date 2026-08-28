@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -608,6 +609,31 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json", InternalSerializationContext.Default.BucketConfig);
             Assert.Null(config.Product);
+        }
+
+        [Theory]
+        [InlineData(ClusterCapabilities.SCORE_FUSION, true)]
+        [InlineData(ClusterCapabilities.VECTOR_SEARCH, true)]
+        [InlineData("search.somethingElse", false)]
+        public void Test_HasClusterCap(string capability, bool expected)
+        {
+            var config = new BucketConfig
+            {
+                ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
+                {
+                    ["search"] = new[] { "vectorSearch", "scopedSearchIndex", "scoreFusion" }
+                }
+            };
+
+            Assert.Equal(expected, config.HasClusterCap(capability));
+        }
+
+        [Fact]
+        public void Test_HasClusterCap_When_No_Capabilities_In_Config()
+        {
+            var config = new BucketConfig();
+
+            Assert.False(config.HasClusterCap(ClusterCapabilities.SCORE_FUSION));
         }
     }
 }
