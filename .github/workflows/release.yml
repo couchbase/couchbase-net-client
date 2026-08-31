@@ -107,6 +107,25 @@ jobs:
             echo "include_otel=$INCLUDE_OTEL"
           } >> "$GITHUB_OUTPUT"
 
+      # NUGET_USER is needed by every path out of this workflow: a smoke dispatch mints a
+      # key in smoke-summary, while a publish dispatch and a release event mint one in
+      # publish-nuget. So it is checked unconditionally, and here rather than at those
+      # steps - a misconfiguration costs ten seconds instead of three OS builds and a
+      # Windows pack. The message carries the rule the nuget.org docs do not state.
+      - name: Verify NUGET_USER is configured
+        shell: bash
+        env:
+          NUGET_USER: ${{ secrets.NUGET_USER }}
+        run: |
+          if [ -z "$NUGET_USER" ]; then
+            echo "::error::NUGET_USER is not set. It must hold the nuget.org username of the" \
+                 "person who CREATED the trusted publishing policy, not the organization that" \
+                 "owns it. Passing the organization name fails the token exchange with" \
+                 "HTTP 401 'No matching trust policy owned by user'." >&2
+            exit 1
+          fi
+          echo "✓ NUGET_USER is set"
+
       # Constrains what the publish jobs are allowed to build. `pack` signs, and
       # publish-nuget ships, whatever `version_tag` resolves to - and the semver
       # check above is satisfied by a *branch* named 3.9.7 just as well as by a tag.
