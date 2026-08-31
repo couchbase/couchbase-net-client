@@ -45,7 +45,17 @@ jobs:
       include_main: ${{ steps.compute.outputs.include_main }}
       include_di: ${{ steps.compute.outputs.include_di }}
       include_otel: ${{ steps.compute.outputs.include_otel }}
+      sha: ${{ steps.verify_ref.outputs.sha }}
     steps:
+      # Full history and all tags: verify_ref below has to resolve the tag and test
+      # its reachability from the release branches.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+
       - id: compute
         name: Compute tag, version, and flags
         shell: bash
@@ -97,6 +107,65 @@ jobs:
             echo "include_otel=$INCLUDE_OTEL"
           } >> "$GITHUB_OUTPUT"
 
+      # Constrains what the publish jobs are allowed to build. `pack` signs, and
+      # publish-nuget ships, whatever `version_tag` resolves to - and the semver
+      # check above is satisfied by a *branch* named 3.9.7 just as well as by a tag.
+      # Tags are not covered by any ruleset today, so without this an untouched
+      # release.yml will build and sign an arbitrary commit for anyone who can push.
+      #
+      # Two properties are established here:
+      #   - the ref is a real tag, not a branch that happens to look like a version
+      #   - that tag points into a long-lived release branch, so the code being
+      #     released is code that landed on a shared branch
+      #
+      # The second is only as strong as the review rules on those branches: if
+      # RELEASE_BRANCHES can be pushed to without approval, this proves provenance
+      # but not review. It also cannot defend against a modified copy of this file
+      # dispatched from another branch, since the check travels with the file. It
+      # closes the no-edit path; a ruleset on tag creation and a protected
+      # environment on the publish jobs are what make it a boundary.
+      - id: verify_ref
+        name: Verify the release ref is a tag on a release branch
+        shell: bash
+        env:
+          TAG: ${{ steps.compute.outputs.tag }}
+          PUBLISH: ${{ steps.compute.outputs.publish }}
+          # Branches a release tag is allowed to point into. Every 3.x release to
+          # date is on master; 3.10 is the next-minor branch. Add a branch here, in
+          # a reviewed PR, before releasing from it.
+          RELEASE_BRANCHES: master 3.10
+        run: |
+          set -euo pipefail
+
+          if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            if [ "$PUBLISH" = "true" ]; then
+              echo "::error::No tag '$TAG' exists. version_tag must name an existing" \
+                   "tag; a branch or an unpushed version is not enough to release." >&2
+              exit 1
+            fi
+            # Smoke runs legitimately name a version that has not been tagged yet.
+            echo "::notice::No tag '$TAG' yet - smoke run, provenance check skipped."
+            exit 0
+          fi
+
+          SHA="$(git rev-parse "refs/tags/$TAG^{commit}")"
+
+          for branch in $RELEASE_BRANCHES; do
+            if ! git rev-parse -q --verify "refs/remotes/origin/$branch^{commit}" >/dev/null; then
+              echo "::error::RELEASE_BRANCHES names origin/$branch, which does not exist." >&2
+              exit 1
+            fi
+            if git merge-base --is-ancestor "$SHA" "refs/remotes/origin/$branch"; then
+              echo "✓ tag $TAG is $SHA, reachable from origin/$branch"
+              echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "::error::Tag $TAG ($SHA) is not reachable from any of: $RELEASE_BRANCHES." \
+               "A release must be built from a commit that landed on a release branch." >&2
+          exit 1
+
   build-and-test:
     name: Build & Test (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -119,11 +188,30 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - name: Checkout tag
+      # checkout treats an empty ref as "the default branch", so a missing sha would
+      # quietly build master and ship it under the release version rather than
+      # failing. validate-inputs cannot reach publish == 'true' without resolving
+      # one, but this is the step that would go wrong if that ever stopped holding,
+      # and no publish=false smoke run exercises the checkout below.
+      - name: Require a validated release commit
+        if: needs.validate-inputs.outputs.publish == 'true'
+        shell: bash
+        env:
+          SHA: ${{ needs.validate-inputs.outputs.sha }}
+        run: |
+          if [ -z "$SHA" ]; then
+            echo "::error::validate-inputs resolved no release commit; refusing to build." >&2
+            exit 1
+          fi
+          echo "Building release commit $SHA"
+
+      # The SHA verify_ref resolved, not the tag name: a tag can be moved between
+      # validation and here, and only one of those two reads would see it.
+      - name: Checkout validated release commit
         if: needs.validate-inputs.outputs.publish == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.validate-inputs.outputs.tag }}
+          ref: ${{ needs.validate-inputs.outputs.sha }}
           fetch-depth: 0
 
       - name: Setup .NET SDK
@@ -168,11 +256,30 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - name: Checkout tag
+      # checkout treats an empty ref as "the default branch", so a missing sha would
+      # quietly build master and ship it under the release version rather than
+      # failing. validate-inputs cannot reach publish == 'true' without resolving
+      # one, but this is the step that would go wrong if that ever stopped holding,
+      # and no publish=false smoke run exercises the checkout below.
+      - name: Require a validated release commit
+        if: needs.validate-inputs.outputs.publish == 'true'
+        shell: bash
+        env:
+          SHA: ${{ needs.validate-inputs.outputs.sha }}
+        run: |
+          if [ -z "$SHA" ]; then
+            echo "::error::validate-inputs resolved no release commit; refusing to build." >&2
+            exit 1
+          fi
+          echo "Building release commit $SHA"
+
+      # The SHA verify_ref resolved, not the tag name: a tag can be moved between
+      # validation and here, and only one of those two reads would see it.
+      - name: Checkout validated release commit
         if: needs.validate-inputs.outputs.publish == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.validate-inputs.outputs.tag }}
+          ref: ${{ needs.validate-inputs.outputs.sha }}
           fetch-depth: 0
 
       - name: Setup .NET SDK
