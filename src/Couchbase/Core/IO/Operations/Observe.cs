@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
         }
 
@@ -24,7 +24,10 @@ namespace Couchbase.Core.IO.Operations
             const int vBucketAndLengthSize = sizeof(ushort) * 2;
             var buffer = builder.GetSpan(vBucketAndLengthSize + OperationHeader.MaxKeyLength + Leb128.MaxLength);
 
-            var keyLength = WriteKey(buffer.Slice(vBucketAndLengthSize));
+            //Observe frames its key inside the body with an explicit length, and is dead code
+            //pending removal, so it keeps the old client-side rule rather than the connection's
+            //negotiated state: passing Cid.HasValue reproduces exactly what WriteKey used to do.
+            var keyLength = WriteKey(buffer.Slice(vBucketAndLengthSize), Cid.HasValue);
 
             // ReSharper disable once PossibleInvalidOperationException
             ByteConverter.FromInt16(VBucketId.Value, buffer);
