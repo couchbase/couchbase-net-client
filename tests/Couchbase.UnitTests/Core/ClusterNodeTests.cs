@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Test.Common.Utils;
@@ -113,11 +114,79 @@ namespace Couchbase.UnitTests.Core
             nodes.Remove(clusterNode4.EndPoint, "default2", out node4);
         }
 
-        private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost")
+        /// <summary>
+        /// A failed HELO used to be swallowed: the status was discarded, GetValue() returned null,
+        /// and the caller quietly assigned ServerFeatureSet.Empty - leaving a connection in the pool
+        /// with no negotiated features while operations were still framed as though it had them,
+        /// which is how a rejected HELO produces corrupted document keys (NCBC-4146, NCBC-4287).
+        /// </summary>
+        [Fact]
+        public async Task Failed_Hello_Fails_The_Connection()
+        {
+            using var clusterNode = MockClusterNode("default");
+
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(c => c.ConnectionId).Returns(1UL);
+            connection.SetupGet(c => c.ServerFeatures).Returns(ServerFeatureSet.Empty);
+            connection
+                .Setup(c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((ReadOnlyMemory<byte> _, IOperation op, CancellationToken _) =>
+                {
+                    //Anything but Success. Not TransportFailure, which already had its own
+                    //ConnectException path, so this exercises the new check rather than the old one.
+                    op.HandleOperationCompleted(
+                        AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.InternalError));
+                    return default;
+                });
+
+            var exception = await Assert.ThrowsAsync<ConnectException>(() =>
+                ((IConnectionInitializer) clusterNode).InitializeConnectionAsync(connection.Object, default));
+
+            Assert.Contains("HELO failed", exception.Message);
+        }
+
+        /// <summary>
+        /// The error map is fetched after HELO, so it is still null when HELO itself fails. The
+        /// "not found in Error Map" warning claims a lookup that never happened, which sends anyone
+        /// reading the log after a failed HELO looking at the error map instead of the handshake.
+        /// </summary>
+        [Fact]
+        public async Task Failed_Hello_Does_Not_Blame_The_Error_Map()
+        {
+            var logger = new Mock<ILogger<ClusterNode>>();
+            logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+
+            using var clusterNode = MockClusterNode("default", logger: logger.Object);
+
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(c => c.ConnectionId).Returns(1UL);
+            connection.SetupGet(c => c.ServerFeatures).Returns(ServerFeatureSet.Empty);
+            connection
+                .Setup(c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((ReadOnlyMemory<byte> _, IOperation op, CancellationToken _) =>
+                {
+                    op.HandleOperationCompleted(
+                        AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.InternalError));
+                    return default;
+                });
+
+            await Assert.ThrowsAsync<ConnectException>(() =>
+                ((IConnectionInitializer) clusterNode).InitializeConnectionAsync(connection.Object, default));
+
+            logger.Verify(
+                l => l.Log(LogLevel.Warning, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Never);
+        }
+
+        private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost",
+            ILogger<ClusterNode> logger = null)
         {
             var pool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
             var loggerFactory = new TestOutputLoggerFactory(outputHelper);
-            var logger = new Logger<ClusterNode>(loggerFactory);
+            logger ??= new Logger<ClusterNode>(loggerFactory);
             var mockConnectionPool = new Mock<IConnectionPool>();
             var owner = new Mock<IBucket>();
             owner.

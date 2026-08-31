@@ -34,6 +34,17 @@ namespace Couchbase.Utils
         public static void ThrowServiceNotAvailableException(ServiceType serviceType) =>
             throw new ServiceNotAvailableException(serviceType);
 
+        /// <summary>
+        /// HELO did not succeed, so nothing about the connection's feature set is known. Keeping the
+        /// connection would mean framing operations for features that were never negotiated.
+        /// </summary>
+        [DoesNotReturn]
+        public static void ThrowHelloFailedException(ResponseStatus status) =>
+            throw new ConnectException(
+                $"HELO failed with {status}, so no server features could be negotiated for this " +
+                "connection. Continuing would frame operations for features the server has not " +
+                "agreed to, including the collection ID prefix.");
+
         [DoesNotReturn]
         public static void ThrowArgumentException(string message, string paramName) =>
             throw new ArgumentException(message, paramName);
