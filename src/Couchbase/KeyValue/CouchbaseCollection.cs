@@ -32,6 +32,12 @@ namespace Couchbase.KeyValue
     internal sealed class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
+
+        /// <summary>
+        /// The collection ID of the default collection. Also the correct ID for a bucket that does
+        /// not support collections at all, when the connection has negotiated collections.
+        /// </summary>
+        internal const uint DefaultCollectionId = 0;
         private const string NoPreferredServerGroupMessage = "No preferred Server group was set in the ClusterOptions.";
         private readonly string? _preferredServerGroup;
         private readonly bool _rangeScanSupported;
@@ -118,14 +124,11 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= ScanOptions.Default;
+
+            //PartitionScan builds its own operations and reads Cid directly, so it cannot go
+            //through PrepareAsync: resolve the collection ID before handing it this collection.
+            await EnsureCollectionIdAsync().ConfigureAwait(false);
 
             var mutationTokens = options.ConsistencyTokens;
 
@@ -203,13 +206,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= GetOptions.Default;
 
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
@@ -226,16 +222,10 @@ namespace Couchbase.KeyValue
                 using var getOp = new Get<byte[]>
                 {
                     Key = id,
-                    Cid = Cid,
-                    BucketName = _bucket.Name,
-                    CName = Name,
-                    SName = ScopeName,
                     Span = rootSpan,
                     PreferReturns = options.PreferReturn
                 };
-                _operationConfigurator.Configure(getOp, options);
-
-                using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getOp);
+                using var ctp = await PrepareAsync(getOp, options).ConfigureAwait(false);
                 var status = await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
 
                 var result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider, status)
@@ -308,28 +298,15 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= ExistsOptions.Default;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, options.RequestSpanValue);
             using var getMetaOp = new GetMeta
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Span = rootSpan
             };
-            _operationConfigurator.Configure(getMetaOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getMetaOp);
+            using var ctp = await PrepareAsync(getMetaOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(getMetaOp, ctp.TokenPair).ConfigureAwait(false);
             var result = getMetaOp.GetValue();
 
@@ -352,29 +329,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= InsertOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, options.RequestSpanValue);
             using var insertOp = new Add<T>(_bucket.Name, id)
             {
                 Content = content,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                SName = ScopeName,
-                CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan
             };
-            _operationConfigurator.Configure(insertOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, insertOp);
+            using var ctp = await PrepareAsync(insertOp, options).ConfigureAwait(false);
             await _bucket.RetryAsync(insertOp, ctp.TokenPair).ConfigureAwait(false);
             return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
         }
@@ -391,13 +355,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= ReplaceOptions.Default;
 
             //Reality check for preserveTtl server support
@@ -412,18 +369,12 @@ namespace Couchbase.KeyValue
             {
                 Content = content,
                 Cas = options.CasValue,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };
-            _operationConfigurator.Configure(replaceOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, replaceOp);
+            using var ctp = await PrepareAsync(replaceOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(replaceOp, ctp.TokenPair).ConfigureAwait(false);
             return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken, status);
         }
@@ -438,31 +389,18 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= RemoveOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, options.RequestSpanValue);
             using var removeOp = new Delete
             {
                 Key = id,
                 Cas = options.CasValue,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Span = rootSpan,
                 PreferReturns = options.PreferReturn
             };
-            _operationConfigurator.Configure(removeOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, removeOp);
+            using var ctp = await PrepareAsync(removeOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(removeOp, ctp.TokenPair).ConfigureAwait(false);
             options.Status = status;
         }
@@ -478,29 +416,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock, options.RequestSpanValue);
             using var unlockOp = new Unlock
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Cas = cas,
                 Span = rootSpan,
                 PreferReturns = options.PreferReturn
             };
-            _operationConfigurator.Configure(unlockOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, unlockOp);
+            using var ctp = await PrepareAsync(unlockOp, options).ConfigureAwait(false);
             await _bucket.RetryAsync(unlockOp, ctp.TokenPair).ConfigureAwait(false);
         }
 
@@ -510,29 +435,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
             using var unlockOp = new Unlock
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Cas = cas,
                 Span = rootSpan,
                 PreferReturns = options.PreferReturn
             };
-            _operationConfigurator.Configure(unlockOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, unlockOp);
+            using var ctp = await PrepareAsync(unlockOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(unlockOp, ctp.TokenPair).ConfigureAwait(false);
             options.Status = status;
         }
@@ -553,30 +465,17 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= TouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch, options.RequestSpanValue);
             using var touchOp = new Touch
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                SName = ScopeName,
-                CName = Name,
                 Expires = expiry.ToTtl(),
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Span = rootSpan,
                 PreferReturns = options.PreferReturn,
             };
-            _operationConfigurator.Configure(touchOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, touchOp);
+            using var ctp = await PrepareAsync(touchOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(touchOp, ctp.TokenPair).ConfigureAwait(false);
             options.Status = status;
             return status == ResponseStatus.Success
@@ -594,27 +493,14 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= GetAndTouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, options.RequestSpanValue);
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Expires = expiry.ToTtl(),
                 Span = rootSpan
             };
-            _operationConfigurator.Configure(getAndTouchOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndTouchOp);
+            using var ctp = await PrepareAsync(getAndTouchOp, options).ConfigureAwait(false);
             await _bucket.RetryAsync(getAndTouchOp, ctp.TokenPair).ConfigureAwait(false);
 
             return new  GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
@@ -637,29 +523,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= GetAndLockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock, options.RequestSpanValue);
             using var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Expiry = lockTime.ToTtl(),
                 Span = rootSpan,
                 PreferReturns = options.PreferReturn
             };
-            _operationConfigurator.Configure(getAndLockOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndLockOp);
+            using var ctp = await PrepareAsync(getAndLockOp, options).ConfigureAwait(false);
             var status = await _bucket.RetryAsync(getAndLockOp, ctp.TokenPair).ConfigureAwait(false);
             return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider, status)
             {
@@ -683,13 +556,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= UpsertOptions.Default;
 
             //Reality check for preserveTtl server support
@@ -703,19 +569,13 @@ namespace Couchbase.KeyValue
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
                 Content = content,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
-                Cid = Cid,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };
 
-            _operationConfigurator.Configure(upsertOp, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, upsertOp);
+            using var ctp = await PrepareAsync(upsertOp, options).ConfigureAwait(false);
             await _bucket.RetryAsync(upsertOp, ctp.TokenPair).ConfigureAwait(false);
             return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
         }
@@ -732,13 +592,6 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
             if (specs.Count() > 16) throw new InvalidArgumentException("Too many specs in Lookup operation (Limited to 16)");
             var opts = options?.AsReadOnly() ?? LookupInOptions.DefaultReadOnly;
-
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, opts.RequestSpan);
             using var lookup = await ExecuteLookupIn(id, specs, opts, rootSpan).ConfigureAwait(false);
@@ -758,13 +611,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
             var opts = options?.AsReadOnly() ?? LookupInAnyReplicaOptions.DefaultReadOnly;
-
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAnyReplica, opts.RequestSpan);
             var vBucket = VBucketForReplicas(id);
@@ -817,13 +663,6 @@ namespace Couchbase.KeyValue
             // A top-level failure of the lookup (here, too many specs) must produce an empty stream
             // rather than throwing - unlike LookupIn/LookupInAnyReplica.
             if (specs.Count() > 16) yield break;
-
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAllReplicas, opts.RequestSpan);
             var enumeratedSpecs = specs.ToList();
@@ -888,9 +727,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
-
             //add the virtual xattr attribute to get the doc expiration time
             if (options.Expiry)
             {
@@ -924,19 +760,13 @@ namespace Couchbase.KeyValue
 
             var lookup = new MultiLookup<byte[]>(id, specs, options.ReplicaIndex)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 DocFlags = docFlags,
                 Span = span,
                 PreferReturns = options.PreferReturn,
             };
             try
             {
-                _operationConfigurator.Configure(lookup, options);
-
-                using var ctp = CreateRetryTimeoutCancellationTokenSource(options, lookup);
+                using var ctp = await PrepareAsync(lookup, options).ConfigureAwait(false);
                 var status = await _bucket.RetryAsync(lookup, ctp.TokenPair).ConfigureAwait(false);
                 return lookup;
             }
@@ -958,13 +788,6 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
 
             options ??= MutateInOptions.Default;
 
@@ -1023,11 +846,7 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)
             {
-                BucketName = _bucket.Name,
                 Cas = options.CasValue,
-                Cid = Cid,
-                CName = Name,
-                SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
@@ -1035,9 +854,7 @@ namespace Couchbase.KeyValue
                 Span = rootSpan,
                 PreserveTtl = options.PreserveTtlValue
             };
-            _operationConfigurator.Configure(mutation, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, mutation);
+            using var ctp = await PrepareAsync(mutation, options).ConfigureAwait(false);
             await _bucket.RetryAsync(mutation, ctp.TokenPair).ConfigureAwait(false);
 
 #pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
@@ -1071,29 +888,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= AppendOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append, options.RequestSpanValue);
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 Cas = options.CasValue
             };
-            _operationConfigurator.Configure(op, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, op);
+            using var ctp = await PrepareAsync(op, options).ConfigureAwait(false);
             await _bucket.RetryAsync(op, ctp.TokenPair).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
@@ -1108,29 +912,16 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= PrependOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend, options.RequestSpanValue);
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 Cas = options.CasValue
             };
-            _operationConfigurator.Configure(op, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, op);
+            using var ctp = await PrepareAsync(op, options).ConfigureAwait(false);
             await _bucket.RetryAsync(op, ctp.TokenPair).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
@@ -1145,30 +936,17 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= IncrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment, options.RequestSpanValue);
             using var op = new Increment(_bucket.Name, id)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 Expires = options.ExpiryValue.ToTtl()
             };
-            _operationConfigurator.Configure(op, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, op);
+            using var ctp = await PrepareAsync(op, options).ConfigureAwait(false);
             await _bucket.RetryAsync(op, ctp.TokenPair).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
@@ -1183,30 +961,17 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             options ??= DecrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement, options.RequestSpanValue);
             using var op = new Decrement(_bucket.Name, id)
             {
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan,
                 Expires = options.ExpiryValue.ToTtl()
             };
-            _operationConfigurator.Configure(op, options);
-
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, op);
+            using var ctp = await PrepareAsync(op, options).ConfigureAwait(false);
             await _bucket.RetryAsync(op, ctp.TokenPair).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
@@ -1220,13 +985,6 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
-
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
 
             options ??= GetAnyReplicaOptions.Default;
 
@@ -1385,16 +1143,10 @@ namespace Couchbase.KeyValue
             using var getOp = new Get<object>
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Span = childSpan
             };
-            _operationConfigurator.Configure(getOp, options);
-
             using var ctp =
-                CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp);
+                await PrepareAsync(getOp, (ITimeoutOptions) options).ConfigureAwait(false);
             await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
@@ -1410,27 +1162,14 @@ namespace Couchbase.KeyValue
         private async Task<IGetReplicaResult> GetReplica(string id, short index, IRequestSpan span,
             CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
-            //Check to see if the CID is needed
-            if (RequiresCid())
-            {
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
-            }
-
             using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.ReplicaRead, span);
             using var getOp = new ReplicaRead<object>(id, index)
             {
                 Key = id,
-                Cid = Cid,
-                BucketName = _bucket.Name,
-                CName = Name,
-                SName = ScopeName,
                 Span = childSpan
             };
-            _operationConfigurator.Configure(getOp, options);
-
             using var ctp =
-                CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp);
+                await PrepareAsync(getOp, (ITimeoutOptions) options).ConfigureAwait(false);
             await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
             {
@@ -1442,6 +1181,91 @@ namespace Couchbase.KeyValue
                 IsActive = false
             };
         }
+
+        #endregion
+
+        #region Operation Preparation
+
+        /// <summary>
+        /// Prepares a key/value operation for dispatch: resolves the collection ID if this bucket
+        /// supports collections, stamps the operation with this collection's identity, applies the
+        /// configured services, and rents the retry/timeout token source needed to send it.
+        /// </summary>
+        /// <param name="op">The operation to prepare.</param>
+        /// <param name="options">Options for the operation.</param>
+        /// <returns>
+        /// The rented token source, which the caller owns and must dispose. The caller needs its
+        /// <c>TokenPair</c> in order to dispatch, which is what stops this method from being
+        /// skipped when a new operation is added: see NCBC-4285, where <c>GetPrimary</c> was a
+        /// near-identical copy of <c>GetReplica</c> that never resolved its collection ID.
+        /// </returns>
+        private async Task<CancellationTokenPairSourceWrapper> PrepareAsync(OperationBase op,
+            ITimeoutOptions options)
+        {
+            await EnsureCollectionIdAsync().ConfigureAwait(false);
+
+            op.BucketName = _bucket.Name;
+            op.SName = ScopeName;
+            op.CName = Name;
+            op.Cid = Cid;
+
+            _operationConfigurator.Configure(op, options);
+
+            return CreateRetryTimeoutCancellationTokenSource(options, op);
+        }
+
+        /// <summary>
+        /// Resolves the collection ID, if this bucket supports collections and it is not already
+        /// cached.
+        /// </summary>
+        /// <remarks>
+        /// Prefer <see cref="PrepareAsync"/>, which does this as well and cannot be skipped. This is
+        /// separate only for the range scan path: <see cref="PartitionScan"/> builds its own
+        /// operations and reads <see cref="Cid"/> directly, so the ID has to be resolved before it
+        /// is handed this collection.
+        /// </remarks>
+        private async ValueTask EnsureCollectionIdAsync()
+        {
+            if (!_bucket.SupportsCollections)
+            {
+                if (!IsDefaultCollection)
+                {
+                    //Asking for a named collection on a cluster that has none cannot be satisfied.
+                    //Say so at the boundary rather than sending an operation whose collection the
+                    //server has no way to resolve, which used to surface as CollectionNotFound after
+                    //the full KvTimeout. Matches the JVM's
+                    //BaseKeyValueRequest.encodedExternalKeyWithCollection.
+                    throw new FeatureNotAvailableException(
+                        "Collections are not supported by this cluster or bucket, so the collection " +
+                        $"'{ScopeName}.{Name}' cannot be used.");
+                }
+
+                //Only the default collection exists here - a memcached bucket, or a pre-7.0 server.
+                //The connection may still have negotiated collections in HELO, in which case the
+                //server reads a leb128 collection ID from the start of every key, and the correct
+                //value is 0. Leaving it null is why every KV operation against a memcached bucket
+                //failed with CollectionNotFound after burning the full KvTimeout.
+                Cid ??= DefaultCollectionId;
+                return;
+            }
+
+            if (IsDefaultCollection)
+            {
+                //The default scope and collection are defined to be collection ID 0, so there is
+                //nothing to look up. This saves a GET_CID round trip on the first operation against
+                //every default collection, which is most of them.
+                Cid ??= DefaultCollectionId;
+                return;
+            }
+
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+        }
+
 
         #endregion
 
@@ -1491,7 +1315,7 @@ namespace Couchbase.KeyValue
                         () => GetCidWithFallbackAsync(retryIfFailure: true),
                         LazyThreadSafetyMode.ExecutionAndPublication);
                     GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
-                        () => GetCidWithFallbackAsync(retryIfFailure: true),
+                        () => GetCidWithFallbackAsync(retryIfFailure: false),
                         LazyThreadSafetyMode.ExecutionAndPublication);
                 }
 
@@ -1546,16 +1370,23 @@ namespace Couchbase.KeyValue
             var options = new GetOptions();
             _operationConfigurator.Configure(getCid, options.Transcoder(_rawStringTranscoder));
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getCid);
-            if (retryIfFailure)
-            {
-                await _bucket.RetryAsync(getCid, ctp.TokenPair).ConfigureAwait(false);
-            }
-            else
-            {
-                await _bucket.SendAsync(getCid, ctp.TokenPair).ConfigureAwait(false);
-            }
+            var status = retryIfFailure
+                ? await _bucket.RetryAsync(getCid, ctp.TokenPair).ConfigureAwait(false)
+                : await _bucket.SendAsync(getCid, ctp.TokenPair).ConfigureAwait(false);
 
             var resultWithValue = getCid.GetValueAsUint();
+
+            if (status == ResponseStatus.Success && !resultWithValue.HasValue)
+            {
+                //GetValueAsUint returns null for a Success response whose body is empty or cannot be
+                //parsed. That null used to be assigned to Cid and carried to the wire; it now fails
+                //at framing time, but with a message about the operation rather than about the
+                //lookup, so name what actually happened while we still know it. The deliberate null
+                //from GetCidWithFallbackAsync's UnsupportedException path is untouched: that one
+                //means the server has no collections, which is a different answer.
+                ThrowHelper.ThrowCollectionIdNotResolvedException(ScopeName, Name);
+            }
+
             return resultWithValue;
         }
 

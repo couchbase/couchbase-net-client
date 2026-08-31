@@ -101,6 +101,15 @@ namespace Couchbase.Utils
         public static void ThrowNodeUnavailableException(string message) =>
             throw new NodeNotAvailableException(message);
 
+        /// <summary>
+        /// GET_CID came back successful but carried no usable collection ID.
+        /// </summary>
+        [DoesNotReturn]
+        public static void ThrowCollectionIdNotResolvedException(string scopeName, string collectionName) =>
+            throw new CouchbaseException(
+                $"The server returned a successful GET_CID for '{scopeName}.{collectionName}' with no " +
+                "usable collection ID in the body, so there is nothing to frame operations with.");
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T EnsureNotNullForDataStructures<T>(this T? value)
             where T : notnull
