@@ -633,10 +633,7 @@ public class BucketConfigExtensionTests
             Returns(Task.FromResult(node.Object));
 
         var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object).WithPasswordAuthentication("username", "password");
-        var clusterCtx = new ClusterContext(new CancellationTokenSource(), options)
-        {
-            SupportsCollections = true
-        };
+        var clusterCtx = new ClusterContext(new CancellationTokenSource(), options);
 
         var bucket = new CouchbaseBucket("default",
             clusterCtx,
