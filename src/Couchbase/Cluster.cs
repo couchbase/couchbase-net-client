@@ -410,64 +410,32 @@ namespace Couchbase
             CancellationToken token = ctps.Token;
 
             var bootstrappable = (IBootstrappable)this;
-            var backoff = new WaitUntilReadyBackoff();
             try
             {
-                while (true)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    if (!IsBootstrapped)
+                await WaitUntilReadyEvaluator.PollAsync(_context, options, bucketLevel: false,
+                    () => _context.GlobalConfig,
+                    async cancellationToken =>
                     {
-                        // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
-                        // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
-                        await bootstrappable.BootStrapAsync().WaitAsync(token).ConfigureAwait(false);
                         if (!IsBootstrapped)
                         {
-                            await Task.Delay(100, token).ConfigureAwait(false);
-                            continue;
-                        }
-                    }
-
-                    if (!_context.IsGlobal)
-                        throw new NotSupportedException(
-                            "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
-                            "If you think this exception is caused by another error, please check your SDK logs for detail.");
-
-                    // Recomputed every pass because the topology can change while we wait.
-                    var requested = options.EffectiveServiceTypes(_context).ToList();
-                    var expected = WaitUntilReadyEvaluator.ExpectedServices(_context, null, requested, bucketLevel: false);
-
-                    if (expected.Count == 0)
-                    {
-                        LogWaitUntilReadyNoServices(string.Join(", ", requested));
-                    }
-
-                    // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
-                    var pingReport =
-                        await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
-                            new PingOptions
+                            // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
+                            // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
+                            await bootstrappable.BootStrapAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+                            if (!IsBootstrapped)
                             {
-                                ServiceTypesValue = expected.ToList(),
-                                Token = token
-                            }).ConfigureAwait(false);
+                                return false;
+                            }
+                        }
 
-                    var readiness = WaitUntilReadyEvaluator.Evaluate(pingReport, expected, options.DesiredStateValue);
-                    _clusterState = readiness.State;
+                        if (!_context.IsGlobal)
+                            throw new NotSupportedException(
+                                "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
+                                "If you think this exception is caused by another error, please check your SDK logs for detail.");
 
-                    if (readiness.Ready)
-                    {
-                        return;
-                    }
-
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                    {
-                        LogWaitUntilReadyStillWaiting(readiness.State, options.DesiredStateValue,
-                            WaitUntilReadyEvaluator.Describe(pingReport, expected));
-                    }
-
-                    await backoff.DelayAsync(token).ConfigureAwait(false);
-                }
+                        return true;
+                    },
+                    state => _clusterState = state,
+                    _logger, token).ConfigureAwait(false);
             }
             catch (RateLimitedException)
             {
@@ -822,12 +790,6 @@ namespace Couchbase
 
         [LoggerMessage(LogLevel.Warning, "Exception in AuthenticationStale event handler for connection {connectionId}")]
         partial void LogExceptionInAuthStaleEventHandlerForConnectionId(Exception ex, ulong connectionId);
-
-        [LoggerMessage(LogLevel.Debug, "WaitUntilReady is {state} but wants {desiredState}, services: {services}")]
-        partial void LogWaitUntilReadyStillWaiting(ClusterState state, ClusterState desiredState, string services);
-
-        [LoggerMessage(LogLevel.Warning, "WaitUntilReady has no verifiable service from the requested set {requested}, returning immediately")]
-        partial void LogWaitUntilReadyNoServices(string requested);
 
         #endregion
     }

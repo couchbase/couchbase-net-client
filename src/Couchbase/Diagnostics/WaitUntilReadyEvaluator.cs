@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -15,7 +17,7 @@ namespace Couchbase.Diagnostics
     /// <summary>
     /// Shared readiness logic for the cluster and bucket level WaitUntilReady, per SDK-RFC 61.
     /// </summary>
-    internal static class WaitUntilReadyEvaluator
+    internal static partial class WaitUntilReadyEvaluator
     {
         /// <summary>
         /// The services <see cref="DiagnosticsReportProvider"/> is able to ping.
@@ -87,6 +89,75 @@ namespace Couchbase.Diagnostics
             }
 
             return expected;
+        }
+
+        /// <summary>
+        /// Pings and evaluates until the desired state is reached or the token ends the wait.
+        /// </summary>
+        /// <param name="context">The cluster context.</param>
+        /// <param name="options">The options given to WaitUntilReady.</param>
+        /// <param name="bucketLevel">True for a bucket level wait, false for a cluster level wait.</param>
+        /// <param name="currentConfig">The config to evaluate and ping against, read again on every pass.</param>
+        /// <param name="canEvaluate">Gate for a pass, false backs off and retries.</param>
+        /// <param name="onState">Receives the state of every pass.</param>
+        /// <param name="logger">The caller's logger.</param>
+        /// <param name="token">Ends the wait, the caller decides what that means.</param>
+        internal static async Task PollAsync(
+            ClusterContext context,
+            WaitUntilReadyOptions options,
+            bool bucketLevel,
+            Func<BucketConfig?> currentConfig,
+            Func<CancellationToken, ValueTask<bool>> canEvaluate,
+            Action<ClusterState> onState,
+            ILogger logger,
+            CancellationToken token)
+        {
+            var backoff = new WaitUntilReadyBackoff();
+
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+
+                if (!await canEvaluate(token).ConfigureAwait(false))
+                {
+                    await backoff.DelayAsync(token).ConfigureAwait(false);
+                    continue;
+                }
+
+                var config = currentConfig();
+
+                // Recomputed every pass because the topology can change while we wait.
+                var requested = options.EffectiveServiceTypes(context).ToList();
+                var expected = ExpectedServices(context, config, requested, bucketLevel);
+
+                if (expected.Count == 0)
+                {
+                    LogNoServices(logger, string.Join(", ", requested));
+                }
+
+                // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
+                var pingReport = await DiagnosticsReportProvider.CreatePingReportAsync(context, config,
+                    new PingOptions
+                    {
+                        ServiceTypesValue = expected.ToList(),
+                        Token = token
+                    }).ConfigureAwait(false);
+
+                var readiness = Evaluate(pingReport, expected, options.DesiredStateValue);
+                onState(readiness.State);
+
+                if (readiness.Ready)
+                {
+                    return;
+                }
+
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    LogStillWaiting(logger, readiness.State, options.DesiredStateValue, Describe(pingReport, expected));
+                }
+
+                await backoff.DelayAsync(token).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
@@ -255,6 +326,12 @@ namespace Couchbase.Diagnostics
                 set.Add(serviceType);
             }
         }
+
+        [LoggerMessage(LogLevel.Debug, "WaitUntilReady is {state} but wants {desiredState}, services: {services}")]
+        private static partial void LogStillWaiting(ILogger logger, ClusterState state, ClusterState desiredState, string services);
+
+        [LoggerMessage(LogLevel.Warning, "WaitUntilReady has no verifiable service from the requested set {requested}, returning immediately")]
+        private static partial void LogNoServices(ILogger logger, string requested);
     }
 
     /// <summary>
