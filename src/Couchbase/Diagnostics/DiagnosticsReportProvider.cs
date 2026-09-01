@@ -193,8 +193,9 @@ namespace Couchbase.Diagnostics
             var pingUri = ping ? BuildPingUri(ServiceUri(clusterNode, serviceType), pingPath) : null;
 
             var serviceEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd(reportKey, new List<IEndpointDiagnostics>());
+            // The report shows host and port, not the ping URL, to match the other SDKs and the RFC examples.
             var endPointDiagnostics = CreateEndpointHealth("Cluster", serviceType, DateTime.UtcNow, lastActivity,
-                pingUri?.ToString() ?? clusterNode.EndPoint.ToString(), ping);
+                pingUri?.Authority ?? clusterNode.EndPoint.ToString(), ping);
 
             // Without a URI there is nothing to ping, the entry is still reported so it counts as not Ok.
             if (ping && pingUri is not null)

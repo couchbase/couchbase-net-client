@@ -3,9 +3,13 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Diagnostics;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Diagnostics
@@ -120,6 +124,33 @@ namespace Couchbase.UnitTests.Diagnostics
                     TimeSpan.FromMilliseconds(50), external.Token));
 
             Assert.False(external.IsCancellationRequested);
+        }
+
+        [Fact]
+        public async Task CreatePingReportAsync_Reports_Host_And_Port_As_The_Remote()
+        {
+            //arrange
+
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService<ICouchbaseHttpClientFactory, MockHttpClientFactory>(
+                CreateFactory(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+
+            var context = new ClusterContext(null, options);
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(x => x.HasQuery).Returns(true);
+            node.SetupGet(x => x.QueryUri).Returns(new Uri("http://node1:8093/query/service"));
+            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node1", 8093));
+            context.AddNode(node.Object);
+
+            //act
+
+            var report = await DiagnosticsReportProvider.CreatePingReportAsync(context, null,
+                new PingOptions { ServiceTypesValue = new[] { ServiceType.Query } });
+
+            //assert
+
+            var entry = Assert.Single(report.Services["n1ql"]);
+            Assert.Equal("node1:8093", entry.Remote);
         }
 
         private static MockHttpClientFactory CreateFactory(Func<HttpRequestMessage, HttpResponseMessage> handler) =>
