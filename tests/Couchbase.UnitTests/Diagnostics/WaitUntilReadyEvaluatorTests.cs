@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Diagnostics;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Diagnostics
@@ -277,6 +279,25 @@ namespace Couchbase.UnitTests.Diagnostics
             //assert
 
             Assert.Empty(expected);
+        }
+
+        [Fact]
+        public void HasTopology_Is_False_Without_A_Config_And_Without_Nodes()
+        {
+            Assert.False(WaitUntilReadyEvaluator.HasTopology(null, Array.Empty<IClusterNode>()));
+            Assert.False(WaitUntilReadyEvaluator.HasTopology(null, null));
+        }
+
+        [Fact]
+        public void HasTopology_Is_True_With_A_Config()
+        {
+            Assert.True(WaitUntilReadyEvaluator.HasTopology(CreateConfig(), Array.Empty<IClusterNode>()));
+        }
+
+        [Fact]
+        public void HasTopology_Is_True_With_A_Node()
+        {
+            Assert.True(WaitUntilReadyEvaluator.HasTopology(null, new[] { new Mock<IClusterNode>().Object }));
         }
 
         private static BucketConfig CreateConfig() =>

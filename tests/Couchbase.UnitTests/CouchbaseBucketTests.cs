@@ -64,7 +64,18 @@ namespace Couchbase.UnitTests
                 bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(seconds)));
         }
 
-        private static CouchbaseBucket CreateBucket() =>
+        [Fact]
+        public async Task WaitUntilReadyAsync_Without_A_Config_Or_Nodes_Times_Out()
+        {
+            var bucket = CreateBucket(config: null);
+
+            await Assert.ThrowsAsync<UnambiguousTimeoutException>(() =>
+                bucket.WaitUntilReadyAsync(TimeSpan.FromMilliseconds(100)));
+        }
+
+        private static CouchbaseBucket CreateBucket() => CreateBucket(new BucketConfig());
+
+        private static CouchbaseBucket CreateBucket(BucketConfig config) =>
             new("default",
                 new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IScopeFactory>().Object,
@@ -76,7 +87,7 @@ namespace Couchbase.UnitTests
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
-                new BucketConfig(),
+                config,
                 new Mock<IConfigPushHandlerFactory>().Object);
     }
 }

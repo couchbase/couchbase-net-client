@@ -223,7 +223,7 @@ namespace Couchbase.Core
             {
                 await WaitUntilReadyEvaluator.PollAsync(Context, options, bucketLevel: true,
                     () => CurrentConfig,
-                    _ => new ValueTask<bool>(true),
+                    _ => new ValueTask<bool>(WaitUntilReadyEvaluator.HasTopology(CurrentConfig, Context.GetNodes(Name))),
                     state => _clusterState = state,
                     _logger, token).ConfigureAwait(false);
             }

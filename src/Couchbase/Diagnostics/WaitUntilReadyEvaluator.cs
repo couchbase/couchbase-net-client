@@ -161,6 +161,29 @@ namespace Couchbase.Diagnostics
         }
 
         /// <summary>
+        /// True once there is something to evaluate, a config or at least one node.
+        /// </summary>
+        /// <remarks>
+        /// Without a topology nothing is advertised, so an empty expected set would make WaitUntilReady succeed
+        /// before the bucket is bootstrapped.
+        /// </remarks>
+        internal static bool HasTopology(BucketConfig? config, IEnumerable<IClusterNode>? nodes)
+        {
+            if (config is not null)
+            {
+                return true;
+            }
+
+            if (nodes is null)
+            {
+                return false;
+            }
+
+            using var enumerator = nodes.GetEnumerator();
+            return enumerator.MoveNext();
+        }
+
+        /// <summary>
         /// Applies the RFC 61 cluster state rules to a ping report.
         /// </summary>
         internal static ReadinessResult Evaluate(IPingReport report, ICollection<ServiceType> expected, ClusterState desired)
