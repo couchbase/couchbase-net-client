@@ -24,10 +24,7 @@ namespace Couchbase.UnitTests
         public async Task Scope_DoesNotThrow_ScopeNoteFoundException()
         {
             var bucket = new CouchbaseBucket("default",
-                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"))
-                {
-                    SupportsCollections = true
-                },
+                new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,

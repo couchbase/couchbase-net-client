@@ -29,7 +29,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
 
         private class FakeOperation : Get<string>
         {
-            public void WriteKeyPublic(OperationBuilder builder) => WriteKey(builder);
+            public void WriteKeyPublic(OperationBuilder builder) => WriteKey(builder, collectionsEnabled: false);
         }
     }
 }

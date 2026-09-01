@@ -7,6 +7,10 @@ namespace Couchbase.Core.IO.Operations.Configuration;
 
 internal sealed class ClusterMapChangeNotification : OperationBase<BucketConfig>
 {
+    /// <inheritdoc />
+    // a server push, no document key.
+    internal override bool RequiresCollectionId => false;
+
     public override OpCode OpCode => OpCode.ClusterMapChangeNotification;
 
     protected override void ReadExtras(ReadOnlySpan<byte> buffer)

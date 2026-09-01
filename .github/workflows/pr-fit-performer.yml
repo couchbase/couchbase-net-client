@@ -1,0 +1,94 @@
+name: PR Performer Bot
+
+# Publishes a performer image for each PR, then comments the image name and the
+# command to run FIT against it.
+# prune-stale-images.yml deletes the image 7 days later.
+#
+# Fork PRs are skipped. Build those with
+# publish-fit-performer.yml and ref `refs/pull/<n>/merge`.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'fit/**'
+      - '*.sln'
+      - 'Directory.*.props'
+      - 'Directory.Build.targets'
+      - 'global.json'
+      - 'NuGet.Config'
+      - '.github/workflows/pr-fit-performer.yml'
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: pr-fit-performer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build & publish performer for this PR
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and publish performer image
+        id: build
+        uses: couchbaselabs/sdk-docker-build-action@v1
+        with:
+          sdk: dotnet
+          ref: ${{ github.head_ref }}
+          dockerfile: fit/Couchbase.FitPerformer/Dockerfile
+        env:
+          DOCKER_BUILD_SUMMARY: false
+
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ steps.build.outputs.image }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          FIT_WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/fit-testing-dotnet.yml
+        run: |
+          set -euo pipefail
+
+          # Keep the body at this indentation. YAML strips it before bash sees it.
+          cat > body.md <<'EOF'
+          <!-- pr-fit-performer -->
+          ### FIT performer image
+
+          Published:
+          ```sh
+          __IMAGE__
+          ```
+
+          Run FIT locally against this PR:
+
+          ```sh
+          fit run preset <preset-name> --performer __PERFORMER__
+          ```
+
+          Or run it from the workflow [here](__FIT_WORKFLOW_URL__).
+
+          > [!NOTE]
+          > _Each push to this PR replaces the image and edits this comment. The image is deleted 7 days after the last push._
+          EOF
+
+          sed -i \
+            -e "s|__IMAGE__|${IMAGE}|g" \
+            -e "s|__PERFORMER__|${IMAGE##*/}|g" \
+            -e "s|__FIT_WORKFLOW_URL__|${FIT_WORKFLOW_URL}|g" \
+            body.md
+
+          COMMENT_ID=$(gh api --paginate "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("<!-- pr-fit-performer -->")) | .id' | tail -n 1)
+
+          jq -n --rawfile body body.md '{body: $body}' > payload.json
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "/repos/${GITHUB_REPOSITORY}/issues/comments/${COMMENT_ID}" --input payload.json --silent
+          else
+            gh api -X POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --input payload.json --silent
+          fi

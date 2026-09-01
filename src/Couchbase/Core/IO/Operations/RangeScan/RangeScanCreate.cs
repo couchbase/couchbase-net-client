@@ -5,6 +5,10 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 {
     internal sealed class RangeScanCreate : OperationBase<IScanTypeExt>, IPreMappedVBucketOperation
     {
+        /// <inheritdoc />
+        // writes no key - the collection travels in the body.
+        internal override bool RequiresCollectionId => false;
+
         //https://github.com/couchbase/kv_engine/blob/master/docs/range_scans/range_scan_create.md
 
         public override bool RequiresVBucketId => true;
@@ -18,7 +22,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
             //no extras
         }
 
-        internal override void WriteKey(OperationBuilder builder)
+        internal override void WriteKey(OperationBuilder builder, bool collectionsEnabled)
         {
             //no key
         }

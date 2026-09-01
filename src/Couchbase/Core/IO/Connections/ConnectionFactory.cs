@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Connections
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _multiplexLogger = multiplexLogger ?? throw new ArgumentNullException(nameof(multiplexLogger));
             _sslLogger = sslLogger ?? throw new ArgumentNullException(nameof(sslLogger));
-            _redactor = redactor;
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _callbackFactory = callbackFactory ?? throw new ArgumentNullException(nameof(callbackFactory));
         }
 
@@ -57,6 +57,11 @@ namespace Couchbase.Core.IO.Connections
             {
                 throw new ConnectException($"Unable to resolve host '{hostEndpoint}'.");
             }
+
+            // The resolved address is otherwise unlogged on .NET Core and later, so a connect
+            // failure cannot be attributed to an address after the fact.
+            _multiplexLogger.LogDebug("Connecting to {Host} at {Address}.",
+                _redactor.SystemData(hostEndpoint.Host), _redactor.SystemData(endPoint));
 
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
