@@ -49,6 +49,15 @@ namespace Couchbase.Stellar.Search
         {
             var opts = options?.AsReadOnly() ?? SearchOptions.DefaultReadOnly;
 
+            SearchOptions.ValidateScoring(opts.DisableScoring, opts.Scoring);
+
+            // The protocol has no score fusion fields, so a fusion strategy cannot be honoured here.
+            // SearchScoring.None() maps onto the protocol's existing disable_scoring field.
+            if (opts.Scoring?.RequiresScoreFusionCapability == true)
+            {
+                throw new FeatureNotAvailableException("Score fusion is not available over couchbase2.");
+            }
+
             var searchQuery = QueryConverter(query);
 
             var searchQueryRequest = new Couchbase.Protostellar.Search.V1.SearchQueryRequest
@@ -56,7 +65,7 @@ namespace Couchbase.Stellar.Search
                 IndexName = indexName,
                 Query = searchQuery,
                 IncludeExplanation = opts.IncludeLocations,
-                DisableScoring = opts.DisableScoring,
+                DisableScoring = opts.DisableScoring || opts.Scoring is not null,
                 IncludeLocations = opts.IncludeLocations
             };
 

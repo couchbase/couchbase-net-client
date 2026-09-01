@@ -182,6 +182,7 @@ namespace Couchbase.FitPerformer
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkSetAuthenticator);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkJwt);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkQuery2120);
+                response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkSearchScoreFusion);
 
                 response.SupportedApis.Add(API.Default);
                 response.TransactionsProtocolVersion = ProtocolVersion.SupportedVersion.ToString();

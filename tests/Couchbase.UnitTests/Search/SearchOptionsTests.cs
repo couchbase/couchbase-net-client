@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Query;
@@ -193,6 +194,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Fact]
+        [Obsolete("Covers the deprecated DisableScoring.")]
         public void When_DisableScore_True_None_In_Output()
         {
             var searchOptions = new SearchOptions();
@@ -210,6 +212,7 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Fact]
+        [Obsolete("Covers the deprecated DisableScoring.")]
         public void When_DisableScore_False_Nothing_In_Output()
         {
             var searchOptions = new SearchOptions();
@@ -235,6 +238,168 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 ctl = new { }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_ReciprocalRankFusion_Rrf_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(SearchScoring.ReciprocalRankFusion());
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rrf"
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_RelativeScoreFusion_Rsf_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(SearchScoring.RelativeScoreFusion());
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rsf"
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_None_None_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(SearchScoring.None());
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "none"
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_ReciprocalRankFusion_Params_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(
+                SearchScoring.ReciprocalRankFusion().RankConstant(60).WindowSize(200));
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rrf",
+                @params = new
+                {
+                    score_rank_constant = 60,
+                    score_window_size = 200
+                }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_RelativeScoreFusion_Only_WindowSize_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(
+                SearchScoring.RelativeScoreFusion().WindowSize(200));
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rsf",
+                @params = new
+                {
+                    score_window_size = 200
+                }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_Only_RankConstant_Set_Only_It_In_Output()
+        {
+            var searchOptions = new SearchOptions().Scoring(
+                SearchScoring.ReciprocalRankFusion().RankConstant(60));
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rrf",
+                @params = new
+                {
+                    score_rank_constant = 60
+                }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_Scoring_Not_Set_Nothing_In_Output()
+        {
+            var searchOptions = new SearchOptions();
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        [Obsolete("Covers the deprecated DisableScoring.")]
+        public void When_DisableScoring_And_Scoring_Both_Set_Throws(bool scoringAgrees)
+        {
+            // They cannot be combined even when they agree.
+            SearchScoring scoring = scoringAgrees
+                ? SearchScoring.None()
+                : SearchScoring.ReciprocalRankFusion();
+
+            var searchOptions = new SearchOptions().DisableScoring(true).Scoring(scoring);
+
+            Assert.Throws<InvalidArgumentException>(() => searchOptions.ToJson());
+        }
+
+        [Fact]
+        [Obsolete("Covers the deprecated DisableScoring.")]
+        public void When_DisableScoring_False_And_Scoring_Set_Does_Not_Throw()
+        {
+            var searchOptions = new SearchOptions()
+                .DisableScoring(false)
+                .Scoring(SearchScoring.ReciprocalRankFusion());
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "rrf"
             }, Formatting.None);
 
             Assert.Equal(expected, result);

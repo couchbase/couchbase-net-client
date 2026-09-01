@@ -595,6 +595,10 @@ namespace Couchbase
             options.TimeoutValue ??= _context.ClusterOptions.SearchTimeout;
             options.Token = options.Token.FallbackToTimeout(options.TimeoutValue.Value)?.Token ?? options.Token;
 
+            // Both write the top-level "score" field, so this is checked before the capability check
+            // below, and so raises the same error against any server version.
+            options.ValidateScoring();
+
             ThrowIfNotBootstrapped();
             // The RFC asks to wait until the GlobalConfig is ready.  That should be handled by ThrowIfNotBootstrapped.
             if (searchRequest.Scope is not null)
@@ -607,6 +611,12 @@ namespace Couchbase
             {
                 _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
                     "Vector queries are available from Couchbase Server 7.6.0 and above, with at least one search node");
+            }
+
+            if (options.ScoringValue?.RequiresScoreFusionCapability == true)
+            {
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCORE_FUSION,
+                    "Score fusion is not available on this version of Couchbase Server");
             }
 
             FtsSearchRequest ftsSearchRequest = new()
