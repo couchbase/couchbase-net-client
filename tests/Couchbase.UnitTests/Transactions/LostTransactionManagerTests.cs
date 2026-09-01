@@ -51,4 +51,32 @@ public class LostTransactionManagerTests
         Assert.Equal(before, manager.CollectionsBeingCleaned.Count);
         await manager.DisposeAsync();
     }
+
+    /// <summary>
+    /// Regression test: <c>CollectionsToClean</c> was previously
+    /// <c>static</c>, shared by every <see cref="LostTransactionManager"/>
+    /// in the process even though one is created per Cluster. Disposing any one manager (e.g. a short-lived
+    /// Cluster opened just for a single test/operation) would tear down and remove another still-active
+    /// Cluster's <see cref="PerCollectionCleaner"/> for a shared keyspace - silently killing that other Cluster's lost
+    /// cleanup with no error anywhere. This is the mechanism behind lost-cleanup entries that are never
+    /// picked up despite the cleaner logging clean, complete passes throughout.
+    /// </summary>
+    [Fact]
+    public async Task DisposingOneManager_DoesNotAffectAnotherManagers_RegisteredCollections()
+    {
+        var keyspace = new Keyspace("bucket", "scope", "collection");
+
+        var manager1 = Create(new List<Keyspace> { keyspace });
+        var manager2 = Create(new List<Keyspace> { keyspace });
+
+        Assert.Contains(keyspace, manager1.CollectionsBeingCleaned);
+        Assert.Contains(keyspace, manager2.CollectionsBeingCleaned);
+
+        await manager2.DisposeAsync();
+
+        // manager2 disposing must not reach into manager1's (separate) set of collections being cleaned.
+        Assert.Contains(keyspace, manager1.CollectionsBeingCleaned);
+
+        await manager1.DisposeAsync();
+    }
 }

@@ -29,8 +29,17 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // generating function for the value under contention when it doesn't actually end up doing an insert
         // because someone else got there first.   The Lazy<T> insures the actual initialization of the lazy is
         // only done once.   You can see tests fail when this isn't the case.
-        private static readonly ConcurrentDictionary<Keyspace, Lazy<PerCollectionCleaner>>
-            CollectionsToClean = new();
+        //
+        // This must be an instance field, not static: one LostTransactionManager exists per Cluster (see
+        // Transactions.cs), and DisposeAsync() below tears down every PerCollectionCleaner in this dictionary.
+        // A static dictionary made that cross-instance: closing any one Cluster's Transactions (e.g. a
+        // short-lived connection opened just to run a test) would GetOrAdd-reuse another still-open Cluster's
+        // cleaner for a shared keyspace, then dispose it and remove its client record out from under that
+        // other, still-active Cluster - silently killing its lost cleanup with no error anywhere. This is
+        // exactly the mechanism behind lost-cleanup entries that are never picked up despite the cleaner
+        // logging clean, complete passes throughout.
+        private readonly ConcurrentDictionary<Keyspace, Lazy<PerCollectionCleaner>>
+            _collectionsToClean = new();
 
         private readonly ICluster _cluster;
         private readonly TimeSpan _cleanupWindow;
@@ -39,16 +48,16 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public string ClientUuid { get; }
         public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
-        public List<Keyspace> CollectionsBeingCleaned => CollectionsToClean.Keys.ToList();
+        public List<Keyspace> CollectionsBeingCleaned => _collectionsToClean.Keys.ToList();
 
         public void AddCollection(ICouchbaseCollection collection)
         {
             // we need to add _only_ if the collection isn't already being cleaned...
-            _logger.LogInformation($"AddCollection called, currently cleaning {CollectionsToClean.Count} collections");
+            _logger.LogInformation($"AddCollection called, currently cleaning {_collectionsToClean.Count} collections");
             // We already hold a live collection here, so seed the cache to avoid re-resolving.
             // Force the lazy's Value so the cleaner is actually created.
             var keyspace = new Keyspace(collection);
-            _ = CollectionsToClean.GetOrAdd(keyspace,
+            _ = _collectionsToClean.GetOrAdd(keyspace,
                 ks => new Lazy<PerCollectionCleaner>(() => CleanerForCollection(ks, startDisabled: false, resolved: collection))).Value;
         }
 
@@ -56,7 +65,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // loop. Synchronous — no resolution, no blocking.
         private void RegisterCollection(Keyspace keyspace)
         {
-            _ = CollectionsToClean.GetOrAdd(keyspace,
+            _ = _collectionsToClean.GetOrAdd(keyspace,
                 ks => new Lazy<PerCollectionCleaner>(() => CleanerForCollection(ks, startDisabled: false))).Value;
         }
 
@@ -80,7 +89,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 _logger.LogDebug("Registering configured cleanup collection {keyspace}", keyspace);
                 RegisterCollection(keyspace);
             }
-            _logger.LogDebug($"LostTransactionManager {ClientUuid} started with {CollectionsToClean.Count} collections to be cleaned");
+            _logger.LogDebug($"LostTransactionManager {ClientUuid} started with {_collectionsToClean.Count} collections to be cleaned");
         }
 
         public void Start()
@@ -99,9 +108,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private async Task RemoveClientEntries()
         {
 
-            while (!CollectionsToClean.IsEmpty)
+            while (!_collectionsToClean.IsEmpty)
             {
-                var buckets = CollectionsToClean.ToArray();
+                var buckets = _collectionsToClean.ToArray();
                 List<ValueTask> disposeTasks = new();
                 // populate disposeTasks with all the DisposeAsync tasks first.
                 foreach (var bkt in buckets)
@@ -125,7 +134,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     // now remove them from the CollectionsToClean Dictionary.
                     foreach (var bkt in buckets)
                     {
-                        var success = CollectionsToClean.TryRemove(bkt.Key, out _);
+                        var success = _collectionsToClean.TryRemove(bkt.Key, out _);
                         _logger.LogDebug(
                             "Removed cleaner '{bkt}' from collections to clean {status}", bkt.Value,
                             success ? "successfully" : "unsuccessfully");
@@ -147,10 +156,10 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // dictionary entry (the cleaner stops its own timer).
         private void RemoveFromCleanupSet(Keyspace keyspace)
         {
-            if (CollectionsToClean.TryRemove(keyspace, out _))
-            {
-                _logger.LogInformation("Removed collection {keyspace} from the cleanup set (not found)", keyspace);
-            }
+            var success = _collectionsToClean.TryRemove(keyspace, out _);
+            _logger.LogInformation(
+                "Collection {keyspace} reported as not found by server; removed from cleanup set {status}", keyspace,
+                success ? "successfully" : "unsuccessfully");
         }
     }
 }
