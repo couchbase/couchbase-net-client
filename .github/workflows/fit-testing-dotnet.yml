@@ -37,6 +37,15 @@ on:
           pull the image. Use "main" to test master's SDK from a branch.
         required: false
         type: string
+      env_override:
+        description: >-
+          Overrides applied to fit-cli's environments.json5, as comma-separated <path>=<value>
+          pairs. Chiefly useful for testing a feature against a server the presets do not default
+          to, e.g. "defaults.clusterVersion=8.1.0-2710". Only meaningful for presets that deploy
+          the cluster themselves (the on-prem ones) — Capella presets take their version from
+          Capella, and ignore it.
+        required: false
+        type: string
 
 permissions:
   id-token: write   # required for GitHub OIDC
@@ -85,3 +94,6 @@ jobs:
       # nightly: scheduled runs supply no inputs and workflow_dispatch defaults only apply to
       # dispatches, so this literal is what the nightly actually uses.
       channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'latest' }}
+      # Empty on the nightly, which passes no inputs — so the nightly keeps the presets' own
+      # default server version.
+      env_override: ${{ inputs.env_override }}

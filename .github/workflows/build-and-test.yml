@@ -4,6 +4,19 @@ on:
   push:
     branches:
       - master
+      # Release branches ("3.10") and patch branches ("3.9.5"). These take direct pushes -
+      # chiefly a merge from master to bring the branch up to date - which no pull_request
+      # event covers, so without these they would land untested.
+      #
+      # Deliberately narrow rather than '*', which a6802f287 removed because a branch with an
+      # open PR then runs everything twice, once for push and once for pull_request. Release
+      # branches are only ever PR targets, never PR heads, so they cannot double-run.
+      #
+      # These are GitHub filter patterns, not regexes: '+' means one or more of the preceding
+      # character, and '.' is a literal dot. Both patterns are needed because a pattern must
+      # match the whole ref, so the two-part one does not match "3.9.5".
+      - '[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
   pull_request:
   workflow_dispatch:
 
