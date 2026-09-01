@@ -87,9 +87,10 @@ namespace Couchbase.Search
         /// <param name="scoring">The <see cref="SearchScoring"/> to use.</param>
         /// <returns>The <see cref="SearchOptions"/> for chaining method calls.</returns>
         /// <remarks>
-        /// The fusion strategies require Couchbase Server 8.1 or above, and are not available over
-        /// couchbase2. Cannot be combined with <c>DisableScoring(true)</c>, as both set the score of a
-        /// request; doing so raises an <see cref="Core.Exceptions.InvalidArgumentException"/>.
+        /// The fusion strategies require a version of Couchbase Server that supports score fusion, and
+        /// are not available over couchbase2. Cannot be combined with <c>DisableScoring(true)</c>, as
+        /// both set the score of a request; doing so raises an
+        /// <see cref="Core.Exceptions.InvalidArgumentException"/>.
         /// </remarks>
         [InterfaceStability(Level.Uncommitted)]
         public SearchOptions Scoring(SearchScoring scoring)

@@ -11,8 +11,8 @@ namespace Couchbase.Search
     /// <remarks>
     /// The fusion strategies control how the FTS and vector result sets of a hybrid request - one which
     /// combines a search query with a vector search - are merged into a single ranked list. They require
-    /// Couchbase Server 8.1 or above. Applied to a single result set they re-score the hits, but leave
-    /// their ordering unchanged.
+    /// a version of Couchbase Server that supports score fusion. Applied to a single result set they
+    /// re-score the hits, but leave their ordering unchanged.
     /// <para>
     /// Under a fusion strategy the top-level <c>boost</c> of the search query and of each vector query is
     /// that side's fusion weight. A boost of 2.0 on the search query and 1.0 on the vector query counts the

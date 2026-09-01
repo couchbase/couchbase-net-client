@@ -616,7 +616,7 @@ namespace Couchbase
             if (options.ScoringValue?.RequiresScoreFusionCapability == true)
             {
                 _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCORE_FUSION,
-                    "Score fusion is available from Couchbase Server 8.1 and above");
+                    "Score fusion is not available on this version of Couchbase Server");
             }
 
             FtsSearchRequest ftsSearchRequest = new()
