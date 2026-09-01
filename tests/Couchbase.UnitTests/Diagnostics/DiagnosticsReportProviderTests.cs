@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests.Diagnostics
         }
 
         [Fact]
-        public async Task PingHttpServiceAsync_Without_A_Token_Uses_The_Fallback_Timeout()
+        public async Task PingHttpServiceAsync_Without_A_Token_Uses_The_Service_Timeout()
         {
             //arrange
 
@@ -99,12 +99,50 @@ namespace Couchbase.UnitTests.Diagnostics
 
             //act, assert
 
-            // A generous fallback must not cancel a healthy ping.
+            // A generous timeout must not cancel a healthy ping.
             await DiagnosticsReportProvider.PingHttpServiceAsync(factory, new Uri("http://node1:8093/admin/ping"),
                 TimeSpan.FromMinutes(1), CancellationToken.None);
         }
 
+        [Fact]
+        public async Task PingHttpServiceAsync_Applies_The_Service_Timeout_To_A_Live_Token()
+        {
+            //arrange
+
+            using var external = new CancellationTokenSource();
+            var factory = new MockHttpClientFactory(() =>
+                new HttpClient(new DelayingHttpMessageHandler(TimeSpan.FromMinutes(1))));
+
+            //act, assert
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                DiagnosticsReportProvider.PingHttpServiceAsync(factory, new Uri("http://node1:8093/admin/ping"),
+                    TimeSpan.FromMilliseconds(50), external.Token));
+
+            Assert.False(external.IsCancellationRequested);
+        }
+
         private static MockHttpClientFactory CreateFactory(Func<HttpRequestMessage, HttpResponseMessage> handler) =>
             new(() => new HttpClient(FakeHttpMessageHandler.Create(handler)));
+
+        /// <summary>
+        /// Stands in for a node that accepts the connection and never answers.
+        /// </summary>
+        private sealed class DelayingHttpMessageHandler : HttpMessageHandler
+        {
+            private readonly TimeSpan _delay;
+
+            public DelayingHttpMessageHandler(TimeSpan delay)
+            {
+                _delay = delay;
+            }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                await Task.Delay(_delay, cancellationToken).ConfigureAwait(false);
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+        }
     }
 }

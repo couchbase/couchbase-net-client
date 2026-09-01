@@ -183,7 +183,7 @@ namespace Couchbase.Diagnostics
         private static void AddHttpServiceEndpoint(
             ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>> endpoints, List<Task> pingTasks,
             ICouchbaseHttpClientFactory? httpClientFactory, string reportKey, ServiceType serviceType,
-            IClusterNode clusterNode, string pingPath, TimeSpan fallbackTimeout, bool ping,
+            IClusterNode clusterNode, string pingPath, TimeSpan serviceTimeout, bool ping,
             CancellationToken token)
         {
             // The activity must be read first, the service URI getter stamps it with the current time.
@@ -203,7 +203,7 @@ namespace Couchbase.Diagnostics
                     $"{nameof(httpClientFactory)} should not be null when {nameof(ping)} is true.");
 
                 pingTasks.Add(RecordLatencyAsync(endPointDiagnostics,
-                    () => PingHttpServiceAsync(httpClientFactory!, pingUri, fallbackTimeout, token), token));
+                    () => PingHttpServiceAsync(httpClientFactory!, pingUri, serviceTimeout, token), token));
             }
 
             serviceEndpoints.Add(endPointDiagnostics);
@@ -239,15 +239,17 @@ namespace Couchbase.Diagnostics
         /// <summary>
         /// Pings a single HTTP service endpoint, anything but a success status code is a failure.
         /// </summary>
+        /// <remarks>
+        /// The service timeout applies even when the caller supplies a token, one hung node must not stall the whole pass.
+        /// </remarks>
         internal static async Task PingHttpServiceAsync(ICouchbaseHttpClientFactory httpClientFactory, Uri pingUri,
-            TimeSpan fallbackTimeout, CancellationToken token)
+            TimeSpan serviceTimeout, CancellationToken token)
         {
-            using var timeoutSource = token == CancellationToken.None
-                ? new CancellationTokenSource(fallbackTimeout)
-                : null;
+            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeoutSource.CancelAfter(serviceTimeout);
 
             using var httpClient = httpClientFactory.Create();
-            using var response = await httpClient.GetAsync(pingUri, timeoutSource?.Token ?? token).ConfigureAwait(false);
+            using var response = await httpClient.GetAsync(pingUri, timeoutSource.Token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
         }
 
