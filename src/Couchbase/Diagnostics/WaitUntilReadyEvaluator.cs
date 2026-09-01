@@ -51,7 +51,7 @@ namespace Couchbase.Diagnostics
         /// The result must never contain a service the ping report cannot produce an entry for, otherwise
         /// WaitUntilReady waits for something that will never arrive and only ends on timeout.
         /// </remarks>
-        internal static ISet<ServiceType> ExpectedServices(ClusterContext context, BucketConfig? bucketConfig,
+        internal static ISet<ServiceType> ExpectedServices(ClusterContext? context, BucketConfig? bucketConfig,
             IEnumerable<ServiceType> requested, bool bucketLevel)
         {
             var config = bucketLevel ? bucketConfig : context?.GlobalConfig;
@@ -218,7 +218,7 @@ namespace Couchbase.Diagnostics
             }
 
             ClusterState state;
-            if (!anyMissing && found > 0 && found == ok)
+            if (!anyMissing && found == ok)
             {
                 state = ClusterState.Online;
             }
@@ -305,7 +305,9 @@ namespace Couchbase.Diagnostics
             }
             catch (Exception)
             {
-                // The config has no usable node list yet, the caller falls back to the connected nodes.
+                // Broad on purpose. GetNodes throws ServiceMissingException when it selects no node adapter, and
+                // building an adapter from a half filled config can throw anything. Either way there is no usable
+                // node list yet, so fall back to the connected nodes.
                 return null;
             }
 
