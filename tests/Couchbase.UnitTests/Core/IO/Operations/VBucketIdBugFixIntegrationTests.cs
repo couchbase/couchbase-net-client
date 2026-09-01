@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act - Execute the complete packet building process
             operation.WriteExtras(builder);
-            operation.WriteKey(builder);
+            operation.WriteKey(builder, collectionsEnabled: false);
             operation.WriteBody(builder);
 
             var header = operation.CreateHeader(DataType.Json);
@@ -67,7 +67,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
                 // Act
                 operation.WriteExtras(builder);
-                operation.WriteKey(builder);
+                operation.WriteKey(builder, collectionsEnabled: false);
                 operation.WriteBody(builder);
 
                 var header = operation.CreateHeader(DataType.Json);
@@ -135,7 +135,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act
             operation.WriteExtras(builder2);
-            operation.WriteKey(builder2);
+            operation.WriteKey(builder2, collectionsEnabled: false);
             operation.WriteBody(builder2);
 
             var header2 = operation.CreateHeader(DataType.Json);
@@ -165,7 +165,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 };
 
                 operation.WriteExtras(builder);
-                operation.WriteKey(builder);
+                operation.WriteKey(builder, collectionsEnabled: false);
                 operation.WriteBody(builder);
 
                 var header = operation.CreateHeader(DataType.Json);

@@ -8,6 +8,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
     // ReSharper disable once IdentifierTypo
     internal class SaslStart : OperationBase<string>
     {
+        /// <inheritdoc />
+        // authentication runs after HELO but before any collection exists.
+        internal override bool RequiresCollectionId => false;
+
         public override OpCode OpCode => OpCode.SaslStart;
 
         internal override void WriteExtras(OperationBuilder builder)

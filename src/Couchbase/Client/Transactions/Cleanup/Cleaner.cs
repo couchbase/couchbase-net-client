@@ -154,7 +154,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 opts => opts.Cas(op.Cas)
                                     .Durability(cleanupRequest.GetDurabilityLevel())
                                     .AccessDeleted(true)
-                                    .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
+                                    .PreserveTtl(collection.SupportsPreserveTtl())
                                     .Timeout(_keyValueTimeout)).CAF();
                         }
                         else
@@ -178,7 +178,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                                 specs.Remove(TransactionFields.TransactionInterfacePrefixOnly, isXattr: true),
                             opts => opts.Cas(op.Cas)
                                 .AccessDeleted(true)
-                                .PreserveTtl(collection.Scope.Bucket.SupportsCollections)
+                                .PreserveTtl(collection.SupportsPreserveTtl())
                                 .Timeout(_keyValueTimeout)).CAF();
                     }).CAF();
             }
@@ -255,7 +255,7 @@ namespace Couchbase.Client.Transactions.Cleanup
                         .Flags(op.StagedContent!.Flags)
                         .Timeout(_keyValueTimeout)
                         .Cas(op.Cas)
-                        .PreserveTtl(coll.Scope.Bucket.SupportsCollections);
+                        .PreserveTtl(coll.SupportsPreserveTtl());
                     if (op.Expiry.HasValue)
                     {
                         opts.Expiry(op.Expiry.Value.RemainingTtl());

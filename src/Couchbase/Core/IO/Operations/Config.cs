@@ -49,6 +49,10 @@ namespace Couchbase.Core.IO.Operations
 
     internal sealed class Config : OperationBase<BucketConfig>
     {
+        /// <inheritdoc />
+        // cluster map request, no document key.
+        internal override bool RequiresCollectionId => false;
+
         internal HostEndpointWithPort EndPoint { get; set; }
 
         internal ulong? Epoch { get; set; }

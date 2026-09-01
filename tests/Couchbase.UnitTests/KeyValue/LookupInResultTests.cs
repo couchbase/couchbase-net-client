@@ -1,3 +1,4 @@
+using Couchbase.Core;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -33,7 +34,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiLookup<byte[]>("thekey", specs);
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object);
+            await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
             op.Read(new FakeMemoryOwner<byte>(bytes));
             op.Transcoder = new JsonTranscoder();
             op.Transcoder.Serializer = new DefaultSerializer();
@@ -70,7 +71,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiLookup<byte[]>("thekey", specs);
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
-            await op.SendAsync(new Mock<IConnection>().Object);
+            await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
             op.Read(new FakeMemoryOwner<byte>(bytes));
             op.Transcoder = new JsonTranscoder();
             op.Transcoder.Serializer = new DefaultSerializer();

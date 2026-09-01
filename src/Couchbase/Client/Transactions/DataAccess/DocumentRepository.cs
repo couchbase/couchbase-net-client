@@ -50,8 +50,8 @@ namespace Couchbase.Client.Transactions.DataAccess
                 .AccessDeleted(true)
                 .CreateAsDeleted(true);
 
-            // we always preserve TTLs - using SupportsCollections as a proxy for supporting TTLs
-            opts.PreserveTtl(collection.Scope.Bucket.SupportsCollections);
+            // we always preserve TTLs where the cluster can
+            opts.PreserveTtl(collection.SupportsPreserveTtl());
 
             // we set the flags when staging the insert (though, we do it again when we unstage)
             if (SupportsReplaceBodyWithXattr(collection))
@@ -406,7 +406,7 @@ namespace Couchbase.Client.Transactions.DataAccess
             new MutateInOptions().Defaults(_durability, _keyValueTimeout)
                 .Transcoder(Transactions.MetadataTranscoder)
                 .StoreSemantics(storeSemantics)
-                .PreserveTtl(collection.Scope.Bucket.SupportsCollections);
+                .PreserveTtl(collection.SupportsPreserveTtl());
 
         private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, IContentAsWrapper content, string opId, DocumentMetadata? dm = null, DateTimeOffset? expiry = null)
         {
