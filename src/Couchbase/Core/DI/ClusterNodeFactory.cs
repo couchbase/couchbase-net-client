@@ -23,21 +23,19 @@ namespace Couchbase.Core.DI
         private readonly IConnectionPoolFactory _connectionPoolFactory;
         private readonly ILogger<ClusterNode> _logger;
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
-        private readonly ICircuitBreaker _circuitBreaker;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
         private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
-            ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
+            ObjectPool<OperationBuilder> operationBuilderPool, ISaslMechanismFactory saslMechanismFactory,
             TypedRedactor redactor, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _operationBuilderPool = operationBuilderPool ?? throw new ArgumentNullException(nameof(operationBuilderPool));
-            _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentNullException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
@@ -53,8 +51,11 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
+            // Resolved per node rather than held as a field, so each node gets its own breaker.
+            var circuitBreaker = _clusterContext.ServiceProvider.GetRequiredService<ICircuitBreaker>();
+
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
+                _operationBuilderPool, circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
                 nodeAdapter, _tracer, _operationConfigurator);
 
             //ensure server calls are made to set the state

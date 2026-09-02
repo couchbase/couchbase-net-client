@@ -88,8 +88,11 @@ namespace Couchbase.Core.CircuitBreakers
         public void Reset()
         {
             Interlocked.Exchange(ref _state, (int) CircuitBreakerState.Closed);
-            _failedCount = Interlocked.Exchange(ref _failedCount, 0);
-            _totalCount = Interlocked.Exchange(ref _totalCount, 0);
+            // Exchange returns the *previous* value, so assigning it back restored the very counts
+            // the reset was meant to clear. A circuit that recovered kept its old failures and
+            // re-tripped on the next one.
+            Interlocked.Exchange(ref _failedCount, 0);
+            Interlocked.Exchange(ref _totalCount, 0);
 
             var now = _timeProvider.GetUtcNow().Ticks;
             _circuitOpenedTime = now;
