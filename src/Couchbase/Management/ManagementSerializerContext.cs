@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Exceptions;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
+
+#nullable enable
 
 namespace Couchbase.Management
 {
@@ -23,5 +28,32 @@ namespace Couchbase.Management
     [JsonSerializable(typeof(EventingFunctionErrorContext))]
     internal partial class ManagementSerializerContext : JsonSerializerContext
     {
+        /// <summary>
+        /// The settings of <see cref="Default"/>, but with the relaxed encoder so that
+        /// log-redaction tags survive serialization as literal &lt;md&gt; markers rather than
+        /// being emitted as unicode escape sequences. See
+        /// <see cref="Couchbase.Core.InternalSerializationContext.RedactionSafeOptions"/>.
+        /// </summary>
+        private static JsonSerializerOptions? _redactionSafeOptions;
+
+        internal static JsonSerializerOptions RedactionSafeOptions
+        {
+            get
+            {
+                // Deferred rather than a field initializer: Default is not yet constructed while
+                // this class is running its own static initialization.
+                var options = _redactionSafeOptions;
+                if (options is not null)
+                {
+                    return options;
+                }
+
+                return Interlocked.CompareExchange(ref _redactionSafeOptions,
+                    new JsonSerializerOptions(Default.Options)
+                    {
+                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    }, null) ?? _redactionSafeOptions;
+            }
+        }
     }
 }

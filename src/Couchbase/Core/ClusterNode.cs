@@ -827,7 +827,12 @@ namespace Couchbase.Core
                     {
                         BucketName = _redactor.MetaDataString(Owner?.Name),
                         ClientContextId = op.Opaque.ToStringInvariant(),
-                        DocumentKey = _redactor.UserDataString(op.Key),
+                        //SelectBucket reaches this path too, and its Key is the bucket name rather
+                        //than a document key, so it is metadata - as user data it would be stripped
+                        //at Partial redaction. Matches ResponseStatusExtensions.CreateException.
+                        DocumentKey = op.OpCode == OpCode.SelectBucket
+                            ? _redactor.MetaDataString(op.Key)
+                            : _redactor.UserDataString(op.Key),
                         Cas = op.Cas,
                         Status = ResponseStatus.OperationTimeout,
                         CollectionName = _redactor.MetaDataString(op.CName),

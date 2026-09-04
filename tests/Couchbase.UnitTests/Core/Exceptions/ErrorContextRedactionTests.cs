@@ -5,7 +5,11 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
+using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.Exceptions.Search;
+using Couchbase.Core.Exceptions.View;
+using Couchbase.Analytics;
+using Couchbase.Views;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -81,18 +85,15 @@ namespace Couchbase.UnitTests.Core.Exceptions
         [Fact]
         public void RedactedContext_TagsSurviveToString()
         {
-            // ToString() is what lands in a log or an exception dump, so the tags have to survive
-            // serialization - this is the surface the redaction is actually for.
+            // ToString() is what lands in a log or an exception dump, and cblogredaction finds the
+            // tags textually - so they must appear literally, not unicode-escaped. Assert on the
+            // raw string rather than a parsed value, because the escaping is exactly what would
+            // break the tooling while still round-tripping through a JSON parser.
             var json = CreateContext(RedactionLevel.Partial).ToString();
 
-            // The key is never emitted as a bare JSON string value.
+            Assert.Contains("<ud>doc-key-1</ud>", json);
+            Assert.DoesNotContain(@"\u003C", json);
             Assert.DoesNotContain("\"doc-key-1\"", json);
-
-            // Parse rather than string-match: System.Text.Json escapes '<' and '>' by default, so
-            // the tags are unicode-escaped in the raw text. Asserting on the decoded value proves
-            // the context really carries a tagged key, independent of how the encoder writes it.
-            using var doc = JsonDocument.Parse(json);
-            Assert.Equal("<ud>doc-key-1</ud>", doc.RootElement.GetProperty("documentKey").GetString());
         }
 
         [Theory]
@@ -118,8 +119,8 @@ namespace Couchbase.UnitTests.Core.Exceptions
 
     /// <summary>
     /// The KV path is covered above by exercising CreateException directly. These drive the HTTP
-    /// service clients so that each remaining context type has at least one site pinned - without
-    /// them, a future edit to any of the ~30 assignment sites drops redaction with green tests.
+    /// service clients so that the remaining context types have a site pinned - without them, a
+    /// future edit to any of the ~30 assignment sites drops redaction with green tests.
     /// </summary>
     public class ErrorContextRedactionClientTests
     {
@@ -198,6 +199,44 @@ namespace Couchbase.UnitTests.Core.Exceptions
 
             // The index name is metadata, which Partial leaves alone.
             Assert.Equal("index1", ctx.IndexName);
+        }
+
+        [Fact]
+        public async Task AnalyticsErrorContext_RedactsStatement()
+        {
+            var client = MockedHttpClients.AnalyticsClient(
+                Responses(Fixture(@"Documents\\Analytics\\syntax-24000.json"), HttpStatusCode.BadRequest),
+                TestRedactor.Partial);
+
+            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+                client.QueryAsync<dynamic>("SELECT * FROM `secret-bucket`", new AnalyticsOptions()));
+
+            var ctx = Assert.IsType<AnalyticsErrorContext>(ex.Context);
+            Assert.Equal("<ud>SELECT * FROM `secret-bucket`</ud>", ctx.Statement);
+        }
+
+        [Fact]
+        public async Task ViewContextError_RedactsDesignDocAndViewNames()
+        {
+            var client = MockedHttpClients.ViewClient(
+                Responses(Fixture(@"Documents\\Views\\404-designdoc-notfound.json"), HttpStatusCode.NotFound),
+                TestRedactor.Full);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var query = new ViewQuery("default", "beers", "brewery_beers")
+#pragma warning restore CS0618 // Type or member is obsolete
+            {
+                Timeout = TimeSpan.FromSeconds(1)
+            };
+
+            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+                client.ExecuteAsync<dynamic, dynamic>(query));
+
+            var ctx = Assert.IsType<ViewContextError>(ex.Context);
+
+            // Design doc and view names are metadata, so they are tagged only at Full.
+            Assert.Equal("<md>beers</md>", ctx.DesignDocumentName);
+            Assert.Equal("<md>brewery_beers</md>", ctx.ViewName);
         }
     }
 }
