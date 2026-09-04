@@ -11,315 +11,282 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Core
 {
+    /// <summary>
+    /// The bootstrapper polls in a fire-and-forget loop, so these tests run it on a
+    /// <see cref="SteppableClock"/> and step it one lap at a time rather than waiting for a real sleep
+    /// to elapse. Reaching the sleep means the lap has been processed to completion, so each assertion
+    /// runs against a loop which can no longer mutate what is being asserted, and a loop which stops
+    /// making progress hangs — and is reported as such — rather than failing a wall-clock deadline on
+    /// a busy CI runner (NCBC-4293).
+    /// </summary>
     public class BootstrapperTests
     {
-         [Fact]
-         public async Task When_Cannot_Bootstrap_Repeat()
-         {
-             var callCount = 0;
-             var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-             var mockSubject = new Mock<IBootstrappable>();
-             mockSubject.Setup(x => x.BootStrapAsync(It.IsAny<CancellationToken>()))
-                 .Returns(Task.CompletedTask)
-                 .Callback(() =>
-                 {
-                     if (++callCount >= 2)
-                         calledTwiceTcs.TrySetResult(true);
-                 });
-             mockSubject.Setup(x => x.DeferredExceptions).Returns(new List<Exception>());
+        /// <summary>
+        /// Long enough that a real sleep of this length would obviously hang the test rather than
+        /// quietly pass, and no cost at all on a fake clock.
+        /// </summary>
+        private static readonly TimeSpan SleepDuration = TimeSpan.FromSeconds(30);
 
-             using var tcs = new CancellationTokenSource();
-             tcs.CancelAfter(TimeSpan.FromSeconds(10));
+        private static ILogger<Bootstrapper> Logger => new Mock<ILogger<Bootstrapper>>().Object;
 
-             var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
-             {
-                 SleepDuration = TimeSpan.FromMilliseconds(10)
-             };
-
-             bootStrapper.Start(mockSubject.Object);
-
-             // Wait for bootstrap to be called at least twice (TCS signals when threshold reached)
-             var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
-
-             Assert.True(completedTask == calledTwiceTcs.Task, "BootStrapAsync should have been called at least twice");
-             mockSubject.Verify(x => x.BootStrapAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
-         }
+        private static Bootstrapper CreateBootstrapper(SteppableClock clock) =>
+            new(Logger, clock)
+            {
+                SleepDuration = SleepDuration
+            };
 
         [Fact]
-        public void When_Success_Bootstrap_Do_Not_Repeat()
+        public async Task When_Cannot_Bootstrap_Repeat()
         {
+            var clock = new SteppableClock();
             var mockSubject = new Mock<IBootstrappable>();
-            mockSubject.Setup(x => x.BootStrapAsync()).Returns(Task.CompletedTask);
-            mockSubject.Setup(x => x.IsBootstrapped).Returns(true);
+            mockSubject.Setup(x => x.BootStrapAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            mockSubject.Setup(x => x.DeferredExceptions).Returns(new List<Exception>());
 
-            using var tcs = new CancellationTokenSource();
-            tcs.CancelAfter(1000);
-
-            var bootStrapper = new Bootstrapper(new Mock<ILogger<Bootstrapper>>().Object)
-            {
-                SleepDuration = TimeSpan.FromMilliseconds(100)
-            };
+            using var bootStrapper = CreateBootstrapper(clock);
             bootStrapper.Start(mockSubject.Object);
 
-            mockSubject.Verify(x => x.BootStrapAsync(), Times.Exactly(0));
+            await clock.WaitForSleepAsync(SleepDuration);
+            clock.Advance(SleepDuration);
+            await clock.WaitForSleepAsync(SleepDuration);
+
+            // The subject never reports itself bootstrapped, so each lap must attempt it again.
+            mockSubject.Verify(x => x.BootStrapAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         }
 
-         [Theory()]
-         [InlineData(true)]
-         [InlineData(false)]
-          public async Task When_Success_IsBootstrapped_Is_True(bool failed)
-          {
-              var subject = new FakeBootstrappable(failed);
-              using var tcs = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-              var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
-              {
-                  SleepDuration = TimeSpan.FromMilliseconds(50)
-              };
+        [Fact]
+        public async Task When_Success_Bootstrap_Do_Not_Repeat()
+        {
+            var clock = new SteppableClock();
+            var mockSubject = new Mock<IBootstrappable>();
+            mockSubject.Setup(x => x.IsBootstrapped).Returns(true);
 
-              if (failed)
-              {
-                  subject.DeferredExceptions.Add(new Exception());
-              }
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(mockSubject.Object);
 
-              bootStrapper.Start(subject);
+            // Reaching the sleep means a whole lap ran and declined to bootstrap; a second lap proves
+            // it stays declined. Neither needs the test to wait and see.
+            await clock.WaitForSleepAsync(SleepDuration);
+            clock.Advance(SleepDuration);
+            await clock.WaitForSleepAsync(SleepDuration);
 
-              if (failed)
-              {
-                  // For failure case, wait for bootstrap to be attempted and verify state
-                  await AsyncTestHelper.WaitForConditionAsync(
-                      () => subject.BootstrapAttempted,
-                      timeout: TimeSpan.FromSeconds(5));
+            mockSubject.Verify(x => x.BootStrapAsync(It.IsAny<CancellationToken>()), Times.Never);
+        }
 
-                  Assert.False(subject.IsBootstrapped);
-                  Assert.True(subject.DeferredExceptions.Any());
-              }
-              else
-              {
-                  // For success case, poll until bootstrapped (instead of fixed delay)
-                  var bootstrapped = await AsyncTestHelper.WaitForConditionAsync(
-                      () => subject.IsBootstrapped,
-                      timeout: TimeSpan.FromSeconds(30));
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task When_Success_IsBootstrapped_Is_True(bool failed)
+        {
+            var clock = new SteppableClock();
+            var subject = new FakeBootstrappable(failed);
 
-                  Assert.True(bootstrapped, "Expected IsBootstrapped to be true after successful bootstrap");
-              }
-          }
-         [Fact]
-         public async Task When_Bootstrap_Defers_Failure_Without_Throwing_Failure_Is_Not_Cleared()
-         {
-             // Cluster.BootStrapAsync records a bootstrap failure in DeferredExceptions and returns
-             // normally rather than throwing, so a normal return must not be reported as success.
-             var subject = new DeferringBootstrappable();
-             using var tcs = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-             var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
-             {
-                 SleepDuration = TimeSpan.FromMilliseconds(50)
-             };
+            // Start un-bootstrapped either way, so a subject which reports success reports it because
+            // the bootstrapper made it so, not because that was its state to begin with.
+            subject.DeferredExceptions.Add(new Exception("Earlier failure."));
 
-             // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
-             subject.DeferredExceptions.Add(new Exception("Earlier failure."));
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(subject);
 
-             bootStrapper.Start(subject);
+            await clock.WaitForSleepAsync(SleepDuration);
 
-             // Retrying at all proves the failed attempt was not mistaken for a success. The subject
-             // blocks on entry to the second attempt, so observing it means the first attempt has been
-             // fully processed and the list cannot change underneath the assertions below.
-             var retried = await AsyncTestHelper.WaitForConditionAsync(
-                 () => subject.AttemptCount >= 2,
-                 timeout: TimeSpan.FromSeconds(5));
+            Assert.Equal(1, subject.AttemptCount);
+            if (failed)
+            {
+                Assert.False(subject.IsBootstrapped);
+                Assert.NotEmpty(subject.DeferredExceptions);
+            }
+            else
+            {
+                Assert.True(subject.IsBootstrapped);
+                Assert.Empty(subject.DeferredExceptions);
+            }
+        }
 
-             Assert.True(retried, "Expected the bootstrapper to keep retrying after a deferred failure");
-             Assert.False(subject.IsBootstrapped);
-             Assert.NotEmpty(subject.DeferredExceptions);
+        [Fact]
+        public async Task When_Bootstrap_Defers_Failure_Without_Throwing_Failure_Is_Not_Cleared()
+        {
+            // Cluster.BootStrapAsync records a bootstrap failure in DeferredExceptions and returns
+            // normally rather than throwing, so a normal return must not be reported as success.
+            var clock = new SteppableClock();
+            var subject = new DeferringBootstrappable();
 
-             // Stale failures are still discarded, so repeated attempts must not accumulate.
-             Assert.Single(subject.DeferredExceptions);
+            // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
+            subject.DeferredExceptions.Add(new Exception("Earlier failure."));
 
-             // Let the blocked attempt finish so the bootstrapper loop unwinds on cancellation.
-             subject.Release();
-         }
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(subject);
 
-         [Fact]
-         public async Task When_Subject_Clears_Its_Own_Failures_This_Attempts_Failure_Survives()
-         {
-             // CouchbaseBucket clears DeferredExceptions itself before recording a new failure, so the
-             // stale entries cannot be discarded by position — that would remove this attempt's failure
-             // instead, report success and stop the retry loop.
-             var subject = new ClearingBootstrappable();
-             using var tcs = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-             var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
-             {
-                 SleepDuration = TimeSpan.FromMilliseconds(50)
-             };
+            await clock.WaitForSleepAsync(SleepDuration);
 
-             // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
-             subject.DeferredExceptions.Add(new Exception("Earlier failure."));
+            // This attempt's deferred failure survived the attempt, so the failure was not mistaken
+            // for a success — while the stale one it replaced was still discarded.
+            Assert.False(subject.IsBootstrapped);
+            Assert.Single(subject.DeferredExceptions);
 
-             bootStrapper.Start(subject);
+            clock.Advance(SleepDuration);
+            await clock.WaitForSleepAsync(SleepDuration);
 
-             var retried = await AsyncTestHelper.WaitForConditionAsync(
-                 () => subject.AttemptCount >= 2,
-                 timeout: TimeSpan.FromSeconds(5));
+            // Retrying at all confirms the loop did not stop, and repeated attempts do not accumulate.
+            Assert.Equal(2, subject.AttemptCount);
+            Assert.Single(subject.DeferredExceptions);
+        }
 
-             Assert.True(retried, "Expected the bootstrapper to keep retrying; the new failure was discarded");
-             Assert.False(subject.IsBootstrapped);
-             Assert.Single(subject.DeferredExceptions);
+        [Fact]
+        public async Task When_Subject_Clears_Its_Own_Failures_This_Attempts_Failure_Survives()
+        {
+            // CouchbaseBucket clears DeferredExceptions itself before recording a new failure, so the
+            // stale entries cannot be discarded by position — that would remove this attempt's failure
+            // instead, report success and stop the retry loop.
+            var clock = new SteppableClock();
+            var subject = new ClearingBootstrappable();
 
-             subject.Release();
-         }
+            // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
+            subject.DeferredExceptions.Add(new Exception("Earlier failure."));
 
-         [Fact]
-         public async Task When_Bootstrap_Throws_Failures_Do_Not_Accumulate()
-         {
-             // BucketBase.BootStrapAsync throws rather than defers, and the bootstrapper records the
-             // exception on every poll. Stale failures must still be discarded or the list grows
-             // without bound for as long as the subject stays broken.
-             var subject = new ThrowingBootstrappable();
-             using var tcs = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-             var bootStrapper = new Bootstrapper(tcs, new Mock<ILogger<Bootstrapper>>().Object)
-             {
-                 SleepDuration = TimeSpan.FromMilliseconds(50)
-             };
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(subject);
 
-             // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
-             subject.DeferredExceptions.Add(new Exception("Earlier failure."));
+            await clock.WaitForSleepAsync(SleepDuration);
 
-             bootStrapper.Start(subject);
+            Assert.False(subject.IsBootstrapped);
+            Assert.Single(subject.DeferredExceptions);
 
-             // The subject blocks on entry to the third attempt, so observing it means the first two
-             // were processed to completion and the list cannot change under the assertion.
-             var retried = await AsyncTestHelper.WaitForConditionAsync(
-                 () => subject.AttemptCount >= 3,
-                 timeout: TimeSpan.FromSeconds(5));
+            clock.Advance(SleepDuration);
+            await clock.WaitForSleepAsync(SleepDuration);
 
-             Assert.True(retried, "Expected the bootstrapper to keep retrying after a thrown failure");
-             Assert.False(subject.IsBootstrapped);
+            Assert.Equal(2, subject.AttemptCount);
+            Assert.Single(subject.DeferredExceptions);
+        }
 
-             // Only the most recent attempt's failure is retained, however many attempts have run.
-             Assert.Single(subject.DeferredExceptions);
+        [Fact]
+        public async Task When_Bootstrap_Throws_Failures_Do_Not_Accumulate()
+        {
+            // BucketBase.BootStrapAsync throws rather than defers, and the bootstrapper records the
+            // exception on every poll. Stale failures must still be discarded or the list grows
+            // without bound for as long as the subject stays broken.
+            var clock = new SteppableClock();
+            var subject = new ThrowingBootstrappable();
 
-             subject.Release();
-         }
-    }
+            // Start un-bootstrapped, so the bootstrapper actually makes an attempt.
+            subject.DeferredExceptions.Add(new Exception("Earlier failure."));
 
-    /// <summary>
-    /// Records a bootstrap failure the way <see cref="Cluster"/> does — deferred, without throwing.
-    /// </summary>
-    public class DeferringBootstrappable : IBootstrappable
-    {
-        private readonly TaskCompletionSource<bool> _released =
-            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(subject);
 
-        private int _attemptCount;
+            await clock.WaitForSleepAsync(SleepDuration);
 
-        public int AttemptCount => Volatile.Read(ref _attemptCount);
+            Assert.False(subject.IsBootstrapped);
+            Assert.Single(subject.DeferredExceptions);
+
+            clock.Advance(SleepDuration);
+            await clock.WaitForSleepAsync(SleepDuration);
+
+            // Only the most recent attempt's failure is retained, however many attempts have run.
+            Assert.Equal(2, subject.AttemptCount);
+            Assert.Single(subject.DeferredExceptions);
+        }
+
+        [Fact]
+        public async Task Bootstrap_Is_Not_Retried_Until_The_Sleep_Duration_Has_Elapsed()
+        {
+            var clock = new SteppableClock();
+            var subject = new DeferringBootstrappable();
+            subject.DeferredExceptions.Add(new Exception("Earlier failure."));
+
+            using var bootStrapper = CreateBootstrapper(clock);
+            bootStrapper.Start(subject);
+
+            await clock.WaitForSleepAsync(SleepDuration);
+
+            // Just short of the configured duration is not enough: the loop is waiting on the clock it
+            // was given, for as long as it was told to.
+            clock.Advance(SleepDuration - TimeSpan.FromTicks(1));
+            Assert.Equal(1, subject.AttemptCount);
+
+            clock.Advance(TimeSpan.FromTicks(1));
+            await clock.WaitForSleepAsync(SleepDuration);
+
+            Assert.Equal(2, subject.AttemptCount);
+        }
 
         /// <summary>
-        /// Unblocks the second and subsequent attempts.
+        /// Common state for the subjects below, which differ only in how an attempt records its
+        /// outcome — the behaviour the bootstrapper has to cope with.
         /// </summary>
-        public void Release() => _released.TrySetResult(true);
-
-        async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
+        private abstract class BootstrappableBase : IBootstrappable
         {
-            if (Interlocked.Increment(ref _attemptCount) >= 2)
+            private int _attemptCount;
+
+            public int AttemptCount => Volatile.Read(ref _attemptCount);
+
+            Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
             {
-                // Hold from the second attempt onwards, before recording anything. The count is
-                // incremented first, so a caller which sees it reach 2 knows the first attempt was
-                // processed to completion and that no further mutation can occur until Release.
-                await _released.Task.ConfigureAwait(false);
+                Interlocked.Increment(ref _attemptCount);
+                Attempt();
+                return Task.CompletedTask;
             }
 
-            DeferredExceptions.Add(new Exception("Bootstrapping has failed."));
+            /// <summary>
+            /// Records the outcome of one bootstrap attempt, the way the real subject would.
+            /// </summary>
+            protected abstract void Attempt();
+
+            public bool IsBootstrapped => !DeferredExceptions.Any();
+            public List<Exception> DeferredExceptions { get; } = new();
         }
-
-        public bool IsBootstrapped => !DeferredExceptions.Any();
-        public List<Exception> DeferredExceptions { get; } = new List<Exception>();
-    }
-
-    /// <summary>
-    /// Clears the deferred failures before recording a new one, the way CouchbaseBucket does.
-    /// </summary>
-    public class ClearingBootstrappable : IBootstrappable
-    {
-        private readonly TaskCompletionSource<bool> _released =
-            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        private int _attemptCount;
-
-        public int AttemptCount => Volatile.Read(ref _attemptCount);
 
         /// <summary>
-        /// Unblocks the second and subsequent attempts.
+        /// Records a bootstrap failure the way <see cref="Cluster"/> does — deferred, without throwing.
         /// </summary>
-        public void Release() => _released.TrySetResult(true);
-
-        async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
+        private sealed class DeferringBootstrappable : BootstrappableBase
         {
-            if (Interlocked.Increment(ref _attemptCount) >= 2)
-            {
-                await _released.Task.ConfigureAwait(false);
-            }
-
-            DeferredExceptions.Clear();
-            DeferredExceptions.Add(new Exception("Bootstrapping has failed."));
+            protected override void Attempt() =>
+                DeferredExceptions.Add(new Exception("Bootstrapping has failed."));
         }
-
-        public bool IsBootstrapped => !DeferredExceptions.Any();
-        public List<Exception> DeferredExceptions { get; } = new List<Exception>();
-    }
-
-    /// <summary>
-    /// Throws from the bootstrap the way BucketBase does, rather than deferring.
-    /// </summary>
-    public class ThrowingBootstrappable : IBootstrappable
-    {
-        private readonly TaskCompletionSource<bool> _released =
-            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        private int _attemptCount;
-
-        public int AttemptCount => Volatile.Read(ref _attemptCount);
 
         /// <summary>
-        /// Unblocks the third and subsequent attempts.
+        /// Clears the deferred failures before recording a new one, the way CouchbaseBucket does.
         /// </summary>
-        public void Release() => _released.TrySetResult(true);
-
-        async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
+        private sealed class ClearingBootstrappable : BootstrappableBase
         {
-            if (Interlocked.Increment(ref _attemptCount) >= 3)
+            protected override void Attempt()
             {
-                await _released.Task.ConfigureAwait(false);
+                DeferredExceptions.Clear();
+                DeferredExceptions.Add(new Exception("Bootstrapping has failed."));
+            }
+        }
+
+        /// <summary>
+        /// Throws from the bootstrap the way BucketBase does, rather than deferring.
+        /// </summary>
+        private sealed class ThrowingBootstrappable : BootstrappableBase
+        {
+            protected override void Attempt() => throw new Exception("Bootstrapping has failed.");
+        }
+
+        /// <summary>
+        /// Fails by throwing, or succeeds by clearing the failures which held it back — as a subject
+        /// which has just bootstrapped does.
+        /// </summary>
+        private sealed class FakeBootstrappable : BootstrappableBase
+        {
+            private readonly bool _hasFailed;
+
+            public FakeBootstrappable(bool hasFailed)
+            {
+                _hasFailed = hasFailed;
             }
 
-            throw new Exception("Bootstrapping has failed.");
-        }
-
-        public bool IsBootstrapped => !DeferredExceptions.Any();
-        public List<Exception> DeferredExceptions { get; } = new List<Exception>();
-    }
-
-    public class FakeBootstrappable : IBootstrappable
-    {
-        private bool _hasFailed;
-
-        public FakeBootstrappable(bool hasFailed)
-        {
-            _hasFailed = hasFailed;
-        }
-
-        public bool BootstrapAttempted { get; private set; }
-
-        Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
-        {
-            BootstrapAttempted = true;
-            if (_hasFailed)
+            protected override void Attempt()
             {
-                throw new Exception("Bootstrapping has failed.");
-            }
-            return Task.CompletedTask;
-        }
+                if (_hasFailed)
+                {
+                    throw new Exception("Bootstrapping has failed.");
+                }
 
-        public bool IsBootstrapped => !DeferredExceptions.Any();
-        public List<Exception> DeferredExceptions { get; } = new List<Exception>();
+                DeferredExceptions.Clear();
+            }
+        }
     }
 }

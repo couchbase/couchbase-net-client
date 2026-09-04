@@ -13,11 +13,13 @@ namespace Couchbase.Core.Bootstrapping
     {
         private readonly CancellationTokenSource _tokenSource;
         private readonly ILogger<Bootstrapper> _logger;
+        private readonly TimeProvider _timeProvider;
         private volatile int _disposed;
 
-        public Bootstrapper(ILogger<Bootstrapper> logger) : this(new CancellationTokenSource(), logger) { }
+        public Bootstrapper(ILogger<Bootstrapper> logger, TimeProvider timeProvider)
+            : this(new CancellationTokenSource(), logger, timeProvider) { }
 
-        public Bootstrapper(CancellationTokenSource tokenSource, ILogger<Bootstrapper> logger)
+        public Bootstrapper(CancellationTokenSource tokenSource, ILogger<Bootstrapper> logger, TimeProvider timeProvider)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (tokenSource == null)
@@ -28,10 +30,15 @@ namespace Couchbase.Core.Bootstrapping
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(logger));
             }
+            if (timeProvider == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(timeProvider));
+            }
             // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
             _tokenSource = tokenSource;
             _logger = logger;
+            _timeProvider = timeProvider;
         }
 
         /// <inheritdoc />
@@ -109,7 +116,7 @@ namespace Couchbase.Core.Bootstrapping
                     }
                 }
 
-                await Task.Delay(SleepDuration, token).ConfigureAwait(false);
+                await _timeProvider.Delay(SleepDuration, token).ConfigureAwait(false);
             }
         }
 
