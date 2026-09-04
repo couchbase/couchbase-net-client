@@ -4,6 +4,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
@@ -76,23 +77,29 @@ namespace Couchbase.Core.IO
             }
         }
 
-        public static Exception CreateException(this ResponseStatus status, IOperation op, IBucket bucket) => CreateException(status, op, bucket.Name);
+        public static Exception CreateException(this ResponseStatus status, IOperation op, IBucket bucket,
+            TypedRedactor redactor) => CreateException(status, op, bucket.Name, redactor);
 
-        public static Exception CreateException(this ResponseStatus status, IOperation op, string bucketName)
+        public static Exception CreateException(this ResponseStatus status, IOperation op, string bucketName,
+            TypedRedactor redactor)
         {
             var ctx = new KeyValueErrorContext
             {
-                BucketName = bucketName,
+                BucketName = redactor.MetaDataString(bucketName),
                 ClientContextId = op.Opaque.ToStringInvariant(),
-                DocumentKey = op.Key,
+                //SelectBucket carries the bucket name in Key rather than a document key, so it is
+                //metadata - tagging it as user data would have it stripped at Partial redaction.
+                DocumentKey = op.OpCode == OpCode.SelectBucket
+                    ? redactor.MetaDataString(op.Key)
+                    : redactor.UserDataString(op.Key),
                 Cas = op.Cas,
-                CollectionName = op.CName,
-                ScopeName = op.SName,
+                CollectionName = redactor.MetaDataString(op.CName),
+                ScopeName = redactor.MetaDataString(op.SName),
                 Message = op.LastErrorCode?.ToString(),
                 Status = status,
                 OpCode = op.OpCode,
-                DispatchedFrom = op.LastDispatchedFrom,
-                DispatchedTo = op.LastDispatchedTo,
+                DispatchedFrom = redactor.SystemDataString(op.LastDispatchedFrom),
+                DispatchedTo = redactor.SystemDataString(op.LastDispatchedTo),
                 RetryReasons = op.RetryReasons
             };
 

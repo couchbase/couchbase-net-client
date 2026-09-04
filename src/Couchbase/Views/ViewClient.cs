@@ -145,8 +145,8 @@ namespace Couchbase.Views
                             {
                                 Context = new ViewContextError
                                 {
-                                    DesignDocumentName = query.DesignDocName,
-                                    ViewName = query.ViewName,
+                                    DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
+                                    ViewName = _redactor.MetaDataString(query.ViewName),
                                     ClientContextId = query.ClientContextId,
                                     HttpStatus = response.StatusCode,
                                     Errors = viewResult.Message
@@ -164,8 +164,8 @@ namespace Couchbase.Views
                             {
                                 Context = new ViewContextError
                                 {
-                                    DesignDocumentName = query.DesignDocName,
-                                    ViewName = query.ViewName,
+                                    DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
+                                    ViewName = _redactor.MetaDataString(query.ViewName),
                                     ClientContextId = query.ClientContextId,
                                     HttpStatus = response.StatusCode,
                                     Errors = viewResult.Message
@@ -189,8 +189,8 @@ namespace Couchbase.Views
                 operationElapsed = requestStopwatch.Elapsed;
                 var context = new ViewContextError
                 {
-                    DesignDocumentName = query.DesignDocName,
-                    ViewName = query.ViewName,
+                    DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
+                    ViewName = _redactor.MetaDataString(query.ViewName),
                     ClientContextId = query.ClientContextId,
                     HttpStatus = HttpStatusCode.RequestTimeout
                 };

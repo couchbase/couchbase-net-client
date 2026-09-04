@@ -81,7 +81,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer ?? throw new InvalidOperationException(),
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new AnalyticsOptions());
 
@@ -137,7 +137,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions().Priority(priority));
         }
@@ -178,7 +178,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
             Assert.Null(client.LastActivity);
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions());
@@ -236,7 +236,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
             try
             {
@@ -292,7 +292,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, serviceUriProvider, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
             var exception = await Assert.ThrowsAsync<CouchbaseException>(
                 () => client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions())
@@ -343,7 +343,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClientFactory, serviceUriProvider, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
 
             var noException = await Record.ExceptionAsync(
