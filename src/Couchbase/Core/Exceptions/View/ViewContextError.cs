@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Retry;
@@ -30,8 +31,14 @@ namespace Couchbase.Core.Exceptions.View
 
         public List<RetryReason>? RetryReasons { get; internal set; }
 
+        //Bound from RedactionSafeOptions rather than the context's own JsonTypeInfo so that
+        //redaction tags serialize as literal markers. Cached because resolving type info is a
+        //dictionary lookup, and this runs on every ToString().
+        private static readonly JsonTypeInfo<ViewContextError> RedactionSafeTypeInfo =
+            (JsonTypeInfo<ViewContextError>)InternalSerializationContext.RedactionSafeOptions.GetTypeInfo(typeof(ViewContextError));
+
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.ViewContextError);
+            JsonSerializer.Serialize(this, RedactionSafeTypeInfo);
     }
 }
 

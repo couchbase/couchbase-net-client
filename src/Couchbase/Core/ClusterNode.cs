@@ -438,14 +438,15 @@ namespace Couchbase.Core
                 configOp.Revision = latestVersionOnClient.Value.Revision;
             }
 
+            var redactor = _redactor;
             var config = await ExecuteInternalOperationAsync(ConnectionPool, configOp,
                 ExecuteOpImmediatelyAsync,
-                static (status, op) =>
+                (status, op) =>
                 {
                     if (status == ResponseStatus.KeyNotFound)
                     {
                         //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
-                        throw status.CreateException(op, string.Empty);
+                        throw status.CreateException(op, string.Empty, redactor);
                     }
 
                     //Return back the config and swap any $HOST placeholders
@@ -824,16 +825,21 @@ namespace Couchbase.Core
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
                     {
-                        BucketName = Owner?.Name,
+                        BucketName = _redactor.MetaDataString(Owner?.Name),
                         ClientContextId = op.Opaque.ToStringInvariant(),
-                        DocumentKey = op.Key,
+                        //SelectBucket reaches this path too, and its Key is the bucket name rather
+                        //than a document key, so it is metadata - as user data it would be stripped
+                        //at Partial redaction. Matches ResponseStatusExtensions.CreateException.
+                        DocumentKey = op.OpCode == OpCode.SelectBucket
+                            ? _redactor.MetaDataString(op.Key)
+                            : _redactor.UserDataString(op.Key),
                         Cas = op.Cas,
                         Status = ResponseStatus.OperationTimeout,
-                        CollectionName = op.CName,
-                        ScopeName = op.SName,
+                        CollectionName = _redactor.MetaDataString(op.CName),
+                        ScopeName = _redactor.MetaDataString(op.SName),
                         OpCode = op.OpCode,
-                        DispatchedFrom = op.LastDispatchedFrom,
-                        DispatchedTo = op.LastDispatchedTo,
+                        DispatchedFrom = _redactor.SystemDataString(op.LastDispatchedFrom),
+                        DispatchedTo = _redactor.SystemDataString(op.LastDispatchedTo),
                         RetryReasons = op.RetryReasons
                     });
                 }
@@ -981,13 +987,14 @@ namespace Couchbase.Core
                     Span = rootSpan,
                 };
 
+                var redactor = _redactor;
                 await ExecuteInternalOperationAsync(connection, selectBucketOp,
                     ExecuteOp,
-                    static (status, op) =>
+                    (status, op) =>
                     {
                         if (status != ResponseStatus.Success)
                         {
-                            throw status.CreateException(op, op.Key);
+                            throw status.CreateException(op, op.Key, redactor);
                         }
 
                         return (object) null; // We don't need the return value

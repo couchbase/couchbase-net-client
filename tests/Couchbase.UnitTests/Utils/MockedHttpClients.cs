@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests.Utils
     internal static class MockedHttpClients
     {
         public static IQueryClient QueryClient([NotNull] Queue<Task<HttpResponseMessage>> responses,
-            bool enableEnhancedPreparedStatements)
+            bool enableEnhancedPreparedStatements, IRedactor redactor = null)
         {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -68,13 +68,15 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance)
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object,
+                NoopRequestTracer.Instance, redactor ?? TestRedactor.None)
             {
                 EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
             };
         }
 
-        internal static IAnalyticsClient AnalyticsClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
+        internal static IAnalyticsClient AnalyticsClient([NotNull] Queue<Task<HttpResponseMessage>> responses,
+            IRedactor redactor = null)
         {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -114,10 +116,11 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, redactor ?? TestRedactor.None);
         }
 
-        internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
+        internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses,
+            IRedactor redactor = null)
         {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -157,10 +160,11 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(nodeMock.Object);
 
             return new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, redactor ?? TestRedactor.None);
         }
 
-        internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
+        internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses,
+            IRedactor redactor = null)
         {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -182,7 +186,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
-                new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
+                redactor ?? TestRedactor.None, NoopRequestTracer.Instance);
         }
     }
 }

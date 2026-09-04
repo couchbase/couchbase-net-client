@@ -36,6 +36,7 @@ namespace Couchbase.Analytics
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IRedactor _redactor;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         [RequiresUnreferencedCode(AnalyticsRequiresUnreferencedMembersWarning)]
@@ -45,12 +46,14 @@ namespace Couchbase.Analytics
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
             ILogger<AnalyticsClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IRedactor redactor)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
         }
 
@@ -145,8 +148,8 @@ namespace Couchbase.Analytics
                             {
                                 ClientContextId = options.ClientContextIdValue,
                                 HttpStatus = response.StatusCode,
-                                Statement = statement,
-                                Parameters = options.GetParametersAsJson(),
+                                Statement = _redactor.UserDataString(statement),
+                                Parameters = _redactor.UserDataString(options.GetParametersAsJson()),
                                 Errors = result.Errors
                             };
 
@@ -188,8 +191,8 @@ namespace Couchbase.Analytics
                     var context = new AnalyticsErrorContext
                     {
                         ClientContextId = options.ClientContextIdValue,
-                        Statement = statement,
-                        Parameters = options.GetParametersAsJson()
+                        Statement = _redactor.UserDataString(statement),
+                        Parameters = _redactor.UserDataString(options.GetParametersAsJson())
                     };
 
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
@@ -223,8 +226,8 @@ namespace Couchbase.Analytics
                     var context = new AnalyticsErrorContext
                     {
                         ClientContextId = options.ClientContextIdValue,
-                        Statement = statement,
-                        Parameters = options.GetParametersAsJson()
+                        Statement = _redactor.UserDataString(statement),
+                        Parameters = _redactor.UserDataString(options.GetParametersAsJson())
                     };
 
                     // Retriable transport error → exclude this node and let the orchestrator re-dispatch

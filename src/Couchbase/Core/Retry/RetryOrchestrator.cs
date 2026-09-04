@@ -200,7 +200,7 @@ namespace Couchbase.Core.Retry
                             case (ResponseStatus.RangeScanCanceled, OpCode.RangeScanContinue or OpCode.RangeScanCancel):
                             case (ResponseStatus.UnknownCollection, OpCode.RangeScanContinue or OpCode.RangeScanCreate):
                                 // Not sure what this does since we don't throw the exception?
-                                status.CreateException(CreateKeyValueErrorContext(bucket, operation, status), operation);
+                                status.CreateException(CreateKeyValueErrorContext(bucket, operation, status, _redactor), operation);
                                 break;
 
                             case (ResponseStatus.UnknownScope or ResponseStatus.UnknownCollection, _):
@@ -240,7 +240,7 @@ namespace Couchbase.Core.Retry
                             outcomeErrorType = typeof(DocumentNotFoundException);
                             return status;
                         }
-                        throw status.CreateException(operation, bucket);
+                        throw status.CreateException(operation, bucket, _redactor);
                     }
                     catch (CouchbaseException e) when (e is IRetryable && !tokenPair.IsCancellationRequested)
                     {
@@ -261,7 +261,7 @@ namespace Couchbase.Core.Retry
             }
             catch (OperationCanceledException ex) when (!tokenPair.IsExternalCancellation)
             {
-                var errorContext = CreateKeyValueErrorContext(bucket, operation, ResponseStatus.OperationTimeout);
+                var errorContext = CreateKeyValueErrorContext(bucket, operation, ResponseStatus.OperationTimeout, _redactor);
                 var elapsed = operation.Elapsed;
                 if (bucket.Context.ClusterOptions.Experiments.EnableTimeoutThresholdHeuristic)
                 {
@@ -368,18 +368,19 @@ namespace Couchbase.Core.Retry
             operation.IncrementAttempts(reason);
         }
 
-        private static KeyValueErrorContext CreateKeyValueErrorContext(BucketBase bucket, IOperation operation, ResponseStatus status) =>
+        private static KeyValueErrorContext CreateKeyValueErrorContext(BucketBase bucket, IOperation operation,
+            ResponseStatus status, TypedRedactor redactor) =>
             new()
             {
-                BucketName = bucket.Name,
+                BucketName = redactor.MetaDataString(bucket.Name),
                 Cas = operation.Cas,
                 Status = status,
                 ClientContextId = operation.ClientContextId,
-                ScopeName = operation.SName,
-                CollectionName = operation.CName,
-                DispatchedFrom = operation.LastDispatchedFrom,
-                DispatchedTo = operation.LastDispatchedTo,
-                DocumentKey = operation.Key,
+                ScopeName = redactor.MetaDataString(operation.SName),
+                CollectionName = redactor.MetaDataString(operation.CName),
+                DispatchedFrom = redactor.SystemDataString(operation.LastDispatchedFrom),
+                DispatchedTo = redactor.SystemDataString(operation.LastDispatchedTo),
+                DocumentKey = redactor.UserDataString(operation.Key),
                 Message = operation.LastErrorCode?.ToString(),
                 OpCode = operation.OpCode,
                 RetryReasons = operation.RetryReasons,

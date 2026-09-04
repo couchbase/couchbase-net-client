@@ -218,7 +218,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = result.StatusCode,
                         Message = body,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -343,7 +343,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = createResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -459,7 +459,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = createResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -528,7 +528,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = createResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -607,7 +607,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = createResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -710,7 +710,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = createResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     //Throw specific exception if a rate limiting exception is thrown.
@@ -822,7 +822,7 @@ namespace Couchbase.Management.Collections
                     {
                         HttpStatus = updateResult.StatusCode,
                         Message = contentBody,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     updateResult.ThrowIfRateLimitingError(contentBody, ctx);
