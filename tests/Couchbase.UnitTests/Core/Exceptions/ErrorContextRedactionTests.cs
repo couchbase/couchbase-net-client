@@ -14,7 +14,13 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.UnitTests.Helpers;
+using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions;
+using Couchbase.Management.Collections;
 using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -119,8 +125,9 @@ namespace Couchbase.UnitTests.Core.Exceptions
 
     /// <summary>
     /// The KV path is covered above by exercising CreateException directly. These drive the HTTP
-    /// service clients so that the remaining context types have a site pinned - without them, a
-    /// future edit to any of the ~30 assignment sites drops redaction with green tests.
+    /// service clients and a manager so that every error-context type has at least one site
+    /// pinned - without them, a future edit to any of the ~30 assignment sites drops redaction
+    /// with green tests.
     /// </summary>
     public class ErrorContextRedactionClientTests
     {
@@ -237,6 +244,40 @@ namespace Couchbase.UnitTests.Core.Exceptions
             // Design doc and view names are metadata, so they are tagged only at Full.
             Assert.Equal("<md>beers</md>", ctx.DesignDocumentName);
             Assert.Equal("<md>brewery_beers</md>", ctx.ViewName);
+        }
+
+        [Fact]
+        public async Task ManagementErrorContext_RedactsTheManagementUri()
+        {
+            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.InternalServerError,
+                Content = new StringContent("boom")
+            });
+
+            var baseUri = new Uri("http://localhost:8091/");
+            var nodeAdapterMock = new Mock<NodeAdapter>();
+            nodeAdapterMock.Object.CanonicalHostname = "localhost";
+
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.ManagementUri).Returns(baseUri);
+            nodeMock.Setup(n => n.NodesAdapter).Returns(nodeAdapterMock.Object);
+            var uriProvider = new Mock<IServiceUriProvider>();
+            uriProvider.Setup(x => x.GetRandomManagementUri()).Returns(baseUri);
+            uriProvider.Setup(x => x.GetRandomManagementNode()).Returns(nodeMock.Object);
+
+            var manager = new CollectionManager("default", new Mock<BucketConfig>().Object,
+                uriProvider.Object, new MockHttpClientFactory(new HttpClient(handler)),
+                new Mock<ILogger<CollectionManager>>().Object, TestRedactor.Full);
+
+            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+                manager.CreateScopeAsync("scope1"));
+
+            var ctx = Assert.IsType<ManagementErrorContext>(ex.Context);
+
+            // The management URI is an endpoint, so it is system data and tagged at Full.
+            Assert.StartsWith("<sd>", ctx.Statement);
+            Assert.Contains(baseUri.Host, ctx.Statement);
         }
     }
 }
