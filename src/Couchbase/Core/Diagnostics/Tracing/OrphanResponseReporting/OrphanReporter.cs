@@ -47,10 +47,25 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
         internal uint TotalCount => _kvOrphanCount + _viewOrphanCount + _queryOrphanCount + _searchOrphanCount + _analyticsOrphanCount;
 
         public OrphanReporter(ILogger<OrphanReporter> logger, OrphanOptions options)
+            : this(logger, options, startProcessing: true)
+        {
+        }
+
+        /// <summary>
+        /// Builds the reporter, optionally without starting the background loops which drive it. Those
+        /// loops are only a sleep around <see cref="DrainQueue"/> and <see cref="EmitSummary"/>, so a
+        /// test which starts neither can drive those two steps itself and see exactly what each does.
+        /// </summary>
+        internal OrphanReporter(ILogger<OrphanReporter> logger, OrphanOptions options, bool startProcessing)
         {
             _logger = logger;
             Interval = (int)options.EmitInterval.TotalMilliseconds;
             SampleSize = options.SampleSize;
+
+            if (!startProcessing)
+            {
+                return;
+            }
 
             // Ensure that we don't flow the ExecutionContext into the long running tasks
             using (ExecutionContext.SuppressFlow())
@@ -66,32 +81,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             {
                 try
                 {
-                    // This routine is the only one that transitions _hasOrphans from true to false,
-                    // so we don't need to recheck this inside the lock
-                    if (_hasOrphans)
-                    {
-                        lock (_lock)
-                        {
-                            var result = new OrphanReport();
-                            AddServiceToResult(
-                                ref result.KeyValue, _kvOrphans, ref _kvOrphanCount);
-                            AddServiceToResult(
-                                ref result.ViewQuery, _viewOrphans, ref _viewOrphanCount);
-                            AddServiceToResult(
-                                ref result.N1QlQuery, _queryOrphans, ref _queryOrphanCount);
-                            AddServiceToResult(
-                                ref result.SearchQuery, _searchOrphans, ref _searchOrphanCount);
-                            AddServiceToResult(
-                                ref result.AnalyticsQuery, _analyticsOrphans, ref _analyticsOrphanCount);
-
-                            if (result.HasReports && _logger.IsEnabled(LogLevel.Warning))
-                            {
-                                LogOrphanedResponses(JsonSerializer.Serialize(result, OrphanReportingSerializerContext.Default.OrphanReport));
-                            }
-
-                            _hasOrphans = false;
-                        }
-                    }
+                    EmitSummary();
 
                     await Task.Delay(Interval, _source.Token).ConfigureAwait(false);
                 }
@@ -104,49 +94,49 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             }
         }
 
+        /// <summary>
+        /// Writes a summary of the orphans recorded since the last one, if there are any, and resets so
+        /// that the same orphans are not reported again. One step of the summary loop.
+        /// </summary>
+        internal void EmitSummary()
+        {
+            // This routine is the only one that transitions _hasOrphans from true to false,
+            // so we don't need to recheck this inside the lock
+            if (!_hasOrphans)
+            {
+                return;
+            }
+
+            lock (_lock)
+            {
+                var result = new OrphanReport();
+                AddServiceToResult(
+                    ref result.KeyValue, _kvOrphans, ref _kvOrphanCount);
+                AddServiceToResult(
+                    ref result.ViewQuery, _viewOrphans, ref _viewOrphanCount);
+                AddServiceToResult(
+                    ref result.N1QlQuery, _queryOrphans, ref _queryOrphanCount);
+                AddServiceToResult(
+                    ref result.SearchQuery, _searchOrphans, ref _searchOrphanCount);
+                AddServiceToResult(
+                    ref result.AnalyticsQuery, _analyticsOrphans, ref _analyticsOrphanCount);
+
+                if (result.HasReports && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    LogOrphanedResponses(JsonSerializer.Serialize(result, OrphanReportingSerializerContext.Default.OrphanReport));
+                }
+
+                _hasOrphans = false;
+            }
+        }
+
         private async Task ProcessQueue()
         {
             while (!_source.IsCancellationRequested)
             {
                 try
                 {
-                    // Repeat until _source is cancelled or we have no more data AND have waited at least WorkerSleep
-                    while (!_source.IsCancellationRequested && _queue.TryDequeue(out var context))
-                    {
-                        // Here we take out the lock inside the loop. This avoids locking when the queue is empty,
-                        // which is by far the most common. It also ensures that, in the case of a flood, we don't
-                        // hold the lock too long and prevent the summary from being output.
-                        lock (_lock)
-                        {
-                            switch (context.ServiceType)
-                            {
-                                case OuterRequestSpans.ServiceSpan.Kv.Name:
-                                    AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
-                                    break;
-                                case OuterRequestSpans.ServiceSpan.ViewQuery:
-                                    AddContextToService(_viewOrphans, context, ref _viewOrphanCount,
-                                        SampleSize);
-                                    break;
-                                case OuterRequestSpans.ServiceSpan.N1QLQuery:
-                                    AddContextToService(_queryOrphans, context, ref _queryOrphanCount,
-                                        SampleSize);
-                                    break;
-                                case OuterRequestSpans.ServiceSpan.SearchQuery:
-                                    AddContextToService(_searchOrphans, context, ref _searchOrphanCount,
-                                        SampleSize);
-                                    break;
-                                case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
-                                    AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount,
-                                        SampleSize);
-                                    break;
-                                default:
-                                    LogUnknownService(context.ServiceType, context.operation_id);
-                                    break;
-                            }
-
-                            _hasOrphans = true; // indicates we have something to process
-                        }
-                    }
+                    DrainQueue();
 
                     // sleep for a little while
                     await Task.Delay(WorkerSleep, _source.Token).ConfigureAwait(false);
@@ -156,6 +146,51 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 catch (Exception exception)
                 {
                     LogOrphanedResponseError(exception);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Moves everything <see cref="Add"/> has queued into the summary collections, sampling each
+        /// service up to <see cref="SampleSize"/> while counting all of them. One step of the queue loop.
+        /// </summary>
+        internal void DrainQueue()
+        {
+            // Repeat until _source is cancelled or we have no more data AND have waited at least WorkerSleep
+            while (!_source.IsCancellationRequested && _queue.TryDequeue(out var context))
+            {
+                // Here we take out the lock inside the loop. This avoids locking when the queue is empty,
+                // which is by far the most common. It also ensures that, in the case of a flood, we don't
+                // hold the lock too long and prevent the summary from being output.
+                lock (_lock)
+                {
+                    switch (context.ServiceType)
+                    {
+                        case OuterRequestSpans.ServiceSpan.Kv.Name:
+                            AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
+                            break;
+                        case OuterRequestSpans.ServiceSpan.ViewQuery:
+                            AddContextToService(_viewOrphans, context, ref _viewOrphanCount,
+                                SampleSize);
+                            break;
+                        case OuterRequestSpans.ServiceSpan.N1QLQuery:
+                            AddContextToService(_queryOrphans, context, ref _queryOrphanCount,
+                                SampleSize);
+                            break;
+                        case OuterRequestSpans.ServiceSpan.SearchQuery:
+                            AddContextToService(_searchOrphans, context, ref _searchOrphanCount,
+                                SampleSize);
+                            break;
+                        case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
+                            AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount,
+                                SampleSize);
+                            break;
+                        default:
+                            LogUnknownService(context.ServiceType, context.operation_id);
+                            break;
+                    }
+
+                    _hasOrphans = true; // indicates we have something to process
                 }
             }
         }
