@@ -19,5 +19,11 @@ namespace Couchbase.UnitTests.Utils
         /// A real redactor that tags user data, for asserting that a field is redacted.
         /// </summary>
         public static IRedactor Partial { get; } = new Redactor(new TypedRedactor(RedactionLevel.Partial));
+
+        /// <summary>
+        /// A real redactor that tags user, meta and system data, for asserting that a field
+        /// classified as metadata or system data is redacted.
+        /// </summary>
+        public static IRedactor Full { get; } = new Redactor(new TypedRedactor(RedactionLevel.Full));
     }
 }
