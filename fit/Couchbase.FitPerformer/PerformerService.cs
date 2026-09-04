@@ -154,7 +154,12 @@ namespace Couchbase.FitPerformer
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkCollectionQueryIndexManagement);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkSearchIndexManagement);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkKv);
-                response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkCircuitBreakers);
+                // SdkCircuitBreakers is deliberately not declared. The driver's CircuitBreakerTest
+                // asserts behaviour .NET does not implement - it probes a half-open circuit with the
+                // next user operation rather than a dedicated canary - so declaring the capability
+                // only produces a permanently red suite. Java, Scala and Kotlin declare it and are
+                // then excluded from those tests by name; Go and Python do not declare it at all,
+                // and Python wraps the C++ core, so the same is true there. See NCBC-4292.
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkKvRangeScan);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkQuery);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.WaitUntilReady);

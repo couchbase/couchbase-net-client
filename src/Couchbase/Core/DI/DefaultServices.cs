@@ -126,7 +126,11 @@ namespace Couchbase.Core.DI
             yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));
             yield return (typeof(IEventingFunctionManagerFactory), new SingletonServiceFactory(typeof(EventingFunctionManagerFactory)));
 
-            yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
+            // Transient, not singleton: a circuit breaker tracks the health of one endpoint, so
+            // each ClusterNode needs its own. Sharing one instance pooled every node's results into
+            // a single decision, so a bad node could open the circuit for healthy nodes while their
+            // successes diluted its error rate. The configuration behind them is still shared.
+            yield return (typeof(ICircuitBreaker), new TransientServiceFactory(typeof(CircuitBreaker)));
             yield return (typeof(CircuitBreakerConfiguration), new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
 
             yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
