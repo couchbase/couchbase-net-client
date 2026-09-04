@@ -194,11 +194,11 @@ namespace Couchbase.Search
                         var ctx = new SearchErrorContext
                         {
                             HttpStatus = response.StatusCode,
-                            IndexName = ftsSearchRequest!.Index,
+                            IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                             ClientContextId = ftsSearchRequest.ClientContextId,
-                            Statement = ftsSearchRequest.Statement,
+                            Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                             Errors = errors,
-                            Query = ftsSearchRequest.ToJson(),
+                            Query = _redactor.UserDataString(ftsSearchRequest.ToJson()),
                             Message = errors
                         };
 
@@ -270,11 +270,11 @@ namespace Couchbase.Search
                             Context = new SearchErrorContext
                             {
                                 HttpStatus = response.StatusCode,
-                                IndexName = ftsSearchRequest!.Index,
+                                IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                                 ClientContextId = ftsSearchRequest.ClientContextId,
-                                Statement = ftsSearchRequest.Statement,
+                                Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                                 Errors = errors,
-                                Query = ftsSearchRequest.ToJson()
+                                Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                             }
                         };
                     }
@@ -302,11 +302,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = ftsSearchRequest!.Index,
+                        IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                         ClientContextId = ftsSearchRequest.ClientContextId,
-                        Statement = ftsSearchRequest.Statement,
+                        Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                         Errors = errors,
-                        Query = ftsSearchRequest.ToJson()
+                        Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                     }
                 };
             }
@@ -340,11 +340,11 @@ namespace Couchbase.Search
                         Context = new SearchErrorContext
                         {
                             HttpStatus = HttpStatusCode.RequestTimeout,
-                            IndexName = ftsSearchRequest!.Index,
+                            IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                             ClientContextId = ftsSearchRequest.ClientContextId,
-                            Statement = ftsSearchRequest.Statement,
+                            Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                             Errors = errors,
-                            Query = ftsSearchRequest.ToJson()
+                            Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                         }
                     };
                     UpdateLastActivity();
@@ -357,11 +357,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = ftsSearchRequest!.Index,
+                        IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                         ClientContextId = ftsSearchRequest.ClientContextId,
-                        Statement = ftsSearchRequest.Statement,
+                        Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                         Errors = errors,
-                        Query = ftsSearchRequest.ToJson()
+                        Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                     }
                 };
             }

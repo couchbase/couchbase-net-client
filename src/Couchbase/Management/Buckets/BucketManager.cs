@@ -106,7 +106,7 @@ namespace Couchbase.Management.Buckets
                 {
                     HttpStatus  = result.StatusCode,
                     Message = body,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 //Throw specific exception if a rate limiting exception is thrown.
@@ -214,7 +214,7 @@ namespace Couchbase.Management.Buckets
                 {
                     HttpStatus = result.StatusCode,
                     Message = body,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 //Throw specific exception if a rate limiting exception is thrown.
@@ -303,7 +303,7 @@ namespace Couchbase.Management.Buckets
                 {
                     HttpStatus = result.StatusCode,
                     Message = body,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 //Throw specific exception if a rate limiting exception is thrown.
@@ -384,7 +384,7 @@ namespace Couchbase.Management.Buckets
                 {
                     HttpStatus = result.StatusCode,
                     Message = body,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 switch (result.StatusCode)
@@ -500,7 +500,7 @@ namespace Couchbase.Management.Buckets
                 {
                     HttpStatus = result.StatusCode,
                     Message = content,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 //Throw specific exception if a rate limiting exception is thrown.
@@ -588,7 +588,7 @@ namespace Couchbase.Management.Buckets
                     {
                         HttpStatus = result.StatusCode,
                         Message = content,
-                        Statement = uri.ToString()
+                        Statement = _redactor.SystemDataString(uri.ToString())
                     };
 
                     if (result.StatusCode == HttpStatusCode.NotFound)
