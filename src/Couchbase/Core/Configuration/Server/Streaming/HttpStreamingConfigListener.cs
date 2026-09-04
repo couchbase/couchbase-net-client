@@ -17,7 +17,9 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 {
     internal class HttpStreamingConfigListener : IDisposable, IAsyncDisposable
     {
-        private const int InitialDelayMs = 0;
+        // Has to start non-zero: the ramp below multiplies, and zero times ten stays zero, which is
+        // how a total failure came to be retried as fast as the failures came back.
+        private const int InitialDelayMs = 100;
         private const int MaxDelayMs = 10000;
         private readonly ILogger<HttpStreamingConfigListener> _logger;
         private readonly ClusterOptions _clusterOptions;
@@ -32,6 +34,13 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private bool _disposed;
 
         public bool Started { get; private set; }
+
+        /// <summary>
+        /// Waits out the backoff between rounds. Replaced in tests, which need the duration asked
+        /// for: a zero-length wait never reaches a clock, so a <see cref="TimeProvider"/> sees nothing.
+        /// </summary>
+        internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } =
+            static (duration, cancellationToken) => Task.Delay(duration, cancellationToken);
 
         public HttpStreamingConfigListener(IConfigUpdateEventSink configSubscriber, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
             IConfigHandler configHandler, ILogger<HttpStreamingConfigListener> logger)
@@ -69,18 +78,31 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         private Task StartBackgroundTask()
         {
+            // Captured once, and used for everything below: Dispose cancels the source and then
+            // disposes it, so reading Token inside the loop would throw into the inner catch, which
+            // logged an ordinary shutdown as "HTTP Streaming error.". This read can still throw if a
+            // Dispose beats the _disposed check above - the same pre-existing window, which used to
+            // sit on the Task.Run overload - and StartListening already documents that.
+            var listenerToken = _cancellationTokenSource.Token;
+
             // Ensure that we don't flow the ExecutionContext into the long running task below
             using var flowControl = ExecutionContext.SuppressFlow();
 
+            // Deliberately not given the token, which it had been passed since 2020: that overload
+            // only declines to start the delegate, so a Dispose between scheduling and dispatch ends
+            // the task Canceled for DisposeAsync to rethrow. The loop checks the token itself.
             return Task.Run(async () =>
             {
                 var delayMs = InitialDelayMs;
-                while (!_cancellationTokenSource.IsCancellationRequested)
+                while (!listenerToken.IsCancellationRequested)
                 {
                     try
                     {
                         var nodes = _configSubscriber?.ClusterNodes.Where(x=>x.HasManagement).ToList().Shuffle();
-                        while (nodes != null && nodes.Any())
+
+                        // Per node, not just per round: a shutdown mid-round would otherwise walk every
+                        // node left in the list, logging each cancellation as "HTTP Streaming error.".
+                        while (nodes != null && nodes.Any() && !listenerToken.IsCancellationRequested)
                         {
                             try
                             {
@@ -103,7 +125,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                                 var response = await httpClient.GetAsync(streamingUri.Uri,
                                     HttpCompletionOption.ResponseHeadersRead,
-                                    _cancellationTokenSource.Token).ConfigureAwait(false);
+                                    listenerToken).ConfigureAwait(false);
 
                                 response.EnsureSuccessStatusCode();
 
@@ -117,7 +139,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                 using var reader = new StreamReader(stream, Encoding.UTF8, false);
 
                                 string? config;
-                                while (!_cancellationTokenSource.IsCancellationRequested &&
+                                while (!listenerToken.IsCancellationRequested &&
                                        (config = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
                                 {
                                     if (config != string.Empty)
@@ -147,10 +169,20 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                     // if we exited the inner loop, then all servers failed and we need to start over.
                     // however, we don't want to create a failstorm in the logs if the failure is 100%
                     // try again, but with an exponential delay of up to 10s.
-                    await Task.Delay(delayMs).ConfigureAwait(false);
+                    try
+                    {
+                        await Delay(TimeSpan.FromMilliseconds(delayMs), listenerToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Disposed while backing off. Waiting it out would leave this loop alive for
+                        // up to ten seconds after the bucket was closed.
+                        break;
+                    }
+
                     delayMs = Math.Min(delayMs * 10, MaxDelayMs);
                 }
-            }, _cancellationTokenSource.Token);
+            });
         }
 
         public void Dispose()
