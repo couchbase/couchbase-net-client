@@ -34,13 +34,14 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
             // A circuit breaker tracks the health of one endpoint. While this was a singleton, one
             // unhealthy node opened the circuit for every node.
             var services = new ClusterOptions().BuildServiceProvider();
+            var config = services.GetRequiredService<CircuitBreakerConfiguration>();
 
             var first = services.GetRequiredService<ICircuitBreaker>();
             var second = services.GetRequiredService<ICircuitBreaker>();
 
             Assert.NotSame(first, second);
 
-            for (var i = 0; i < new CircuitBreakerConfiguration().VolumeThreshold; i++)
+            for (var i = 0; i < config.VolumeThreshold; i++)
             {
                 first.MarkFailure();
             }
@@ -50,7 +51,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         }
 
         [Fact]
-        public void One_Nodes_Failures_Are_Not_Diluted_By_Anothers_Successes()
+        public void Failures_On_One_Node_Are_Not_Diluted_By_Successes_On_Another()
         {
             // The other half of the shared-breaker bug. Pooling every node's results into one
             // error rate meant a busy healthy node could hold the cluster-wide percentage under
