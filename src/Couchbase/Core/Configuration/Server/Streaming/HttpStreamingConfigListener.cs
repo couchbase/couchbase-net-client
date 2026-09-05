@@ -17,7 +17,10 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 {
     internal class HttpStreamingConfigListener : IDisposable, IAsyncDisposable
     {
-        private const int InitialDelayMs = 0;
+        // The delay before starting a round of attempts over again, and the ceiling it grows to. It
+        // has to start non-zero: the ramp below multiplies, and multiplying zero leaves it at zero,
+        // which is how a total failure came to be retried as fast as the failures came back.
+        private const int InitialDelayMs = 100;
         private const int MaxDelayMs = 10000;
         private readonly ILogger<HttpStreamingConfigListener> _logger;
         private readonly ClusterOptions _clusterOptions;
@@ -32,6 +35,14 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private bool _disposed;
 
         public bool Started { get; private set; }
+
+        /// <summary>
+        /// Waits out the backoff between rounds of attempts against every node. Replaced in tests,
+        /// which need to see how long the listener asked to wait: a zero-length wait completes without
+        /// ever reaching a clock, so an injected <see cref="TimeProvider"/> cannot observe one.
+        /// </summary>
+        internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } =
+            static (duration, cancellationToken) => Task.Delay(duration, cancellationToken);
 
         public HttpStreamingConfigListener(IConfigUpdateEventSink configSubscriber, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
             IConfigHandler configHandler, ILogger<HttpStreamingConfigListener> logger)
@@ -69,13 +80,19 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         private Task StartBackgroundTask()
         {
+            // Captured here, on the caller's thread, and used for everything below: Dispose cancels the
+            // source and then disposes it, and reading Token afterwards throws. Reading it inside the
+            // task would leave that throw with nowhere to go but the background task itself, which
+            // DisposeAsync waits on and would then rethrow at whoever was closing the bucket.
+            var listenerToken = _cancellationTokenSource.Token;
+
             // Ensure that we don't flow the ExecutionContext into the long running task below
             using var flowControl = ExecutionContext.SuppressFlow();
 
             return Task.Run(async () =>
             {
                 var delayMs = InitialDelayMs;
-                while (!_cancellationTokenSource.IsCancellationRequested)
+                while (!listenerToken.IsCancellationRequested)
                 {
                     try
                     {
@@ -103,7 +120,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                                 var response = await httpClient.GetAsync(streamingUri.Uri,
                                     HttpCompletionOption.ResponseHeadersRead,
-                                    _cancellationTokenSource.Token).ConfigureAwait(false);
+                                    listenerToken).ConfigureAwait(false);
 
                                 response.EnsureSuccessStatusCode();
 
@@ -117,7 +134,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                 using var reader = new StreamReader(stream, Encoding.UTF8, false);
 
                                 string? config;
-                                while (!_cancellationTokenSource.IsCancellationRequested &&
+                                while (!listenerToken.IsCancellationRequested &&
                                        (config = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
                                 {
                                     if (config != string.Empty)
@@ -147,10 +164,20 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                     // if we exited the inner loop, then all servers failed and we need to start over.
                     // however, we don't want to create a failstorm in the logs if the failure is 100%
                     // try again, but with an exponential delay of up to 10s.
-                    await Task.Delay(delayMs).ConfigureAwait(false);
+                    try
+                    {
+                        await Delay(TimeSpan.FromMilliseconds(delayMs), listenerToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Disposed while backing off. Waiting the rest of it out would hold up
+                        // DisposeAsync, which waits for this loop to finish.
+                        break;
+                    }
+
                     delayMs = Math.Min(delayMs * 10, MaxDelayMs);
                 }
-            }, _cancellationTokenSource.Token);
+            }, listenerToken);
         }
 
         public void Dispose()
