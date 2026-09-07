@@ -87,11 +87,7 @@ namespace Couchbase.Core.IO
             {
                 BucketName = redactor.MetaDataString(bucketName),
                 ClientContextId = op.Opaque.ToStringInvariant(),
-                //SelectBucket carries the bucket name in Key rather than a document key, so it is
-                //metadata - tagging it as user data would have it stripped at Partial redaction.
-                DocumentKey = op.OpCode == OpCode.SelectBucket
-                    ? redactor.MetaDataString(op.Key)
-                    : redactor.UserDataString(op.Key),
+                DocumentKey = redactor.OperationKeyString(op),
                 Cas = op.Cas,
                 CollectionName = redactor.MetaDataString(op.CName),
                 ScopeName = redactor.MetaDataString(op.SName),

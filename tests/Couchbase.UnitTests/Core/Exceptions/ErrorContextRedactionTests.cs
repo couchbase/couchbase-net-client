@@ -23,7 +23,9 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using System.Text.Json;
 using Xunit;
 
@@ -120,6 +122,73 @@ namespace Couchbase.UnitTests.Core.Exceptions
             Assert.Null(ctx.CollectionName);
             Assert.Null(ctx.DispatchedTo);
             Assert.Null(ctx.DispatchedFrom);
+        }
+    }
+
+    /// <summary>
+    /// SelectBucket is the only operation whose Key is the bucket name rather than a document key,
+    /// so it must be tagged as metadata everywhere the key is redacted. The rule lives in
+    /// <c>RedactorExtensions.OperationKey</c>; these pin the two shapes it is consumed in, because
+    /// the classification is invisible at the call site and silently reverts if the helper is
+    /// bypassed.
+    /// </summary>
+    public class OperationKeyRedactionTests
+    {
+        [Fact]
+        public void SelectBucketKey_IsMetadataInTheErrorContext()
+        {
+            var op = new SelectBucket { Key = "bucket1" };
+
+            var ex = ResponseStatus.BucketNotConnected.CreateException(op, "bucket1",
+                new TypedRedactor(RedactionLevel.Partial));
+            var ctx = (KeyValueErrorContext)((CouchbaseException)ex).Context;
+
+            // Metadata is left alone at Partial. As user data the bucket name would be stripped,
+            // losing a diagnostic Couchbase treats as safe at that level.
+            Assert.Equal("bucket1", ctx.DocumentKey);
+            Assert.Equal("<md>bucket1</md>",
+                new TypedRedactor(RedactionLevel.Full).OperationKeyString(op));
+        }
+
+        [Fact]
+        public void DocumentKey_IsStillUserDataInTheErrorContext()
+        {
+            // The counterpart to the above: the carve-out must not leak to ordinary operations.
+            var op = new Get<string> { Key = "doc-key-1" };
+
+            var ex = ResponseStatus.KeyNotFound.CreateException(op, "bucket1",
+                new TypedRedactor(RedactionLevel.Partial));
+            var ctx = (KeyValueErrorContext)((CouchbaseException)ex).Context;
+
+            Assert.Equal("<ud>doc-key-1</ud>", ctx.DocumentKey);
+        }
+
+        [Theory]
+        [InlineData(RedactionLevel.Partial)]
+        [InlineData(RedactionLevel.Full)]
+        public void SelectBucketKey_IsMetadataInTheTimeoutMessage(RedactionLevel level)
+        {
+            // The timeout message carries the key too, and it lands in the same log as the context.
+            // Classifying the same value differently in the two places would have log redaction
+            // strip it from one and not the other.
+            var op = new SelectBucket { Key = "bucket1" };
+
+            var ex = ThrowHelper.CreateTimeoutException(op, new OperationCanceledException(),
+                new TypedRedactor(level));
+
+            Assert.DoesNotContain("<ud>", ex.Message);
+            Assert.Contains(level == RedactionLevel.Full ? "<md>bucket1</md>" : "bucket1", ex.Message);
+        }
+
+        [Fact]
+        public void DocumentKey_IsStillUserDataInTheTimeoutMessage()
+        {
+            var op = new Get<string> { Key = "doc-key-1" };
+
+            var ex = ThrowHelper.CreateTimeoutException(op, new OperationCanceledException(),
+                new TypedRedactor(RedactionLevel.Partial));
+
+            Assert.Contains("<ud>doc-key-1</ud>", ex.Message);
         }
     }
 

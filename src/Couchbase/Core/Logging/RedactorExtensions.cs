@@ -1,3 +1,5 @@
+using Couchbase.Core.IO.Operations;
+
 #nullable enable
 
 namespace Couchbase.Core.Logging
@@ -18,6 +20,35 @@ namespace Couchbase.Core.Logging
 
         public static string? SystemDataString(this IRedactor redactor, string? value) =>
             string.IsNullOrEmpty(value) ? value : redactor.SystemData(value)?.ToString();
+
+        /// <summary>
+        /// Redacts an operation's key with the classification that key actually carries.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="OpCode.SelectBucket"/> is the only operation whose <see cref="IOperation.Key"/>
+        /// is not a document key - it holds the bucket name. Bucket names are metadata, so tagging
+        /// it as user data would have it stripped at <see cref="RedactionLevel.Partial"/>, losing a
+        /// diagnostic that Couchbase treats as safe at that level. Every site that redacts an
+        /// operation key routes through here so that the log line, the exception message and the
+        /// error context cannot classify the same value differently.
+        /// <para>
+        /// Unlike the <c>*String</c> helpers this does not special-case an empty key: internal
+        /// operations leave <see cref="IOperation.Key"/> at <see cref="string.Empty"/> and have
+        /// always logged as an empty tag.
+        /// </para>
+        /// </remarks>
+        public static Redacted<string> OperationKey(this TypedRedactor redactor, IOperation op) =>
+            op.OpCode == OpCode.SelectBucket
+                ? redactor.MetaData(op.Key)
+                : redactor.UserData(op.Key);
+
+        /// <summary>
+        /// <see cref="OperationKey"/> for error contexts, which store plain strings.
+        /// </summary>
+        public static string? OperationKeyString(this TypedRedactor redactor, IOperation op) =>
+            op.OpCode == OpCode.SelectBucket
+                ? redactor.MetaDataString(op.Key)
+                : redactor.UserDataString(op.Key);
     }
 }
 

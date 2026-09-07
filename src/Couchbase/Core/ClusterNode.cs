@@ -649,7 +649,7 @@ namespace Couchbase.Core
 
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
             var operationStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationLatency;
             var appTelemetryRequestType = AppTelemetryUtils.GetAppTelemetryKvRequestType(op);
@@ -671,7 +671,7 @@ namespace Couchbase.Core
 
                 if (!status.Failure(op.OpCode))
                 {
-                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
 
                     if (appTelemetryRequestType.HasValue)
                     {
@@ -689,7 +689,7 @@ namespace Couchbase.Core
                     return status;
                 }
 
-                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -806,7 +806,7 @@ namespace Couchbase.Core
                         _logger.LogWarning("KV Operation timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", op.Elapsed, op.Timeout, op.Opaque);
                     }
 
-                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op), op.IsSent);
+                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op), op.IsSent);
                     MetricTracker.KeyValue.TrackTimeout(op.OpCode);
 
                     if (appTelemetryRequestType.HasValue)
@@ -827,12 +827,7 @@ namespace Couchbase.Core
                     {
                         BucketName = _redactor.MetaDataString(Owner?.Name),
                         ClientContextId = op.Opaque.ToStringInvariant(),
-                        //SelectBucket reaches this path too, and its Key is the bucket name rather
-                        //than a document key, so it is metadata - as user data it would be stripped
-                        //at Partial redaction. Matches ResponseStatusExtensions.CreateException.
-                        DocumentKey = op.OpCode == OpCode.SelectBucket
-                            ? _redactor.MetaDataString(op.Key)
-                            : _redactor.UserDataString(op.Key),
+                        DocumentKey = _redactor.OperationKeyString(op),
                         Cas = op.Cas,
                         Status = ResponseStatus.OperationTimeout,
                         CollectionName = _redactor.MetaDataString(op.CName),
@@ -861,7 +856,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.UserData(op.Key), op.Opaque, op.Header.Status, EffectiveConfigVersion(op));
+                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.OperationKey(op), op.Opaque, op.Header.Status, EffectiveConfigVersion(op));
 
                 throw;
             }
