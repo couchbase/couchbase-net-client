@@ -36,6 +36,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using static Couchbase.UnitTests.Utils.HttpFixtures;
 
 namespace Couchbase.UnitTests.Core.Retry
 {
@@ -446,20 +447,9 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Test_Search(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
-#if NET8_0_OR_GREATER
-            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
-#else
-            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
-#endif
+            var buffer = Fixture(@"Documents\Search\" + file);
 
-            var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
-            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
-
-            var responses = GetResponses(20, buffer, httpStatusCode);
+            var responses = Responses(buffer, httpStatusCode);
             var client = MockedHttpClients.SearchClient(responses);
 
             var searchRequest = new FtsSearchRequest
@@ -490,40 +480,27 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Test_Views(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
+            var buffer = Fixture(@"Documents\Views\" + file);
 
-#if NET8_0_OR_GREATER
-            await using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Views\" + file))
-#else
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Views\" + file))
-#endif
+            var responses = Responses(buffer, httpStatusCode);
+            var client = MockedHttpClients.ViewClient(responses);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var viewQuery = new ViewQuery("default", "beers", "brewery_beers")
+#pragma warning restore CS0618 // Type or member is obsolete
             {
-                var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
-                await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-                response.Read(buffer, 0, buffer.Length);
-#endif
-
-                var responses = GetResponses(20, buffer, httpStatusCode);
-                var client = MockedHttpClients.ViewClient(responses);
+                Timeout = TimeSpan.FromMilliseconds(1000)
+            };
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                var viewQuery = new ViewQuery("default", "beers", "brewery_beers")
+            async Task<IViewResult<dynamic, dynamic>> Func()
 #pragma warning restore CS0618 // Type or member is obsolete
-                {
-                    Timeout = TimeSpan.FromMilliseconds(1000)
-                };
-
-#pragma warning disable CS0618 // Type or member is obsolete
-                async Task<IViewResult<dynamic, dynamic>> Func()
-#pragma warning restore CS0618 // Type or member is obsolete
-                {
-                    var client1 = client;
-                    return await client1.ExecuteAsync<dynamic, dynamic>(viewQuery);
-                }
-
-                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, viewQuery));
+            {
+                var client1 = client;
+                return await client1.ExecuteAsync<dynamic, dynamic>(viewQuery);
             }
+
+            await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, viewQuery));
         }
 
         [Theory]
@@ -539,19 +516,9 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Test_Analytics(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly)
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
-#if NET8_0_OR_GREATER
-            await using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file);
-#else
-            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file);
-#endif
-            var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
-            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
+            var buffer = Fixture(@"Documents\Analytics\" + file);
 
-            var responses = GetResponses(20, buffer, httpStatusCode);
+            var responses = Responses(buffer, httpStatusCode);
             var client = MockedHttpClients.AnalyticsClient(responses);
 
             var statement = "SELECT * FROM `bar`;";
@@ -586,19 +553,9 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
 
-#if NET8_0_OR_GREATER
-            await using var response = ResourceHelper.ReadResourceAsStream(file);
-#else
-            using var response = ResourceHelper.ReadResourceAsStream(file);
-#endif
-            var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
-            await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
+            var buffer = Fixture(file);
 
-            var responses = GetResponses(20, buffer, httpStatusCode);
+            var responses = Responses(buffer, httpStatusCode);
             var client = MockedHttpClients.QueryClient(responses, enableEnhancedPreparedStatements);
 
             var queryOptions = new QueryOptions().
@@ -640,21 +597,6 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 Assert.Equal(errorType, e.GetType());
             }
-        }
-
-        private Queue<Task<HttpResponseMessage>> GetResponses(int count, byte[] content, HttpStatusCode statusCode = HttpStatusCode.NotFound)
-        {
-            var responses = new Queue<Task<HttpResponseMessage>>();
-            for (var i = 0; i < count; i++)
-            {
-                responses.Enqueue(Task.FromResult(new HttpResponseMessage
-                {
-                    StatusCode = statusCode,
-                    Content = new ByteArrayContent(content)
-                }));
-            }
-
-            return responses;
         }
 
         private static async Task<Exception> AssertThrowsIfExpectedAsync(Type exceptionType, Func<Task> action)
