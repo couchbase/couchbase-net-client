@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -37,39 +36,17 @@ namespace Couchbase.Core
 #endif
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
-        /// <summary>
-        /// The settings of <see cref="Default"/>, but with the relaxed encoder so that log-redaction
-        /// tags survive serialization as literal &lt;ud&gt; markers rather than being emitted as
-        /// unicode escape sequences. Tooling such as cblogredaction finds the tags textually and
-        /// cannot match the escaped form.
-        /// </summary>
-        /// <remarks>
-        /// Only error contexts should use this. The default encoder escapes '&lt;' and '&gt;' to keep
-        /// JSON safe to embed in HTML; that does not apply to log output, but it does apply to
-        /// anything that might be rendered in a page. The source-generated resolver is carried over
-        /// from <see cref="Default"/>, so serialization stays trim- and AOT-safe.
-        /// </remarks>
         private static JsonSerializerOptions? _redactionSafeOptions;
 
-        internal static JsonSerializerOptions RedactionSafeOptions
-        {
-            get
-            {
-                // Deferred rather than a field initializer: Default is not yet constructed while
-                // this class is running its own static initialization.
-                var options = _redactionSafeOptions;
-                if (options is not null)
-                {
-                    return options;
-                }
-
-                return Interlocked.CompareExchange(ref _redactionSafeOptions,
-                    new JsonSerializerOptions(Default.Options)
-                    {
-                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                    }, null) ?? _redactionSafeOptions;
-            }
-        }
+        /// <summary>
+        /// The settings of <see cref="Default"/>, but safe for the redaction tags an error context
+        /// may carry. See <see cref="RedactionSafeJson"/>.
+        /// </summary>
+        // Null-forgiving: EnsureInitialized cannot return null here, but the netstandard targets
+        // lack the annotation that says so.
+        internal static JsonSerializerOptions RedactionSafeOptions =>
+            LazyInitializer.EnsureInitialized(ref _redactionSafeOptions,
+                static () => RedactionSafeJson.Create(Default.Options))!;
 
         private static SystemTextJsonSerializer? _defaultTypeSerializer;
 
