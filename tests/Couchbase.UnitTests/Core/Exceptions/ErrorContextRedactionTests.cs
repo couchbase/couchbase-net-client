@@ -26,6 +26,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using static Couchbase.UnitTests.Utils.HttpFixtures;
 using System.Text.Json;
 using Xunit;
 
@@ -200,11 +201,6 @@ namespace Couchbase.UnitTests.Core.Exceptions
     /// </summary>
     public class ErrorContextRedactionClientTests
     {
-        private static Queue<Task<HttpResponseMessage>> Responses(byte[] content, HttpStatusCode status) =>
-            ErrorContextDrivers.Responses(content, status);
-
-        private static byte[] Fixture(string path) => ErrorContextDrivers.Fixture(path);
-
         [Fact]
         public async Task QueryErrorContext_RedactsStatement()
         {

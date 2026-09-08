@@ -28,6 +28,7 @@ using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using static Couchbase.UnitTests.Utils.HttpFixtures;
 
 namespace Couchbase.UnitTests.Core.Exceptions
 {
@@ -38,36 +39,6 @@ namespace Couchbase.UnitTests.Core.Exceptions
     /// </summary>
     internal static class ErrorContextDrivers
     {
-        public static Queue<Task<HttpResponseMessage>> Responses(byte[] content, HttpStatusCode status)
-        {
-            var responses = new Queue<Task<HttpResponseMessage>>();
-            for (var i = 0; i < 20; i++)
-            {
-                responses.Enqueue(Task.FromResult(new HttpResponseMessage
-                {
-                    StatusCode = status,
-                    Content = new ByteArrayContent(content)
-                }));
-            }
-
-            return responses;
-        }
-
-        public static byte[] Fixture(string path)
-        {
-            using var stream = ResourceHelper.ReadResourceAsStream(path);
-            var buffer = new byte[stream.Length];
-            var read = 0;
-            while (read < buffer.Length)
-            {
-                var n = stream.Read(buffer, read, buffer.Length - read);
-                if (n == 0) break;
-                read += n;
-            }
-
-            return buffer;
-        }
-
         /// <summary>
         /// Builds a context of the given type with as many of its fields populated as the path
         /// allows, at <see cref="RedactionLevel.Full"/> so that every classification is visible.
