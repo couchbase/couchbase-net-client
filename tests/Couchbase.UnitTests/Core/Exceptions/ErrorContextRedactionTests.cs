@@ -200,35 +200,10 @@ namespace Couchbase.UnitTests.Core.Exceptions
     /// </summary>
     public class ErrorContextRedactionClientTests
     {
-        private static Queue<Task<HttpResponseMessage>> Responses(byte[] content, HttpStatusCode status)
-        {
-            var responses = new Queue<Task<HttpResponseMessage>>();
-            for (var i = 0; i < 20; i++)
-            {
-                responses.Enqueue(Task.FromResult(new HttpResponseMessage
-                {
-                    StatusCode = status,
-                    Content = new ByteArrayContent(content)
-                }));
-            }
+        private static Queue<Task<HttpResponseMessage>> Responses(byte[] content, HttpStatusCode status) =>
+            ErrorContextDrivers.Responses(content, status);
 
-            return responses;
-        }
-
-        private static byte[] Fixture(string path)
-        {
-            using var stream = ResourceHelper.ReadResourceAsStream(path);
-            var buffer = new byte[stream.Length];
-            var read = 0;
-            while (read < buffer.Length)
-            {
-                var n = stream.Read(buffer, read, buffer.Length - read);
-                if (n == 0) break;
-                read += n;
-            }
-
-            return buffer;
-        }
+        private static byte[] Fixture(string path) => ErrorContextDrivers.Fixture(path);
 
         [Fact]
         public async Task QueryErrorContext_RedactsStatement()
