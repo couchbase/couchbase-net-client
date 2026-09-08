@@ -41,11 +41,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public List<RetryReason>? RetryReasons { get; internal set; }
 
-        //Bound from RedactionSafeOptions rather than the context's own JsonTypeInfo so that
-        //redaction tags serialize as literal markers. Cached because resolving type info is a
-        //dictionary lookup, and this runs on every ToString().
         private static readonly JsonTypeInfo<KeyValueErrorContext> RedactionSafeTypeInfo =
-            (JsonTypeInfo<KeyValueErrorContext>)InternalSerializationContext.RedactionSafeOptions.GetTypeInfo(typeof(KeyValueErrorContext));
+            RedactionSafeJson.TypeInfo<KeyValueErrorContext>(InternalSerializationContext.RedactionSafeOptions);
 
         public override string ToString() =>
             JsonSerializer.Serialize(this, RedactionSafeTypeInfo);
