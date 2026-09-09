@@ -1312,7 +1312,30 @@ namespace Couchbase
                 this.AddClusterService(RetryStrategy);
             }
 
+            WarnIfRedactorWasReplaced();
+
             return new CouchbaseServiceProvider(_services);
+        }
+
+        /// <summary>
+        /// Registering a custom <see cref="IRedactor"/> used to change how some log arguments were
+        /// redacted. The SDK now redacts through the concrete redactor everywhere, so such a
+        /// registration is resolvable but never consulted. Say so rather than ignoring it silently.
+        /// </summary>
+        private void WarnIfRedactorWasReplaced()
+        {
+            if (!_services.TryGetValue(typeof(IRedactor), out var registered)
+                || !_services.TryGetValue(typeof(Redactor), out var builtIn)
+                || ReferenceEquals(registered, builtIn))
+            {
+                return;
+            }
+
+            (Logging ?? NullLoggerFactory.Instance).CreateLogger<ClusterOptions>().LogWarning(
+                "A custom {redactorInterface} was registered, but the SDK no longer resolves " +
+                "{redactorInterface} when redacting log arguments, so it will have no effect. " +
+                "Use {redactionLevel} to control log redaction.",
+                nameof(IRedactor), nameof(IRedactor), nameof(RedactionLevel));
         }
 
         /// <summary>
