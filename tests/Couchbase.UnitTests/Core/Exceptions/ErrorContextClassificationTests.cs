@@ -20,8 +20,10 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Eventing;
 using Couchbase.Query;
 using Couchbase.Search;
+using Couchbase.Stellar.Core.Retry;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
@@ -210,8 +212,59 @@ namespace Couchbase.UnitTests.Core.Exceptions
                     new[] { "ClientContextId", "Message" }),
             };
 
+        /// <summary>
+        /// The error-context types deliberately left out of <see cref="Classification"/>, and the
+        /// reason each needs nothing. A type belongs here only once someone has looked at it: the
+        /// scan below fails for any context type that is neither classified nor listed here, so
+        /// that a new one cannot arrive unnoticed.
+        /// </summary>
+        private static readonly Dictionary<Type, string> NeedsNothing =
+            new()
+            {
+                [typeof(EventingFunctionErrorContext)] =
+                    "never constructed anywhere in the SDK. Message is its only string field and " +
+                    "is raw by policy; Info is [JsonIgnore(Always)] so it is never rendered.",
+                [typeof(GenericErrorContext)] =
+                    "the couchbase2:// path, which holds its fields in an untyped bag and so needs " +
+                    "per-key classification rather than per-property. NCBC-4300.",
+            };
+
         public static IEnumerable<object[]> ContextTypes =>
             Classification.Keys.Select(t => new object[] { t });
+
+        /// <summary>
+        /// <see cref="EveryStringFieldIsClassified"/> fails closed for a new field on a known
+        /// context type, but only the types listed above are checked at all - so a whole new
+        /// context type would slip past it. This finds those.
+        /// </summary>
+        [Fact]
+        public void EveryErrorContextTypeIsAccountedFor()
+        {
+            var contextTypes = SdkTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && typeof(IErrorContext).IsAssignableFrom(t))
+                .ToList();
+
+            var unaccounted = contextTypes
+                .Where(t => !Classification.ContainsKey(t) && !NeedsNothing.ContainsKey(t))
+                .Select(t => t.FullName)
+                .OrderBy(x => x)
+                .ToList();
+
+            Assert.True(unaccounted.Count == 0,
+                $"Error-context type(s) nobody has classified: {string.Join(", ", unaccounted)}. " +
+                "Either classify every string field on it and add it to the Classification table, " +
+                "with a driver in ErrorContextDrivers that builds it through its real construction " +
+                "path, or add it to NeedsNothing with the reason it carries nothing to redact.");
+
+            var stale = NeedsNothing.Keys.Concat(Classification.Keys)
+                .Except(contextTypes)
+                .Select(t => t.FullName)
+                .OrderBy(x => x)
+                .ToList();
+
+            Assert.True(stale.Count == 0,
+                $"No longer an error-context type: {string.Join(", ", stale)}. Remove it from the table.");
+        }
 
         [Theory]
         [MemberData(nameof(ContextTypes))]
@@ -270,6 +323,23 @@ namespace Couchbase.UnitTests.Core.Exceptions
                 .Select(name => (Name: name,
                     Value: (string)contextType.GetProperty(name)!.GetValue(ctx)))
                 .Where(f => !string.IsNullOrEmpty(f.Value));
+
+        /// <summary>
+        /// Every type in the SDK assembly. Tolerates a type that will not load - on net48 the
+        /// assembly is the netstandard2.0 build and a single unresolvable dependency would
+        /// otherwise turn this test into a scan failure rather than a classification failure.
+        /// </summary>
+        private static IEnumerable<Type> SdkTypes()
+        {
+            try
+            {
+                return typeof(CouchbaseException).Assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(t => t != null);
+            }
+        }
 
         private static bool IsTagged(string value) =>
             Regex.IsMatch(value, @"^<(ud|md|sd)>[\s\S]*</\1>$");

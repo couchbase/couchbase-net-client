@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
@@ -15,12 +14,8 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Exceptions;
-using Couchbase.Management.Collections;
 using Couchbase.UnitTests.Utils;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
@@ -289,35 +284,12 @@ namespace Couchbase.UnitTests.Core.Exceptions
         [Fact]
         public async Task ManagementErrorContext_RedactsTheManagementUri()
         {
-            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.InternalServerError,
-                Content = new StringContent("boom")
-            });
-
-            var baseUri = new Uri("http://localhost:8091/");
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
-
-            var nodeMock = new Mock<IClusterNode>();
-            nodeMock.Setup(n => n.ManagementUri).Returns(baseUri);
-            nodeMock.Setup(n => n.NodesAdapter).Returns(nodeAdapterMock.Object);
-            var uriProvider = new Mock<IServiceUriProvider>();
-            uriProvider.Setup(x => x.GetRandomManagementUri()).Returns(baseUri);
-            uriProvider.Setup(x => x.GetRandomManagementNode()).Returns(nodeMock.Object);
-
-            var manager = new CollectionManager("default", new Mock<BucketConfig>().Object,
-                uriProvider.Object, new MockHttpClientFactory(new HttpClient(handler)),
-                new Mock<ILogger<CollectionManager>>().Object, TestRedactor.Full);
-
-            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
-                manager.CreateScopeAsync("scope1"));
-
-            var ctx = Assert.IsType<ManagementErrorContext>(ex.Context);
+            var ctx = Assert.IsType<ManagementErrorContext>(
+                await ErrorContextDrivers.BuildAtFull(typeof(ManagementErrorContext)));
 
             // The management URI is an endpoint, so it is system data and tagged at Full.
             Assert.StartsWith("<sd>", ctx.Statement);
-            Assert.Contains(baseUri.Host, ctx.Statement);
+            Assert.Contains("localhost", ctx.Statement);
         }
     }
 }
