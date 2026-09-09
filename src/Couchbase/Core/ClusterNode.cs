@@ -438,15 +438,16 @@ namespace Couchbase.Core
                 configOp.Revision = latestVersionOnClient.Value.Revision;
             }
 
-            var redactor = _redactor;
             var config = await ExecuteInternalOperationAsync(ConnectionPool, configOp,
                 ExecuteOpImmediatelyAsync,
+                // Not static: the redactor comes off this node. Capturing 'this' costs the
+                // delegate alone, where capturing a local would also cost a display class.
                 (status, op) =>
                 {
                     if (status == ResponseStatus.KeyNotFound)
                     {
                         //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
-                        throw status.CreateException(op, string.Empty, redactor);
+                        throw status.CreateException(op, string.Empty, _redactor);
                     }
 
                     //Return back the config and swap any $HOST placeholders
@@ -982,14 +983,14 @@ namespace Couchbase.Core
                     Span = rootSpan,
                 };
 
-                var redactor = _redactor;
                 await ExecuteInternalOperationAsync(connection, selectBucketOp,
                     ExecuteOp,
+                    // Not static: see the note in GetClusterMap.
                     (status, op) =>
                     {
                         if (status != ResponseStatus.Success)
                         {
-                            throw status.CreateException(op, op.Key, redactor);
+                            throw status.CreateException(op, op.Key, _redactor);
                         }
 
                         return (object) null; // We don't need the return value

@@ -380,7 +380,7 @@ namespace Couchbase.Core.Retry
                 CollectionName = redactor.MetaDataString(operation.CName),
                 DispatchedFrom = redactor.SystemDataString(operation.LastDispatchedFrom),
                 DispatchedTo = redactor.SystemDataString(operation.LastDispatchedTo),
-                DocumentKey = redactor.UserDataString(operation.Key),
+                DocumentKey = redactor.OperationKeyString(operation),
                 Message = operation.LastErrorCode?.ToString(),
                 OpCode = operation.OpCode,
                 RetryReasons = operation.RetryReasons,
