@@ -114,7 +114,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         OperationCompressor = operationCompressor;
         _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm != CompressionAlgorithm.None;
         RetryHandler = retryHandler;
-        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _redactor = new TypedRedactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
         _clusterServices = new StellarServiceProvider(this);
     }
@@ -122,7 +122,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
-        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _redactor = new TypedRedactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;

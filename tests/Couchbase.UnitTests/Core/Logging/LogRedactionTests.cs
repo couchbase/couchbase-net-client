@@ -1,3 +1,4 @@
+using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Xunit;
 
@@ -48,6 +49,49 @@ namespace Couchbase.UnitTests.Core.Logging
             Assert.Equal("<ud>user</ud>", redactor.UserData("user").ToString());
             Assert.Equal("<md>meta</md>", redactor.MetaData("meta").ToString());
             Assert.Equal("<sd>system</sd>", redactor.SystemData("system").ToString());
+        }
+
+        [Fact]
+        public void IRedactor_Redacts_The_Same_As_The_Typed_Methods()
+        {
+            var options = new ClusterOptions
+            {
+                RedactionLevel = RedactionLevel.Full
+            };
+
+            IRedactor redactor = new TypedRedactor(options);
+
+            Assert.Equal("<ud>user</ud>", redactor.UserData("user").ToString());
+            Assert.Equal("<md>meta</md>", redactor.MetaData("meta").ToString());
+            Assert.Equal("<sd>system</sd>", redactor.SystemData("system").ToString());
+        }
+
+        [Fact]
+        public void IRedactor_Returns_Null_For_Null()
+        {
+            var options = new ClusterOptions
+            {
+                RedactionLevel = RedactionLevel.Full
+            };
+
+            IRedactor redactor = new TypedRedactor(options);
+
+            // Null is passed straight through rather than being wrapped in a Redacted<object>.
+            Assert.Null(redactor.UserData(null));
+            Assert.Null(redactor.MetaData(null));
+            Assert.Null(redactor.SystemData(null));
+        }
+
+        [Fact]
+        public void IRedactor_And_TypedRedactor_Resolve_To_The_Same_Instance()
+        {
+            var provider = new ClusterOptions().BuildServiceProvider();
+
+            var typed = provider.GetService(typeof(TypedRedactor));
+            var byInterface = provider.GetService(typeof(IRedactor));
+
+            Assert.NotNull(typed);
+            Assert.Same(typed, byInterface);
         }
 
         [Fact]

@@ -11,9 +11,11 @@ namespace Couchbase.Core.Logging
     /// than exposed by the public <see cref="IRedactor"/> interface.
     /// </summary>
     /// <remarks>
-    /// This type doesn't have an interface and is injected by the class so that methods may be inlined.
+    /// The strongly-typed methods below are the ones consumers should use; they are injected by the concrete class,
+    /// not by an interface, so that they may be inlined. <see cref="IRedactor"/> is implemented explicitly purely to
+    /// keep that public interface satisfied.
     /// </remarks>
-    internal sealed class TypedRedactor
+    internal sealed class TypedRedactor : IRedactor
     {
         private const string _user = "ud";
         private const string _meta = "md";
@@ -44,6 +46,18 @@ namespace Couchbase.Core.Logging
         {
             return RedactMessage(message, _system);
         }
+
+        // Implemented explicitly so that these boxing, object-typed overloads can never win overload resolution
+        // against the generic methods above; only a caller holding an IRedactor reference can reach them.
+
+        [return: NotNullIfNotNull("message")]
+        object? IRedactor.UserData(object? message) => message is not null ? UserData(message) : null;
+
+        [return: NotNullIfNotNull("message")]
+        object? IRedactor.MetaData(object? message) => message is not null ? MetaData(message) : null;
+
+        [return: NotNullIfNotNull("message")]
+        object? IRedactor.SystemData(object? message) => message is not null ? SystemData(message) : null;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Redacted<T> RedactMessage<T>(T message, string redactionType)

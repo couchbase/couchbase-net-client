@@ -53,8 +53,9 @@ namespace Couchbase.Core.DI
         {
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
-            yield return (typeof(IRedactor), new SingletonServiceFactory(typeof(Redactor)));
             yield return (typeof(TypedRedactor), new SingletonServiceFactory(typeof(TypedRedactor)));
+            yield return (typeof(IRedactor), new SingletonServiceFactory(
+                static serviceProvider => serviceProvider.GetRequiredService<TypedRedactor>()));
             yield return (typeof(IRequestTracer), new SingletonServiceFactory(NoopRequestTracer.Instance));
             yield return (typeof(TimeProvider), new SingletonServiceFactory(TimeProvider.System));
 
