@@ -277,7 +277,7 @@ namespace Couchbase.Core
 
             return await ExecuteInternalOperationAsync(connection, errorMapOp,
                 ExecuteOp,
-                static (_, op) => new ErrorMap(op.GetValue()),
+                static (_, op, _) => new ErrorMap(op.GetValue()),
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -297,7 +297,7 @@ namespace Couchbase.Core
 
             return await ExecuteInternalOperationAsync(connection, saslListOp,
                 ExecuteOp,
-                static (_, op) => op.GetValue(),
+                static (_, op, _) => op.GetValue(),
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -367,7 +367,7 @@ namespace Couchbase.Core
 
             return await ExecuteInternalOperationAsync(connection, heloOp,
                 ExecuteOp,
-                static (status, op) =>
+                static (status, op, _) =>
                 {
                     //A failed HELO used to be swallowed: the status was discarded here, GetValue()
                     //returned null on anything but success, and the caller quietly assigned
@@ -399,7 +399,7 @@ namespace Couchbase.Core
 
             await ExecuteInternalOperationAsync(ConnectionPool, manifestOp,
                 ExecuteOp,
-                static (_, op) => op.GetValue(),
+                static (_, op, _) => op.GetValue(),
                 default(CancellationToken))
                 .ConfigureAwait(false);
 
@@ -440,12 +440,12 @@ namespace Couchbase.Core
 
             var config = await ExecuteInternalOperationAsync(ConnectionPool, configOp,
                 ExecuteOpImmediatelyAsync,
-                static (status, op) =>
+                static (status, op, redactor) =>
                 {
                     if (status == ResponseStatus.KeyNotFound)
                     {
                         //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
-                        throw status.CreateException(op, string.Empty);
+                        throw status.CreateException(op, string.Empty, redactor);
                     }
 
                     //Return back the config and swap any $HOST placeholders
@@ -575,14 +575,18 @@ namespace Couchbase.Core
         /// <param name="connection">The <see cref="IConnectionPool"/> or <see cref="IConnection"/> to use.</param>
         /// <param name="operation">The operation to execute.</param>
         /// <param name="executor">One of the ExecuteOp or ExecuteOpImmediatelyAsync delegates.</param>
-        /// <param name="projector">Callback to perform projections on the result.</param>
+        /// <param name="projector">
+        /// Callback to perform projections on the result. The redactor comes back as a lambda
+        /// parameter, like the executor's state, so the callback can stay static and keep its
+        /// compiler-cached delegate rather than allocating a closure per call.
+        /// </param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The result returned by the <paramref name="projector" />.</returns>
         private async Task<TResult> ExecuteInternalOperationAsync<TConnection, TOperation, TResult>(
             TConnection connection,
             TOperation operation,
             Func<TConnection, TOperation, CancellationTokenPair, Task<ResponseStatus>> executor,
-            Func<ResponseStatus, TOperation, TResult> projector,
+            Func<ResponseStatus, TOperation, TypedRedactor, TResult> projector,
             CancellationToken cancellationToken)
             where TOperation : class, IOperation
         {
@@ -595,7 +599,7 @@ namespace Couchbase.Core
                 var status = await executor(connection, operation, ctp.TokenPair)
                     .ConfigureAwait(false);
 
-                return projector(status, operation);
+                return projector(status, operation, _redactor);
             }
             catch (OperationCanceledException ex) when (ctp.IsInternalCancellation)
             {
@@ -648,7 +652,7 @@ namespace Couchbase.Core
 
         private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
             var operationStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationLatency;
             var appTelemetryRequestType = AppTelemetryUtils.GetAppTelemetryKvRequestType(op);
@@ -670,7 +674,7 @@ namespace Couchbase.Core
 
                 if (!status.Failure(op.OpCode))
                 {
-                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
 
                     if (appTelemetryRequestType.HasValue)
                     {
@@ -688,7 +692,7 @@ namespace Couchbase.Core
                     return status;
                 }
 
-                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+                LogKvStatusReturned(status, op.OpCode, _redactor.SystemData(EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
 
                 if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
@@ -805,7 +809,7 @@ namespace Couchbase.Core
                         _logger.LogWarning("KV Operation timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", op.Elapsed, op.Timeout, op.Opaque);
                     }
 
-                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, EffectiveConfigVersion(op), op.IsSent);
+                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op), op.IsSent);
                     MetricTracker.KeyValue.TrackTimeout(op.OpCode);
 
                     if (appTelemetryRequestType.HasValue)
@@ -824,16 +828,16 @@ namespace Couchbase.Core
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
                     {
-                        BucketName = Owner?.Name,
+                        BucketName = _redactor.MetaDataString(Owner?.Name),
                         ClientContextId = op.Opaque.ToStringInvariant(),
-                        DocumentKey = op.Key,
+                        DocumentKey = _redactor.OperationKeyString(op),
                         Cas = op.Cas,
                         Status = ResponseStatus.OperationTimeout,
-                        CollectionName = op.CName,
-                        ScopeName = op.SName,
+                        CollectionName = _redactor.MetaDataString(op.CName),
+                        ScopeName = _redactor.MetaDataString(op.SName),
                         OpCode = op.OpCode,
-                        DispatchedFrom = op.LastDispatchedFrom,
-                        DispatchedTo = op.LastDispatchedTo,
+                        DispatchedFrom = _redactor.SystemDataString(op.LastDispatchedFrom),
+                        DispatchedTo = _redactor.SystemDataString(op.LastDispatchedTo),
                         RetryReasons = op.RetryReasons
                     });
                 }
@@ -855,7 +859,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.UserData(op.Key), op.Opaque, op.Header.Status, EffectiveConfigVersion(op));
+                LogKvOperationFailed(e, op.OpCode,_redactor.SystemData(EndPoint),_redactor.OperationKey(op), op.Opaque, op.Header.Status, EffectiveConfigVersion(op));
 
                 throw;
             }
@@ -983,11 +987,11 @@ namespace Couchbase.Core
 
                 await ExecuteInternalOperationAsync(connection, selectBucketOp,
                     ExecuteOp,
-                    static (status, op) =>
+                    static (status, op, redactor) =>
                     {
                         if (status != ResponseStatus.Success)
                         {
-                            throw status.CreateException(op, op.Key);
+                            throw status.CreateException(op, op.Key, redactor);
                         }
 
                         return (object) null; // We don't need the return value

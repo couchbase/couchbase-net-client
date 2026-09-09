@@ -30,7 +30,9 @@ namespace Couchbase.UnitTests.Management
             var httpClient = new HttpClient(handler);
             var httpClientFactory = new MockHttpClientFactory(httpClient);
             var logger = new Mock<ILogger<CollectionManager>>().Object;
-            var redactor = new Mock<IRedactor>().Object;
+            // Not a Mock<IRedactor>: its methods return null, so the management error context this
+            // manager builds would get a null Statement rather than the URI.
+            var redactor = TestRedactor.None;
 
             var nodeMock = new Mock<IClusterNode>();
             nodeMock.Setup(n => n.ManagementUri).Returns(BaseUri);

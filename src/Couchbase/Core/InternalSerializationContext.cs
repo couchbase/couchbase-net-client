@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using Couchbase.Core.Configuration.Server;
@@ -35,6 +36,18 @@ namespace Couchbase.Core
 #endif
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
+        private static JsonSerializerOptions? _redactionSafeOptions;
+
+        /// <summary>
+        /// The settings of <see cref="Default"/>, but safe for the redaction tags an error context
+        /// may carry. See <see cref="RedactionSafeJson"/>.
+        /// </summary>
+        // Null-forgiving: EnsureInitialized cannot return null here, but the netstandard targets
+        // lack the annotation that says so.
+        internal static JsonSerializerOptions RedactionSafeOptions =>
+            LazyInitializer.EnsureInitialized(ref _redactionSafeOptions,
+                static () => RedactionSafeJson.Create(Default.Options))!;
+
         private static SystemTextJsonSerializer? _defaultTypeSerializer;
 
         public static SystemTextJsonSerializer DefaultTypeSerializer

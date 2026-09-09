@@ -45,6 +45,22 @@ namespace Couchbase.Core.Logging
             return RedactMessage(message, _system);
         }
 
+        // The overloads below are for error contexts, which store plain strings rather than
+        // Redacted<T>. They pass null and empty through untouched: Redacted<T>.ToString() renders
+        // a null value as an empty string, which would turn an absent context field into a
+        // present, empty one, and tagging an empty value yields a useless "<ud></ud>".
+        // When RedactionLevel is None these return the same string instance, so the default
+        // configuration stays allocation-free.
+
+        public string? UserDataString(string? value) =>
+            string.IsNullOrEmpty(value) ? value : UserData(value).ToString();
+
+        public string? MetaDataString(string? value) =>
+            string.IsNullOrEmpty(value) ? value : MetaData(value).ToString();
+
+        public string? SystemDataString(string? value) =>
+            string.IsNullOrEmpty(value) ? value : SystemData(value).ToString();
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Redacted<T> RedactMessage<T>(T message, string redactionType)
         {
