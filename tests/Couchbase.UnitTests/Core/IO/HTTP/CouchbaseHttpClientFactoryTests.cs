@@ -20,13 +20,13 @@ namespace Couchbase.UnitTests.Core.IO.HTTP;
 public class CouchbaseHttpClientFactoryTests
 {
     private readonly Mock<ILogger<CouchbaseHttpClientFactory>> _mockLogger;
-    private readonly Mock<IRedactor> _mockRedactor;
+    private readonly TypedRedactor _redactor;
     private readonly Mock<ICertificateValidationCallbackFactory> _mockCallbackFactory;
 
     public CouchbaseHttpClientFactoryTests()
     {
         _mockLogger = new Mock<ILogger<CouchbaseHttpClientFactory>>();
-        _mockRedactor = new Mock<IRedactor>();
+        _redactor = new TypedRedactor(RedactionLevel.None);
         _mockCallbackFactory = new Mock<ICertificateValidationCallbackFactory>();
 
         // Setup callback factory to return a valid callback
@@ -54,7 +54,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         // Assert
@@ -81,7 +81,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -114,7 +114,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -140,7 +140,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -166,7 +166,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -210,7 +210,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -250,7 +250,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var initialHandler = factory._sharedHandler;
@@ -284,7 +284,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var barrier = new Barrier(10);
@@ -343,7 +343,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         // Act - Many concurrent Create calls
@@ -378,7 +378,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         // Act
@@ -405,7 +405,7 @@ public class CouchbaseHttpClientFactoryTests
         var factory = new CouchbaseHttpClientFactory(
             context,
             _mockLogger.Object,
-            _mockRedactor.Object,
+            _redactor,
             _mockCallbackFactory.Object);
 
         var handler1 = factory._sharedHandler;

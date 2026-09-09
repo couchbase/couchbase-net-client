@@ -8,6 +8,7 @@ using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
 using Couchbase.LoadTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
+using Couchbase.Core.Logging;
 
 namespace Couchbase.LoadTests.Core.IO.Connections
 {
@@ -21,7 +22,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         public async Task DataFlowSetup()
         {
             var connectionInitializer = new MockConnectionInitializer();
-            var redactor = new MockRedactor();
+            var redactor = new TypedRedactor(RedactionLevel.None);
             var connectionFactory = new MockConnectionFactory();
 
             _dataFlowPool = new DataFlowConnectionPool(connectionInitializer, connectionFactory,
@@ -40,7 +41,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         public async Task ChannelsSetup()
         {
             var connectionInitializer = new MockConnectionInitializer();
-            var redactor = new MockRedactor();
+            var redactor = new TypedRedactor(RedactionLevel.None);
             var connectionFactory = new MockConnectionFactory();
 
             _channelPool = new ChannelConnectionPool(connectionInitializer, connectionFactory,

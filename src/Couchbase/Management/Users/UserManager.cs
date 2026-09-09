@@ -23,12 +23,12 @@ namespace Couchbase.Management.Users
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<UserManager> _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
 
         public UserManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<UserManager> logger,
-            IRedactor redactor,
+            TypedRedactor redactor,
             IRequestTracer? tracer = null)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));

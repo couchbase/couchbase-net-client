@@ -35,7 +35,7 @@ internal class WebSocketClientHandler : IDisposable
     private readonly IAppTelemetryCollector _appTelemetryCollector;
     private readonly ICouchbaseHttpClientFactory _couchbaseHttpClientFactory;
     private readonly ICertificateValidationCallbackFactory _certificateValidationCallbackFactory;
-    private readonly IRedactor _redactor;
+    private readonly TypedRedactor _redactor;
     private int _attempt = 0;
     private readonly int _clampedExponent = 0;
     private string? _pendingMetrics;
@@ -49,7 +49,7 @@ internal class WebSocketClientHandler : IDisposable
         _couchbaseHttpClientFactory = _appTelemetryCollector.ClusterContext.ServiceProvider
             .GetRequiredService<ICouchbaseHttpClientFactory>();
         _redactor = _appTelemetryCollector.ClusterContext.ServiceProvider
-            .GetRequiredService<IRedactor>();
+            .GetRequiredService<TypedRedactor>();
         _certificateValidationCallbackFactory = _appTelemetryCollector.ClusterContext.ServiceProvider
             .GetRequiredService<ICertificateValidationCallbackFactory>();
         //Cache the max exponent for the backoff

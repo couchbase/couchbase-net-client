@@ -339,7 +339,7 @@ namespace Couchbase.UnitTests.KeyValue
                 operationConfigurator,
                 new Mock<ILogger<CouchbaseCollection>>().Object,
                 new Mock<ILogger<GetResult>>().Object,
-                new Mock<IRedactor>().Object,
+                new TypedRedactor(RedactionLevel.None),
                 CouchbaseCollection.DefaultCollectionName,
                 Mock.Of<IScope>(scope => scope.IsDefaultScope == true && scope.Name == Scope.DefaultScopeName),
                 new NoopRequestTracer(),

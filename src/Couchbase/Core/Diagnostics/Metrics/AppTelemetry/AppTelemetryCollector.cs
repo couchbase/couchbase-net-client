@@ -16,7 +16,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 {
     private volatile bool _enabled;
     private ILogger<AppTelemetryCollector>? _logger;
-    private IRedactor? _redactor;
+    private TypedRedactor? _redactor;
     private WebSocketClientHandler? _webSocketClientHandler;
     private readonly Uri? _endpoint;
     private CancellationTokenSource? _webSocketTokenSource;
@@ -30,7 +30,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         _enabled = false;
     }
 
-    public AppTelemetryCollector(ClusterContext clusterContext, IRedactor redactor, ILogger<AppTelemetryCollector> logger)
+    public AppTelemetryCollector(ClusterContext clusterContext, TypedRedactor redactor, ILogger<AppTelemetryCollector> logger)
     {
         var clusterOptions = clusterContext.ClusterOptions;
         ClusterContext = clusterContext;

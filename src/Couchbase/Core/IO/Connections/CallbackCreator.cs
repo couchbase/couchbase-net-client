@@ -13,13 +13,13 @@ internal class CallbackCreator
 {
     private readonly bool _ignoreNameMismatch;
     ILogger<object> _sslLogger;
-    private readonly IRedactor _redactor;
+    private readonly TypedRedactor _redactor;
     private X509Certificate2Collection? _certs;
 
     public CallbackCreator(
         bool ignoreNameMismatch,
         ILogger<object> sslLogger,
-        IRedactor redactor,
+        TypedRedactor redactor,
         X509Certificate2Collection? certs
         )
     {

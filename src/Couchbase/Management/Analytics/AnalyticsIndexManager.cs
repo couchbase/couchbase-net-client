@@ -25,12 +25,12 @@ namespace Couchbase.Management.Analytics
     {
         private readonly ILogger<AnalyticsIndexManager> _logger;
         private readonly IAnalyticsClient _client;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly IRequestTracer _tracer;
 
-        public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IAnalyticsClient client, IRedactor redactor,
+        public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IAnalyticsClient client, TypedRedactor redactor,
             IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory, IRequestTracer? tracer = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

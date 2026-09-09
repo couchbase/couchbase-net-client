@@ -47,7 +47,7 @@ internal class GetMultiManager<TSpec, TResult>
     private Phase _phase;
     private const int Concurrency = 100;
     private readonly ILogger<GetMultiManager<TSpec, TResult>> _logger;
-    private readonly IRedactor _redactor;
+    private readonly TypedRedactor _redactor;
 
     private enum Phase
     {

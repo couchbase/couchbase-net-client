@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal class DefaultConnectionPoolScaleController : IConnectionPoolScaleController
     {
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly ILogger<DefaultConnectionPoolScaleController> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -40,7 +40,7 @@ namespace Couchbase.Core.IO.Connections
         /// </remarks>
         public int BackPressureThreshold { get; set; } = 8;
 
-        public DefaultConnectionPoolScaleController(IRedactor redactor, ILogger<DefaultConnectionPoolScaleController> logger)
+        public DefaultConnectionPoolScaleController(TypedRedactor redactor, ILogger<DefaultConnectionPoolScaleController> logger)
         {
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

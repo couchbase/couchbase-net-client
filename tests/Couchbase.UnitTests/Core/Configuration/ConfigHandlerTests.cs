@@ -79,7 +79,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var clusterOptions = new ClusterOptions().WithPasswordAuthentication("username", "password");
             context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
             var httpStreamingConfigListenerFactory = new Mock<IHttpStreamingConfigListenerFactory>();
-            var httpClientFactory = new CouchbaseHttpClientFactory(context, new Mock<ILogger<CouchbaseHttpClientFactory>>().Object, new Mock<IRedactor>().Object, new Mock<ICertificateValidationCallbackFactory>().Object);
+            var httpClientFactory = new CouchbaseHttpClientFactory(context, new Mock<ILogger<CouchbaseHttpClientFactory>>().Object, new TypedRedactor(RedactionLevel.None), new Mock<ICertificateValidationCallbackFactory>().Object);
             var configHandler = new Mock<IConfigHandler>();
             var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
             var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory, configHandler.Object, logger.Object);

@@ -27,13 +27,13 @@ namespace Couchbase.Management.Search
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<SearchIndexManager> _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly ClusterContext _context;
         private readonly IRequestTracer _tracer;
 
         // TODO:  need to be able to reference global config to AssertBucketCap(ScopedSearchIndexes)
         public SearchIndexManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<SearchIndexManager> logger, IRedactor redactor, ClusterContext context, IRequestTracer? tracer = null)
+            ILogger<SearchIndexManager> logger, TypedRedactor redactor, ClusterContext context, IRequestTracer? tracer = null)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));

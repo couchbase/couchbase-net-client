@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
     internal sealed class DataFlowConnectionPool : ConnectionPoolBase
     {
         private readonly IConnectionPoolScaleController _scaleController;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _logger;
         private readonly uint _kvSendQueueCapacity;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <param name="logger">Logger.</param>
         /// <param name="kvSendQueueCapacity"></param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger,
+            IConnectionPoolScaleController scaleController, TypedRedactor redactor, ILogger<DataFlowConnectionPool> logger,
             uint kvSendQueueCapacity)
             : base(connectionInitializer, connectionFactory, logger)
         {

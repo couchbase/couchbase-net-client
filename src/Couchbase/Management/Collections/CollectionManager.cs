@@ -33,7 +33,7 @@ namespace Couchbase.Management.Collections
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<CollectionManager> _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Couchbase.Management.Collections
         public CollectionManager(string bucketName, BucketConfig bucketConfig, IServiceUriProvider serviceUriProvider,
             ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<CollectionManager> logger,
-            IRedactor redactor,
+            TypedRedactor redactor,
             IRequestTracer? tracer = null)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));

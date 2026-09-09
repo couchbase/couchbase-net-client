@@ -64,7 +64,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private readonly ILogger<StellarCluster> _logger;
-    private readonly IRedactor _redactor;
+    private readonly TypedRedactor _redactor;
     private volatile bool _disposed;
     private readonly IServiceProvider _clusterServices;
     private readonly bool _isCompressionEnabled;
@@ -571,7 +571,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
                 return _cluster.TypeTranscoder;
             if (serviceType == typeof(ITypeSerializer))
                 return _cluster.TypeSerializer;
-            if (serviceType == typeof(IRedactor))
+            if (serviceType == typeof(TypedRedactor) || serviceType == typeof(IRedactor))
                 return _cluster._redactor;
             if (serviceType == typeof(ILoggerFactory))
                 return _cluster._clusterOptions.Logging;

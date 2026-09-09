@@ -25,12 +25,12 @@ namespace Couchbase.Management.Buckets
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<BucketManager> _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
 
         public BucketManager(IServiceUriProvider serviceUriProvider,
             ICouchbaseHttpClientFactory httpClientFactory,
-            IRedactor redactor,
+            TypedRedactor redactor,
             ILogger<BucketManager> logger,
             IRequestTracer? tracer = null)
         {

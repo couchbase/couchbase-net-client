@@ -13,7 +13,7 @@ namespace Couchbase.Diagnostics
     /// </summary>
     internal class SearchUriTester : UriTesterBase
     {
-        public SearchUriTester(HttpClient httpClient, ILogger<SearchUriTester> logger, IRedactor redactor)
+        public SearchUriTester(HttpClient httpClient, ILogger<SearchUriTester> logger, TypedRedactor redactor)
             : base(httpClient, logger, redactor)
         {
         }

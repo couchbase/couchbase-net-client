@@ -67,7 +67,7 @@ namespace Couchbase.IntegrationTests.DataStructures
         private async Task<IPersistentDictionary<Foo>> GetPersistentDictionary([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync();
-            return new PersistentDictionary<Foo>(collection, $"{nameof(PersistentDictionaryTests)}-{id}", new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
+            return new PersistentDictionary<Foo>(collection, $"{nameof(PersistentDictionaryTests)}-{id}", new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None));
         }
 
         [Fact]

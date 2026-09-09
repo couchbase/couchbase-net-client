@@ -17,9 +17,9 @@ namespace Couchbase.Diagnostics
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
 
-        protected UriTesterBase(HttpClient httpClient, ILogger logger, IRedactor redactor)
+        protected UriTesterBase(HttpClient httpClient, ILogger logger, TypedRedactor redactor)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

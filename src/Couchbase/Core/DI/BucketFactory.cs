@@ -57,7 +57,7 @@ namespace Couchbase.Core.DI
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _couchbaseLogger = couchbaseLogger ?? throw new ArgumentNullException(nameof(couchbaseLogger));
             _memcachedLogger = memcachedLogger ?? throw new ArgumentNullException(nameof(memcachedLogger));
-            _redactor = redactor ?? throw new ArgumentNullException(nameof(IRedactor));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(TypedRedactor));
             _bootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
