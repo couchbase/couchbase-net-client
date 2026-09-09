@@ -108,21 +108,18 @@ namespace Couchbase.FitPerformer.Utils
                 {
                     var protoCbConfig = request.ClusterConfig.CircuitBreakerConfig;
                     var circuitBreakerConfig = new CircuitBreakerConfiguration();
-                    if (protoCbConfig.Query != null)
-                    {
-                        //Since the .NET SDK uses 1 global CircuitBreakerConfiguration for all Nodes' CircuitBreaker to use,
-                        //it can only accept 1 config from the driver and any subsequently processed one will overwrite the previous.
-                        //If this changes in the future and the SDK handles 1 Config per Service, the following lines can be adapted
-                        //to correctly apply the parsed config to each service.
-                        if (protoCbConfig.Query != null) ApplyCircuitBreakerConfig(protoCbConfig.Query, circuitBreakerConfig);
-                        if (protoCbConfig.Kv != null) ApplyCircuitBreakerConfig(protoCbConfig.Kv, circuitBreakerConfig);
-                        if (protoCbConfig.Search != null) ApplyCircuitBreakerConfig(protoCbConfig.Search, circuitBreakerConfig);
-                        if (protoCbConfig.Analytics != null) ApplyCircuitBreakerConfig(protoCbConfig.Analytics, circuitBreakerConfig);
-                        if (protoCbConfig.Backup != null) ApplyCircuitBreakerConfig(protoCbConfig.Backup, circuitBreakerConfig);
-                        if (protoCbConfig.Eventing != null) ApplyCircuitBreakerConfig(protoCbConfig.Eventing, circuitBreakerConfig);
-                        if (protoCbConfig.Manager != null) ApplyCircuitBreakerConfig(protoCbConfig.Manager, circuitBreakerConfig);
-                        if (protoCbConfig.View != null) ApplyCircuitBreakerConfig(protoCbConfig.View, circuitBreakerConfig);
-                    }
+                    //Since the .NET SDK uses 1 global CircuitBreakerConfiguration for all Nodes' CircuitBreaker to use,
+                    //it can only accept 1 config from the driver and any subsequently processed one will overwrite the previous.
+                    //If this changes in the future and the SDK handles 1 Config per Service, the following lines can be adapted
+                    //to correctly apply the parsed config to each service.
+                    if (protoCbConfig.Query != null) ApplyCircuitBreakerConfig(protoCbConfig.Query, circuitBreakerConfig);
+                    if (protoCbConfig.Kv != null) ApplyCircuitBreakerConfig(protoCbConfig.Kv, circuitBreakerConfig);
+                    if (protoCbConfig.Search != null) ApplyCircuitBreakerConfig(protoCbConfig.Search, circuitBreakerConfig);
+                    if (protoCbConfig.Analytics != null) ApplyCircuitBreakerConfig(protoCbConfig.Analytics, circuitBreakerConfig);
+                    if (protoCbConfig.Backup != null) ApplyCircuitBreakerConfig(protoCbConfig.Backup, circuitBreakerConfig);
+                    if (protoCbConfig.Eventing != null) ApplyCircuitBreakerConfig(protoCbConfig.Eventing, circuitBreakerConfig);
+                    if (protoCbConfig.Manager != null) ApplyCircuitBreakerConfig(protoCbConfig.Manager, circuitBreakerConfig);
+                    if (protoCbConfig.View != null) ApplyCircuitBreakerConfig(protoCbConfig.View, circuitBreakerConfig);
 
                     clusterOptions.CircuitBreakerConfiguration = circuitBreakerConfig;
                 }

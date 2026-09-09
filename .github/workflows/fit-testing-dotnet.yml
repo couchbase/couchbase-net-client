@@ -25,10 +25,10 @@ on:
         type: boolean
         default: true
       channel:
-        description: fit-cli install channel ("latest" or "ci").
+        description: fit-cli install channel ("ci" or "latest").
         required: false
         type: string
-        default: latest
+        default: ci
       performer_tag:
         description: >-
           Tag of the ghcr.io/couchbase/dotnet-fit-performer image to test. Defaults to the branch
@@ -88,12 +88,20 @@ jobs:
       preset: ${{ vars.FIT_CLI_PRESET || inputs.preset || 'op-multi-lite' }}
       collect_extra_diagnostics: ${{ inputs.collect_extra_diagnostics == '' && true || inputs.collect_extra_diagnostics }}
       performer: dotnet-fit-performer:${{ needs.performer-tag.outputs.tag }}
-      # 'latest', not 'ci': the ci channel went stale at a 2026-08-10 build and stopped
-      # picking up fixes, which killed Capella cluster allocation from 2026-08-21 - see
-      # NCBC-4288. Note the input default above does NOT apply to the
-      # nightly: scheduled runs supply no inputs and workflow_dispatch defaults only apply to
-      # dispatches, so this literal is what the nightly actually uses.
-      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'latest' }}
+      # 'ci', not 'latest'. NCBC-4288 moved this to 'latest' because the ci channel had gone
+      # stale at a 2026-08-10 build, which killed Capella cluster allocation. That is no longer
+      # true - ci is rebuilt alongside latest - and latest has since regressed: it passes
+      # --capella-create-pool to `cbdinocluster init`, which rejects it as an unknown flag, so
+      # every Capella preset dies during setup and reports no results at all.
+      #
+      # Measured 2026-09-03: latest (built 13:18:31Z) fails at init, ci (built 13:16:30Z, two
+      # minutes earlier) completes op-capella-sit-lite 5/5. Revisit once fit-cli no longer
+      # passes a flag the installed cbdinocluster does not have.
+      #
+      # Note the input default above does NOT apply to the nightly: scheduled runs supply no
+      # inputs and workflow_dispatch defaults only apply to dispatches, so this literal is what
+      # the nightly actually uses.
+      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'ci' }}
       # Empty on the nightly, which passes no inputs — so the nightly keeps the presets' own
       # default server version.
       env_override: ${{ inputs.env_override }}
