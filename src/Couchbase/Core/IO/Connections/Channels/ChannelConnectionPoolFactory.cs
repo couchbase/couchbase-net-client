@@ -14,11 +14,11 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly IConnectionFactory _connectionFactory;
         private readonly ClusterOptions _clusterOptions;
         private readonly IConnectionPoolScaleControllerFactory _scaleControllerFactory;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ILogger<ChannelConnectionPool> _channelPoolLogger;
 
         public ChannelConnectionPoolFactory(IConnectionFactory connectionFactory, ClusterOptions clusterOptions,
-            IConnectionPoolScaleControllerFactory scaleControllerFactory, TypedRedactor redactor,
+            IConnectionPoolScaleControllerFactory scaleControllerFactory, Redactor redactor,
             ILogger<ChannelConnectionPool> channelPoolLogger)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));

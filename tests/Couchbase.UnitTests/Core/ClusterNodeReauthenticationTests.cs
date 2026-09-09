@@ -472,7 +472,7 @@ public class ClusterNodeReauthenticationTests
             operationBuilderPool: pool,
             circuitBreaker: new CircuitBreaker(TimeProvider.System, new CircuitBreakerConfiguration { Enabled = false }),
             saslMechanismFactory: saslMechanismFactory,
-            redactor: new TypedRedactor(RedactionLevel.None),
+            redactor: new Redactor(RedactionLevel.None),
             endPoint: new HostEndpointWithPort("localhost", 11210),
             nodeAdapter: new NodeAdapter { Hostname = "localhost" },
             tracer: new NoopRequestTracer(),

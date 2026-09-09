@@ -340,7 +340,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new BestEffortRetryStrategy()),
                 new Mock<ILogger<CouchbaseCollection>>().Object,
                 new Mock<ILogger<GetResult>>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 defaultCollection ? CouchbaseCollection.DefaultCollectionName : "c",
                 defaultCollection
                     ? Mock.Of<IScope>(scope => scope.IsDefaultScope == true &&
@@ -371,7 +371,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<IScopeFactory>().Object,
                     CreateRetryOrchestrator(),
                     new Mock<ILogger>().Object,
-                    new TypedRedactor(RedactionLevel.None),
+                    new Redactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,

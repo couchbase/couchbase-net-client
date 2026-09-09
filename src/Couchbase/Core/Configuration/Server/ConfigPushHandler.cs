@@ -15,7 +15,7 @@ internal partial class ConfigPushHandler : IDisposable
 {
     private readonly ILogger _logger;
     private readonly ClusterContext _context;
-    private readonly TypedRedactor _redactor;
+    private readonly Redactor _redactor;
     private readonly BucketBase _bucket;
 
     private readonly CancellationTokenSource _continueLoopingSource = new();
@@ -26,7 +26,7 @@ internal partial class ConfigPushHandler : IDisposable
     private ConfigVersion _latestVersion;
     private volatile bool _disposed;
 
-    public ConfigPushHandler(BucketBase bucket, ClusterContext context, ILogger logger, TypedRedactor redactor)
+    public ConfigPushHandler(BucketBase bucket, ClusterContext context, ILogger logger, Redactor redactor)
     {
         _logger = logger;
         _bucket = bucket;

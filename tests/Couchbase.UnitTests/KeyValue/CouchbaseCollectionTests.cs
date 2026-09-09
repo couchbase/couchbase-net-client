@@ -201,7 +201,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public FakeBucket(params ResponseStatus[] statuses)
                 : base(BucketName, new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<IScopeFactory>().Object,
-                    CreateRetryOrchestrator(), new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
+                    CreateRetryOrchestrator(), new Mock<ILogger>().Object, new Redactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
@@ -235,7 +235,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<ILogger<ClusterNode>>().Object, new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
-                    new TypedRedactor(RedactionLevel.None),
+                    new Redactor(RedactionLevel.None),
                     new HostEndpointWithPort("127.0.0.1", 11210),
                     new NodeAdapter(),
                     NoopRequestTracer.Instance,
@@ -339,7 +339,7 @@ namespace Couchbase.UnitTests.KeyValue
                 operationConfigurator,
                 new Mock<ILogger<CouchbaseCollection>>().Object,
                 new Mock<ILogger<GetResult>>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 CouchbaseCollection.DefaultCollectionName,
                 Mock.Of<IScope>(scope => scope.IsDefaultScope == true && scope.Name == Scope.DefaultScopeName),
                 new NoopRequestTracer(),

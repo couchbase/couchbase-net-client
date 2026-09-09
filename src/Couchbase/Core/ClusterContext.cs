@@ -39,7 +39,7 @@ namespace Couchbase.Core
 
         private readonly ClusterOptions _clusterOptions;
         private readonly ILogger<ClusterContext> _logger;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IConfigHandler _configHandler;
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
@@ -75,7 +75,7 @@ namespace Couchbase.Core
             ServiceProvider = options.BuildServiceProvider();
 
             _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();
-            _redactor = ServiceProvider.GetRequiredService<TypedRedactor>();
+            _redactor = ServiceProvider.GetRequiredService<Redactor>();
             _configHandler = ServiceProvider.GetRequiredService<IConfigHandler>();
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
             _httpClusterMapFactory = ServiceProvider.GetRequiredService<IHttpClusterMapFactory>();

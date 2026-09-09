@@ -18,13 +18,13 @@ namespace Couchbase.Core.DI
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly ILogger<CouchbaseCollection> _logger;
         private readonly ILogger<GetResult> _getLogger;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly IServiceProvider _serviceProvider;
 
         public CollectionFactory(IOperationConfigurator operationConfigurator, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, TypedRedactor redactor, IRequestTracer tracer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
+            ILogger<GetResult> getLogger, Redactor redactor, IRequestTracer tracer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             IServiceProvider serviceProvider)
         {
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));

@@ -22,11 +22,11 @@ namespace Couchbase.Core.Retry
     internal partial class RetryOrchestrator(
         TimeProvider timeProvider,
         ILogger<RetryOrchestrator> logger,
-        TypedRedactor redactor)
+        Redactor redactor)
         : IRetryOrchestrator
     {
         private readonly ILogger<RetryOrchestrator> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly TypedRedactor _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+        private readonly Redactor _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
         /// <summary>
         /// Seam for unit testing to change delay behaviors.

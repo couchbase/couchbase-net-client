@@ -34,7 +34,7 @@ namespace Couchbase.Management.Views
                 _serviceProvider.GetRequiredService<IServiceUriProvider>(),
                 _serviceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                 _serviceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
-                _serviceProvider.GetRequiredService<TypedRedactor>(),
+                _serviceProvider.GetRequiredService<Redactor>(),
                 _serviceProvider.GetRequiredService<IRequestTracer>());
     }
 }

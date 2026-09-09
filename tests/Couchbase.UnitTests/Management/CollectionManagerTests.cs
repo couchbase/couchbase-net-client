@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Management
             var httpClient = new HttpClient(handler);
             var httpClientFactory = new MockHttpClientFactory(httpClient);
             var logger = new Mock<ILogger<CollectionManager>>().Object;
-            var redactor = new TypedRedactor(RedactionLevel.None);
+            var redactor = new Redactor(RedactionLevel.None);
 
             var nodeMock = new Mock<IClusterNode>();
             nodeMock.Setup(n => n.ManagementUri).Returns(BaseUri);

@@ -22,7 +22,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         public async Task DataFlowSetup()
         {
             var connectionInitializer = new MockConnectionInitializer();
-            var redactor = new TypedRedactor(RedactionLevel.None);
+            var redactor = new Redactor(RedactionLevel.None);
             var connectionFactory = new MockConnectionFactory();
 
             _dataFlowPool = new DataFlowConnectionPool(connectionInitializer, connectionFactory,
@@ -41,7 +41,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         public async Task ChannelsSetup()
         {
             var connectionInitializer = new MockConnectionInitializer();
-            var redactor = new TypedRedactor(RedactionLevel.None);
+            var redactor = new Redactor(RedactionLevel.None);
             var connectionFactory = new MockConnectionFactory();
 
             _channelPool = new ChannelConnectionPool(connectionInitializer, connectionFactory,

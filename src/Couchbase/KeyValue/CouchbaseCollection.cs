@@ -54,7 +54,7 @@ namespace Couchbase.KeyValue
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, TypedRedactor redactor,
+            ILogger<GetResult> getLogger, Redactor redactor,
             string name, IScope scope, IRequestTracer tracer, IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             IServiceProvider serviceProvider)
         {
@@ -84,7 +84,7 @@ namespace Couchbase.KeyValue
             }
         }
 
-        internal TypedRedactor Redactor { get; }
+        internal Redactor Redactor { get; }
 
         /// <inheritdoc />
         public string ScopeName => Scope.Name;

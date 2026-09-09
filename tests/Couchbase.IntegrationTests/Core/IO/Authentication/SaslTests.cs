@@ -39,7 +39,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
             var factory = new ConnectionFactory(options, ipEndPointService,
                 new Mock<ILogger<MultiplexingConnection>>().Object,
                 new Mock<ILogger<SslConnection>>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 new Mock<CertificateValidationCallbackFactory>().Object);
 
             var endPoint = options.ConnectionStringValue.GetBootstrapEndpoints().First();

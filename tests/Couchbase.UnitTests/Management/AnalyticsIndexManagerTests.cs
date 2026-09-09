@@ -28,7 +28,7 @@ namespace Couchbase.UnitTests.Management
     public class AnalyticsIndexManagerTests
     {
         private readonly Mock<ILogger<AnalyticsIndexManager>> _mockLogger = new Mock<ILogger<AnalyticsIndexManager>>();
-        private readonly TypedRedactor _redactor = new TypedRedactor(RedactionLevel.None);
+        private readonly Redactor _redactor = new Redactor(RedactionLevel.None);
         private static FakeHttpMessageHandler _fakeHttpMessageHandler = FakeHttpMessageHandler.Create((req) =>
         {
             Assert.Equal("http://localhost:8094/analytics/node/agg/stats/remaining", req.RequestUri.ToString());

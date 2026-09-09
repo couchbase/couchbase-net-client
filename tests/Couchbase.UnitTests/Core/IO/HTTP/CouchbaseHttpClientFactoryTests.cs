@@ -20,13 +20,13 @@ namespace Couchbase.UnitTests.Core.IO.HTTP;
 public class CouchbaseHttpClientFactoryTests
 {
     private readonly Mock<ILogger<CouchbaseHttpClientFactory>> _mockLogger;
-    private readonly TypedRedactor _redactor;
+    private readonly Redactor _redactor;
     private readonly Mock<ICertificateValidationCallbackFactory> _mockCallbackFactory;
 
     public CouchbaseHttpClientFactoryTests()
     {
         _mockLogger = new Mock<ILogger<CouchbaseHttpClientFactory>>();
-        _redactor = new TypedRedactor(RedactionLevel.None);
+        _redactor = new Redactor(RedactionLevel.None);
         _mockCallbackFactory = new Mock<ICertificateValidationCallbackFactory>();
 
         // Setup callback factory to return a valid callback

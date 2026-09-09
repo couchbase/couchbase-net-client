@@ -58,7 +58,7 @@ namespace Couchbase
         private bool _bootstrapFailureLogged;
 
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IBootstrapper _bootstrapper;
         private readonly List<Exception> _deferredExceptions = new List<Exception>();
         private volatile ClusterState _clusterState;
@@ -112,7 +112,7 @@ namespace Couchbase
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
-            _redactor = _context.ServiceProvider.GetRequiredService<TypedRedactor>();
+            _redactor = _context.ServiceProvider.GetRequiredService<Redactor>();
             _tracer = _context.ServiceProvider.GetRequiredService<IRequestTracer>();
             if (_tracer is RequestTracerWrapper wrapper)
             {

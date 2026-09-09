@@ -19,9 +19,9 @@ namespace Couchbase.DataStructures
         protected ICouchbaseCollection Collection { get; }
         protected string Key { get; }
         protected bool BackingStoreChecked {get; set;}
-        internal TypedRedactor? Redactor;
+        internal Redactor? Redactor;
 
-        internal PersistentStoreBase(ICouchbaseCollection collection, string key, ILogger? logger, TypedRedactor? redactor, object syncRoot, bool isSynchronized)
+        internal PersistentStoreBase(ICouchbaseCollection collection, string key, ILogger? logger, Redactor? redactor, object syncRoot, bool isSynchronized)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (collection == null)

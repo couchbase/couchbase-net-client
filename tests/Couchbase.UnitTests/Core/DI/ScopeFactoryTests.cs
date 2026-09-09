@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Core.DI
                 factory,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,

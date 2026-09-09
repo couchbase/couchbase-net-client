@@ -83,7 +83,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             return new ChannelConnectionPool(connectionInitializer, connectionFactory,
                 new Mock<IConnectionPoolScaleController>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
                 channel
             );

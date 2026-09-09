@@ -182,7 +182,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
-                new TypedRedactor(RedactionLevel.None), NoopRequestTracer.Instance);
+                new Redactor(RedactionLevel.None), NoopRequestTracer.Instance);
         }
     }
 }

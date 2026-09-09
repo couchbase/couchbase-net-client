@@ -20,10 +20,10 @@ namespace Couchbase.Management.Query
 
         private readonly IQueryClient _queryClient;
         private readonly ILogger<QueryIndexManager> _logger;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
 
-        public QueryIndexManager(IQueryClient queryClient, ILogger<QueryIndexManager> logger, TypedRedactor redactor, IRequestTracer? tracer = null)
+        public QueryIndexManager(IQueryClient queryClient, ILogger<QueryIndexManager> logger, Redactor redactor, IRequestTracer? tracer = null)
         {
             _queryClient = queryClient ?? throw new ArgumentNullException(nameof(queryClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

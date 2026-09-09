@@ -17,12 +17,12 @@ namespace Couchbase.DataStructures
     public sealed class PersistentDictionary<TValue> : IPersistentDictionary<TValue>
     {
         private readonly ILogger? _logger;
-        private readonly TypedRedactor? _redactor;
+        private readonly Redactor? _redactor;
         private ICouchbaseCollection Collection { get; }
         private string DocId { get; }
         private bool BackingStoreChecked { get; set; }
 
-        internal PersistentDictionary(ICouchbaseCollection collection, string docId, ILogger? logger, TypedRedactor? redactor)
+        internal PersistentDictionary(ICouchbaseCollection collection, string docId, ILogger? logger, Redactor? redactor)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             DocId = docId ?? throw new ArgumentNullException(nameof(docId));

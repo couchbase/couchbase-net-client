@@ -7,25 +7,25 @@ using System.Runtime.CompilerServices;
 namespace Couchbase.Core.Logging
 {
     /// <summary>
-    /// Represents a logging argument that is redactable. This provides a more strongly-typed version of redaction
-    /// than exposed by the public <see cref="IRedactor"/> interface.
+    /// Wraps logging arguments in redaction tags according to the configured <see cref="Logging.RedactionLevel"/>.
     /// </summary>
     /// <remarks>
-    /// The strongly-typed methods below are the ones consumers should use; they are injected by the concrete class,
-    /// not by an interface, so that they may be inlined. <see cref="IRedactor"/> is implemented explicitly purely to
-    /// keep that public interface satisfied.
+    /// The generic methods are the ones to use. They return <see cref="Redacted{T}"/> without boxing, and are
+    /// injected as this concrete class rather than as an interface so that they may be inlined.
+    /// <see cref="IRedactor"/> is implemented explicitly, both to satisfy that public interface and to keep its
+    /// object-typed overloads from beating the generic ones at overload resolution.
     /// </remarks>
-    internal sealed class TypedRedactor : IRedactor
+    internal sealed class Redactor : IRedactor
     {
         private const string _user = "ud";
         private const string _meta = "md";
         private const string _system = "sd";
 
-        public TypedRedactor(ClusterOptions options) : this(options.RedactionLevel)
+        public Redactor(ClusterOptions options) : this(options.RedactionLevel)
         {
         }
 
-        internal TypedRedactor(RedactionLevel redactionLevel)
+        internal Redactor(RedactionLevel redactionLevel)
         {
             RedactionLevel = redactionLevel;
         }

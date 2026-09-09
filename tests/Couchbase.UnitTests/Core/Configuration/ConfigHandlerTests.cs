@@ -79,7 +79,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var clusterOptions = new ClusterOptions().WithPasswordAuthentication("username", "password");
             context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
             var httpStreamingConfigListenerFactory = new Mock<IHttpStreamingConfigListenerFactory>();
-            var httpClientFactory = new CouchbaseHttpClientFactory(context, new Mock<ILogger<CouchbaseHttpClientFactory>>().Object, new TypedRedactor(RedactionLevel.None), new Mock<ICertificateValidationCallbackFactory>().Object);
+            var httpClientFactory = new CouchbaseHttpClientFactory(context, new Mock<ILogger<CouchbaseHttpClientFactory>>().Object, new Redactor(RedactionLevel.None), new Mock<ICertificateValidationCallbackFactory>().Object);
             var configHandler = new Mock<IConfigHandler>();
             var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
             var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory, configHandler.Object, logger.Object);
@@ -245,7 +245,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             public FakeBucket(ITestOutputHelper output, SemaphoreSlim eventSlim)
                 : base("default", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), new Mock<IScopeFactory>().Object,
-                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
+                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Redactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
