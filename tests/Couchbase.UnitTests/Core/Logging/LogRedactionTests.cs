@@ -1,4 +1,3 @@
-using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Xunit;
 

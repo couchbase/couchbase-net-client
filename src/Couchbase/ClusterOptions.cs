@@ -1318,9 +1318,9 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Registering a custom <see cref="IRedactor"/> used to change how some log arguments were
-        /// redacted. The SDK now redacts through the concrete redactor everywhere, so such a
-        /// registration is resolvable but never consulted. Say so rather than ignoring it silently.
+        /// Warns when a custom <see cref="IRedactor"/> has been registered, since the SDK redacts through
+        /// the concrete <see cref="Redactor"/> everywhere and never consults the interface. Detectable
+        /// because <see cref="DefaultServices"/> registers one factory object under both keys.
         /// </summary>
         private void WarnIfRedactorWasReplaced()
         {
@@ -1332,10 +1332,9 @@ namespace Couchbase
             }
 
             (Logging ?? NullLoggerFactory.Instance).CreateLogger<ClusterOptions>().LogWarning(
-                "A custom {redactorInterface} was registered, but the SDK no longer resolves " +
-                "{redactorInterface} when redacting log arguments, so it will have no effect. " +
-                "Use {redactionLevel} to control log redaction.",
-                nameof(IRedactor), nameof(IRedactor), nameof(RedactionLevel));
+                "A custom IRedactor was registered, but the SDK no longer resolves IRedactor when " +
+                "redacting log arguments, so it will have no effect. Use ClusterOptions.RedactionLevel " +
+                "to control log redaction.");
         }
 
         /// <summary>

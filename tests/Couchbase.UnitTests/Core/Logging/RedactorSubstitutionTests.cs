@@ -76,7 +76,7 @@ namespace Couchbase.UnitTests.Core.Logging
             var factory = provider.GetService(typeof(IConnectionPoolScaleControllerFactory))!;
             var held = factory.GetType()
                 .GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .First(f => typeof(IRedactor).IsAssignableFrom(f.FieldType))
+                .Single(f => typeof(IRedactor).IsAssignableFrom(f.FieldType))
                 .GetValue(factory);
 
             Assert.IsType<Redactor>(held);

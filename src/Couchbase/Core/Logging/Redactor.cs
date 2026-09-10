@@ -10,10 +10,8 @@ namespace Couchbase.Core.Logging
     /// Wraps logging arguments in redaction tags according to the configured <see cref="Logging.RedactionLevel"/>.
     /// </summary>
     /// <remarks>
-    /// The generic methods are the ones to use. They return <see cref="Redacted{T}"/> without boxing, and are
-    /// injected as this concrete class rather than as an interface so that they may be inlined.
-    /// <see cref="IRedactor"/> is implemented explicitly, both to satisfy that public interface and to keep its
-    /// object-typed overloads from beating the generic ones at overload resolution.
+    /// Injected as this concrete class rather than as an interface: the generic methods return
+    /// <see cref="Redacted{T}"/> without boxing, and can be inlined.
     /// </remarks>
     internal sealed class Redactor : IRedactor
     {

@@ -110,7 +110,9 @@ namespace Couchbase.Client.Transactions
         {
             _cluster = cluster ?? throw new ArgumentNullException(nameof(cluster));
             Config = config ?? throw new ArgumentNullException(nameof(config));
-            _redactor = _cluster.ClusterServices.GetService(typeof(Redactor)) as Redactor ?? throw new ArgumentNullException(nameof(Redactor), "Redactor implementation not registered.");
+            // A caller-supplied ICluster need not carry the SDK's internal services; None is the default level.
+            _redactor = _cluster.ClusterServices.GetService(typeof(Redactor)) as Redactor
+                ?? new Redactor(RedactionLevel.None);
             _requestTracer = cluster.ClusterServices.GetService(typeof(IRequestTracer)) as IRequestTracer ?? new NoopRequestTracer();
             Interlocked.Increment(ref InstancesCreated);
             if (config.CleanupConfig.CleanupLostAttempts)

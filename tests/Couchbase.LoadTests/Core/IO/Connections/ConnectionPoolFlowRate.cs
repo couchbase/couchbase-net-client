@@ -6,9 +6,9 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.LoadTests.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
-using Couchbase.Core.Logging;
 
 namespace Couchbase.LoadTests.Core.IO.Connections
 {
