@@ -5,31 +5,59 @@ using System.Diagnostics.CodeAnalysis;
 namespace Couchbase.Core.Logging
 {
     /// <summary>
-    /// An interface used for redacting specific log information.
+    /// Wraps a log argument in redaction tags according to the configured
+    /// <see cref="Couchbase.ClusterOptions.RedactionLevel"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is redaction as seen from outside the SDK. Obtain the cluster's redactor with
+    /// <c>cluster.ClusterServices.GetRequiredService&lt;IRedactor&gt;()</c> to redact your own log
+    /// arguments the way the SDK does, so that one tool can strip both.
+    /// </para>
+    /// <para>
+    /// The SDK does not redact through this interface. It uses an internal type whose equivalent methods
+    /// are generic, so that log arguments are not boxed and redaction can be inlined; this interface
+    /// exists for callers outside the assembly, which cannot name that type. Consequently, registering an
+    /// implementation of <see cref="IRedactor"/> as a cluster service does not change how the SDK redacts
+    /// — the registration is discarded and a warning is logged. Use
+    /// <see cref="Couchbase.ClusterOptions.RedactionLevel"/> to control redaction.
+    /// </para>
+    /// </remarks>
     public interface IRedactor
     {
         /// <summary>
-        /// Redact user data like username, statements, etc
+        /// Redact user data, such as document keys, usernames and query statements.
         /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
+        /// <param name="message">The value to redact, or null.</param>
+        /// <returns>
+        /// A value that applies the redaction when it is converted to a string, or null if
+        /// <paramref name="message"/> was null. Formatting is deferred, so passing this straight to a
+        /// logger costs nothing at a disabled log level.
+        /// </returns>
         [return: NotNullIfNotNull("message")]
         object? UserData(object? message);
 
         /// <summary>
-        /// Redact meta data like bucket names, etc
+        /// Redact metadata, such as bucket, scope and collection names.
         /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
+        /// <param name="message">The value to redact, or null.</param>
+        /// <returns>
+        /// A value that applies the redaction when it is converted to a string, or null if
+        /// <paramref name="message"/> was null. Not redacted at
+        /// <see cref="RedactionLevel.Partial"/>.
+        /// </returns>
         [return: NotNullIfNotNull("message")]
         object? MetaData(object? message);
 
         /// <summary>
-        /// Redact system data like hostnames, etc.
+        /// Redact system data, such as hostnames and ports.
         /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
+        /// <param name="message">The value to redact, or null.</param>
+        /// <returns>
+        /// A value that applies the redaction when it is converted to a string, or null if
+        /// <paramref name="message"/> was null. Not redacted at
+        /// <see cref="RedactionLevel.Partial"/>.
+        /// </returns>
         [return: NotNullIfNotNull("message")]
         object? SystemData(object? message);
     }
