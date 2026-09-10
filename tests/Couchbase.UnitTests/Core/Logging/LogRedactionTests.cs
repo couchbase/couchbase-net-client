@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using Couchbase.Core.Logging;
 using Xunit;
 
@@ -91,6 +93,50 @@ namespace Couchbase.UnitTests.Core.Logging
 
             Assert.NotNull(typed);
             Assert.Same(typed, byInterface);
+        }
+
+        [Theory]
+        [InlineData(RedactionLevel.None)]
+        [InlineData(RedactionLevel.Partial)]
+        [InlineData(RedactionLevel.Full)]
+        public void Every_Defined_Level_Is_Accepted(RedactionLevel level)
+        {
+            Assert.Equal(level, new Redactor(level).RedactionLevel);
+        }
+
+        [Fact]
+        public void An_Undefined_Level_Is_Rejected_At_Construction()
+        {
+            var undefined = (RedactionLevel)99;
+
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new Redactor(undefined));
+
+            // All three carried nothing before: the parameter name was Enum.GetName of an undefined
+            // value (null), there was no actual value, and the message held a literal "{redactionLevel}".
+            Assert.Equal(nameof(ClusterOptions.RedactionLevel), ex.ParamName);
+            Assert.Equal(undefined, ex.ActualValue);
+            Assert.DoesNotContain("{", ex.Message);
+        }
+
+        [Fact]
+        public void An_Undefined_Level_On_ClusterOptions_Is_Rejected()
+        {
+            var options = new ClusterOptions { RedactionLevel = (RedactionLevel)99 };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Redactor(options));
+        }
+
+        [Fact]
+        public void An_Undefined_Level_Fails_When_The_Redactor_Is_Resolved()
+        {
+            var options = new ClusterOptions { RedactionLevel = (RedactionLevel)99 };
+            var provider = options.BuildServiceProvider();
+
+            // Rejected when the redactor is built rather than by a later log statement. The service
+            // factory constructs by reflection, so the real exception arrives wrapped.
+            var ex = Assert.Throws<TargetInvocationException>(() => provider.GetService(typeof(Redactor)));
+
+            Assert.IsType<ArgumentOutOfRangeException>(ex.InnerException);
         }
 
         [Fact]

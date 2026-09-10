@@ -25,6 +25,13 @@ namespace Couchbase.Core.Logging
 
         internal Redactor(RedactionLevel redactionLevel)
         {
+            // Rejected here rather than only on the redaction path, where it would surface as an
+            // exception from an arbitrary log statement instead of from building the cluster.
+            if (redactionLevel is not (RedactionLevel.None or RedactionLevel.Partial or RedactionLevel.Full))
+            {
+                ThrowArgumentOutOfRangeException(redactionLevel);
+            }
+
             RedactionLevel = redactionLevel;
         }
 
@@ -87,8 +94,10 @@ namespace Couchbase.Core.Logging
         [DoesNotReturn]
         private static void ThrowArgumentOutOfRangeException(RedactionLevel redactionLevel)
         {
-            throw new ArgumentOutOfRangeException(Enum.GetName(typeof(RedactionLevel), redactionLevel),
-                "Unexpected redaction level: {redactionLevel}");
+            // Names the option the caller set, not this private parameter, and reports the value:
+            // Enum.GetName is null for exactly the undefined values this rejects.
+            throw new ArgumentOutOfRangeException(nameof(ClusterOptions.RedactionLevel), redactionLevel,
+                "Unexpected redaction level.");
         }
     }
 }

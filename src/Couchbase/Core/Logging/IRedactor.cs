@@ -17,7 +17,8 @@ namespace Couchbase.Core.Logging
     /// <para>
     /// The SDK does not redact through this interface. It uses an internal type whose equivalent methods
     /// are generic, so that log arguments are not boxed and redaction can be inlined; this interface
-    /// exists for callers outside the assembly, which cannot name that type. Consequently, registering an
+    /// exists for callers outside the assembly, which cannot name that type. A call through it therefore
+    /// boxes both the argument and the result, before any log level is consulted. Consequently, registering an
     /// implementation of <see cref="IRedactor"/> as a cluster service does not change how the SDK redacts
     /// — the registration is discarded and a warning is logged. Use
     /// <see cref="Couchbase.ClusterOptions.RedactionLevel"/> to control redaction.
@@ -31,8 +32,7 @@ namespace Couchbase.Core.Logging
         /// <param name="message">The value to redact, or null.</param>
         /// <returns>
         /// A value that applies the redaction when it is converted to a string, or null if
-        /// <paramref name="message"/> was null. Formatting is deferred, so passing this straight to a
-        /// logger costs nothing at a disabled log level.
+        /// <paramref name="message"/> was null. The redacted string is not built until then.
         /// </returns>
         [return: NotNullIfNotNull("message")]
         object? UserData(object? message);
