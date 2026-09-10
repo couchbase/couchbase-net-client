@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Core.Logging
 
             options.BuildServiceProvider();
 
-            Assert.Contains(warnings, w => w.Contains("IRedactor") && w.Contains("no effect"));
+            Assert.Contains(warnings, w => w.Contains("IRedactor") && w.Contains("has been ignored"));
         }
 
         [Fact]
@@ -64,6 +64,20 @@ namespace Couchbase.UnitTests.Core.Logging
             options.BuildServiceProvider();
 
             Assert.DoesNotContain(warnings, w => w.Contains("IRedactor"));
+        }
+
+        [Fact]
+        public void A_Replaced_Redactor_Is_Not_Handed_Back_By_ClusterServices()
+        {
+            var options = new ClusterOptions();
+            options.AddClusterService<IRedactor, CustomRedactor>();
+
+            var provider = options.BuildServiceProvider();
+
+            // The registration is discarded, so the documented way to fetch the cluster's redactor
+            // always yields one that honours RedactionLevel.
+            Assert.IsType<Redactor>(provider.GetService(typeof(IRedactor)));
+            Assert.Same(provider.GetService(typeof(Redactor)), provider.GetService(typeof(IRedactor)));
         }
 
         [Fact]

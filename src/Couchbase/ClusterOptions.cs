@@ -1312,18 +1312,21 @@ namespace Couchbase
                 this.AddClusterService(RetryStrategy);
             }
 
-            WarnIfRedactorWasReplaced();
+            DiscardReplacedRedactor();
 
             return new CouchbaseServiceProvider(_services);
         }
 
         /// <summary>
-        /// Warns when a custom <see cref="IRedactor"/> has been registered, since the SDK redacts through
-        /// the concrete <see cref="Redactor"/> everywhere and never consults the interface. Detectable
-        /// because <see cref="DefaultServices"/> registers one factory object under both keys.
+        /// Discards a custom <see cref="IRedactor"/> registration and warns about it. A replacement cannot
+        /// take effect, and leaving it registered would only make <see cref="ICluster.ClusterServices"/>
+        /// hand back a redactor the SDK does not use. <see cref="IRequestTracer"/> is already treated this
+        /// way, being likewise configured through options rather than by registration.
         /// </summary>
-        private void WarnIfRedactorWasReplaced()
+        private void DiscardReplacedRedactor()
         {
+            // DefaultServices registers one factory object under both keys, so they differ only if
+            // something has overwritten IRedactor.
             if (!_services.TryGetValue(typeof(IRedactor), out var registered)
                 || !_services.TryGetValue(typeof(Redactor), out var builtIn)
                 || ReferenceEquals(registered, builtIn))
@@ -1331,10 +1334,11 @@ namespace Couchbase
                 return;
             }
 
+            _services[typeof(IRedactor)] = builtIn;
+
             (Logging ?? NullLoggerFactory.Instance).CreateLogger<ClusterOptions>().LogWarning(
-                "A custom IRedactor was registered, but the SDK no longer resolves IRedactor when " +
-                "redacting log arguments, so it will have no effect. Use ClusterOptions.RedactionLevel " +
-                "to control log redaction.");
+                "A custom IRedactor was registered. The SDK redacts through its own redactor, so the " +
+                "registration has been ignored. Use ClusterOptions.RedactionLevel to control log redaction.");
         }
 
         /// <summary>
