@@ -18,7 +18,7 @@ namespace Couchbase.Core.Logging
     /// The SDK does not redact through this interface. It uses an internal type whose equivalent methods
     /// are generic, so that log arguments are not boxed and redaction can be inlined; this interface
     /// exists for callers outside the assembly, which cannot name that type. A call through it therefore
-    /// boxes both the argument and the result, before any log level is consulted. Consequently, registering an
+    /// boxes the result and, for value-type arguments, the argument before any log level is consulted. Consequently, registering an
     /// implementation of <see cref="IRedactor"/> as a cluster service does not change how the SDK redacts
     /// — the registration is discarded and a warning is logged. Use
     /// <see cref="Couchbase.ClusterOptions.RedactionLevel"/> to control redaction.
