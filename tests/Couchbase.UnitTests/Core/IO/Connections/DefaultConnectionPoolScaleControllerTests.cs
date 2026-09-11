@@ -292,7 +292,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         internal class MockController : DefaultConnectionPoolScaleController
         {
             public MockController()
-                : base(new Mock<IRedactor>().Object, new Mock<ILogger<DefaultConnectionPoolScaleController>>().Object)
+                : base(new Redactor(RedactionLevel.None), new Mock<ILogger<DefaultConnectionPoolScaleController>>().Object)
             {
             }
 

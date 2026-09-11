@@ -104,14 +104,13 @@ public class CustomSerializerStagingRegressionTests
         // Injecting an ATR repository short-circuits InitAtrIfNeeded so no real ATR machinery runs.
         var atr = new Mock<IAtrRepository>(collection.Object, "atr-id");
 
-        var redactor = new Mock<IRedactor>();
-        redactor.Setup(r => r.UserData(It.IsAny<object?>())).Returns((object? m) => m);
+        var redactor = new Redactor(RedactionLevel.None);
 
         var ctx = new AttemptContext(
             overallContext: new TransactionContext("txn-1", DateTimeOffset.UtcNow, new TransactionsConfig(), null),
             attemptId: "attempt-1",
             testHooks: null,
-            redactor: redactor.Object,
+            redactor: redactor,
             loggerFactory: NullLoggerFactory.Instance,
             cluster: cluster.Object,
             documentRepository: docs.Object,

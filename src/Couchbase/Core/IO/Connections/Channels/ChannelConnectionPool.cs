@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         private static readonly Random _random = new();
 
         private readonly IConnectionPoolScaleController _scaleController;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ILogger<ChannelConnectionPool> _logger;
         private readonly CancellationTokenSource _cts = new();
         private readonly SemaphoreSlim _lock = new(1);
@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="sendQueueCapacity">The maximum number of items the channel will store.
         /// Defaults to 1024 and is configurable via <see cref="Couchbase.ClusterOptions.KvSendQueueCapacity"/></param>
         public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger,
+            IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<ChannelConnectionPool> logger,
             int sendQueueCapacity) :
             this(connectionInitializer, connectionFactory, scaleController, redactor, logger,
                 CreateDefaultChannel(sendQueueCapacity))
@@ -74,7 +74,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="logger">Logger.</param>
         /// <param name="channel">Channel queue.</param>
         internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger,
+            IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<ChannelConnectionPool> logger,
             Channel<ChannelQueueItem> channel)
             : base(connectionInitializer, connectionFactory, logger)
         {

@@ -65,7 +65,7 @@ public class CollectionQueryIndexManagerTests
     {
         queryClient = new FakeQueryClient();
         var queryIndexManager = new QueryIndexManager(queryClient, new Mock<ILogger<QueryIndexManager>>().Object,
-            new Redactor(new TypedRedactor(RedactionLevel.None)));
+            new Redactor(RedactionLevel.None));
 
         var options = new ClusterOptions();
         var bucket = new FakeBucket(bucketName, options);

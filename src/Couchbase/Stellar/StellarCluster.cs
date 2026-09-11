@@ -64,7 +64,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private Metadata _metaData;
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private readonly ILogger<StellarCluster> _logger;
-    private readonly IRedactor _redactor;
+    private readonly Redactor _redactor;
     private volatile bool _disposed;
     private readonly IServiceProvider _clusterServices;
     private readonly bool _isCompressionEnabled;
@@ -114,7 +114,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         OperationCompressor = operationCompressor;
         _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm != CompressionAlgorithm.None;
         RetryHandler = retryHandler;
-        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _redactor = new Redactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
         _clusterServices = new StellarServiceProvider(this);
     }
@@ -122,7 +122,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private StellarCluster(ClusterOptions clusterOptions)
     {
         _clusterOptions = clusterOptions;
-        _redactor = new Redactor(new TypedRedactor(_clusterOptions));
+        _redactor = new Redactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
         RequestTracer = clusterOptions.TracingOptions.RequestTracer;
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
@@ -571,7 +571,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
                 return _cluster.TypeTranscoder;
             if (serviceType == typeof(ITypeSerializer))
                 return _cluster.TypeSerializer;
-            if (serviceType == typeof(IRedactor))
+            if (serviceType == typeof(Redactor) || serviceType == typeof(IRedactor))
                 return _cluster._redactor;
             if (serviceType == typeof(ILoggerFactory))
                 return _cluster._clusterOptions.Logging;

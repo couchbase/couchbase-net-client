@@ -117,7 +117,7 @@ namespace Couchbase.Core.IO.Authentication.X509
             return errors;
         }
 
-        internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(X509Certificate2Collection certs, ILogger? logger, IRedactor? redactor) =>
+        internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(X509Certificate2Collection certs, ILogger? logger, Redactor? redactor) =>
             (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
@@ -224,7 +224,9 @@ namespace Couchbase.Core.IO.Authentication.X509
                         {
                             foreach (var chainElement in chain.ChainElements)
                             {
-                                logger.LogTrace("Certificate: {cert}", redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
+                                // Redacted<T> is a struct, so box explicitly to keep the null-coalesce. Trace-only path.
+                                logger.LogTrace("Certificate: {cert}",
+                                    (object?)redactor?.SystemData(chainElement.Certificate) ?? "REDACTED");
                                 foreach (var chainStatus in chainElement.ChainElementStatus)
                                 {
                                     logger.LogTrace("\t{status}: {statusInformation}", chainStatus.Status, chainStatus.StatusInformation);
@@ -251,7 +253,7 @@ namespace Couchbase.Core.IO.Authentication.X509
         private static readonly X509Certificate2Collection DefaultCertificatesCollection = new X509Certificate2Collection(DefaultCertificates.ToArray());
 
         internal static RemoteCertificateValidationCallback GetValidatorWithDefaultCertificates(
-            ILogger? logger, IRedactor? redactor) =>
+            ILogger? logger, Redactor? redactor) =>
             GetValidatorWithPredefinedCertificates(DefaultCertificatesCollection, logger, redactor);
 
         private static void MaybeLogChainElements(string message, X509Chain chain, ILogger? logger = null)

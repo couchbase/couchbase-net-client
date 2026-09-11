@@ -16,10 +16,10 @@ namespace Couchbase.Management.Eventing
     {
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ILogger<EventingFunctionService> _logger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
 
         public EventingFunctionService(ICouchbaseHttpClientFactory httpClientFactory, IServiceUriProvider serviceUriProvider,
-            ILogger<EventingFunctionService> logger, IRedactor redactor)
+            ILogger<EventingFunctionService> logger, Redactor redactor)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider;

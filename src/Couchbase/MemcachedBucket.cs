@@ -30,14 +30,14 @@ namespace Couchbase
         private readonly SemaphoreSlim _configMutex = new(1, 1);
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IHttpClusterMapFactory httpClusterMapFactory, BucketConfig config) :
+            ILogger<MemcachedBucket> logger, Redactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IHttpClusterMapFactory httpClusterMapFactory, BucketConfig config) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
                 httpClusterMapFactory, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
         }
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, IHttpClusterMapFactory httpClusterMapFactory, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
+            ILogger<MemcachedBucket> logger, IHttpClusterMapFactory httpClusterMapFactory, Redactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
             BucketType = BucketType.Memcached;

@@ -47,7 +47,7 @@ namespace Couchbase.Core
             IScopeFactory scopeFactory,
             IRetryOrchestrator retryOrchestrator,
             ILogger logger,
-            TypedRedactor redactor,
+            Redactor redactor,
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator,
@@ -70,7 +70,7 @@ namespace Couchbase.Core
         protected IRetryStrategy RetryStrategy { get; }
         public IBootstrapper Bootstrapper { get; }
         public IBootstrapperFactory BootstrapperFactory { get; }
-        protected TypedRedactor Redactor { get; }
+        protected Redactor Redactor { get; }
         protected IRequestTracer Tracer { get; }
         public ILogger Logger => _logger;
         public ClusterContext Context { get; }

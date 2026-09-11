@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             };
 
             var factory = new ConnectionPoolScaleControllerFactory(clusterOptions,
-                new Mock<IRedactor>().Object,
+                new Redactor(RedactionLevel.None),
                 new Mock<ILogger<DefaultConnectionPoolScaleController>>().Object);
 
             // Act

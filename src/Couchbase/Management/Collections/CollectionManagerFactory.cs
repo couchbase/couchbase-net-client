@@ -36,7 +36,7 @@ namespace Couchbase.Management.Collections
                 CouchbaseServiceProviderExtensions.GetRequiredService<IServiceUriProvider>(_serviceProvider),
                 CouchbaseServiceProviderExtensions.GetRequiredService<ICouchbaseHttpClientFactory>(_serviceProvider),
                 CouchbaseServiceProviderExtensions.GetRequiredService<ILogger<CollectionManager>>(_serviceProvider),
-                CouchbaseServiceProviderExtensions.GetRequiredService<IRedactor>(_serviceProvider),
+                CouchbaseServiceProviderExtensions.GetRequiredService<Redactor>(_serviceProvider),
                 ServiceProviderServiceExtensions.GetRequiredService<IRequestTracer>(_serviceProvider));
     }
 }

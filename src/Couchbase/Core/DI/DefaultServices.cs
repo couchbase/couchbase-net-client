@@ -53,8 +53,11 @@ namespace Couchbase.Core.DI
         {
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
-            yield return (typeof(IRedactor), new SingletonServiceFactory(typeof(Redactor)));
-            yield return (typeof(TypedRedactor), new SingletonServiceFactory(typeof(TypedRedactor)));
+            // One factory object under both keys, so both resolve the same singleton. Registering the
+            // same instance also lets ClusterOptions detect that IRedactor has been replaced.
+            var redactorFactory = new SingletonServiceFactory(typeof(Redactor));
+            yield return (typeof(Redactor), redactorFactory);
+            yield return (typeof(IRedactor), redactorFactory);
             yield return (typeof(IRequestTracer), new SingletonServiceFactory(NoopRequestTracer.Instance));
             yield return (typeof(TimeProvider), new SingletonServiceFactory(TimeProvider.System));
 

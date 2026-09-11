@@ -16,11 +16,11 @@ namespace Couchbase.Core.IO.Connections
         private readonly IConnectionFactory _connectionFactory;
         private readonly ClusterOptions _clusterOptions;
         private readonly IConnectionPoolScaleControllerFactory _scaleControllerFactory;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _dataFlowLogger;
 
         public ConnectionPoolFactory(IConnectionFactory connectionFactory, ClusterOptions clusterOptions,
-            IConnectionPoolScaleControllerFactory scaleControllerFactory, IRedactor redactor,
+            IConnectionPoolScaleControllerFactory scaleControllerFactory, Redactor redactor,
             ILogger<DataFlowConnectionPool> dataFlowLogger)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));

@@ -25,14 +25,14 @@ namespace Couchbase.Views
     {
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<ViewClient> _logger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
         private const string Success = "Success";
 
         public ViewClient(ICouchbaseHttpClientFactory httpClientFactory,
             ITypeSerializer serializer,
             ILogger<ViewClient> logger,
-            IRedactor redactor,
+            Redactor redactor,
             IRequestTracer tracer)
             : base(httpClientFactory)
         {

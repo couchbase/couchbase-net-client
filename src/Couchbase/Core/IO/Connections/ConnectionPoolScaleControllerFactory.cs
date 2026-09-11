@@ -12,10 +12,10 @@ namespace Couchbase.Core.IO.Connections
     internal class ConnectionPoolScaleControllerFactory : IConnectionPoolScaleControllerFactory
     {
         private readonly ClusterOptions _clusterOptions;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ILogger<DefaultConnectionPoolScaleController> _logger;
 
-        public ConnectionPoolScaleControllerFactory(ClusterOptions clusterOptions, IRedactor redactor,
+        public ConnectionPoolScaleControllerFactory(ClusterOptions clusterOptions, Redactor redactor,
             ILogger<DefaultConnectionPoolScaleController> logger)
         {
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));

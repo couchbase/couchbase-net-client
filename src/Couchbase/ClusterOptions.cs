@@ -1312,7 +1312,33 @@ namespace Couchbase
                 this.AddClusterService(RetryStrategy);
             }
 
+            DiscardReplacedRedactor();
+
             return new CouchbaseServiceProvider(_services);
+        }
+
+        /// <summary>
+        /// Discards a custom <see cref="IRedactor"/> registration and warns about it. A replacement cannot
+        /// take effect, and leaving it registered would only make <see cref="ICluster.ClusterServices"/>
+        /// hand back a redactor the SDK does not use. <see cref="IRequestTracer"/> is already treated this
+        /// way, being likewise configured through options rather than by registration.
+        /// </summary>
+        private void DiscardReplacedRedactor()
+        {
+            // DefaultServices registers one factory object under both keys, so they differ only if
+            // something has overwritten IRedactor.
+            if (!_services.TryGetValue(typeof(IRedactor), out var registered)
+                || !_services.TryGetValue(typeof(Redactor), out var builtIn)
+                || ReferenceEquals(registered, builtIn))
+            {
+                return;
+            }
+
+            _services[typeof(IRedactor)] = builtIn;
+
+            (Logging ?? NullLoggerFactory.Instance).CreateLogger<ClusterOptions>().LogWarning(
+                "A custom IRedactor was registered. The SDK redacts through its own redactor, so the " +
+                "registration has been ignored. Use ClusterOptions.RedactionLevel to control log redaction.");
         }
 
         /// <summary>
