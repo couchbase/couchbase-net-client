@@ -153,6 +153,43 @@ namespace Couchbase.UnitTests.Diagnostics
             Assert.Equal("node1:8093", entry.Remote);
         }
 
+        [Fact]
+        public async Task CreatePingReportAsync_Pings_A_Host_Once_When_Several_Buckets_Own_It()
+        {
+            //arrange
+
+            var pings = 0;
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService<ICouchbaseHttpClientFactory, MockHttpClientFactory>(
+                CreateFactory(_ =>
+                {
+                    Interlocked.Increment(ref pings);
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }));
+
+            var context = new ClusterContext(null, options);
+            foreach (var bucketName in new[] { "bucket1", "bucket2" })
+            {
+                var node = new Mock<IClusterNode>();
+                node.SetupGet(x => x.HasQuery).Returns(true);
+                node.SetupGet(x => x.QueryUri).Returns(new Uri("http://node1:8093/query/service"));
+                node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node1", 11210));
+                node.SetupGet(x => x.BucketName).Returns(bucketName);
+                context.AddNode(node.Object);
+            }
+
+            //act
+
+            var report = await DiagnosticsReportProvider.CreatePingReportAsync(context, null,
+                new PingOptions { ServiceTypesValue = new[] { ServiceType.Query } });
+
+            //assert
+
+            var entry = Assert.Single(report.Services["n1ql"]);
+            Assert.Equal(ServiceState.Ok, entry.State);
+            Assert.Equal(1, pings);
+        }
+
         private static MockHttpClientFactory CreateFactory(Func<HttpRequestMessage, HttpResponseMessage> handler) =>
             new(() => new HttpClient(FakeHttpMessageHandler.Create(handler)));
 

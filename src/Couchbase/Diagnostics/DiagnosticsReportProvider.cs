@@ -143,8 +143,15 @@ namespace Couchbase.Diagnostics
                 }
             }
 
+            // Each open bucket owns its own node object for a host, so one physical node can appear several times.
+            var seenEndpoints = new HashSet<HostEndpointWithPort>();
             foreach (var clusterNode in clusterNodes)
             {
+                if (!seenEndpoints.Add(clusterNode.EndPoint))
+                {
+                    continue;
+                }
+
                 if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
                 {
                     AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "n1ql", ServiceType.Query,
