@@ -7,16 +7,20 @@ namespace Couchbase.Core.Bootstrapping
     internal class BootstrapperFactory : IBootstrapperFactory
     {
         private readonly ILogger<Bootstrapper> _logger;
+        private readonly TimeProvider _timeProvider;
 
-        public BootstrapperFactory(ILogger<Bootstrapper> logger)
+        public BootstrapperFactory(ILogger<Bootstrapper> logger, TimeProvider timeProvider)
         {
-            _logger = logger;
+            // Checked here as well as in Bootstrapper, so a missing dependency fails when the factory is
+            // built rather than later, when a bucket first asks it for a bootstrapper.
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
         /// <inheritdoc />
         public IBootstrapper Create(TimeSpan sleepDuration)
         {
-            return new Bootstrapper(_logger)
+            return new Bootstrapper(_logger, _timeProvider)
             {
                 SleepDuration = sleepDuration
             };
