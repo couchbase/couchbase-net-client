@@ -143,24 +143,24 @@ namespace Couchbase.Diagnostics
                 }
             }
 
-            foreach (var clusterNode in NewestPerEndpoint(clusterNodes))
+            foreach (var host in NewestPerEndpoint(clusterNodes))
             {
-                if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
+                if (serviceTypes.Contains(ServiceType.Query) && host.Node.HasQuery)
                 {
                     AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "n1ql", ServiceType.Query,
-                        clusterNode, AdminPingPath, context.ClusterOptions.QueryTimeout, ping, token);
+                        host.Node, host.LastQueryActivity, AdminPingPath, context.ClusterOptions.QueryTimeout, ping, token);
                 }
 
-                if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics)
+                if (serviceTypes.Contains(ServiceType.Analytics) && host.Node.HasAnalytics)
                 {
                     AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "cbas", ServiceType.Analytics,
-                        clusterNode, AdminPingPath, context.ClusterOptions.AnalyticsTimeout, ping, token);
+                        host.Node, host.LastAnalyticsActivity, AdminPingPath, context.ClusterOptions.AnalyticsTimeout, ping, token);
                 }
 
-                if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch)
+                if (serviceTypes.Contains(ServiceType.Search) && host.Node.HasSearch)
                 {
                     AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "fts", ServiceType.Search,
-                        clusterNode, SearchPingPath, context.ClusterOptions.SearchTimeout, ping, token);
+                        host.Node, host.LastSearchActivity, SearchPingPath, context.ClusterOptions.SearchTimeout, ping, token);
                 }
             }
 
@@ -174,22 +174,53 @@ namespace Couchbase.Diagnostics
         }
 
         /// <summary>
-        /// One node object per host. Each open bucket owns its own copy of a node, and the copies are refreshed by
+        /// One entry per host. Each open bucket owns its own copy of a node, and the copies are refreshed by
         /// separate config streams, so the copy with the newest config decides which HTTP services the host has.
+        /// Requests stamp activity on whichever copy served them, so the latest activity across all copies is kept.
         /// </summary>
-        internal static IEnumerable<IClusterNode> NewestPerEndpoint(IEnumerable<IClusterNode> clusterNodes)
+        internal static IEnumerable<HostServices> NewestPerEndpoint(IEnumerable<IClusterNode> clusterNodes)
         {
-            var newest = new Dictionary<HostEndpointWithPort, IClusterNode>();
+            var hosts = new Dictionary<HostEndpointWithPort, HostServices>();
             foreach (var clusterNode in clusterNodes)
             {
-                if (!newest.TryGetValue(clusterNode.EndPoint, out var current)
-                    || clusterNode.NodesAdapter?.ConfigVersion > current.NodesAdapter?.ConfigVersion)
+                if (!hosts.TryGetValue(clusterNode.EndPoint, out var host))
                 {
-                    newest[clusterNode.EndPoint] = clusterNode;
+                    host = new HostServices(clusterNode);
+                    hosts[clusterNode.EndPoint] = host;
                 }
+
+                host.Merge(clusterNode);
             }
 
-            return newest.Values;
+            return hosts.Values;
+        }
+
+        internal sealed class HostServices
+        {
+            public IClusterNode Node { get; private set; }
+            public DateTime? LastQueryActivity { get; private set; }
+            public DateTime? LastAnalyticsActivity { get; private set; }
+            public DateTime? LastSearchActivity { get; private set; }
+
+            public HostServices(IClusterNode node)
+            {
+                Node = node;
+            }
+
+            public void Merge(IClusterNode copy)
+            {
+                if (copy.NodesAdapter?.ConfigVersion > Node.NodesAdapter?.ConfigVersion)
+                {
+                    Node = copy;
+                }
+
+                LastQueryActivity = Latest(LastQueryActivity, copy.LastQueryActivity);
+                LastAnalyticsActivity = Latest(LastAnalyticsActivity, copy.LastAnalyticsActivity);
+                LastSearchActivity = Latest(LastSearchActivity, copy.LastSearchActivity);
+            }
+
+            private static DateTime? Latest(DateTime? current, DateTime? candidate) =>
+                candidate > current ? candidate : current ?? candidate;
         }
 
         /// <summary>
@@ -202,12 +233,9 @@ namespace Couchbase.Diagnostics
         private static void AddHttpServiceEndpoint(
             ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>> endpoints, List<Task> pingTasks,
             ICouchbaseHttpClientFactory? httpClientFactory, string reportKey, ServiceType serviceType,
-            IClusterNode clusterNode, string pingPath, TimeSpan serviceTimeout, bool ping,
+            IClusterNode clusterNode, DateTime? lastActivity, string pingPath, TimeSpan serviceTimeout, bool ping,
             CancellationToken token)
         {
-            // The activity must be read first, the service URI getter stamps it with the current time.
-            var lastActivity = LastActivity(clusterNode, serviceType);
-
             // Only a ping needs the service URI, so a diagnostics report leaves the activity alone.
             var pingUri = ping ? BuildPingUri(ServiceUri(clusterNode, serviceType), pingPath) : null;
 
@@ -228,14 +256,6 @@ namespace Couchbase.Diagnostics
 
             serviceEndpoints.Add(endPointDiagnostics);
         }
-
-        private static DateTime? LastActivity(IClusterNode clusterNode, ServiceType serviceType) => serviceType switch
-        {
-            ServiceType.Query => clusterNode.LastQueryActivity,
-            ServiceType.Analytics => clusterNode.LastAnalyticsActivity,
-            ServiceType.Search => clusterNode.LastSearchActivity,
-            _ => null
-        };
 
         /// <remarks>
         /// Each of these getters stamps the matching last activity, so only read one when it is needed.

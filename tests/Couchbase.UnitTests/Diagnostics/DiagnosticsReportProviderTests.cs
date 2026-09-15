@@ -223,7 +223,7 @@ namespace Couchbase.UnitTests.Diagnostics
 
             //act
 
-            var kept = DiagnosticsReportProvider.NewestPerEndpoint(nodes).ToList();
+            var kept = DiagnosticsReportProvider.NewestPerEndpoint(nodes).Select(x => x.Node).ToList();
 
             //assert
 
@@ -232,12 +232,33 @@ namespace Couchbase.UnitTests.Diagnostics
             Assert.Contains(other, kept);
         }
 
-        private static IClusterNode CreateNode(string host, bool hasQuery, ulong revision)
+        [Fact]
+        public void NewestPerEndpoint_Keeps_The_Latest_Activity_Across_Copies()
+        {
+            //arrange
+
+            var recent = new DateTime(2026, 9, 15, 12, 0, 0, DateTimeKind.Utc);
+            var stale = CreateNode("node1", hasQuery: true, revision: 1, lastQueryActivity: recent);
+            var fresh = CreateNode("node1", hasQuery: true, revision: 2, lastQueryActivity: null);
+
+            //act
+
+            var host = Assert.Single(DiagnosticsReportProvider.NewestPerEndpoint(new[] { fresh, stale }));
+
+            //assert
+
+            Assert.Same(fresh, host.Node);
+            Assert.Equal(recent, host.LastQueryActivity);
+            Assert.Null(host.LastSearchActivity);
+        }
+
+        private static IClusterNode CreateNode(string host, bool hasQuery, ulong revision, DateTime? lastQueryActivity = null)
         {
             var node = new Mock<IClusterNode>();
             node.SetupGet(x => x.HasQuery).Returns(hasQuery);
             node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
             node.SetupGet(x => x.NodesAdapter).Returns(new NodeAdapter { ConfigVersion = new ConfigVersion(0, revision) });
+            node.SetupGet(x => x.LastQueryActivity).Returns(lastQueryActivity);
             return node.Object;
         }
 
