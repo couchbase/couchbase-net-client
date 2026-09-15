@@ -96,25 +96,12 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         private record Summary(string FullBucketName, string ClientUuid, bool Running, long RunCount);
 
-        public void Dispose()
-        {
-            if (!_cancelToken.IsCancellationRequested)
-            {
-                Stop();
-            }
-            else
-            {
-                _logger.LogDebug("(already disposed)");
-            }
-        }
-
-
         public async ValueTask DisposeAsync()
         {
             if (!_cancelToken.IsCancellationRequested)
             {
                 _logger.LogDebug("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
-                Dispose();
+                Stop();
                 // at this point, there will be no more timer callbacks triggered, so lets
                 // wait for the mutex, at which point the current ProcessClient (if any) is
                 // done (and there will be no more).
