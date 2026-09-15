@@ -45,6 +45,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private readonly TimeSpan _cleanupWindow;
         private readonly TimeSpan? _keyValueTimeout;
         private readonly CancellationTokenSource _overallCancellation = new();
+        private readonly TimeProvider _timeProvider;
 
         public string ClientUuid { get; }
         public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
@@ -69,7 +70,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 ks => new Lazy<PerCollectionCleaner>(() => CleanerForCollection(ks, startDisabled: false))).Value;
         }
 
-        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, TimeSpan? keyValueTimeout, string? clientUuid = null, bool startDisabled = false,  List<Keyspace>? collections = null)
+        internal LostTransactionManager(ICluster cluster, ILoggerFactory loggerFactory, TimeSpan cleanupWindow, TimeSpan? keyValueTimeout, string? clientUuid = null, bool startDisabled = false,  List<Keyspace>? collections = null, TimeProvider? timeProvider = null)
         {
             ClientUuid = clientUuid ?? Guid.NewGuid().ToString();
             _logger = loggerFactory.CreateLogger<LostTransactionManager>();
@@ -77,6 +78,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _cluster = cluster;
             _cleanupWindow = cleanupWindow;
             _keyValueTimeout = keyValueTimeout;
+            _timeProvider = timeProvider ?? TimeProvider.System;
             _logger.LogDebug("Starting LostTransactionManager");
 
             // No configured collections: nothing to register up front (the common no-transactions case).
@@ -149,7 +151,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _logger.LogDebug("New cleaner for {collection}", keyspace);
             var repository = new CleanerRepository(keyspace, _cluster, _keyValueTimeout, resolved);
             var cleaner = new Cleaner(_cluster, _keyValueTimeout, _loggerFactory, creatorName: nameof(LostTransactionManager));
-            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled, onCollectionNotFound: RemoveFromCleanupSet) { TestHooks = TestHooks };
+            return new PerCollectionCleaner(ClientUuid, cleaner, repository, _cleanupWindow, _loggerFactory, startDisabled, onCollectionNotFound: RemoveFromCleanupSet, timeProvider: _timeProvider) { TestHooks = TestHooks };
         }
 
         // Invoked by a PerCollectionCleaner when the server reports its collection as not found; drops the
