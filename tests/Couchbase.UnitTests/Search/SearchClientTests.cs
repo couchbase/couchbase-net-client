@@ -48,7 +48,7 @@ public class SearchClientTests
             .Returns(nodeMock.Object);
 
         var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
         await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(indexName, new FtsSearchRequest {Index = indexName}, null, null, CancellationToken.None));
     }
@@ -88,7 +88,7 @@ public class SearchClientTests
             .Returns(nodeMock.Object);
 
         var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
         var response =  await client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, null, CancellationToken.None);
         Assert.Equal(6, response.MetaData.ErrorCount);

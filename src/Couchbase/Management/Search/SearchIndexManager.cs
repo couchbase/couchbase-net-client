@@ -578,7 +578,7 @@ namespace Couchbase.Management.Search
             }
         }
 
-        private static async Task CheckStatusAndThrowIfErrorsAsync(HttpResponseMessage  result, Uri uri, string? indexName = default)
+        private async Task CheckStatusAndThrowIfErrorsAsync(HttpResponseMessage  result, Uri uri, string? indexName = default)
         {
             if (!result.IsSuccessStatusCode)
             {
@@ -587,7 +587,7 @@ namespace Couchbase.Management.Search
                 {
                     HttpStatus = result.StatusCode,
                     Message = body,
-                    Statement = uri.ToString()
+                    Statement = _redactor.SystemDataString(uri.ToString())
                 };
 
                 if (result.StatusCode == HttpStatusCode.NotFound && indexName != null)

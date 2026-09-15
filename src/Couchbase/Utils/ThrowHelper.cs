@@ -7,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 
 #nullable enable
@@ -157,7 +158,7 @@ namespace Couchbase.Utils
 
         public static Exception CreateTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
         {
-            var message = $"The {operation.OpCode} operation {operation.Opaque}/{redactor.UserData(operation.Key)} timed out after {operation.Elapsed}. " +
+            var message = $"The {operation.OpCode} operation {operation.Opaque}/{redactor.OperationKey(operation)} timed out after {operation.Elapsed}. " +
                           $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}. The KvTimeout is {operation.Timeout}.";
 
             if (operation.IsSent && !operation.IsReadOnly)

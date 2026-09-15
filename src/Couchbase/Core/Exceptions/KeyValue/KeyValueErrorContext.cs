@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations;
@@ -40,8 +41,11 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public List<RetryReason>? RetryReasons { get; internal set; }
 
+        private static readonly JsonTypeInfo<KeyValueErrorContext> RedactionSafeTypeInfo =
+            RedactionSafeJson.TypeInfo<KeyValueErrorContext>(InternalSerializationContext.RedactionSafeOptions);
+
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.KeyValueErrorContext);
+            JsonSerializer.Serialize(this, RedactionSafeTypeInfo);
     }
 }
 

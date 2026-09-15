@@ -45,6 +45,7 @@ namespace Couchbase.Query
         private readonly IFallbackTypeSerializerProvider _fallbackTypeSerializerProvider;
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IRedactor _redactor;
         internal bool EnhancedPreparedStatementsEnabled;
         internal bool UseReplicaEnabled;
 
@@ -54,7 +55,8 @@ namespace Couchbase.Query
             ITypeSerializer serializer,
             IFallbackTypeSerializerProvider fallbackTypeSerializerProvider,
             ILogger<QueryClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IRedactor redactor)
             : base(clientFactory)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
@@ -78,6 +80,10 @@ namespace Couchbase.Query
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(tracer));
             }
+            if (redactor is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(redactor));
+            }
             // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 
             _serviceUriProvider = serviceUriProvider;
@@ -85,6 +91,7 @@ namespace Couchbase.Query
             _fallbackTypeSerializerProvider = fallbackTypeSerializerProvider;
             _logger = logger;
             _tracer = tracer;
+            _redactor = redactor;
         }
 
         /// <inheritdoc />
@@ -219,8 +226,8 @@ namespace Couchbase.Query
                 return new()
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(serializer),
-                    Statement = options.StatementValue,
+                    Parameters = _redactor.UserDataString(options.GetAllParametersAsJson(serializer)),
+                    Statement = _redactor.UserDataString(options.StatementValue),
                     Message = GetErrorMessage(failedQueryResult, currentContextId, statusCode),
                     Errors = failedQueryResult.Errors,
                     HttpStatus = statusCode,
@@ -378,8 +385,8 @@ namespace Couchbase.Query
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(serializer),
-                    Statement = options.StatementValue,
+                    Parameters = _redactor.UserDataString(options.GetAllParametersAsJson(serializer)),
+                    Statement = _redactor.UserDataString(options.StatementValue),
                     HttpStatus = HttpStatusCode.RequestTimeout,
                     QueryStatus = QueryStatus.Fatal
                 };
@@ -416,8 +423,8 @@ namespace Couchbase.Query
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(serializer),
-                    Statement = options.StatementValue,
+                    Parameters = _redactor.UserDataString(options.GetAllParametersAsJson(serializer)),
+                    Statement = _redactor.UserDataString(options.StatementValue),
                     HttpStatus = HttpStatusCode.RequestTimeout,
                     QueryStatus = QueryStatus.Fatal
                 };

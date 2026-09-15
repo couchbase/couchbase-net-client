@@ -45,6 +45,7 @@ namespace Couchbase.Search
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IRedactor _redactor;
         private readonly IDataMapper _dataMapper;
         private string Escape(string pathValue) => Uri.EscapeDataString(pathValue);
 
@@ -57,11 +58,13 @@ namespace Couchbase.Search
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IRedactor redactor)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
@@ -194,11 +197,11 @@ namespace Couchbase.Search
                         var ctx = new SearchErrorContext
                         {
                             HttpStatus = response.StatusCode,
-                            IndexName = ftsSearchRequest!.Index,
+                            IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                             ClientContextId = ftsSearchRequest.ClientContextId,
-                            Statement = ftsSearchRequest.Statement,
+                            Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                             Errors = errors,
-                            Query = ftsSearchRequest.ToJson(),
+                            Query = _redactor.UserDataString(ftsSearchRequest.ToJson()),
                             Message = errors
                         };
 
@@ -270,11 +273,11 @@ namespace Couchbase.Search
                             Context = new SearchErrorContext
                             {
                                 HttpStatus = response.StatusCode,
-                                IndexName = ftsSearchRequest!.Index,
+                                IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                                 ClientContextId = ftsSearchRequest.ClientContextId,
-                                Statement = ftsSearchRequest.Statement,
+                                Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                                 Errors = errors,
-                                Query = ftsSearchRequest.ToJson()
+                                Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                             }
                         };
                     }
@@ -302,11 +305,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = ftsSearchRequest!.Index,
+                        IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                         ClientContextId = ftsSearchRequest.ClientContextId,
-                        Statement = ftsSearchRequest.Statement,
+                        Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                         Errors = errors,
-                        Query = ftsSearchRequest.ToJson()
+                        Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                     }
                 };
             }
@@ -340,11 +343,11 @@ namespace Couchbase.Search
                         Context = new SearchErrorContext
                         {
                             HttpStatus = HttpStatusCode.RequestTimeout,
-                            IndexName = ftsSearchRequest!.Index,
+                            IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                             ClientContextId = ftsSearchRequest.ClientContextId,
-                            Statement = ftsSearchRequest.Statement,
+                            Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                             Errors = errors,
-                            Query = ftsSearchRequest.ToJson()
+                            Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                         }
                     };
                     UpdateLastActivity();
@@ -357,11 +360,11 @@ namespace Couchbase.Search
                     Context = new SearchErrorContext
                     {
                         HttpStatus = HttpStatusCode.RequestTimeout,
-                        IndexName = ftsSearchRequest!.Index,
+                        IndexName = _redactor.MetaDataString(ftsSearchRequest!.Index),
                         ClientContextId = ftsSearchRequest.ClientContextId,
-                        Statement = ftsSearchRequest.Statement,
+                        Statement = _redactor.UserDataString(ftsSearchRequest.Statement),
                         Errors = errors,
-                        Query = ftsSearchRequest.ToJson()
+                        Query = _redactor.UserDataString(ftsSearchRequest.ToJson())
                     }
                 };
             }
