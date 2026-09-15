@@ -11,9 +11,9 @@ namespace Couchbase.Core.Configuration.Server;
 internal class ConfigPushHandlerFactory : IConfigPushHandlerFactory
 {
     private readonly ILogger<ConfigPushHandler> _logger;
-    private readonly TypedRedactor _redactor;
+    private readonly Redactor _redactor;
 
-    public ConfigPushHandlerFactory(ILogger<ConfigPushHandler> logger, TypedRedactor redactor)
+    public ConfigPushHandlerFactory(ILogger<ConfigPushHandler> logger, Redactor redactor)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));

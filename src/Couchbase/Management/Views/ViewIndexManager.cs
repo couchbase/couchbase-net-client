@@ -26,11 +26,11 @@ namespace Couchbase.Management.Views
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<ViewIndexManager> _logger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
 
         public ViewIndexManager(string bucketName, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
-            ILogger<ViewIndexManager> logger, IRedactor redactor, IRequestTracer? tracer = null)
+            ILogger<ViewIndexManager> logger, Redactor redactor, IRequestTracer? tracer = null)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));

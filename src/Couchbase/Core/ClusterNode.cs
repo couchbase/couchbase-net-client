@@ -45,7 +45,7 @@ namespace Couchbase.Core
         private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
@@ -67,7 +67,7 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            TypedRedactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            Redactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

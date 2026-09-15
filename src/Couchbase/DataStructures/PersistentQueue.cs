@@ -15,7 +15,7 @@ namespace Couchbase.DataStructures
     {
         private readonly QueueOptions _options;
 
-        internal PersistentQueue(ICouchbaseCollection collection, string key, QueueOptions options, ILogger? logger, IRedactor? redactor)
+        internal PersistentQueue(ICouchbaseCollection collection, string key, QueueOptions options, ILogger? logger, Redactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
             _options = options;

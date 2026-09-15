@@ -14,13 +14,13 @@ namespace Couchbase.Core.IO.Authentication
     internal sealed class CertificateValidationCallbackFactory : ICertificateValidationCallbackFactory
     {
         private readonly ILogger<CertificateValidationCallbackFactory> _logger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly TlsSettings _tlsSettings;
 
         public CertificateValidationCallbackFactory(
             ClusterOptions clusterOptions,
             ILogger<CertificateValidationCallbackFactory> logger,
-            IRedactor redactor)
+            Redactor redactor)
         {
             _tlsSettings = clusterOptions?.TlsSettings ?? throw new ArgumentNullException(nameof(clusterOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

@@ -24,13 +24,13 @@ namespace Couchbase.Core.DI
         private readonly ILogger<ClusterNode> _logger;
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
-        private readonly TypedRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ISaslMechanismFactory saslMechanismFactory,
-            TypedRedactor redactor, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            Redactor redactor, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));

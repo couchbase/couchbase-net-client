@@ -57,7 +57,7 @@ namespace Couchbase.Client.Transactions
         private readonly MergedTransactionConfig _config;
         private readonly ITestHooks _testHooks;
         private readonly int _unstagingConcurrency = 100;
-        internal IRedactor Redactor { get; }
+        internal Redactor Redactor { get; }
         internal AttemptStates AttemptState = AttemptStates.NOTHING_WRITTEN;
         private readonly ErrorTriage _triage;
 
@@ -100,7 +100,7 @@ namespace Couchbase.Client.Transactions
             TransactionContext overallContext,
             string attemptId,
             ITestHooks? testHooks,
-            IRedactor redactor,
+            Redactor redactor,
             ILoggerFactory loggerFactory,
             ICluster cluster,
             IDocumentRepository? documentRepository = null,

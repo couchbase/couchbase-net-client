@@ -96,7 +96,7 @@ namespace Couchbase.UnitTests.Management.Query
                 NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             var result =  await manager.GetAllIndexesAsync("default");
 
@@ -299,7 +299,7 @@ namespace Couchbase.UnitTests.Management.Query
                 NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             return new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
         }
 
         //Check that query_context is not present in QueryIndexManager
@@ -308,7 +308,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
            await manager.BuildDeferredIndexesAsync("travel-sample");
 
@@ -320,7 +320,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             await manager.CreateIndexAsync("travel-sample", "index1", new[] { "field1" });
 
@@ -332,7 +332,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             await manager.DropIndexAsync("travel-sample", "index1");
 
@@ -344,7 +344,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             await manager.CreatePrimaryIndexAsync("travel-sample");
 
@@ -356,7 +356,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             await manager.DropPrimaryIndexAsync("travel-sample");
 
@@ -369,7 +369,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             try
             {
@@ -387,7 +387,7 @@ namespace Couchbase.UnitTests.Management.Query
         {
             var client = new FakeQueryClient();
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new TypedRedactor(RedactionLevel.None)));
+                new Redactor(RedactionLevel.None));
 
             await manager.GetAllIndexesAsync("travel-sample");
 

@@ -14,7 +14,7 @@ namespace Couchbase.DataStructures
 {
     public sealed class PersistentSet<TValue> : PersistentStoreBase<TValue>, IPersistentSet<TValue>
     {
-        internal PersistentSet(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
+        internal PersistentSet(ICouchbaseCollection collection, string key, ILogger? logger, Redactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }
