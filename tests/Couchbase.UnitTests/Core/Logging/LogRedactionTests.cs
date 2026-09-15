@@ -67,6 +67,21 @@ namespace Couchbase.UnitTests.Core.Logging
             Assert.Equal("<sd>system</sd>", redactor.SystemData("system").ToString());
         }
 
+        [Theory]
+        [InlineData(RedactionLevel.None)]
+        [InlineData(RedactionLevel.Partial)]
+        [InlineData(RedactionLevel.Full)]
+        public void Null_Is_Never_Tagged(RedactionLevel level)
+        {
+            var redactor = new Redactor(new ClusterOptions { RedactionLevel = level });
+
+            // An empty pair of tags survives log processing as a hash, which would make an absent
+            // value indistinguishable from one that was there.
+            Assert.Equal("", redactor.UserData((string)null).ToString());
+            Assert.Equal("", redactor.MetaData((string)null).ToString());
+            Assert.Equal("", redactor.SystemData((string)null).ToString());
+        }
+
         [Fact]
         public void IRedactor_Returns_Null_For_Null()
         {

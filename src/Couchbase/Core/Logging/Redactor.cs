@@ -67,6 +67,13 @@ namespace Couchbase.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Redacted<T> RedactMessage<T>(T message, string redactionType)
         {
+            if (message is null)
+            {
+                // Nothing to redact, so nothing to tag: a hashed <ud></ud> in a processed log would be
+                // indistinguishable from a value that was there. This is what the forwarder did.
+                return new Redacted<T>(message);
+            }
+
             switch (RedactionLevel)
             {
                 case RedactionLevel.None:
