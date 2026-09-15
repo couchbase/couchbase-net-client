@@ -205,54 +205,27 @@ namespace Couchbase.Core
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
+            if (timeout <= TimeSpan.Zero && timeout != Timeout.InfiniteTimeSpan)
+            {
+                // Already timed out
+                throw new UnambiguousTimeoutException($"Timed out after {timeout}.");
+            }
+
             options ??= new WaitUntilReadyOptions();
             if (options.DesiredStateValue == ClusterState.Offline)
-                throw new ArgumentException(nameof(options.DesiredStateValue));
+                throw new InvalidArgumentException(
+                    $"{nameof(ClusterState.Offline)} is not a valid desired state for WaitUntilReady.");
 
             using var ctsp = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
             var token = ctsp.Token;
 
             try
             {
-                while (true)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    var pingReport =
-                        await DiagnosticsReportProvider.CreatePingReportAsync(Context, CurrentConfig,
-                            new PingOptions
-                            {
-                                ServiceTypesValue = options.EffectiveServiceTypes(Context).ToList(),
-                                Token = token,
-                            }).ConfigureAwait(false);
-
-                    var status = new Dictionary<string, bool>();
-                    foreach (var service in pingReport.Services)
-                    {
-                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
-                        if (failures)
-                        {
-                            //mark a service as failed
-                            status.Add(service.Key, failures);
-                        }
-                    }
-
-                    //everything is up
-                    if (status.Count == 0)
-                    {
-                        _clusterState = ClusterState.Online;
-                        return;
-                    }
-
-                    //determine if completely offline or degraded
-                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
-                    if (_clusterState == options.DesiredStateValue)
-                    {
-                        return;
-                    }
-
-                    await Task.Delay(100, token).ConfigureAwait(false);
-                }
+                await WaitUntilReadyEvaluator.PollAsync(Context, options, bucketLevel: true,
+                    () => CurrentConfig,
+                    _ => new ValueTask<bool>(WaitUntilReadyEvaluator.HasTopology(CurrentConfig, Context.GetNodes(Name))),
+                    state => _clusterState = state,
+                    _logger, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException e)
             {
