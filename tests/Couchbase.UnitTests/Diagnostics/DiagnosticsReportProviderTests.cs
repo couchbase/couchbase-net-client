@@ -2,8 +2,10 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Diagnostics;
@@ -109,6 +111,23 @@ namespace Couchbase.UnitTests.Diagnostics
         }
 
         [Fact]
+        public async Task PingHttpServiceAsync_Ignores_The_Client_Default_Timeout()
+        {
+            //arrange
+
+            var factory = new MockHttpClientFactory(() =>
+                new HttpClient(new DelayingHttpMessageHandler(TimeSpan.FromMilliseconds(200)))
+                {
+                    Timeout = TimeSpan.FromMilliseconds(20)
+                });
+
+            //act, assert
+
+            await DiagnosticsReportProvider.PingHttpServiceAsync(factory, new Uri("http://node1:8093/admin/ping"),
+                TimeSpan.FromMinutes(1), CancellationToken.None);
+        }
+
+        [Fact]
         public async Task PingHttpServiceAsync_Applies_The_Service_Timeout_To_A_Live_Token()
         {
             //arrange
@@ -188,6 +207,38 @@ namespace Couchbase.UnitTests.Diagnostics
             var entry = Assert.Single(report.Services["n1ql"]);
             Assert.Equal(ServiceState.Ok, entry.State);
             Assert.Equal(1, pings);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NewestPerEndpoint_Keeps_The_Copy_With_The_Newest_Config(bool staleFirst)
+        {
+            //arrange
+
+            var stale = CreateNode("node1", hasQuery: false, revision: 1);
+            var fresh = CreateNode("node1", hasQuery: true, revision: 2);
+            var other = CreateNode("node2", hasQuery: true, revision: 1);
+            var nodes = staleFirst ? new[] { stale, fresh, other } : new[] { fresh, stale, other };
+
+            //act
+
+            var kept = DiagnosticsReportProvider.NewestPerEndpoint(nodes).ToList();
+
+            //assert
+
+            Assert.Equal(2, kept.Count);
+            Assert.Contains(fresh, kept);
+            Assert.Contains(other, kept);
+        }
+
+        private static IClusterNode CreateNode(string host, bool hasQuery, ulong revision)
+        {
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(x => x.HasQuery).Returns(hasQuery);
+            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
+            node.SetupGet(x => x.NodesAdapter).Returns(new NodeAdapter { ConfigVersion = new ConfigVersion(0, revision) });
+            return node.Object;
         }
 
         private static MockHttpClientFactory CreateFactory(Func<HttpRequestMessage, HttpResponseMessage> handler) =>

@@ -295,6 +295,14 @@ namespace Couchbase.UnitTests.Diagnostics
         }
 
         [Fact]
+        public void HasTopology_Is_False_With_A_Config_Without_Nodes()
+        {
+            var config = new BucketConfig { Name = "default", NodesExt = new List<NodesExt>() };
+
+            Assert.False(WaitUntilReadyEvaluator.HasTopology(config, Array.Empty<IClusterNode>()));
+        }
+
+        [Fact]
         public void HasTopology_Is_True_With_A_Node()
         {
             Assert.True(WaitUntilReadyEvaluator.HasTopology(null, new[] { new Mock<IClusterNode>().Object }));

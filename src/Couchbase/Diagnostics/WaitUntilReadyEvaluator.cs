@@ -161,7 +161,7 @@ namespace Couchbase.Diagnostics
         }
 
         /// <summary>
-        /// True once there is something to evaluate, a config or at least one node.
+        /// True once there is something to evaluate, a config with nodes or at least one connected node.
         /// </summary>
         /// <remarks>
         /// Without a topology nothing is advertised, so an empty expected set would make WaitUntilReady succeed
@@ -169,7 +169,7 @@ namespace Couchbase.Diagnostics
         /// </remarks>
         internal static bool HasTopology(BucketConfig? config, IEnumerable<IClusterNode>? nodes)
         {
-            if (config is not null)
+            if (NodesFromConfig(config) is not null)
             {
                 return true;
             }
@@ -291,23 +291,31 @@ namespace Couchbase.Diagnostics
         private static bool HasCouchApi(BucketConfig? config) =>
             config?.BucketCapabilities?.Contains(BucketCapabilities.COUCHAPI) ?? false;
 
-        private static HashSet<ServiceType>? AdvertisedFromConfig(BucketConfig? config)
+        private static List<NodeAdapter>? NodesFromConfig(BucketConfig? config)
         {
             if (config is null)
             {
                 return null;
             }
 
-            List<NodeAdapter> nodes;
             try
             {
-                nodes = config.GetNodes();
+                return config.GetNodes();
             }
             catch (Exception)
             {
                 // Broad on purpose. GetNodes throws ServiceMissingException when it selects no node adapter, and
                 // building an adapter from a half filled config can throw anything. Either way there is no usable
-                // node list yet, so fall back to the connected nodes.
+                // node list yet, so the caller falls back to the connected nodes.
+                return null;
+            }
+        }
+
+        private static HashSet<ServiceType>? AdvertisedFromConfig(BucketConfig? config)
+        {
+            var nodes = NodesFromConfig(config);
+            if (nodes is null)
+            {
                 return null;
             }
 

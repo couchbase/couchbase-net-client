@@ -143,15 +143,8 @@ namespace Couchbase.Diagnostics
                 }
             }
 
-            // Each open bucket owns its own node object for a host, so one physical node can appear several times.
-            var seenEndpoints = new HashSet<HostEndpointWithPort>();
-            foreach (var clusterNode in clusterNodes)
+            foreach (var clusterNode in NewestPerEndpoint(clusterNodes))
             {
-                if (!seenEndpoints.Add(clusterNode.EndPoint))
-                {
-                    continue;
-                }
-
                 if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
                 {
                     AddHttpServiceEndpoint(endpoints, pingTasks, httpClientFactory, "n1ql", ServiceType.Query,
@@ -178,6 +171,25 @@ namespace Couchbase.Diagnostics
             }
 
             return endpoints;
+        }
+
+        /// <summary>
+        /// One node object per host. Each open bucket owns its own copy of a node, and the copies are refreshed by
+        /// separate config streams, so the copy with the newest config decides which HTTP services the host has.
+        /// </summary>
+        internal static IEnumerable<IClusterNode> NewestPerEndpoint(IEnumerable<IClusterNode> clusterNodes)
+        {
+            var newest = new Dictionary<HostEndpointWithPort, IClusterNode>();
+            foreach (var clusterNode in clusterNodes)
+            {
+                if (!newest.TryGetValue(clusterNode.EndPoint, out var current)
+                    || clusterNode.NodesAdapter?.ConfigVersion > current.NodesAdapter?.ConfigVersion)
+                {
+                    newest[clusterNode.EndPoint] = clusterNode;
+                }
+            }
+
+            return newest.Values;
         }
 
         /// <summary>
@@ -257,6 +269,7 @@ namespace Couchbase.Diagnostics
             timeoutSource.CancelAfter(serviceTimeout);
 
             using var httpClient = httpClientFactory.Create();
+            httpClient.Timeout = Timeout.InfiniteTimeSpan;
             using var response = await httpClient.GetAsync(pingUri, timeoutSource.Token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
         }
