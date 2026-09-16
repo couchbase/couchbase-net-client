@@ -30,13 +30,13 @@ namespace Couchbase.Core.IO.HTTP
     {
         private readonly ClusterContext _context;
         private readonly ILogger<CouchbaseHttpClientFactory> _logger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ICertificateValidationCallbackFactory _callbackFactory;
         private readonly object _handlerLock = new object();
         internal volatile HttpMessageHandler _sharedHandler;
         private IAuthenticator? _currentAuthenticator; //reference to current authenticator for detecting change
 
-        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, IRedactor redactor, ICertificateValidationCallbackFactory callbackFactory)
+        public CouchbaseHttpClientFactory(ClusterContext context, ILogger<CouchbaseHttpClientFactory> logger, Redactor redactor, ICertificateValidationCallbackFactory callbackFactory)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (context == null)

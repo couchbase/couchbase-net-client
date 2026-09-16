@@ -931,7 +931,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             private DataFlowConnectionPool _innerPool;
 
             public StoppableDataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-                IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger,
+                IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<DataFlowConnectionPool> logger,
                 uint kvSendQueueCapacity)
             {
                 _innerPool = new(connectionInitializer, connectionFactory, scaleController, redactor, logger,
@@ -1023,7 +1023,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             return new StoppableDataFlowConnectionPool(connectionInitializer, connectionFactory,
                 new Mock<IConnectionPoolScaleController>().Object,
-                new Mock<IRedactor>().Object,
+                new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
                 new ClusterOptions().KvSendQueueCapacity);
         }

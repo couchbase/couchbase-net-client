@@ -55,7 +55,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.RegisterBucket(mockBucket);
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
-        var redactor = new TypedRedactor(RedactionLevel.None);
+        var redactor = new Redactor(RedactionLevel.None);
         using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
         var pushedVersion = new ConfigVersion(1, 3);
         configPushHandler.ProcessConfigPush(pushedVersion);
@@ -107,7 +107,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper,
             nameof(ConfigPushHandler_BasicAdvance));
-        var redactor = new TypedRedactor(RedactionLevel.None);
+        var redactor = new Redactor(RedactionLevel.None);
         using var configPushHandler =
             new ConfigPushHandler(mockBucket, mockContext, logger,
                 redactor);
@@ -146,7 +146,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
             new Mock<IScopeFactory>().Object,
             new Mock<IRetryOrchestrator>().Object,
             new TestOutputLogger(outputHelper, nameof(ConfigPushHandlerTests)),
-            new TypedRedactor(RedactionLevel.None),
+            new Redactor(RedactionLevel.None),
             new Mock<IBootstrapperFactory>().Object,
             NoopRequestTracer.Instance,
             new Mock<IOperationConfigurator>().Object,

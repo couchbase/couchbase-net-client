@@ -24,14 +24,14 @@ namespace Couchbase.Core.IO.Connections
         private readonly IIpEndPointService _ipEndPointService;
         private readonly ILogger<MultiplexingConnection> _multiplexLogger;
         private readonly ILogger<SslConnection> _sslLogger;
-        private readonly IRedactor _redactor;
+        private readonly Redactor _redactor;
         private readonly ICertificateValidationCallbackFactory _callbackFactory;
 
         public ConnectionFactory(ClusterOptions clusterOptions,
             IIpEndPointService ipEndPointService,
             ILogger<MultiplexingConnection> multiplexLogger,
             ILogger<SslConnection> sslLogger,
-            IRedactor redactor,
+            Redactor redactor,
             ICertificateValidationCallbackFactory callbackFactory)
         {
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));

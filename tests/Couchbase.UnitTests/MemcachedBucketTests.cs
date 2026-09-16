@@ -131,7 +131,7 @@ namespace Couchbase.UnitTests
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object,
-                new TypedRedactor(RedactionLevel.None),
+                new Redactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
