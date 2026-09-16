@@ -455,6 +455,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="strategy">Chooses which replica to read from.</param>
         /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IGetReplicaResult"/>.</returns>
+[InterfaceStability(Level.Uncommitted)]
         public static Task<IGetReplicaResult> GetReplicaAsync(this ICouchbaseCollection collection, string id, GetReplicaStrategy strategy)
         {
             return collection.GetReplicaAsync(id, strategy, GetReplicaOptions.Default);
