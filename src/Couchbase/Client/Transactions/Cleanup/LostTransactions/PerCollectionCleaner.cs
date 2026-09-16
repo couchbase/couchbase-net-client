@@ -12,6 +12,7 @@ using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.Internal;
 using Couchbase.Client.Transactions.Internal.Test;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
@@ -24,7 +25,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private readonly CleanerRepositoryBase _repository;
         private readonly TimeSpan _cleanupWindow;
         private readonly ILogger<PerCollectionCleaner> _logger;
-        private readonly Timer _processCleanupTimer;
+        private readonly ITimer _processCleanupTimer;
         private readonly Random _jitter = new Random();
         private readonly SemaphoreSlim _timerCallbackMutex = new (1);
         private readonly Action<Keyspace>? _onCollectionNotFound;
@@ -51,13 +52,22 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _timeProvider = timeProvider ?? TimeProvider.System;
             _atrsToClean = new AtrCleanupQueue(_timeProvider);
             _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
-            _processCleanupTimer = new Timer(
+            // Must be assigned before the timer is created: a zero due time can fire the callback before the
+            // constructor returns (immediately and synchronously on a fake clock, on a ThreadPool thread with
+            // the real one), and every log message in that callback reads this.
+            FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
+            // Driven by the injected TimeProvider so a test can advance a FakeTimeProvider instead of waiting
+            // on the wall clock, and with ExecutionContext flow suppressed: this timer lives for as long as the
+            // cleaner does, and the SDK is lazy-initialized, so without suppression the AsyncLocals in scope at
+            // bootstrap (logging scopes, the first HttpContext, activity tracing) would be pinned for the
+            // lifetime of the process. Every other long-lived periodic timer in the SDK does the same.
+            _processCleanupTimer = TimerFactory.CreateWithFlowSuppressed(
+                _timeProvider,
                 callback: TimerCallback,
                 state: null,
-                dueTime: startDisabled ? -1 : 0,
-                period: (int)cleanupWindow.TotalMilliseconds);
+                dueTime: startDisabled ? Timeout.InfiniteTimeSpan : TimeSpan.Zero,
+                period: cleanupWindow);
 
-            FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
             _logger.LogInformation("Started PerCollectionCleaner on '{coll}'", repository.Keyspace);
         }
 
@@ -68,7 +78,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public void Stop()
         {
-            _processCleanupTimer.Change(-1, -1);
+            _processCleanupTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _cancelToken.Cancel();
             _logger.LogDebug($"Cancelling per collection cleaner for '{ClientUuid}'");
         }
@@ -86,25 +96,12 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         private record Summary(string FullBucketName, string ClientUuid, bool Running, long RunCount);
 
-        public void Dispose()
-        {
-            if (!_cancelToken.IsCancellationRequested)
-            {
-                Stop();
-            }
-            else
-            {
-                _logger.LogDebug("(already disposed)");
-            }
-        }
-
-
         public async ValueTask DisposeAsync()
         {
             if (!_cancelToken.IsCancellationRequested)
             {
                 _logger.LogDebug("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
-                Dispose();
+                Stop();
                 // at this point, there will be no more timer callbacks triggered, so lets
                 // wait for the mutex, at which point the current ProcessClient (if any) is
                 // done (and there will be no more).
@@ -139,7 +136,46 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
         }
 
-        private async void TimerCallback(object? state)
+        // The Timer hands us a void-returning callback with nobody to give a Task to, so this adapter is the
+        // last place an exception can be observed. Previously this method was `async void`: anything escaping
+        // it was re-thrown on a ThreadPool thread with no SynchronizationContext to catch it, which terminates
+        // the process. That was reachable - an exception thrown from inside a catch block is not caught by a
+        // sibling catch, and both the auth-error and collection-not-found handlers below go on to await
+        // DisposeAsync (which can throw ObjectDisposedException when the owning LostTransactionManager is
+        // tearing the cleaner down concurrently) and invoke a caller-supplied callback.
+        //
+        // Discarding the Task here is safe only because RunCleanupCycleAsync is total - see below.
+        private void TimerCallback(object? state) => CurrentCycle = RunCleanupCycleAsync();
+
+        /// <summary>
+        /// The cleanup cycle currently in flight, or a completed Task. Production code synchronizes on
+        /// <see cref="_timerCallbackMutex"/>; this exists so a test driving a fake <see cref="TimeProvider"/>
+        /// can await a cycle rather than poll the wall clock. Overlapping callbacks racing on this assignment
+        /// is benign: the mutex serializes the work itself, and a test advances one tick at a time.
+        /// </summary>
+        internal Task CurrentCycle { get; private set; } = Task.CompletedTask;
+
+        // Total by construction: this must never fault, because nothing observes the Task it returns.
+        private async Task RunCleanupCycleAsync()
+        {
+            try
+            {
+                await CleanupCycleCoreAsync().CAF();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    _logger.LogWarning("Cleanup cycle on '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
+                }
+                catch
+                {
+                    // A throwing logger sink must not be the thing that brings the process down.
+                }
+            }
+        }
+
+        private async Task CleanupCycleCoreAsync()
         {
             if (_cancelToken.IsCancellationRequested)
             {
@@ -182,7 +218,19 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 _logger.LogWarning("Stopping lost cleanup of '{bkt}': collection not found (deleted or misconfigured).", FullBucketName);
                 // release the mutex before DisposeAsync, which also acquires it.
                 TryReleaseMutex();
-                _onCollectionNotFound?.Invoke(_repository.Keyspace);
+                // A throwing notification must not cost us the disposal that follows it: without this guard
+                // the cleaner would stay alive, retrying a collection the server has already disowned, once
+                // per window forever. The callback is caller-supplied (LostTransactionManager logs in it), so
+                // we do not get to assume it is safe.
+                try
+                {
+                    _onCollectionNotFound?.Invoke(_repository.Keyspace);
+                }
+                catch (Exception notifyEx)
+                {
+                    _logger.LogWarning("Collection-not-found notification for '{bkt}' threw: {ex}", FullBucketName, notifyEx);
+                }
+
                 await DisposeAsync().CAF();
             }
             catch (Exception ex)
