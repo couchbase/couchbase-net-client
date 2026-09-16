@@ -225,6 +225,23 @@ namespace Couchbase.FitPerformer
                     else ResultsUtil.SetSuccess(result);
                     break;
                 }
+                case CollectionLevelCommand.CommandOneofCase.GetReplica:
+                {
+                    var request = op.CollectionCommand.GetReplica;
+                    var docId = CommandUtils.GetDocId(request.Location, _counters);
+                    var strategy = CommandUtils.ConvertGetReplicaStrategy(request.Strategy);
+                    var options = OptionsUtil.CreateOptions(request, _spans);
+                    result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
+                    var sw = Stopwatch.StartNew();
+                    IGetReplicaResult gr;
+                    if (options == null) gr = await collection.GetReplicaAsync(docId, strategy).ConfigureAwait(false);
+                    else gr = await collection.GetReplicaAsync(docId, strategy, options).ConfigureAwait(false);
+                    sw.Stop();
+                    result.ElapsedNanos = sw.Elapsed.CalculateNanos();
+                    if (op.ReturnResult) ResultsUtil.PopulateResult(result, gr, request.ContentAs.AsCase);
+                    else ResultsUtil.SetSuccess(result);
+                    break;
+                }
                 case CollectionLevelCommand.CommandOneofCase.Binary:
                 {
                     var blc = op.CollectionCommand.Binary;

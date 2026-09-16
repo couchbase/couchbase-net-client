@@ -19,6 +19,7 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.ObjectPool;
 
@@ -132,6 +133,9 @@ namespace Couchbase.Core.IO.Operations
 
         /// <inheritdoc />
         public short? ReplicaIdx { get; protected set; }
+
+        /// <inheritdoc />
+        public GetReplicaStrategy? ReplicaStrategy { get; protected set; }
 
         /// <inheritdoc />
         public OperationHeader Header { get; set; }

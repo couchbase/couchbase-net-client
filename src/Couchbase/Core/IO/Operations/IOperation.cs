@@ -7,6 +7,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 #nullable enable
@@ -74,6 +75,11 @@ namespace Couchbase.Core.IO.Operations
         /// Replica index for replica reads, null for all other operations.
         /// </summary>
         short? ReplicaIdx { get; }
+
+        /// <summary>
+        /// Picks the replica on each dispatch. Null when <see cref="ReplicaIdx"/> is used or the operation is not a replica read.
+        /// </summary>
+        GetReplicaStrategy? ReplicaStrategy { get; }
 
         /// <summary>
         /// Opaque operation identifier, unique for each operation.

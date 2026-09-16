@@ -13,6 +13,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 namespace Couchbase.UnitTests.Utils
@@ -73,6 +74,7 @@ namespace Couchbase.UnitTests.Utils
         public uint Opaque { get; }
         public ulong Cas { get; set; }
         public short? ReplicaIdx { get; set; }
+        public GetReplicaStrategy ReplicaStrategy { get; set; }
         public uint? Cid { get; set; }
         public short? VBucketId { get; set; }
         public bool RequiresVBucketId { get; } = true;

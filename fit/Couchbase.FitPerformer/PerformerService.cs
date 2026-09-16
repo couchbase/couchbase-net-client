@@ -179,6 +179,7 @@ namespace Couchbase.FitPerformer
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkAppTelemetry);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkBucketSettingsNumVbuckets);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkZoneAwareReadFromReplica);
+                response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkGetReplica);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkPrefilterVectorSearch);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkCouchbase2Observability);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkObservabilityRfcRev24);
