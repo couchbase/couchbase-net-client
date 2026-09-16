@@ -469,6 +469,7 @@ namespace Couchbase.KeyValue
         /// <param name="strategy">Chooses which replica to read from.</param>
         /// <param name="configureOptions">Optional parameters</param>
         /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IGetReplicaResult"/>.</returns>
+[InterfaceStability(Level.Uncommitted)]
         public static Task<IGetReplicaResult> GetReplicaAsync(this ICouchbaseCollection collection, string id, GetReplicaStrategy strategy, Action<GetReplicaOptions> configureOptions)
         {
             var options = new GetReplicaOptions();
