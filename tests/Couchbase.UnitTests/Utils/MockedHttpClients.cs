@@ -157,7 +157,7 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(nodeMock.Object);
 
             return new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, new TypedRedactor(RedactionLevel.None));
         }
 
         internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
