@@ -56,17 +56,21 @@ namespace Couchbase.Query
         private string? _statement;
         private TimeSpan? _timeOut;
         private bool _flexIndex;
-        private volatile bool _isUsed;
+
+        // 0 until the first call to CloneIfUsedAlready, then 1. An int rather than a bool so the
+        // check-and-set can be done atomically via Interlocked.
+        private int _isUsed;
         private bool _preserveExpiry;
         private bool? _useReplica;
         private bool _streamResults;
 
+        // NOTE: any field added above must also be copied in CloneIfUsedAlready below, or its value
+        // is silently lost whenever a QueryOptions is reused (most commonly on a retry).
         internal QueryOptions CloneIfUsedAlready()
         {
-            var cloneNow = _isUsed;
-            _isUsed = true;
-
-            if (cloneNow)
+            // Exchange rather than a read followed by a write: two threads sharing one QueryOptions
+            // must not both be handed the original to mutate.
+            if (Interlocked.Exchange(ref _isUsed, 1) == 1)
             {
                 var queryOptions = new QueryOptions()
                     .Statement(_statement!)
@@ -139,8 +143,11 @@ namespace Couchbase.Query
                 }
 
                 queryOptions._scanConsistency = _scanConsistency;
+                queryOptions._preparedPayload = _preparedPayload;
+                queryOptions._streamResults = _streamResults;
                 queryOptions.Serializer = Serializer;
                 queryOptions.RequestSpanValue = RequestSpanValue;
+                queryOptions.RetryStrategyValue = RetryStrategyValue;
                 queryOptions.BucketName = BucketName;
                 queryOptions.ScopeName = ScopeName;
                 queryOptions.QueryContext = QueryContext;
@@ -1136,7 +1143,7 @@ namespace Couchbase.Query
             statement = _statement;
             timeOut = _timeOut;
             flexIndex = _flexIndex;
-            isUsed = _isUsed;
+            isUsed = Volatile.Read(ref _isUsed) == 1;
             preserveExpiry = _preserveExpiry;
             bucketName = BucketName;
             scopeName = ScopeName;
