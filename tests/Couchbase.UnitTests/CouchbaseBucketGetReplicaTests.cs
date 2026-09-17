@@ -107,6 +107,21 @@ namespace Couchbase.UnitTests
             Assert.Equal([2, 3], bucket.ServersThatReceivedOps);
         }
 
+        [Fact]
+        public async Task A_Grown_Chain_Satisfies_A_Previously_Out_Of_Bounds_Index()
+        {
+            var bucket = await CreateBucketAsync([1, 0], numReplicas: 1);
+            using var op = new ReplicaRead<byte[]>(Key, GetReplicaStrategy.FromIndex(ReplicaIndex.Second));
+
+            await Assert.ThrowsAsync<ReplicaIndexOutOfBoundsException>(() => bucket.SendAsync(op, default));
+            Assert.Empty(bucket.ServersThatReceivedOps);
+
+            await bucket.ApplyVBucketMapAsync([1, 0, 2, 3], numReplicas: 3);
+
+            await bucket.SendAsync(op, default);
+            Assert.Equal([2], bucket.ServersThatReceivedOps);
+        }
+
         private static async Task<TestBucket> CreateBucketAsync(short[] vBucketMapRow, int numReplicas)
         {
             var bucket = new TestBucket();
