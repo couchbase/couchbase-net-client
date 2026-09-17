@@ -1082,7 +1082,7 @@ namespace Couchbase.KeyValue
             var vBucket = (VBucket)_bucket.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
-                Logger.LogWarning("Call to {Caller} for key [{Id}] but none are configured. Only the active document will be retrieved", caller, id);
+                Logger.LogWarning("Call to {Caller} for key [{Id}] but none are configured. Only the active document will be retrieved", caller, Redactor.UserData(id));
             return vBucket;
         }
 

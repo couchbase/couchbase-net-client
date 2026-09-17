@@ -46,10 +46,8 @@ namespace Couchbase.Search
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
         private readonly IDataMapper _dataMapper;
+        private readonly Redactor _redactor;
         private string Escape(string pathValue) => Uri.EscapeDataString(pathValue);
-
-        //for log redaction
-        //private Func<object, string> User = RedactableArgument.UserAction;
 
         [RequiresUnreferencedCode(SearchRequiresUnreferencedMembersWarning)]
         [RequiresDynamicCode(SearchRequiresDynamicCodeWarning)]
@@ -57,12 +55,14 @@ namespace Couchbase.Search
             ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            Redactor redactor)
             : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
         }
@@ -137,7 +137,7 @@ namespace Couchbase.Search
             var searchBody = requestJson.ToString(Formatting.None);
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(searchBody);
+                _logger.LogTrace("Sending FTS query body: {searchBody}", _redactor.UserData(searchBody));
             }
 
             string? errors = null;

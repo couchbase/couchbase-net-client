@@ -1,6 +1,8 @@
 using System;
 using System.Reflection;
+using Couchbase.Core;
 using Couchbase.Core.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Logging
@@ -166,6 +168,59 @@ namespace Couchbase.UnitTests.Core.Logging
             var spanFormattable = new HostEndpointWithPort("localhost", 8675309);
             var asString = $"{redactor.UserData(spanFormattable)} is formatted";
             Assert.Contains("</ud>", asString);
+        }
+    }
+
+    /// <summary>
+    /// Regression coverage for <see cref="ClusterOptions.RedactionLevel"/> actually threading through DI into
+    /// a live <see cref="ClusterContext"/>, rather than only being exercised via <see cref="Redactor"/>
+    /// constructed directly in a unit test.
+    /// </summary>
+    public class RedactionLevelDiWiringTests
+    {
+        [Theory]
+        [InlineData(RedactionLevel.None, "user")]
+        [InlineData(RedactionLevel.Partial, "<ud>user</ud>")]
+        [InlineData(RedactionLevel.Full, "<ud>user</ud>")]
+        public void ClusterOptions_RedactionLevel_Flows_Through_Di_To_IRedactor(RedactionLevel level, string expected)
+        {
+            var options = new ClusterOptions { RedactionLevel = level }.WithPasswordAuthentication("username", "password");
+            using var clusterContext = new ClusterContext(null, options);
+
+            var redactor = clusterContext.ServiceProvider.GetRequiredService<IRedactor>();
+
+            Assert.Equal(expected, redactor.UserData("user")?.ToString());
+        }
+
+        [Theory]
+        [InlineData(RedactionLevel.None, "system")]
+        [InlineData(RedactionLevel.Partial, "system")]
+        [InlineData(RedactionLevel.Full, "<sd>system</sd>")]
+        public void ClusterOptions_RedactionLevel_Flows_Through_Di_To_Redactor(RedactionLevel level, string expected)
+        {
+            var options = new ClusterOptions { RedactionLevel = level }.WithPasswordAuthentication("username", "password");
+            using var clusterContext = new ClusterContext(null, options);
+
+            var redactor = clusterContext.ServiceProvider.GetRequiredService<Redactor>();
+
+            Assert.Equal(level, redactor.RedactionLevel);
+            Assert.Equal(expected, redactor.SystemData("system").ToString());
+        }
+
+        [Fact]
+        public void IRedactor_And_Redactor_Resolve_To_The_Same_Configured_Level()
+        {
+            var options = new ClusterOptions { RedactionLevel = RedactionLevel.Partial }.WithPasswordAuthentication("username", "password");
+            using var clusterContext = new ClusterContext(null, options);
+
+            var redactor = clusterContext.ServiceProvider.GetRequiredService<IRedactor>();
+            var concreteRedactor = clusterContext.ServiceProvider.GetRequiredService<Redactor>();
+
+            // Partial redacts user data but not system data, on both the public and internal-typed redactor.
+            Assert.Equal("<ud>user</ud>", redactor.UserData("user")?.ToString());
+            Assert.Equal("system", redactor.SystemData("system")?.ToString());
+            Assert.Equal("<ud>user</ud>", concreteRedactor.UserData("user").ToString());
+            Assert.Equal("system", concreteRedactor.SystemData("system").ToString());
         }
     }
 }
