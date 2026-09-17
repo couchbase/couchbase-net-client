@@ -10,6 +10,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
@@ -424,6 +425,54 @@ namespace Couchbase.UnitTests.Core
             }
 
             Assert.False(listener.Disposed);
+        }
+
+        /// <summary>
+        /// Regression test: Dispose() used to guard re-entrancy with a plain, non-atomic
+        /// `if (_disposed) return; _disposed = true;` check-then-set. Two threads calling Dispose()
+        /// concurrently could both pass the check and both run the teardown body, including a
+        /// foreach over the non-thread-safe `_ownedObjects` list racing against another thread's
+        /// `_ownedObjects.Clear()` - an InvalidOperationException ("Collection was modified").
+        /// Enabling threshold tracing with no caller-supplied listener guarantees `_ownedObjects` is
+        /// non-empty (see Start(), which owns and adds the default ThresholdTraceListener), so this
+        /// race is actually exercised rather than racing over an empty list.
+        /// </summary>
+        [Fact]
+        public async Task Dispose_Called_Concurrently_Does_Not_Throw()
+        {
+            const int threadsPerAttempt = 8;
+            const int attempts = 40;
+
+            // Whether the race actually manifests as an InvalidOperationException on a given
+            // attempt is timing-dependent, so this repeats with many fresh contexts to raise the
+            // odds of catching it if the guard has regressed to a check-then-act race. Attempts run
+            // concurrently with each other (not just their own disposing threads) so this stays
+            // fast: each is an independent ClusterContext, so there is nothing to serialize on.
+            // No explicit synchronization to line the threads up: Task.Run's own scheduling variance
+            // is enough to hit the race repeatedly across this many attempts, and a Barrier here
+            // would block far more real threads at once than this is worth (thread-pool starvation
+            // made an earlier version of this test take 15+ seconds on its own).
+            var attemptTasks = Enumerable.Range(0, attempts).Select(async _ =>
+            {
+                var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+                // Both enabled with no caller-supplied listener: Start() then owns and adds two
+                // separate listeners to _ownedObjects, widening the foreach that a concurrent
+                // Clear() can land in the middle of.
+                options.WithThresholdTracing(new ThresholdOptions { Enabled = true });
+                options.WithOrphanTracing(new OrphanOptions { Enabled = true });
+
+                var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+                context.Start();
+
+                var disposers = Enumerable.Range(0, threadsPerAttempt).Select(_ => Task.Run(context.Dispose));
+
+                // Any exception from a racing Dispose() (e.g. concurrent modification of
+                // _ownedObjects, or ObjectDisposedException from a second full teardown pass)
+                // surfaces here.
+                await Task.WhenAll(disposers);
+            });
+
+            await Task.WhenAll(attemptTasks);
         }
 
         public class CustomTraceListener : TraceListener
