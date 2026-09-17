@@ -313,6 +313,73 @@ namespace Couchbase.UnitTests.Core.Exceptions
         }
 
         /// <summary>
+        /// The context types that render themselves, discovered rather than listed.
+        /// <c>QueryErrorContext</c> and <c>AnalyticsErrorContext</c> are absent today because
+        /// neither overrides <c>ToString()</c>; NCBC-4297(c) is expected to give both one, and
+        /// they are covered here the day it does.
+        /// </summary>
+        public static IEnumerable<object[]> ContextTypesThatRender =>
+            Classification.Keys.Where(RendersItself).Select(t => new object[] { t });
+
+        /// <summary>
+        /// The tags have to reach the rendered JSON literally. cblogredaction matches them
+        /// textually, so a '&lt;' serialized as <c>\u003C</c> still round-trips through a JSON
+        /// parser while silently defeating the redaction pass - the failure that looks like
+        /// success.
+        /// <para>
+        /// Every context binds its own static <c>JsonTypeInfo&lt;T&gt;</c> from redaction-safe
+        /// options, in a field initializer that reaches into a serializer context's
+        /// <c>Default</c>. Both halves of that are per type, so one context passing says nothing
+        /// about the next: one that misses the binding escapes its tags, and one that initializes
+        /// in the wrong order throws <see cref="TypeInitializationException"/> from an error path.
+        /// Rendering every context that has a <c>ToString()</c> catches both.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(ContextTypesThatRender))]
+        public async Task EveryContextThatRendersEmitsLiteralTags(Type contextType)
+        {
+            var ctx = await ErrorContextDrivers.BuildAtFull(contextType);
+
+            var json = ctx.ToString();
+
+            var tags = Populated(ctx, contextType, Classification[contextType].Redacted)
+                .Select(f => Regex.Match(f.Value, @"^<(ud|md|sd)>"))
+                .Where(m => m.Success)
+                .Select(m => m.Value)
+                .Distinct()
+                .ToList();
+
+            // Without this the loop below is vacuous: a driver that tags nothing would pass
+            // whatever the encoder did.
+            Assert.True(tags.Count > 0,
+                $"The {contextType.Name} driver produced no tagged field, so this says nothing about " +
+                "how its tags render. Populate a field that gets tagged at Full, or the escaping " +
+                "of this context is untested.");
+
+            foreach (var tag in tags)
+            {
+                Assert.True(json.Contains(tag),
+                    $"{contextType.Name}.ToString() holds a {tag} field but the rendered JSON has no " +
+                    $"literal '{tag}'. Bind its JsonTypeInfo from RedactionSafeOptions - the default " +
+                    $"encoder escapes the tags. Rendered: {json}");
+            }
+
+            foreach (var escaped in new[] { @"\u003C", @"\u003E" })
+            {
+                Assert.True(json.IndexOf(escaped, StringComparison.OrdinalIgnoreCase) < 0,
+                    $"{contextType.Name}.ToString() emitted '{escaped}' rather than a literal angle " +
+                    $"bracket, so cblogredaction cannot match its tags. Rendered: {json}");
+            }
+        }
+
+        /// <summary>
+        /// Whether the type declares its own <c>ToString()</c> rather than inheriting object's.
+        /// </summary>
+        private static bool RendersItself(Type contextType) =>
+            contextType.GetMethod(nameof(ToString), Type.EmptyTypes)!.DeclaringType == contextType;
+
+        /// <summary>
         /// The named fields that this construction path actually filled in. Fields a path leaves
         /// empty say nothing either way, and are covered by
         /// <see cref="EveryStringFieldIsClassified"/> instead.
