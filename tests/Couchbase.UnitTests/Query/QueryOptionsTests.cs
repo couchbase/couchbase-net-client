@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -8,6 +9,7 @@ using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Core;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Moq;
@@ -505,6 +507,14 @@ namespace Couchbase.UnitTests.Query
             #endregion
 
         [Fact]
+        public void Test_CloneIfUsedAlready_Returns_Same_Instance_On_First_Use()
+        {
+            var options = new QueryOptions("SELECT 1;");
+
+            Assert.Same(options, options.CloneIfUsedAlready());
+        }
+
+        [Fact]
         public void Test_CloneIfUsedAlready()
         {
             var cts = new CancellationTokenSource();
@@ -533,7 +543,13 @@ namespace Couchbase.UnitTests.Query
                 ScanCap(1).
                 UseReplica(true);
 
+            // The first call marks the options used and hands back the original; only the second
+            // call clones, so this is the one that actually exercises the copy.
+            Assert.Same(options, options.CloneIfUsedAlready());
+
             var newOptions = options.CloneIfUsedAlready();
+            Assert.NotSame(options, newOptions);
+
             var newValues = newOptions.GetFormValues();
             var oldValues = options.GetFormValues();
 
@@ -557,6 +573,92 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(newValues["client_context_id"], oldValues["client_context_id"]);
             Assert.Equal(newValues["use_fts"], oldValues["use_fts"]);
             Assert.Equal(newValues["use_replica"], oldValues["use_replica"]);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_CloneIfUsedAlready_Preserves_StreamResults(bool streamResults)
+        {
+            var options = new QueryOptions("SELECT 1;").StreamResults(streamResults);
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.Equal(streamResults, clone.StreamResultsInternal);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Preserves_PreparedPlan()
+        {
+            var plan = new QueryPlan { Name = "plan-name", Text = "SELECT 1;" };
+            var options = new QueryOptions().Prepared(plan, "SELECT 1;");
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.True(clone.IsPrepared);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Preserves_RetryStrategy()
+        {
+            var retryStrategy = new BestEffortRetryStrategy();
+            var options = new QueryOptions("SELECT 1;").RetryStrategy(retryStrategy);
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.Same(retryStrategy, clone.RetryStrategyValue);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Preserves_LastDispatchedNode()
+        {
+            var node = new Uri("http://localhost:8093/query");
+            var options = new QueryOptions("SELECT 1;") { LastDispatchedNode = node };
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.Equal(node, clone.LastDispatchedNode);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Clones_Options_That_Have_No_Statement_Yet()
+        {
+            // QueryClient clones on entry and assigns the statement afterwards, so a clone taken
+            // on that path has none yet and must not go through Statement()'s null guard.
+            var options = new QueryOptions();
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.Null(clone.StatementValue);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Returns_The_Original_Once_Then_Distinct_Clones()
+        {
+            const int callCount = 8;
+
+            var options = new QueryOptions("SELECT 1;");
+            var handedOut = new List<QueryOptions>(callCount);
+            for (var i = 0; i < callCount; i++)
+            {
+                handedOut.Add(options.CloneIfUsedAlready());
+            }
+
+            // The original is handed out once and once only; every later caller gets its own
+            // object, so no two callers can ever be mutating the same QueryOptions.
+            Assert.Same(options, handedOut[0]);
+            Assert.Equal(1, handedOut.Count(o => ReferenceEquals(o, options)));
+            Assert.Equal(callCount, handedOut.Distinct().Count());
         }
 
         #region Helpers

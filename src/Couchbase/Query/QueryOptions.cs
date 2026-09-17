@@ -56,20 +56,29 @@ namespace Couchbase.Query
         private string? _statement;
         private TimeSpan? _timeOut;
         private bool _flexIndex;
-        private volatile bool _isUsed;
+
+        // 0 until the first call to CloneIfUsedAlready, then 1. An int rather than a bool so the
+        // check-and-set can be done atomically via Interlocked.
+        private int _isUsed;
         private bool _preserveExpiry;
         private bool? _useReplica;
         private bool _streamResults;
 
+        // NOTE: any state added to this class must also be copied in CloneIfUsedAlready below - the
+        // fields above and the properties further down alike - or its value is silently lost
+        // whenever a QueryOptions is reused (most commonly on a retry). The one exception is
+        // _isUsed, which the clone deliberately starts at 0 so that its own first use is free.
         internal QueryOptions CloneIfUsedAlready()
         {
-            var cloneNow = _isUsed;
-            _isUsed = true;
-
-            if (cloneNow)
+            // Exchange rather than a read followed by a write: two threads sharing one QueryOptions
+            // must not both be handed the original to mutate. That is as far as the guarantee goes.
+            // The copy below is not a snapshot: whoever was handed the original may already be
+            // mutating it, so a caller sharing one QueryOptions across concurrent queries still
+            // gets best-effort values. Reuse across sequential queries, which is what retries do,
+            // is exact.
+            if (Interlocked.Exchange(ref _isUsed, 1) == 1)
             {
                 var queryOptions = new QueryOptions()
-                    .Statement(_statement!)
                     .AdHoc(IsAdHoc)
                     .AutoExecute(_autoExecute)
                     .CancellationToken(Token)
@@ -139,11 +148,21 @@ namespace Couchbase.Query
                 }
 
                 queryOptions._scanConsistency = _scanConsistency;
+                // Assigned directly rather than through Statement(), which rejects null: QueryClient
+                // clones before it sets the statement, so a clone taken on that path has none yet.
+                // It would also null the prepared plan copied on the next line.
+                queryOptions._statement = _statement;
+                queryOptions._preparedPayload = _preparedPayload;
+                queryOptions._streamResults = _streamResults;
                 queryOptions.Serializer = Serializer;
                 queryOptions.RequestSpanValue = RequestSpanValue;
+                queryOptions.RetryStrategyValue = RetryStrategyValue;
                 queryOptions.BucketName = BucketName;
                 queryOptions.ScopeName = ScopeName;
                 queryOptions.QueryContext = QueryContext;
+                // Pins a transaction's statements to the node that began the work; unlike the rest
+                // of this state, nothing downstream re-derives it.
+                queryOptions.LastDispatchedNode = LastDispatchedNode;
                 return queryOptions;
             }
 
@@ -1136,7 +1155,7 @@ namespace Couchbase.Query
             statement = _statement;
             timeOut = _timeOut;
             flexIndex = _flexIndex;
-            isUsed = _isUsed;
+            isUsed = Volatile.Read(ref _isUsed) == 1;
             preserveExpiry = _preserveExpiry;
             bucketName = BucketName;
             scopeName = ScopeName;
