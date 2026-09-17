@@ -45,6 +45,7 @@ namespace Couchbase.Core
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private bool _disposed;
+        private readonly object _disposeLock = new();
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -1051,26 +1052,31 @@ namespace Couchbase.Core
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
-            _configHandler?.Dispose();
-            _semaphore.Dispose();
-            _tokenSource?.Dispose();
-
-            foreach (var ownedObject in _ownedObjects)
+            lock (_disposeLock)
             {
-                ownedObject.Dispose();
-            }
-            _ownedObjects.Clear();
+                if (_disposed) return;
+                _disposed = true;
 
-            foreach (var bucketName in Buckets.Keys)
-            {
-                if (Buckets.TryRemove(bucketName, out var bucket))
+                _configHandler?.Dispose();
+                _semaphore.Dispose();
+                _tokenSource?.Dispose();
+
+                foreach (var ownedObject in _ownedObjects)
                 {
-                    bucket.Dispose();
+                    ownedObject.Dispose();
                 }
-            }
+                _ownedObjects.Clear();
 
-            RemoveAllNodes();
+                foreach (var bucketName in Buckets.Keys)
+                {
+                    if (Buckets.TryRemove(bucketName, out var bucket))
+                    {
+                        bucket.Dispose();
+                    }
+                }
+
+                RemoveAllNodes();
+            }
         }
     }
 }
