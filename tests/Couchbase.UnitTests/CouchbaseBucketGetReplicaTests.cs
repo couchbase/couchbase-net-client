@@ -62,6 +62,16 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
+        public async Task Replica_On_A_Node_Outside_The_Server_List_Throws_And_Sends_Nothing()
+        {
+            var bucket = await CreateBucketAsync([1, 9], numReplicas: 1);
+
+            await Assert.ThrowsAsync<ReplicaIndexCurrentlyUnavailableException>(() =>
+                bucket.SendAsync(Key, GetReplicaStrategy.FromIndex(ReplicaIndex.First)));
+            Assert.Empty(bucket.ServersThatReceivedOps);
+        }
+
+        [Fact]
         public async Task Unavailable_Replica_With_Wrap_Goes_To_The_Next_Node()
         {
             var bucket = await CreateBucketAsync([1, 0, -1, 3], numReplicas: 3);

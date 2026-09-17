@@ -34,7 +34,7 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// Returns the server index to read from. The replica chain is the vBucket map row without the active.
         /// </summary>
-        internal abstract short SelectReplica(ReadOnlySpan<short> replicaChain, int numReplicas);
+        internal abstract short SelectReplica(ReadOnlySpan<short> replicaChain, int numReplicas, int serverCount);
     }
 
     internal sealed class GetReplicaFromIndexStrategy : GetReplicaStrategy
@@ -48,7 +48,7 @@ namespace Couchbase.KeyValue
             _wrap = wrap;
         }
 
-        internal override short SelectReplica(ReadOnlySpan<short> replicaChain, int numReplicas)
+        internal override short SelectReplica(ReadOnlySpan<short> replicaChain, int numReplicas, int serverCount)
         {
             if (numReplicas == 0)
             {
@@ -59,7 +59,7 @@ namespace Couchbase.KeyValue
             {
                 var start = _index % numReplicas;
                 var position = start;
-                while (position >= replicaChain.Length || replicaChain[position] == -1)
+                while (!IsReadable(replicaChain, position, serverCount))
                 {
                     position = (position + 1) % numReplicas;
                     if (position == start)
@@ -76,13 +76,17 @@ namespace Couchbase.KeyValue
                 throw new ReplicaIndexOutOfBoundsException(OutOfBoundsMessage(numReplicas));
             }
 
-            if (_index >= replicaChain.Length || replicaChain[_index] == -1)
+            if (!IsReadable(replicaChain, _index, serverCount))
             {
                 throw new ReplicaIndexCurrentlyUnavailableException(UnavailableMessage(replicaChain.Length, numReplicas));
             }
 
             return replicaChain[_index];
         }
+
+        // A chain entry is readable only when it names a node that is in the server list.
+        private static bool IsReadable(ReadOnlySpan<short> chain, int position, int serverCount) =>
+            position < chain.Length && chain[position] >= 0 && chain[position] < serverCount;
 
         private string OutOfBoundsMessage(int numReplicas) =>
             $"Replica {(ReplicaIndex) _index} was requested but the bucket has {numReplicas} replica(s).";

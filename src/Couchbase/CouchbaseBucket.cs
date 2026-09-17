@@ -311,7 +311,7 @@ namespace Couchbase
         {
             try
             {
-                return strategy.SelectReplica(vBucket.Replicas, vBucket.NumReplicas);
+                return strategy.SelectReplica(vBucket.Replicas, vBucket.NumReplicas, vBucket.ServerCount);
             }
             catch (KeyValueException e) when (e.Context is null)
             {
