@@ -426,6 +426,156 @@ namespace Couchbase.UnitTests.Core
             Assert.False(listener.Disposed);
         }
 
+        /// <summary>
+        /// Regression test: Dispose() used to guard re-entrancy with a plain, non-atomic
+        /// `if (_disposed) return; _disposed = true;` check-then-set. Two threads calling Dispose()
+        /// concurrently could both pass the check and both run the teardown body, including a
+        /// foreach over the non-thread-safe `_ownedObjects` list racing against another thread's
+        /// `_ownedObjects.Clear()` - an InvalidOperationException ("Collection was modified").
+        /// </summary>
+        /// <remarks>
+        /// The vulnerable window is exactly two adjacent lines with no yield point between them, so
+        /// a black-box test that just fires many concurrent callers and hopes to land inside a
+        /// nanosecond-scale window is fundamentally probabilistic: it can pass against the original,
+        /// broken implementation on any given run simply because no two callers happened to overlap
+        /// that run - an earlier version of this test did exactly that (no synchronization at all,
+        /// then a best-effort Barrier, then a "confirm the second caller reached the locking path,
+        /// then wait" marker), and all of them could pass on the broken code without ever proving
+        /// anything: any marker fired *before* the lock is attempted still leaves a gap between the
+        /// signal and the actual attempt, and treating "no second signal within a timeout" as
+        /// evidence of exclusion is backwards - it is equally consistent with "descheduled for
+        /// longer than the timeout, for reasons that have nothing to do with the lock" (a real risk:
+        /// this assembly runs thousands of tests in parallel across classes), which would then let
+        /// the first caller finish, set `_disposed`, and let the (merely delayed, not actually
+        /// blocked) second caller return early on its own later - passing for the wrong reason.
+        ///
+        /// This uses <see cref="ClusterContext.DisposeLockContendedHook"/> instead, which closes
+        /// that gap structurally: it only fires from inside the same statement that performs a
+        /// non-blocking probe of the lock and finds it held, so firing it *is* observing contention,
+        /// not a proxy for it. The test then races two mutually exclusive, independently observable
+        /// outcomes for the second caller - contended the lock (the fix) vs. reached the same inner
+        /// hook the first caller is parked in (the bug, since <see
+        /// cref="ClusterContext.DisposeTestHook"/> would then have fired a second time) - and a
+        /// timeout where *neither* happens is treated as inconclusive and fails the test outright,
+        /// rather than being read as proof either way.
+        /// </remarks>
+        [Fact]
+        public void Dispose_BlocksASecondConcurrentCaller_UntilTheFirstCompletes()
+        {
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            // Enabled with no caller-supplied listener: Start() then owns and adds a
+            // ThresholdTraceListener to _ownedObjects, so the teardown under test is the real one,
+            // not a no-op over an empty list.
+            options.WithThresholdTracing(new ThresholdOptions { Enabled = true });
+
+            var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            context.Start();
+
+            var firstEntered = new SemaphoreSlim(0);
+            var releaseFirst = new SemaphoreSlim(0);
+            var secondReachedInnerHook = new ManualResetEventSlim(false);
+            var hookEntries = 0;
+            Exception firstException = null;
+            Exception secondException = null;
+
+            context.DisposeTestHook = () =>
+            {
+                var entryNumber = Interlocked.Increment(ref hookEntries);
+                if (entryNumber == 1)
+                {
+                    firstEntered.Release();
+                }
+                else
+                {
+                    // A second (or later) caller reached the very section the first is parked in -
+                    // the regression this test exists to catch.
+                    secondReachedInnerHook.Set();
+                }
+                // Held here so the test has a real window to observe whether a second caller can
+                // also reach this point while the first has not yet finished.
+                releaseFirst.Wait();
+            };
+
+            // Background, so a bug in this test's own cleanup can never be the thing that hangs
+            // the whole test process - only the try/finally below is relied on for that, but this
+            // is a cheap second line of defense.
+            var first = new Thread(() =>
+            {
+                try { context.Dispose(); } catch (Exception ex) { firstException = ex; }
+            }) { IsBackground = true };
+            first.Start();
+
+            Thread second = null;
+            var firstJoined = false;
+            var secondJoined = true;
+            try
+            {
+                // Confirm the first caller is genuinely inside the critical section before
+                // starting the second - otherwise "the second call hasn't gotten here yet" would
+                // prove nothing.
+                Assert.True(firstEntered.Wait(TimeSpan.FromSeconds(5)),
+                    "The first Dispose() call never reached DisposeTestHook.");
+
+                // Wired up only after the first caller is confirmed inside the critical section, so
+                // any firing from here on is unambiguously the second caller's own probe finding
+                // the lock genuinely held.
+                var secondContendedLock = new ManualResetEventSlim(false);
+                context.DisposeLockContendedHook = () => secondContendedLock.Set();
+
+                second = new Thread(() =>
+                {
+                    try { context.Dispose(); } catch (Exception ex) { secondException = ex; }
+                }) { IsBackground = true };
+                second.Start();
+
+                // Race the two possible, mutually exclusive, independently observable outcomes -
+                // do not treat a timeout as evidence of exclusion either way.
+                var signaledIndex = WaitHandle.WaitAny(
+                    new WaitHandle[] { secondContendedLock.WaitHandle, secondReachedInnerHook.WaitHandle },
+                    TimeSpan.FromSeconds(5));
+
+                Assert.True(signaledIndex != WaitHandle.WaitTimeout,
+                    "Neither the second caller's lock-contention probe nor a second entry into " +
+                    "DisposeTestHook fired within the timeout. That's inconclusive about whether " +
+                    "the lock actually serializes these callers, so it must fail this test rather " +
+                    "than pass it.");
+
+                Assert.False(secondReachedInnerHook.IsSet,
+                    "A second, concurrently-arriving Dispose() call reached the same disposal " +
+                    "critical section as the first, instead of contending on the lock the first " +
+                    "caller holds - it must be blocked until the first completes.");
+
+                Assert.True(secondContendedLock.IsSet,
+                    "The second Dispose() call must have contended on the lock (confirmed via its " +
+                    "own non-blocking probe) for this to count as a pass.");
+
+                Assert.Equal(1, hookEntries);
+            }
+            finally
+            {
+                // Always let go of whichever caller(s) are parked in the hook. Without this, a
+                // failed assertion above would leave the first thread blocked in
+                // releaseFirst.Wait() forever - and since these are ordinary (non-background, but
+                // see IsBackground above) threads, that can hang the whole test process rather
+                // than just failing this test. Releasing more than needed is harmless.
+                releaseFirst.Release(2);
+
+                firstJoined = first.Join(TimeSpan.FromSeconds(5));
+                if (second is not null)
+                {
+                    secondJoined = second.Join(TimeSpan.FromSeconds(5));
+                }
+            }
+
+            // Only reached when the assertions above passed - surfaces problems in the cleanup
+            // itself (a thread that didn't finish, or one whose Dispose() call unexpectedly threw)
+            // as clear failures rather than silently ignoring them or hanging.
+            Assert.True(firstJoined, "The first Dispose() call's thread did not finish after being released.");
+            Assert.True(secondJoined, "The second Dispose() call's thread did not finish after being released.");
+            Assert.Null(firstException);
+            Assert.Null(secondException);
+        }
+
         public class CustomTraceListener : TraceListener
         {
             public bool Disposed { get; private set; }

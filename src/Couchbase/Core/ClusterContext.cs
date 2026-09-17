@@ -45,6 +45,29 @@ namespace Couchbase.Core
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private bool _disposed;
+        private readonly object _disposeLock = new();
+
+        // Test-only seam. Invoked once per call that passes the inner not-yet-disposed check,
+        // immediately before _disposed is set - i.e. exactly the point a second concurrent caller
+        // must NOT also be able to reach. A test can use this to hold one caller here and then
+        // deterministically observe whether a second, concurrently-arriving Dispose() call is
+        // blocked (by _disposeLock, the fix) or also reaches this point (a regression), rather than
+        // relying on timing variance to catch the two-line check-then-set race this guards. No-op
+        // and zero overhead whenever unset, which is always true outside of tests.
+        internal Action DisposeTestHook { get; set; }
+
+        // Test-only seam. Invoked only when a caller's own non-blocking probe of _disposeLock (see
+        // Dispose() below) has, in that same statement, just confirmed the lock is currently held
+        // by someone else - i.e. this caller is about to genuinely block waiting for it. This is
+        // deliberately not a marker placed before the lock is attempted: a hook fired "about to
+        // lock" still leaves a gap between the signal and the actual attempt, during which the
+        // caller could be descheduled long enough (e.g. under the CPU contention a large parallel
+        // test run creates) to make a test's timeout expire for the wrong reason - indistinguishable
+        // from the lock genuinely blocking it. Tying the signal to the outcome of the probe itself
+        // removes that gap: the check and the signal are the same statement, so firing this proves
+        // contention was actually observed, not merely likely. No-op and zero overhead whenever
+        // unset, which is always true outside of tests.
+        internal Action DisposeLockContendedHook { get; set; }
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -1051,26 +1074,46 @@ namespace Couchbase.Core
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
-            _configHandler?.Dispose();
-            _semaphore.Dispose();
-            _tokenSource?.Dispose();
 
-            foreach (var ownedObject in _ownedObjects)
+            // Equivalent to `lock (_disposeLock)`, expanded so a failed non-blocking probe can be
+            // observed (via DisposeLockContendedHook) in the same statement that discovers the
+            // lock is held - see the remarks on that hook for why that matters for testability.
+            var lockTaken = Monitor.TryEnter(_disposeLock, 0);
+            if (!lockTaken)
             {
-                ownedObject.Dispose();
+                DisposeLockContendedHook?.Invoke();
+                Monitor.Enter(_disposeLock, ref lockTaken);
             }
-            _ownedObjects.Clear();
-
-            foreach (var bucketName in Buckets.Keys)
+            try
             {
-                if (Buckets.TryRemove(bucketName, out var bucket))
+                if (_disposed) return;
+                DisposeTestHook?.Invoke();
+                _disposed = true;
+
+                _configHandler?.Dispose();
+                _semaphore.Dispose();
+                _tokenSource?.Dispose();
+
+                foreach (var ownedObject in _ownedObjects)
                 {
-                    bucket.Dispose();
+                    ownedObject.Dispose();
                 }
-            }
+                _ownedObjects.Clear();
 
-            RemoveAllNodes();
+                foreach (var bucketName in Buckets.Keys)
+                {
+                    if (Buckets.TryRemove(bucketName, out var bucket))
+                    {
+                        bucket.Dispose();
+                    }
+                }
+
+                RemoveAllNodes();
+            }
+            finally
+            {
+                if (lockTaken) Monitor.Exit(_disposeLock);
+            }
         }
     }
 }
