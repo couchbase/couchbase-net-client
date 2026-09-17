@@ -188,6 +188,16 @@ namespace Couchbase.UnitTests.Core.Exceptions
         /// construction site populates it today - it would carry user data if one ever did, and
         /// the behavioural test below skips fields a path leaves empty.
         /// </para>
+        /// <para>
+        /// <c>ManagementErrorContext.Statement</c> is the one entry that puts a single
+        /// classification on a composite value: it holds a management URI, whose host is system
+        /// data while the bucket, scope, collection and index names in its path are metadata.
+        /// Calling the whole thing system data costs nothing today, because metadata and system
+        /// data are both redacted at Full and neither at Partial. It would start costing
+        /// something the day a management URI carries user data - a document key, a user name -
+        /// since the URI would then stay raw at Partial. No test can see that coming, so it is
+        /// written down here instead.
+        /// </para>
         /// </summary>
         private static readonly Dictionary<Type, (string[] Redacted, string[] Raw)> Classification =
             new()
@@ -213,21 +223,28 @@ namespace Couchbase.UnitTests.Core.Exceptions
             };
 
         /// <summary>
-        /// The error-context types deliberately left out of <see cref="Classification"/>, and the
-        /// reason each needs nothing. A type belongs here only once someone has looked at it: the
-        /// scan below fails for any context type that is neither classified nor listed here, so
-        /// that a new one cannot arrive unnoticed.
+        /// The error-context types deliberately left out of <see cref="Classification"/>, the
+        /// reason each needs nothing, and the string fields that reason was checked against. A
+        /// type belongs here only once someone has looked at it: the scan below fails for any
+        /// context type that is neither classified nor listed here, so that a new one cannot
+        /// arrive unnoticed, and <see cref="ExemptTypesStillHaveNothingToClassify"/> fails if one
+        /// of them later grows a field its reason never covered.
         /// </summary>
-        private static readonly Dictionary<Type, string> NeedsNothing =
+        private static readonly Dictionary<Type, (string Reason, string[] StringFields)> NeedsNothing =
             new()
             {
-                [typeof(EventingFunctionErrorContext)] =
+                [typeof(EventingFunctionErrorContext)] = (
                     "never constructed anywhere in the SDK. Message is its only string field and " +
                     "is raw by policy; Info is [JsonIgnore(Always)] so it is never rendered.",
-                [typeof(GenericErrorContext)] =
+                    new[] { "Message" }),
+                [typeof(GenericErrorContext)] = (
                     "the couchbase2:// path, which holds its fields in an untyped bag and so needs " +
                     "per-key classification rather than per-property. NCBC-4300.",
+                    new[] { "Message" }),
             };
+
+        public static IEnumerable<object[]> ExemptContextTypes =>
+            NeedsNothing.Keys.Select(t => new object[] { t });
 
         public static IEnumerable<object[]> ContextTypes =>
             Classification.Keys.Select(t => new object[] { t });
@@ -266,14 +283,35 @@ namespace Couchbase.UnitTests.Core.Exceptions
                 $"No longer an error-context type: {string.Join(", ", stale)}. Remove it from the table.");
         }
 
+        /// <summary>
+        /// A type in <see cref="NeedsNothing"/> is exempt from
+        /// <see cref="EveryStringFieldIsClassified"/> for good, so without this a field added to
+        /// one of them later would arrive with nobody classifying it - the exact failure the
+        /// table exists to prevent, let back in through the escape hatch. Pinning the fields each
+        /// reason was written against sends whoever adds one back to the reason.
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(ExemptContextTypes))]
+        public void ExemptTypesStillHaveNothingToClassify(Type contextType)
+        {
+            var (reason, pinned) = NeedsNothing[contextType];
+
+            var actual = StringFields(contextType).OrderBy(x => x).ToList();
+            var expected = pinned.OrderBy(x => x).ToList();
+
+            Assert.True(actual.SequenceEqual(expected),
+                $"{contextType.Name}'s string fields are now {string.Join(", ", actual)}, not " +
+                $"{string.Join(", ", expected)}. It is exempt from classification because it is " +
+                $"{reason} Check whether the new shape still needs nothing: if it does, update the " +
+                "pinned list here; if it does not, move the type into the Classification table and " +
+                "give it a driver in ErrorContextDrivers.");
+        }
+
         [Theory]
         [MemberData(nameof(ContextTypes))]
         public void EveryStringFieldIsClassified(Type contextType)
         {
-            var actual = new HashSet<string>(contextType
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.PropertyType == typeof(string))
-                .Select(p => p.Name));
+            var actual = new HashSet<string>(StringFields(contextType));
 
             var (redacted, raw) = Classification[contextType];
             var classified = new HashSet<string>(redacted.Concat(raw));
@@ -384,6 +422,14 @@ namespace Couchbase.UnitTests.Core.Exceptions
         /// empty say nothing either way, and are covered by
         /// <see cref="EveryStringFieldIsClassified"/> instead.
         /// </summary>
+        /// <summary>
+        /// The public instance string properties of a context type - what has to be classified.
+        /// </summary>
+        private static IEnumerable<string> StringFields(Type contextType) =>
+            contextType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.PropertyType == typeof(string))
+                .Select(p => p.Name);
+
         private static IEnumerable<(string Name, string Value)> Populated(IErrorContext ctx,
             Type contextType, IEnumerable<string> names) =>
             names

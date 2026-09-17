@@ -22,7 +22,11 @@ namespace Couchbase.Core
     /// </para>
     /// <para>
     /// Only error contexts should use these settings. Anything that might be rendered into a page
-    /// needs the default HTML-safe encoder.
+    /// needs the default HTML-safe encoder, and being an error context is not an exemption from
+    /// that: <see cref="Exceptions.ManagementErrorContext"/> carries the management endpoint's
+    /// response body, which ns_server can return as HTML. The trade is made knowingly - tags that
+    /// cblogredaction cannot match are worth less than an escape the caller can apply themselves -
+    /// but a caller rendering a context into a page has to encode it at that point.
     /// </para>
     /// </remarks>
     internal static class RedactionSafeJson

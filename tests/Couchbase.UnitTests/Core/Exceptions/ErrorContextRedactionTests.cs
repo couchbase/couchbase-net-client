@@ -247,7 +247,7 @@ namespace Couchbase.UnitTests.Core.Exceptions
         public async Task AnalyticsErrorContext_RedactsStatement()
         {
             var client = MockedHttpClients.AnalyticsClient(
-                Responses(Fixture(@"Documents\\Analytics\\syntax-24000.json"), HttpStatusCode.BadRequest),
+                Responses(Fixture(@"Documents\Analytics\syntax-24000.json"), HttpStatusCode.BadRequest),
                 TestRedactor.Partial);
 
             var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
@@ -261,7 +261,7 @@ namespace Couchbase.UnitTests.Core.Exceptions
         public async Task ViewContextError_RedactsDesignDocAndViewNames()
         {
             var client = MockedHttpClients.ViewClient(
-                Responses(Fixture(@"Documents\\Views\\404-designdoc-notfound.json"), HttpStatusCode.NotFound),
+                Responses(Fixture(@"Documents\Views\404-designdoc-notfound.json"), HttpStatusCode.NotFound),
                 TestRedactor.Full);
 
 #pragma warning disable CS0618 // Type or member is obsolete
