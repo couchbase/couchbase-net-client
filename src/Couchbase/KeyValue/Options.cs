@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -437,6 +438,136 @@ namespace Couchbase.KeyValue
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
             InternalReadPreference ReadPreference);
+    }
+
+    #endregion
+
+    #region GetReplicaOptions
+
+    /// <summary>
+    /// Optional parameters for <see cref="ICouchbaseCollection.GetReplicaAsync(string, GetReplicaStrategy, GetReplicaOptions?)"/>
+    /// </summary>
+    [InterfaceStability(Level.Uncommitted)]
+    public class GetReplicaOptions : ITranscoderOverrideOptions, ITimeoutOptions
+    {
+        public static readonly ReadOnly DefaultReadOnly = new GetReplicaOptions().AsReadOnly();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
+
+        internal CancellationToken TokenValue { get; private set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
+
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public static GetReplicaOptions Default { get; } = new();
+
+        /// <summary>
+        /// Inject an external span which will be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
+        public GetReplicaOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
+        public GetReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
+        public GetReplicaOptions Transcoder(ITypeTranscoder? transcoder)
+        {
+            if (ReferenceEquals(this, Default) && transcoder != null)
+            {
+                return new GetReplicaOptions
+                {
+                    TranscoderValue = transcoder
+                };
+            }
+
+            TranscoderValue = transcoder;
+            return this;
+        }
+
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
+        public GetReplicaOptions Timeout(TimeSpan timeout)
+        {
+            if (ReferenceEquals(this, Default))
+            {
+                return new GetReplicaOptions
+                {
+                    TimeoutValue = timeout
+                };
+            }
+
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
+        public GetReplicaOptions CancellationToken(CancellationToken token)
+        {
+            if (ReferenceEquals(this, Default) && token != default)
+            {
+                return new GetReplicaOptions
+                {
+                    TokenValue = token
+                };
+            }
+
+            TokenValue = token;
+            return this;
+        }
+
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
+        {
+            timeout = TimeoutValue;
+            token = TokenValue;
+            transcoder = TranscoderValue;
+            retryStrategy = RetryStrategyValue;
+            requestSpan = RequestSpanValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
+            return new ReadOnly(timeout, token, transcoder, retryStrategy, requestSpan);
+        }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
     #endregion

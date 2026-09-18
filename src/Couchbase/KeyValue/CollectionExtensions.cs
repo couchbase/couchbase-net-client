@@ -446,6 +446,40 @@ namespace Couchbase.KeyValue
 
         #endregion
 
+        #region GetReplica
+
+        /// <summary>
+        /// Reads the document from a single replica chosen by the strategy. Only one request is sent.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="strategy">Chooses which replica to read from.</param>
+        /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IGetReplicaResult"/>.</returns>
+[InterfaceStability(Level.Uncommitted)]
+        public static Task<IGetReplicaResult> GetReplicaAsync(this ICouchbaseCollection collection, string id, GetReplicaStrategy strategy)
+        {
+            return collection.GetReplicaAsync(id, strategy, GetReplicaOptions.Default);
+        }
+
+        /// <summary>
+        /// Reads the document from a single replica chosen by the strategy. Only one request is sent.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="strategy">Chooses which replica to read from.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IGetReplicaResult"/>.</returns>
+[InterfaceStability(Level.Uncommitted)]
+        public static Task<IGetReplicaResult> GetReplicaAsync(this ICouchbaseCollection collection, string id, GetReplicaStrategy strategy, Action<GetReplicaOptions> configureOptions)
+        {
+            var options = new GetReplicaOptions();
+            configureOptions(options);
+
+            return collection.GetReplicaAsync(id, strategy, options);
+        }
+
+        #endregion
+
         #region GetAllReplicas
 
         /// <summary>

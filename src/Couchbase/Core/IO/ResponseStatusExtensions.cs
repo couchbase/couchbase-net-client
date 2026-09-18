@@ -105,7 +105,9 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.DocumentNotLocked:
                     return new DocumentNotLockedException { Context = ctx };
                 case ResponseStatus.KeyNotFound:
-                    return new DocumentNotFoundException {Context = ctx};
+                    return op.ReplicaStrategy != null
+                        ? new DocumentNotFoundOnReplicaException {Context = ctx}
+                        : new DocumentNotFoundException {Context = ctx};
                 case ResponseStatus.KeyExists:
                     var isMutateInWithoutCas = op.OpCode == OpCode.SubMultiMutation && op.Cas == 0;
                     if (op.OpCode == OpCode.Add || isMutateInWithoutCas)

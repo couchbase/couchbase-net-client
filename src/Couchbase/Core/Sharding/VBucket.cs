@@ -107,6 +107,11 @@ namespace Couchbase.Core.Sharding
         public short[] Replicas => _replicas;
 
         /// <summary>
+        /// Gets the number of replicas the bucket is configured with.
+        /// </summary>
+        public int NumReplicas => _vBucketServerMap.NumReplicas;
+
+        /// <summary>
         /// Gets the index of the VBucket.
         /// </summary>
         /// <value>

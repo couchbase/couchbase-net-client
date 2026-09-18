@@ -44,7 +44,10 @@ namespace Couchbase.FitPerformer.Utils
             if (err is EncodingFailureException) return CouchbaseExceptionType.SdkEncodingFailureException;
             if (err is DecodingFailureException) return CouchbaseExceptionType.SdkDecodingFailureException;
 
+            if (err is DocumentNotFoundOnReplicaException) return CouchbaseExceptionType.SdkDocumentNotFoundOnReplicaException;
             if (err is DocumentNotFoundException) return CouchbaseExceptionType.SdkDocumentNotFoundException;
+            if (err is ReplicaIndexOutOfBoundsException) return CouchbaseExceptionType.SdkReplicaIndexOutOfBoundsException;
+            if (err is ReplicaIndexCurrentlyUnavailableException) return CouchbaseExceptionType.SdkReplicaIndexCurrentlyUnavailableException;
             if (err is DocumentUnretrievableException) return CouchbaseExceptionType.SdkDocumentUnretrievableException;
             if (err is DocumentLockedException) return CouchbaseExceptionType.SdkDocumentLockedException;
             // dotnet does not have ValueTooLargeException
