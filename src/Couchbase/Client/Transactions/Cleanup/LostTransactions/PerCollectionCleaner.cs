@@ -137,11 +137,22 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         {
             // Yield before touching anything. An async method runs synchronously until its first await that
             // actually yields, and this one is a Lazy value factory - so without this, everything down to the
-            // first incomplete await executes while Lazy's recursion guard is armed. Stop() below cancels a
-            // token whose registrations run inline on this thread, which can resume a parked cleanup cycle
-            // here; if that cycle then unwinds to its own teardown (the auth path does, with no await on the
-            // way), it re-enters _disposal.Value on this very thread and Lazy throws. Yielding first hands the
-            // Task back immediately, so a re-entrant caller simply awaits the disposal already in flight.
+            // first incomplete await runs under Lazy's lock and with its recursion guard armed.
+            //
+            // The reason that matters is Stop(), which cancels _cancelToken. Cancellation registrations
+            // always run inline on the cancelling thread - RunContinuationsAsynchronously does not change
+            // that, it only governs Task continuations - so without the yield we would be executing other
+            // people's callbacks while holding Lazy's lock. Yielding first returns the Task immediately, so
+            // the lock is gone before any of that runs and a re-entrant caller just awaits the disposal
+            // already in flight.
+            //
+            // A stronger claim used to sit here: that a parked cleanup cycle resumes inline from that
+            // cancellation, re-enters _disposal.Value on this thread and makes Lazy throw. The shape is real
+            // - a TaskCompletionSource completed from a ct.Register callback does exactly that - but nothing
+            // on this path has it. Task.Delay(token) completes its continuations asynchronously (measured,
+            // not assumed), KV operations complete through AsyncStateBase, which passes
+            // RunContinuationsAsynchronously, and the only two plain TaskCompletionSources in src/ are not
+            // reachable from cleanup. Keep the yield for the lock; do not rely on it for that.
             await Task.Yield();
 
             try
@@ -170,7 +181,10 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 // CancellationTokenSource.Cancel/Dispose can raise ObjectDisposedException, Cancel surfaces
                 // anything an inline registration throws, and RemoveClient logs from inside its own catch
                 // blocks.
-                TryLog("Disposal of '{bkt}' did not complete: {ex}", FullBucketName, ex);
+                // Warning, not Debug: before this method was made total the same failure propagated out to
+                // LostTransactionManager.RemoveClientEntries, which logs it at Warning. Swallowing it here
+                // must not quietly demote it to a breadcrumb.
+                TryLog(LogLevel.Warning, "Disposal of '{bkt}' did not complete: {ex}", FullBucketName, ex);
             }
         }
 
@@ -178,14 +192,14 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // is the likely way that happens, and disposal is exactly when that race is on.
         //
         // Deliberately silent in the catch: the sink we would report the failure to is the one that just
-        // failed. Debug level because every caller is a breadcrumb, and the one thing worth seeing at a
-        // higher level - a teardown that did not finish - is logged through here too and will simply be lost
-        // along with the rest if the sink is dead.
-        private void TryLog(string message, params object?[] args)
+        // failed. Losing the message is the price of reaching the next teardown step.
+        private void TryLog(string message, params object?[] args) => TryLog(LogLevel.Debug, message, args);
+
+        private void TryLog(LogLevel level, string message, params object?[] args)
         {
             try
             {
-                _logger.LogDebug(message, args);
+                _logger.Log(level, message, args);
             }
             catch
             {
@@ -320,30 +334,42 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
             finally
             {
+                // From the finally, not from the handler that set it: the handler can throw on its way out,
+                // and the teardown must happen anyway. It also has to run after the inner finally above has
+                // released the mutex, because DisposeAsync re-acquires it.
                 if (stop != StopReason.None)
                 {
-                    try
-                    {
-                        if (stop == StopReason.CollectionNotFound)
-                        {
-                            // Caller-supplied (LostTransactionManager logs in it), so not assumed safe.
-                            _onCollectionNotFound?.Invoke(_repository.Keyspace);
-                        }
-                    }
-                    catch (Exception notifyEx)
-                    {
-                        _logger.LogWarning("Collection-not-found notification for '{bkt}' threw: {ex}", FullBucketName, notifyEx);
-                    }
-                    finally
-                    {
-                        // Reached whatever the notification or its own logging did, and once reached,
-                        // DisposeOnceAsync performs every step: nothing between them can throw any more. A
-                        // dead sink can still cost us the _cancelToken.Dispose() at the very end - RemoveClient
-                        // logs from inside its own catch blocks, which escapes it - but that is after the
-                        // client record is gone, so no invariant rides on it.
-                        await DisposeAsync().CAF();
-                    }
+                    await RunStopAsync(stop).CAF();
                 }
+            }
+        }
+
+        // Tears the cleaner down after a cycle has decided to stop: notify first, then dispose. The dispose
+        // runs from a finally so that neither the caller-supplied notification nor the logging of its
+        // failure can cost us it - without that, a cleaner that had already decided to stop would carry on
+        // retrying a collection the server disowned, once per window, forever.
+        private async Task RunStopAsync(StopReason reason)
+        {
+            try
+            {
+                if (reason == StopReason.CollectionNotFound)
+                {
+                    // Caller-supplied (LostTransactionManager logs in it), so not assumed safe.
+                    _onCollectionNotFound?.Invoke(_repository.Keyspace);
+                }
+            }
+            catch (Exception notifyEx)
+            {
+                _logger.LogWarning("Collection-not-found notification for '{bkt}' threw: {ex}", FullBucketName, notifyEx);
+            }
+            finally
+            {
+                // Reached whatever the notification or its own logging did, and once reached,
+                // DisposeOnceAsync performs every step: nothing between them can throw any more. A dead sink
+                // can still cost us the _cancelToken.Dispose() at the very end - RemoveClient logs from
+                // inside its own catch blocks, which escapes it - but that is after the client record is
+                // gone, so no invariant rides on it.
+                await DisposeAsync().CAF();
             }
         }
 

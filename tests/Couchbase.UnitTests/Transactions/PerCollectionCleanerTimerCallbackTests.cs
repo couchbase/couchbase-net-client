@@ -128,6 +128,11 @@ public class PerCollectionCleanerTimerCallbackTests
         public bool Armed;
         public int ThrowCount;
 
+        /// <summary>Every message logged, with its level, recorded before the sink decides whether to throw -
+        /// so a test can assert what level a particular message came out at whether or not the sink was armed
+        /// for it. Matching on the message matters: several unrelated Warnings cross this path.</summary>
+        public readonly List<(LogLevel Level, string Message)> Logged = new();
+
         /// <summary>
         /// When set, only this level throws. Needed to reach a specific handler: ProcessClient opens with a
         /// LogTrace, so a sink that throws on everything fails the cycle there and every failure lands in
@@ -147,6 +152,7 @@ public class PerCollectionCleanerTimerCallbackTests
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
                 Func<TState, Exception?, string> formatter)
             {
+                owner.Logged.Add((logLevel, formatter(state, exception)));
                 if (!owner.Armed) return;
                 if (owner.OnlyLevel is { } only && logLevel != only) return;
                 owner.ThrowCount++;
@@ -486,6 +492,33 @@ public class PerCollectionCleanerTimerCallbackTests
 
         Assert.True(loggerFactory.ThrowCount >= 1, "expected the in-catch log to have thrown");
         Assert.Equal(1, repository.RemoveClientCalls);
+    }
+
+    /// <summary>
+    /// A disposal that did not complete is reported at Warning, not Debug.
+    ///
+    /// Before DisposeOnceAsync was made total the same failure propagated out to
+    /// LostTransactionManager.RemoveClientEntries, which logs it at Warning. Swallowing it here must not
+    /// quietly demote a half-disposed cleaner to a breadcrumb in an already noisy Debug stream.
+    ///
+    /// Arms the sink at Debug so that RemoveClient's in-catch Debug log is what faults the teardown, which
+    /// leaves Warning working and therefore observable.
+    /// </summary>
+    [Fact]
+    public async Task FailedDisposal_IsReportedAtWarning()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var loggerFactory = new ThrowingLoggerFactory();
+        var (cleaner, repository) = Create(new InvalidOperationException("boom"), timeProvider,
+            loggerFactory: loggerFactory);
+        repository.RemoveClientThrows = new InvalidOperationException("client record removal failed");
+
+        loggerFactory.OnlyLevel = LogLevel.Debug;
+        loggerFactory.Armed = true;
+        await cleaner.DisposeAsync();
+
+        Assert.Contains(loggerFactory.Logged,
+            entry => entry.Level == LogLevel.Warning && entry.Message.Contains("did not complete"));
     }
 
     /// <summary>
