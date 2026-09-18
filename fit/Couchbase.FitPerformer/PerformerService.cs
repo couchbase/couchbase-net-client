@@ -516,8 +516,9 @@ namespace Couchbase.FitPerformer
                 var cleanupWindow = TimeSpan.FromSeconds(2.5);
                 var repo = new CleanerRepository(collection, null);
 
+                // Never started: this drives ProcessClient directly and does not want a cleanup timer.
                 var perBucketCleaner = new PerCollectionCleaner(request.ClientUuid, cleaner, repo, cleanupWindow,
-                    new SerilogLoggerFactory(), startDisabled: true);
+                    new SerilogLoggerFactory());
                 perBucketCleaner.TestHooks =
                     HooksUtil.ConfigureHooks(request.Hook, connection) ?? perBucketCleaner.TestHooks;
 
