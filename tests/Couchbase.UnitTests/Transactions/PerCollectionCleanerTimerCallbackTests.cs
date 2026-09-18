@@ -60,9 +60,28 @@ public class PerCollectionCleanerTimerCallbackTests
         public override Task CreatePlaceholderClientRecord(ulong? cas = null, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("unreachable");
 
+        /// <summary>How many times the client record was removed - the last step of disposal, and the one
+        /// that matters most: a cleaner that fails to remove it leaves its share of the ATRs assigned to a
+        /// client that is never coming back.</summary>
+        public int RemoveClientCalls;
+
+        /// <summary>When set, the client-record removal fails. On its own that is invisible - RemoveClient
+        /// catches, classifies and retries - so it only becomes a fault the disposal has to survive when the
+        /// sink it logs the failure through is also down.</summary>
+        public Exception? RemoveClientThrows;
+
         // Reached via DisposeAsync during shutdown; succeeding keeps RemoveClient's retry loop to one pass.
         public override Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
+            CancellationToken cancellationToken = default)
+        {
+            RemoveClientCalls++;
+            if (RemoveClientThrows is { } ex)
+            {
+                throw ex;
+            }
+
+            return Task.CompletedTask;
+        }
 
         public override Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs,
             IReadOnlyList<string> expiredClientIds, CancellationToken cancellationToken = default) =>
@@ -396,6 +415,108 @@ public class PerCollectionCleanerTimerCallbackTests
         Assert.Equal(TaskStatus.RanToCompletion, cleaner.CurrentCycle.Status);
         Assert.Equal(1, notified);
         Assert.Contains("Running = False", cleaner.ToString());
+    }
+
+    /// <summary>
+    /// A dead log sink must not be able to cut the teardown short. DisposeOnceAsync logs a breadcrumb
+    /// between every one of its steps, so before those went through TryLog the very first of them throwing
+    /// skipped Stop(), the timer disposal and - the one that costs something - the client-record removal,
+    /// leaving this client's share of the ATRs assigned to a client that is never coming back.
+    ///
+    /// Note that an outer catch alone does not fix this. It makes the disposal Task complete rather than
+    /// fault, which is what the cached <c>Lazy&lt;Task&gt;</c> needs, but the steps after the throw are
+    /// still skipped - it just trades a loud half-disposed cleaner for a quiet one. Only logging that
+    /// cannot throw keeps the sequence running, which is what this test pins.
+    ///
+    /// Arms every Debug-level log, the level all of those breadcrumbs use. That also reaches the one
+    /// unguarded Debug log left on this path - the one RemoveClient emits from inside its own catch, which
+    /// escapes its retry loop - so this exercises the outer guard as well, and fails if either is reverted.
+    /// </summary>
+    [Fact]
+    public async Task ThrowingLogSink_DuringDisposal_StillRemovesTheClientRecord()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var loggerFactory = new ThrowingLoggerFactory();
+        var (cleaner, repository) = Create(new InvalidOperationException("boom"), timeProvider,
+            loggerFactory: loggerFactory);
+
+        loggerFactory.OnlyLevel = LogLevel.Debug;
+        loggerFactory.Armed = true;
+        await cleaner.DisposeAsync();
+
+        Assert.True(loggerFactory.ThrowCount >= 1, "expected the disposal breadcrumbs to have thrown");
+        Assert.Equal(1, repository.RemoveClientCalls);
+        Assert.Contains("Running = False", cleaner.ToString());
+    }
+
+    /// <summary>
+    /// A disposal that fails is not re-raised at every later caller.
+    ///
+    /// DisposeAsync hands out one cached <c>Lazy&lt;Task&gt;</c>, and awaiting a faulted Task rethrows every
+    /// time - so a single failed teardown would be re-raised forever, at callers that had nothing to do with
+    /// it. (Lazy's own exception caching is not the mechanism: the factory is an async method, which never
+    /// throws synchronously, so Lazy always gets a Task back and caches that. Same observable behaviour.)
+    /// DisposeOnceAsync is therefore total - it completes or it logs, and nothing else.
+    ///
+    /// Faults a step rather than a breadcrumb, since TryLog covers the breadcrumbs: the client-record
+    /// removal fails, and RemoveClient's own handler logs that failure through a sink that is also down. An
+    /// exception thrown from inside a <c>catch</c> is not caught by a sibling <c>catch</c>, so it escapes
+    /// RemoveClient's retry loop entirely and lands in the outer guard - the same shape as the async-void
+    /// crash this whole change is about. It also means no retry delay, so nothing here waits on the clock.
+    /// </summary>
+    [Fact]
+    public async Task FailedDisposal_IsNotRethrownToLaterCallers()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var loggerFactory = new ThrowingLoggerFactory();
+        var (cleaner, repository) = Create(new InvalidOperationException("boom"), timeProvider,
+            loggerFactory: loggerFactory);
+        repository.RemoveClientThrows = new InvalidOperationException("client record removal failed");
+
+        // Only RemoveClient's in-catch LogWarning throws; the Debug breadcrumbs are let through so the
+        // teardown actually reaches that far.
+        loggerFactory.OnlyLevel = LogLevel.Warning;
+        loggerFactory.Armed = true;
+
+        // The caller that hit the failure, and two that arrive afterwards onto the cached Task. Before
+        // DisposeOnceAsync was made total, all three of these threw.
+        await cleaner.DisposeAsync();
+        await cleaner.DisposeAsync();
+        await cleaner.DisposeAsync();
+
+        Assert.True(loggerFactory.ThrowCount >= 1, "expected the in-catch log to have thrown");
+        Assert.Equal(1, repository.RemoveClientCalls);
+    }
+
+    /// <summary>
+    /// The same thing from the other direction, and the interleaving that actually happens in production: a
+    /// cleanup cycle disposes itself on a disowned collection while the failure is in flight, and
+    /// LostTransactionManager then disposes it again at shutdown. The second caller attaches to the first
+    /// caller's cached Task, so it inherits whatever that one did.
+    /// </summary>
+    [Fact]
+    public async Task FailedDisposal_DoesNotFaultTheSelfDisposingCleanupCycle()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var loggerFactory = new ThrowingLoggerFactory();
+        var notified = 0;
+        var (cleaner, repository) = Create(CollectionNotFoundTimeout(), timeProvider,
+            onCollectionNotFound: _ => notified++, loggerFactory: loggerFactory);
+        repository.RemoveClientThrows = new InvalidOperationException("client record removal failed");
+
+        loggerFactory.OnlyLevel = LogLevel.Warning;
+        loggerFactory.Armed = true;
+        cleaner.Start();
+        await cleaner.CurrentCycle;
+
+        // The cycle disposed itself, the disposal failed, and neither fact escaped as a fault.
+        Assert.Equal(TaskStatus.RanToCompletion, cleaner.CurrentCycle.Status);
+        Assert.Equal(1, notified);
+        Assert.Equal(1, repository.RemoveClientCalls);
+
+        // And the manager disposing it at shutdown gets the same cached Task, not the failure again.
+        await cleaner.DisposeAsync();
+        Assert.Equal(1, repository.RemoveClientCalls);
     }
 
     /// <summary>

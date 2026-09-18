@@ -87,11 +87,13 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _processCleanupTimer.Change(TimeSpan.Zero, _cleanupWindow);
         }
 
+        // Only ever called from DisposeOnceAsync, so this log is on the teardown path too and goes through
+        // TryLog for the same reason the ones there do: a dead sink here would skip everything after it.
         public void Stop()
         {
             _processCleanupTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _cancelToken.Cancel();
-            _logger.LogDebug($"Cancelling per collection cleaner for '{ClientUuid}'");
+            TryLog("Cancelling per collection cleaner for {clientUuid}", ClientUuid);
         }
 
         public string BucketName => _repository.BucketName;
@@ -121,6 +123,16 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // - a caller arriving after disposal already finished returned immediately before, and still does.
         public ValueTask DisposeAsync() => new(_disposal.Value);
 
+        // Total by construction: this must never fault, for the same reason RunCleanupCycleAsync must not -
+        // but by a different route. The Task returned here is the one _disposal caches, and awaiting a
+        // faulted Task rethrows every time, so a single failed teardown would be re-raised at every later
+        // caller forever. (Lazy's own exception caching is not what does this: the factory is an async
+        // method, which never throws synchronously, so Lazy always gets a Task and caches that. The
+        // observable behaviour is the same either way.)
+        //
+        // Swallowing costs nothing the callers were using: LostTransactionManager.RemoveClientEntries
+        // already catches and logs around its Task.WhenAll, and the self-disposing cleanup cycle discards
+        // this into RunCleanupCycleAsync's guard. The warning below just says which collection it was.
         private async Task DisposeOnceAsync()
         {
             // Yield before touching anything. An async method runs synchronously until its first await that
@@ -132,19 +144,53 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             // Task back immediately, so a re-entrant caller simply awaits the disposal already in flight.
             await Task.Yield();
 
-            _logger.LogDebug("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
-            Stop();
-            // at this point, there will be no more timer callbacks triggered, so lets
-            // wait for the mutex, at which point the current ProcessClient (if any) is
-            // done (and there will be no more).
-            _logger.LogDebug("waiting for cleanup Task on {bkt}", FullBucketName);
-            await  _timerCallbackMutex.WaitAsync().CAF();
-            _logger.LogDebug("cleanup Task stopped for {bkt}", FullBucketName);
-            _processCleanupTimer.Dispose();
-            _logger.LogDebug("cleanup Timer stopped for {bkt}", FullBucketName);
-            await RemoveClient().CAF();
-            _logger.LogDebug("removed ClientRecord for {bkt}", FullBucketName);
-            _cancelToken.Dispose();
+            try
+            {
+                // Every breadcrumb between the teardown steps goes through TryLog. Not being total is only
+                // half the problem a throwing sink causes here: an outer catch alone would still let a dead
+                // sink skip the steps below it, trading a loud half-disposed cleaner for a quiet one. With
+                // nothing throwable between them, the sequence always runs to the end.
+                TryLog("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
+                Stop();
+                // at this point, there will be no more timer callbacks triggered, so lets
+                // wait for the mutex, at which point the current ProcessClient (if any) is
+                // done (and there will be no more).
+                TryLog("waiting for cleanup Task on {bkt}", FullBucketName);
+                await  _timerCallbackMutex.WaitAsync().CAF();
+                TryLog("cleanup Task stopped for {bkt}", FullBucketName);
+                _processCleanupTimer.Dispose();
+                TryLog("cleanup Timer stopped for {bkt}", FullBucketName);
+                await RemoveClient().CAF();
+                TryLog("removed ClientRecord for {bkt}", FullBucketName);
+                _cancelToken.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // The steps themselves can still throw where TryLog cannot help: Timer.Change and
+                // CancellationTokenSource.Cancel/Dispose can raise ObjectDisposedException, Cancel surfaces
+                // anything an inline registration throws, and RemoveClient logs from inside its own catch
+                // blocks.
+                TryLog("Disposal of '{bkt}' did not complete: {ex}", FullBucketName, ex);
+            }
+        }
+
+        // Logging must never be the thing that defeats disposal. A logging provider disposed before the SDK
+        // is the likely way that happens, and disposal is exactly when that race is on.
+        //
+        // Deliberately silent in the catch: the sink we would report the failure to is the one that just
+        // failed. Debug level because every caller is a breadcrumb, and the one thing worth seeing at a
+        // higher level - a teardown that did not finish - is logged through here too and will simply be lost
+        // along with the rest if the sink is dead.
+        private void TryLog(string message, params object?[] args)
+        {
+            try
+            {
+                _logger.LogDebug(message, args);
+            }
+            catch
+            {
+                // Intentionally empty - see above.
+            }
         }
 
         // Releasing the timer-callback mutex must never mask the cleanup that follows it: the auth-error
@@ -159,7 +205,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Ignoring error releasing timer callback mutex on {bkt}: {ex}", FullBucketName, ex);
+                // Through TryLog: this catch exists so the teardown that follows the release still runs, and
+                // a throwing sink here would defeat exactly that.
+                TryLog("Ignoring error releasing timer callback mutex on {bkt}: {ex}", FullBucketName, ex);
             }
         }
 
@@ -288,10 +336,11 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     }
                     finally
                     {
-                        // Reached whatever the notification or its own logging did. Note this guarantees the
-                        // teardown is *started*, not that it finishes: DisposeAsync logs between its steps,
-                        // so a dead sink can still cut it short. Closing that too means making logging
-                        // infallible, which costs more than it buys.
+                        // Reached whatever the notification or its own logging did, and once reached,
+                        // DisposeOnceAsync performs every step: nothing between them can throw any more. A
+                        // dead sink can still cost us the _cancelToken.Dispose() at the very end - RemoveClient
+                        // logs from inside its own catch blocks, which escapes it - but that is after the
+                        // client record is gone, so no invariant rides on it.
                         await DisposeAsync().CAF();
                     }
                 }
