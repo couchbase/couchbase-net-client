@@ -66,6 +66,22 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task SubordinateCaWithSameSubjectAsRoot_RootOnly_InTrustBundle_Accepts()
+    {
+        // The NCBC-4275 shape. A Capella disaster recovery control plane issues node certificates from a
+        // subordinate CA that carries the same subject name as the root but a different key. The issuer
+        // has to be matched by key identifier, not by name, and the subordinate only exists on the wire.
+        using var subordinate = TlsTestPki.CreateCa("Test Wire Root CA", issuer: _root);
+        using var drLeaf = TlsTestPki.CreateServerLeaf("DR Node Leaf", LeafDnsName, issuer: subordinate);
+        using var bundle = new TrustBundle(_root);
+
+        var result = await Handshake(drLeaf, new[] { subordinate }, bundle);
+
+        HandshakeAssert.Accepted(result,
+            "A leaf issued by a subordinate CA that shares the root's subject name should validate against the root.");
+    }
+
+    [Fact]
     public async Task TwoLevelIntermediateChain_RootOnly_InTrustBundle_Accepts()
     {
         // root -> ica1 -> ica2 -> leaf, with both intermediates presented on the wire. Proves the fix is

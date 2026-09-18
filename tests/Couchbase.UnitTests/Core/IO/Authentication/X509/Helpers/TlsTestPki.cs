@@ -1,6 +1,7 @@
 #if NET6_0_OR_GREATER
 
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -50,6 +51,7 @@ internal static class TlsTestPki
             return request.CreateSelfSigned(from, notAfter ?? DateTimeOffset.UtcNow.AddYears(10));
         }
 
+        request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(issuer));
         var signed = request.Create(
             issuer, ClampNotBefore(from, issuer), ClampNotAfter(notAfter, issuer), NewSerial());
         return signed.CopyWithPrivateKey(rsa);
@@ -87,10 +89,30 @@ internal static class TlsTestPki
             return request.CreateSelfSigned(from, notAfter ?? DateTimeOffset.UtcNow.AddYears(2));
         }
 
+        request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(issuer));
         var signed = request.Create(
             issuer, ClampNotBefore(from, issuer), ClampNotAfter(notAfter, issuer), NewSerial());
         return signed.CopyWithPrivateKey(rsa);
     }
+
+    /// <summary>
+    /// Tells a certificate apart from a same named issuer by key, the way real PKIs do. Without it a
+    /// subordinate CA that shares its root's subject name looks self-signed to a name based check.
+    /// </summary>
+    public static bool IsSelfSigned(X509Certificate2 cert)
+    {
+        if (!cert.SubjectName.RawData.AsSpan().SequenceEqual(cert.IssuerName.RawData))
+        {
+            return false;
+        }
+
+        var authorityKey = cert.Extensions.OfType<X509AuthorityKeyIdentifierExtension>().FirstOrDefault()?.KeyIdentifier;
+        var subjectKey = cert.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifierBytes;
+        return authorityKey is null || subjectKey is null || authorityKey.Value.Span.SequenceEqual(subjectKey.Value.Span);
+    }
+
+    private static X509AuthorityKeyIdentifierExtension AuthorityKeyIdentifierOf(X509Certificate2 issuer) =>
+        X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, includeKeyIdentifier: true, includeIssuerAndSerial: false);
 
     /// <summary>
     /// Independent copy of a certificate, so certificates handed to a chain store or to SslStream can be

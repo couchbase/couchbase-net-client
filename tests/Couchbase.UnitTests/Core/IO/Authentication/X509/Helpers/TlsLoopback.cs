@@ -46,7 +46,7 @@ internal static class TlsLoopback
         var wireCollection = new X509Certificate2Collection();
         foreach (var extra in wireExtras)
         {
-            if (IsSelfSigned(extra))
+            if (TlsTestPki.IsSelfSigned(extra))
             {
                 throw new InvalidOperationException(
                     $"\"{extra.Subject}\" is self-signed. SslStreamCertificateContext drops self-signed "
@@ -158,8 +158,6 @@ internal static class TlsLoopback
         }
     }
 
-    private static bool IsSelfSigned(X509Certificate2 cert) =>
-        cert.SubjectName.RawData.AsSpan().SequenceEqual(cert.IssuerName.RawData);
 }
 
 #endif
