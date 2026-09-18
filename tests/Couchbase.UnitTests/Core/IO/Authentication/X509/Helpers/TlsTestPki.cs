@@ -86,13 +86,36 @@ internal static class TlsTestPki
 
         if (issuer is null)
         {
-            return request.CreateSelfSigned(from, notAfter ?? DateTimeOffset.UtcNow.AddYears(2));
+            return ServableBySchannel(request.CreateSelfSigned(from, notAfter ?? DateTimeOffset.UtcNow.AddYears(2)));
         }
 
         request.CertificateExtensions.Add(AuthorityKeyIdentifierOf(issuer));
         var signed = request.Create(
             issuer, ClampNotBefore(from, issuer), ClampNotAfter(notAfter, issuer), NewSerial());
-        return signed.CopyWithPrivateKey(rsa);
+        return ServableBySchannel(signed.CopyWithPrivateKey(rsa));
+    }
+
+    /// <summary>
+    /// SChannel refuses to serve TLS with an in memory private key, so on Windows the certificate is
+    /// round tripped through PKCS12 to land the key in a key container. The container is removed when
+    /// the certificate is disposed. Other platforms serve the in memory key as is.
+    /// </summary>
+    private static X509Certificate2 ServableBySchannel(X509Certificate2 cert)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return cert;
+        }
+
+        using (cert)
+        {
+            var pfx = cert.Export(X509ContentType.Pkcs12);
+#if NET9_0_OR_GREATER
+            return X509CertificateLoader.LoadPkcs12(pfx, password: null, X509KeyStorageFlags.Exportable);
+#else
+            return new X509Certificate2(pfx, (string?)null, X509KeyStorageFlags.Exportable);
+#endif
+        }
     }
 
     /// <summary>

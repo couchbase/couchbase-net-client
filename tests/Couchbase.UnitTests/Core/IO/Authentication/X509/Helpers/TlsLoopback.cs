@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -118,6 +119,7 @@ internal static class TlsLoopback
             using var sslClient = new SslStream(client.GetStream(), leaveInnerStreamOpen: false, Recording);
 
             var accepted = false;
+            Exception? clientException = null;
             try
             {
                 await sslClient.AuthenticateAsClientAsync(
@@ -128,11 +130,24 @@ internal static class TlsLoopback
             {
                 output?.WriteLine($"Handshake rejected: {ex.Message}");
             }
+            catch (IOException ex)
+            {
+                // The server tore the connection down. Its own exception, gathered below, says why.
+                clientException = ex;
+            }
 
             if (!invoked)
             {
+                await WaitForServer(serverTask).ConfigureAwait(false);
                 throw new InvalidOperationException(
-                    "TLS handshake failed before the validation callback was invoked.", serverException);
+                    "TLS handshake failed before the validation callback was invoked. "
+                    + $"Server: {serverException?.Message ?? "no exception"}. Client: {clientException?.Message ?? "no exception"}.",
+                    serverException ?? clientException);
+            }
+
+            if (clientException is not null)
+            {
+                throw clientException;
             }
 
             return new HandshakeResult(accepted, invoked, verdict, validatorException);
@@ -140,14 +155,7 @@ internal static class TlsLoopback
         finally
         {
             listener.Stop();
-            try
-            {
-                await serverTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Already captured in serverException.
-            }
+            await WaitForServer(serverTask).ConfigureAwait(false);
 
             foreach (var cert in wireCollection)
             {
@@ -158,6 +166,17 @@ internal static class TlsLoopback
         }
     }
 
+    private static async Task WaitForServer(Task serverTask)
+    {
+        try
+        {
+            await serverTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Already captured in serverException.
+        }
+    }
 }
 
 #endif
