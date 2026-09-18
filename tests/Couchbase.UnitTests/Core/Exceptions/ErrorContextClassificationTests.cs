@@ -418,11 +418,6 @@ namespace Couchbase.UnitTests.Core.Exceptions
             contextType.GetMethod(nameof(ToString), Type.EmptyTypes)!.DeclaringType == contextType;
 
         /// <summary>
-        /// The named fields that this construction path actually filled in. Fields a path leaves
-        /// empty say nothing either way, and are covered by
-        /// <see cref="EveryStringFieldIsClassified"/> instead.
-        /// </summary>
-        /// <summary>
         /// The public instance string properties of a context type - what has to be classified.
         /// </summary>
         private static IEnumerable<string> StringFields(Type contextType) =>
@@ -430,6 +425,11 @@ namespace Couchbase.UnitTests.Core.Exceptions
                 .Where(p => p.PropertyType == typeof(string))
                 .Select(p => p.Name);
 
+        /// <summary>
+        /// The named fields that this construction path actually filled in. Fields a path leaves
+        /// empty say nothing either way, and are covered by
+        /// <see cref="EveryStringFieldIsClassified"/> instead.
+        /// </summary>
         private static IEnumerable<(string Name, string Value)> Populated(IErrorContext ctx,
             Type contextType, IEnumerable<string> names) =>
             names

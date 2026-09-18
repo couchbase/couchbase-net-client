@@ -1115,7 +1115,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(exception))
                 {
-                    LogCircuitBreakerMarkFailure(op.OpCode,_redactor.SystemData(ConnectionPool.EndPoint), _redactor.SystemData(op.Key), op.Opaque, EffectiveConfigVersion(op));
+                    LogCircuitBreakerMarkFailure(op.OpCode,_redactor.SystemData(ConnectionPool.EndPoint), _redactor.OperationKey(op), op.Opaque, EffectiveConfigVersion(op));
 
                     _circuitBreaker.MarkFailure();
                 }

@@ -173,7 +173,7 @@ namespace Couchbase.Core.Retry
                         var isExternal = tokenPair.IsExternalCancellation ? "(External)" : string.Empty;
                         var isInternal = tokenPair.IsInternalCancellation ? "(Internal)" : string.Empty;
                         var msg =
-                            $"Operation {operation.Opaque}/{_redactor.UserData(operation.Key)} cancelled {isExternal}{isInternal} after {operation.Elapsed.TotalMilliseconds}ms. ({String.Join(",", operation.RetryReasons)})";
+                            $"Operation {operation.Opaque}/{_redactor.OperationKey(operation)} cancelled {isExternal}{isInternal} after {operation.Elapsed.TotalMilliseconds}ms. ({String.Join(",", operation.RetryReasons)})";
                         throw new OperationCanceledException(msg, lastRetriedException, tokenPair.CanceledToken);
                     }
 
@@ -336,12 +336,12 @@ namespace Couchbase.Core.Retry
             {
                 if (forceRetry)
                 {
-                    LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason,
+                    LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.OperationKey(operation), reason,
                         operation.ConfigVersion);
                 }
                 else
                 {
-                    LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
+                    LogRetryDueToDuration(operation.Opaque, _redactor.OperationKey(operation), reason);
                 }
 
                 // Reset first so operation is not marked as sent if canceled during the delay
