@@ -23,15 +23,12 @@ using TimeoutException = Couchbase.Core.Exceptions.TimeoutException;
 namespace Couchbase.UnitTests.Transactions;
 
 /// <summary>
-/// NCBC-4233. <see cref="PerCollectionCleaner"/>'s timer callback used to be <c>async void</c>, so anything
-/// escaping it was re-thrown on a ThreadPool thread with no SynchronizationContext to catch it - which
-/// terminates the process. The body's catch-all did not cover this: an exception thrown from inside a
-/// <c>catch</c> block is not caught by a sibling <c>catch</c>, and two of the handlers go on to do real work
-/// (invoke a caller-supplied callback, await DisposeAsync).
+/// NCBC-4233. Drives <see cref="PerCollectionCleaner"/>'s timer callback through a
+/// <see cref="FakeTimeProvider"/> and asserts the cycle completes rather than faults - the callback is
+/// void-returning, so a fault there reaches a ThreadPool thread and takes the process down.
 ///
-/// These tests drive the callback through a <see cref="FakeTimeProvider"/> and assert the resulting cycle
-/// completes rather than faults. Nothing here waits on the wall clock: a fake timer given a zero due time
-/// fires synchronously inside <see cref="PerCollectionCleaner.Start"/>.
+/// Nothing here waits on the wall clock: a fake timer given a zero due time fires synchronously inside
+/// <see cref="PerCollectionCleaner.Start"/>.
 /// </summary>
 public class PerCollectionCleanerTimerCallbackTests
 {
@@ -39,15 +36,14 @@ public class PerCollectionCleanerTimerCallbackTests
     private static readonly Keyspace TestKeyspace = new("bkt", "scp", "col");
 
     /// <summary>
-    /// A repository whose very first call - the client-record read that opens every cleanup cycle - throws.
-    /// Everything downstream (ATR lookup, the Cleaner) is therefore unreachable.
+    /// A repository whose first call - the client-record read that opens every cycle - throws, so nothing
+    /// downstream is reachable.
     /// </summary>
     private sealed class ThrowingRepository(Exception toThrow)
         : CleanerRepositoryBase(TestKeyspace, Mock.Of<ICluster>(), Mock.Of<ICouchbaseCollection>())
     {
-        /// <summary>How many cleanup cycles actually got underway. The cycles here run to completion
-        /// synchronously, and a synchronously-completing async Task method hands back the cached
-        /// <see cref="Task.CompletedTask"/> instance - so the Task itself cannot tell us the timer fired.</summary>
+        /// <summary>How many cycles got underway. A synchronously-completing async method hands back the
+        /// cached <see cref="Task.CompletedTask"/>, so the Task itself cannot tell us the timer fired.</summary>
         public int CyclesStarted;
 
         public override Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord(
@@ -61,13 +57,11 @@ public class PerCollectionCleanerTimerCallbackTests
             throw new InvalidOperationException("unreachable");
 
         /// <summary>How many times the client record was removed - the last step of disposal, and the one
-        /// that matters most: a cleaner that fails to remove it leaves its share of the ATRs assigned to a
-        /// client that is never coming back.</summary>
+        /// that matters: leaving it behind keeps this client's ATRs assigned to a client that is gone.</summary>
         public int RemoveClientCalls;
 
-        /// <summary>When set, the client-record removal fails. On its own that is invisible - RemoveClient
-        /// catches, classifies and retries - so it only becomes a fault the disposal has to survive when the
-        /// sink it logs the failure through is also down.</summary>
+        /// <summary>When set, the client-record removal fails. RemoveClient catches and retries, so this only
+        /// becomes a fault disposal must survive when the sink it logs through is also down.</summary>
         public Exception? RemoveClientThrows;
 
         // Reached via DisposeAsync during shutdown; succeeding keeps RemoveClient's retry loop to one pass.
@@ -118,25 +112,22 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// A logger that throws once armed. This is how a test reaches the outermost guard: the handlers inside
-    /// the cycle all log, so an armed sink makes a <c>catch</c> block itself throw - which is precisely the
-    /// shape that used to escape the <c>async void</c> and take the process down. A sink that throws is not a
-    /// contrivance either; it is what a disposed or misconfigured logging provider does during shutdown.
+    /// A logger that throws once armed - how a test reaches the outermost guard, since every handler in the
+    /// cycle logs, so an armed sink makes a <c>catch</c> block itself throw. Not a contrivance: it is what a
+    /// disposed logging provider does during shutdown.
     /// </summary>
     private sealed class ThrowingLoggerFactory : ILoggerFactory
     {
         public bool Armed;
         public int ThrowCount;
 
-        /// <summary>Every message logged, with its level, recorded before the sink decides whether to throw -
-        /// so a test can assert what level a particular message came out at whether or not the sink was armed
-        /// for it. Matching on the message matters: several unrelated Warnings cross this path.</summary>
+        /// <summary>Every message logged, with its level, recorded before the sink decides whether to throw.
+        /// Match on the message as well as the level - several unrelated Warnings cross this path.</summary>
         public readonly List<(LogLevel Level, string Message)> Logged = new();
 
         /// <summary>
         /// When set, only this level throws. Needed to reach a specific handler: ProcessClient opens with a
-        /// LogTrace, so a sink that throws on everything fails the cycle there and every failure lands in
-        /// the generic handler, never the one under test.
+        /// LogTrace, so a sink that throws on everything fails the cycle before it gets there.
         /// </summary>
         public LogLevel? OnlyLevel;
 
@@ -168,8 +159,8 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// Holds a disposal open at the point it goes to remove the client record, so a test can observe a
-    /// second caller arriving while the first is still in flight - the interleaving that used to deadlock.
+    /// Holds a disposal open where it removes the client record, so a test can observe a second caller
+    /// arriving while the first is still in flight.
     /// </summary>
     private sealed class GatedRemoveClientHooks : DefaultCleanupTestHooks
     {
@@ -186,8 +177,8 @@ public class PerCollectionCleanerTimerCallbackTests
         public void Release() => _gate.TrySetResult(true);
     }
 
-    /// <summary>Counts the first call a cleanup cycle makes, so a test can prove the cycle saw the hooks it
-    /// was given rather than the default ones.</summary>
+    /// <summary>Counts the first call a cycle makes, so a test can prove it saw the hooks it was given
+    /// rather than the default ones.</summary>
     private sealed class CountingHooks : DefaultCleanupTestHooks
     {
         public int BeforeGetRecordCalls;
@@ -203,8 +194,8 @@ public class PerCollectionCleanerTimerCallbackTests
         new(new KeyValueErrorContext { RetryReasons = new List<RetryReason> { RetryReason.CollectionNotFound } });
 
     /// <summary>
-    /// The timer is built from the injected TimeProvider, so a fake clock drives it. Guards against the
-    /// TimeProvider swap silently producing a timer that never fires.
+    /// The timer is built from the injected TimeProvider, so a fake clock drives it. Guards against a timer
+    /// that silently never fires.
     /// </summary>
     [Fact]
     public async Task TimerFiresFromTheInjectedTimeProvider()
@@ -333,11 +324,9 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// The collection-not-found handler records the reason and then logs. If that log throws, the
-    /// exception propagates straight out to the outer guard, so anything after the handler is skipped -
-    /// which used to mean the cleaner never disposed and went on retrying a collection the server had
-    /// disowned, once per window, forever. The teardown now runs from a finally, so the reason being
-    /// recorded is enough.
+    /// The collection-not-found handler records the reason and then logs. A throw from that log skips
+    /// everything after the handler, so the teardown runs from a finally instead - otherwise the cleaner
+    /// never disposes and retries a disowned collection once per window, forever.
     /// </summary>
     [Fact]
     public async Task ThrowingLogSink_StillDisposesOnCollectionNotFound()
@@ -367,15 +356,12 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// Disposal is idempotent under concurrency. The guard used to be an unsynchronised check-then-act, so
-    /// two callers could both enter the body; since it takes the callback mutex and never releases it, the
-    /// loser blocked on that semaphore forever. That hang propagated out through
-    /// LostTransactionManager's Task.WhenAll to Transactions.DisposeAsync, so cluster teardown never
-    /// returned. Both callers exist in production and nothing orders them: the manager disposes every
-    /// cleaner at shutdown while a cleanup cycle can dispose itself.
+    /// Disposal is idempotent under concurrency. Two callers exist in production and nothing orders them -
+    /// the manager at shutdown, and a cycle disposing itself - and the body takes the callback mutex without
+    /// releasing it, so a second concurrent run would block on it forever.
     ///
-    /// No wall-clock waits: the first disposal is held open at BeforeRemoveClient, so the second caller's
-    /// arrival is observed directly rather than timed.
+    /// The first disposal is held open at BeforeRemoveClient, so the second caller's arrival is observed
+    /// rather than timed.
     /// </summary>
     [Fact]
     public async Task ConcurrentDisposal_BothCallersComplete()
@@ -403,9 +389,8 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// Started through the helper rather than by hand, which is the shape
-    /// <see cref="LostTransactionManager"/> uses: construct, wire up, then Start(). The cleanup cycle still
-    /// runs end to end and still tears the cleaner down on a disowned collection.
+    /// Started the way <see cref="LostTransactionManager"/> does it - construct, wire up, then Start() - and
+    /// the cycle still tears the cleaner down on a disowned collection.
     /// </summary>
     [Fact]
     public async Task StartedAfterConstruction_StillDisposesOnCollectionNotFound()
@@ -424,19 +409,13 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// A dead log sink must not be able to cut the teardown short. DisposeOnceAsync logs a breadcrumb
-    /// between every one of its steps, so before those went through TryLog the very first of them throwing
-    /// skipped Stop(), the timer disposal and - the one that costs something - the client-record removal,
-    /// leaving this client's share of the ATRs assigned to a client that is never coming back.
+    /// A dead log sink must not cut the teardown short. DisposeOnceAsync logs between every step, so unless
+    /// those logs cannot throw, the first one skips the rest - including the client-record removal. An outer
+    /// catch alone does not fix that: it makes the Task complete rather than fault, but the skipped steps
+    /// stay skipped.
     ///
-    /// Note that an outer catch alone does not fix this. It makes the disposal Task complete rather than
-    /// fault, which is what the cached <c>Lazy&lt;Task&gt;</c> needs, but the steps after the throw are
-    /// still skipped - it just trades a loud half-disposed cleaner for a quiet one. Only logging that
-    /// cannot throw keeps the sequence running, which is what this test pins.
-    ///
-    /// Arms every Debug-level log, the level all of those breadcrumbs use. That also reaches the one
-    /// unguarded Debug log left on this path - the one RemoveClient emits from inside its own catch, which
-    /// escapes its retry loop - so this exercises the outer guard as well, and fails if either is reverted.
+    /// Arms every Debug log, the level the breadcrumbs use. That also reaches the one unguarded Debug left
+    /// on this path - RemoveClient's, from inside its own catch - so this fails if either fix is reverted.
     /// </summary>
     [Fact]
     public async Task ThrowingLogSink_DuringDisposal_StillRemovesTheClientRecord()
@@ -456,19 +435,13 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// A disposal that fails is not re-raised at every later caller.
-    ///
-    /// DisposeAsync hands out one cached <c>Lazy&lt;Task&gt;</c>, and awaiting a faulted Task rethrows every
-    /// time - so a single failed teardown would be re-raised forever, at callers that had nothing to do with
-    /// it. (Lazy's own exception caching is not the mechanism: the factory is an async method, which never
-    /// throws synchronously, so Lazy always gets a Task back and caches that. Same observable behaviour.)
-    /// DisposeOnceAsync is therefore total - it completes or it logs, and nothing else.
+    /// A disposal that fails is not re-raised at every later caller. DisposeAsync hands out one cached
+    /// Task, and awaiting a faulted Task rethrows every time, so DisposeOnceAsync completes or logs and
+    /// nothing else.
     ///
     /// Faults a step rather than a breadcrumb, since TryLog covers the breadcrumbs: the client-record
-    /// removal fails, and RemoveClient's own handler logs that failure through a sink that is also down. An
-    /// exception thrown from inside a <c>catch</c> is not caught by a sibling <c>catch</c>, so it escapes
-    /// RemoveClient's retry loop entirely and lands in the outer guard - the same shape as the async-void
-    /// crash this whole change is about. It also means no retry delay, so nothing here waits on the clock.
+    /// removal fails and RemoveClient logs that failure through a sink that is also down. A throw from
+    /// inside a <c>catch</c> escapes its retry loop, so nothing here waits on the clock.
     /// </summary>
     [Fact]
     public async Task FailedDisposal_IsNotRethrownToLaterCallers()
@@ -495,14 +468,11 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// A disposal that did not complete is reported at Warning, not Debug.
+    /// A disposal that did not complete is reported at Warning, not lost among the Debug breadcrumbs - a
+    /// half-disposed cleaner leaves its client record behind.
     ///
-    /// Before DisposeOnceAsync was made total the same failure propagated out to
-    /// LostTransactionManager.RemoveClientEntries, which logs it at Warning. Swallowing it here must not
-    /// quietly demote a half-disposed cleaner to a breadcrumb in an already noisy Debug stream.
-    ///
-    /// Arms the sink at Debug so that RemoveClient's in-catch Debug log is what faults the teardown, which
-    /// leaves Warning working and therefore observable.
+    /// Arms the sink at Debug so RemoveClient's in-catch Debug log is what faults the teardown, leaving
+    /// Warning working and therefore observable.
     /// </summary>
     [Fact]
     public async Task FailedDisposal_IsReportedAtWarning()
@@ -522,10 +492,8 @@ public class PerCollectionCleanerTimerCallbackTests
     }
 
     /// <summary>
-    /// The same thing from the other direction, and the interleaving that actually happens in production: a
-    /// cleanup cycle disposes itself on a disowned collection while the failure is in flight, and
-    /// LostTransactionManager then disposes it again at shutdown. The second caller attaches to the first
-    /// caller's cached Task, so it inherits whatever that one did.
+    /// The production interleaving: a cycle disposes itself on a disowned collection, then the manager
+    /// disposes it again at shutdown and attaches to the first caller's cached Task.
     /// </summary>
     [Fact]
     public async Task FailedDisposal_DoesNotFaultTheSelfDisposingCleanupCycle()
@@ -554,10 +522,9 @@ public class PerCollectionCleanerTimerCallbackTests
 
     /// <summary>
     /// The constructor must not start the timer. <see cref="LostTransactionManager"/> assigns TestHooks
-    /// through an object initializer - so after the constructor has returned - and the first thing a cleanup
-    /// cycle does is call <c>TestHooks.BeforeGetRecord</c>. A cleaner that armed its own timer would run that
-    /// first cycle against the default hooks: guaranteed under a fake clock, which fires the callback
-    /// synchronously inside the call that arms it, and a ThreadPool race against the real one.
+    /// through an object initializer, after the constructor returns, and <c>TestHooks.BeforeGetRecord</c> is
+    /// the first call a cycle makes - so a self-starting cleaner runs its first pass against the default
+    /// hooks.
     /// </summary>
     [Fact]
     public async Task ConstructorDoesNotStartTheTimer_SoHooksWiredAfterwardsAreSeen()
