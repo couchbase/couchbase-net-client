@@ -30,7 +30,9 @@ namespace Couchbase.Core.IO.Authentication
     /// which is the normal case for a private or Capella CA, so the platform verdict alone lets a
     /// certificate issued for another host through. The second check needs X509Certificate2.MatchesHostname,
     /// which is .NET 7 and later, so the netstandard builds of this SDK still rely on the platform verdict
-    /// alone and remain exposed on Windows.
+    /// alone and remain exposed on Windows. Those users should add the cluster CA to the Windows trust store.
+    /// The chain then builds cleanly, no untrusted root error masks the name check, and Windows reports the
+    /// mismatch as it should.
     /// </para>
     /// </remarks>
     internal sealed class ServerCertificateValidator
