@@ -135,12 +135,18 @@ namespace Couchbase.UnitTests.Core.Exceptions
             return await Capture(() => client.ExecuteAsync<dynamic, dynamic>(query));
         }
 
-        private static async Task<IErrorContext> Management()
+        private static Task<IErrorContext> Management() => ManagementWithBody("boom");
+
+        /// <summary>
+        /// The management path, with the response body under the test's control - it lands in
+        /// <c>ManagementErrorContext.Message</c> raw, which is what makes its escaping matter.
+        /// </summary>
+        public static async Task<IErrorContext> ManagementWithBody(string body)
         {
             using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.InternalServerError,
-                Content = new StringContent("boom")
+                Content = new StringContent(body)
             });
 
             var baseUri = new Uri("http://localhost:8091/");
@@ -365,12 +371,10 @@ namespace Couchbase.UnitTests.Core.Exceptions
         /// parser while silently defeating the redaction pass - the failure that looks like
         /// success.
         /// <para>
-        /// Every context binds its own static <c>JsonTypeInfo&lt;T&gt;</c> from redaction-safe
-        /// options, in a field initializer that reaches into a serializer context's
-        /// <c>Default</c>. Both halves of that are per type, so one context passing says nothing
-        /// about the next: one that misses the binding escapes its tags, and one that initializes
-        /// in the wrong order throws <see cref="TypeInitializationException"/> from an error path.
-        /// Rendering every context that has a <c>ToString()</c> catches both.
+        /// Each context routes its own <c>ToString()</c> through
+        /// <see cref="RedactionSafeJson.RestoreTags"/>, so one context passing says nothing about
+        /// the next: a context that serializes without it keeps its tags escaped. Rendering every
+        /// context that has a <c>ToString()</c> is what catches the one that was forgotten.
         /// </para>
         /// </summary>
         [Theory]
@@ -399,8 +403,8 @@ namespace Couchbase.UnitTests.Core.Exceptions
             {
                 Assert.True(json.Contains(tag),
                     $"{contextType.Name}.ToString() holds a {tag} field but the rendered JSON has no " +
-                    $"literal '{tag}'. Bind its JsonTypeInfo from RedactionSafeOptions - the default " +
-                    $"encoder escapes the tags. Rendered: {json}");
+                    $"literal '{tag}'. Route its serialization through RedactionSafeJson.RestoreTags " +
+                    $"- the default encoder escapes the tags. Rendered: {json}");
             }
 
             foreach (var escaped in new[] { @"\u003C", @"\u003E" })
@@ -409,6 +413,31 @@ namespace Couchbase.UnitTests.Core.Exceptions
                     $"{contextType.Name}.ToString() emitted '{escaped}' rather than a literal angle " +
                     $"bracket, so cblogredaction cannot match its tags. Rendered: {json}");
             }
+        }
+
+        /// <summary>
+        /// Restoring the tags must not unescape anything else. The obvious implementation - the
+        /// relaxed JSON encoder - unescapes every value in the document, and the contexts carry
+        /// content the SDK did not author and does not redact at any level:
+        /// <c>ManagementErrorContext.Message</c> is the management endpoint's response body, which
+        /// ns_server can return as HTML. An application that renders a context into a diagnostics
+        /// page would gain an XSS sink from it, whether or not redaction was ever enabled.
+        /// <para>
+        /// This drives the one context whose message is a raw server body, and asserts the two
+        /// halves together: the tag comes back literal, and markup in the same document does not.
+        /// A relaxed encoder passes the first half and fails the second.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task RestoringTagsLeavesServerContentEscaped()
+        {
+            var ctx = await ErrorContextDrivers.ManagementWithBody("</script><script>alert(1)</script>");
+
+            var json = ctx.ToString();
+
+            Assert.Contains("<sd>", json);
+            Assert.DoesNotContain("<script>", json);
+            Assert.Contains(@"\u003Cscript\u003E", json);
         }
 
         /// <summary>

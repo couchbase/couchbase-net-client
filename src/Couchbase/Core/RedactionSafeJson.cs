@@ -1,13 +1,13 @@
+using System;
+using System.Linq;
 using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 #nullable enable
 
 namespace Couchbase.Core
 {
     /// <summary>
-    /// Serialization settings for error contexts, whose field values may carry log-redaction tags.
+    /// Post-processing for error-context JSON, whose field values may carry log-redaction tags.
     /// </summary>
     /// <remarks>
     /// System.Text.Json escapes '&lt;' and '&gt;' by default, to keep JSON safe to embed in HTML.
@@ -15,47 +15,59 @@ namespace Couchbase.Core
     /// tags textually - cannot match them, and a redaction pass that appears to have run leaves the
     /// value in place. The tags are then semantically correct and operationally useless.
     /// <para>
-    /// <see cref="Create"/> therefore uses the relaxed encoder, which escapes only what JSON
-    /// requires. The source-generated resolver is carried over from the context it is created from,
-    /// so serialization stays trim- and AOT-safe. Note this also stops non-ASCII being escaped,
-    /// which was happening regardless of redaction.
+    /// The obvious fix is the relaxed encoder, and it is the wrong one. It unescapes every value in
+    /// the document, not just the tags the SDK added: <see cref="Exceptions.ManagementErrorContext"/>
+    /// carries the management endpoint's response body, which ns_server can return as HTML, and the
+    /// query and search contexts carry server-authored error text. An application that embeds a
+    /// rendered context in a diagnostics page would gain an XSS sink, and it would gain it whether
+    /// or not redaction is enabled, since none of that content is redacted at any level.
     /// </para>
     /// <para>
-    /// Only error contexts should use these settings. Anything that might be rendered into a page
-    /// needs the default HTML-safe encoder, and being an error context is not an exemption from
-    /// that: <see cref="Exceptions.ManagementErrorContext"/> carries the management endpoint's
-    /// response body, which ns_server can return as HTML. The trade is made knowingly - tags that
-    /// cblogredaction cannot match are worth less than an escape the caller can apply themselves -
-    /// but a caller rendering a context into a page has to encode it at that point.
+    /// <see cref="RestoreTags"/> therefore serializes with the default HTML-safe encoder and then
+    /// restores only the six tokens the redactor itself emits. Everything else - server text, HTML,
+    /// non-ASCII - keeps the escaping it has always had, so this changes nothing for a caller who
+    /// has not enabled redaction.
     /// </para>
     /// </remarks>
     internal static class RedactionSafeJson
     {
-        /// <summary>
-        /// The settings of <paramref name="source"/>, but with the relaxed encoder.
-        /// </summary>
-        /// <remarks>
-        /// Callers hold the result in a static field, created on demand rather than in a field
-        /// initializer: a serializer context's <c>Default</c> is not yet constructed while that
-        /// context is running its own static initialization.
-        /// </remarks>
-        public static JsonSerializerOptions Create(JsonSerializerOptions source) =>
-            new(source)
-            {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            };
+        // The tags the redactor emits, each paired with the form JavaScriptEncoder.Default
+        // escapes it to. Derived from the encoder rather than hard-coded, so the pairing cannot
+        // drift if System.Text.Json ever changes how it escapes an angle bracket.
+        private static readonly (string Escaped, string Literal)[] Tags =
+            new[] { "<ud>", "</ud>", "<md>", "</md>", "<sd>", "</sd>" }
+                .Select(tag => (JavaScriptEncoder.Default.Encode(tag), tag))
+                .ToArray();
 
         /// <summary>
-        /// Binds <typeparamref name="T"/>'s type info from redaction-safe options, so that a
-        /// context's <c>ToString()</c> emits literal tags rather than escape sequences.
+        /// The escaped form of a bare '&lt;'. Its absence means the document holds no tag, which
+        /// is every context when redaction is off - so the default configuration pays one scan.
+        /// </summary>
+        private static readonly string EscapedLessThan = JavaScriptEncoder.Default.Encode("<");
+
+        /// <summary>
+        /// Rewrites the escaped redaction tags in serialized error-context JSON back to literal
+        /// angle brackets, leaving every other escape in place.
         /// </summary>
         /// <remarks>
-        /// Resolving type info is a dictionary lookup and <c>ToString()</c> can be called on any
-        /// error path, so callers should cache the result in a static field rather than calling
-        /// this per serialization.
+        /// A value that itself contained the text "&lt;ud&gt;" would be unescaped too. That is
+        /// exactly what the relaxed encoder would have emitted, so this is no worse - and a server
+        /// echoing a redaction tag back at us has already lost the distinction.
         /// </remarks>
-        public static JsonTypeInfo<T> TypeInfo<T>(JsonSerializerOptions redactionSafeOptions) =>
-            (JsonTypeInfo<T>)redactionSafeOptions.GetTypeInfo(typeof(T));
+        public static string RestoreTags(string json)
+        {
+            if (json.IndexOf(EscapedLessThan, StringComparison.Ordinal) < 0)
+            {
+                return json;
+            }
+
+            foreach (var (escaped, literal) in Tags)
+            {
+                json = json.Replace(escaped, literal);
+            }
+
+            return json;
+        }
     }
 }
 
