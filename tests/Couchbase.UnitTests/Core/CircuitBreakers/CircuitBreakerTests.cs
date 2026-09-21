@@ -152,7 +152,7 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
         }
 
         [Fact]
-        public void When_Window_Is_Expired_State_Is_Reset()
+        public void When_Window_Is_Expired_Counts_Are_Cleared()
         {
             var timeProvider = new FakeTimeProvider();
 
@@ -161,17 +161,122 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
                 RollingWindow = TimeSpan.FromSeconds(10)
             };
             var circuitBreaker = new CircuitBreaker(timeProvider, config);
-            for (var i = 0; i < 22; i++)
+
+            // One short of the volume threshold, so nothing has tripped.
+            for (var i = 0; i < config.VolumeThreshold - 1; i++)
             {
                 circuitBreaker.MarkFailure();
-                if (i == 20)
-                {
-                    timeProvider.Advance(config.RollingWindow + TimeSpan.FromMilliseconds(1));
-                }
             }
-            circuitBreaker.MarkSuccess();
-            Assert.True(circuitBreaker.AllowsRequest(), userMessage: "Expected to allow requests, but not allowing requests");
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+
+            timeProvider.Advance(config.RollingWindow + TimeSpan.FromMilliseconds(1));
+
+            // The window rolled, so the earlier failures are forgotten and the same number of
+            // failures again still cannot reach the threshold.
+            for (var i = 0; i < config.VolumeThreshold - 1; i++)
+            {
+                circuitBreaker.MarkFailure();
+                Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+                Assert.True(circuitBreaker.AllowsRequest());
+            }
+        }
+
+        [Fact]
+        public void When_Window_Is_Expired_An_Open_Circuit_Stays_Open()
+        {
+            var timeProvider = new FakeTimeProvider();
+
+            var config = new CircuitBreakerConfiguration
+            {
+                RollingWindow = TimeSpan.FromSeconds(10)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            for (var i = 0; i < config.VolumeThreshold; i++)
+            {
+                circuitBreaker.MarkFailure();
+            }
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            timeProvider.Advance(config.RollingWindow + TimeSpan.FromMilliseconds(1));
+
+            // Rolling the window clears the counts, it does not decide the node is healthy.
+            // CleanRollingWindow used to close the circuit outright, so a still-dead node got a
+            // fresh flood of traffic once every rolling window, over and over.
+            circuitBreaker.MarkFailure();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+        }
+
+        [Fact]
+        public void When_Open_A_Late_Failure_Does_Not_Reopen_The_Gate()
+        {
+            var timeProvider = new FakeTimeProvider();
+
+            var config = new CircuitBreakerConfiguration
+            {
+                VolumeThreshold = 1,
+                ErrorThresholdPercentage = 100,
+                SleepWindow = TimeSpan.FromMilliseconds(50)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            circuitBreaker.MarkFailure();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            // Operations already past the gate when the circuit tripped now drain, some fine,
+            // some not. The failures among them must not disturb the open circuit: MarkFailure
+            // used to run the half-open transition backwards and drag Open to HalfOpen, which is
+            // the state ClusterNode reads as "send a canary" - inside the sleep window.
+            circuitBreaker.MarkSuccess();
+            circuitBreaker.MarkSuccess();
+            circuitBreaker.MarkSuccess();
+            circuitBreaker.MarkFailure();
+
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+            Assert.False(circuitBreaker.AllowsRequest());
+        }
+
+        [Fact]
+        public void When_Canary_Fails_Circuit_Reopens_Whatever_The_Error_Rate()
+        {
+            var timeProvider = new FakeTimeProvider();
+
+            var config = new CircuitBreakerConfiguration
+            {
+                VolumeThreshold = 1,
+                ErrorThresholdPercentage = 100,
+                SleepWindow = TimeSpan.FromMilliseconds(50)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            circuitBreaker.MarkFailure();
+            circuitBreaker.MarkSuccess();
+            circuitBreaker.MarkSuccess();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            circuitBreaker.Track();
+            Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
+
+            // A failed canary reopens the circuit on its own authority. It does not get filtered
+            // through the error rate, which those successes have pulled below the threshold.
+            circuitBreaker.MarkFailure();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            // ...and the sleep window runs again from the canary's failure, not from the original trip.
+            Assert.False(circuitBreaker.AllowsRequest());
+            timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+            Assert.True(circuitBreaker.AllowsRequest());
+        }
+
+        [Fact]
+        public void When_Disabled_Requests_Are_Allowed()
+        {
+            var circuitBreaker = new CircuitBreaker(new FakeTimeProvider(),
+                new CircuitBreakerConfiguration { Enabled = false });
+
+            Assert.Equal(CircuitBreakerState.Disabled, circuitBreaker.State);
+            Assert.True(circuitBreaker.AllowsRequest());
         }
 
         [Fact]
@@ -363,6 +468,152 @@ namespace Couchbase.UnitTests.Core.CircuitBreakers
 
             Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
             Assert.True(circuitBreaker.AllowsRequest());
+        }
+
+        [Fact]
+        public void A_Late_Failure_Does_Not_Postpone_The_Next_Probe()
+        {
+            var timeProvider = new FakeTimeProvider();
+
+            var config = new CircuitBreakerConfiguration
+            {
+                VolumeThreshold = 1,
+                SleepWindow = TimeSpan.FromMilliseconds(50)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            circuitBreaker.MarkFailure();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            // An operation already in flight when the circuit tripped now fails. The error rate is
+            // still over the threshold, so CheckIfTripped runs - but the circuit is open already
+            // and its sleep window started when it tripped. Re-affirming it used to restart that
+            // window from here, so failures draining from a dead node, and the canaries a half-open
+            // circuit spawns, pushed the next probe further out each time.
+            timeProvider.Advance(TimeSpan.FromMilliseconds(40));
+            circuitBreaker.MarkFailure();
+
+            timeProvider.Advance(TimeSpan.FromMilliseconds(11));
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+            Assert.True(circuitBreaker.AllowsRequest(),
+                userMessage: "The sleep window should have elapsed 51ms after the circuit tripped");
+        }
+
+        [Fact]
+        public void Sleep_Window_Must_Be_Exceeded_Not_Merely_Reached()
+        {
+            var timeProvider = new FakeTimeProvider();
+
+            var config = new CircuitBreakerConfiguration
+            {
+                VolumeThreshold = 1,
+                SleepWindow = TimeSpan.FromMilliseconds(50)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            circuitBreaker.MarkFailure();
+            Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+            timeProvider.Advance(config.SleepWindow);
+            Assert.False(circuitBreaker.AllowsRequest());
+
+            timeProvider.Advance(TimeSpan.FromTicks(1));
+            Assert.True(circuitBreaker.AllowsRequest());
+        }
+
+        public enum BreakerOperation
+        {
+            MarkSuccess,
+            MarkFailure,
+            Track,
+            Reset
+        }
+
+        // The whole transition table. The suite otherwise tests paths, which is how an inverted
+        // transition survived: MarkFailure ran Open -> HalfOpen instead of HalfOpen -> Open, and
+        // every test still passed because CheckIfTripped recomputed the error rate and arrived at
+        // the same end state by another route. Asserting each cell separates the transition from
+        // the arithmetic that used to mask it.
+        [Theory]
+        [InlineData(CircuitBreakerState.Closed,   BreakerOperation.MarkSuccess, CircuitBreakerState.Closed)]
+        [InlineData(CircuitBreakerState.Closed,   BreakerOperation.MarkFailure, CircuitBreakerState.Closed)]
+        [InlineData(CircuitBreakerState.Closed,   BreakerOperation.Track,       CircuitBreakerState.Closed)]
+        [InlineData(CircuitBreakerState.Closed,   BreakerOperation.Reset,       CircuitBreakerState.Closed)]
+
+        [InlineData(CircuitBreakerState.Open,     BreakerOperation.MarkSuccess, CircuitBreakerState.Open)]
+        [InlineData(CircuitBreakerState.Open,     BreakerOperation.MarkFailure, CircuitBreakerState.Open)]
+        [InlineData(CircuitBreakerState.Open,     BreakerOperation.Track,       CircuitBreakerState.HalfOpen)]
+        [InlineData(CircuitBreakerState.Open,     BreakerOperation.Reset,       CircuitBreakerState.Closed)]
+
+        [InlineData(CircuitBreakerState.HalfOpen, BreakerOperation.MarkSuccess, CircuitBreakerState.Closed)]
+        [InlineData(CircuitBreakerState.HalfOpen, BreakerOperation.MarkFailure, CircuitBreakerState.Open)]
+        [InlineData(CircuitBreakerState.HalfOpen, BreakerOperation.Track,       CircuitBreakerState.HalfOpen)]
+        [InlineData(CircuitBreakerState.HalfOpen, BreakerOperation.Reset,       CircuitBreakerState.Closed)]
+
+        // A disabled breaker is inert. ClusterNode checks Enabled and never calls any of these,
+        // but without the guards MarkFailure walks it to Open and it starts refusing traffic.
+        [InlineData(CircuitBreakerState.Disabled, BreakerOperation.MarkSuccess, CircuitBreakerState.Disabled)]
+        [InlineData(CircuitBreakerState.Disabled, BreakerOperation.MarkFailure, CircuitBreakerState.Disabled)]
+        [InlineData(CircuitBreakerState.Disabled, BreakerOperation.Track,       CircuitBreakerState.Disabled)]
+        [InlineData(CircuitBreakerState.Disabled, BreakerOperation.Reset,       CircuitBreakerState.Disabled)]
+        public void Every_State_And_Operation_Has_A_Defined_Transition(
+            CircuitBreakerState from, BreakerOperation operation, CircuitBreakerState expected)
+        {
+            var circuitBreaker = BreakerIn(from);
+
+            switch (operation)
+            {
+                case BreakerOperation.MarkSuccess: circuitBreaker.MarkSuccess(); break;
+                case BreakerOperation.MarkFailure: circuitBreaker.MarkFailure(); break;
+                case BreakerOperation.Track: circuitBreaker.Track(); break;
+                case BreakerOperation.Reset: circuitBreaker.Reset(); break;
+                default: throw new ArgumentOutOfRangeException(nameof(operation));
+            }
+
+            Assert.Equal(expected, circuitBreaker.State);
+        }
+
+        /// <summary>
+        /// Builds a breaker sitting in <paramref name="state"/> with an error rate below the
+        /// threshold, so that a MarkFailure under test cannot trip it and the table measures the
+        /// transition alone. The tripping arithmetic is covered by When_Volume_Exceeded_Circuit_Opens
+        /// and When_Threshhold_Exceeded_Circuit_Opens.
+        /// </summary>
+        private static CircuitBreaker BreakerIn(CircuitBreakerState state)
+        {
+            var timeProvider = new FakeTimeProvider();
+            var config = new CircuitBreakerConfiguration
+            {
+                Enabled = state != CircuitBreakerState.Disabled,
+                VolumeThreshold = 1,
+                ErrorThresholdPercentage = 100,
+                SleepWindow = TimeSpan.FromMilliseconds(50)
+            };
+            var circuitBreaker = new CircuitBreaker(timeProvider, config);
+
+            switch (state)
+            {
+                case CircuitBreakerState.Closed:
+                    // Clean operations to dilute the rate; the breaker is already closed.
+                    for (var i = 0; i < 4; i++) circuitBreaker.MarkSuccess();
+                    break;
+
+                case CircuitBreakerState.Open:
+                    circuitBreaker.MarkFailure();
+                    for (var i = 0; i < 3; i++) circuitBreaker.MarkSuccess();
+                    break;
+
+                case CircuitBreakerState.HalfOpen:
+                    circuitBreaker.MarkFailure();
+                    for (var i = 0; i < 3; i++) circuitBreaker.MarkSuccess();
+                    timeProvider.Advance(config.SleepWindow.Add(TimeSpan.FromMilliseconds(1)));
+                    circuitBreaker.Track();
+                    break;
+            }
+
+            // The setup is part of the assertion: if we did not reach the state, the row is meaningless.
+            Assert.Equal(state, circuitBreaker.State);
+            return circuitBreaker;
         }
     }
 }
