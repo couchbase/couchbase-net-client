@@ -302,6 +302,30 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task WildcardLeaf_MatchingHostName_Accepts()
+    {
+        // Capella issues wildcard node certificates, so the name check has to honour them.
+        using var wildcardLeaf = TlsTestPki.CreateServerLeaf("Wildcard Leaf", "*.example.com", issuer: _intermediate);
+        using var bundle = new TrustBundle(_root);
+
+        var result = await Handshake(wildcardLeaf, new[] { _intermediate }, bundle, targetHost: "node1.example.com");
+
+        HandshakeAssert.Accepted(result, "A wildcard certificate should be accepted for a host in its domain.");
+    }
+
+    [Fact]
+    public async Task WildcardLeaf_HostNameOneLabelDeeper_Rejects()
+    {
+        // A wildcard covers one label only, so it must not stretch across a sub domain.
+        using var wildcardLeaf = TlsTestPki.CreateServerLeaf("Wildcard Leaf", "*.example.com", issuer: _intermediate);
+        using var bundle = new TrustBundle(_root);
+
+        var result = await Handshake(wildcardLeaf, new[] { _intermediate }, bundle, targetHost: "node1.dc1.example.com");
+
+        HandshakeAssert.RejectedByValidator(result, "A wildcard must match a single label, not a sub domain.");
+    }
+
+    [Fact]
     public async Task HostNameMismatch_Ignored_Accepts()
     {
         // The ignore flag opts out of the hostname check only. The chain is still validated.

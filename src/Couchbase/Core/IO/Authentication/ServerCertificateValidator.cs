@@ -17,11 +17,21 @@ namespace Couchbase.Core.IO.Authentication
     /// when the user has not supplied a callback of their own.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// .NET validates the chain against the OS trust store before invoking the callback and that
     /// verdict is taken as is. When it fails only because the chain does not reach an OS trusted root,
     /// the chain is rebuilt against the configured trust anchors, which are either the user supplied
     /// certificates or the bundled Capella CA. The rebuild uses a chain owned by this class, so the
     /// chain SslStream hands in is never modified.
+    /// </para>
+    /// <para>
+    /// The host name is checked twice, once through the platform verdict and once here. Windows does not
+    /// report a name mismatch through <see cref="SslPolicyErrors"/> when the chain is untrusted as well,
+    /// which is the normal case for a private or Capella CA, so the platform verdict alone lets a
+    /// certificate issued for another host through. The second check needs X509Certificate2.MatchesHostname,
+    /// which is .NET 7 and later, so the netstandard builds of this SDK still rely on the platform verdict
+    /// alone and remain exposed on Windows.
+    /// </para>
     /// </remarks>
     internal sealed class ServerCertificateValidator
     {
@@ -55,17 +65,20 @@ namespace Couchbase.Core.IO.Authentication
                 return false;
             }
 
-            var errors = sslPolicyErrors;
-            if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != SslPolicyErrors.None)
-            {
-                if (!_ignoreNameMismatch)
-                {
-                    _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
-                    return false;
-                }
+            var errors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateNameMismatch;
+            var reportedNameMismatch = errors != sslPolicyErrors;
 
-                _logger.LogDebug("X509 ignoring certificate name mismatch");
-                errors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+            if (_ignoreNameMismatch)
+            {
+                if (reportedNameMismatch)
+                {
+                    _logger.LogDebug("X509 ignoring certificate name mismatch");
+                }
+            }
+            else if (reportedNameMismatch || !MatchesTargetHost(sender, certificate))
+            {
+                _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
+                return false;
             }
 
             if (errors == SslPolicyErrors.None)
@@ -82,6 +95,36 @@ namespace Couchbase.Core.IO.Authentication
 
             return ChainsToTrustedCertificate(certificate, chain);
         }
+
+#if NET7_0_OR_GREATER
+        /// <summary>
+        /// Checks the certificate against the host name the connection asked for, independently of the
+        /// platform verdict. Returns true when there is no host name to check against.
+        /// </summary>
+        private bool MatchesTargetHost(object sender, X509Certificate certificate)
+        {
+            if (sender is not SslStream sslStream
+                || string.IsNullOrEmpty(sslStream.TargetHostName)
+                || certificate is not X509Certificate2 leaf)
+            {
+                return true;
+            }
+
+            try
+            {
+                return leaf.MatchesHostname(sslStream.TargetHostName);
+            }
+            catch (Exception ex) when (ex is ArgumentException or CryptographicException)
+            {
+                // An unparseable host name or a malformed subject alternative name cannot be verified,
+                // so the certificate is not trusted for this connection.
+                _logger.LogInformation(ex, "X509 certificate name could not be checked against the target host");
+                return false;
+            }
+        }
+#else
+        private bool MatchesTargetHost(object sender, X509Certificate certificate) => true;
+#endif
 
 #if !NET5_0_OR_GREATER
         private bool ChainsToTrustedCertificate(X509Certificate certificate, X509Chain chain)
