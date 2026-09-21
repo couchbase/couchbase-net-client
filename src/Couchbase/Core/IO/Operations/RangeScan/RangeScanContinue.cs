@@ -176,8 +176,6 @@ namespace Couchbase.Core.IO.Operations.RangeScan
                         var keyLength = Leb128.Read(response.Slice(processed += 1).Memory.Span);
                         var key = ByteConverter.ToString(response.Slice(processed += keyLength.Length, (int)keyLength.Value).Memory.Span);
 
-                        Logger.LogDebug("Range Scan processing item {Content.Count} for opaque {opaque} for key {key}", Content.Count, Opaque, Key);//TODO: remove this later
-
                         var bodyLength = Leb128.Read(response.Slice(processed += (int)keyLength.Value).Memory.Span);
                         SlicedMemoryOwner<byte> body = response.Slice(processed += bodyLength.Length, (int)bodyLength.Value);
                         processed += (int)bodyLength.Value;
