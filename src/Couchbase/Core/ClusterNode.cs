@@ -721,7 +721,7 @@ namespace Couchbase.Core
                                     "no config body after NMVB with FF enabled ({ConfigVersion}) for {opaque}/{key}.",
                                     op.ConfigVersion.Value,
                                     op.Opaque,
-                                    op.Key);
+                                    _redactor.OperationKey(op));
                                 bucket.ProcessConfigPush(op.ConfigVersion.Value);
                             }
                             else

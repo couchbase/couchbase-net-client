@@ -322,7 +322,7 @@ namespace Couchbase
 
                 Logger.LogDebug(
                     "Mapping op {OpCode} to {Endpoint} for key {Key} and opaque {Opaque} using configVersion: {ConfigVersion}",
-                    op.OpCode, endPoint, op.Key, op.Opaque, vBucket.ToString());
+                    op.OpCode, Redactor.SystemData(endPoint), Redactor.OperationKey(op), op.Opaque, vBucket.ToString());
 
                 if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {
