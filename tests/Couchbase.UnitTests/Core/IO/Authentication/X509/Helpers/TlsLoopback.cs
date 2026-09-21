@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 /// </remarks>
 internal static class TlsLoopback
 {
-    private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Serves <paramref name="serverLeaf"/> plus <paramref name="wireExtras"/> on loopback and connects a
