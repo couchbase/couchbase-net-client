@@ -316,7 +316,7 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     [Fact]
     public async Task WildcardLeaf_HostNameOneLabelDeeper_Rejects()
     {
-        // A wildcard covers one label only, so it must not stretch across a sub domain.
+        // A wildcard covers a single label, so it stops at the first dot.
         using var wildcardLeaf = TlsTestPki.CreateServerLeaf("Wildcard Leaf", "*.example.com", issuer: _intermediate);
         using var bundle = new TrustBundle(_root);
 

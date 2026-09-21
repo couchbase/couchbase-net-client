@@ -25,14 +25,15 @@ namespace Couchbase.Core.IO.Authentication
     /// chain SslStream hands in is never modified.
     /// </para>
     /// <para>
-    /// The host name is checked twice, once through the platform verdict and once here. Windows does not
-    /// report a name mismatch through <see cref="SslPolicyErrors"/> when the chain is untrusted as well,
-    /// which is the normal case for a private or Capella CA, so the platform verdict alone lets a
-    /// certificate issued for another host through. The second check needs X509Certificate2.MatchesHostname,
-    /// which is .NET 7 and later, so the netstandard builds of this SDK still rely on the platform verdict
-    /// alone and remain exposed on Windows. Those users should add the cluster CA to the Windows trust store.
-    /// The chain then builds cleanly, no untrusted root error masks the name check, and Windows reports the
-    /// mismatch as it should.
+    /// The host name is checked twice, once by the platform and once here. Windows reports only the chain
+    /// failure when a certificate is both issued for another host and signed by a CA the OS does not know.
+    /// That combination is the normal case for a private or Capella CA, so the platform verdict on its own
+    /// accepts a certificate that belongs to a different host.
+    /// </para>
+    /// <para>
+    /// The second check needs X509Certificate2.MatchesHostname, added in .NET 7. The netstandard builds run
+    /// the platform check alone and keep the Windows weakness. Adding the cluster CA to the Windows trust
+    /// store closes it, because the OS then trusts the chain by itself and reports the host name mismatch.
     /// </para>
     /// </remarks>
     internal sealed class ServerCertificateValidator
@@ -100,8 +101,8 @@ namespace Couchbase.Core.IO.Authentication
 
 #if NET7_0_OR_GREATER
         /// <summary>
-        /// Checks the certificate against the host name the connection asked for, independently of the
-        /// platform verdict. Returns true when there is no host name to check against.
+        /// Matches the certificate against the host name this connection asked for. Accepts when the
+        /// sender carries no host name, which is the case outside an SslStream.
         /// </summary>
         private bool MatchesTargetHost(object sender, X509Certificate certificate)
         {
@@ -118,8 +119,7 @@ namespace Couchbase.Core.IO.Authentication
             }
             catch (Exception ex) when (ex is ArgumentException or CryptographicException)
             {
-                // An unparseable host name or a malformed subject alternative name cannot be verified,
-                // so the certificate is not trusted for this connection.
+                // Reject rather than guess when the host name or the certificate's name extension will not parse.
                 _logger.LogInformation(ex, "X509 certificate name could not be checked against the target host");
                 return false;
             }
