@@ -44,7 +44,7 @@ namespace Couchbase.Core
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
-        private bool _disposed;
+        private int _disposed;
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -1050,8 +1050,13 @@ namespace Couchbase.Core
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
+            // Interlocked, not a check-then-set on a bool: concurrent callers could otherwise all
+            // observe "not disposed" before any of them records it, and each would run the full body.
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
             _configHandler?.Dispose();
             _semaphore.Dispose();
             _tokenSource?.Dispose();

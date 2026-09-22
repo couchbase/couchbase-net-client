@@ -136,6 +136,33 @@ namespace Couchbase.UnitTests.Core
             Assert.InRange(chosenNodes.Count, 2, 3);
         }
 
+        #region Dispose
+
+        /// <summary>
+        /// Dispose() used to check-then-set the `_disposed` flag as a plain, unsynchronized bool, so
+        /// concurrent callers could all observe "not yet disposed" before any of them recorded that
+        /// they had disposed it, and each would run the full disposal body. The window is between the
+        /// read and the write of the flag, before anything injectable runs, so this can only assert
+        /// that repeated calls are idempotent - not exercise the actual race, which isn't reliably
+        /// reproducible in a unit test. That's what the comment on the Interlocked guard is for.
+        /// </summary>
+        [Fact]
+        public void Dispose_CalledMultipleTimes_DisposesConfigHandlerOnce()
+        {
+            var mockConfigHandler = new Mock<IConfigHandler>();
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService<IConfigHandler>(mockConfigHandler.Object);
+
+            var context = new ClusterContext(null, new CancellationTokenSource(), options);
+
+            context.Dispose();
+            context.Dispose();
+
+            mockConfigHandler.Verify(x => x.Dispose(), Times.Once);
+        }
+
+        #endregion
+
         #region Cluster-wide feature support
 
         /// <summary>
