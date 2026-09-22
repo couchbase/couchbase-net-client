@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Couchbase.Utils;
@@ -39,7 +38,7 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
             //if null it's a first request for certificates
             if (_cachedCertificates.Count == 0)
             {
-                _ = Interlocked.Exchange(ref _cachedCertificates, _certificateFactoryImplementation.GetCertificates());
+                _cachedCertificates = _certificateFactoryImplementation.GetCertificates();
 
                 _timer = TimerFactory.CreateWithFlowSuppressed(
                     RefreshCertificates!, this, _interval, _interval);
@@ -71,7 +70,7 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
                     _certificateFactoryImplementation.GetCertificates();
                 foreach (var certificate in possibleNewCertificates)
                 {
-                    var expirationDate = DateTime.Parse(certificate.GetExpirationDateString(), CultureInfo.InvariantCulture);
+                    var expirationDate = certificate.NotAfter;
                     if (!_cachedCertificates.Contains(certificate) && expirationDate - DateTime.Today > _expiresIn)
                     {
                         validNewCertificates.Add(certificate);
@@ -80,9 +79,7 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
 
                 if (validNewCertificates.Count > 0)
                 {
-                    _cachedCertificates =
-                        Interlocked.Exchange(ref _cachedCertificates,
-                            validNewCertificates);
+                    _cachedCertificates = validNewCertificates;
                     _hasChanges = true;
                 }
                 else

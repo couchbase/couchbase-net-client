@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Authentication.X509;
@@ -39,9 +38,7 @@ public class DelegatingCertificateFactory(
 
             if (validNewCertificates.Count > 0)
             {
-                _cachedCertificates =
-                    Interlocked.Exchange(ref _cachedCertificates,
-                        validNewCertificates);
+                _cachedCertificates = validNewCertificates;
                 _hasUpdates = true;
             }
             else
@@ -58,7 +55,7 @@ public class DelegatingCertificateFactory(
             //if null it's a first request for certificates
             if (_cachedCertificates.Count == 0)
             {
-                _ = Interlocked.Exchange(ref _cachedCertificates, _certificateFactory.GetCertificates());
+                _cachedCertificates = _certificateFactory.GetCertificates();
                 _hasUpdates = true;
             }
 
