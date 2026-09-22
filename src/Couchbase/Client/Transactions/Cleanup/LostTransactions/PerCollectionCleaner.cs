@@ -12,6 +12,7 @@ using Couchbase.Client.Transactions.Error;
 using Couchbase.Client.Transactions.Error.Internal;
 using Couchbase.Client.Transactions.Internal.Test;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
@@ -24,7 +25,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         private readonly CleanerRepositoryBase _repository;
         private readonly TimeSpan _cleanupWindow;
         private readonly ILogger<PerCollectionCleaner> _logger;
-        private readonly Timer _processCleanupTimer;
+        private readonly ITimer _processCleanupTimer;
         private readonly Random _jitter = new Random();
         private readonly SemaphoreSlim _timerCallbackMutex = new (1);
         private readonly Action<Keyspace>? _onCollectionNotFound;
@@ -35,13 +36,16 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
         // ProcessClient, which the timer-callback mutex serializes - so no concurrent collection is needed.
         private readonly AtrCleanupQueue _atrsToClean;
         private readonly CancellationTokenSource _cancelToken = new ();
+        private readonly Lazy<Task> _disposal;
 
 
         public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
         public long RunCount => Interlocked.Read(ref _runCount);
         private bool Running => !_cancelToken.IsCancellationRequested;
 
-        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepositoryBase repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, bool startDisabled = false, Action<Keyspace>? onCollectionNotFound = null, TimeProvider? timeProvider = null)
+        // Does not start the timer: the caller calls Start() once it has finished wiring the cleaner up,
+        // notably TestHooks, which the first cleanup cycle reads before doing anything else.
+        public PerCollectionCleaner(string clientUuid, Cleaner cleaner, CleanerRepositoryBase repository,TimeSpan cleanupWindow, ILoggerFactory loggerFactory, Action<Keyspace>? onCollectionNotFound = null, TimeProvider? timeProvider = null)
         {
             ClientUuid = clientUuid;
             _cleaner = cleaner; // TODO: Cleaner should have its data access refactored into CleanerRepositoryBase, and then that should be made a property, eliminating the need for a _repository variable here.
@@ -49,16 +53,20 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             _cleanupWindow = cleanupWindow;
             _onCollectionNotFound = onCollectionNotFound;
             _timeProvider = timeProvider ?? TimeProvider.System;
+            _disposal = new Lazy<Task>(DisposeOnceAsync);
             _atrsToClean = new AtrCleanupQueue(_timeProvider);
             _logger = loggerFactory.CreateLogger<PerCollectionCleaner>();
-            _processCleanupTimer = new Timer(
+            FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
+            // Created disabled - Start() arms it. Built from the injected TimeProvider so tests can drive
+            // it from a fake clock, and flow-suppressed because it lives as long as the cleaner does.
+            _processCleanupTimer = TimerFactory.CreateWithFlowSuppressed(
+                _timeProvider,
                 callback: TimerCallback,
                 state: null,
-                dueTime: startDisabled ? -1 : 0,
-                period: (int)cleanupWindow.TotalMilliseconds);
+                dueTime: Timeout.InfiniteTimeSpan,
+                period: cleanupWindow);
 
-            FullBucketName = (bucket: BucketName, scope: ScopeName, collection: CollectionName, clientUuid: ClientUuid).ToString();
-            _logger.LogInformation("Started PerCollectionCleaner on '{coll}'", repository.Keyspace);
+            _logger.LogInformation("Created PerCollectionCleaner on '{coll}'", repository.Keyspace);
         }
 
         public void Start()
@@ -68,9 +76,9 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         public void Stop()
         {
-            _processCleanupTimer.Change(-1, -1);
+            _processCleanupTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _cancelToken.Cancel();
-            _logger.LogDebug($"Cancelling per collection cleaner for '{ClientUuid}'");
+            TryLog("Cancelling per collection cleaner for {clientUuid}", ClientUuid);
         }
 
         public string BucketName => _repository.BucketName;
@@ -86,40 +94,59 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
 
         private record Summary(string FullBucketName, string ClientUuid, bool Running, long RunCount);
 
-        public void Dispose()
+        // Disposal runs once and every caller awaits that same run. Two callers race in production and
+        // nothing orders them - LostTransactionManager at shutdown, and a cycle disposing itself on an auth
+        // error or a disowned collection - and the body takes the timer-callback mutex without ever
+        // releasing it, so a second concurrent run would block on it forever.
+        public ValueTask DisposeAsync() => new(_disposal.Value);
+
+        // Must never fault: _disposal caches this Task, and awaiting a faulted Task rethrows at every later
+        // caller. Both callers log failures of their own, so swallowing here loses nothing.
+        private async Task DisposeOnceAsync()
         {
-            if (!_cancelToken.IsCancellationRequested)
+            // A Lazy factory runs under Lazy's lock until its first real await, and Stop() below cancels a
+            // token whose registrations run inline on this thread. Yield first so none of that runs under
+            // the lock.
+            await Task.Yield();
+
+            try
             {
+                // Logged through TryLog so a dead sink cannot skip the steps between them.
+                TryLog("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
                 Stop();
-            }
-            else
-            {
-                _logger.LogDebug("(already disposed)");
-            }
-        }
-
-
-        public async ValueTask DisposeAsync()
-        {
-            if (!_cancelToken.IsCancellationRequested)
-            {
-                _logger.LogDebug("Disposing of PerCollectionCleaner for {bkt}", FullBucketName);
-                Dispose();
                 // at this point, there will be no more timer callbacks triggered, so lets
                 // wait for the mutex, at which point the current ProcessClient (if any) is
                 // done (and there will be no more).
-                _logger.LogDebug("waiting for cleanup Task on {bkt}", FullBucketName);
+                TryLog("waiting for cleanup Task on {bkt}", FullBucketName);
                 await  _timerCallbackMutex.WaitAsync().CAF();
-                _logger.LogDebug("cleanup Task stopped for {bkt}", FullBucketName);
+                TryLog("cleanup Task stopped for {bkt}", FullBucketName);
                 _processCleanupTimer.Dispose();
-                _logger.LogDebug("cleanup Timer stopped for {bkt}", FullBucketName);
+                TryLog("cleanup Timer stopped for {bkt}", FullBucketName);
                 await RemoveClient().CAF();
-                _logger.LogDebug("removed ClientRecord for {bkt}", FullBucketName);
+                TryLog("removed ClientRecord for {bkt}", FullBucketName);
                 _cancelToken.Dispose();
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogDebug("PerCollectionCleaner for '{bkt}' is already disposed.", FullBucketName);
+                // Warning, not a breadcrumb: a half-disposed cleaner leaves its client record behind, which
+                // keeps its share of the ATRs assigned to a client that is never coming back.
+                TryLog(LogLevel.Warning, "Disposal of '{bkt}' did not complete: {ex}", FullBucketName, ex);
+            }
+        }
+
+        // Logging must never be what defeats disposal - a provider disposed before the SDK is the realistic
+        // way a sink throws. Silent by design: the sink we would report to is the one that just failed.
+        private void TryLog(string message, params object?[] args) => TryLog(LogLevel.Debug, message, args);
+
+        private void TryLog(LogLevel level, string message, params object?[] args)
+        {
+            try
+            {
+                _logger.Log(level, message, args);
+            }
+            catch
+            {
+                // See above.
             }
         }
 
@@ -135,11 +162,43 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Ignoring error releasing timer callback mutex on {bkt}: {ex}", FullBucketName, ex);
+                TryLog("Ignoring error releasing timer callback mutex on {bkt}: {ex}", FullBucketName, ex);
             }
         }
 
-        private async void TimerCallback(object? state)
+        // The timer callback is void-returning, so this is the last place an exception could be observed -
+        // an async void here would rethrow on a ThreadPool thread and take the process down. Discarding the
+        // Task is safe only because RunCleanupCycleAsync never faults.
+        private void TimerCallback(object? state) => CurrentCycle = RunCleanupCycleAsync();
+
+        /// <summary>
+        /// The cleanup cycle currently in flight, or a completed Task. Exists so a test on a fake clock can
+        /// await a cycle rather than poll. Races on this assignment are benign - the mutex serializes the
+        /// work itself.
+        /// </summary>
+        internal Task CurrentCycle { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// Free slots on the timer-callback mutex, so a test can assert the release happened. A leaked slot
+        /// is otherwise invisible until a later callback times out on it, or <see cref="DisposeAsync"/>
+        /// blocks on it forever.
+        /// </summary>
+        internal int CallbackMutexCount => _timerCallbackMutex.CurrentCount;
+
+        // Must never fault: nothing observes the Task it returns.
+        private async Task RunCleanupCycleAsync()
+        {
+            try
+            {
+                await CleanupCycleCoreAsync().CAF();
+            }
+            catch (Exception ex)
+            {
+                TryLog(LogLevel.Warning, "Cleanup cycle on '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
+            }
+        }
+
+        private async Task CleanupCycleCoreAsync()
         {
             if (_cancelToken.IsCancellationRequested)
             {
@@ -155,41 +214,81 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                 return;
             }
 
+            // The handlers only record why we are stopping. Releasing the mutex and acting on that reason
+            // both happen in finally blocks, because a handler can throw on its way out - otherwise the
+            // mutex leaks, or a cleaner that has decided to stop keeps retrying a disowned collection.
+            var stop = StopReason.None;
             try
             {
-                _ = await ProcessClient().CAF();
-                TryReleaseMutex();
+                try
+                {
+                    _ = await ProcessClient().CAF();
+                }
+                catch (AuthenticationFailureException)
+                {
+                    // BF-CBD-3794
+                    stop = StopReason.AuthFailure;
+                    _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", FullBucketName);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected during shutdown: the cancellation token tripped mid-cycle (a pending
+                    // Task.Delay or an early ThrowIfCancellationRequested in CleanupAtr). Exit quietly.
+                    _logger.LogDebug("Cleanup of '{bkt}' cancelled during shutdown.", FullBucketName);
+                }
+                catch (Exception ex) when (IsCollectionNotFound(ex))
+                {
+                    // The server doesn't recognize this collection (deleted, or a misconfigured keyspace
+                    // that never existed) - stop cleaning it.
+                    stop = StopReason.CollectionNotFound;
+                    _logger.LogWarning("Stopping lost cleanup of '{bkt}': collection not found (deleted or misconfigured).", FullBucketName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Processing of bucket '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
+                }
+                finally
+                {
+                    TryReleaseMutex();
+                }
             }
-            catch (AuthenticationFailureException)
+            finally
             {
-                // BF-CBD-3794
-                _logger.LogDebug("Exiting cleanup of '{bkt}' due to access error", FullBucketName);
-                // must release the mutex before disposing (because we acquire it in DisposeAsync)
-                TryReleaseMutex();
+                // After the inner finally, because DisposeAsync re-acquires the mutex released there.
+                if (stop != StopReason.None)
+                {
+                    await RunStopAsync(stop).CAF();
+                }
+            }
+        }
+
+        // Notify, then dispose. The dispose runs from a finally so a throwing notification cannot cost us it.
+        private async Task RunStopAsync(StopReason reason)
+        {
+            try
+            {
+                if (reason == StopReason.CollectionNotFound)
+                {
+                    // Caller-supplied (LostTransactionManager logs in it), so not assumed safe.
+                    _onCollectionNotFound?.Invoke(_repository.Keyspace);
+                }
+            }
+            catch (Exception notifyEx)
+            {
+                _logger.LogWarning("Collection-not-found notification for '{bkt}' threw: {ex}", FullBucketName, notifyEx);
+            }
+            finally
+            {
                 await DisposeAsync().CAF();
             }
-            catch (OperationCanceledException)
-            {
-                // Expected during shutdown: the cancellation token tripped mid-cycle (a pending
-                // Task.Delay or an early ThrowIfCancellationRequested in CleanupAtr). Exit quietly.
-                _logger.LogDebug("Cleanup of '{bkt}' cancelled during shutdown.", FullBucketName);
-                TryReleaseMutex();
-            }
-            catch (Exception ex) when (IsCollectionNotFound(ex))
-            {
-                // The server doesn't recognize this collection (deleted, or a misconfigured keyspace
-                // that never existed) - stop cleaning it.
-                _logger.LogWarning("Stopping lost cleanup of '{bkt}': collection not found (deleted or misconfigured).", FullBucketName);
-                // release the mutex before DisposeAsync, which also acquires it.
-                TryReleaseMutex();
-                _onCollectionNotFound?.Invoke(_repository.Keyspace);
-                await DisposeAsync().CAF();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("Processing of bucket '{bkt}' failed unexpectedly: {ex}", FullBucketName, ex);
-                TryReleaseMutex();
-            }
+        }
+
+        // Recorded rather than acted on inline, so the teardown runs after the mutex has been released.
+        private enum StopReason
+        {
+            None,
+            AuthFailure,
+            CollectionNotFound,
         }
 
         // True only when a cleanup op timed out and the SOLE retry reason was collection/scope not found
