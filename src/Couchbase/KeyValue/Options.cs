@@ -486,6 +486,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
         public GetReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             RetryStrategyValue = retryStrategy;
             return this;
         }
@@ -497,14 +498,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
         public GetReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
-            if (ReferenceEquals(this, Default) && transcoder != null)
-            {
-                return new GetReplicaOptions
-                {
-                    TranscoderValue = transcoder
-                };
-            }
-
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
@@ -516,14 +510,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
         public GetReplicaOptions Timeout(TimeSpan timeout)
         {
-            if (ReferenceEquals(this, Default))
-            {
-                return new GetReplicaOptions
-                {
-                    TimeoutValue = timeout
-                };
-            }
-
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
@@ -535,14 +522,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="GetReplicaOptions"/> instance for chaining.</returns>
         public GetReplicaOptions CancellationToken(CancellationToken token)
         {
-            if (ReferenceEquals(this, Default) && token != default)
-            {
-                return new GetReplicaOptions
-                {
-                    TokenValue = token
-                };
-            }
-
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }

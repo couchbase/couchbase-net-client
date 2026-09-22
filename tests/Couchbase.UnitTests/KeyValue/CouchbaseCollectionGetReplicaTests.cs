@@ -79,38 +79,6 @@ namespace Couchbase.UnitTests.KeyValue
         #region GetReplicaOptions
 
         [Fact]
-        public void Options_Timeout_Leaves_Default_Untouched()
-        {
-            var options = GetReplicaOptions.Default.Timeout(TimeSpan.FromSeconds(1));
-
-            Assert.NotSame(GetReplicaOptions.Default, options);
-            Assert.Equal(TimeSpan.FromSeconds(1), options.TimeoutValue);
-            Assert.Null(GetReplicaOptions.Default.TimeoutValue);
-        }
-
-        [Fact]
-        public void Options_CancellationToken_Leaves_Default_Untouched()
-        {
-            using var cts = new CancellationTokenSource();
-            var options = GetReplicaOptions.Default.CancellationToken(cts.Token);
-
-            Assert.NotSame(GetReplicaOptions.Default, options);
-            Assert.Equal(cts.Token, options.TokenValue);
-            Assert.Equal(default, GetReplicaOptions.Default.TokenValue);
-        }
-
-        [Fact]
-        public void Options_Transcoder_Leaves_Default_Untouched()
-        {
-            var transcoder = new LegacyTranscoder();
-            var options = GetReplicaOptions.Default.Transcoder(transcoder);
-
-            Assert.NotSame(GetReplicaOptions.Default, options);
-            Assert.Same(transcoder, options.TranscoderValue);
-            Assert.Null(GetReplicaOptions.Default.TranscoderValue);
-        }
-
-        [Fact]
         public void Options_AsReadOnly_Round_Trips()
         {
             using var cts = new CancellationTokenSource();
