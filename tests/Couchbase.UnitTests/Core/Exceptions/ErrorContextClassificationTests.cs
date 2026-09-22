@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -438,6 +439,51 @@ namespace Couchbase.UnitTests.Core.Exceptions
             Assert.Contains("<sd>", json);
             Assert.DoesNotContain("<script>", json);
             Assert.Contains(@"\u003Cscript\u003E", json);
+        }
+
+        /// <summary>
+        /// Restoring the tags must also leave the document parseable. The tags are found textually,
+        /// and a plain <see cref="string.Replace(string,string)"/> cannot tell a backslash that
+        /// introduces an escape from one that is itself an escaped literal backslash: a field
+        /// holding the text <c>\u003Cud&gt;</c> serializes as <c>\\u003Cud\u003E</c>, where the
+        /// match begins at the second backslash and leaves <c>\&lt;ud&gt;</c> - not a valid JSON
+        /// escape, so the whole context stops parsing. Reported by review on NCBC-4296.
+        /// <para>
+        /// The body has to be written with an escaped backslash. C# applies <c>\uXXXX</c> escapes
+        /// in the lexical phase, before string literals are formed, so a verbatim or raw literal
+        /// does not hold this text either - <c>@"\u003Cud&gt;"</c> is four characters, and a test
+        /// written that way asserts nothing.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task RestoringTagsLeavesTheDocumentParseable()
+        {
+            const string body = "\\u003Cud>";
+
+            var ctx = await ErrorContextDrivers.ManagementWithBody(body);
+
+            var json = ctx.ToString();
+
+            // The failure this pins produces JSON that will not parse at all.
+            using var parsed = JsonDocument.Parse(json);
+
+            // And the body survives unchanged: nothing in it was a tag the redactor emitted.
+            Assert.Contains(body, parsed.RootElement.GetProperty("message").GetString());
+        }
+
+        /// <summary>
+        /// The counterpart: a genuinely escaped tag is still restored when it sits next to an
+        /// escaped backslash, so the parity check has not simply stopped matching.
+        /// </summary>
+        [Fact]
+        public async Task TagsAreStillRestoredBesideAnEscapedBackslash()
+        {
+            var ctx = await ErrorContextDrivers.ManagementWithBody("trailing slash \\");
+
+            var json = ctx.ToString();
+
+            using var parsed = JsonDocument.Parse(json);
+            Assert.Contains("<sd>", json);
         }
 
         /// <summary>

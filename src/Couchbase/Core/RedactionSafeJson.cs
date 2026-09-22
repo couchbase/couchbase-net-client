@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Text.Encodings.Web;
 
 #nullable enable
@@ -25,8 +26,7 @@ namespace Couchbase.Core
     /// <para>
     /// <see cref="RestoreTags"/> therefore serializes with the default HTML-safe encoder and then
     /// restores only the six tokens the redactor itself emits. Everything else - server text, HTML,
-    /// non-ASCII - keeps the escaping it has always had, so this changes nothing for a caller who
-    /// has not enabled redaction.
+    /// non-ASCII - keeps the escaping it has always had.
     /// </para>
     /// </remarks>
     internal static class RedactionSafeJson
@@ -50,9 +50,22 @@ namespace Couchbase.Core
         /// angle brackets, leaving every other escape in place.
         /// </summary>
         /// <remarks>
-        /// A value that itself contained the text "&lt;ud&gt;" would be unescaped too. That is
-        /// exactly what the relaxed encoder would have emitted, so this is no worse - and a server
-        /// echoing a redaction tag back at us has already lost the distinction.
+        /// Only a backslash that actually introduces an escape can begin a tag, which is why this
+        /// walks the document rather than calling <see cref="string.Replace(string,string)"/>. A
+        /// value holding the literal text <c>\u003Cud&gt;</c> serializes as
+        /// <c>\\u003Cud\u003E</c>, where a textual replace matches from the second backslash
+        /// and leaves <c>\&lt;ud&gt;</c> - not a valid JSON escape, so the context stops
+        /// parsing. Backslashes pair off inside a JSON string, so an odd-length run is the
+        /// only one that ends in an escape introducer.
+        /// <para>
+        /// What this cannot do is tell a tag the redactor added from the same six characters
+        /// arriving in server text: a management or query response containing a literal "&lt;ud&gt;"
+        /// has it unescaped here too, at every level including
+        /// <see cref="Couchbase.Core.Logging.RedactionLevel.None"/>. Distinguishing them needs a
+        /// marker the redactor emits only for this path, and the tags are also rendered straight
+        /// into log messages, so there is no single representation to key on. A server echoing a
+        /// redaction tag back at us has already lost the distinction.
+        /// </para>
         /// </remarks>
         public static string RestoreTags(string json)
         {
@@ -61,12 +74,55 @@ namespace Couchbase.Core
                 return json;
             }
 
-            foreach (var (escaped, literal) in Tags)
+            StringBuilder? restored = null;
+            var copied = 0;
+            var i = 0;
+
+            while (i < json.Length)
             {
-                json = json.Replace(escaped, literal);
+                if (json[i] != '\\')
+                {
+                    i++;
+                    continue;
+                }
+
+                //Consume the run whole: each pair of backslashes is one literal backslash in the
+                //value, so only an odd-length run leaves a trailing escape introducer.
+                var runStart = i;
+                do
+                {
+                    i++;
+                } while (i < json.Length && json[i] == '\\');
+
+                if (((i - runStart) & 1) == 0)
+                {
+                    continue;
+                }
+
+                var escapeStart = i - 1;
+                foreach (var (escaped, literal) in Tags)
+                {
+                    if (escapeStart + escaped.Length > json.Length ||
+                        string.CompareOrdinal(json, escapeStart, escaped, 0, escaped.Length) != 0)
+                    {
+                        continue;
+                    }
+
+                    restored ??= new StringBuilder(json.Length);
+                    restored.Append(json, copied, escapeStart - copied);
+                    restored.Append(literal);
+                    i = copied = escapeStart + escaped.Length;
+                    break;
+                }
             }
 
-            return json;
+            if (restored is null)
+            {
+                return json;
+            }
+
+            restored.Append(json, copied, json.Length - copied);
+            return restored.ToString();
         }
     }
 }
