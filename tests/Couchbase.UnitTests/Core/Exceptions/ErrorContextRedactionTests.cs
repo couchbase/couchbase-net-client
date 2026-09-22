@@ -18,6 +18,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -185,6 +186,45 @@ namespace Couchbase.UnitTests.Core.Exceptions
                 new Redactor(RedactionLevel.Partial));
 
             Assert.Contains("<ud>doc-key-1</ud>", ex.Message);
+        }
+
+        /// <summary>
+        /// SelectBucket was not the only operation whose key is not a document key, and the helper
+        /// originally classified every other opcode as user data. These pin the two that are
+        /// reachable, both found by review on NCBC-4296.
+        /// <para>
+        /// HELO is the one that mattered: it runs on every connection, so at Partial the SDK
+        /// identifier and connection id were stripped out of every negotiation log line.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public void HelloKey_IsMetadata()
+        {
+            // The real shape of the key - see Hello.BuildHelloKey.
+            var op = new Hello { Key = @"{""i"":""0x1/0x2"",""a"":""couchbase-net-sdk/3.10.0""}" };
+
+            var partial = new Redactor(RedactionLevel.Partial).OperationKeyString(op);
+
+            Assert.Equal(op.Key, partial);
+            Assert.Equal($"<md>{op.Key}</md>",
+                new Redactor(RedactionLevel.Full).OperationKeyString(op));
+        }
+
+        /// <summary>
+        /// On the pre-7.0 fallback, CouchbaseCollection.GetCidWithFallbackAsync retries with the
+        /// fully qualified name in the key rather than the body, so GetCid.Key is a collection
+        /// name. That path is reached on InvalidArgumentException, not dead code.
+        /// </summary>
+        [Fact]
+        public void GetCidFallbackKey_IsMetadata()
+        {
+            var op = new GetCid { Key = "scope1.coll1" };
+
+            var partial = new Redactor(RedactionLevel.Partial).OperationKeyString(op);
+
+            Assert.Equal("scope1.coll1", partial);
+            Assert.Equal("<md>scope1.coll1</md>",
+                new Redactor(RedactionLevel.Full).OperationKeyString(op));
         }
     }
 
