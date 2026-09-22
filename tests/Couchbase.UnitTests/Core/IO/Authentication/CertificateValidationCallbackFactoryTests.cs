@@ -6,7 +6,7 @@ using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
-#if NET6_0_OR_GREATER
+#if NET7_0_OR_GREATER
 using Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 #endif
 
@@ -38,7 +38,7 @@ public class CertificateValidationCallbackFactoryTests
         Assert.Same(userCallback, factory.CreateForHttp());
     }
 
-#if NET6_0_OR_GREATER
+#if NET7_0_OR_GREATER
     [Fact]
     public void CreateForKv_UsesKvNameMismatchFlag_NotHttp()
     {
@@ -81,7 +81,7 @@ public class CertificateValidationCallbackFactoryTests
         certificateFactory.Verify(f => f.GetCertificates(), Times.Exactly(3));
     }
 
-#if NET6_0_OR_GREATER
+#if NET7_0_OR_GREATER
     [Fact]
     public void Create_WithoutTrustedFactory_FallsBackToDefaults()
     {
