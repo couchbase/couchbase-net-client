@@ -123,6 +123,50 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             // Assert
             Assert.True(factory.HasUpdates);
             _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.Exactly(2));
+
+            var refreshed = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(newCertificates.Count, refreshed.Length);
+            foreach (var certificate in newCertificates.Cast<X509Certificate2>())
+            {
+                Assert.Contains(certificate, refreshed);
+            }
+            Assert.DoesNotContain(initialCertificates[0], refreshed);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_SecondRefreshWithSameCertificates_ShouldNotReportUpdates()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(10));
+            var newCertificates = CreateTestCertificateCollection(2, DateTime.UtcNow.AddDays(20));
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(newCertificates)
+                                  .Returns(newCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterFirstRefresh = factory.HasUpdates;
+
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterSecondRefresh = factory.HasUpdates;
+
+            // Assert
+            Assert.True(hasUpdatesAfterFirstRefresh);
+            Assert.False(hasUpdatesAfterSecondRefresh);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(newCertificates.Count, cached.Length);
+            foreach (var certificate in newCertificates.Cast<X509Certificate2>())
+            {
+                Assert.Contains(certificate, cached);
+            }
         }
 
         [Fact]

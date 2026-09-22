@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
@@ -184,6 +185,11 @@ public class RotatingCertificateFactoryTests(
         Assert.NotNull(initialResult);
         Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once to refresh certificates");
         _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.AtLeast(2));
+
+        // GetCertificates takes the same lock as the refresh, so it waits for an in-flight refresh
+        var refreshed = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+        Assert.Contains(newValidCertificates[0], refreshed);
+        Assert.DoesNotContain(initialCertificates[0], refreshed);
     }
 
     [Fact]
