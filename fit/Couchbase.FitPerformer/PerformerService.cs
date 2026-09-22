@@ -684,7 +684,6 @@ namespace Couchbase.FitPerformer
 
                 SingleQueryTransactionConfigBuilder singleQueryConfig = null;
                 var ropts = request.QueryOptions;
-                var handledProps = new HashSet<string>();
                 if (ropts != null) {
                     singleQueryConfig = new SingleQueryTransactionConfigBuilder();
 
@@ -696,8 +695,6 @@ namespace Couchbase.FitPerformer
                             }
                         }
 
-                        handledProps.Add(nameof(ropts.SingleQueryTransactionOptions.HasDurability));
-
                         HooksUtil.ConfigureHooks(ropts.SingleQueryTransactionOptions.Hook, connection);
                     }
 
@@ -705,34 +702,7 @@ namespace Couchbase.FitPerformer
                         singleQueryConfig.Timeout(TimeSpan.FromMilliseconds(ropts.TimeoutMillis));
                     }
 
-                    handledProps.Add(nameof(ropts.HasTimeoutMillis));
-
-                    // the GRPC Optional conversion leads to a lot of boilerplate.
-                    // The reflection here is a catch-all, but may not actually be accurate.
-                    // As far as I can tell, these aren't actually being used in the tests yet.
-                    singleQueryConfig.QueryOptions(opts =>
-                    {
-                        var requestOptionsType = ropts.GetType();
-                        var queryOptionsType = opts.GetType();
-                        var hasProps = requestOptionsType.GetProperties().Where(p => p.Name.StartsWith("Has") && !handledProps.Contains(p.Name));
-                        foreach (var hasProp in hasProps)
-                        {
-                            if (hasProp.GetValue(ropts) is not true)
-                            {
-                                continue;
-                            }
-
-                            var hasName = hasProp.Name;
-                            var propName = hasName[3..];
-                            var prop = requestOptionsType.GetProperty(propName);
-                            var method = queryOptionsType.GetMethod(propName);
-                            if (prop != null && method != null)
-                            {
-                                var propVal = prop.GetValue(ropts);
-                                method.Invoke(opts, new object[] { propVal });
-                            }
-                        }
-                    });
+                    singleQueryConfig.QueryOptions(TxnOptionsUtil.ConvertSingleQueryOptions(ropts));
                 }
 
                 // TODO:  API docs updated to have non-void return for tximplicit.

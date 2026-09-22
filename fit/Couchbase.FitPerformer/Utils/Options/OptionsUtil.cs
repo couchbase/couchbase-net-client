@@ -118,7 +118,7 @@ public static class OptionsUtil
         }
     }
 
-    private static QueryProfile ConvertQueryProfile(string protoProfile)
+    public static QueryProfile ConvertQueryProfile(string protoProfile)
     {
         switch (protoProfile)
         {
