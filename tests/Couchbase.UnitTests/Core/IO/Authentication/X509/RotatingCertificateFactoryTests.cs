@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.UnitTests.Helpers;
@@ -304,6 +305,73 @@ public class RotatingCertificateFactoryTests(
         // Assert
         Assert.NotNull(result);
         _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Dispose_ShouldStopTheRefreshTimer()
+    {
+        // Arrange
+        var callCount = 0;
+        var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var certificates = CreateTestCertificateCollection(1);
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(() =>
+            {
+                if (Interlocked.Increment(ref callCount) >= 2)
+                    calledTwiceTcs.TrySetResult(true);
+                return certificates;
+            });
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromMilliseconds(20),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        // Act
+        var result = factory.GetCertificates();
+
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once before Dispose");
+
+        factory.Dispose();
+        var countAfterDispose = Volatile.Read(ref callCount);
+
+        await Task.Delay(200);
+
+        // A refresh that runs after Dispose must not call the underlying factory
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(countAfterDispose, Volatile.Read(ref callCount));
+    }
+
+    [Fact]
+    public void Dispose_CalledTwice_ShouldNotThrow()
+    {
+        // Arrange
+        var certificates = CreateTestCertificateCollection(1);
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(certificates);
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromMilliseconds(20),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        factory.GetCertificates();
+
+        // Act
+        var exception = Record.Exception(() =>
+        {
+            factory.Dispose();
+            factory.Dispose();
+        });
+
+        // Assert
+        Assert.Null(exception);
     }
 
     [Theory]

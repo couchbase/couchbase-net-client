@@ -102,8 +102,14 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
     {
         if (_disposed)
         {
-            _disposed = true;
+            return;
+        }
+
+        _disposed = true;
+        lock (_syncObj)
+        {
             _timer?.Dispose();
+            _timer = null;
         }
     }
 }
