@@ -194,6 +194,40 @@ public class RotatingCertificateFactoryTests(
     }
 
     [Fact]
+    public void RefreshCertificates_WithOverlappingCertificates_ShouldKeepBoth()
+    {
+        // Arrange
+        var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(30));
+        var certificateA = initialCertificates[0];
+        var certificateB = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(60))[0];
+        var overlappingCertificates = new X509Certificate2Collection { certificateA, certificateB };
+
+        _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+            .Returns(initialCertificates)
+            .Returns(overlappingCertificates);
+
+        using var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        // Initialize cache and create the timer
+        factory.GetCertificates();
+
+        // Act
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.True(factory.HasUpdates);
+
+        var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+        Assert.Equal(2, cached.Length);
+        Assert.Contains(certificateA, cached);
+        Assert.Contains(certificateB, cached);
+    }
+
+    [Fact]
     public async Task RefreshClientHandler_WithExpiredCertificates_ShouldNotUpdateCache()
     {
         // Arrange

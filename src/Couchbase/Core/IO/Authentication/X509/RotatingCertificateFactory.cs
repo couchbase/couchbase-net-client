@@ -65,26 +65,21 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
                 //reset if its already been triggered to true earlier
                 _hasChanges = false;
 
-                var validNewCertificates = new X509Certificate2Collection();
-                var possibleNewCertificates =
-                    _certificateFactoryImplementation.GetCertificates();
-                foreach (var certificate in possibleNewCertificates)
-                {
-                    var expirationDate = certificate.NotAfter;
-                    if (!_cachedCertificates.Contains(certificate) && expirationDate - DateTime.Today > _expiresIn)
-                    {
-                        validNewCertificates.Add(certificate);
-                    }
-                }
+                var usable = ClientCertificateSelection.SelectUsable(
+                    _certificateFactoryImplementation.GetCertificates(), _expiresIn);
 
-                if (validNewCertificates.Count > 0)
+                if (usable.Count == 0)
                 {
-                    _cachedCertificates = validNewCertificates;
-                    _hasChanges = true;
+                    _logger?.LogWarning("No usable client certificates were found, keeping the current certificates");
+                }
+                else if (ClientCertificateSelection.HasSameCertificates(usable, _cachedCertificates))
+                {
+                    _logger?.LogDebug("Client certificates are unchanged");
                 }
                 else
                 {
-                    _logger?.LogDebug("No new certificates were found");
+                    _cachedCertificates = usable;
+                    _hasChanges = true;
                 }
             }
             catch (Exception ex)
