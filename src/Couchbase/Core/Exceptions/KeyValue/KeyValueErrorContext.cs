@@ -41,7 +41,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
         public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.KeyValueErrorContext);
+            RedactionSafeJson.RestoreTags(
+                JsonSerializer.Serialize(this, InternalSerializationContext.Default.KeyValueErrorContext));
     }
 }
 

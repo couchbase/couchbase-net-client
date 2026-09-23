@@ -31,7 +31,8 @@ namespace Couchbase.Core.Exceptions.View
         public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.ViewContextError);
+            RedactionSafeJson.RestoreTags(
+                JsonSerializer.Serialize(this, InternalSerializationContext.Default.ViewContextError));
     }
 }
 

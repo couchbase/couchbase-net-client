@@ -33,7 +33,8 @@ namespace Couchbase.Core.Exceptions.Search
         public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.SearchErrorContext);
+            RedactionSafeJson.RestoreTags(
+                JsonSerializer.Serialize(this, InternalSerializationContext.Default.SearchErrorContext));
     }
 }
 
