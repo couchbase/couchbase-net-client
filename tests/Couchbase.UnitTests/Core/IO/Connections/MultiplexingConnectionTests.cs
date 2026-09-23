@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -89,11 +90,50 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             Assert.True(conn.IsDead);
         }
 
+        // NCBC-4236: connections were tracked for the "connections" gauge in a static ConcurrentBag which
+        // had no removal, so every connection ever created leaked an entry and a weak GC handle. The pool
+        // scale controller cycles idle connections every 30s, so this accumulated continuously. Closing a
+        // connection must now untrack it.
+        [Fact]
+        public void Close_UntracksTheConnectionForDiagnostics()
+        {
+            using var stream = new BlockingStream();
+            var conn = new MultiplexingConnection(stream, 8,
+                new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            Assert.True(conn.IsTrackedForDiagnostics);
+
+            conn.Close();
+
+            Assert.False(conn.IsTrackedForDiagnostics);
+        }
+
+        // CloseAsync funnels through Close, and Close may also be called again afterwards. Neither path
+        // may resurrect the entry or throw.
+        [Fact]
+        public async Task CloseAsync_ThenClose_LeavesTheConnectionUntracked()
+        {
+            using var stream = new BlockingStream();
+            var conn = new MultiplexingConnection(stream, 8,
+                new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            Assert.True(conn.IsTrackedForDiagnostics);
+
+            await conn.CloseAsync(TimeSpan.Zero);
+            Assert.False(conn.IsTrackedForDiagnostics);
+
+            conn.Close();
+            Assert.False(conn.IsTrackedForDiagnostics);
+        }
+
         // A Stream whose ReadAsync blocks indefinitely, so the MultiplexingConnection's
         // fire-and-forget receive loop doesn't tear the connection down during the test.
         private sealed class BlockingStream : Stream
         {
             private readonly System.Threading.CancellationTokenSource _cts = new();
+            private bool _disposed;
             public override bool CanRead => true;
             public override bool CanSeek => false;
             public override bool CanWrite => true;
@@ -120,8 +160,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             public override void Write(byte[] buffer, int offset, int count) { }
             protected override void Dispose(bool disposing)
             {
-                if (disposing)
+                // MultiplexingConnection.Close disposes the stream, and the test's `using` then disposes
+                // it again. Stream.Dispose is required to be idempotent, so guard the CancellationTokenSource.
+                if (disposing && !_disposed)
                 {
+                    _disposed = true;
                     _cts.Cancel();
                     _cts.Dispose();
                 }

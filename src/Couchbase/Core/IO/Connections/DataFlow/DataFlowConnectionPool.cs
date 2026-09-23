@@ -247,6 +247,8 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <inheritdoc />
         public override void Dispose()
         {
+            UntrackConnectionPool();
+
             _logger.LogDebug("Disposing pool for {endpoint}.", EndPoint);
             if (_cts.IsCancellationRequested)
             {

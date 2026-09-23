@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
@@ -26,9 +25,19 @@ namespace Couchbase.Core.IO.Connections
 {
     internal sealed class MultiplexingConnection : IConnection
     {
-        private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
+        private static readonly WeakInstanceRegistry<MultiplexingConnection> _connections = new();
 
-        public static int GetConnectionCount() => _connections.Count(p => p.TryGetTarget(out var connection) && !connection.IsDead);
+        public static int GetConnectionCount() => _connections
+            .EnumerateLive()
+            .Count(static p => !p.IsDead);
+
+        /// <summary>
+        /// For UNIT TESTING ONLY. Whether this connection is still in the set tracked for diagnostics.
+        /// Membership of a specific instance is unaffected by connections which other tests create in parallel.
+        /// </summary>
+        internal bool IsTrackedForDiagnostics => _connections.EnumerateLive().Contains(this);
+
+        private readonly long _trackingId;
 
         internal const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
@@ -100,7 +109,7 @@ namespace Couchbase.Core.IO.Connections
                 }
             }
 
-            _connections.Add(new WeakReference<MultiplexingConnection>(this, false));
+            _trackingId = _connections.Add(this);
         }
 
         public string ContextId { get; }
@@ -411,6 +420,12 @@ namespace Couchbase.Core.IO.Connections
 
         public void Close()
         {
+            // Close is the single funnel for connection teardown; CloseAsync always ends here. Untracking
+            // eagerly keeps the diagnostics registry sized to the number of live connections rather than
+            // the number ever created, which matters because the pool scale controller cycles connections
+            // continuously under a bursty workload.
+            _connections.Remove(_trackingId);
+
             // set _closing just in case Close() was called before CloseAsync
             Interlocked.Exchange(ref _closing, 1);
 
