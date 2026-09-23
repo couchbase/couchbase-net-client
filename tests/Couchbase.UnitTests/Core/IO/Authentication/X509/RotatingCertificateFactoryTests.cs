@@ -382,6 +382,37 @@ public class RotatingCertificateFactoryTests(
     }
 
     [Fact]
+    public void GetCertificates_AfterDispose_ShouldNotStartTheTimer()
+    {
+        // Arrange
+        var callCount = 0;
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(() =>
+            {
+                callCount++;
+                return new X509Certificate2Collection();
+            });
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        factory.GetCertificates();
+        factory.Dispose();
+
+        // Act
+        factory.GetCertificates();
+
+        // A refresh only calls the underlying factory when a timer exists
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
     public void Dispose_CalledTwice_ShouldNotThrow()
     {
         // Arrange

@@ -40,8 +40,11 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
             {
                 _cachedCertificates = _certificateFactoryImplementation.GetCertificates();
 
-                _timer = TimerFactory.CreateWithFlowSuppressed(
-                    RefreshCertificates!, this, _interval, _interval);
+                if (!_disposed && _timer == null)
+                {
+                    _timer = TimerFactory.CreateWithFlowSuppressed(
+                        RefreshCertificates!, this, _interval, _interval);
+                }
             }
 
             return _cachedCertificates;
