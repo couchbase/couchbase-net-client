@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
@@ -15,8 +16,15 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
+using Couchbase.Management.Buckets;
+using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using Moq;
@@ -159,6 +167,391 @@ namespace Couchbase.UnitTests.Core
             context.Dispose();
 
             mockConfigHandler.Verify(x => x.Dispose(), Times.Once);
+        }
+
+        /// <summary>
+        /// _disposed is latched atomically before any teardown runs, so if Cancel() itself throws
+        /// (e.g. a callback registered on this token by unrelated code throws), the rest of Dispose()
+        /// - configHandler, semaphore, tokenSource, owned objects, buckets, nodes - must still run.
+        /// Without a guard around Cancel(), that throw would propagate out of Dispose() and skip
+        /// everything after it permanently, since a retried Dispose() call just returns immediately.
+        /// </summary>
+        [Fact]
+        public void Dispose_TokenCancellationCallbackThrows_StillDisposesTheRestOfTeardown()
+        {
+            var mockConfigHandler = new Mock<IConfigHandler>();
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService<IConfigHandler>(mockConfigHandler.Object);
+
+            var tokenSource = new CancellationTokenSource();
+            tokenSource.Token.Register(() => throw new InvalidOperationException("unrelated callback failure"));
+
+            var context = new ClusterContext(tokenSource, options);
+
+            var ex = Record.Exception(() => context.Dispose());
+
+            Assert.Null(ex);
+            mockConfigHandler.Verify(x => x.Dispose(), Times.Once);
+        }
+
+        #endregion
+
+        #region Dispose vs. in-flight bucket open
+
+        /// <summary>
+        /// GetOrCreateBucketLockedAsync holds _semaphore for the duration of the bootstrap attempt.
+        /// If Dispose() runs concurrently and disposes the semaphore before this call gets back to
+        /// releasing it, the bare _semaphore.Release() in its finally block used to throw
+        /// ObjectDisposedException - discarding whatever the bootstrap attempt actually produced and
+        /// replacing it with an unrelated, confusing exception.
+        /// </summary>
+        [Fact]
+        public async Task GetOrCreateBucketLockedAsync_DisposedWhileInFlight_ThrowsCancellationInsteadOfObjectDisposedException()
+        {
+            // Completing connectGate is deliberately deferred until after Dispose() has returned
+            // (see below), rather than done from this callback. RunContinuationsAsynchronously only
+            // keeps its continuation off Cancel()'s call stack - it does not guarantee that
+            // continuation loses the race against the rest of Dispose(). Only recording that
+            // cancellation happened here, and completing connectGate afterwards, makes "the semaphore
+            // is already disposed before Release() is attempted" a sequenced fact instead of a race.
+            var connectGate = new TaskCompletionSource<IClusterNode>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var cancellationObserved = false;
+            var reachedGate = new AsyncCounter();
+            var nodeFactoryMock = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .Returns((HostEndpointWithPort _, CancellationToken token) =>
+                {
+                    token.Register(() => cancellationObserved = true);
+                    reachedGate.Increment();
+                    return connectGate.Task;
+                });
+
+            var options = new ClusterOptions().WithConnectionString("couchbase://node1").WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
+
+            var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            // Starts GetOrCreateBucketLockedAsync, which acquires _semaphore and blocks inside
+            // CreateAndConnectAsync - simulating a bucket open still in flight when shutdown begins.
+            var bucketTask = context.GetOrCreateBucketAsync("default").AsTask();
+
+            // Waits for the call to actually be inside CreateAndConnectAsync with its cancellation
+            // callback registered, rather than guessing at how long that takes.
+            await reachedGate.WaitForAsync(1);
+
+            context.Dispose();
+
+            // Dispose() is synchronous and Cancel() runs registrations synchronously, so by the time
+            // Dispose() returns here, cancellation has already been observed and _semaphore has
+            // already been disposed - deterministically, not a race with the continuation below.
+            Assert.True(cancellationObserved);
+
+            // Only now let the blocked bootstrap attempt unblock and reach its finally block, with
+            // the semaphore's disposal already guaranteed to have happened first.
+            connectGate.TrySetCanceled();
+
+            // If a regression drops the Cancel() call in Dispose(), bucketTask never completes and
+            // this hangs. That is deliberate: CI runs with --blame-hang, which turns a hang into a
+            // named failure plus a dump, whereas a wall-clock bound turns a slow agent into one.
+            var ex = await Record.ExceptionAsync(() => bucketTask);
+
+            // connectGate is deterministically cancelled above, so assert that outcome directly
+            // rather than merely "not ObjectDisposedException" - which would also pass for an
+            // unrelated failure that never actually preserved the cancellation result.
+            Assert.IsType<TaskCanceledException>(ex);
+        }
+
+        /// <summary>
+        /// Cancellation is cooperative, and several of the awaits inside
+        /// CreateAndBootStrapBucketAsync (SelectBucketAsync, GetClusterMap, BootstrapAsync) don't
+        /// observe the token Dispose() cancels. So a bootstrap can still complete successfully after
+        /// Dispose() has already drained Buckets - without a guard, GetOrCreateBucketLockedAsync would
+        /// hand back a "successfully bootstrapped" bucket owned by an already-disposed context, and
+        /// nothing would ever dispose it.
+        /// </summary>
+        [Fact]
+        public async Task GetOrCreateBucketLockedAsync_BootstrapCompletesAfterDispose_DisposesLateBucketInsteadOfReturningIt()
+        {
+            // config-error.json has a matching Nodes + NodesExt entry for 10.143.194.101, and already
+            // carries "cccp" in bucketCapabilities and a non-null vBucketServerMap.
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var endpoint = new HostEndpointWithPort("10.143.194.101", 11210);
+
+            var mockNode = new Mock<IClusterNode>();
+            mockNode.SetupGet(n => n.EndPoint).Returns(endpoint);
+            mockNode.SetupGet(n => n.IsAssigned).Returns(false);
+            mockNode.Setup(n => n.SelectBucketAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            mockNode.Setup(n => n.GetClusterMap(null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(config));
+
+            var mockConfigHandler = new Mock<IConfigHandler>();
+
+            // BootstrapAsync never observes cancellation, simulating the real, cancellation-unaware
+            // awaits noted above.
+            var bootstrapGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var reachedBootstrap = new AsyncCounter();
+            LateBucket lateBucket = null;
+            var bucketFactoryMock = new Mock<IBucketFactory>();
+            ClusterContext context = null;
+            bucketFactoryMock.Setup(f => f.Create(It.IsAny<string>(), It.IsAny<BucketType>(), It.IsAny<BucketConfig>()))
+                .Returns((string name, BucketType _, BucketConfig _) =>
+                {
+                    lateBucket = new LateBucket(name, context, bootstrapGate.Task, reachedBootstrap);
+                    return lateBucket;
+                });
+
+            var options = new ClusterOptions().WithConnectionString("couchbase://10.143.194.101").WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IBucketFactory>(bucketFactoryMock.Object);
+            options.AddClusterService<IConfigHandler>(mockConfigHandler.Object);
+
+            context = new ClusterContext(new CancellationTokenSource(), options);
+            context.AddNode(mockNode.Object);
+
+            // Starts the bootstrap, which reaches BootstrapAsync and blocks there - simulating a
+            // bucket open still in flight, past the point of no return, when shutdown begins.
+            var bucketTask = context.GetOrCreateBucketAsync("default").AsTask();
+
+            // Waits for the bootstrap to actually be parked inside BootstrapAsync.
+            await reachedBootstrap.WaitForAsync(1);
+
+            context.Dispose();
+
+            // Let the "late" bootstrap complete now that the context is already disposed.
+            bootstrapGate.SetResult(true);
+
+            var ex = await Record.ExceptionAsync(() => bucketTask);
+
+            Assert.IsType<ObjectDisposedException>(ex);
+            Assert.NotNull(lateBucket);
+            Assert.True(lateBucket.DisposeCalled);
+
+            // RegisterBucket subscribed the late bucket to _configHandler before we ever knew the
+            // context was disposed; DisposeAsync() must unsubscribe it too, or the disposed bucket
+            // stays referenced by the subscriber list forever.
+            mockConfigHandler.Verify(x => x.Subscribe(lateBucket), Times.Once);
+            mockConfigHandler.Verify(x => x.Unsubscribe(lateBucket), Times.Once);
+        }
+
+        /// <summary>
+        /// The disposed-check used to sit only inside the `IsBootstrapped: true` branch. The real
+        /// CouchbaseBucket.BootstrapAsync captures its own exceptions and returns normally instead of
+        /// throwing, so a bootstrap that fails this way (IsBootstrapped false, no exception) skipped
+        /// the check entirely: the loop moved on to a second endpoint, whose first move touched the
+        /// already-disposed _tokenSource and threw an unrelated, confusing ObjectDisposedException -
+        /// or, with only one endpoint, silently discarded the real failure behind a
+        /// BucketNotFoundException - while the failed bucket itself was never disposed.
+        /// </summary>
+        [Fact]
+        public async Task GetOrCreateBucketLockedAsync_FirstBootstrapFailsSoftlyAfterDispose_DisposesBucketWithoutRetryingSecondEndpoint()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var endpoint1 = new HostEndpointWithPort("10.143.194.101", 11210);
+
+            var mockNode1 = new Mock<IClusterNode>();
+            mockNode1.SetupGet(n => n.EndPoint).Returns(endpoint1);
+            mockNode1.SetupGet(n => n.IsAssigned).Returns(false);
+            mockNode1.Setup(n => n.SelectBucketAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            mockNode1.Setup(n => n.GetClusterMap(null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(config));
+
+            // The gate lets BootstrapAsync's completion land after Dispose() has already run, without
+            // needing a real race - bootstrapSucceeds: false makes it "fail softly" the way the real
+            // CouchbaseBucket.BootstrapAsync does.
+            var bootstrapGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var reachedBootstrap = new AsyncCounter();
+            LateBucket lateBucket = null;
+            var bucketFactoryMock = new Mock<IBucketFactory>();
+            ClusterContext context = null;
+            bucketFactoryMock.Setup(f => f.Create(It.IsAny<string>(), It.IsAny<BucketType>(), It.IsAny<BucketConfig>()))
+                .Returns((string name, BucketType _, BucketConfig _) =>
+                {
+                    lateBucket = new LateBucket(name, context, bootstrapGate.Task, reachedBootstrap, bootstrapSucceeds: false);
+                    return lateBucket;
+                });
+
+            var secondEndpointCalled = false;
+            var nodeFactoryMock = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(new HostEndpointWithPort("10.143.194.103", 11210), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    secondEndpointCalled = true;
+                    return Task.FromException<IClusterNode>(new InvalidOperationException("second endpoint should never be attempted"));
+                });
+
+            var options = new ClusterOptions().WithConnectionString("couchbase://10.143.194.101,10.143.194.103?random_seed_nodes=false").WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IBucketFactory>(bucketFactoryMock.Object);
+            options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
+
+            context = new ClusterContext(new CancellationTokenSource(), options);
+            context.AddNode(mockNode1.Object);
+
+            // Starts the bootstrap against the first endpoint, which reaches BootstrapAsync and
+            // blocks there - simulating a bucket open still in flight when shutdown begins.
+            var bucketTask = context.GetOrCreateBucketAsync("default").AsTask();
+
+            // Waits for the bootstrap to actually be parked inside BootstrapAsync.
+            await reachedBootstrap.WaitForAsync(1);
+
+            context.Dispose();
+
+            // Let the first endpoint's bootstrap finish - softly failed - now that the context is
+            // already disposed.
+            bootstrapGate.SetResult(true);
+
+            var ex = await Record.ExceptionAsync(() => bucketTask);
+
+            Assert.IsType<ObjectDisposedException>(ex);
+            Assert.NotNull(lateBucket);
+            Assert.True(lateBucket.DisposeCalled);
+            Assert.False(secondEndpointCalled);
+        }
+
+        /// <summary>
+        /// With more than one bootstrap endpoint, a disposal-triggered cancellation on the first
+        /// endpoint must propagate immediately. Falling through to the generic retry handler would
+        /// try a second, already-doomed endpoint - whose very first move (reading CancellationToken)
+        /// throws ObjectDisposedException against the now-disposed _tokenSource, replacing the
+        /// meaningful cancellation with the confusing exception this whole fix exists to avoid.
+        /// </summary>
+        [Fact]
+        public async Task GetOrCreateBucketLockedAsync_DisposedDuringFirstEndpoint_DoesNotRetrySecondEndpoint()
+        {
+            var connectGate = new TaskCompletionSource<IClusterNode>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var secondEndpointCalled = false;
+            var reachedFirstEndpoint = new AsyncCounter();
+
+            var nodeFactoryMock = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(new HostEndpointWithPort("node1", 11210), It.IsAny<CancellationToken>()))
+                .Returns((HostEndpointWithPort _, CancellationToken token) =>
+                {
+                    token.Register(() => connectGate.TrySetCanceled(token));
+                    reachedFirstEndpoint.Increment();
+                    return connectGate.Task;
+                });
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(new HostEndpointWithPort("node2", 11210), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    secondEndpointCalled = true;
+                    return Task.FromException<IClusterNode>(new InvalidOperationException("node2 should never be attempted"));
+                });
+
+            var options = new ClusterOptions().WithConnectionString("couchbase://node1,node2?random_seed_nodes=false").WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
+
+            var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            var bucketTask = context.GetOrCreateBucketAsync("default").AsTask();
+
+            // Waits for the first endpoint's connect attempt to actually be in flight.
+            await reachedFirstEndpoint.WaitForAsync(1);
+
+            context.Dispose();
+
+            var ex = await Record.ExceptionAsync(() => bucketTask);
+
+            Assert.IsType<TaskCanceledException>(ex);
+            Assert.False(secondEndpointCalled);
+        }
+
+        /// <summary>
+        /// The opposite case: an ObjectDisposedException unrelated to the ClusterContext's own
+        /// disposal (e.g. some other, already-disposed resource on the first node) must not disable
+        /// the existing per-endpoint fallback - the loop should still try the next endpoint.
+        /// </summary>
+        [Fact]
+        public async Task GetOrCreateBucketLockedAsync_UnrelatedObjectDisposedExceptionOnFirstEndpoint_StillTriesSecondEndpoint()
+        {
+            var nodeFactoryMock = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(new HostEndpointWithPort("node1", 11210), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ObjectDisposedException("unrelated-connection"));
+            nodeFactoryMock.Setup(f => f.CreateAndConnectAsync(new HostEndpointWithPort("node2", 11210), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("node2 was attempted"));
+
+            var options = new ClusterOptions().WithConnectionString("couchbase://node1,node2?random_seed_nodes=false").WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService<IClusterNodeFactory>(nodeFactoryMock.Object);
+
+            using var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            var ex = await Record.ExceptionAsync(() => context.GetOrCreateBucketAsync("default").AsTask());
+
+            Assert.IsType<InvalidOperationException>(ex);
+        }
+
+        /// <summary>
+        /// Minimal <see cref="BucketBase"/> whose BootstrapAsync completes only when told to, so a
+        /// test can control exactly when a bootstrap - successful, or soft-failed via
+        /// bootstrapSucceeds: false - lands relative to Dispose().
+        /// </summary>
+        private class LateBucket : BucketBase
+        {
+            private readonly Task _bootstrapGate;
+            private readonly AsyncCounter _reachedBootstrap;
+            private readonly bool _bootstrapSucceeds;
+
+            public bool DisposeCalled { get; private set; }
+
+            public LateBucket(string name, ClusterContext context, Task bootstrapGate, AsyncCounter reachedBootstrap, bool bootstrapSucceeds = true)
+                : base(name, context,
+                    new Mock<IScopeFactory>().Object,
+                    new Mock<IRetryOrchestrator>().Object,
+                    new Mock<ILogger>().Object,
+                    new TypedRedactor(RedactionLevel.None),
+                    new Mock<IBootstrapperFactory>().Object,
+                    NoopRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object,
+                    new BestEffortRetryStrategy(),
+                    new Mock<BucketConfig>().Object)
+            {
+                _bootstrapGate = bootstrapGate;
+                _reachedBootstrap = reachedBootstrap;
+                _bootstrapSucceeds = bootstrapSucceeds;
+            }
+
+            public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
+
+            public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
+
+            public override IScope Scope(string scopeName) => throw new NotImplementedException();
+
+            public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null) =>
+                throw new NotImplementedException();
+
+            public override Task ForceConfigUpdateAsync() => throw new NotImplementedException();
+
+            internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default) =>
+                throw new NotImplementedException();
+
+            // The real CouchbaseBucket.BootstrapAsync captures its own exceptions and returns
+            // normally rather than throwing - _bootstrapSucceeds: false mirrors that "soft failure"
+            // shape (IsBootstrapped ends up false, but nothing propagates as an exception).
+            internal override async Task BootstrapAsync(IClusterNode bootstrapNode)
+            {
+                _reachedBootstrap.Increment();
+                await _bootstrapGate.ConfigureAwait(false);
+                if (!_bootstrapSucceeds)
+                {
+                    CaptureException(new InvalidOperationException("simulated soft bootstrap failure"));
+                }
+            }
+
+            public override Task ConfigUpdatedAsync(BucketConfig newConfig) => Task.CompletedTask;
+
+            public override void Dispose()
+            {
+                DisposeCalled = true;
+                base.Dispose();
+            }
         }
 
         #endregion

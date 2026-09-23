@@ -622,6 +622,25 @@ namespace Couchbase.Core
                         bucket = await CreateAndBootStrapBucketAsync(name, server)
                             .ConfigureAwait(false);
 
+                        if (_disposed != 0)
+                        {
+                            // Cancellation is cooperative and some of the awaits inside
+                            // CreateAndBootStrapBucketAsync don't observe it (e.g. SelectBucketAsync,
+                            // GetClusterMap, BootstrapAsync), so a bootstrap can finish - successfully or
+                            // not - after Dispose() has already drained Buckets. This has to run
+                            // regardless of whether bootstrap succeeded: a bucket that fails to bootstrap
+                            // captures its own exception and returns normally with IsBootstrapped false
+                            // rather than throwing, so checking only inside the IsBootstrapped branch
+                            // below would miss that path, leave the bucket (and its unconditionally
+                            // started Bootstrapper) undisposed, and let the next endpoint's attempt touch
+                            // the already-disposed _tokenSource instead. Let DisposeAsync() remove it
+                            // from Buckets itself (via Context.RemoveBucket) so it also unsubscribes from
+                            // _configHandler; removing it here first would make that removal a no-op and
+                            // leak the subscription.
+                            await bucket.DisposeAsync().ConfigureAwait(false);
+                            throw new ObjectDisposedException(nameof(ClusterContext));
+                        }
+
                         if (bucket is Bootstrapping.IBootstrappable {IsBootstrapped: true})
                         {
                             return bucket;
@@ -636,6 +655,14 @@ namespace Couchbase.Core
                         _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
                             "Bootstrapping: cannot bootstrap bucket {name}.", name);
                         lastException = e;
+                        if (_disposed != 0)
+                        {
+                            // The context is disposed - whatever just failed, retrying another
+                            // endpoint against a disposed context wastes work and risks surfacing an
+                            // unrelated ObjectDisposedException (e.g. from touching the already-disposed
+                            // _tokenSource) in place of this exception, which is the meaningful one.
+                            throw;
+                        }
                         if (e is System.Security.Authentication.AuthenticationException authException
                             && authException.Message.Contains("certificate"))
                         {
@@ -655,7 +682,16 @@ namespace Couchbase.Core
             }
             finally
             {
-                _semaphore.Release();
+                try
+                {
+                    _semaphore.Release();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The context was disposed while this call was in flight. There's no one left
+                    // to release the semaphore for, and rethrowing here would mask the bucket or
+                    // exception the try block above already produced.
+                }
             }
 
             if(lastException != null)
@@ -1055,6 +1091,21 @@ namespace Couchbase.Core
             if (Interlocked.Exchange(ref _disposed, 1) != 0)
             {
                 return;
+            }
+
+            // Cancel first so anything awaiting or holding _semaphore (e.g. an in-flight
+            // GetOrCreateBucketLockedAsync call) unwinds promptly instead of racing the
+            // semaphore's disposal below.
+            try
+            {
+                _tokenSource?.Cancel();
+            }
+            catch (Exception ex)
+            {
+                // A throwing cancellation callback must not abandon the rest of teardown: _disposed
+                // is already latched above, so anything skipped here would be skipped for good on a
+                // retried Dispose().
+                _logger.LogWarning(ex, "Error cancelling the cluster token source during disposal.");
             }
 
             _configHandler?.Dispose();
