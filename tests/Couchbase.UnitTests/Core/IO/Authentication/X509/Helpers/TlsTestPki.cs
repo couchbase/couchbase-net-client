@@ -18,18 +18,23 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 /// </remarks>
 internal static class TlsTestPki
 {
+    public const string ServerAuthOid = "1.3.6.1.5.5.7.3.1";
+    public const string ClientAuthOid = "1.3.6.1.5.5.7.3.2";
+
     /// <summary>
     /// Creates a CA certificate, self-signed when <paramref name="issuer"/> is null.
     /// </summary>
     /// <param name="pathLengthConstraint">
     /// Maximum number of intermediate CAs permitted below this one. Null means unconstrained.
     /// </param>
+    /// <param name="ekus">Extended key usages to add. Null means no EKU extension.</param>
     public static X509Certificate2 CreateCa(
         string commonName,
         X509Certificate2? issuer = null,
         int? pathLengthConstraint = null,
         DateTimeOffset? notBefore = null,
-        DateTimeOffset? notAfter = null)
+        DateTimeOffset? notAfter = null,
+        OidCollection? ekus = null)
     {
         var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={commonName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -40,6 +45,10 @@ internal static class TlsTestPki
             critical: true));
         request.CertificateExtensions.Add(new X509KeyUsageExtension(
             X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, critical: true));
+        if (ekus != null)
+        {
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(ekus, critical: false));
+        }
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
 
         // CAs start well in the past so that certificates below them have room to be minted as expired.
@@ -61,12 +70,14 @@ internal static class TlsTestPki
     /// Creates a TLS server certificate with <paramref name="dnsName"/> as its only SAN, self-signed when
     /// <paramref name="issuer"/> is null.
     /// </summary>
+    /// <param name="ekus">Extended key usages to add. Null means serverAuth only.</param>
     public static X509Certificate2 CreateServerLeaf(
         string commonName,
         string dnsName,
         X509Certificate2? issuer = null,
         DateTimeOffset? notBefore = null,
-        DateTimeOffset? notAfter = null)
+        DateTimeOffset? notAfter = null,
+        OidCollection? ekus = null)
     {
         var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={commonName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -75,7 +86,7 @@ internal static class TlsTestPki
         request.CertificateExtensions.Add(new X509KeyUsageExtension(
             X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, critical: true));
         request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
-            new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") /* serverAuth */ }, critical: false));
+            ekus ?? new OidCollection { new Oid(ServerAuthOid) }, critical: false));
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
 
         var san = new SubjectAlternativeNameBuilder();

@@ -3,6 +3,7 @@
 using System;
 using System.Linq;
 using System.Net.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication;
@@ -240,6 +241,35 @@ public sealed class ServerCertificateValidatorTests : IDisposable
 
         HandshakeAssert.RejectedByValidator(result,
             "A chain that violates the root's pathLenConstraint must be rejected.");
+    }
+
+    [Fact]
+    public async Task ClientAuthOnlyLeaf_Rejects()
+    {
+        using var clientAuthLeaf = TlsTestPki.CreateServerLeaf(
+            "Client Auth Leaf", LeafDnsName, issuer: _intermediate,
+            ekus: new OidCollection { new Oid(TlsTestPki.ClientAuthOid) });
+        using var bundle = new TrustBundle(_root);
+
+        var result = await Handshake(clientAuthLeaf, new[] { _intermediate }, bundle);
+
+        HandshakeAssert.RejectedByValidator(result, "A leaf limited to clientAuth must not serve TLS.");
+    }
+
+    [Fact]
+    public async Task ClientAuthOnlyIntermediate_Rejects()
+    {
+        using var clientAuthIntermediate = TlsTestPki.CreateCa(
+            "Client Auth Intermediate CA", issuer: _root,
+            ekus: new OidCollection { new Oid(TlsTestPki.ClientAuthOid) });
+        using var leafUnderIt = TlsTestPki.CreateServerLeaf(
+            "Leaf Under Client Auth CA", LeafDnsName, issuer: clientAuthIntermediate);
+        using var bundle = new TrustBundle(_root);
+
+        var result = await Handshake(leafUnderIt, new[] { clientAuthIntermediate }, bundle);
+
+        HandshakeAssert.RejectedByValidator(result,
+            "An intermediate limited to clientAuth must not issue a TLS server certificate.");
     }
 
     [Fact]
