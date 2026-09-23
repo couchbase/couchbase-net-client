@@ -159,8 +159,8 @@ namespace Couchbase.Core.IO.Authentication
 #else
         private bool ChainsToTrustedCertificate(X509Certificate certificate, X509Chain chain)
         {
-            // Everything placed in the stores of this chain is a copy owned here, so nothing the caller or
-            // the runtime holds can be disposed by this method.
+            // Every certificate given to this chain is a copy owned here, so nothing the caller or the
+            // runtime holds can be disposed by this method.
             var ownedCertificates = new List<X509Certificate2>();
             using var ownChain = new X509Chain();
             try
@@ -183,7 +183,7 @@ namespace Couchbase.Core.IO.Authentication
                     policy.ExtraStore.Add(Copy(presented, ownedCertificates));
                 }
 
-                var leaf = certificate as X509Certificate2 ?? Copy(certificate, ownedCertificates);
+                var leaf = Copy(certificate, ownedCertificates);
                 var isTrusted = ownChain.Build(leaf);
 
                 LogOutcome(isTrusted, leaf, ownChain);
