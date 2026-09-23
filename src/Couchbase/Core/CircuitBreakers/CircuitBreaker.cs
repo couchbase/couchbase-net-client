@@ -31,7 +31,7 @@ namespace Couchbase.Core.CircuitBreakers
             }
             else
             {
-                _state = (int)CircuitBreakerState.Disabled;
+                _state = (long)CircuitBreakerState.Disabled;
             }
         }
 
@@ -43,51 +43,92 @@ namespace Couchbase.Core.CircuitBreakers
 
         public bool AllowsRequest()
         {
-            if (Interlocked.Read(ref _state) == (int)CircuitBreakerState.Closed) return true;
+            // A disabled breaker refuses nothing and records nothing. ClusterNode short circuits
+            // on Enabled before it reaches any of this, so this guard and the ones on the mutators
+            // only protect a caller that does not - without them MarkFailure walks a disabled
+            // breaker to Open and it starts refusing traffic, and Reset quietly enables it.
+            if (!_configuration.Enabled) return true;
+
+            // Read the state once and decide from that snapshot. Re-reading the field part way
+            // through lets the answer straddle two different states.
+            var state = Interlocked.Read(ref _state);
+            if (state == (long)CircuitBreakerState.Closed) return true;
 
             var now = _timeProvider.GetUtcNow().Ticks;
-            var circuitOpenedTime = Interlocked.Read(ref _circuitOpenedTime);
-            var circuitOpenedTimePlusSleep = Interlocked.Add(ref circuitOpenedTime, _configuration.SleepWindow.Ticks);
-            var sleepingWindowElasped = circuitOpenedTimePlusSleep < now;
-            return sleepingWindowElasped && Interlocked.Read(ref _state) == (int)CircuitBreakerState.Open;
+            var sleepWindowElapsed =
+                now - Interlocked.Read(ref _circuitOpenedTime) > _configuration.SleepWindow.Ticks;
+
+            // Only an open circuit gets to send the canary. Half open means one is already in flight.
+            return sleepWindowElapsed && state == (long)CircuitBreakerState.Open;
         }
 
         public void MarkSuccess()
         {
-            var initialValue = Interlocked.CompareExchange(ref _state,
-                (int) CircuitBreakerState.Closed, (int)CircuitBreakerState.HalfOpen);
-            if (initialValue != _state)
+            if (!_configuration.Enabled) return;
+
+            // CompareExchange returns the value the field held *before* the call, so comparing it
+            // to the comparand is what tells us the swap happened. Re-reading _state instead races
+            // with any other thread that moved it in the meantime.
+            var previousState = Interlocked.CompareExchange(ref _state,
+                (long)CircuitBreakerState.Closed, (long)CircuitBreakerState.HalfOpen);
+
+            if (previousState == (long)CircuitBreakerState.HalfOpen)
             {
-                Reset();
+                // The canary came back clean, so the node is healthy again. The CAS has already
+                // published Closed, so clear the window without writing the state a second time:
+                // a trip that raced in between then survives instead of being stomped back.
+                ClearWindow();
             }
             else
             {
                 CleanRollingWindow();
-                _totalCount = Interlocked.Increment(ref _totalCount);
+                Interlocked.Increment(ref _totalCount);
             }
         }
 
         public void MarkFailure()
         {
-            Interlocked.CompareExchange(ref _state, (int)CircuitBreakerState.HalfOpen,
-                (int)CircuitBreakerState.Open);
+            if (!_configuration.Enabled) return;
 
-            if (State == CircuitBreakerState.Open)
+            // Half open -> open: a failed canary reopens the circuit. Note that CompareExchange
+            // takes the comparand last, not second. This ran the other way round, dragging an
+            // *open* circuit back to half open, which made ClusterNode fire a canary at a node
+            // the sleep window was still meant to be shielding.
+            var previousState = Interlocked.CompareExchange(ref _state,
+                (long)CircuitBreakerState.Open, (long)CircuitBreakerState.HalfOpen);
+
+            if (previousState == (long)CircuitBreakerState.HalfOpen)
             {
-                _circuitOpenedTime = _timeProvider.GetUtcNow().Ticks;
+                // The canary failed. Reopen the circuit and start the sleep window again.
+                Interlocked.Exchange(ref _circuitOpenedTime, _timeProvider.GetUtcNow().Ticks);
             }
             else
             {
                 CleanRollingWindow();
-                _failedCount = Interlocked.Increment(ref _failedCount);
-                _totalCount = Interlocked.Increment(ref _totalCount);
+
+                // Count the operation before the failure, so that a reader of the two counters
+                // can never see more failures than operations and compute a rate above 100%.
+                Interlocked.Increment(ref _totalCount);
+                Interlocked.Increment(ref _failedCount);
                 CheckIfTripped();
             }
         }
 
         public void Reset()
         {
-            Interlocked.Exchange(ref _state, (int) CircuitBreakerState.Closed);
+            if (!_configuration.Enabled) return;
+
+            // State last, so the circuit is never observable as closed over counts that still
+            // hold the failures it was reset to forget.
+            ClearWindow();
+            Interlocked.Exchange(ref _state, (long) CircuitBreakerState.Closed);
+        }
+
+        /// <summary>
+        /// Clears the counts and the window timestamps, leaving the state alone.
+        /// </summary>
+        private void ClearWindow()
+        {
             // Exchange returns the *previous* value, so assigning it back restored the very counts
             // the reset was meant to clear. A circuit that recovered kept its old failures and
             // re-tripped on the next one.
@@ -95,39 +136,54 @@ namespace Couchbase.Core.CircuitBreakers
             Interlocked.Exchange(ref _totalCount, 0);
 
             var now = _timeProvider.GetUtcNow().Ticks;
-            _circuitOpenedTime = now;
-            _windowStartTime = now;
+            Interlocked.Exchange(ref _circuitOpenedTime, now);
+            Interlocked.Exchange(ref _windowStartTime, now);
         }
 
         public void Track()
         {
+            if (!_configuration.Enabled) return;
+
             Interlocked.CompareExchange(ref _state,
-                (int)CircuitBreakerState.HalfOpen, (int)CircuitBreakerState.Open);
+                (long)CircuitBreakerState.HalfOpen, (long)CircuitBreakerState.Open);
         }
 
         private void CleanRollingWindow()
         {
             var now = _timeProvider.GetUtcNow().Ticks;
-            if (now - _windowStartTime > _configuration.RollingWindow.Ticks)
+            if (now - Interlocked.Read(ref _windowStartTime) > _configuration.RollingWindow.Ticks)
             {
-                _windowStartTime = now;
+                Interlocked.Exchange(ref _windowStartTime, now);
                 Interlocked.Exchange(ref _failedCount, 0);
                 Interlocked.Exchange(ref _totalCount, 0);
-                Interlocked.Exchange(ref _state, (int)CircuitBreakerState.Closed);
+
+                // Rolling the window forgets the old counts, nothing more. Closing the circuit
+                // here handed a dead node a fresh flood of traffic once per rolling window.
             }
         }
 
         private void CheckIfTripped()
         {
-            if (_totalCount < _configuration.VolumeThreshold) return;
+            // Snapshot both counters, otherwise the rate is computed across two different windows.
+            var failedCount = _failedCount;
+            var totalCount = _totalCount;
+
+            if (totalCount < _configuration.VolumeThreshold) return;
 
             var percentThreshold = _configuration.ErrorThresholdPercentage;
-            var currentThreshold = ((float)_failedCount / _totalCount * 100);
+            var currentThreshold = ((float)failedCount / totalCount * 100);
 
             if (currentThreshold >= percentThreshold)
             {
-                _state = (int)CircuitBreakerState.Open;
-                _circuitOpenedTime = _timeProvider.GetUtcNow().Ticks;
+                // Only a circuit that actually trips starts the sleep window. Re-affirming one
+                // that is already open used to restart it, so every failure draining from a dead
+                // node - and every canary a half-open circuit spawns - pushed the next probe
+                // further out. A half-open circuit is left alone; its canary decides.
+                if (Interlocked.CompareExchange(ref _state, (long)CircuitBreakerState.Open,
+                        (long)CircuitBreakerState.Closed) == (long)CircuitBreakerState.Closed)
+                {
+                    Interlocked.Exchange(ref _circuitOpenedTime, _timeProvider.GetUtcNow().Ticks);
+                }
             }
         }
 
