@@ -25,10 +25,9 @@ namespace Couchbase.Core.IO.Authentication
     /// chain SslStream hands in is never modified.
     /// </para>
     /// <para>
-    /// The host name is checked twice, once by the platform and once here. Windows reports only the chain
-    /// failure when a certificate is both issued for another host and signed by a CA the OS does not know.
-    /// That combination is the normal case for a private or Capella CA, so the platform verdict on its own
-    /// accepts a certificate that belongs to a different host.
+    /// Windows reports only the chain failure when a certificate is both issued for another host and signed
+    /// by a CA the OS does not know. That is the normal case for a private or Capella CA. So when the platform
+    /// reports a chain error, this class checks the host name itself before it rebuilds the chain.
     /// </para>
     /// <para>
     /// The second check needs X509Certificate2.MatchesHostname, added in .NET 7. The netstandard builds run
@@ -78,7 +77,7 @@ namespace Couchbase.Core.IO.Authentication
                     _logger.LogDebug("X509 ignoring certificate name mismatch");
                 }
             }
-            else if (reportedNameMismatch || !MatchesTargetHost(sender, certificate))
+            else if (reportedNameMismatch)
             {
                 _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
                 return false;
@@ -93,6 +92,13 @@ namespace Couchbase.Core.IO.Authentication
             if (errors != SslPolicyErrors.RemoteCertificateChainErrors)
             {
                 _logger.LogInformation("X509 certificate rejected ({SslPolicyErrors})", errors);
+                return false;
+            }
+
+            // Windows hides a name mismatch when the chain is also untrusted.
+            if (!_ignoreNameMismatch && !MatchesTargetHost(sender, certificate))
+            {
+                _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
                 return false;
             }
 

@@ -332,6 +332,22 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ChainErrorOnly_WrongHost_Rejects()
+    {
+        // Windows reports only the chain error when the host is wrong and the CA is not in the OS store.
+        using var bundle = new TrustBundle(_root);
+        var validator = CreateValidator(bundle.Certificates);
+
+        var result = await TlsLoopback.RunAsync(_leaf, new[] { _intermediate },
+            (sender, certificate, chain, errors) =>
+                validator.Validate(sender, certificate, chain, errors & ~SslPolicyErrors.RemoteCertificateNameMismatch),
+            WrongHostName, _output);
+
+        HandshakeAssert.RejectedByValidator(result,
+            "A wrong host must be rejected even when the platform reports only a chain error.");
+    }
+
+    [Fact]
     public async Task WildcardLeaf_MatchingHostName_Accepts()
     {
         // Capella issues wildcard node certificates, so the name check has to honour them.
