@@ -371,8 +371,6 @@ public class RotatingCertificateFactoryTests(
         factory.Dispose();
         var countAfterDispose = Volatile.Read(ref callCount);
 
-        await Task.Delay(200);
-
         // A refresh that runs after Dispose must not call the underlying factory
         factory.RefreshCertificates(factory);
 
