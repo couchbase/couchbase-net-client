@@ -79,7 +79,7 @@ namespace Couchbase.Core.IO.Authentication
             }
             else if (reportedNameMismatch)
             {
-                _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
+                LogNameMismatch(sender, certificate);
                 return false;
             }
 
@@ -98,11 +98,26 @@ namespace Couchbase.Core.IO.Authentication
             // Windows hides a name mismatch when the chain is also untrusted.
             if (!_ignoreNameMismatch && !MatchesTargetHost(sender, certificate))
             {
-                _logger.LogInformation("X509 certificate name does not match the target host, rejecting");
+                LogNameMismatch(sender, certificate);
                 return false;
             }
 
             return ChainsToTrustedCertificate(certificate, chain);
+        }
+
+        private void LogNameMismatch(object sender, X509Certificate certificate)
+        {
+            _logger.LogInformation("X509 certificate {Subject} does not match the target host {TargetHost}, rejecting",
+                _redactor.SystemData(certificate.Subject), _redactor.SystemData(TargetHostName(sender)));
+        }
+
+        private static string? TargetHostName(object sender)
+        {
+#if NET5_0_OR_GREATER
+            return (sender as SslStream)?.TargetHostName;
+#else
+            return null;
+#endif
         }
 
 #if NET7_0_OR_GREATER

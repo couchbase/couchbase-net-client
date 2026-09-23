@@ -324,11 +324,13 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     {
         // The chain itself is fine, so only the hostname gate can reject here.
         using var bundle = new TrustBundle(_root);
+        var logger = new RecordingLogger(debugEnabled: false);
 
-        var result = await Handshake(_leaf, new[] { _intermediate }, bundle, targetHost: WrongHostName);
+        var result = await Handshake(_leaf, new[] { _intermediate }, bundle, targetHost: WrongHostName, logger: logger);
 
         HandshakeAssert.RejectedByValidator(result,
             "A certificate that does not match the requested host must be rejected by default.");
+        Assert.Contains(logger.Messages, m => m.Contains(WrongHostName) && m.Contains(_leaf.Subject));
     }
 
     [Fact]
