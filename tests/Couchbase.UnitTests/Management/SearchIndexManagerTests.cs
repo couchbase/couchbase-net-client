@@ -1,10 +1,8 @@
 using System;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Search;
 using Couchbase.UnitTests.Helpers;
@@ -18,10 +16,10 @@ namespace Couchbase.UnitTests.Management
     public class SearchIndexManagerTests
     {
         [Theory]
-        [InlineData("{\"status\":\"ok\",\"indexDefs\":null}")]
-        [InlineData("{\"status\":\"ok\",\"indexDefs\":{\"indexDefs\":null}}")]
-        [InlineData("{\"status\":\"ok\",\"indexDefs\":{\"uuid\":\"abc\",\"implVersion\":\"5.7.0\"}}")]
-        [InlineData("{\"status\":\"ok\"}")]
+        [InlineData("""{"status":"ok","indexDefs":null}""")]
+        [InlineData("""{"status":"ok","indexDefs":{"indexDefs":null}}""")]
+        [InlineData("""{"status":"ok","indexDefs":{"uuid":"abc","implVersion":"5.7.0"}}""")]
+        [InlineData("""{"status":"ok"}""")]
         public async Task GetAllIndexesAsync_NoIndexes_ReturnsEmpty(string responseBody)
         {
             var manager = CreateManager(responseBody);
@@ -34,10 +32,26 @@ namespace Couchbase.UnitTests.Management
         [Fact]
         public async Task GetAllIndexesAsync_OneIndex_ReturnsIndex()
         {
-            const string responseBody = "{\"status\":\"ok\",\"indexDefs\":{\"uuid\":\"abc\",\"indexDefs\":{\"idx1\":{\"type\":\"fulltext-index\",\"name\":\"idx1\",\"sourceType\":\"couchbase\",\"sourceName\":\"travel-sample\"}},\"implVersion\":\"5.7.0\"}}";
+            const string responseBody = """
+                {
+                  "status": "ok",
+                  "indexDefs": {
+                    "uuid": "abc",
+                    "indexDefs": {
+                      "idx1": {
+                        "type": "fulltext-index",
+                        "name": "idx1",
+                        "sourceType": "couchbase",
+                        "sourceName": "travel-sample"
+                      }
+                    },
+                    "implVersion": "5.7.0"
+                  }
+                }
+                """;
             var manager = CreateManager(responseBody);
 
-            var indexes = (await manager.GetAllIndexesAsync()).ToList();
+            var indexes = await manager.GetAllIndexesAsync();
 
             var index = Assert.Single(indexes);
             Assert.Equal("idx1", index.Name);
@@ -51,12 +65,8 @@ namespace Couchbase.UnitTests.Management
             });
             var httpClientFactory = new MockHttpClientFactory(new HttpClient(handler));
 
-            var nodeAdapterMock = new Mock<NodeAdapter>();
-            nodeAdapterMock.Object.CanonicalHostname = "localhost";
-
             var nodeMock = new Mock<IClusterNode>();
             nodeMock.Setup(n => n.SearchUri).Returns(new Uri("http://localhost:8094"));
-            nodeMock.Setup(n => n.NodesAdapter).Returns(nodeAdapterMock.Object);
 
             var serviceUriProvider = new Mock<IServiceUriProvider>();
             serviceUriProvider.Setup(m => m.GetRandomSearchNode()).Returns(nodeMock.Object);
