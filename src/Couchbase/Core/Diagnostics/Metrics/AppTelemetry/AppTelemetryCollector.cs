@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.Logging;
@@ -15,6 +19,8 @@ namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 internal class AppTelemetryCollector : IAppTelemetryCollector
 {
     private volatile bool _enabled;
+    // Set when no node advertises an App Telemetry path, so nothing would ever read the metrics.
+    private volatile bool _paused;
     private ILogger<AppTelemetryCollector>? _logger;
     private IRedactor? _redactor;
     private WebSocketClientHandler? _webSocketClientHandler;
@@ -22,8 +28,20 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     private CancellationTokenSource? _webSocketTokenSource;
     private ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> _metricSets = new();
 
+    // Guards the fields below. Never taken on the metrics hot path.
+    private readonly object _remotesLock = new();
+    private readonly Dictionary<string, (ConfigVersion Version, IReadOnlyList<Uri> Uris)> _configUris = new();
+    private IReadOnlyList<Uri> _remotes = Array.Empty<Uri>();
+
     //Shim for unit tests
     internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
+    internal WebSocketClientHandler? WebSocketClientHandler => _webSocketClientHandler;
+    internal bool IsPaused => _paused;
+
+    /// <summary>
+    /// Test seam. Replaces connecting to a remote and receiving until closed.
+    /// </summary>
+    internal Func<Uri, CancellationToken, Task>? SessionOverride { get; init; }
 
     public AppTelemetryCollector()
     {
@@ -51,12 +69,124 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
             _logger = ClusterContext.ServiceProvider.GetRequiredService<ILogger<AppTelemetryCollector>>();
         }
 
-        if (_enabled && EndpointCount > 0)
+        if (!_enabled)
         {
-            _webSocketClientHandler = new WebSocketClientHandler(this);
-            Enable();
+            Disable();
+            return;
         }
-        else Disable();
+
+        lock (_remotesLock)
+        {
+            // Bootstrap can be retried, so only the first call starts the reporter.
+            if (_webSocketClientHandler is not null) return;
+
+            _webSocketClientHandler = new WebSocketClientHandler(this, SessionOverride);
+            if (_endpoint is not null) _remotes = [_endpoint];
+            PublishRemotesLocked();
+        }
+
+        Enable();
+    }
+
+    public void OnConfigUpdated(BucketConfig config)
+    {
+        if (!_enabled || _endpoint is not null) return;
+
+        lock (_remotesLock)
+        {
+            try
+            {
+                if (TrackConfigLocked(config))
+                {
+                    PublishRemotesLocked();
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.LogDebug(e, "App Telemetry could not process config revision {revision}.", config.Rev);
+            }
+        }
+    }
+
+    public void OnConfigRemoved(string configName)
+    {
+        if (!_enabled || _endpoint is not null || configName is null) return;
+
+        lock (_remotesLock)
+        {
+            if (_configUris.Remove(configName) && RecomputeRemotesLocked())
+            {
+                PublishRemotesLocked();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stores the URIs of a config newer than the one already tracked under its name.
+    /// Returns true if the overall endpoint set changed.
+    /// </summary>
+    private bool TrackConfigLocked(BucketConfig config)
+    {
+        var name = config.Name ?? BucketConfig.GlobalBucketName;
+
+        // Polling republishes the same revision from every node, so skip those before building URIs.
+        if (!config.IgnoreRev && _configUris.TryGetValue(name, out var tracked)
+                              && config.ConfigVersion <= tracked.Version)
+        {
+            return false;
+        }
+
+        // Configs from the HTTP rebootstrap path keep the default resolution, so prefer the one chosen at bootstrap.
+        var networkResolution = ClusterContext?.ClusterOptions.EffectiveNetworkResolution ?? config.NetworkResolution;
+        var uris = config.GetAppTelemetryUris(TlsEnabled, networkResolution);
+
+        _configUris[name] = (config.ConfigVersion, uris);
+        return RecomputeRemotesLocked();
+    }
+
+    private bool RecomputeRemotesLocked()
+    {
+        var remotes = _configUris.Values
+            .SelectMany(p => p.Uris)
+            .Distinct()
+            .OrderBy(p => p.OriginalString, StringComparer.Ordinal)
+            .ToList();
+
+        if (remotes.SequenceEqual(_remotes)) return false;
+
+        _remotes = remotes;
+        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            var endpoints = string.Join(", ", remotes);
+            _logger.LogDebug("App Telemetry endpoints from cluster configs: [{Endpoints}]",
+                _redactor?.SystemData(endpoints) ?? endpoints);
+        }
+        return true;
+    }
+
+    private void PublishRemotesLocked()
+    {
+        // Before Initialize the set is only stored. Initialize pushes it to the handler.
+        if (_webSocketClientHandler is null) return;
+
+        _webSocketClientHandler.UpdateRemotes(_remotes);
+        SetPausedLocked(_remotes.Count == 0);
+    }
+
+    private void SetPausedLocked(bool paused)
+    {
+        if (_paused == paused) return;
+        _paused = paused;
+
+        if (paused)
+        {
+            _logger?.LogDebug("No node advertises an App Telemetry endpoint. Pausing App Telemetry collection.");
+            ResetMetricSets();
+        }
+        else
+        {
+            _logger?.LogDebug("App Telemetry endpoints are available. Resuming App Telemetry collection.");
+        }
     }
 
     public void Enable()
@@ -73,25 +203,17 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         MetricTracker.AppTelemetry.Unregister();
         _webSocketTokenSource?.Cancel();
         // Writers that already hold a metricSet reference will complete into the old dict, avoid orphaning in-flight writes.
-        Interlocked.Exchange(ref _metricSets, new ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet>());
+        ResetMetricSets();
     }
+
+    private void ResetMetricSets() => Interlocked.Exchange(ref _metricSets, new());
 
     public ClusterContext? ClusterContext { get; set; }
     public TimeSpan Backoff { get; set; }
     public TimeSpan PingInterval { get; set; }
     public TimeSpan PingTimeout { get; set; }
     public IAuthenticator? Authenticator { get; set; }
-    private bool? TlsEnabled => ClusterContext?.ClusterOptions.EffectiveEnableTls;
-
-    /// <summary>
-    /// Returns the Uri set from the ClusterOptions/ConnectionString,
-    /// or the Uri constructed from the global BucketConfig (using appTelemetryPath from NodesExt).
-    ///
-    /// The Uri from the ClusterOptions takes precedence over the one from the BucketConfig.
-    /// </summary>
-    public Uri? Endpoint(int attempt) => _endpoint ?? ClusterContext?.GlobalConfig?.GetAppTelemetryPath(attempt, TlsEnabled);
-
-    public int EndpointCount => _endpoint != null ? 1 : ClusterContext?.GlobalConfig?.NodesWithAppTelemetry.Count ?? 0;
+    private bool TlsEnabled => ClusterContext?.ClusterOptions.EffectiveEnableTls ?? false;
 
     public void IncrementMetrics(TimeSpan? operationLatency, string? node, string? alternateNode, string? nodeUuid,
         AppTelemetryServiceType serviceType,
@@ -99,7 +221,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         AppTelemetryRequestType? requestType = null,
         string? bucket = null)
     {
-        if (!_enabled) return;
+        if (!_enabled || _paused) return;
         if (string.IsNullOrEmpty(nodeUuid)) return;
 
         requestType ??= AppTelemetryUtils.DetermineAppTelemetryRequestType(serviceType);

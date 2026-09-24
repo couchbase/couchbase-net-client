@@ -208,6 +208,8 @@ namespace Couchbase.Core.Configuration.Server
                 //Set the "effective" network resolution that was resolved at bootstrap time.
                 newMap.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
 
+                _context.UpdateAppTelemetryConfig(newMap);
+
                 List<IConfigUpdateEventSink> subscribers;
                 lock (_configChangedSubscribers)
                 {

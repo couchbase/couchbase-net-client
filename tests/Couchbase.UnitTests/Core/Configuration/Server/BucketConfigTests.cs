@@ -539,35 +539,111 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.Null(node3.AppTelemetryPath);
         }
 
-        [Fact]
-        public void Test_AppTelemetryPath_Random_Round_Robin()
-        {
-            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json",
+        private static BucketConfig ReadAppTelemetryConfig() =>
+            ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-multiple.json",
                 InternalSerializationContext.Default.BucketConfig);
 
-            // The endpoint list is shuffled, but all 3 distinct nodes should be reachable
-            // across attempts 0, 1, 2 and the pattern should repeat.
-            var node1 = config.GetAppTelemetryPath(0);
-            var node2 = config.GetAppTelemetryPath(1);
-            var node3 = config.GetAppTelemetryPath(2);
+        [Fact]
+        public void GetAppTelemetryUris_No_Paths_Returns_Empty()
+        {
+            var config = ReadAppTelemetryConfig();
+            foreach (var nodeExt in config.NodesExt)
+            {
+                nodeExt.AppTelemetryPath = null;
+            }
 
-            // All 3 should be different (3 distinct endpoints)
-            Assert.NotEqual(node1, node2);
-            Assert.NotEqual(node1, node3);
-            Assert.NotEqual(node2, node3);
+            Assert.Empty(config.GetAppTelemetryUris(false, NetworkResolution.Default));
+        }
 
-            // Pattern repeats after going through all endpoints
-            Assert.Equal(node1, config.GetAppTelemetryPath(3));
-            Assert.Equal(node2, config.GetAppTelemetryPath(4));
-            Assert.Equal(node3, config.GetAppTelemetryPath(5));
+        [Fact]
+        public void GetAppTelemetryUris_Only_Nodes_With_Path()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-path.json",
+                InternalSerializationContext.Default.BucketConfig);
 
-            // TLS endpoints should also cycle through 3 distinct nodes
-            var tlsNode1 = config.GetAppTelemetryPath(0, true);
-            var tlsNode2 = config.GetAppTelemetryPath(1, true);
-            var tlsNode3 = config.GetAppTelemetryPath(2, true);
-            Assert.NotEqual(tlsNode1, tlsNode2);
-            Assert.NotEqual(tlsNode1, tlsNode3);
-            Assert.NotEqual(tlsNode2, tlsNode3);
+            var uris = config.GetAppTelemetryUris(false, NetworkResolution.Default);
+
+            Assert.Equal(new[] { new Uri("ws://172.17.0.2:8091/_appTelemetry") }, uris);
+        }
+
+        [Fact]
+        public void GetAppTelemetryUris_All_Nodes_Use_Mgmt_Port()
+        {
+            var config = ReadAppTelemetryConfig();
+
+            var uris = config.GetAppTelemetryUris(false, NetworkResolution.Default);
+
+            Assert.Equal(new[]
+            {
+                new Uri("ws://172.17.0.2:8091/_appTelemetry"),
+                new Uri("ws://172.17.0.3:8091/_appTelemetry"),
+                new Uri("ws://172.17.0.4:8091/_appTelemetry")
+            }, uris);
+        }
+
+        [Fact]
+        public void GetAppTelemetryUris_Tls_Uses_Wss_And_MgmtSsl_Port()
+        {
+            var config = ReadAppTelemetryConfig();
+
+            var uris = config.GetAppTelemetryUris(true, NetworkResolution.Default);
+
+            Assert.Equal(new[]
+            {
+                new Uri("wss://172.17.0.2:18091/_appTelemetry"),
+                new Uri("wss://172.17.0.3:18091/_appTelemetry"),
+                new Uri("wss://172.17.0.4:18091/_appTelemetry")
+            }, uris);
+        }
+
+        [Theory]
+        [InlineData(NetworkResolution.External)]
+        [InlineData(NetworkResolution.Auto)]
+        public void GetAppTelemetryUris_Uses_Alternate_Address_When_Selected(string networkResolution)
+        {
+            var config = ReadAppTelemetryConfig();
+
+            Assert.Equal(new[]
+            {
+                new Uri("ws://192.168.132.234:32790/_appTelemetry"),
+                new Uri("ws://192.168.132.235:32814/_appTelemetry"),
+                new Uri("ws://192.168.132.236:32838/_appTelemetry")
+            }, config.GetAppTelemetryUris(false, networkResolution));
+
+            Assert.Equal(new[]
+            {
+                new Uri("wss://192.168.132.234:32773/_appTelemetry"),
+                new Uri("wss://192.168.132.235:32797/_appTelemetry"),
+                new Uri("wss://192.168.132.236:32821/_appTelemetry")
+            }, config.GetAppTelemetryUris(true, networkResolution));
+        }
+
+        [Fact]
+        public void GetAppTelemetryUris_Alternate_Address_Uses_Only_Its_Own_Ports()
+        {
+            var config = ReadAppTelemetryConfig();
+            config.NodesExt[0].AlternateAddresses[NetworkResolution.External].Ports = null;
+            config.NodesExt[1].AlternateAddresses[NetworkResolution.External].Ports.Mgmt = 0;
+
+            var uris = config.GetAppTelemetryUris(false, NetworkResolution.External);
+
+            Assert.Equal(new[]
+            {
+                new Uri("ws://192.168.132.234:8091/_appTelemetry"),
+                new Uri("ws://192.168.132.236:32838/_appTelemetry")
+            }, uris);
+        }
+
+        [Fact]
+        public void GetAppTelemetryUris_Brackets_IPv6_Hosts()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-apptelemetry-path.json",
+                InternalSerializationContext.Default.BucketConfig);
+            config.NodesExt[0].Hostname = "fd63:6f75:6368:2068:1471:75ff:fe25:a8be";
+
+            var uri = Assert.Single(config.GetAppTelemetryUris(false, NetworkResolution.Default));
+
+            Assert.Equal("ws://[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]:8091/_appTelemetry", uri.ToString());
         }
 
         [Fact]

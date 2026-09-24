@@ -2,6 +2,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
@@ -171,6 +172,7 @@ namespace Couchbase.Core
             if (Buckets.TryRemove(bucket.Name, out var removedBucket))
             {
                 _configHandler.Unsubscribe(bucket);
+                ServiceProvider.GetService<IAppTelemetryCollector>()?.OnConfigRemoved(bucket.Name);
                 removedBucket.Dispose();
             }
         }
@@ -180,6 +182,19 @@ namespace Couchbase.Core
             if (Buckets.TryRemove(bucket.Name, out _))
             {
                 _configHandler.Unsubscribe(bucket);
+                ServiceProvider.GetService<IAppTelemetryCollector>()?.OnConfigRemoved(bucket.Name);
+            }
+        }
+
+        /// <summary>
+        /// Feeds a config to App Telemetry. Skips configs of closed buckets, because they can still be queued.
+        /// </summary>
+        internal void UpdateAppTelemetryConfig(BucketConfig config)
+        {
+            // A config with no name comes from a connection with no bucket, so it is the cluster config.
+            if (config.Name is null || config.IsGlobal || Buckets.ContainsKey(config.Name))
+            {
+                ServiceProvider.GetService<IAppTelemetryCollector>()?.OnConfigUpdated(config);
             }
         }
 
@@ -474,6 +489,7 @@ namespace Couchbase.Core
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
+                        UpdateAppTelemetryConfig(GlobalConfig);
 
                         //If we are using alt addresses, we likely bootstrapped with a
                         //non-alt port, thus this node cannot be reused. We need to use
@@ -789,6 +805,7 @@ namespace Couchbase.Core
                 if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
                 {
                     RegisterBucket(bucket);
+                    UpdateAppTelemetryConfig(bucket.CurrentConfig);
                 }
             }
             catch (Exception e)
@@ -857,6 +874,7 @@ namespace Couchbase.Core
                         //make sure the bucket has the latest config as the current config
                         config.IgnoreRev = true;
                         await bucket.ConfigUpdatedAsync(config).ConfigureAwait(false);
+                        UpdateAppTelemetryConfig(config);
 
                         return;
                     }
