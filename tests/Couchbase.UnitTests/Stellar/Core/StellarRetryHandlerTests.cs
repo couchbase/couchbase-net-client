@@ -387,6 +387,11 @@ public class StellarRetryHandlerTests
             fakeTime.Advance(TimeSpan.FromMilliseconds(500));
             await Task.Delay(1); // yield to let continuations run
         }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(
+            () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
 
     [Fact]
@@ -420,8 +425,10 @@ public class StellarRetryHandlerTests
             await Task.Delay(1);
         }
 
-        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
 
     [Fact]
@@ -459,8 +466,59 @@ public class StellarRetryHandlerTests
             await Task.Delay(1);
         }
 
-        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
+    }
+
+    [Fact]
+    public async Task Timeout_WhileLocked_KeepsKvLockedRetryReason()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+
+        var preconditionFailure = new Google.Rpc.PreconditionFailure();
+        preconditionFailure.Violations.Add(
+            new Google.Rpc.PreconditionFailure.Types.Violation { Type = StellarRetryStrings.PreconditionLocked });
+        var status = new Google.Rpc.Status();
+        status.Details.Add(new Any
+        {
+            TypeUrl = StellarRetryStrings.TypeUrlPreconditionFailure,
+            Value = preconditionFailure.ToByteString()
+        });
+        var trailers = new Metadata { { "grpc-status-details-bin", status.ToByteArray() } };
+
+        var handler = new StellarRetryHandler(fakeTime);
+        var request = new StellarRequest(fakeTime)
+        {
+            Timeout = TimeSpan.FromMilliseconds(5000),
+            Idempotent = true,
+            ReadOnly = false
+        };
+
+        Task<GetResponse> GrpcCall()
+        {
+            if (request.RemainingTimeout is { } remaining && remaining <= TimeSpan.Zero)
+            {
+                throw new RpcException(new Status(StatusCode.DeadlineExceeded, "Deadline exceeded"));
+            }
+
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, "LOCKED"), trailers);
+        }
+
+        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
+
+        while (!retryTask.IsCompleted)
+        {
+            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
+            await Task.Delay(1);
+        }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+            () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.KvLocked, context.RetryReasons);
     }
 
     [Fact]
