@@ -27,7 +27,14 @@ namespace Couchbase.Core.IO.Connections
     {
         private static readonly WeakInstanceRegistry<MultiplexingConnection> _connections = new();
 
-        public static int GetConnectionCount() => _connections
+        public static int GetConnectionCount() => GetConnectionCount(_connections);
+
+        /// <summary>
+        /// Counts the live connections in an explicit registry. Exists so that unit tests can exercise the
+        /// count against a registry they own; the process-wide one cannot be asserted on because test
+        /// classes running in parallel create connections of their own.
+        /// </summary>
+        internal static int GetConnectionCount(WeakInstanceRegistry<MultiplexingConnection> registry) => registry
             .EnumerateLive()
             .Count(static p => !p.IsDead);
 

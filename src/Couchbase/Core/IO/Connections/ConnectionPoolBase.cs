@@ -43,7 +43,14 @@ namespace Couchbase.Core.IO.Connections
             _connectionPools.Remove(_trackingId);
         }
 
-        public static int GetSendQueueLength() => _connectionPools
+        public static int GetSendQueueLength() => GetSendQueueLength(_connectionPools);
+
+        /// <summary>
+        /// Computes the send queue length over an explicit registry. Exists so that unit tests can exercise
+        /// the aggregation against a registry they own; the process-wide one cannot be asserted on because
+        /// test classes running in parallel create pools of their own.
+        /// </summary>
+        internal static int GetSendQueueLength(WeakInstanceRegistry<ConnectionPoolBase> registry) => registry
             .EnumerateLive()
             .Sum(static p => p.PendingSends);
 

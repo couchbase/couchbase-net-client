@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
@@ -127,6 +128,87 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             conn.Close();
             Assert.False(conn.IsTrackedForDiagnostics);
         }
+
+        #region GetConnectionCount
+
+        // Each connection gets its own stream throughout this region. Closing a stream makes the owning
+        // connection's receive loop fail, and HandleDisconnect responds by calling Close() on that
+        // connection; sharing one stream would therefore let one test connection asynchronously kill
+        // another and make the counts racy.
+        [Fact]
+        public void GetConnectionCount_CountsLiveConnections()
+        {
+            using var firstStream = new BlockingStream();
+            using var secondStream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var first = CreateConnection(firstStream);
+            var second = CreateConnection(secondStream);
+
+            registry.Add(first);
+            registry.Add(second);
+
+            Assert.Equal(2, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(first);
+            GC.KeepAlive(second);
+        }
+
+        [Fact]
+        public void GetConnectionCount_IsZero_WhenNoConnectionsAreTracked()
+        {
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+
+            Assert.Equal(0, MultiplexingConnection.GetConnectionCount(registry));
+        }
+
+        // The gauge reports *active* connections, so a connection which has been closed must stop counting
+        // even while its entry is still present. This is the IsDead filter, and it is the part most likely
+        // to be lost in a future refactor of the registry.
+        [Fact]
+        public void GetConnectionCount_ExcludesClosedConnections()
+        {
+            using var liveStream = new BlockingStream();
+            using var closedStream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var live = CreateConnection(liveStream);
+            var closed = CreateConnection(closedStream);
+
+            registry.Add(live);
+            registry.Add(closed);
+
+            Assert.Equal(2, MultiplexingConnection.GetConnectionCount(registry));
+
+            closed.Close();
+
+            Assert.Equal(1, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(live);
+            GC.KeepAlive(closed);
+        }
+
+        // A connection abandoned without being closed leaves a dead weak reference behind. Reading the
+        // gauge must skip it rather than throwing.
+        [Fact]
+        public void GetConnectionCount_SkipsCollectedConnections()
+        {
+            using var stream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var live = CreateConnection(stream);
+
+            registry.AddWeak(new WeakReference<MultiplexingConnection>(null!));
+            registry.Add(live);
+            registry.AddWeak(new WeakReference<MultiplexingConnection>(null!));
+
+            Assert.Equal(1, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(live);
+        }
+
+        private static MultiplexingConnection CreateConnection(Stream stream) =>
+            new(stream, 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+        #endregion
 
         // A Stream whose ReadAsync blocks indefinitely, so the MultiplexingConnection's
         // fire-and-forget receive loop doesn't tear the connection down during the test.
