@@ -73,6 +73,7 @@ public sealed class ServerCertificateValidatorTests : IDisposable
         // subordinate CA that carries the same subject name as the root but a different key. The issuer
         // has to be matched by key identifier, not by name, and the subordinate only exists on the wire.
         using var subordinate = TlsTestPki.CreateCa("Test Wire Root CA", issuer: _root);
+        Assert.Equal(_root.SubjectName.RawData, subordinate.SubjectName.RawData);
         using var drLeaf = TlsTestPki.CreateServerLeaf("DR Node Leaf", LeafDnsName, issuer: subordinate);
         using var bundle = new TrustBundle(_root);
 

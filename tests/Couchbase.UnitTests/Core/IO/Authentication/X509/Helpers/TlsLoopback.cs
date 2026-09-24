@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,7 +62,28 @@ internal static class TlsLoopback
 
         // The root, if any, is intentionally absent unless the caller passed it as a wire extra.
         var leafCopy = TlsTestPki.CopyOf(serverLeaf);
-        var serverContext = SslStreamCertificateContext.Create(leafCopy, wireCollection, offline: true);
+
+        void ReleaseCopies()
+        {
+            RemoveFromCaStores(wireCollection);
+            foreach (var cert in wireCollection)
+            {
+                cert.Dispose();
+            }
+
+            leafCopy.Dispose();
+        }
+
+        SslStreamCertificateContext serverContext;
+        try
+        {
+            serverContext = SslStreamCertificateContext.Create(leafCopy, wireCollection, offline: true);
+        }
+        catch
+        {
+            ReleaseCopies();
+            throw;
+        }
 
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -156,13 +178,38 @@ internal static class TlsLoopback
         {
             listener.Stop();
             await WaitForServer(serverTask).ConfigureAwait(false);
+            ReleaseCopies();
+        }
+    }
 
-            foreach (var cert in wireCollection)
+    /// <summary>
+    /// On Windows, SslStreamCertificateContext copies served intermediates into the CA store so SChannel can
+    /// send them, and never removes them. This undoes it once the handshake is over.
+    /// </summary>
+    private static void RemoveFromCaStores(X509Certificate2Collection certs)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        foreach (var location in new[] { StoreLocation.LocalMachine, StoreLocation.CurrentUser })
+        {
+            using var store = new X509Store(StoreName.CertificateAuthority, location);
+            try
             {
-                cert.Dispose();
+                store.Open(OpenFlags.ReadWrite);
+            }
+            catch (CryptographicException)
+            {
+                // Only admins can write to the LocalMachine store.
+                continue;
             }
 
-            leafCopy.Dispose();
+            foreach (var cert in certs)
+            {
+                store.Remove(cert);
+            }
         }
     }
 

@@ -20,6 +20,7 @@ internal static class TlsTestPki
 {
     public const string ServerAuthOid = "1.3.6.1.5.5.7.3.1";
     public const string ClientAuthOid = "1.3.6.1.5.5.7.3.2";
+    private const string OrganizationOid = "2.5.4.10";
 
     /// <summary>
     /// Creates a CA certificate, self-signed when <paramref name="issuer"/> is null.
@@ -36,8 +37,14 @@ internal static class TlsTestPki
         DateTimeOffset? notAfter = null,
         OidCollection? ekus = null)
     {
+        // A random O per hierarchy keeps CA names unique. Windows copies served intermediates into the machine
+        // CA store, and same named CAs with other keys break chain building there (dotnet/runtime#99425).
+        var subject = new X500DistinguishedNameBuilder();
+        subject.AddCommonName(commonName);
+        subject.AddOrganizationName(HierarchyIdOf(issuer));
+
         var rsa = RSA.Create(2048);
-        var request = new CertificateRequest($"CN={commonName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest(subject.Build(), rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(
             certificateAuthority: true,
             hasPathLengthConstraint: pathLengthConstraint.HasValue,
@@ -144,6 +151,13 @@ internal static class TlsTestPki
         var subjectKey = cert.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifierBytes;
         return authorityKey is null || subjectKey is null || authorityKey.Value.Span.SequenceEqual(subjectKey.Value.Span);
     }
+
+    private static string HierarchyIdOf(X509Certificate2? issuer) =>
+        issuer?.SubjectName.EnumerateRelativeDistinguishedNames()
+            .Where(rdn => !rdn.HasMultipleElements && rdn.GetSingleElementType().Value == OrganizationOid)
+            .Select(rdn => rdn.GetSingleElementValue())
+            .FirstOrDefault(value => value is not null)
+        ?? Guid.NewGuid().ToString("N")[..8];
 
     private static X509AuthorityKeyIdentifierExtension AuthorityKeyIdentifierOf(X509Certificate2 issuer) =>
         X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, includeKeyIdentifier: true, includeIssuerAndSerial: false);
