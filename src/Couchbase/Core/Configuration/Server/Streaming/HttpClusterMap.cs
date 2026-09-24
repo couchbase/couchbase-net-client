@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Utils;
 using System.Text.Json;
 
 namespace Couchbase.Core.Configuration.Server.Streaming
@@ -45,7 +46,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             using (var response = await httpClient.GetAsync(uri.Uri, cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
-                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                 var bucketConfig = await JsonSerializer
                     .DeserializeAsync(stream, InternalSerializationContext.Default.BucketConfig, cancellationToken)
                     .ConfigureAwait(false);

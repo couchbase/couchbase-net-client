@@ -52,7 +52,7 @@ namespace Couchbase.Core.CircuitBreakers
             };
         };
 
-        public static CircuitBreakerConfiguration Default = new();
+        public static readonly CircuitBreakerConfiguration Default = new();
     }
 }
 

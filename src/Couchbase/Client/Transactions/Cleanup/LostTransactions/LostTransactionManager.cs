@@ -113,18 +113,18 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
             while (!_collectionsToClean.IsEmpty)
             {
                 var buckets = _collectionsToClean.ToArray();
-                List<ValueTask> disposeTasks = new();
+                List<Task> disposeTasks = new();
                 // populate disposeTasks with all the DisposeAsync tasks first.
                 foreach (var bkt in buckets)
                 {
                     _logger.LogDebug("Shutting down cleaner for '{bkt}", bkt.Value);
-                    disposeTasks.Add(bkt.Value.Value.DisposeAsync());
+                    disposeTasks.Add(bkt.Value.Value.DisposeAsync().AsTask());
                 }
                 try
                 {
                     // now wait for them to all be done....
                     _logger.LogDebug($"Waiting for {disposeTasks.Count} PerCollectionCleaner tasks to complete");
-                    await Task.WhenAll(disposeTasks.Select(vt => vt.AsTask())).CAF();
+                    await Task.WhenAll(disposeTasks).CAF();
                     _logger.LogDebug("All cleanup tasks completed");
                 }
                 catch (Exception ex)

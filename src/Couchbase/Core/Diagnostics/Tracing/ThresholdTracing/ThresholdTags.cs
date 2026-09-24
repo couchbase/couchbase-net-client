@@ -16,7 +16,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         /// <inheritdoc cref="TotalDurationTag"/>
         [Obsolete(InternalObsoleteReason)]
-        public static string TotalDuration = TotalDurationTag;
+        public static readonly string TotalDuration = TotalDurationTag;
 
         /// <summary>
         /// The duration of the encode span, if present
@@ -26,7 +26,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         /// <inheritdoc cref="EncodeDurationTag"/>
         [Obsolete(InternalObsoleteReason)]
-        public static string EncodeDuration = EncodeDurationTag;
+        public static readonly string EncodeDuration = EncodeDurationTag;
 
         /// <summary>
         /// The duration of the last dispatch span if present
@@ -36,7 +36,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         /// <inheritdoc cref="DispatchDurationTag"/>
         [Obsolete(InternalObsoleteReason)]
-        public static string DispatchDuration = DispatchDurationTag;
+        public static readonly string DispatchDuration = DispatchDurationTag;
     }
 }
 

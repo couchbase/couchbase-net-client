@@ -7,7 +7,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
     /// </summary>
     public class NoopRequestTracer : IRequestTracer
     {
-        public static IRequestTracer Instance = new NoopRequestTracer();
+        public static readonly IRequestTracer Instance = new NoopRequestTracer();
 
         public IRequestSpan RequestSpan(string name, IRequestSpan? parentSpan = null)
         {
