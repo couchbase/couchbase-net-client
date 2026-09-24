@@ -48,12 +48,18 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 .CreateAndConnectAsync(endPoint)
                 ;
 
+            // config.json binds its username/password straight onto these two properties, and
+            // nothing in the file supplies an Authenticator, so reading one here would get null.
+            // The obsolete properties are the only place the raw credentials exist for this test.
+#pragma warning disable CS0618
             var sha256Mechanism = new ScramShaMechanism(MechanismType.ScramSha256, options.Password,
                 options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
                 new OperationConfigurator(new JsonTranscoder(), Mock.Of<IOperationCompressor>(),
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new BestEffortRetryStrategy()));
 
+
+#pragma warning restore CS0618
 
             await sha256Mechanism.AuthenticateAsync(connection);
         }

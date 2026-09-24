@@ -48,6 +48,12 @@
     </None>
   </ItemGroup>
 
+  <!-- Static analysis -->
+  <PropertyGroup>
+    <!-- The SDK turns these on for net5.0+ only, so set it explicitly to cover netstandard too. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
   <!-- AOT analysis -->
   <PropertyGroup>
     <!-- We're not quite ready to do AOT yet, so default to false.

@@ -11,6 +11,14 @@
     <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- suppress warnings for missing XML comments on public members -->
+
+    <!-- The netstandard legs compile the nullable-attribute polyfills linked in below, while also
+         referencing Couchbase.NetClient, which contains its own copy. The copy over there is
+         internal and this project is not on its InternalsVisibleTo list, so we cannot drop the
+         linked file - removing it fails the build with CS0122 on DoesNotReturnAttribute. CS0436 is
+         benign here: it reports that the compiler is using the source copy, which is the only one
+         we can see. -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">
