@@ -111,15 +111,18 @@ namespace Couchbase.Core.Configuration.Server
             return hostname;
         }
 
-        internal bool UseAlternateNetwork(NodesExt nodeExt, BucketConfig bucketConfig)
+        internal bool UseAlternateNetwork(NodesExt nodeExt, BucketConfig bucketConfig) =>
+            UseAlternateNetwork(nodeExt, bucketConfig.NetworkResolution);
+
+        internal static bool UseAlternateNetwork(NodesExt nodeExt, string networkResolution)
         {
             // make sure we have at least an alternate network hostname (alternate ports are optional)
-            if (nodeExt == null || !nodeExt.HasAlternateAddress || bucketConfig.NetworkResolution == NetworkResolution.Default)
+            if (nodeExt == null || !nodeExt.HasAlternateAddress || networkResolution == NetworkResolution.Default)
             {
                 return false;
             }
 
-            if (bucketConfig.NetworkResolution == NetworkResolution.Auto || bucketConfig.NetworkResolution == NetworkResolution.External)
+            if (networkResolution == NetworkResolution.Auto || networkResolution == NetworkResolution.External)
             {
                 return string.Compare(nodeExt.Hostname,
                     nodeExt.AlternateAddresses[NetworkResolution.External].Hostname,
@@ -127,12 +130,12 @@ namespace Couchbase.Core.Configuration.Server
             }
 
             //It's a custom configuration being used - try it.
-            if (nodeExt.AlternateAddresses.ContainsKey(bucketConfig.NetworkResolution))
+            if (nodeExt.AlternateAddresses.ContainsKey(networkResolution))
             {
                 return true;
             }
 
-            throw new CouchbaseException($"Cannot resolve NetworkResolution - {bucketConfig.NetworkResolution}");
+            throw new CouchbaseException($"Cannot resolve NetworkResolution - {networkResolution}");
         }
 
         internal string GetHostname(NodesExt nodeExt, BucketConfig bucketConfig)

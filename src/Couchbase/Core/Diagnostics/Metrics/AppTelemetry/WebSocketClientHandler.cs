@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Couchbase.Core.DI;
@@ -17,6 +18,7 @@ using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 
@@ -36,12 +38,19 @@ internal class WebSocketClientHandler : IDisposable
     private readonly ICouchbaseHttpClientFactory _couchbaseHttpClientFactory;
     private readonly ICertificateValidationCallbackFactory _certificateValidationCallbackFactory;
     private readonly IRedactor _redactor;
-    private int _attempt = 0;
-    private readonly int _clampedExponent = 0;
+    private readonly Func<Uri, CancellationToken, Task> _runSession;
+    private int _attempt;
     private string? _pendingMetrics;
-    private Uri? Endpoint => _appTelemetryCollector.Endpoint(_attempt);
 
-    public WebSocketClientHandler(IAppTelemetryCollector appTelemetryCollector)
+    // Released to wake the loop when the remote set changes.
+    private readonly SemaphoreSlim _wakeSignal = new(0, 1);
+    private volatile IReadOnlyList<Uri> _remotes = Array.Empty<Uri>();
+
+    /// <summary>
+    /// <paramref name="runSession"/> is a test seam that replaces connecting to a remote and receiving until closed.
+    /// </summary>
+    public WebSocketClientHandler(IAppTelemetryCollector appTelemetryCollector,
+        Func<Uri, CancellationToken, Task>? runSession = null)
     {
         _appTelemetryCollector = appTelemetryCollector;
         _logger = _appTelemetryCollector.ClusterContext!.ServiceProvider
@@ -52,8 +61,24 @@ internal class WebSocketClientHandler : IDisposable
             .GetRequiredService<IRedactor>();
         _certificateValidationCallbackFactory = _appTelemetryCollector.ClusterContext.ServiceProvider
             .GetRequiredService<ICertificateValidationCallbackFactory>();
-        //Cache the max exponent for the backoff
-        _clampedExponent = (int)Math.Floor(Math.Log(_appTelemetryCollector.Backoff.TotalMilliseconds / 100.0, 2));
+        _runSession = runSession ?? ConnectAndReceiveAsync;
+    }
+
+    internal IReadOnlyList<Uri> Remotes => _remotes;
+
+    /// <summary>
+    /// Replaces the remotes that accept App Telemetry connections and wakes the loop.
+    /// A running session stays open until the server closes it.
+    /// </summary>
+    public void UpdateRemotes(IReadOnlyList<Uri> remotes)
+    {
+        _remotes = remotes.ToList().Shuffle();
+
+        // The collector serializes these calls, and the loop only takes the signal, so this cannot over-release.
+        if (_wakeSignal.CurrentCount == 0)
+        {
+            _wakeSignal.Release();
+        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -62,38 +87,55 @@ internal class WebSocketClientHandler : IDisposable
         {
             try
             {
-                if (_webSocket?.State != WebSocketState.Open)
+                var remotes = _remotes;
+                if (remotes.Count == 0)
                 {
-                    _logger.LogDebug("Initializing WebSocket connection to endpoint: {Endpoint}", Endpoint);
-                    await InitializeWebSocketAsync(cancellationToken).ConfigureAwait(false);
+                    // Collection is paused, so an unsent payload must not reach a remote that appears later.
+                    _pendingMetrics = null;
+                    _logger.LogInformation("App Telemetry has no remotes available.");
                 }
 
-                if (_webSocket?.State == WebSocketState.Open)
+                var delay = remotes.Count == 0 ? Timeout.InfiniteTimeSpan : BackoffDelay(_attempt, remotes.Count);
+                if (await _wakeSignal.WaitAsync(delay, cancellationToken).ConfigureAwait(false))
                 {
+                    // The remote set changed, so start a new pass without delay.
                     _attempt = 0;
-                    await ReceiveAsync(cancellationToken).ConfigureAwait(false);
+                    continue;
                 }
+
+                var remote = remotes[_attempt % remotes.Count];
+                _attempt++;
+                await _runSession(remote, cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("App Telemetry connection to {Remote} closed.", _redactor.SystemData(remote));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Error connecting to AppTelemetry WebSocket endpoint {Endpoint} process: {Error}", Endpoint, ex.Message);
+                _logger.LogDebug("App Telemetry WebSocket connection failed: {Error}", ex.Message);
             }
-            finally
-            {
-                _attempt++;
-                var endpointCount = _appTelemetryCollector.EndpointCount;
-                if (endpointCount <= 0 || _attempt >= endpointCount)
-                {
-                    await BackoffAsync(endpointCount).ConfigureAwait(false);
-                }
-            }
+        }
+
+        _logger.LogDebug("App Telemetry reporter loop stopped.");
+    }
+
+    private async Task ConnectAndReceiveAsync(Uri remote, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Initializing WebSocket connection to endpoint: {Endpoint}", _redactor.SystemData(remote));
+        await InitializeWebSocketAsync(remote, cancellationToken).ConfigureAwait(false);
+
+        if (_webSocket?.State == WebSocketState.Open)
+        {
+            // Reset the backoff to its first 100ms step, not zero, so a peer that closes at once is not hammered.
+            _attempt = _remotes.Count;
+            await ReceiveAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task InitializeWebSocketAsync(CancellationToken cancellationToken)
+    private async Task InitializeWebSocketAsync(Uri endpoint, CancellationToken cancellationToken)
     {
-        if (Endpoint is null) return;
-
         _webSocket?.Dispose();
         _webSocket = new ClientWebSocket();
         _webSocket.Options.KeepAliveInterval = _appTelemetryCollector.PingInterval;
@@ -102,8 +144,8 @@ internal class WebSocketClientHandler : IDisposable
         // which is already properly configured with the given Authenticator.
 #if NET8_0_OR_GREATER
         var handler = _couchbaseHttpClientFactory.Handler;
-        await _webSocket.ConnectAsync(Endpoint, new HttpMessageInvoker(handler), cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("Successfully established WebSocket connection to {Endpoint}", Endpoint);
+        await _webSocket.ConnectAsync(endpoint, new HttpMessageInvoker(handler), cancellationToken).ConfigureAwait(false);
+        _logger.LogDebug("Successfully established WebSocket connection to {Endpoint}", _redactor.SystemData(endpoint));
 #else
         // The previous WebSocket object does not take an HttpMessageInvoker (through which we pass the configured handler above)
         // We must therefore manually configure the ClientWebSocketOptions to match what would have been done
@@ -119,7 +161,7 @@ internal class WebSocketClientHandler : IDisposable
 
         _appTelemetryCollector.Authenticator!.AuthenticateClientWebSocket(_webSocket);
 
-        await _webSocket.ConnectAsync(Endpoint, cancellationToken).ConfigureAwait(false);
+        await _webSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
 #endif
 
     }
@@ -212,34 +254,24 @@ internal class WebSocketClientHandler : IDisposable
 
     public void Dispose()
     {
+        // The collector cancels the loop token first. The wake signal is not disposed because the loop may still wait on it.
         _webSocket?.Dispose();
     }
 
     /// <summary>
-    /// Awaits with an exponentially increasing backoff delay starting at 100ms capped at clampedExponent.
-    /// The backoff exponent is relative to the number of full cycles through all endpoints.
+    /// No delay during the first pass over the remotes. After that the delay starts at 100ms
+    /// and doubles with each pass up to the configured backoff.
     /// </summary>
-    private async Task BackoffAsync(int endpointCount)
+    private TimeSpan BackoffDelay(int attempt, int remoteCount)
     {
-        var maxBackoff = _appTelemetryCollector.Backoff;
+        if (attempt < remoteCount) return TimeSpan.Zero;
 
-        if (maxBackoff <= TimeSpan.FromMilliseconds(100))
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
-            return;
-        }
-
-        // Compute the backoff exponent based on full cycles through endpoints,
-        // so the backoff only increases after all endpoints have been tried.
-        var backoffAttempt = endpointCount > 0 ? (_attempt / endpointCount) - 1 : _attempt;
-        backoffAttempt = Math.Max(0, backoffAttempt);
-
-        //To prevent overflow, we clamp the exponent to a maximum value
-        var clampedAttempt = Math.Min(backoffAttempt, _clampedExponent);
-
-        var delayMs = 100L << clampedAttempt; //100ms * 2^attempt
-        var cappedDelayMs = Math.Min(delayMs, (long)maxBackoff.TotalMilliseconds);
-
-        await Task.Delay(TimeSpan.FromMilliseconds(cappedDelayMs)).ConfigureAwait(false);
+        // SemaphoreSlim.WaitAsync accepts at most int.MaxValue milliseconds.
+        var maxBackoffMs = Math.Min(Math.Max(_appTelemetryCollector.Backoff.TotalMilliseconds, 100), int.MaxValue);
+        // Clamp the exponent so the shift cannot overflow. 100ms * 2^30 is above the cap.
+        var delayMs = Math.Min(100L << Math.Min(attempt / remoteCount - 1, 30), maxBackoffMs);
+        var delay = TimeSpan.FromMilliseconds(delayMs);
+        _logger.LogDebug("App Telemetry connection attempt {Attempt} waiting {Delay} before retry.", attempt, delay);
+        return delay;
     }
 }
