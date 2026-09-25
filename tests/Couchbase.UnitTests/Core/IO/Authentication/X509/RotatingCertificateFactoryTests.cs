@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.UnitTests.Helpers;
@@ -184,6 +186,45 @@ public class RotatingCertificateFactoryTests(
         Assert.NotNull(initialResult);
         Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once to refresh certificates");
         _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.AtLeast(2));
+
+        // GetCertificates takes the same lock as the refresh, so it waits for an in-flight refresh
+        var refreshed = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+        Assert.Contains(newValidCertificates[0], refreshed);
+        Assert.DoesNotContain(initialCertificates[0], refreshed);
+    }
+
+    [Fact]
+    public void RefreshCertificates_WithOverlappingCertificates_ShouldKeepBoth()
+    {
+        // Arrange
+        var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(30));
+        var certificateA = initialCertificates[0];
+        var certificateB = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(60))[0];
+        var overlappingCertificates = new X509Certificate2Collection { certificateA, certificateB };
+
+        _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+            .Returns(initialCertificates)
+            .Returns(overlappingCertificates);
+
+        using var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        // Initialize cache and create the timer
+        factory.GetCertificates();
+
+        // Act
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.True(factory.HasUpdates);
+
+        var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+        Assert.Equal(2, cached.Length);
+        Assert.Contains(certificateA, cached);
+        Assert.Contains(certificateB, cached);
     }
 
     [Fact]
@@ -298,6 +339,102 @@ public class RotatingCertificateFactoryTests(
         // Assert
         Assert.NotNull(result);
         _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Dispose_ShouldStopTheRefreshTimer()
+    {
+        // Arrange
+        var callCount = 0;
+        var calledTwiceTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var certificates = CreateTestCertificateCollection(1);
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(() =>
+            {
+                if (Interlocked.Increment(ref callCount) >= 2)
+                    calledTwiceTcs.TrySetResult(true);
+                return certificates;
+            });
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromMilliseconds(20),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        // Act
+        var result = factory.GetCertificates();
+
+        var completedTask = await Task.WhenAny(calledTwiceTcs.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        Assert.True(completedTask == calledTwiceTcs.Task, "Timer should have fired at least once before Dispose");
+
+        factory.Dispose();
+        var countAfterDispose = Volatile.Read(ref callCount);
+
+        // A refresh that runs after Dispose must not call the underlying factory
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(countAfterDispose, Volatile.Read(ref callCount));
+    }
+
+    [Fact]
+    public void GetCertificates_AfterDispose_ShouldNotStartTheTimer()
+    {
+        // Arrange
+        var callCount = 0;
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(() =>
+            {
+                callCount++;
+                return new X509Certificate2Collection();
+            });
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        factory.GetCertificates();
+        factory.Dispose();
+
+        // Act
+        factory.GetCertificates();
+
+        // A refresh only calls the underlying factory when a timer exists
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.Equal(2, callCount);
+    }
+
+    [Fact]
+    public void Dispose_CalledTwice_ShouldNotThrow()
+    {
+        // Arrange
+        var certificates = CreateTestCertificateCollection(1);
+        _mockCertificateFactory.Setup(x => x.GetCertificates())
+            .Returns(certificates);
+
+        var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromMilliseconds(20),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        factory.GetCertificates();
+
+        // Act
+        var exception = Record.Exception(() =>
+        {
+            factory.Dispose();
+            factory.Dispose();
+        });
+
+        // Assert
+        Assert.Null(exception);
     }
 
     [Theory]
