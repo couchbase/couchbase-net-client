@@ -410,7 +410,8 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     [Fact]
     public void NoErrors_Accepts_WithoutBuildingAChain()
     {
-        // The OS trust store already approved the chain, so the configured anchors are not consulted at all.
+        // Behaviour kept from before this change. When the OS trusts the chain, the configured anchors are not
+        // checked, so they do not pin the certificate. Whether they should is still an open question.
         // An unrelated anchor proves no chain build took place.
         using var bundle = new TrustBundle(_unrelatedRoot);
         var validator = CreateValidator(bundle.Certificates);
