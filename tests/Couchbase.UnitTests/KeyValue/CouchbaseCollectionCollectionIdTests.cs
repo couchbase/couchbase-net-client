@@ -81,7 +81,11 @@ namespace Couchbase.UnitTests.KeyValue
             ["ReplaceAsync"] = c => c.ReplaceAsync(DocId, new { name = "mike" }),
             ["RemoveAsync"] = c => c.RemoveAsync(DocId),
             ["UnlockAsync"] = c => c.UnlockAsync(DocId, 0UL),
+            // The generic overload is obsolete but still shipped, so it still has to resolve the
+            // collection ID before dispatch. That is the point of this table, so cover it anyway.
+#pragma warning disable CS0618
             ["UnlockAsync<T>"] = c => c.UnlockAsync<object>(DocId, 0UL),
+#pragma warning restore CS0618
             ["TouchAsync"] = c => c.TouchAsync(DocId, TimeSpan.FromSeconds(10)),
             ["TouchWithCasAsync"] = c => c.TouchWithCasAsync(DocId, TimeSpan.FromSeconds(10)),
             ["GetAndTouchAsync"] = c => c.GetAndTouchAsync(DocId, TimeSpan.FromSeconds(10)),
@@ -116,7 +120,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             try
             {
-                await Operations[label](collection).ConfigureAwait(false);
+                await Operations[label](collection);
             }
             catch (Exception)
             {
@@ -191,7 +195,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var (collection, bucket) = CreateCollection(supportsCollections: false, defaultCollection: true);
 
-            await Invoke(() => collection.GetAsync(DocId)).ConfigureAwait(false);
+            await Invoke(() => collection.GetAsync(DocId));
 
             Assert.False(bucket.FetchedCid);
             Assert.True(collection.Cid.HasValue,
@@ -213,7 +217,7 @@ namespace Couchbase.UnitTests.KeyValue
             var (collection, bucket) = CreateCollection(supportsCollections: false, defaultCollection: false);
 
             var exception = await Assert.ThrowsAsync<FeatureNotAvailableException>(
-                () => collection.GetAsync(DocId)).ConfigureAwait(false);
+                () => collection.GetAsync(DocId));
 
             Assert.Contains("s.c", exception.Message);
             Assert.Empty(bucket.Dispatched);
@@ -228,7 +232,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var (collection, bucket) = CreateCollection(defaultCollection: true);
 
-            await Invoke(() => collection.GetAsync(DocId)).ConfigureAwait(false);
+            await Invoke(() => collection.GetAsync(DocId));
 
             Assert.False(bucket.FetchedCid);
             Assert.Equal(CouchbaseCollection.DefaultCollectionId, collection.Cid!.Value);
@@ -246,7 +250,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var (collection, bucket) = CreateCollection();
 
-            await collection.PopulateCidAsync(retryIfFailure: false).ConfigureAwait(false);
+            await collection.PopulateCidAsync(retryIfFailure: false);
 
             Assert.True(bucket.FetchedCid);
             Assert.False(bucket.FetchedCidViaRetry,
@@ -258,7 +262,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var (collection, bucket) = CreateCollection();
 
-            await collection.PopulateCidAsync(retryIfFailure: true).ConfigureAwait(false);
+            await collection.PopulateCidAsync(retryIfFailure: true);
 
             Assert.True(bucket.FetchedCid);
             Assert.True(bucket.FetchedCidViaRetry);
@@ -276,7 +280,7 @@ namespace Couchbase.UnitTests.KeyValue
             bucket.ServeEmptyCidBody = true;
 
             var exception = await Assert.ThrowsAsync<CouchbaseException>(
-                () => collection.PopulateCidAsync().AsTask()).ConfigureAwait(false);
+                () => collection.PopulateCidAsync().AsTask());
 
             Assert.Contains("s.c", exception.Message);
             Assert.Null(collection.Cid);

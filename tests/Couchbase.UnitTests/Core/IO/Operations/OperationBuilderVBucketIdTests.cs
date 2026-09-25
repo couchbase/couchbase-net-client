@@ -107,14 +107,17 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             Assert.Equal(0x00, zeroBuffer[7]);
         }
 
+        // The vbucket id is short?, so the literals need an explicit short cast: a boxed int does
+        // not unbox to short?. Without the cast the null row is the one that still binds, because
+        // reflection turns null into default(short) - which quietly made it a copy of the 0 row.
         [Theory]
         [InlineData(null, 0x00, 0x00)]
-        [InlineData(0, 0x00, 0x00)]
-        [InlineData(1, 0x00, 0x01)]
-        [InlineData(256, 0x01, 0x00)]
-        [InlineData(1024, 0x04, 0x00)]
-        [InlineData(30066, 0x75, 0x72)] // The problematic value when assigned directly
-        public void WriteHeader_VBucketIdValues_WriteCorrectBytes(short vbucketId, byte expectedHighByte, byte expectedLowByte)
+        [InlineData((short)0, 0x00, 0x00)]
+        [InlineData((short)1, 0x00, 0x01)]
+        [InlineData((short)256, 0x01, 0x00)]
+        [InlineData((short)1024, 0x04, 0x00)]
+        [InlineData((short)30066, 0x75, 0x72)] // The problematic value when assigned directly
+        public void WriteHeader_VBucketIdValues_WriteCorrectBytes(short? vbucketId, byte expectedHighByte, byte expectedLowByte)
         {
             // Arrange
             using var builder = new OperationBuilder();

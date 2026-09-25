@@ -31,7 +31,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 .AddOtlpExporter(ConfigureOtlpExporter)
                 .AddCouchbaseInstrumentation(options =>
                 {
-                    options.ExcludeLegacyMetrics = true;
+                    options.DropLegacyRedundantCounters = true;
                 })
                 .Build();
         }

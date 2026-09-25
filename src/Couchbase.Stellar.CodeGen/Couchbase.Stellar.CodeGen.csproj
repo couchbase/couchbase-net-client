@@ -4,6 +4,16 @@
     <TargetFrameworks>$(NetSpecificTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- This project has no sources of its own. It exists to regenerate the protostellar gRPC
+         types from a sibling checkout of the protostellar repo, whose output is then committed to
+         src/Couchbase/CodeGen. It also references Couchbase.csproj, so every freshly generated
+         type collides with the committed copy of the previous run: 17,000 CS0436 across the two
+         target frameworks, one per generated type per framework. That is inherent to what the
+         project is for, and benign - the compiler uses the fresh type, which is the one we want to
+         look at - so suppress it here rather than restructure the project. The wildcard matches
+         nothing without the sibling checkout, so CI never sees these at all. -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
