@@ -39,19 +39,12 @@ internal class WebSocketClientHandler : IDisposable
     private readonly ICertificateValidationCallbackFactory _certificateValidationCallbackFactory;
     private readonly IRedactor _redactor;
     private readonly Func<Uri, CancellationToken, Task> _runSession;
-    private readonly Random _random = new();
     private int _attempt;
     private string? _pendingMetrics;
 
-    // Released to wake the loop when the remote set changes. Guarded by _remotesLock.
+    // Released to wake the loop when the remote set changes.
     private readonly SemaphoreSlim _wakeSignal = new(0, 1);
-    private readonly CancellationTokenSource _disposeTokenSource = new();
-    private readonly object _remotesLock = new();
-    // Written under _remotesLock. Volatile so the getters can read without it.
     private volatile IReadOnlyList<Uri> _remotes = Array.Empty<Uri>();
-    private volatile Uri? _selectedRemote;
-    private CancellationTokenSource? _sessionTokenSource;
-    private volatile bool _disposed;
 
     /// <summary>
     /// <paramref name="runSession"/> is a test seam that replaces connecting to a remote and receiving until closed.
@@ -73,147 +66,57 @@ internal class WebSocketClientHandler : IDisposable
 
     internal IReadOnlyList<Uri> Remotes => _remotes;
 
-    internal Uri? SelectedRemote => _selectedRemote;
-
     /// <summary>
-    /// Replaces the set of remotes that accept App Telemetry connections.
-    /// Disconnects from the current remote if it is no longer in the set.
+    /// Replaces the remotes that accept App Telemetry connections and wakes the loop.
+    /// A running session stays open until the server closes it.
     /// </summary>
     public void UpdateRemotes(IReadOnlyList<Uri> remotes)
     {
-        CancellationTokenSource? sessionToCancel = null;
-        lock (_remotesLock)
-        {
-            if (_disposed || remotes.SequenceEqual(_remotes)) return;
+        _remotes = remotes.ToList().Shuffle();
 
-            _remotes = remotes.ToArray();
-
-            if (_selectedRemote is null)
-            {
-                if (_remotes.Count > 0)
-                {
-                    WakeLocked();
-                }
-            }
-            else if (!_remotes.Contains(_selectedRemote))
-            {
-                _logger.LogInformation(
-                    "App Telemetry remote {Remote} no longer accepts telemetry. Disconnecting.",
-                    _redactor.SystemData(_selectedRemote));
-                _selectedRemote = null;
-                sessionToCancel = _sessionTokenSource;
-                WakeLocked();
-            }
-        }
-
-        // Cancel outside the lock because cancellation callbacks can run inline.
-        CancelQuietly(sessionToCancel);
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken = default)
-    {
-        CancellationTokenSource loopTokenSource;
-        lock (_remotesLock)
-        {
-            if (_disposed) return;
-            loopTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeTokenSource.Token);
-        }
-
-        using (loopTokenSource)
-        {
-            var loopToken = loopTokenSource.Token;
-            while (!loopToken.IsCancellationRequested)
-            {
-                CancellationTokenSource? sessionTokenSource = null;
-                try
-                {
-                    if (await WaitForBackoffAsync(_attempt++, loopToken).ConfigureAwait(false))
-                    {
-                        // Woken because the remote set changed, so retry without delay.
-                        _attempt = 0;
-                    }
-
-                    var remote = SelectRemote(loopToken, out sessionTokenSource);
-                    if (remote is null)
-                    {
-                        // Nothing to connect to. Sleep until the remote set changes.
-                        await _wakeSignal.WaitAsync(loopToken).ConfigureAwait(false);
-                        _attempt = 0;
-                        continue;
-                    }
-
-                    await _runSession(remote, sessionTokenSource!.Token).ConfigureAwait(false);
-                    _logger.LogDebug("App Telemetry connection to {Remote} closed.", _redactor.SystemData(remote));
-                }
-                catch (OperationCanceledException) when (loopToken.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (ObjectDisposedException) when (_disposed)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug("App Telemetry WebSocket connection failed: {Error}", ex.Message);
-                }
-                finally
-                {
-                    if (sessionTokenSource is not null)
-                    {
-                        lock (_remotesLock)
-                        {
-                            if (ReferenceEquals(_sessionTokenSource, sessionTokenSource))
-                            {
-                                _sessionTokenSource = null;
-                            }
-                        }
-                        sessionTokenSource.Dispose();
-                    }
-                }
-            }
-        }
-
-        _logger.LogDebug("App Telemetry reporter loop stopped.");
-    }
-
-    private Uri? SelectRemote(CancellationToken loopToken, out CancellationTokenSource? sessionTokenSource)
-    {
-        lock (_remotesLock)
-        {
-            sessionTokenSource = null;
-            _selectedRemote = _remotes.RandomOrDefault();
-            if (_selectedRemote is null)
-            {
-                _logger.LogInformation("App Telemetry has no remotes available.");
-                return null;
-            }
-
-            _logger.LogInformation("Selected App Telemetry remote {Remote}.", _redactor.SystemData(_selectedRemote));
-            sessionTokenSource = CancellationTokenSource.CreateLinkedTokenSource(loopToken);
-            _sessionTokenSource = sessionTokenSource;
-            return _selectedRemote;
-        }
-    }
-
-    private void WakeLocked()
-    {
+        // The collector serializes these calls, and the loop only takes the signal, so this cannot over-release.
         if (_wakeSignal.CurrentCount == 0)
         {
             _wakeSignal.Release();
         }
     }
 
-    private static void CancelQuietly(CancellationTokenSource? tokenSource)
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        try
+        while (!cancellationToken.IsCancellationRequested)
         {
-            tokenSource?.Cancel();
+            try
+            {
+                var remotes = _remotes;
+                if (remotes.Count == 0)
+                {
+                    _logger.LogInformation("App Telemetry has no remotes available.");
+                }
+
+                var delay = remotes.Count == 0 ? Timeout.InfiniteTimeSpan : BackoffDelay(_attempt, remotes.Count);
+                if (await _wakeSignal.WaitAsync(delay, cancellationToken).ConfigureAwait(false))
+                {
+                    // The remote set changed, so start a new pass without delay.
+                    _attempt = 0;
+                    continue;
+                }
+
+                var remote = remotes[_attempt % remotes.Count];
+                _attempt++;
+                await _runSession(remote, cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("App Telemetry connection to {Remote} closed.", _redactor.SystemData(remote));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("App Telemetry WebSocket connection failed: {Error}", ex.Message);
+            }
         }
-        catch (ObjectDisposedException)
-        {
-            // The session already ended.
-        }
+
+        _logger.LogDebug("App Telemetry reporter loop stopped.");
     }
 
     private async Task ConnectAndReceiveAsync(Uri remote, CancellationToken cancellationToken)
@@ -223,8 +126,8 @@ internal class WebSocketClientHandler : IDisposable
 
         if (_webSocket?.State == WebSocketState.Open)
         {
-            // Start at the first backoff step, not zero, so a peer that closes right away is not hammered.
-            _attempt = 1;
+            // Reset the backoff to its first 100ms step, not zero, so a peer that closes at once is not hammered.
+            _attempt = _remotes.Count;
             await ReceiveAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -349,39 +252,24 @@ internal class WebSocketClientHandler : IDisposable
 
     public void Dispose()
     {
-        CancellationTokenSource? sessionToCancel;
-        lock (_remotesLock)
-        {
-            if (_disposed) return;
-            _disposed = true;
-            sessionToCancel = _sessionTokenSource;
-        }
-
-        _disposeTokenSource.Cancel();
-        CancelQuietly(sessionToCancel);
+        // The collector cancels the loop token first. The wake signal is not disposed because the loop may still wait on it.
         _webSocket?.Dispose();
-        _wakeSignal.Dispose();
-        _disposeTokenSource.Dispose();
     }
 
     /// <summary>
-    /// Waits for the backoff delay of the given attempt. Returns true if woken early by a remote set change.
-    /// Attempt 0 has no delay. Later attempts grow exponentially from 100ms up to the configured
-    /// backoff, with full jitter.
+    /// No delay during the first pass over the remotes. After that the delay starts at 100ms
+    /// and doubles with each pass up to the configured backoff.
     /// </summary>
-    private Task<bool> WaitForBackoffAsync(int attempt, CancellationToken cancellationToken)
+    private TimeSpan BackoffDelay(int attempt, int remoteCount)
     {
-        var delay = TimeSpan.Zero;
-        if (attempt > 0)
-        {
-            // SemaphoreSlim.WaitAsync accepts at most int.MaxValue milliseconds.
-            var maxBackoffMs = Math.Min(Math.Max(_appTelemetryCollector.Backoff.TotalMilliseconds, 100), int.MaxValue);
-            // The cap is below 100ms * 2^25, so the exponent limit only prevents overflow.
-            var delayMs = Math.Min(100L << Math.Min(attempt - 1, 30), maxBackoffMs);
-            delay = TimeSpan.FromMilliseconds(delayMs * _random.NextDouble());
-            _logger.LogDebug("App Telemetry connection attempt {Attempt} waiting {Delay} before retry.", attempt, delay);
-        }
+        if (attempt < remoteCount) return TimeSpan.Zero;
 
-        return _wakeSignal.WaitAsync(delay, cancellationToken);
+        // SemaphoreSlim.WaitAsync accepts at most int.MaxValue milliseconds.
+        var maxBackoffMs = Math.Min(Math.Max(_appTelemetryCollector.Backoff.TotalMilliseconds, 100), int.MaxValue);
+        // Clamp the exponent so the shift cannot overflow. 100ms * 2^30 is above the cap.
+        var delayMs = Math.Min(100L << Math.Min(attempt / remoteCount - 1, 30), maxBackoffMs);
+        var delay = TimeSpan.FromMilliseconds(delayMs);
+        _logger.LogDebug("App Telemetry connection attempt {Attempt} waiting {Delay} before retry.", attempt, delay);
+        return delay;
     }
 }

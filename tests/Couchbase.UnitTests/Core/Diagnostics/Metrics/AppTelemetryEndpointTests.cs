@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -23,8 +24,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics;
 public class AppTelemetryEndpointTests
 {
     private const string BucketName = "default";
-    private static readonly Uri NodeA = new("ws://10.0.0.1:8091/_appTelemetry");
-    private static readonly Uri NodeB = new("ws://10.0.0.2:8091/_appTelemetry");
+    // Initialize starts the real reporter loop, so nodes use loopback ports where nothing listens and connects fail fast.
+    private const int PortA = 1;
+    private const int PortB = 2;
+    private static readonly Uri NodeA = new("ws://127.0.0.1:1/_appTelemetry");
+    private static readonly Uri NodeB = new("ws://127.0.0.1:2/_appTelemetry");
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
     #region Collector
@@ -32,9 +36,8 @@ public class AppTelemetryEndpointTests
     [Fact]
     public void Initialize_Without_Paths_Pauses_And_Records_Nothing()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", false)));
+        using var collector = CreateCollector();
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, false)));
 
         collector.Initialize();
 
@@ -45,20 +48,16 @@ public class AppTelemetryEndpointTests
     }
 
     [Fact]
-    public async Task Newer_Config_With_Paths_Pushes_Remotes_And_Resumes()
+    public void Newer_Config_With_Paths_Pushes_Remotes_And_Resumes()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", false)));
+        using var collector = CreateCollector();
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, false)));
         collector.Initialize();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 2, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 2, (PortA, true)));
 
         Assert.False(collector.IsPaused);
-        Assert.Equal(new[] { NodeA }, collector.WebSocketClientHandler!.Remotes);
-        var session = await recorder.NextAsync();
-        Assert.Equal(NodeA, session.Remote);
-
+        AssertRemotes(collector, NodeA);
         TrackOperation(collector);
         Assert.NotEmpty(collector.MetricSets);
     }
@@ -67,10 +66,9 @@ public class AppTelemetryEndpointTests
     public void Older_Or_Equal_Config_Is_Ignored_Before_Computing_Uris()
     {
         var loggerFactory = new CountingLoggerFactory();
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder, options => options.WithLogging(loggerFactory));
+        using var collector = CreateCollector(options => options.WithLogging(loggerFactory));
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 5, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 5, (PortA, true)));
 
         // Building URIs for this config throws, so it proves the version check runs first.
         var sameRev = CreatePoisonConfig(BucketConfig.GlobalBucketName, 5);
@@ -81,50 +79,47 @@ public class AppTelemetryEndpointTests
         collector.OnConfigUpdated(sameRev);
         collector.OnConfigUpdated(olderRev);
         Assert.Equal(0, loggerFactory.Count("could not process config"));
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 5, ("10.0.0.2", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 5, (PortB, true)));
 
-        Assert.Equal(new[] { NodeA }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, NodeA);
     }
 
     [Fact]
     public void IgnoreRev_Config_Is_Accepted_With_Same_Version()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketName, 5, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 5, (PortA, true)));
 
-        var config = CreateConfig(BucketName, 5, ("10.0.0.2", true));
+        var config = CreateConfig(BucketName, 5, (PortB, true));
         config.IgnoreRev = true;
         collector.OnConfigUpdated(config);
 
-        Assert.Equal(new[] { NodeB }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, NodeB);
     }
 
     [Fact]
     public void Remotes_Are_The_Union_Of_Global_And_Bucket_Configs()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
         collector.Initialize();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, ("10.0.0.1", true), ("10.0.0.2", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true), (PortB, true)));
 
-        Assert.Equal(new[] { NodeA, NodeB }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, NodeA, NodeB);
     }
 
     [Fact]
     public void Path_Disappears_Pauses_And_Discards_Metrics()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
         TrackOperation(collector);
         Assert.NotEmpty(collector.MetricSets);
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 2, ("10.0.0.1", false)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 2, (PortA, false)));
 
         Assert.True(collector.IsPaused);
         Assert.Empty(collector.MetricSets);
@@ -135,46 +130,42 @@ public class AppTelemetryEndpointTests
     [Fact]
     public void Removed_Bucket_Leaves_The_Remote_Set()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, ("10.0.0.2", true)));
-        Assert.Equal(new[] { NodeA, NodeB }, collector.WebSocketClientHandler!.Remotes);
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortB, true)));
+        AssertRemotes(collector, NodeA, NodeB);
 
         collector.OnConfigRemoved(BucketName);
 
-        Assert.Equal(new[] { NodeA }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, NodeA);
     }
 
     [Fact]
     public void Configs_Before_Initialize_Are_Kept()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", false)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, ("10.0.0.2", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, false)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortB, true)));
         collector.Initialize();
 
         Assert.False(collector.IsPaused);
-        Assert.Equal(new[] { NodeB }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, NodeB);
     }
 
     [Fact]
-    public async Task Explicit_Endpoint_Ignores_Configs_And_Never_Pauses()
+    public void Explicit_Endpoint_Ignores_Configs_And_Never_Pauses()
     {
-        var endpoint = new Uri("ws://telemetry.example.com:9000/collect");
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder, options => options.WithAppTelemetryEndpoint(endpoint));
+        var endpoint = new Uri("ws://127.0.0.1:3/collect");
+        using var collector = CreateCollector(options => options.WithAppTelemetryEndpoint(endpoint));
 
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, ("10.0.0.2", false)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortB, false)));
 
         Assert.False(collector.IsPaused);
-        Assert.Equal(new[] { endpoint }, collector.WebSocketClientHandler!.Remotes);
-        Assert.Equal(endpoint, (await recorder.NextAsync()).Remote);
+        AssertRemotes(collector, endpoint);
         TrackOperation(collector);
         Assert.NotEmpty(collector.MetricSets);
     }
@@ -182,42 +173,37 @@ public class AppTelemetryEndpointTests
     [Fact]
     public void Disabled_In_Options_Ignores_Configs()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder, options => options.WithAppTelemetryEnabled(false));
+        using var collector = CreateCollector(options => options.WithAppTelemetryEnabled(false));
 
         collector.Initialize();
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
 
         Assert.Null(collector.WebSocketClientHandler);
     }
 
     [Fact]
-    public async Task Initialize_Twice_Starts_One_Loop()
+    public void Initialize_Twice_Keeps_One_Handler()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
+        using var collector = CreateCollector();
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
 
         collector.Initialize();
         var handler = collector.WebSocketClientHandler;
         collector.Initialize();
 
         Assert.Same(handler, collector.WebSocketClientHandler);
-        await recorder.NextAsync();
-        await Task.Delay(200);
-        Assert.Equal(1, recorder.Count);
+        AssertRemotes(collector, NodeA);
     }
 
     [Fact]
     public void Uses_Tls_Scheme_From_Options()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder, options => options.EnableTls = true);
+        using var collector = CreateCollector(options => options.EnableTls = true);
         collector.Initialize();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, ("10.0.0.1", true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
 
-        Assert.Equal(new[] { new Uri("wss://10.0.0.1:18091/_appTelemetry") }, collector.WebSocketClientHandler!.Remotes);
+        AssertRemotes(collector, new Uri("wss://127.0.0.1:101/_appTelemetry"));
     }
 
     #endregion
@@ -229,7 +215,7 @@ public class AppTelemetryEndpointTests
     {
         var loggerFactory = new CountingLoggerFactory();
         var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder, options => options.WithLogging(loggerFactory));
+        using var collector = CreateCollector(options => options.WithLogging(loggerFactory));
         using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
         using var cts = new CancellationTokenSource();
 
@@ -248,7 +234,7 @@ public class AppTelemetryEndpointTests
     public async Task Handler_Connects_Promptly_When_A_Remote_Appears()
     {
         var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        using var collector = CreateCollector();
         using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
         using var cts = new CancellationTokenSource();
         var loop = handler.StartAsync(cts.Token);
@@ -256,102 +242,111 @@ public class AppTelemetryEndpointTests
 
         handler.UpdateRemotes(new[] { NodeA });
 
-        var session = await recorder.NextAsync();
-        Assert.Equal(NodeA, session.Remote);
-        Assert.Equal(NodeA, handler.SelectedRemote);
+        Assert.Equal(NodeA, (await recorder.NextAsync()).Remote);
 
         cts.Cancel();
         await AssertCompletesAsync(loop);
-        Assert.True(session.Token.IsCancellationRequested);
     }
 
     [Fact]
-    public async Task Handler_Disconnects_And_Reselects_When_Remote_Is_Removed()
+    public async Task Handler_Tries_Each_Remote_Once_Before_Backing_Off()
     {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
+        var recorder = new SessionRecorder(fail: true);
+        using var collector = CreateCollector();
+        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var cts = new CancellationTokenSource();
+        handler.UpdateRemotes(new[] { NodeA, NodeB });
+        var loop = handler.StartAsync(cts.Token);
+
+        var sessions = new List<(Uri Remote, TimeSpan At)>();
+        for (var i = 0; i < 5; i++)
+        {
+            sessions.Add(await recorder.NextAsync());
+        }
+
+        // The first pass tries both remotes, then the order repeats.
+        Assert.Equal(new[] { NodeA, NodeB }, sessions.Take(2).Select(s => s.Remote).OrderBy(u => u.Port));
+        Assert.Equal(sessions[0].Remote, sessions[2].Remote);
+        // The second pass waits 100ms per attempt and the third pass 200ms.
+        Assert.True(sessions[2].At - sessions[1].At >= TimeSpan.FromMilliseconds(80));
+        Assert.True(sessions[4].At - sessions[3].At >= TimeSpan.FromMilliseconds(180));
+
+        cts.Cancel();
+        await AssertCompletesAsync(loop);
+    }
+
+    [Fact]
+    public async Task Handler_Retries_Without_Delay_When_Remotes_Change()
+    {
+        var recorder = new SessionRecorder(fail: true);
+        using var collector = CreateCollector();
         using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
         using var cts = new CancellationTokenSource();
         handler.UpdateRemotes(new[] { NodeA });
         var loop = handler.StartAsync(cts.Token);
-        var first = await recorder.NextAsync();
-        Assert.Equal(NodeA, first.Remote);
 
+        // After 5 failed attempts the next delay is 1.6s.
+        for (var i = 0; i < 5; i++)
+        {
+            await recorder.NextAsync();
+        }
+
+        var changedAt = recorder.Elapsed;
         handler.UpdateRemotes(new[] { NodeB });
 
-        Assert.True(first.Token.IsCancellationRequested);
-        var second = await recorder.NextAsync();
-        Assert.Equal(NodeB, second.Remote);
-        Assert.False(second.Token.IsCancellationRequested);
-        Assert.False(loop.IsCompleted);
+        var session = await recorder.NextAsync();
+        Assert.Equal(NodeB, session.Remote);
+        Assert.True(session.At - changedAt < TimeSpan.FromMilliseconds(800));
 
         cts.Cancel();
         await AssertCompletesAsync(loop);
     }
 
     [Fact]
-    public async Task Handler_Keeps_Session_When_Other_Remotes_Change()
+    public async Task Handler_Loop_Ends_On_Cancel_And_Survives_Dispose()
     {
         var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
-        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var collector = CreateCollector();
+        var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
         using var cts = new CancellationTokenSource();
         handler.UpdateRemotes(new[] { NodeA });
         var loop = handler.StartAsync(cts.Token);
-        var first = await recorder.NextAsync();
+        await recorder.NextAsync();
 
-        handler.UpdateRemotes(new[] { NodeA, NodeB });
-        await Task.Delay(200);
-
-        Assert.False(first.Token.IsCancellationRequested);
-        Assert.Equal(1, recorder.Count);
-
+        // Same order as AppTelemetryCollector.Dispose.
         cts.Cancel();
-        await AssertCompletesAsync(loop);
-    }
-
-    [Fact]
-    public async Task Handler_Loop_Ends_On_Dispose()
-    {
-        var recorder = new SessionRecorder();
-        using var collector = CreateCollector(recorder);
-        var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
-        handler.UpdateRemotes(new[] { NodeA });
-        var loop = handler.StartAsync(CancellationToken.None);
-        var session = await recorder.NextAsync();
-
         handler.Dispose();
 
         await AssertCompletesAsync(loop);
-        Assert.True(session.Token.IsCancellationRequested);
+        handler.UpdateRemotes(new[] { NodeB });
     }
 
     #endregion
 
     #region Helpers
 
-    private static AppTelemetryCollector CreateCollector(SessionRecorder recorder,
-        Action<ClusterOptions> configure = null)
+    private static AppTelemetryCollector CreateCollector(Action<ClusterOptions> configure = null)
     {
         var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
         configure?.Invoke(options);
         var context = new ClusterContext(null, options);
-        return new AppTelemetryCollector(context, new Mock<IRedactor>().Object, NullLogger<AppTelemetryCollector>.Instance)
-        {
-            SessionOverride = recorder.RunAsync
-        };
+        return new AppTelemetryCollector(context, new Mock<IRedactor>().Object, NullLogger<AppTelemetryCollector>.Instance);
     }
+
+    private static void AssertRemotes(AppTelemetryCollector collector, params Uri[] expected) =>
+        Assert.Equal(expected.OrderBy(u => u.OriginalString, StringComparer.Ordinal),
+            collector.WebSocketClientHandler!.Remotes.OrderBy(u => u.OriginalString, StringComparer.Ordinal));
 
     private static void TrackOperation(AppTelemetryCollector collector) =>
         collector.IncrementMetrics(TimeSpan.FromMilliseconds(5), "node1", null, "uuid1",
             AppTelemetryServiceType.Query, AppTelemetryCounterType.Total, AppTelemetryRequestType.Query);
 
-    private static BucketConfig CreateConfig(string name, ulong rev, params (string Host, bool HasPath)[] nodes)
+    private static BucketConfig CreateConfig(string name, ulong rev, params (int Port, bool HasPath)[] nodes)
     {
         var nodesExt = nodes.Select(n => new Dictionary<string, object>
         {
-            ["hostname"] = n.Host,
-            ["services"] = new Dictionary<string, int> { ["mgmt"] = 8091, ["mgmtSSL"] = 18091, ["kv"] = 11210 },
+            ["hostname"] = "127.0.0.1",
+            ["services"] = new Dictionary<string, int> { ["mgmt"] = n.Port, ["mgmtSSL"] = n.Port + 100, ["kv"] = 11210 },
             ["appTelemetryPath"] = n.HasPath ? "/_appTelemetry" : null
         });
         return Deserialize(new Dictionary<string, object> { ["rev"] = rev, ["name"] = name, ["nodesExt"] = nodesExt });
@@ -385,23 +380,30 @@ public class AppTelemetryEndpointTests
         Assert.Same(task, completed);
     }
 
-    private sealed class SessionRecorder
+    /// <summary>
+    /// Records each session. A session stays open until the loop is cancelled, or fails at once like a failed connect.
+    /// </summary>
+    private sealed class SessionRecorder(bool fail = false)
     {
-        private readonly ConcurrentQueue<(Uri Remote, CancellationToken Token)> _pending = new();
+        private readonly ConcurrentQueue<(Uri Remote, TimeSpan At)> _pending = new();
         private readonly SemaphoreSlim _started = new(0);
+        private readonly Stopwatch _clock = Stopwatch.StartNew();
         private int _count;
 
         public int Count => Volatile.Read(ref _count);
 
+        public TimeSpan Elapsed => _clock.Elapsed;
+
         public async Task RunAsync(Uri remote, CancellationToken token)
         {
             Interlocked.Increment(ref _count);
-            _pending.Enqueue((remote, token));
+            _pending.Enqueue((remote, _clock.Elapsed));
             _started.Release();
+            if (fail) throw new InvalidOperationException("Connect failed.");
             await Task.Delay(Timeout.Infinite, token);
         }
 
-        public async Task<(Uri Remote, CancellationToken Token)> NextAsync()
+        public async Task<(Uri Remote, TimeSpan At)> NextAsync()
         {
             Assert.True(await _started.WaitAsync(WaitTimeout), "No session was started.");
             Assert.True(_pending.TryDequeue(out var session));

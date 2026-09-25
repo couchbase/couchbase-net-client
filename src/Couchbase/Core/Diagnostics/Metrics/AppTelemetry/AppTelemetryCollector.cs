@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
@@ -37,11 +36,6 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
     internal WebSocketClientHandler? WebSocketClientHandler => _webSocketClientHandler;
     internal bool IsPaused => _paused;
-
-    /// <summary>
-    /// Test seam. Replaces connecting to a remote and receiving until closed.
-    /// </summary>
-    internal Func<Uri, CancellationToken, Task>? SessionOverride { get; init; }
 
     public AppTelemetryCollector()
     {
@@ -80,7 +74,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
             // Bootstrap can be retried, so only the first call starts the reporter.
             if (_webSocketClientHandler is not null) return;
 
-            _webSocketClientHandler = new WebSocketClientHandler(this, SessionOverride);
+            _webSocketClientHandler = new WebSocketClientHandler(this);
             if (_endpoint is not null) _remotes = [_endpoint];
             PublishRemotesLocked();
         }
