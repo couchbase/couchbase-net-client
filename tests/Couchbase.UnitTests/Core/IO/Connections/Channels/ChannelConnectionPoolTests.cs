@@ -905,7 +905,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
                 if (Delay > TimeSpan.Zero)
                 {
-                    await Task.Delay(Delay);
+                    await Task.Delay(Delay, cancellationToken);
                 }
 
                 SendComplete?.Invoke(connection);

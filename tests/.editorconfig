@@ -1,8 +1,2 @@
 [*.cs]
 dotnet_diagnostic.CA2007.severity=none
-
-# The test projects still have sites for these three. They are errors under src/; held at
-# suggestion here until the test cleanup lands. See NCBC-4252 phase 3.
-dotnet_diagnostic.CA2012.severity=suggestion
-dotnet_diagnostic.CA2016.severity=suggestion
-dotnet_diagnostic.CA2211.severity=suggestion

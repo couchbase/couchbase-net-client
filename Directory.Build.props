@@ -52,6 +52,10 @@
   <PropertyGroup>
     <!-- The SDK turns these on for net5.0+ only, so set it explicitly to cover netstandard too. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <!-- A warning anywhere in the repository fails the build. The FIT performer opts out in its
+         own nested props, which is the one deliberate exemption. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- AOT analysis -->

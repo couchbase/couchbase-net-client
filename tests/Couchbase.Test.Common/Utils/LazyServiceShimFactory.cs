@@ -14,7 +14,9 @@ namespace Couchbase.Test.Common.Utils
             var serviceProvider = new Mock<IServiceProvider>();
             serviceProvider
                 .Setup(p => p.GetService(typeof(T)))
-                .Returns(mockInstance);
+                // Null is a legitimate argument here: the shim exists to simulate a service
+                // that is not registered, and Moq stores the null without dereferencing it.
+                .Returns(mockInstance!);
 
             return new LazyService<T>(serviceProvider.Object);
         }

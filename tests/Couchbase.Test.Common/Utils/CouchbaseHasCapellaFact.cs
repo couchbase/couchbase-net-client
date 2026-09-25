@@ -10,7 +10,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// </summary>
     public class CouchbaseHasCapellaFact : FactAttribute
     {
-        public static Lazy<string> CapellaConnectionString = new(() =>
+        public static readonly Lazy<string> CapellaConnectionString = new(() =>
             {
 
                 var _settings = new ConfigurationBuilder()
