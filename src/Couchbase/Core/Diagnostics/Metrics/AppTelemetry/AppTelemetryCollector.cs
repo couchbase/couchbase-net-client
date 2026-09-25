@@ -17,9 +17,10 @@ namespace Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 [InterfaceStability(Level.Volatile)]
 internal class AppTelemetryCollector : IAppTelemetryCollector
 {
-    private volatile bool _enabled;
-    // Set when no node advertises an App Telemetry path, so nothing would ever read the metrics.
-    private volatile bool _paused;
+    // AppTelemetryOptions.Enabled. When false, App Telemetry stays off for the life of the cluster.
+    private readonly bool _enabledInOptions;
+    // The only flag read per operation. Equals _enabled && !_paused.
+    private volatile bool _collecting;
     private ILogger<AppTelemetryCollector>? _logger;
     private IRedactor? _redactor;
     private WebSocketClientHandler? _webSocketClientHandler;
@@ -29,17 +30,22 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     // Guards the fields below. Never taken on the metrics hot path.
     private readonly object _remotesLock = new();
+    private bool _enabled;
+    // Set when no node advertises an App Telemetry path, so nothing would ever read the metrics.
+    private bool _paused;
     private readonly Dictionary<string, (ConfigVersion Version, IReadOnlyList<Uri> Uris)> _configUris = new();
     private IReadOnlyList<Uri> _remotes = Array.Empty<Uri>();
 
     //Shim for unit tests
     internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
     internal WebSocketClientHandler? WebSocketClientHandler => _webSocketClientHandler;
-    internal bool IsPaused => _paused;
+    internal bool IsPaused
+    {
+        get { lock (_remotesLock) return _paused; }
+    }
 
     public AppTelemetryCollector()
     {
-        _enabled = false;
     }
 
     public AppTelemetryCollector(ClusterContext clusterContext, IRedactor redactor, ILogger<AppTelemetryCollector> logger)
@@ -50,7 +56,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         Backoff = clusterOptions.AppTelemetry.Backoff;
         PingInterval = clusterOptions.AppTelemetry.PingInterval;
         PingTimeout = clusterOptions.AppTelemetry.PingTimeout;
-        _enabled = clusterOptions.AppTelemetry.Enabled;
+        _enabledInOptions = clusterOptions.AppTelemetry.Enabled;
         Authenticator = clusterOptions.GetEffectiveAuthenticator();
         _redactor = redactor;
         _logger = logger;
@@ -63,7 +69,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
             _logger = ClusterContext.ServiceProvider.GetRequiredService<ILogger<AppTelemetryCollector>>();
         }
 
-        if (!_enabled)
+        if (!_enabledInOptions)
         {
             Disable();
             return;
@@ -84,7 +90,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     public void OnConfigUpdated(BucketConfig config)
     {
-        if (!_enabled || _endpoint is not null) return;
+        if (!_enabledInOptions || _endpoint is not null) return;
 
         lock (_remotesLock)
         {
@@ -104,7 +110,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     public void OnConfigRemoved(string configName)
     {
-        if (!_enabled || _endpoint is not null || configName is null) return;
+        if (!_enabledInOptions || _endpoint is not null || configName is null) return;
 
         lock (_remotesLock)
         {
@@ -171,6 +177,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     {
         if (_paused == paused) return;
         _paused = paused;
+        UpdateCollectingLocked();
 
         if (paused)
         {
@@ -183,9 +190,15 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         }
     }
 
+    private void UpdateCollectingLocked() => _collecting = _enabled && !_paused;
+
     public void Enable()
     {
-        _enabled = true;
+        lock (_remotesLock)
+        {
+            _enabled = true;
+            UpdateCollectingLocked();
+        }
         MetricTracker.AppTelemetry.Register(this);
         _webSocketTokenSource = new CancellationTokenSource();
         _ = _webSocketClientHandler?.StartAsync(_webSocketTokenSource.Token);
@@ -193,7 +206,11 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     public void Disable()
     {
-        _enabled = false;
+        lock (_remotesLock)
+        {
+            _enabled = false;
+            UpdateCollectingLocked();
+        }
         MetricTracker.AppTelemetry.Unregister();
         _webSocketTokenSource?.Cancel();
         // Writers that already hold a metricSet reference will complete into the old dict, avoid orphaning in-flight writes.
@@ -215,7 +232,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         AppTelemetryRequestType? requestType = null,
         string? bucket = null)
     {
-        if (!_enabled || _paused) return;
+        if (!_collecting) return;
         if (string.IsNullOrEmpty(nodeUuid)) return;
 
         requestType ??= AppTelemetryUtils.DetermineAppTelemetryRequestType(serviceType);
