@@ -311,7 +311,14 @@ namespace Couchbase.Management.Search
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
 
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
-                return json["indexDefs"]!["indexDefs"]!.ToObject<Dictionary<string, SearchIndex>>()!.Values;
+
+                // The server returns JSON null for indexDefs when there are no indexes.
+                if ((json["indexDefs"] as JObject)?["indexDefs"] is not JObject indexDefs)
+                {
+                    return [];
+                }
+
+                return indexDefs.ToObject<Dictionary<string, SearchIndex>>()!.Values;
             }
             catch (Exception exception)
             {
