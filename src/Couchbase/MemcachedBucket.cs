@@ -7,7 +7,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -16,6 +15,7 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -115,7 +115,7 @@ namespace Couchbase
 
             if (op.ReplicaStrategy != null)
             {
-                throw new ReplicaIndexOutOfBoundsException($"Bucket {Name} is a memcached bucket and has no replicas.");
+                throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ICouchbaseCollection.GetReplicaAsync), "memcached buckets");
             }
 
             var bucket = KeyMapper.MapKey(op.Key);
