@@ -378,6 +378,8 @@ public class AppTelemetryEndpointTests
     {
         var completed = await Task.WhenAny(task, Task.Delay(WaitTimeout));
         Assert.Same(task, completed);
+        // Surface a faulted loop.
+        await task;
     }
 
     /// <summary>

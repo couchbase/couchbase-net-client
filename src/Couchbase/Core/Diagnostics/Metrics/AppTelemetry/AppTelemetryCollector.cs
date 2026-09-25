@@ -232,13 +232,15 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
         AppTelemetryRequestType? requestType = null,
         string? bucket = null)
     {
+        // Read the dictionary before the flag. Pausing clears the flag before it swaps the dictionary,
+        // so a write that passes the check lands in a dictionary that the pause discards.
+        var dict = Volatile.Read(ref _metricSets);
         if (!_collecting) return;
         if (string.IsNullOrEmpty(nodeUuid)) return;
 
         requestType ??= AppTelemetryUtils.DetermineAppTelemetryRequestType(serviceType);
 
         var targetKey = new NodeAndBucket(node ?? string.Empty, alternateNode, nodeUuid, bucket);
-        var dict = Volatile.Read(ref _metricSets);
         var metricSet = dict.GetOrAdd(targetKey, _ => new AppTelemetryMetricSet());
 
         if (counterType == AppTelemetryCounterType.Total && operationLatency.HasValue)

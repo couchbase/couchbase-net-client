@@ -191,10 +191,22 @@ namespace Couchbase.Core
         /// </summary>
         internal void UpdateAppTelemetryConfig(BucketConfig config)
         {
+            var collector = ServiceProvider.GetService<IAppTelemetryCollector>();
+
             // A config with no name comes from a connection with no bucket, so it is the cluster config.
-            if (config.Name is null || config.IsGlobal || Buckets.ContainsKey(config.Name))
+            if (config.Name is null || config.IsGlobal)
             {
-                ServiceProvider.GetService<IAppTelemetryCollector>()?.OnConfigUpdated(config);
+                collector?.OnConfigUpdated(config);
+                return;
+            }
+
+            if (!Buckets.ContainsKey(config.Name)) return;
+            collector?.OnConfigUpdated(config);
+
+            // The bucket can close during the update, after RemoveBucket dropped its endpoints. Drop them again.
+            if (!Buckets.ContainsKey(config.Name))
+            {
+                collector?.OnConfigRemoved(config.Name);
             }
         }
 

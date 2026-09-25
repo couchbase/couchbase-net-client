@@ -90,6 +90,8 @@ internal class WebSocketClientHandler : IDisposable
                 var remotes = _remotes;
                 if (remotes.Count == 0)
                 {
+                    // Collection is paused, so an unsent payload must not reach a remote that appears later.
+                    _pendingMetrics = null;
                     _logger.LogInformation("App Telemetry has no remotes available.");
                 }
 
