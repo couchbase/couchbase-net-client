@@ -1014,10 +1014,7 @@ namespace Couchbase.KeyValue
         {
             _bucket.ThrowIfBootStrapFailed();
 
-            if (strategy == null)
-            {
-                throw new ArgumentNullException(nameof(strategy));
-            }
+            if (strategy is null) throw new InvalidArgumentException($"Parameter {nameof(strategy)} cannot be null.");
 
             options ??= GetReplicaOptions.Default;
 

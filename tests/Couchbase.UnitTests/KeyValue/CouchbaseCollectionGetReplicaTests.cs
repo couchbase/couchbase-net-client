@@ -54,7 +54,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var (collection, bucket) = CreateCollection();
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() => collection.GetReplicaAsync(DocId, null));
+            await Assert.ThrowsAsync<InvalidArgumentException>(() => collection.GetReplicaAsync(DocId, null));
             Assert.Empty(bucket.DispatchedOperations);
         }
 
