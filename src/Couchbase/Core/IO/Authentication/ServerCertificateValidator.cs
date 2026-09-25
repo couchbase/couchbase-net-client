@@ -70,17 +70,15 @@ namespace Couchbase.Core.IO.Authentication
             var errors = sslPolicyErrors & ~SslPolicyErrors.RemoteCertificateNameMismatch;
             var reportedNameMismatch = errors != sslPolicyErrors;
 
-            if (_ignoreNameMismatch)
+            if (reportedNameMismatch)
             {
-                if (reportedNameMismatch)
+                if (!_ignoreNameMismatch)
                 {
-                    _logger.LogDebug("X509 ignoring certificate name mismatch");
+                    LogNameMismatch(sender, certificate);
+                    return false;
                 }
-            }
-            else if (reportedNameMismatch)
-            {
-                LogNameMismatch(sender, certificate);
-                return false;
+
+                _logger.LogDebug("X509 ignoring certificate name mismatch");
             }
 
             if (errors == SslPolicyErrors.None)
