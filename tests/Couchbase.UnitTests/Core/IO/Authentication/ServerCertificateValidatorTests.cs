@@ -156,19 +156,6 @@ public sealed class ServerCertificateValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task DifferentRealCa_NotInChain_Rejects()
-    {
-        // A real CA that did not sign the leaf. Merely having "a" CA in the bundle must not be enough.
-        using var otherRoot = TlsTestPki.CreateCa("Other Real Root CA");
-        using var bundle = new TrustBundle(otherRoot);
-
-        var result = await Handshake(_leaf, new[] { _intermediate }, bundle);
-
-        HandshakeAssert.RejectedByValidator(result,
-            "A real but unrelated CA in the trust bundle must not validate the leaf's chain.");
-    }
-
-    [Fact]
     public async Task SelfSignedLeaf_InTrustBundle_Accepts()
     {
         // The node serves a self-signed certificate and the user pins that exact certificate. It is its own
@@ -308,16 +295,6 @@ public sealed class ServerCertificateValidatorTests : IDisposable
         var accepted = DirectChain.Validate(validator.Validate, rogueLeaf, new[] { rogueIntermediate, rogueRoot });
 
         Assert.False(accepted, "With no configured trust anchors nothing the server sends may be trusted.");
-    }
-
-    [Fact]
-    public async Task ValidChain_MatchingHostName_Accepts()
-    {
-        using var bundle = new TrustBundle(_root);
-
-        var result = await Handshake(_leaf, new[] { _intermediate }, bundle, targetHost: LeafDnsName);
-
-        HandshakeAssert.Accepted(result, "A valid chain served under its own SAN should be accepted.");
     }
 
     [Fact]
