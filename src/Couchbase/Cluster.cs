@@ -418,7 +418,8 @@ namespace Couchbase
 
             options ??= new WaitUntilReadyOptions();
             if(options.DesiredStateValue == ClusterState.Offline)
-                throw new ArgumentException(nameof(options.DesiredStateValue));
+                throw new InvalidArgumentException(
+                    $"{nameof(ClusterState.Offline)} is not a valid desired state for WaitUntilReady.");
 
             using var ctps = CancellationTokenPairSourcePool.Shared.Rent(timeout, options.CancellationTokenValue);
             CancellationToken token = ctps.Token;
@@ -426,61 +427,30 @@ namespace Couchbase
             var bootstrappable = (IBootstrappable)this;
             try
             {
-                while (true)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    if (!IsBootstrapped)
+                await WaitUntilReadyEvaluator.PollAsync(_context, options, bucketLevel: false,
+                    () => _context.GlobalConfig,
+                    async cancellationToken =>
                     {
-                        // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
-                        // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
-                        await bootstrappable.BootStrapAsync().WaitAsync(token).ConfigureAwait(false);
                         if (!IsBootstrapped)
                         {
-                            await Task.Delay(100, token).ConfigureAwait(false);
-                            continue;
-                        }
-                    }
-
-                    if (!_context.IsGlobal)
-                        throw new NotSupportedException(
-                            "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
-                            "If you think this exception is caused by another error, please check your SDK logs for detail.");
-
-                    var pingReport =
-                        await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
-                            new PingOptions
+                            // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
+                            // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
+                            await bootstrappable.BootStrapAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+                            if (!IsBootstrapped)
                             {
-                                ServiceTypesValue = options.EffectiveServiceTypes(_context).ToList()
-                            }).ConfigureAwait(false);
-
-                    var status = new Dictionary<string, bool>();
-                    foreach (var service in pingReport.Services)
-                    {
-                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
-                        if (failures)
-                        {
-                            //mark a service as failed
-                            status.Add(service.Key, failures);
+                                return false;
+                            }
                         }
-                    }
 
-                    //everything is up
-                    if (status.Count == 0)
-                    {
-                        _clusterState = ClusterState.Online;
-                        return;
-                    }
+                        if (!_context.IsGlobal)
+                            throw new NotSupportedException(
+                                "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
+                                "If you think this exception is caused by another error, please check your SDK logs for detail.");
 
-                    //determine if completely offline or degraded
-                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
-                    if(_clusterState == options.DesiredStateValue)
-                    {
-                        return;
-                    }
-
-                    await Task.Delay(100, token).ConfigureAwait(false);
-                }
+                        return true;
+                    },
+                    state => _clusterState = state,
+                    _logger, token).ConfigureAwait(false);
             }
             catch (RateLimitedException)
             {
