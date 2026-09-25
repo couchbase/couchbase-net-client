@@ -58,6 +58,7 @@ namespace Couchbase.UnitTests
             Assert.Equal(Key, context.DocumentKey);
             Assert.Equal("default", context.BucketName);
             Assert.Equal(OpCode.ReplicaRead, context.OpCode);
+            Assert.Equal(ResponseStatus.None, context.Status);
             Assert.Empty(bucket.ServersThatReceivedOps);
         }
 

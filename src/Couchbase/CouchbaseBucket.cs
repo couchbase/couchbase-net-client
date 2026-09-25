@@ -320,6 +320,7 @@ namespace Couchbase
                     BucketName = Name,
                     ClientContextId = op.Opaque.ToStringInvariant(),
                     DocumentKey = op.Key,
+                    Status = ResponseStatus.None,
                     CollectionName = op.CName,
                     ScopeName = op.SName,
                     OpCode = op.OpCode,
