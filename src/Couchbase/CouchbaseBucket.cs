@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Collections;
@@ -305,6 +306,32 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
+        // Runs on every dispatch so a retry uses the latest vBucket map.
+        private short SelectReplica(GetReplicaStrategy strategy, VBucket vBucket, IOperation op)
+        {
+            try
+            {
+                return strategy.SelectReplica(vBucket.Replicas, vBucket.NumReplicas, vBucket.ServerCount);
+            }
+            catch (KeyValueException e) when (e.Context is null)
+            {
+                e.Context = new KeyValueErrorContext
+                {
+                    BucketName = Name,
+                    ClientContextId = op.Opaque.ToStringInvariant(),
+                    DocumentKey = op.Key,
+                    Status = ResponseStatus.None,
+                    CollectionName = op.CName,
+                    ScopeName = op.SName,
+                    OpCode = op.OpCode,
+                    DispatchedFrom = op.LastDispatchedFrom,
+                    DispatchedTo = op.LastDispatchedTo,
+                    RetryReasons = op.RetryReasons
+                };
+                throw;
+            }
+        }
+
         internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair)
         {
             if (KeyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
@@ -313,9 +340,17 @@ namespace Couchbase
             {
                 VBucket vBucket = MapVBucket(op);
 
-                var endPoint = op.ReplicaIdx != null && op.ReplicaIdx > -1
-                    ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
-                    : vBucket.LocatePrimary();
+                HostEndpointWithPort? endPoint;
+                if (op.ReplicaStrategy is { } strategy)
+                {
+                    endPoint = vBucket.LocateReplica(SelectReplica(strategy, vBucket, op));
+                }
+                else
+                {
+                    endPoint = op.ReplicaIdx != null && op.ReplicaIdx > -1
+                        ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
+                        : vBucket.LocatePrimary();
+                }
 
                 op.VBucketId = vBucket.Index;
                 op.ConfigVersion = CurrentConfig?.ConfigVersion;

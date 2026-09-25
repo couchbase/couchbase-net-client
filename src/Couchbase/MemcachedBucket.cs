@@ -15,6 +15,7 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -110,6 +111,11 @@ namespace Couchbase
             if (KeyMapper == null)
             {
                 throw new InvalidOperationException("Bucket is not bootstrapped.");
+            }
+
+            if (op.ReplicaStrategy != null)
+            {
+                throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ICouchbaseCollection.GetReplicaAsync), "memcached buckets");
             }
 
             var bucket = KeyMapper.MapKey(op.Key);

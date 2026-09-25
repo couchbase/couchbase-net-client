@@ -1009,6 +1009,34 @@ namespace Couchbase.KeyValue
             return firstCompleted.Result;
         }
 
+        /// <inheritdoc />
+        public async Task<IGetReplicaResult> GetReplicaAsync(string id, GetReplicaStrategy strategy, GetReplicaOptions? options = null)
+        {
+            _bucket.ThrowIfBootStrapFailed();
+
+            if (strategy is null) throw new InvalidArgumentException($"Parameter {nameof(strategy)} cannot be null.");
+
+            options ??= GetReplicaOptions.Default;
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.ReplicaRead, options.RequestSpanValue);
+            using var getOp = new ReplicaRead<byte[]>(id, strategy)
+            {
+                Span = rootSpan
+            };
+            using var ctp = await PrepareAsync(getOp, options).ConfigureAwait(false);
+            await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
+
+            return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, _fallbackTypeSerializerProvider)
+            {
+                Id = getOp.Key,
+                Cas = getOp.Cas,
+                OpCode = getOp.OpCode,
+                Flags = getOp.Flags,
+                Header = getOp.Header,
+                IsActive = false
+            };
+        }
+
         private string ZoneAwareUnretrievableMessage(string id) =>
             $"Either neither the primary or replicas for Document: {id}" +
             $" live in the selected Server Group: {_preferredServerGroup}," +

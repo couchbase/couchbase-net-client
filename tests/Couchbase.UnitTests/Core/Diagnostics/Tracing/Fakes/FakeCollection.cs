@@ -132,6 +132,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public Task<IGetReplicaResult> GetReplicaAsync(string id, GetReplicaStrategy strategy, GetReplicaOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null)
         {
             throw new NotImplementedException();

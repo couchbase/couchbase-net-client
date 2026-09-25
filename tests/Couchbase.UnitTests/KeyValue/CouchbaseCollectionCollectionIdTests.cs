@@ -88,6 +88,7 @@ namespace Couchbase.UnitTests.KeyValue
             ["GetAndLockAsync"] = c => c.GetAndLockAsync(DocId, TimeSpan.FromSeconds(10)),
             ["GetAnyReplicaAsync"] = c => c.GetAnyReplicaAsync(DocId),
             ["GetAllReplicasAsync"] = c => Task.WhenAll(c.GetAllReplicasAsync(DocId)),
+            ["GetReplicaAsync"] = c => c.GetReplicaAsync(DocId, GetReplicaStrategy.FromIndex(ReplicaIndex.First)),
             ["LookupInAsync"] = c => c.LookupInAsync(DocId, LookupSpecs),
             ["LookupInAnyReplicaAsync"] = c => c.LookupInAnyReplicaAsync(DocId, LookupSpecs),
             ["LookupInAllReplicasAsync"] = c => Drain(c.LookupInAllReplicasAsync(DocId, LookupSpecs)),

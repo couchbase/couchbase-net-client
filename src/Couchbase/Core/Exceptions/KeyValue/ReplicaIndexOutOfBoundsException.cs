@@ -1,43 +1,39 @@
-using Couchbase.KeyValue;
+using System;
 
-namespace Couchbase.Core.IO.Operations
+namespace Couchbase.Core.Exceptions.KeyValue
 {
-    internal sealed class ReplicaRead<T> : OperationBase<T>
+    /// <summary>
+    /// Thrown when the bucket does not have a replica at the requested index.
+    /// </summary>
+    public class ReplicaIndexOutOfBoundsException : KeyValueException
     {
-        public override OpCode OpCode => OpCode.ReplicaRead;
-
-        public ReplicaRead(string key, short replicaIndex)
-        {
-            Key = key;
-            ReplicaIdx = replicaIndex;
-        }
-
-        public ReplicaRead(string key, GetReplicaStrategy strategy)
-        {
-            Key = key;
-            ReplicaStrategy = strategy;
-        }
-
-        internal override void WriteExtras(OperationBuilder builder)
+        public ReplicaIndexOutOfBoundsException()
         {
         }
 
-        protected override void WriteFramingExtras(OperationBuilder builder)
+        public ReplicaIndexOutOfBoundsException(IErrorContext context) : base(context)
         {
         }
 
-        internal override void WriteBody(OperationBuilder builder)
+        public ReplicaIndexOutOfBoundsException(IKeyValueErrorContext context) : base(context)
+        {
+        }
+
+        public ReplicaIndexOutOfBoundsException(string message) : base(message)
+        {
+        }
+
+        public ReplicaIndexOutOfBoundsException(string message, Exception innerException) : base(message, innerException)
         {
         }
     }
 }
 
-#region [ License information          ]
 
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2017 Couchbase, Inc.
+ *    @copyright 2026 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -52,5 +48,3 @@ namespace Couchbase.Core.IO.Operations
  *    limitations under the License.
  *
  * ************************************************************/
-
-#endregion
