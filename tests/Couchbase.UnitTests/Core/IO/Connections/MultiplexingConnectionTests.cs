@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Security;
@@ -9,6 +10,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
@@ -89,11 +91,131 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             Assert.True(conn.IsDead);
         }
 
+        // NCBC-4236: connections were tracked for the "connections" gauge in a static ConcurrentBag which
+        // had no removal, so every connection ever created leaked an entry and a weak GC handle. The pool
+        // scale controller cycles idle connections every 30s, so this accumulated continuously. Closing a
+        // connection must now untrack it.
+        [Fact]
+        public void Close_UntracksTheConnectionForDiagnostics()
+        {
+            using var stream = new BlockingStream();
+            var conn = new MultiplexingConnection(stream, 8,
+                new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            Assert.True(conn.IsTrackedForDiagnostics);
+
+            conn.Close();
+
+            Assert.False(conn.IsTrackedForDiagnostics);
+        }
+
+        // CloseAsync funnels through Close, and Close may also be called again afterwards. Neither path
+        // may resurrect the entry or throw.
+        [Fact]
+        public async Task CloseAsync_ThenClose_LeavesTheConnectionUntracked()
+        {
+            using var stream = new BlockingStream();
+            var conn = new MultiplexingConnection(stream, 8,
+                new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            Assert.True(conn.IsTrackedForDiagnostics);
+
+            await conn.CloseAsync(TimeSpan.Zero);
+            Assert.False(conn.IsTrackedForDiagnostics);
+
+            conn.Close();
+            Assert.False(conn.IsTrackedForDiagnostics);
+        }
+
+        #region GetConnectionCount
+
+        // Each connection gets its own stream throughout this region. Closing a stream makes the owning
+        // connection's receive loop fail, and HandleDisconnect responds by calling Close() on that
+        // connection; sharing one stream would therefore let one test connection asynchronously kill
+        // another and make the counts racy.
+        [Fact]
+        public void GetConnectionCount_CountsLiveConnections()
+        {
+            using var firstStream = new BlockingStream();
+            using var secondStream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var first = CreateConnection(firstStream);
+            var second = CreateConnection(secondStream);
+
+            registry.Add(first);
+            registry.Add(second);
+
+            Assert.Equal(2, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(first);
+            GC.KeepAlive(second);
+        }
+
+        [Fact]
+        public void GetConnectionCount_IsZero_WhenNoConnectionsAreTracked()
+        {
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+
+            Assert.Equal(0, MultiplexingConnection.GetConnectionCount(registry));
+        }
+
+        // The gauge reports *active* connections, so a connection which has been closed must stop counting
+        // even while its entry is still present. This is the IsDead filter, and it is the part most likely
+        // to be lost in a future refactor of the registry.
+        [Fact]
+        public void GetConnectionCount_ExcludesClosedConnections()
+        {
+            using var liveStream = new BlockingStream();
+            using var closedStream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var live = CreateConnection(liveStream);
+            var closed = CreateConnection(closedStream);
+
+            registry.Add(live);
+            registry.Add(closed);
+
+            Assert.Equal(2, MultiplexingConnection.GetConnectionCount(registry));
+
+            closed.Close();
+
+            Assert.Equal(1, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(live);
+            GC.KeepAlive(closed);
+        }
+
+        // A connection abandoned without being closed leaves a dead weak reference behind. Reading the
+        // gauge must skip it rather than throwing.
+        [Fact]
+        public void GetConnectionCount_SkipsCollectedConnections()
+        {
+            using var stream = new BlockingStream();
+            var registry = new WeakInstanceRegistry<MultiplexingConnection>();
+            var live = CreateConnection(stream);
+
+            registry.AddWeak(new WeakReference<MultiplexingConnection>(null!));
+            registry.Add(live);
+            registry.AddWeak(new WeakReference<MultiplexingConnection>(null!));
+
+            Assert.Equal(1, MultiplexingConnection.GetConnectionCount(registry));
+
+            GC.KeepAlive(live);
+        }
+
+        private static MultiplexingConnection CreateConnection(Stream stream) =>
+            new(stream, 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+        #endregion
+
         // A Stream whose ReadAsync blocks indefinitely, so the MultiplexingConnection's
         // fire-and-forget receive loop doesn't tear the connection down during the test.
         private sealed class BlockingStream : Stream
         {
             private readonly System.Threading.CancellationTokenSource _cts = new();
+            private bool _disposed;
             public override bool CanRead => true;
             public override bool CanSeek => false;
             public override bool CanWrite => true;
@@ -120,8 +242,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             public override void Write(byte[] buffer, int offset, int count) { }
             protected override void Dispose(bool disposing)
             {
-                if (disposing)
+                // MultiplexingConnection.Close disposes the stream, and the test's `using` then disposes
+                // it again. Stream.Dispose is required to be idempotent, so guard the CancellationTokenSource.
+                if (disposing && !_disposed)
                 {
+                    _disposed = true;
                     _cts.Cancel();
                     _cts.Dispose();
                 }

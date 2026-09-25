@@ -30,6 +30,35 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             _testOutput = testOutput;
         }
 
+        #region Diagnostics tracking
+
+        // NCBC-4236: see ChannelConnectionPoolTests. DataFlowConnectionPool has its own Dispose override,
+        // with a different early-return guard, so it needs its own coverage of the untrack.
+        [Fact]
+        public void Dispose_UntracksThePoolForDiagnostics()
+        {
+            var pool = CreatePool();
+
+            Assert.True(pool.IsTrackedForDiagnostics);
+
+            pool.Dispose();
+
+            Assert.False(pool.IsTrackedForDiagnostics);
+        }
+
+        [Fact]
+        public void Dispose_Twice_LeavesThePoolUntracked()
+        {
+            var pool = CreatePool();
+
+            pool.Dispose();
+            pool.Dispose();
+
+            Assert.False(pool.IsTrackedForDiagnostics);
+        }
+
+        #endregion
+
         #region InitializeAsync
 
         [Theory]
@@ -955,6 +984,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             }
 
             public int PendingSends => _innerPool.PendingSends;
+
+            public bool IsTrackedForDiagnostics => _innerPool.IsTrackedForDiagnostics;
 
             public void Dispose()
             {
