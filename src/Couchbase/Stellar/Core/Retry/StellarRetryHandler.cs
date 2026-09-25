@@ -307,8 +307,8 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.Cancelled:
                 throw new RequestCanceledException();
             case StatusCode.DeadlineExceeded:
-                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail);
-                throw new AmbiguousTimeoutException();
+                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail, context);
+                throw new AmbiguousTimeoutException(detail, context);
             case StatusCode.Internal:
                 if (IsTransientGrpcTransportError(protoException))
                 {
