@@ -96,6 +96,12 @@ namespace Couchbase.Core.IO.Connections
 
             _stopwatch = LightweightStopwatch.StartNew();
 
+            // Register before starting the receive loop, not after. ReceiveResponsesAsync runs
+            // synchronously until its first await, so on an already-dead stream it can reach
+            // Close() before this line would otherwise run - leaving Close() to remove a
+            // _trackingId that is still 0 and this line to register an already-closed connection.
+            _trackingId = _connections.Add(this);
+
             // We don't need the execution context to flow to the receive loop
             bool restoreFlow = false;
             try
@@ -115,8 +121,6 @@ namespace Couchbase.Core.IO.Connections
                     ExecutionContext.RestoreFlow();
                 }
             }
-
-            _trackingId = _connections.Add(this);
         }
 
         public string ContextId { get; }
