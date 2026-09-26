@@ -11,6 +11,12 @@ insert_final_newline = true
 [*.cs]
 dotnet_diagnostic.CA2007.severity=error
 
+# Defect-class rules the .NET SDK ships at 'note', which is below warning, so nothing
+# surfaces them and TreatWarningsAsErrors cannot reach them. Escalated once src/ was clean.
+dotnet_diagnostic.CA2012.severity=error
+dotnet_diagnostic.CA2016.severity=error
+dotnet_diagnostic.CA2211.severity=error
+
 [*.{json, config}]
 indent_size = 2
 

@@ -176,7 +176,10 @@ internal partial class ConfigPushHandler : IDisposable
                         var skips = Interlocked.Increment(ref skipsWithNoPublish);
                         if (skips > 100)
                         {
-                            await Task.Delay(10).ConfigureAwait(false);
+                            // Deliberately not cancellable: 10ms never delays shutdown, and
+                            // cancelling here would throw into the catch-all below and log a
+                            // warning every time the consumer loop is torn down.
+                            await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
                         }
 
                         TryReleaseNewVersionSemaphore();

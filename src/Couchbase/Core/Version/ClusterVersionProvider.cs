@@ -122,8 +122,7 @@ namespace Couchbase.Core.Version
                 var response = await httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                // HttpContent.ReadAsStreamAsync has no CancellationToken overload on netstandard2.0.
-                using var responseBody = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var responseBody = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 
                 return (await JsonSerializer.DeserializeAsync(responseBody, InternalSerializationContext.Default.Pools, cancellationToken)
                     .ConfigureAwait(false))!;

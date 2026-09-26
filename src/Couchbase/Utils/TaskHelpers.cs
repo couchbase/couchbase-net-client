@@ -41,7 +41,7 @@ public static class TaskHelpers
                     if (cancelledCount >= tasksCount)
                     {
                         cancelRemainingContinuations.Cancel();
-                        tcs.TrySetCanceled();
+                        tcs.TrySetCanceled(cancellationToken);
                     }
                     else
                     {
@@ -86,7 +86,7 @@ public static class TaskHelpers
             }
 
             // only remaining possibility is cancelled.
-            if (!tcs.TrySetCanceled())
+            if (!tcs.TrySetCanceled(cancellationToken))
             {
                 // but if that failed, who knows what happened.
                 tcs.SetException(new InvalidOperationException("WhenAnySuccessful reached an impossible state"));

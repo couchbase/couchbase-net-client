@@ -536,7 +536,7 @@ namespace Couchbase.Client.Transactions.Cleanup.LostTransactions
                     ScopeName = ScopeName,
                     CollectionName = CollectionName,
                     Id = atrId
-                }, await _repository.GetCollectionAsync().CAF()).CAF();
+                }, await _repository.GetCollectionAsync(cancellationToken).CAF()).CAF();
 
                 if (atrCollection == null)
                 {
