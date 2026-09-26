@@ -111,7 +111,7 @@ public class CollectionQueryIndexManagerTests
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
         {
-            return _rows.ToAsyncEnumerable().GetAsyncEnumerator();
+            return _rows.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
         }
         public RetryReason RetryReason { get; }
         public IAsyncEnumerable<T> Rows => this;

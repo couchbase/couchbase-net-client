@@ -21,7 +21,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// </remarks>
     public class CouchbaseVersionDependentFact : FactAttribute
     {
-        public static Lazy<string> ServerVersion = new(() =>
+        public static readonly Lazy<string> ServerVersion = new(() =>
         {
             var currentVersion = System.Environment.GetEnvironmentVariable("CB_SERVER_VERSION");
             if (string.IsNullOrEmpty(currentVersion))
@@ -63,7 +63,7 @@ namespace Couchbase.IntegrationTests.Utils
             return currentVersion ?? "7.5";
         });
 
-        public static Lazy<string> CertPath = new(() =>
+        public static readonly Lazy<string> CertPath = new(() =>
             {
 
                 var _settings = new ConfigurationBuilder()

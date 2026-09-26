@@ -30,7 +30,7 @@ namespace System.Threading.Tasks
             IAsyncEnumerator<T> enumerator = source.GetAsyncEnumerator(cancellationToken);
             // A ManualResetEventSlim variant that lets us reuse the same
             // awaiter callback allocation across the entire enumeration.
-            ManualResetEventWithAwaiterSupport? mres = null;
+            ManualResetEventWithAwaiterSupport mres = null;
 
             try
             {
