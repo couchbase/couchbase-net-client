@@ -435,7 +435,7 @@ namespace Couchbase
                         {
                             // Don't forward the cancellation token to BootStrapAsync here, otherwise we could leave
                             // the cluster object in an odd state. Instead, just stop waiting if the token is canceled.
-                            await bootstrappable.BootStrapAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+                            await bootstrappable.BootStrapAsync(CancellationToken.None).WaitAsync(cancellationToken).ConfigureAwait(false);
                             if (!IsBootstrapped)
                             {
                                 return false;
