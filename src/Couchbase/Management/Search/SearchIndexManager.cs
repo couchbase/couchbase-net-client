@@ -313,7 +313,8 @@ namespace Couchbase.Management.Search
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
 
                 // The server returns JSON null for indexDefs when there are no indexes.
-                if ((json["indexDefs"] as JObject)?["indexDefs"] is not JObject indexDefs)
+                var indexDefs = (json["indexDefs"] as JObject)?["indexDefs"];
+                if (indexDefs is null || indexDefs.Type == JTokenType.Null)
                 {
                     return [];
                 }

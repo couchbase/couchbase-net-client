@@ -9,6 +9,7 @@ using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Management
@@ -27,6 +28,16 @@ namespace Couchbase.UnitTests.Management
             var indexes = await manager.GetAllIndexesAsync();
 
             Assert.Empty(indexes);
+        }
+
+        [Theory]
+        [InlineData("""{"status":"ok","indexDefs":{"indexDefs":[]}}""")]
+        [InlineData("""{"status":"ok","indexDefs":{"indexDefs":"oops"}}""")]
+        public async Task GetAllIndexesAsync_MalformedIndexDefs_Throws(string responseBody)
+        {
+            var manager = CreateManager(responseBody);
+
+            await Assert.ThrowsAsync<JsonSerializationException>(() => manager.GetAllIndexesAsync());
         }
 
         [Fact]
