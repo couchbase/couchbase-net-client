@@ -409,7 +409,7 @@ namespace Couchbase.Diagnostics
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2025 Couchbase, Inc.
+ *    @copyright 2026 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
