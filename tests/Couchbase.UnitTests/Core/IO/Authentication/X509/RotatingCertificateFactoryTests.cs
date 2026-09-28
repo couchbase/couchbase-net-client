@@ -228,6 +228,35 @@ public class RotatingCertificateFactoryTests(
     }
 
     [Fact]
+    public void RefreshCertificates_WithSameIssuerAndSerial_ShouldUpdateCache()
+    {
+        // Arrange
+        var oldCertificate = CreateCertificateWithSerial("TestCert", DateTime.UtcNow.AddDays(30), 0x01);
+        var newCertificate = CreateCertificateWithSerial("TestCert", DateTime.UtcNow.AddDays(60), 0x01);
+        Assert.Equal(oldCertificate, newCertificate);
+
+        _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+            .Returns(new X509Certificate2Collection(oldCertificate))
+            .Returns(new X509Certificate2Collection(newCertificate));
+
+        using var factory = new RotatingCertificateFactory(
+            _mockCertificateFactory.Object,
+            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
+            _mockLogger.Object);
+
+        factory.GetCertificates();
+
+        // Act
+        factory.RefreshCertificates(factory);
+
+        // Assert
+        Assert.True(factory.HasUpdates);
+        var cached = Assert.Single(factory.GetCertificates().Cast<X509Certificate2>());
+        Assert.Equal(newCertificate.Thumbprint, cached.Thumbprint);
+    }
+
+    [Fact]
     public async Task RefreshClientHandler_WithExpiredCertificates_ShouldNotUpdateCache()
     {
         // Arrange
@@ -510,6 +539,17 @@ public class RotatingCertificateFactoryTests(
 
         var certificate = request.CreateSelfSigned(DateTime.UtcNow.AddDays(-1), notAfter);
         return certificate;
+    }
+
+    private static X509Certificate2 CreateCertificateWithSerial(string subjectName, DateTime notAfter, byte serial)
+    {
+        var distinguishedName = new X500DistinguishedName($"CN={subjectName}");
+
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var request = new CertificateRequest(distinguishedName, rsa, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        var generator = X509SignatureGenerator.CreateForRSA(rsa, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+
+        return request.Create(distinguishedName, generator, DateTime.UtcNow.AddDays(-1), notAfter, new[] { serial });
     }
 
     private static X509Certificate2Collection GetExpiredCertificates()

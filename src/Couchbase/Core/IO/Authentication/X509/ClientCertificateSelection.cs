@@ -11,7 +11,7 @@ internal static class ClientCertificateSelection
         var usable = new X509Certificate2Collection();
         foreach (X509Certificate2 certificate in candidates)
         {
-            if (certificate.NotAfter - DateTime.Today > expiresIn && !usable.Contains(certificate))
+            if (certificate.NotAfter - DateTime.Today > expiresIn && !Contains(usable, certificate))
             {
                 usable.Add(certificate);
             }
@@ -29,12 +29,26 @@ internal static class ClientCertificateSelection
 
         foreach (X509Certificate2 certificate in a)
         {
-            if (!b.Contains(certificate))
+            if (!Contains(b, certificate))
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+    // X509Certificate.Equals compares only issuer and serial number, so match on the thumbprint instead.
+    private static bool Contains(X509Certificate2Collection collection, X509Certificate2 certificate)
+    {
+        foreach (X509Certificate2 candidate in collection)
+        {
+            if (string.Equals(candidate.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
