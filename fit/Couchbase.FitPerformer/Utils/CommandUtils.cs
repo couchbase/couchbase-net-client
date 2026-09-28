@@ -16,6 +16,21 @@ namespace Couchbase.FitPerformer.Utils;
 
 public static class CommandUtils
 {
+    public static GetReplicaStrategy ConvertGetReplicaStrategy(Couchbase.Grpc.Protocol.Sdk.Kv.Replicas.GetReplicaStrategy strategy)
+    {
+        switch (strategy.StrategyCase)
+        {
+            case Couchbase.Grpc.Protocol.Sdk.Kv.Replicas.GetReplicaStrategy.StrategyOneofCase.FromIndex:
+                var fromIndex = strategy.FromIndex;
+                var options = fromIndex.Options is { HasWrap: true }
+                    ? new GetReplicaStrategyFromIndexOptions().Wrap(fromIndex.Options.Wrap)
+                    : null;
+                return GetReplicaStrategy.FromIndex((ReplicaIndex) fromIndex.Index, options);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(strategy), $"Unknown GetReplicaStrategy {strategy.StrategyCase}");
+        }
+    }
+
     private static readonly ThreadLocal<Random> Random = new ThreadLocal<Random>(() => new Random(Environment.TickCount));
     public static ContentTypes DeserializeContentType(Couchbase.Grpc.Protocol.Shared.ContentAs.AsOneofCase contentAs, ILookupInResult result, int index)
     {

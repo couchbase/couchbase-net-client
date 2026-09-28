@@ -27,7 +27,31 @@ namespace Couchbase.Utils
         /// to live indefinitely. This may include activity tracing, the first HttpContext, etc, and may cause memory leaks or other
         /// undesired behaviors.
         /// </remarks>
-        public static Timer CreateWithFlowSuppressed(TimerCallback callback, object state, TimeSpan dueTime, TimeSpan period)
+        public static Timer CreateWithFlowSuppressed(TimerCallback callback, object state, TimeSpan dueTime, TimeSpan period) =>
+            WithFlowSuppressed(() => new Timer(callback, state, dueTime, period));
+
+        /// <summary>
+        /// Creates an <see cref="ITimer"/> from <paramref name="timeProvider"/> where the
+        /// <see cref="ExecutionContext"/> does not flow to the callbacks.
+        /// </summary>
+        /// <param name="timeProvider">The <see cref="TimeProvider"/> to create the timer from.</param>
+        /// <param name="callback">A delegate representing a method to be executed.</param>
+        /// <param name="state">An object containing information to be used by the callback method, or <c>null</c>.</param>
+        /// <param name="dueTime">The amount of time to delay before the <paramref name="callback"/> is invoked. Specify <see cref="Timeout.InfiniteTimeSpan"/> to prevent the timer from starting. Specify <see cref="TimeSpan.Zero"/> to start the timer immediately.</param>
+        /// <param name="period">The time interval between invocations of <paramref name="callback"/>. Specify <see cref="Timeout.InfiniteTimeSpan"/> to disable periodic signaling.</param>
+        /// <returns>The new <see cref="ITimer"/>.</returns>
+        /// <remarks>
+        /// The <see cref="TimeProvider"/> overload of <see cref="CreateWithFlowSuppressed(TimerCallback, object, TimeSpan, TimeSpan)"/>,
+        /// for timers that need to be driven by an injected clock in tests. <see cref="TimeProvider.CreateTimer"/>
+        /// captures the ExecutionContext exactly as <see cref="Timer"/> does, so the same suppression applies -
+        /// see the remarks on that overload for why it matters.
+        /// </remarks>
+        public static ITimer CreateWithFlowSuppressed(TimeProvider timeProvider, TimerCallback callback, object state, TimeSpan dueTime, TimeSpan period) =>
+            WithFlowSuppressed(() => timeProvider.CreateTimer(callback, state, dueTime, period));
+
+        // Both overloads capture the ExecutionContext at creation, so both need the same suppression; this
+        // keeps that dance in one place.
+        private static T WithFlowSuppressed<T>(Func<T> create)
         {
             bool restoreFlow = false;
             try
@@ -38,7 +62,7 @@ namespace Couchbase.Utils
                     restoreFlow = true;
                 }
 
-                return new Timer(callback, state, dueTime, period);
+                return create();
             }
             finally
             {

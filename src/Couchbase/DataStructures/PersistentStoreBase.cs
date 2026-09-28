@@ -45,7 +45,7 @@ namespace Couchbase.DataStructures
         [Obsolete("Use asynchronous overload.")]
         protected virtual void CreateBackingStore()
         {
-            CreateBackingStoreAsync().GetAwaiter().GetResult();
+            CreateBackingStoreAsync().AsTask().GetAwaiter().GetResult();
         }
 
         protected virtual async ValueTask CreateBackingStoreAsync()

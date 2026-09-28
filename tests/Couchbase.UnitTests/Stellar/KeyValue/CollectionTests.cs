@@ -140,6 +140,13 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
     }
 
     [Fact]
+    public async Task Throw_FeatureNotAvailableException_GetReplicaAsync()
+    {
+        await Assert.ThrowsAsync<FeatureNotAvailableException>(async () =>
+            await _collection.GetReplicaAsync("key", GetReplicaStrategy.FromIndex(ReplicaIndex.First)));
+    }
+
+    [Fact]
     public async Task Throw_FeatureNotAvailableException_LookUpInAnyReplicaAsync()
     {
         await Assert.ThrowsAsync<FeatureNotAvailableException>(async () => await _collection.LookupInAnyReplicaAsync("key", new List<LookupInSpec>()));

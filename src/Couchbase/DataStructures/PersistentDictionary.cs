@@ -52,7 +52,7 @@ namespace Couchbase.DataStructures
         [Obsolete("This method is blocking; please use the async version instead.")]
         public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
         {
-            CreateBackingStoreAsync().GetAwaiter().GetResult();
+            CreateBackingStoreAsync().AsTask().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
             return result.ContentAs<IDictionary<string, TValue>>()
                 .EnsureNotNullForDataStructures().GetEnumerator();
@@ -95,7 +95,7 @@ namespace Couchbase.DataStructures
         [Obsolete("This method is blocking; please use the async version instead.")]
         public void CopyTo(KeyValuePair<string, TValue>[] array, int arrayIndex)
         {
-            CreateBackingStoreAsync().GetAwaiter().GetResult();
+            CreateBackingStoreAsync().AsTask().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
             var dict = result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures();
             dict.CopyTo(array, arrayIndex);
@@ -135,7 +135,7 @@ namespace Couchbase.DataStructures
         public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
 #pragma warning restore CS8767
         {
-            CreateBackingStoreAsync().ConfigureAwait(false);
+            CreateBackingStoreAsync().AsTask().GetAwaiter().GetResult();
             var success = true;
             try
             {
