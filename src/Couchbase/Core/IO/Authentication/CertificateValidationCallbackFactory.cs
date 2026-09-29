@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using System.Net.Security;
-using Couchbase.Core.IO.Connections;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.IO.Authentication
 {
     /// <summary>
-    /// Factory for creating server certificate validation callbacks for KV and HTTP connections.
+    /// Creates the server certificate validation callback for KV and HTTP connections.
     /// </summary>
     internal sealed class CertificateValidationCallbackFactory : ICertificateValidationCallbackFactory
     {
@@ -27,60 +29,31 @@ namespace Couchbase.Core.IO.Authentication
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
-        /// <summary>
-        /// Creates a certificate validation callback for KV connections.
-        /// </summary>
-        /// <returns>A RemoteCertificateValidationCallback for KV connections.</returns>
-        public RemoteCertificateValidationCallback CreateForKv()
+        public RemoteCertificateValidationCallback CreateForKv() =>
+            Create(_tlsSettings.KvCertificateValidationCallback, _tlsSettings.KvIgnoreRemoteCertificateNameMismatch);
+
+        public RemoteCertificateValidationCallback CreateForHttp() =>
+            Create(_tlsSettings.HttpCertificateValidationCallback, _tlsSettings.HttpIgnoreRemoteCertificateNameMismatch);
+
+        private RemoteCertificateValidationCallback Create(RemoteCertificateValidationCallback? userCallback, bool ignoreNameMismatch)
         {
-            if (_tlsSettings == null)
+            if (userCallback != null)
             {
-                throw new ArgumentNullException(nameof(_tlsSettings));
+                return userCallback;
             }
 
-            // If custom callback is provided, use it
-            if (_tlsSettings.KvCertificateValidationCallback != null)
-            {
-                return _tlsSettings.KvCertificateValidationCallback;
-            }
+            // Resolved on every call so a trusted certificate factory that rotates is honoured by new connections.
+            var trustedCertificates = _tlsSettings.TrustedServerCertificateFactory?.GetCertificates()
+                                      ?? new X509Certificate2Collection(CertificateFactory.DefaultCertificates.ToArray());
 
-            // Otherwise create default callback
-            var callbackCreator = new CallbackCreator(
-                _tlsSettings.KvIgnoreRemoteCertificateNameMismatch,
+            var validator = new ServerCertificateValidator(
+                trustedCertificates,
+                ignoreNameMismatch,
+                _tlsSettings.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck,
                 _logger,
-                _redactor,
-                _tlsSettings.TrustedServerCertificateFactory?.GetCertificates());
+                _redactor);
 
-            return (sender, certificate, chain, sslPolicyErrors) =>
-                callbackCreator.Callback(sender, certificate, chain, sslPolicyErrors);
-        }
-
-        /// <summary>
-        /// Creates a certificate validation callback for HTTP connections.
-        /// </summary>
-        /// <returns>A RemoteCertificateValidationCallback for HTTP connections.</returns>
-        public RemoteCertificateValidationCallback CreateForHttp()
-        {
-            if (_tlsSettings == null)
-            {
-                throw new ArgumentNullException(nameof(_tlsSettings));
-            }
-
-            // If custom callback is provided, use it
-            if (_tlsSettings.HttpCertificateValidationCallback != null)
-            {
-                return _tlsSettings.HttpCertificateValidationCallback;
-            }
-
-            // Otherwise create default callback
-            var callbackCreator = new CallbackCreator(
-                _tlsSettings.HttpIgnoreRemoteCertificateNameMismatch,
-                _logger,
-                _redactor,
-                _tlsSettings.TrustedServerCertificateFactory?.GetCertificates());
-
-            return (sender, certificate, chain, sslPolicyErrors) =>
-                callbackCreator.Callback(sender, certificate, chain, sslPolicyErrors);
+            return validator.Validate;
         }
     }
 }

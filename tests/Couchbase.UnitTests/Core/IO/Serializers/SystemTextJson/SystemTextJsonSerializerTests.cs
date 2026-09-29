@@ -301,7 +301,11 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
 #if NET6_0_OR_GREATER
             Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(writer.WrittenSpan));
 #else
-            writer.FlushAsync().GetAwaiter().GetResult(); // completes synchronously
+            // A PipeWriter over a MemoryStream flushes synchronously, so blocking here cannot
+            // deadlock. AsTask() because blocking directly on a ValueTask is not guaranteed to wait.
+#pragma warning disable xUnit1031
+            writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+#pragma warning restore xUnit1031
 
             Assert.Equal(PersonExampleExpectedJson, Encoding.UTF8.GetString(memoryStream.ToArray()));
 #endif
