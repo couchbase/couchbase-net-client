@@ -238,7 +238,7 @@ public class StellarRetryHandlerTests
     {
         // NCBC-4265: an unmapped FAILED_PRECONDITION with no detail block is terminal, not retried.
         var retryMock = new Mock<StellarRetryHandler>();
-        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns((Any?)null);
+        retryMock.Setup(handler => handler.StatusDeserializer(It.IsAny<RpcException>())).Returns((Any)null);
 
         var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
         var callCount = 0;

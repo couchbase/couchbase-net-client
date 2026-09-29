@@ -84,11 +84,7 @@ public class EventingFunctionManagerTests : IDisposable
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -147,11 +143,7 @@ public class EventingFunctionManagerTests : IDisposable
                 ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getfunction-response.json");
 #endif
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -211,11 +203,7 @@ public class EventingFunctionManagerTests : IDisposable
             ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
 #endif
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
         var httpResponseMessage = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
@@ -272,11 +260,7 @@ using var response =
             ResourceHelper.ReadResourceAsStream(@"Documents\Eventing\getallfunctions-scopes-response.json");
 #endif
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -352,11 +336,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -421,11 +401,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -491,11 +467,7 @@ using var response =
 
         var buffer = new byte[response.Length];
         Debug.Assert(response != null, nameof(response) + " != null");
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -558,11 +530,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -605,11 +573,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var nodeMock = new Mock<IClusterNode>();
         nodeMock
@@ -695,11 +659,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {
@@ -760,11 +720,7 @@ using var response =
 #endif
 
         var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
         await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
         var httpResponseMessage = new HttpResponseMessage
         {

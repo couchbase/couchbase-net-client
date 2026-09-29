@@ -57,7 +57,7 @@ public class ClusterFixture : IAsyncLifetime, IAsyncDisposable
     public async Task<IBucket> GetDefaultBucket()
     {
         Debug.Assert(Cluster != null, nameof(Cluster) + " != null");
-        var bucket = await Cluster.BucketAsync(_settings.BucketName).ConfigureAwait(false);
+        var bucket = await Cluster!.BucketAsync(_settings.BucketName).ConfigureAwait(false);
 
         _bucketOpened = true;
 
@@ -108,13 +108,13 @@ public class ClusterFixture : IAsyncLifetime, IAsyncDisposable
                 .GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
             Debug.Assert(options != null, nameof(options) + " != null");
-            options.WithLogging(loggerFactory);
+            options!.WithLogging(loggerFactory);
         }
 
         if (settings.SystemTextJson)
         {
             Debug.Assert(options != null, nameof(options) + " != null");
-            options.WithSerializer(SystemTextJsonSerializer.Create());
+            options!.WithSerializer(SystemTextJsonSerializer.Create());
         }
 
         if (settings.EnableCompression)

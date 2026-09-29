@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests.Fixtures
 
         public IBucket GetDefaultBucket()
         {
-            return Cluster.BucketAsync("default").GetAwaiter().GetResult();
+            return Cluster.BucketAsync("default").AsTask().GetAwaiter().GetResult();
         }
 
 

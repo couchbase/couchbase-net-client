@@ -123,6 +123,50 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
             // Assert
             Assert.True(factory.HasUpdates);
             _mockCertificateFactory.Verify(x => x.GetCertificates(), Times.Exactly(2));
+
+            var refreshed = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(newCertificates.Count, refreshed.Length);
+            foreach (var certificate in newCertificates.Cast<X509Certificate2>())
+            {
+                Assert.Contains(certificate, refreshed);
+            }
+            Assert.DoesNotContain(initialCertificates[0], refreshed);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_SecondRefreshWithSameCertificates_ShouldNotReportUpdates()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(10));
+            var newCertificates = CreateTestCertificateCollection(2, DateTime.UtcNow.AddDays(20));
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(newCertificates)
+                                  .Returns(newCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterFirstRefresh = factory.HasUpdates;
+
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterSecondRefresh = factory.HasUpdates;
+
+            // Assert
+            Assert.True(hasUpdatesAfterFirstRefresh);
+            Assert.False(hasUpdatesAfterSecondRefresh);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(newCertificates.Count, cached.Length);
+            foreach (var certificate in newCertificates.Cast<X509Certificate2>())
+            {
+                Assert.Contains(certificate, cached);
+            }
         }
 
         [Fact]
@@ -174,6 +218,130 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.X509
 
             // Assert - HasUpdates should be false because no new certificates were found
             Assert.False(factory.HasUpdates);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_WithOverlappingCertificates_ShouldKeepBoth()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(20));
+            var certificateA = initialCertificates[0];
+            var certificateB = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(20))[0];
+            var overlappingCertificates = new X509Certificate2Collection { certificateA, certificateB };
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(overlappingCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+
+            // Assert
+            Assert.True(factory.HasUpdates);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(2, cached.Length);
+            Assert.Contains(certificateA, cached);
+            Assert.Contains(certificateB, cached);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_WithSameCertificatesTwice_ShouldNotFlipTheCache()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(20));
+            var certificateA = initialCertificates[0];
+            var certificateB = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(20))[0];
+            var overlappingCertificates = new X509Certificate2Collection { certificateA, certificateB };
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(overlappingCertificates)
+                                  .Returns(overlappingCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterFirstRefresh = factory.HasUpdates;
+
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+            var hasUpdatesAfterSecondRefresh = factory.HasUpdates;
+
+            // Assert
+            Assert.True(hasUpdatesAfterFirstRefresh);
+            Assert.False(hasUpdatesAfterSecondRefresh);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Equal(2, cached.Length);
+            Assert.Contains(certificateA, cached);
+            Assert.Contains(certificateB, cached);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_WithRemovedCertificate_ShouldDropIt()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(2, DateTime.UtcNow.AddDays(20));
+            var certificateA = initialCertificates[0];
+            var certificateB = initialCertificates[1];
+            var remainingCertificates = new X509Certificate2Collection(certificateB);
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(remainingCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+
+            // Assert
+            Assert.True(factory.HasUpdates);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Single(cached);
+            Assert.Contains(certificateB, cached);
+            Assert.DoesNotContain(certificateA, cached);
+        }
+
+        [Fact]
+        public void RefreshClientHandler_WithNoUsableCertificates_ShouldKeepTheCache()
+        {
+            // Arrange
+            var initialCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(20));
+            var certificateA = initialCertificates[0];
+            var expiringCertificates = CreateTestCertificateCollection(1, DateTime.UtcNow.AddDays(1));
+
+            _mockCertificateFactory.SetupSequence(x => x.GetCertificates())
+                                  .Returns(initialCertificates)
+                                  .Returns(expiringCertificates);
+
+            var factory = new DelegatingCertificateFactory(_mockCertificateFactory.Object);
+
+            // Initialize cache
+            factory.GetCertificates();
+
+            // Act
+            factory.RefreshCertificates(TimeSpan.FromDays(5));
+
+            // Assert
+            Assert.False(factory.HasUpdates);
+
+            var cached = factory.GetCertificates().Cast<X509Certificate2>().ToArray();
+            Assert.Single(cached);
+            Assert.Contains(certificateA, cached);
         }
 
         [Fact]

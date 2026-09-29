@@ -195,6 +195,9 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
     public Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)=>
         throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetAllReplicasAsync), "Protostellar");
 
+    public Task<IGetReplicaResult> GetReplicaAsync(string id, GetReplicaStrategy strategy, GetReplicaOptions? options = null) =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(GetReplicaAsync), "Protostellar");
+
     public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
     {
         _stellarCluster.ThrowIfBootStrapFailed();

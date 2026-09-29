@@ -16,7 +16,7 @@ namespace Couchbase.IntegrationTests.Diagnostics
         {
             _fixture = fixture;
             _cluster = _fixture.Cluster;
-            _cluster.BucketAsync("default").GetAwaiter().GetResult();
+            _cluster.BucketAsync("default").AsTask().GetAwaiter().GetResult();
         }
 
         private readonly ClusterFixture _fixture;

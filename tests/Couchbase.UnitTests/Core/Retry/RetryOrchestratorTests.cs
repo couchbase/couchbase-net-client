@@ -453,11 +453,7 @@ namespace Couchbase.UnitTests.Core.Retry
 #endif
 
             var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
             await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
             var responses = GetResponses(20, buffer, httpStatusCode);
             var client = MockedHttpClients.SearchClient(responses);
@@ -498,11 +494,7 @@ namespace Couchbase.UnitTests.Core.Retry
 #endif
             {
                 var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
                 await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-                response.Read(buffer, 0, buffer.Length);
-#endif
 
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.ViewClient(responses);
@@ -545,11 +537,7 @@ namespace Couchbase.UnitTests.Core.Retry
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file);
 #endif
             var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
             await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
             var responses = GetResponses(20, buffer, httpStatusCode);
             var client = MockedHttpClients.AnalyticsClient(responses);
@@ -592,11 +580,7 @@ namespace Couchbase.UnitTests.Core.Retry
             using var response = ResourceHelper.ReadResourceAsStream(file);
 #endif
             var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
             await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
             var responses = GetResponses(20, buffer, httpStatusCode);
             var client = MockedHttpClients.QueryClient(responses, enableEnhancedPreparedStatements);

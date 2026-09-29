@@ -518,12 +518,14 @@ namespace Couchbase.UnitTests.Core
                 _bootstrapSucceeds = bootstrapSucceeds;
             }
 
+            [Obsolete("The View service has been deprecated; overridden only to satisfy the base type.")]
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
             public override IScope Scope(string scopeName) => throw new NotImplementedException();
 
+            [Obsolete("The View service has been deprecated; overridden only to satisfy the base type.")]
             public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null) =>
                 throw new NotImplementedException();
 

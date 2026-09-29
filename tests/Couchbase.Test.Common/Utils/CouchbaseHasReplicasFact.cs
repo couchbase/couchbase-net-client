@@ -17,7 +17,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// </remarks>
     public class CouchbaseHasReplicasFact : FactAttribute
     {
-        public static Lazy<int> NumReplicas = new(() =>
+        public static readonly Lazy<int> NumReplicas = new(() =>
         {
             var numReplicas = 0;
 

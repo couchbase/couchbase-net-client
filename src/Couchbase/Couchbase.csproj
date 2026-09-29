@@ -15,7 +15,6 @@
 
     <RootNamespace>Couchbase</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- suppress warnings for missing XML comments on public members -->

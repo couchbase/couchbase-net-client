@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 #pragma warning disable CS8632
@@ -54,6 +55,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public bool RequiresVBucketId { get; }
         public short? VBucketId { get; set; }
         public short? ReplicaIdx { get; }
+        public GetReplicaStrategy ReplicaStrategy { get; }
         public uint Opaque { get; }
         public ulong Cas { get; }
         public OperationHeader Header { get; }
