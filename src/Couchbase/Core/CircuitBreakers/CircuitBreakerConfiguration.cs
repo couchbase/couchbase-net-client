@@ -52,7 +52,13 @@ namespace Couchbase.Core.CircuitBreakers
             };
         };
 
+        // CA2211: this is a public writable static and has to stay one. Making it readonly is a
+        // source break for anyone assigning it, and a binary break too - the field becomes initonly,
+        // so already-compiled assignments throw FieldAccessException. Changing it needs a deliberate
+        // API decision, not an analyzer cleanup.
+#pragma warning disable CA2211
         public static CircuitBreakerConfiguration Default = new();
+#pragma warning restore CA2211
     }
 }
 

@@ -34,11 +34,7 @@ namespace Couchbase.UnitTests.Analytics
 #endif
 
             var buffer = new byte[response.Length];
-#if NET8_0_OR_GREATER
             await response.ReadExactlyAsync(buffer, 0, buffer.Length);
-#else
-            response.Read(buffer, 0, buffer.Length);
-#endif
 
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(

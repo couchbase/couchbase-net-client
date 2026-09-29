@@ -400,6 +400,20 @@ namespace Couchbase
         /// </summary>
         /// <param name="certificates">The server CA certificates to trust.</param>
         /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
+        /// <remarks>
+        /// <para>
+        /// Include the root CA of each chain to trust. An intermediate CA alone is not a trust anchor.
+        /// These certificates replace the bundled Capella CA.
+        /// </para>
+        /// <para>
+        /// The OS trust store is checked first. If it does not trust the chain, the SDK builds the chain again
+        /// against these certificates only.
+        /// </para>
+        /// <para>
+        /// The netstandard2.0 and netstandard2.1 builds do not use these certificates. Add the CA to the OS
+        /// trust store instead.
+        /// </para>
+        /// </remarks>
         public ClusterOptions WithTrustedServerCertificates(X509Certificate2Collection certificates)
         {
             if (TlsSettings == null)

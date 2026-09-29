@@ -219,6 +219,17 @@ public static class OptionsUtil
         return ret;
     }
 
+    public static KeyValue.GetReplicaOptions? CreateOptions(GetReplica request, ConcurrentDictionary<string, IRequestSpan> spans)
+    {
+        if (request.Options == null) return null;
+        var opts = request.Options;
+        var ret = new Couchbase.KeyValue.GetReplicaOptions();
+        if (opts.HasTimeoutMsecs) ret.Timeout(TimeSpan.FromMilliseconds(opts.TimeoutMsecs));
+        if (opts.Transcoder != null) ret.Transcoder(ConvertTranscoder(opts.Transcoder));
+        if (opts.HasParentSpanId) ret.RequestSpan(spans[opts.ParentSpanId]);
+        return ret;
+    }
+
     public static KeyValue.GetAllReplicasOptions? CreateOptions(GetAllReplicas request, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (request.Options == null) return null;

@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Couchbase.Utils;
@@ -39,10 +38,13 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
             //if null it's a first request for certificates
             if (_cachedCertificates.Count == 0)
             {
-                _ = Interlocked.Exchange(ref _cachedCertificates, _certificateFactoryImplementation.GetCertificates());
+                _cachedCertificates = _certificateFactoryImplementation.GetCertificates();
 
-                _timer = TimerFactory.CreateWithFlowSuppressed(
-                    RefreshCertificates!, this, _interval, _interval);
+                if (!_disposed && _timer == null)
+                {
+                    _timer = TimerFactory.CreateWithFlowSuppressed(
+                        RefreshCertificates!, this, _interval, _interval);
+                }
             }
 
             return _cachedCertificates;
@@ -66,28 +68,21 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
                 //reset if its already been triggered to true earlier
                 _hasChanges = false;
 
-                var validNewCertificates = new X509Certificate2Collection();
-                var possibleNewCertificates =
-                    _certificateFactoryImplementation.GetCertificates();
-                foreach (var certificate in possibleNewCertificates)
-                {
-                    var expirationDate = DateTime.Parse(certificate.GetExpirationDateString(), CultureInfo.InvariantCulture);
-                    if (!_cachedCertificates.Contains(certificate) && expirationDate - DateTime.Today > _expiresIn)
-                    {
-                        validNewCertificates.Add(certificate);
-                    }
-                }
+                var usable = ClientCertificateSelection.SelectUsable(
+                    _certificateFactoryImplementation.GetCertificates(), _expiresIn);
 
-                if (validNewCertificates.Count > 0)
+                if (usable.Count == 0)
                 {
-                    _cachedCertificates =
-                        Interlocked.Exchange(ref _cachedCertificates,
-                            validNewCertificates);
-                    _hasChanges = true;
+                    _logger?.LogWarning("No usable client certificates were found, keeping the current certificates");
+                }
+                else if (ClientCertificateSelection.HasSameCertificates(usable, _cachedCertificates))
+                {
+                    _logger?.LogDebug("Client certificates are unchanged");
                 }
                 else
                 {
-                    _logger?.LogDebug("No new certificates were found");
+                    _cachedCertificates = usable;
+                    _hasChanges = true;
                 }
             }
             catch (Exception ex)
@@ -105,8 +100,14 @@ public class RotatingCertificateFactory : IRotatingCertificateFactory, IDisposab
     {
         if (_disposed)
         {
-            _disposed = true;
+            return;
+        }
+
+        _disposed = true;
+        lock (_syncObj)
+        {
             _timer?.Dispose();
+            _timer = null;
         }
     }
 }

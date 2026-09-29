@@ -22,6 +22,16 @@ namespace Couchbase.Core.Sharding
         short[] Replicas { get; }
 
         /// <summary>
+        /// Gets the number of replicas the bucket is configured with.
+        /// </summary>
+        int NumReplicas { get; }
+
+        /// <summary>
+        /// Gets the number of servers in the vBucket server map.
+        /// </summary>
+        int ServerCount { get; }
+
+        /// <summary>
         /// Gets the index of the VBucket.
         /// </summary>
         /// <value>

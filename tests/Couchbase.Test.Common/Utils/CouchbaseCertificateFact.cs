@@ -12,7 +12,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// </remarks>
     public class CouchbaseCertificateFact : FactAttribute
     {
-        public static Lazy<string> CertPath = new(() =>
+        public static readonly Lazy<string> CertPath = new(() =>
             {
 
                 var _settings = new ConfigurationBuilder()
