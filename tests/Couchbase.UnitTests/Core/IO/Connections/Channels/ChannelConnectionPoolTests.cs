@@ -32,6 +32,36 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             _testOutput = testOutput;
         }
 
+        #region Diagnostics tracking
+
+        // NCBC-4236: pools were tracked for the "send_queue_length" gauge in a static ConcurrentBag which
+        // had no removal, so every pool ever created leaked an entry. Nodes are recreated on every config
+        // change, so disposing a pool must untrack it.
+        [Fact]
+        public void Dispose_UntracksThePoolForDiagnostics()
+        {
+            var pool = CreatePool();
+
+            Assert.True(pool.IsTrackedForDiagnostics);
+
+            pool.Dispose();
+
+            Assert.False(pool.IsTrackedForDiagnostics);
+        }
+
+        [Fact]
+        public void Dispose_Twice_LeavesThePoolUntracked()
+        {
+            var pool = CreatePool();
+
+            pool.Dispose();
+            pool.Dispose();
+
+            Assert.False(pool.IsTrackedForDiagnostics);
+        }
+
+        #endregion
+
         #region InitializeAsync
 
         [Theory]
