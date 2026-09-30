@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Authentication.Authenticators;
 
@@ -21,6 +22,16 @@ internal interface IAppTelemetryCollector : IDisposable
 
     void Initialize();
 
+    /// <summary>
+    /// Updates the App Telemetry endpoints from a global or bucket config.
+    /// </summary>
+    void OnConfigUpdated(BucketConfig config);
+
+    /// <summary>
+    /// Drops the App Telemetry endpoints of a config that is no longer tracked, such as a closed bucket.
+    /// </summary>
+    void OnConfigRemoved(string configName);
+
     void Disable();
     void Enable();
 
@@ -30,7 +41,5 @@ internal interface IAppTelemetryCollector : IDisposable
     TimeSpan Backoff { get; set; }
     TimeSpan PingInterval { get; set; }
     TimeSpan PingTimeout { get; set; }
-    Uri? Endpoint(int attempt);
-    int EndpointCount { get; }
     IAuthenticator? Authenticator { get; set; }
 }

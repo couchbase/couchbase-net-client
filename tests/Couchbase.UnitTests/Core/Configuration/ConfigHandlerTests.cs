@@ -13,6 +13,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
+using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
@@ -236,6 +237,53 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act/assert
             Assert.Throws<NotImplementedException>(() => handler.Get("default"));
+        }
+
+        [Fact]
+        public async Task Poll_Skips_Only_Nodes_Where_Push_Is_Handled()
+        {
+            var bucket = new FakeBucket(_output, new SemaphoreSlim(0, 1));
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
+            context.ClusterOptions.ConfigPollInterval = TimeSpan.FromMilliseconds(10);
+
+            // Config push on a node without a bucket owner is dropped, so that node must still be polled.
+            var owner = new CouchbaseBucket("default", context, new Mock<IScopeFactory>().Object,
+                new Mock<IRetryOrchestrator>().Object, new Mock<IVBucketKeyMapperFactory>().Object,
+                new Mock<ILogger<CouchbaseBucket>>().Object, new TypedRedactor(RedactionLevel.None),
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object, new BestEffortRetryStrategy(), new BucketConfig(),
+                new Mock<IConfigPushHandlerFactory>().Object);
+            var bucketNode = CreatePushNode("host1", owner);
+            var globalNode = CreatePushNode("host2", owner: null);
+
+            var globalPolls = new SemaphoreSlim(0);
+            globalNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+                .Callback(() => globalPolls.Release())
+                .ReturnsAsync((BucketConfig)null);
+
+            context.AddNode(bucketNode.Object);
+            context.AddNode(globalNode.Object);
+
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
+                new Mock<ILogger<ConfigHandler>>().Object);
+            handler.Start(withPolling: true);
+
+            // Two polls of the global node mean at least one full pass over all nodes.
+            Assert.True(await globalPolls.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.True(await globalPolls.WaitAsync(TimeSpan.FromSeconds(5)));
+            bucketNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        private static Mock<IClusterNode> CreatePushNode(string host, IBucket owner)
+        {
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
+            node.SetupGet(x => x.HasKv).Returns(true);
+            node.SetupGet(x => x.BucketType).Returns(BucketType.Couchbase);
+            node.SetupGet(x => x.ServerFeatures)
+                .Returns(new ServerFeatureSet(new[] { ServerFeatures.ClustermapChangeNotificationBrief }));
+            node.SetupProperty(x => x.Owner, owner);
+            return node;
         }
 
         internal class FakeBucket : BucketBase
