@@ -86,6 +86,31 @@ public class StellarRetryHandlerTests
     }
 
     [Fact]
+    public async Task Cancelled_AfterRetries_KeepsContext()
+    {
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            if (callCount < 3)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, "LOCKED"));
+            }
+
+            throw new RpcException(new Status(StatusCode.Cancelled, "Call canceled"));
+        }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.RequestCanceledException>(
+            () => handler.RetryAsync(GrpcCall, request));
+        Assert.Equal("Call canceled", ex.Message);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.KvLocked, context.RetryReasons);
+    }
+
+    [Fact]
     public async Task Throw_CouchbaseException_On_Unknown_Error()
     {
         var retryMock = new StellarRetryHandler();
@@ -387,6 +412,11 @@ public class StellarRetryHandlerTests
             fakeTime.Advance(TimeSpan.FromMilliseconds(500));
             await Task.Delay(1); // yield to let continuations run
         }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(
+            () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
 
     [Fact]
@@ -420,12 +450,17 @@ public class StellarRetryHandlerTests
             await Task.Delay(1);
         }
 
-        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
 
-    [Fact]
-    public async Task Timeout_ThrowsAmbiguousTimeout_ForIdempotentButMutating_AfterRetries()
+    [Theory]
+    [InlineData(StatusCode.Unavailable, "Service unavailable", RetryReason.ServiceNotAvailable)]
+    [InlineData(StatusCode.FailedPrecondition, "LOCKED", RetryReason.KvLocked)]
+    public async Task Timeout_ThrowsAmbiguousTimeout_ForIdempotentButMutating_AfterRetries(
+        StatusCode retryStatus, string detail, RetryReason expectedReason)
     {
         // CNG-2 regression: timeout ambiguity must key on read-only status, not idempotency.
         // An op such as GetAndLock/GetAndTouch/MutateIn is idempotent (safe to retry) yet mutates
@@ -448,7 +483,7 @@ public class StellarRetryHandlerTests
                 throw new RpcException(new Status(StatusCode.DeadlineExceeded, "Deadline exceeded"));
             }
 
-            throw new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
+            throw new RpcException(new Status(retryStatus, detail));
         }
 
         var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
@@ -459,8 +494,10 @@ public class StellarRetryHandlerTests
             await Task.Delay(1);
         }
 
-        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
             () => retryTask);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(expectedReason, context.RetryReasons);
     }
 
     [Fact]
