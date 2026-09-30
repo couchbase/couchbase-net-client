@@ -305,7 +305,7 @@ internal class StellarRetryHandler : IRetryOrchestrator
             case StatusCode.Unauthenticated:
                 throw new AuthenticationFailureException(context);
             case StatusCode.Cancelled:
-                throw new RequestCanceledException();
+                throw new RequestCanceledException(detail) { Context = context };
             case StatusCode.DeadlineExceeded:
                 if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail, context);
                 throw new AmbiguousTimeoutException(detail, context);

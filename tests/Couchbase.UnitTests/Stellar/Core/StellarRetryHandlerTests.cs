@@ -86,6 +86,31 @@ public class StellarRetryHandlerTests
     }
 
     [Fact]
+    public async Task Cancelled_AfterRetries_KeepsContext()
+    {
+        var handler = new StellarRetryHandler();
+        var request = new StellarRequest { Timeout = TimeSpan.FromSeconds(5) };
+        var callCount = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            callCount++;
+            if (callCount < 3)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, "LOCKED"));
+            }
+
+            throw new RpcException(new Status(StatusCode.Cancelled, "Call canceled"));
+        }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.RequestCanceledException>(
+            () => handler.RetryAsync(GrpcCall, request));
+        Assert.Equal("Call canceled", ex.Message);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.KvLocked, context.RetryReasons);
+    }
+
+    [Fact]
     public async Task Throw_CouchbaseException_On_Unknown_Error()
     {
         var retryMock = new StellarRetryHandler();
