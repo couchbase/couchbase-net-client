@@ -146,8 +146,11 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
 
     private bool RecomputeRemotesLocked()
     {
-        var remotes = _configUris.Values
-            .SelectMany(p => p.Uris)
+        // The cluster config stops updating once a bucket is open. A bucket config lists every node, so it replaces it.
+        var hasBucket = _configUris.Keys.Any(name => name != BucketConfig.GlobalBucketName);
+        var remotes = _configUris
+            .Where(p => !hasBucket || p.Key != BucketConfig.GlobalBucketName)
+            .SelectMany(p => p.Value.Uris)
             .Distinct()
             .OrderBy(p => p.OriginalString, StringComparer.Ordinal)
             .ToList();

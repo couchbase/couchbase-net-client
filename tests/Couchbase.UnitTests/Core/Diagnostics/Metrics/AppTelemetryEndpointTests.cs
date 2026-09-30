@@ -99,15 +99,16 @@ public class AppTelemetryEndpointTests
     }
 
     [Fact]
-    public void Remotes_Are_The_Union_Of_Global_And_Bucket_Configs()
+    public void Bucket_Configs_Replace_The_Global_Config_While_A_Bucket_Is_Open()
     {
         using var collector = CreateCollector();
         collector.Initialize();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true), (PortB, true)));
-
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true), (PortB, true)));
         AssertRemotes(collector, NodeA, NodeB);
+
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true), (PortB, false)));
+        AssertRemotes(collector, NodeA);
     }
 
     [Fact]
@@ -128,12 +129,26 @@ public class AppTelemetryEndpointTests
     }
 
     [Fact]
+    public void Bucket_Path_Disappears_Pauses_Although_Global_Config_Is_Stale()
+    {
+        using var collector = CreateCollector();
+        collector.Initialize();
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true)));
+
+        collector.OnConfigUpdated(CreateConfig(BucketName, 2, (PortA, false)));
+
+        Assert.True(collector.IsPaused);
+        Assert.Empty(collector.WebSocketClientHandler!.Remotes);
+    }
+
+    [Fact]
     public void Removed_Bucket_Leaves_The_Remote_Set()
     {
         using var collector = CreateCollector();
         collector.Initialize();
         collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortB, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true), (PortB, true)));
         AssertRemotes(collector, NodeA, NodeB);
 
         collector.OnConfigRemoved(BucketName);
@@ -142,16 +157,32 @@ public class AppTelemetryEndpointTests
     }
 
     [Fact]
+    public void Global_Config_Is_The_Source_Again_After_The_Last_Bucket_Is_Removed()
+    {
+        const string otherBucket = "other";
+        using var collector = CreateCollector();
+        collector.Initialize();
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortA, true), (PortB, true)));
+        collector.OnConfigUpdated(CreateConfig(otherBucket, 1, (PortA, true), (PortB, true)));
+
+        collector.OnConfigRemoved(BucketName);
+        AssertRemotes(collector, NodeA, NodeB);
+
+        collector.OnConfigRemoved(otherBucket);
+        AssertRemotes(collector, NodeA);
+    }
+
+    [Fact]
     public void Configs_Before_Initialize_Are_Kept()
     {
         using var collector = CreateCollector();
 
-        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, false)));
-        collector.OnConfigUpdated(CreateConfig(BucketName, 1, (PortB, true)));
+        collector.OnConfigUpdated(CreateConfig(BucketConfig.GlobalBucketName, 1, (PortA, true), (PortB, false)));
         collector.Initialize();
 
         Assert.False(collector.IsPaused);
-        AssertRemotes(collector, NodeB);
+        AssertRemotes(collector, NodeA);
     }
 
     [Fact]
