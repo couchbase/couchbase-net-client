@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -12,6 +11,7 @@ using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -245,15 +245,18 @@ public class AppTelemetryEndpointTests
     public async Task Handler_Without_Remotes_Does_Not_Connect_Or_Spin()
     {
         var loggerFactory = new CountingLoggerFactory();
-        var recorder = new SessionRecorder();
+        var time = new TimerTrackingTimeProvider();
+        var recorder = new SessionRecorder(time);
         using var collector = CreateCollector(options => options.WithLogging(loggerFactory));
-        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync, time);
         using var cts = new CancellationTokenSource();
 
+        // The loop runs synchronously until it parks on the wake signal.
         var loop = handler.StartAsync(cts.Token);
-        await Task.Delay(300);
+        time.Advance(TimeSpan.FromHours(1));
 
         Assert.Equal(0, recorder.Count);
+        Assert.Equal(0, time.TimerCount);
         Assert.Equal(1, loggerFactory.Count("no remotes available"));
         Assert.False(loop.IsCompleted);
 
@@ -264,16 +267,17 @@ public class AppTelemetryEndpointTests
     [Fact]
     public async Task Handler_Connects_Promptly_When_A_Remote_Appears()
     {
-        var recorder = new SessionRecorder();
+        var time = new TimerTrackingTimeProvider();
+        var recorder = new SessionRecorder(time);
         using var collector = CreateCollector();
-        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync, time);
         using var cts = new CancellationTokenSource();
         var loop = handler.StartAsync(cts.Token);
-        await Task.Delay(100);
 
         handler.UpdateRemotes(new[] { NodeA });
 
         Assert.Equal(NodeA, (await recorder.NextAsync()).Remote);
+        Assert.Equal(0, time.TimerCount);
 
         cts.Cancel();
         await AssertCompletesAsync(loop);
@@ -282,25 +286,25 @@ public class AppTelemetryEndpointTests
     [Fact]
     public async Task Handler_Tries_Each_Remote_Once_Before_Backing_Off()
     {
-        var recorder = new SessionRecorder(fail: true);
+        var time = new TimerTrackingTimeProvider();
+        var recorder = new SessionRecorder(time, fail: true);
         using var collector = CreateCollector();
-        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync, time);
         using var cts = new CancellationTokenSource();
         handler.UpdateRemotes(new[] { NodeA, NodeB });
         var loop = handler.StartAsync(cts.Token);
 
-        var sessions = new List<(Uri Remote, TimeSpan At)>();
-        for (var i = 0; i < 5; i++)
-        {
-            sessions.Add(await recorder.NextAsync());
-        }
+        // The first pass tries both remotes without delay.
+        var start = time.GetUtcNow();
+        var sessions = new List<(Uri Remote, DateTimeOffset At)> { await recorder.NextAsync(), await recorder.NextAsync() };
+        Assert.Equal(new[] { NodeA, NodeB }, sessions.Select(s => s.Remote).OrderBy(u => u.Port));
+        Assert.All(sessions, s => Assert.Equal(start, s.At));
 
-        // The first pass tries both remotes, then the order repeats.
-        Assert.Equal(new[] { NodeA, NodeB }, sessions.Take(2).Select(s => s.Remote).OrderBy(u => u.Port));
-        Assert.Equal(sessions[0].Remote, sessions[2].Remote);
-        // The second pass waits 100ms per attempt and the third pass 200ms.
-        Assert.True(sessions[2].At - sessions[1].At >= TimeSpan.FromMilliseconds(80));
-        Assert.True(sessions[4].At - sessions[3].At >= TimeSpan.FromMilliseconds(180));
+        // The second pass waits 100ms per attempt and the third pass 200ms. The order repeats.
+        sessions.Add(await AssertBacksOffAsync(time, recorder, TimeSpan.FromMilliseconds(100)));
+        sessions.Add(await AssertBacksOffAsync(time, recorder, TimeSpan.FromMilliseconds(100)));
+        sessions.Add(await AssertBacksOffAsync(time, recorder, TimeSpan.FromMilliseconds(200)));
+        Assert.Equal(sessions.Take(3).Select(s => s.Remote), sessions.Skip(2).Select(s => s.Remote));
 
         cts.Cancel();
         await AssertCompletesAsync(loop);
@@ -309,25 +313,26 @@ public class AppTelemetryEndpointTests
     [Fact]
     public async Task Handler_Retries_Without_Delay_When_Remotes_Change()
     {
-        var recorder = new SessionRecorder(fail: true);
+        var time = new TimerTrackingTimeProvider();
+        var recorder = new SessionRecorder(time, fail: true);
         using var collector = CreateCollector();
-        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        using var handler = new WebSocketClientHandler(collector, recorder.RunAsync, time);
         using var cts = new CancellationTokenSource();
         handler.UpdateRemotes(new[] { NodeA });
         var loop = handler.StartAsync(cts.Token);
 
-        // After 5 failed attempts the next delay is 1.6s.
-        for (var i = 0; i < 5; i++)
+        await recorder.NextAsync();
+        foreach (var ms in new[] { 100, 200, 400, 800 })
         {
-            await recorder.NextAsync();
+            await AssertBacksOffAsync(time, recorder, TimeSpan.FromMilliseconds(ms));
         }
 
-        var changedAt = recorder.Elapsed;
+        // After 5 failed attempts the next delay is 1.6s.
+        Assert.Equal(TimeSpan.FromMilliseconds(1600), await time.NextTimerAsync());
+
         handler.UpdateRemotes(new[] { NodeB });
 
-        var session = await recorder.NextAsync();
-        Assert.Equal(NodeB, session.Remote);
-        Assert.True(session.At - changedAt < TimeSpan.FromMilliseconds(800));
+        Assert.Equal(NodeB, (await recorder.NextAsync()).Remote);
 
         cts.Cancel();
         await AssertCompletesAsync(loop);
@@ -336,9 +341,10 @@ public class AppTelemetryEndpointTests
     [Fact]
     public async Task Handler_Loop_Ends_On_Cancel_And_Survives_Dispose()
     {
-        var recorder = new SessionRecorder();
+        var time = new TimerTrackingTimeProvider();
+        var recorder = new SessionRecorder(time);
         using var collector = CreateCollector();
-        var handler = new WebSocketClientHandler(collector, recorder.RunAsync);
+        var handler = new WebSocketClientHandler(collector, recorder.RunAsync, time);
         using var cts = new CancellationTokenSource();
         handler.UpdateRemotes(new[] { NodeA });
         var loop = handler.StartAsync(cts.Token);
@@ -414,33 +420,78 @@ public class AppTelemetryEndpointTests
     }
 
     /// <summary>
-    /// Records each session. A session stays open until the loop is cancelled, or fails at once like a failed connect.
+    /// Waits for the loop to arm a timer of <paramref name="delay"/>, checks that no session starts
+    /// before it is due, then returns the session that starts when it fires.
     /// </summary>
-    private sealed class SessionRecorder(bool fail = false)
+    private static async Task<(Uri Remote, DateTimeOffset At)> AssertBacksOffAsync(
+        TimerTrackingTimeProvider time, SessionRecorder recorder, TimeSpan delay)
     {
-        private readonly ConcurrentQueue<(Uri Remote, TimeSpan At)> _pending = new();
+        Assert.Equal(delay, await time.NextTimerAsync());
+        var count = recorder.Count;
+
+        time.Advance(delay - TimeSpan.FromMilliseconds(1));
+        Assert.Equal(count, recorder.Count);
+
+        time.Advance(TimeSpan.FromMilliseconds(1));
+        var session = await recorder.NextAsync();
+        Assert.Equal(time.GetUtcNow(), session.At);
+        return session;
+    }
+
+    /// <summary>
+    /// Records each session at the fake time it starts. A session stays open until the loop is cancelled,
+    /// or fails at once like a failed connect.
+    /// </summary>
+    private sealed class SessionRecorder(TimeProvider time, bool fail = false)
+    {
+        private readonly ConcurrentQueue<(Uri Remote, DateTimeOffset At)> _pending = new();
         private readonly SemaphoreSlim _started = new(0);
-        private readonly Stopwatch _clock = Stopwatch.StartNew();
         private int _count;
 
         public int Count => Volatile.Read(ref _count);
 
-        public TimeSpan Elapsed => _clock.Elapsed;
-
         public async Task RunAsync(Uri remote, CancellationToken token)
         {
             Interlocked.Increment(ref _count);
-            _pending.Enqueue((remote, _clock.Elapsed));
+            _pending.Enqueue((remote, time.GetUtcNow()));
             _started.Release();
             if (fail) throw new InvalidOperationException("Connect failed.");
             await Task.Delay(Timeout.Infinite, token);
         }
 
-        public async Task<(Uri Remote, TimeSpan At)> NextAsync()
+        public async Task<(Uri Remote, DateTimeOffset At)> NextAsync()
         {
             Assert.True(await _started.WaitAsync(WaitTimeout), "No session was started.");
             Assert.True(_pending.TryDequeue(out var session));
             return session;
+        }
+    }
+
+    /// <summary>
+    /// Reports the due time of each timer, so a test advances the clock only after the loop arms it.
+    /// </summary>
+    private sealed class TimerTrackingTimeProvider : FakeTimeProvider
+    {
+        private readonly ConcurrentQueue<TimeSpan> _dueTimes = new();
+        private readonly SemaphoreSlim _created = new(0);
+        private int _timerCount;
+
+        public int TimerCount => Volatile.Read(ref _timerCount);
+
+        public override ITimer CreateTimer(TimerCallback callback, object state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = base.CreateTimer(callback, state, dueTime, period);
+            Interlocked.Increment(ref _timerCount);
+            _dueTimes.Enqueue(dueTime);
+            _created.Release();
+            return timer;
+        }
+
+        public async Task<TimeSpan> NextTimerAsync()
+        {
+            Assert.True(await _created.WaitAsync(WaitTimeout), "No timer was created.");
+            Assert.True(_dueTimes.TryDequeue(out var dueTime));
+            return dueTime;
         }
     }
 

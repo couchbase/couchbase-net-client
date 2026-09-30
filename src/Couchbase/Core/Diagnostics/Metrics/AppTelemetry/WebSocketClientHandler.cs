@@ -39,6 +39,7 @@ internal class WebSocketClientHandler : IDisposable
     private readonly ICertificateValidationCallbackFactory _certificateValidationCallbackFactory;
     private readonly IRedactor _redactor;
     private readonly Func<Uri, CancellationToken, Task> _runSession;
+    private readonly TimeProvider _timeProvider;
     private int _attempt;
     private string? _pendingMetrics;
 
@@ -48,9 +49,11 @@ internal class WebSocketClientHandler : IDisposable
 
     /// <summary>
     /// <paramref name="runSession"/> is a test seam that replaces connecting to a remote and receiving until closed.
+    /// <paramref name="timeProvider"/> is a test seam that times the backoff. It defaults to the registered TimeProvider.
     /// </summary>
     public WebSocketClientHandler(IAppTelemetryCollector appTelemetryCollector,
-        Func<Uri, CancellationToken, Task>? runSession = null)
+        Func<Uri, CancellationToken, Task>? runSession = null,
+        TimeProvider? timeProvider = null)
     {
         _appTelemetryCollector = appTelemetryCollector;
         _logger = _appTelemetryCollector.ClusterContext!.ServiceProvider
@@ -62,6 +65,8 @@ internal class WebSocketClientHandler : IDisposable
         _certificateValidationCallbackFactory = _appTelemetryCollector.ClusterContext.ServiceProvider
             .GetRequiredService<ICertificateValidationCallbackFactory>();
         _runSession = runSession ?? ConnectAndReceiveAsync;
+        _timeProvider = timeProvider ?? _appTelemetryCollector.ClusterContext.ServiceProvider
+            .GetRequiredService<TimeProvider>();
     }
 
     internal IReadOnlyList<Uri> Remotes => _remotes;
@@ -96,7 +101,7 @@ internal class WebSocketClientHandler : IDisposable
                 }
 
                 var delay = remotes.Count == 0 ? Timeout.InfiniteTimeSpan : BackoffDelay(_attempt, remotes.Count);
-                if (await _wakeSignal.WaitAsync(delay, cancellationToken).ConfigureAwait(false))
+                if (await WaitForRemoteChangeAsync(delay, cancellationToken).ConfigureAwait(false))
                 {
                     // The remote set changed, so start a new pass without delay.
                     _attempt = 0;
@@ -119,6 +124,43 @@ internal class WebSocketClientHandler : IDisposable
         }
 
         _logger.LogDebug("App Telemetry reporter loop stopped.");
+    }
+
+    /// <summary>
+    /// Waits up to <paramref name="delay"/> for the remote set to change. Returns false on timeout.
+    /// </summary>
+    private async Task<bool> WaitForRemoteChangeAsync(TimeSpan delay, CancellationToken cancellationToken)
+    {
+        if (delay == TimeSpan.Zero || delay == Timeout.InfiniteTimeSpan)
+        {
+            return await _wakeSignal.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
+        }
+
+        // A timer cancels the wait. A cancelled wait leaves the semaphore, so it cannot take a later signal.
+        using var timeout = new CancellationTokenSource();
+        using var timer = _timeProvider.CreateTimer(CancelTimeout, timeout, delay, Timeout.InfiniteTimeSpan);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, cancellationToken);
+        try
+        {
+            await _wakeSignal.WaitAsync(linked.Token).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
+
+    private static void CancelTimeout(object? state)
+    {
+        try
+        {
+            ((CancellationTokenSource)state!).Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The timer can fire after the wait ended and disposed the source.
+        }
     }
 
     private async Task ConnectAndReceiveAsync(Uri remote, CancellationToken cancellationToken)
@@ -266,7 +308,7 @@ internal class WebSocketClientHandler : IDisposable
     {
         if (attempt < remoteCount) return TimeSpan.Zero;
 
-        // SemaphoreSlim.WaitAsync accepts at most int.MaxValue milliseconds.
+        // Cap at int.MaxValue milliseconds, which every timer and wait accepts.
         var maxBackoffMs = Math.Min(Math.Max(_appTelemetryCollector.Backoff.TotalMilliseconds, 100), int.MaxValue);
         // Clamp the exponent so the shift cannot overflow. 100ms * 2^30 is above the cap.
         var delayMs = Math.Min(100L << Math.Min(attempt / remoteCount - 1, 30), maxBackoffMs);
