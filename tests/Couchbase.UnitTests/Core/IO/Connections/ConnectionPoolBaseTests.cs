@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -15,6 +16,77 @@ namespace Couchbase.UnitTests.Core.IO.Connections
     public class ConnectionPoolBaseTests
     {
         private readonly HostEndpointWithPort _hostEndpoint = new("localhost", 9999);
+
+        #region GetSendQueueLength
+
+        // The gauge is the sum of PendingSends across every tracked pool, so a single pool's queue is not
+        // the whole story and the aggregation itself is worth pinning down.
+        [Fact]
+        public void GetSendQueueLength_SumsAcrossPools()
+        {
+            var registry = new WeakInstanceRegistry<ConnectionPoolBase>();
+            var first = new ConnectionPoolMock(2);
+            var second = new ConnectionPoolMock(3);
+            var third = new ConnectionPoolMock(5);
+
+            registry.Add(first);
+            registry.Add(second);
+            registry.Add(third);
+
+            Assert.Equal(10, ConnectionPoolBase.GetSendQueueLength(registry));
+
+            GC.KeepAlive(first);
+            GC.KeepAlive(second);
+            GC.KeepAlive(third);
+        }
+
+        [Fact]
+        public void GetSendQueueLength_IsZero_WhenNoPoolsAreTracked()
+        {
+            var registry = new WeakInstanceRegistry<ConnectionPoolBase>();
+
+            Assert.Equal(0, ConnectionPoolBase.GetSendQueueLength(registry));
+        }
+
+        // This is what the fix changes in observable terms: a disposed pool untracks itself, so its queue
+        // stops being counted rather than lingering in the gauge for the life of the process.
+        [Fact]
+        public void GetSendQueueLength_ExcludesRemovedPools()
+        {
+            var registry = new WeakInstanceRegistry<ConnectionPoolBase>();
+            var kept = new ConnectionPoolMock(2);
+            var removed = new ConnectionPoolMock(7);
+
+            registry.Add(kept);
+            var id = registry.Add(removed);
+
+            Assert.Equal(9, ConnectionPoolBase.GetSendQueueLength(registry));
+
+            registry.Remove(id);
+
+            Assert.Equal(2, ConnectionPoolBase.GetSendQueueLength(registry));
+
+            GC.KeepAlive(kept);
+            GC.KeepAlive(removed);
+        }
+
+        // A pool abandoned without being disposed leaves a dead weak reference behind. Reading the gauge
+        // must skip it rather than throwing or counting it as zero-and-still-present.
+        [Fact]
+        public void GetSendQueueLength_SkipsCollectedPools()
+        {
+            var registry = new WeakInstanceRegistry<ConnectionPoolBase>();
+            var live = new ConnectionPoolMock(4);
+
+            registry.AddWeak(new WeakReference<ConnectionPoolBase>(null!));
+            registry.Add(live);
+
+            Assert.Equal(4, ConnectionPoolBase.GetSendQueueLength(registry));
+
+            GC.KeepAlive(live);
+        }
+
+        #endregion
 
         #region CreateConnectionAsync
 
@@ -242,7 +314,21 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             public override int Size => 1;
             public override int MinimumSize { get; set; }
             public override int MaximumSize { get; set; }
-            public override int PendingSends => 0;
+            public override int PendingSends { get; }
+
+            public ConnectionPoolMock(int pendingSends)
+                : this(CreateConnectionInitializer(), Mock.Of<IConnectionFactory>(),
+                    Mock.Of<ILogger<IConnectionPool>>())
+            {
+                PendingSends = pendingSends;
+            }
+
+            private static IConnectionInitializer CreateConnectionInitializer()
+            {
+                var mock = new Mock<IConnectionInitializer>();
+                mock.SetupGet(m => m.EndPoint).Returns(new HostEndpointWithPort("localhost", 9999));
+                return mock.Object;
+            }
 
             public List<IConnection> Connections { get; } = new List<IConnection>();
 

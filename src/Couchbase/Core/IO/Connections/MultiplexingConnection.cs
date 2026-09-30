@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
@@ -26,9 +25,26 @@ namespace Couchbase.Core.IO.Connections
 {
     internal sealed class MultiplexingConnection : IConnection
     {
-        private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
+        private static readonly WeakInstanceRegistry<MultiplexingConnection> _connections = new();
 
-        public static int GetConnectionCount() => _connections.Count(p => p.TryGetTarget(out var connection) && !connection.IsDead);
+        public static int GetConnectionCount() => GetConnectionCount(_connections);
+
+        /// <summary>
+        /// Counts the live connections in an explicit registry. Exists so that unit tests can exercise the
+        /// count against a registry they own; the process-wide one cannot be asserted on because test
+        /// classes running in parallel create connections of their own.
+        /// </summary>
+        internal static int GetConnectionCount(WeakInstanceRegistry<MultiplexingConnection> registry) => registry
+            .EnumerateLive()
+            .Count(static p => !p.IsDead);
+
+        /// <summary>
+        /// For UNIT TESTING ONLY. Whether this connection is still in the set tracked for diagnostics.
+        /// Membership of a specific instance is unaffected by connections which other tests create in parallel.
+        /// </summary>
+        internal bool IsTrackedForDiagnostics => _connections.EnumerateLive().Contains(this);
+
+        private readonly long _trackingId;
 
         internal const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
@@ -80,6 +96,12 @@ namespace Couchbase.Core.IO.Connections
 
             _stopwatch = LightweightStopwatch.StartNew();
 
+            // Register before starting the receive loop, not after. ReceiveResponsesAsync runs
+            // synchronously until its first await, so on an already-dead stream it can reach
+            // Close() before this line would otherwise run - leaving Close() to remove a
+            // _trackingId that is still 0 and this line to register an already-closed connection.
+            _trackingId = _connections.Add(this);
+
             // We don't need the execution context to flow to the receive loop
             bool restoreFlow = false;
             try
@@ -99,8 +121,6 @@ namespace Couchbase.Core.IO.Connections
                     ExecutionContext.RestoreFlow();
                 }
             }
-
-            _connections.Add(new WeakReference<MultiplexingConnection>(this, false));
         }
 
         public string ContextId { get; }
@@ -411,6 +431,12 @@ namespace Couchbase.Core.IO.Connections
 
         public void Close()
         {
+            // Close is the single funnel for connection teardown; CloseAsync always ends here. Untracking
+            // eagerly keeps the diagnostics registry sized to the number of live connections rather than
+            // the number ever created, which matters because the pool scale controller cycles connections
+            // continuously under a bursty workload.
+            _connections.Remove(_trackingId);
+
             // set _closing just in case Close() was called before CloseAsync
             Interlocked.Exchange(ref _closing, 1);
 

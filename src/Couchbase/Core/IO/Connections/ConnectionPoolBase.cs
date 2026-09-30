@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,7 +19,9 @@ namespace Couchbase.Core.IO.Connections
     {
         #region Metrics
 
-        private static readonly ConcurrentBag<WeakReference<ConnectionPoolBase>> _connectionPools = new();
+        private static readonly WeakInstanceRegistry<ConnectionPoolBase> _connectionPools = new();
+
+        private long _trackingId;
 
         /// <summary>
         /// Add a connection pool to the list of active connection pools. We don't want to do this in the ConnectionPoolBase
@@ -30,11 +31,34 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="connectionPool">Connection pool to track.</param>
         protected void TrackConnectionPool(ConnectionPoolBase connectionPool)
         {
-            _connectionPools.Add(new WeakReference<ConnectionPoolBase>(connectionPool));
+            connectionPool._trackingId = _connectionPools.Add(connectionPool);
         }
 
-        public static int GetSendQueueLength() => _connectionPools
-            .Sum(p => p.TryGetTarget(out var connectionPool) ? connectionPool.PendingSends : 0);
+        /// <summary>
+        /// Remove this connection pool from the list of active connection pools. Inheritors must call this from
+        /// <see cref="Dispose"/>, otherwise the pool is only untracked once it has been garbage collected.
+        /// </summary>
+        protected void UntrackConnectionPool()
+        {
+            _connectionPools.Remove(_trackingId);
+        }
+
+        public static int GetSendQueueLength() => GetSendQueueLength(_connectionPools);
+
+        /// <summary>
+        /// Computes the send queue length over an explicit registry. Exists so that unit tests can exercise
+        /// the aggregation against a registry they own; the process-wide one cannot be asserted on because
+        /// test classes running in parallel create pools of their own.
+        /// </summary>
+        internal static int GetSendQueueLength(WeakInstanceRegistry<ConnectionPoolBase> registry) => registry
+            .EnumerateLive()
+            .Sum(static p => p.PendingSends);
+
+        /// <summary>
+        /// For UNIT TESTING ONLY. Whether this pool is still in the set tracked for diagnostics. Membership
+        /// of a specific instance is unaffected by pools which other tests create in parallel.
+        /// </summary>
+        internal bool IsTrackedForDiagnostics => _connectionPools.EnumerateLive().Contains(this);
 
         #endregion
 
