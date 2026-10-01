@@ -75,11 +75,23 @@ public sealed class ServerCertificateValidatorTests : IDisposable
         Assert.Equal(_root.SubjectName.RawData, subordinate.SubjectName.RawData);
         using var drLeaf = TlsTestPki.CreateServerLeaf("DR Node Leaf", LeafDnsName, issuer: subordinate);
         using var bundle = new TrustBundle(_root);
+        var logger = new RecordingLogger(debugEnabled: false);
 
-        var result = await Handshake(drLeaf, new[] { subordinate }, bundle);
+        var result = await Handshake(drLeaf, new[] { subordinate }, bundle, logger: logger);
 
-        HandshakeAssert.Accepted(result,
-            "A leaf issued by a subordinate CA that shares the root's subject name should validate against the root.");
+        if (ChainBuilderThrows(_root, subordinate, drLeaf))
+        {
+            // NCBC-4316: OpenSSL 3.0.2 (Ubuntu 22.04) cannot evaluate this chain, and X509Chain.Build throws.
+            // The validator must turn that into a logged rejection rather than abort the handshake.
+            HandshakeAssert.RejectedByValidator(result,
+                "When the platform cannot build the chain, the validator should reject rather than throw.");
+            Assert.Contains(logger.Messages, m => m.Contains("could not build its chain"));
+        }
+        else
+        {
+            HandshakeAssert.Accepted(result,
+                "A leaf issued by a subordinate CA that shares the root's subject name should validate against the root.");
+        }
     }
 
     [Fact]
@@ -514,6 +526,37 @@ public sealed class ServerCertificateValidatorTests : IDisposable
             X509RevocationMode.NoCheck,
             logger ?? NullLogger.Instance,
             new Redactor(RedactionLevel.None));
+    }
+
+    /// <summary>
+    /// Whether this platform's chain builder throws for the given chain, the way the validator would build it.
+    /// </summary>
+    private static bool ChainBuilderThrows(X509Certificate2 anchor, X509Certificate2 intermediate, X509Certificate2 leaf)
+    {
+        using var anchorCopy = TlsTestPki.CopyOf(anchor);
+        using var intermediateCopy = TlsTestPki.CopyOf(intermediate);
+        using var leafCopy = TlsTestPki.CopyOf(leaf);
+        using var chain = new X509Chain();
+        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.ChainPolicy.CustomTrustStore.Add(anchorCopy);
+        chain.ChainPolicy.ExtraStore.Add(intermediateCopy);
+        try
+        {
+            chain.Build(leafCopy);
+            return false;
+        }
+        catch (CryptographicException)
+        {
+            return true;
+        }
+        finally
+        {
+            foreach (var element in chain.ChainElements)
+            {
+                element.Certificate.Dispose();
+            }
+        }
     }
 
     private Task<HandshakeResult> Handshake(

@@ -182,7 +182,22 @@ namespace Couchbase.Core.IO.Authentication
                 }
 
                 var leaf = Copy(certificate, ownedCertificates);
-                var isTrusted = ownChain.Build(leaf);
+                bool isTrusted;
+                try
+                {
+                    isTrusted = ownChain.Build(leaf);
+                }
+                catch (CryptographicException ex)
+                {
+                    // Build throws when the platform reports a verify error .NET has no mapping for, which
+                    // would otherwise abort the handshake. OpenSSL 3.0.2 (Ubuntu 22.04) does this for a CA
+                    // whose subject equals its issuer but that is not self-signed, such as a subordinate
+                    // sharing its root's name.
+                    _logger.LogWarning(ex,
+                        "X509 certificate {Subject} rejected: the platform could not build its chain against {Count} configured trust anchor(s)",
+                        _redactor.SystemData(leaf.Subject), _trustedCertificates.Count);
+                    return false;
+                }
 
                 LogOutcome(isTrusted, leaf, ownChain);
                 return isTrusted;
