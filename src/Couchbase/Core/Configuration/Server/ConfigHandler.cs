@@ -118,10 +118,10 @@ namespace Couchbase.Core.Configuration.Server
                     foreach (var clusterNode in _context.Nodes.Where(x =>
                         x.HasKv && x.BucketType != BucketType.Memcached))
                     {
-                        //Skip the polling process on a node if Faster Fail-over is enabled
-                        //the SDK will use logic to determine if the config has changed and
-                        //directly fetch a new one from the server and enqueue it.
-                        if (clusterNode.ServerFeatures.ClustermapChangeNotificationBrief)
+                        //Skip nodes where config push is handled. Only bucket nodes handle it,
+                        //so global nodes are still polled.
+                        if (clusterNode.ServerFeatures.ClustermapChangeNotificationBrief
+                            && clusterNode.Owner is CouchbaseBucket)
                         {
                             //we really don't know if we are connected in this case
                             //but we need to rely on the Faster Failover logic
@@ -207,6 +207,8 @@ namespace Couchbase.Core.Configuration.Server
             {
                 //Set the "effective" network resolution that was resolved at bootstrap time.
                 newMap.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
+
+                _context.UpdateAppTelemetryConfig(newMap);
 
                 List<IConfigUpdateEventSink> subscribers;
                 lock (_configChangedSubscribers)

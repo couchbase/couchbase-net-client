@@ -38,7 +38,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool
                 .Setup(m => m.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
-                .Returns((IOperation operation, CancellationToken _) => operation.SendAsync(mockConnection.Object));
+                .Returns((IOperation operation, CancellationToken ct) => operation.SendAsync(mockConnection.Object, ct));
 
             var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
             mockConnectionPoolFactory
@@ -101,7 +101,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             var mockConnectionPool = new Mock<IConnectionPool>();
             mockConnectionPool
                 .Setup(m => m.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
-                .Returns((IOperation operation, CancellationToken _) => operation.SendAsync(mockConnection.Object));
+                .Returns((IOperation operation, CancellationToken ct) => operation.SendAsync(mockConnection.Object, ct));
 
             var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
             mockConnectionPoolFactory

@@ -216,10 +216,9 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     {
                         _connections.RemoveAt(p.index);
 
-#pragma warning disable 4014
-                        // Don't wait for close, let it happen in the background
-                        p.connection.Connection.CloseAsync(TimeSpan.FromMinutes(1));
-#pragma warning restore 4014
+                        // Don't wait for close, let it happen in the background. AsTask()
+                        // because abandoning a ValueTask is not safe, but abandoning a Task is.
+                        _ = p.connection.Connection.CloseAsync(TimeSpan.FromMinutes(1)).AsTask();
                     }
                 }
             }
@@ -247,6 +246,8 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <inheritdoc />
         public override void Dispose()
         {
+            UntrackConnectionPool();
+
             _logger.LogDebug("Disposing pool for {endpoint}.", EndPoint);
             if (_cts.IsCancellationRequested)
             {

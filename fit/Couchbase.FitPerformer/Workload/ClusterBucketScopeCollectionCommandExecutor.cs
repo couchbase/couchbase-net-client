@@ -225,6 +225,23 @@ namespace Couchbase.FitPerformer
                     else ResultsUtil.SetSuccess(result);
                     break;
                 }
+                case CollectionLevelCommand.CommandOneofCase.GetReplica:
+                {
+                    var request = op.CollectionCommand.GetReplica;
+                    var docId = CommandUtils.GetDocId(request.Location, _counters);
+                    var strategy = CommandUtils.ConvertGetReplicaStrategy(request.Strategy);
+                    var options = OptionsUtil.CreateOptions(request, _spans);
+                    result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
+                    var sw = Stopwatch.StartNew();
+                    IGetReplicaResult gr;
+                    if (options == null) gr = await collection.GetReplicaAsync(docId, strategy).ConfigureAwait(false);
+                    else gr = await collection.GetReplicaAsync(docId, strategy, options).ConfigureAwait(false);
+                    sw.Stop();
+                    result.ElapsedNanos = sw.Elapsed.CalculateNanos();
+                    if (op.ReturnResult) ResultsUtil.PopulateResult(result, gr, request.ContentAs.AsCase);
+                    else ResultsUtil.SetSuccess(result);
+                    break;
+                }
                 case CollectionLevelCommand.CommandOneofCase.Binary:
                 {
                     var blc = op.CollectionCommand.Binary;
@@ -568,8 +585,7 @@ namespace Couchbase.FitPerformer
                         result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                         var passwordAuth = op.ClusterCommand.Authenticator.PasswordAuth;
                         var sw = Stopwatch.StartNew();
-                        ((Cluster)connection.Cluster)
-                            .Authenticator(new PasswordAuthenticator(passwordAuth.Username, passwordAuth.Password));
+                        connection.Cluster.Authenticator(new PasswordAuthenticator(passwordAuth.Username, passwordAuth.Password));
                         sw.Stop();
                         result.ElapsedNanos = sw.Elapsed.CalculateNanos();
                         ResultsUtil.SetSuccess(result);
@@ -577,7 +593,7 @@ namespace Couchbase.FitPerformer
                     case Authenticator.AuthenticatorOneofCase.CertificateAuth:
                         result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                         sw = Stopwatch.StartNew();
-                        ((Cluster)connection.Cluster).Authenticator(ClusterConnection.CreateCertificateAuthenticator(op.ClusterCommand.Authenticator.CertificateAuth));
+                        connection.Cluster.Authenticator(ClusterConnection.CreateCertificateAuthenticator(op.ClusterCommand.Authenticator.CertificateAuth));
                         sw.Stop();
                         result.ElapsedNanos = sw.Elapsed.CalculateNanos();
                         ResultsUtil.SetSuccess(result);
@@ -585,7 +601,7 @@ namespace Couchbase.FitPerformer
                     case Authenticator.AuthenticatorOneofCase.JwtAuth:
                         result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                         sw = Stopwatch.StartNew();
-                        ((Cluster)connection.Cluster).Authenticator(new JwtAuthenticator(op.ClusterCommand.Authenticator.JwtAuth.Jwt));
+                        connection.Cluster.Authenticator(new JwtAuthenticator(op.ClusterCommand.Authenticator.JwtAuth.Jwt));
                         sw.Stop();
                         result.ElapsedNanos = sw.Elapsed.CalculateNanos();
                         ResultsUtil.SetSuccess(result);

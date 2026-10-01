@@ -172,7 +172,7 @@ namespace Couchbase.Search
 
                 dispatchSpan.Dispose();
 
-                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
                     {

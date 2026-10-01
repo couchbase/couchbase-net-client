@@ -254,6 +254,8 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         public override void Dispose()
         {
+            UntrackConnectionPool();
+
             if (_disposed)
             {
                 LogAlreadyDisposedConnectionPool(EndPoint);

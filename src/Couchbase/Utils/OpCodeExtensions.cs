@@ -28,6 +28,14 @@ namespace Couchbase.Utils
                 OpCode.Touch => Kv.Touch,
                 OpCode.Unlock => Kv.Unlock,
                 OpCode.Observe => Kv.Observe,
+
+                // The range scan opcodes are the one place a KV operation's metric tag does not
+                // match its span name: the tag is the cross-SDK "rangescancreate" rather than the
+                // span's "range_scan_create", so these cannot reuse a Kv.* constant. See NCBC-4314.
+                OpCode.RangeScanCreate => "rangescancreate",
+                OpCode.RangeScanContinue => "rangescancontinue",
+                OpCode.RangeScanCancel => "rangescancancel",
+
                 _ => opCode.ToString()
             };
     }

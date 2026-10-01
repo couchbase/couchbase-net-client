@@ -258,32 +258,37 @@ namespace Couchbase.Core.Configuration.Server
         internal ClusterLabels ClusterLabels = new();
         private List<NodesExt> _nodesExt = new();
 
-        internal List<NodesExt> NodesWithAppTelemetry =>
-            field ??= NodesExt
-                .Where(n => !string.IsNullOrEmpty(n.AppTelemetryPath))
-                .ToList().Shuffle();
-
-        internal Uri GetAppTelemetryPath(int attempt, bool? tlsEnabled = false)
+        /// <summary>
+        /// Returns the App Telemetry WebSocket URI of every node that advertises an appTelemetryPath.
+        /// Alternate addresses are used only when <paramref name="networkResolution"/> selects them.
+        /// </summary>
+        internal IReadOnlyList<Uri> GetAppTelemetryUris(bool tlsEnabled, string networkResolution)
         {
-            if (NodesWithAppTelemetry is null || NodesWithAppTelemetry.Count == 0) return null;
+            var uris = new List<Uri>();
+            foreach (var nodeExt in NodesExt ?? [])
+            {
+                if (string.IsNullOrEmpty(nodeExt.AppTelemetryPath)) continue;
 
-            var targetIndex = attempt % NodesWithAppTelemetry.Count;
-            var node = NodesWithAppTelemetry.ElementAt(targetIndex);
+                var hostname = nodeExt.Hostname;
+                var services = nodeExt.Services;
+                if (NodeAdapter.UseAlternateNetwork(nodeExt, networkResolution))
+                {
+                    var alternate = nodeExt.AlternateAddresses[networkResolution == Couchbase.NetworkResolution.Auto
+                        ? Couchbase.NetworkResolution.External
+                        : networkResolution];
+                    hostname = alternate.Hostname;
+                    // An alternate address that lists ports offers only those ports.
+                    services = alternate.Ports ?? services;
+                }
 
-            if (node == null) return null;
+                var port = tlsEnabled ? services?.MgmtSsl : services?.Mgmt;
+                if (string.IsNullOrEmpty(hostname) || port is not > 0) continue;
 
-            if (!node.HasAlternateAddress)
-                return ConstructAppTelemetryUri(tlsEnabled, node.Hostname, node.Services, node.AppTelemetryPath);
-            var alt = node.AlternateAddresses.FirstOrDefault().Value;
-            return ConstructAppTelemetryUri(tlsEnabled, alt.Hostname, alt.Ports, node.AppTelemetryPath);
-        }
+                // UriBuilder adds the brackets around IPv6 hosts.
+                uris.Add(new UriBuilder(tlsEnabled ? "wss" : "ws", hostname, port.Value, nodeExt.AppTelemetryPath).Uri);
+            }
 
-        private static Uri ConstructAppTelemetryUri(bool? tlsEnabled, string hostname, Services services,
-            string appTelemetryPath)
-        {
-            return tlsEnabled.HasValue && tlsEnabled.Value
-                ? new Uri("wss://" + hostname + ":" + services.MgmtSsl + appTelemetryPath)
-                : new Uri("ws://" + hostname + ":" + services.Mgmt + appTelemetryPath);
+            return uris;
         }
 
         public ConfigVersion ConfigVersion { get; private set; }

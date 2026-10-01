@@ -7,7 +7,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
     /// </summary>
     public class NoopRequestTracer : IRequestTracer
     {
+        // CA2211: public writable static, kept writable. Consumers may replace this singleton, for
+        // example to install a test tracer, so making it readonly would break them at compile time
+        // and at runtime. See CircuitBreakerConfiguration.Default for the same call.
+#pragma warning disable CA2211
         public static IRequestTracer Instance = new NoopRequestTracer();
+#pragma warning restore CA2211
 
         public IRequestSpan RequestSpan(string name, IRequestSpan? parentSpan = null)
         {

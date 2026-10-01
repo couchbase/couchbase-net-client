@@ -8,6 +8,11 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
     public static class ThresholdTags
     {
         private const string InternalObsoleteReason = "This field is no longer used and will be removed in a future release.";
+
+        // CA2211: the three fields below are obsolete but still shipped public writable statics.
+        // Making them readonly would break source and binary consumers that assign them, which an
+        // analyzer cleanup is not the place to do.
+#pragma warning disable CA2211
         /// <summary>
         /// The duration of the outer request span
         /// </summary>
@@ -37,6 +42,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         /// <inheritdoc cref="DispatchDurationTag"/>
         [Obsolete(InternalObsoleteReason)]
         public static string DispatchDuration = DispatchDurationTag;
+#pragma warning restore CA2211
     }
 }
 

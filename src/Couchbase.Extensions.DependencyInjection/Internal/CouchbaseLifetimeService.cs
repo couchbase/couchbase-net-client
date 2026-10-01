@@ -39,8 +39,17 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         /// <inheritdoc />
         public async ValueTask CloseAsync()
         {
-            await (_serviceProvider.GetKeyedService<IBucketProvider>(_serviceKey)?.DisposeAsync() ?? default).ConfigureAwait(false);
-            await (_serviceProvider.GetKeyedService<IClusterProvider>(_serviceKey)?.DisposeAsync() ?? default).ConfigureAwait(false);
+            var bucketProvider = _serviceProvider.GetKeyedService<IBucketProvider>(_serviceKey);
+            if (bucketProvider is not null)
+            {
+                await bucketProvider.DisposeAsync().ConfigureAwait(false);
+            }
+
+            var clusterProvider = _serviceProvider.GetKeyedService<IClusterProvider>(_serviceKey);
+            if (clusterProvider is not null)
+            {
+                await clusterProvider.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 }

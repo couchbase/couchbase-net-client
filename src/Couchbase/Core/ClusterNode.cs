@@ -1092,7 +1092,7 @@ namespace Couchbase.Core
                 // The connection pool will create a new connection to replace it
                 LogReauthenticationFailed(ex, connection.ConnectionId, _redactor.SystemData(EndPoint));
 
-                _ = connection.CloseAsync(TimeSpan.FromMinutes(1));
+                _ = connection.CloseAsync(TimeSpan.FromMinutes(1)).AsTask();
             }
         }
 

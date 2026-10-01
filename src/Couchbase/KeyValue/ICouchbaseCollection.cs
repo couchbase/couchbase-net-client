@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Query;
 
@@ -169,6 +171,20 @@ namespace Couchbase.KeyValue
         /// <param name="options">Any optional parameters.</param>
         /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
         IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null);
+
+        /// <summary>
+        /// Reads the document from a single replica chosen by the strategy. Only one request is sent.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="strategy">Chooses which replica to read from.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IGetReplicaResult"/>.</returns>
+        /// <exception cref="DocumentNotFoundOnReplicaException">The document was not found on that replica.</exception>
+        /// <exception cref="ReplicaIndexOutOfBoundsException">The bucket does not have that many replicas.</exception>
+        /// <exception cref="ReplicaIndexCurrentlyUnavailableException">The replica exists but is not available right now.</exception>
+        /// <exception cref="UnambiguousTimeoutException">The operation did not complete in time.</exception>
+        [InterfaceStability(Level.Uncommitted)]
+        Task<IGetReplicaResult> GetReplicaAsync(string id, GetReplicaStrategy strategy, GetReplicaOptions? options = null);
 
         #endregion
 

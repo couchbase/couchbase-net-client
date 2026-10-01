@@ -1,3 +1,5 @@
+using Couchbase.KeyValue;
+
 namespace Couchbase.Core.IO.Operations
 {
     internal sealed class ReplicaRead<T> : OperationBase<T>
@@ -8,6 +10,12 @@ namespace Couchbase.Core.IO.Operations
         {
             Key = key;
             ReplicaIdx = replicaIndex;
+        }
+
+        public ReplicaRead(string key, GetReplicaStrategy strategy)
+        {
+            Key = key;
+            ReplicaStrategy = strategy;
         }
 
         internal override void WriteExtras(OperationBuilder builder)
