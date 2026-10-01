@@ -127,7 +127,10 @@ public static class CommandUtils
                 ret.ContentAsBytes = ByteString.CopyFromUtf8(result.ContentAs<dynamic>()?.ToString());
                 break;
             case ContentAs.AsOneofCase.AsJsonObject:
-                ret.ContentAsBytes = ByteString.CopyFromUtf8(result.ContentAs<dynamic>()?.ToString());
+                // A document whose content is the JSON literal 'null' decodes to an actual
+                // null here (e.g. a full-doc get with projections where no path exists), so
+                // ToString() must not be relied on to produce "null" itself.
+                ret.ContentAsBytes = ByteString.CopyFromUtf8(result.ContentAs<dynamic>()?.ToString() ?? "null");
                 break;
             default:
                 throw new ArgumentException("Unknown ContentType case.");

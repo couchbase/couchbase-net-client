@@ -287,7 +287,7 @@ public class StellarCollectionTests
     #endregion
 
     [Fact]
-    public async Task GetAsync_WithProjectionsAndNullPayload_TranslatesToEmptyObject()
+    public async Task GetAsync_WithProjectionsAndNullPayload_PreservesNull()
     {
         // Arrange
         var mockOrchestrator = new Mock<IRetryOrchestrator>();
@@ -316,11 +316,10 @@ public class StellarCollectionTests
         var content = result.ContentAs<dynamic>();
 
         // Assert
-        Assert.NotNull(content);
-
-        // Assert that the decoded dynamic object is completely empty.
-        // The default transcoder returns a JObject or JsonObject, both of which implement IEnumerable.
-        Assert.Empty((System.Collections.IEnumerable)content);
+        // CNG's own null response for this edge case is passed straight through, matching
+        // documented CNG behavior (see FIT's GetTest.getWithProjectionNoPathsExist), rather
+        // than being substituted for an empty JSON object.
+        Assert.Null(content);
     }
 
 }
