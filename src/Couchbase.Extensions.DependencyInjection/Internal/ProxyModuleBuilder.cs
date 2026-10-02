@@ -58,10 +58,10 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
                 throw new MissingManifestResourceException("Resource 'Couchbase.Extensions.DependencyInjection.Dynamic.snk' not found.");
             }
 
-            var keyLength = (int)stream.Length;
-            var result = new byte[keyLength];
-            stream.Read(result, 0, keyLength);
-            return result;
+            // A single Read may return fewer bytes than asked for, which would truncate the key.
+            using var buffer = new System.IO.MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
 #endif
     }
