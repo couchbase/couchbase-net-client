@@ -9,6 +9,7 @@
 ## FIT
 
 - **fit-testing-dotnet.yml** — Runs FIT presets against a performer image. Daily at 00:00 UTC against `main`, manual with preset and performer tag inputs. Calls the shared `couchbaselabs/fit-cli` workflow, one job per preset.
+- **fit-testing-dotnet-release.yml** — Runs the `op-multi-release` preset group against a performer image and posts a combined summary to the #the-fit-stop Slack thread. Weekly, Sundays at 02:00 UTC against `main`, manual with preset, performer tag, and Slack thread inputs. Calls the shared `couchbaselabs/fit-cli` workflow, one job per preset. Modelled on the Java SDK's weekly release run.
 - **publish-fit-performer.yml** — Publishes `ghcr.io/couchbase/dotnet-fit-performer`, tagged with the SDK version. Push of any tag, daily at 23:00 UTC for `main`, manual for any ref. Ubuntu.
 - **pr-fit-performer.yml** — Publishes a performer image for the PR and comments how to run FIT with it. PRs that touch SDK or performer code. Ubuntu. Skips fork PRs.
 - **prune-stale-images.yml** — Deletes performer images after 7 days, keeping `main` and release tags. Daily at 03:53 UTC, manual. Ubuntu. Same job as the other SDK repos.
