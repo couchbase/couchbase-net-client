@@ -1,0 +1,93 @@
+name: Run FIT-CLI (release)
+
+# Weekly run of the op-multi-release preset group, with a summary posted to Slack. Mirrors
+# couchbase-jvm-clients' fit-testing-java-release.yml. The nightly op-multi-lite run lives in
+# fit-testing-dotnet.yml. Like that one, this is a thin caller: anything non-trivial belongs in
+# fit-cli or couchbaselabs/fit-cli/.github/workflows/fit-cli.yaml, not here.
+
+on:
+  schedule:
+    # Sundays, staggered against the nightly (00:00) and the Java weekly (01:00): the fit-cli
+    # install step curls raw.githubusercontent.com, which allows only 60 unauthenticated
+    # requests/hour.
+    - cron: '0 2 * * SUN'
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: FIT presets or preset groups to run, comma-separated. (`fit preset list`)
+        required: false
+        type: string
+        default: op-multi-release
+      collect_extra_diagnostics:
+        description: Collect additional diagnostics (includes cbcollect, is slower)
+        required: false
+        type: boolean
+        default: true
+      channel:
+        description: fit-cli install channel ("ci" or "latest").
+        required: false
+        type: string
+        default: ci
+      performer_tag:
+        description: >-
+          Tag of the ghcr.io/couchbase/dotnet-fit-performer image to test. Defaults to the branch
+          this workflow is run from. The SDK under test lives inside that image, so build it first
+          via "Publish FIT Performer Image" with ref=<your-branch> — otherwise the run fails to
+          pull the image. Use "main" to test master's SDK from a branch.
+        required: false
+        type: string
+      slack_thread:
+        description: >-
+          Slack thread to post a run summary into (e.g.
+          https://couchbase.slack.com/archives/C05LNBVQRE3/p1786376341783169). 'FIT Bot' must be
+          invited to the channel first. Defaults to the weekly thread in #the-fit-stop
+          (override with the FIT_SLACK_THREAD repository variable). Adhoc runs post there too.
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  id-token: write   # required for GitHub OIDC
+  contents: read
+  checks: write
+
+jobs:
+  # The SDK under test is baked into the performer image, not taken from the branch this workflow
+  # runs on, so the image tag has to track the branch. A `uses:` job cannot also have `steps`,
+  # hence the separate job to derive the tag.
+  performer-tag:
+    runs-on: ubuntu-latest
+    permissions: {}   # no OIDC token needed here, unlike the fit job
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - id: resolve
+        env:
+          # Via env, not inlined into the script: ${{ }} is substituted before bash parses it.
+          PERFORMER_TAG: ${{ inputs.performer_tag }}
+        run: |
+          TAG="$PERFORMER_TAG"
+          if [[ -z "$TAG" ]]; then
+            # No input (the schedule passes none) — derive the tag the way the publish side does:
+            # sdk-docker-build-action renames master to main, and docker/metadata-action collapses
+            # runs of [^a-zA-Z0-9._-] to '-'.
+            TAG="$GITHUB_REF_NAME"
+            [[ "$TAG" == "master" ]] && TAG=main
+            TAG=$(printf '%s' "$TAG" | sed -E 's/[^a-zA-Z0-9._-]+/-/g')
+          fi
+          echo "Testing performer image dotnet-fit-performer:$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  fit:
+    needs: performer-tag
+    uses: couchbaselabs/fit-cli/.github/workflows/fit-cli.yaml@main
+    with:
+      preset: ${{ vars.FIT_CLI_PRESET || inputs.preset || 'op-multi-release' }}
+      collect_extra_diagnostics: ${{ inputs.collect_extra_diagnostics == '' && true || inputs.collect_extra_diagnostics }}
+      performer: dotnet-fit-performer:${{ needs.performer-tag.outputs.tag }}
+      # 'ci', not 'latest' — see fit-testing-dotnet.yml for why. The input default does not apply
+      # to scheduled runs, so this literal is what the weekly actually uses.
+      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'ci' }}
+      # Defaults to the weekly thread in #the-fit-stop. The FIT_SLACK_THREAD repo variable overrides it
+      # without a code change; the shared workflow skips Slack only if this resolves to empty.
+      slack_thread: ${{ inputs.slack_thread || vars.FIT_SLACK_THREAD || 'https://couchbase.slack.com/archives/C05LNBVQRE3/p1791239051044769' }}
