@@ -269,65 +269,6 @@ public class CouchbaseHttpClientFactoryTests
     #region Thread Safety Tests
 
     [Fact]
-    public async Task Create_ConcurrentCallsWithAuthenticatorChange_IsThreadSafe()
-    {
-        // Arrange
-        var clusterOptions = new ClusterOptions()
-            .WithConnectionString("couchbases://localhost");
-
-        var certFactory1 = CreateMockCertificateFactory();
-        var certAuth1 = new CertificateAuthenticator(certFactory1.Object);
-        clusterOptions.Authenticator = certAuth1;
-
-        using var context = new ClusterContext(null, clusterOptions);
-
-        var factory = new CouchbaseHttpClientFactory(
-            context,
-            _mockLogger.Object,
-            _redactor,
-            _mockCallbackFactory.Object);
-
-        var barrier = new Barrier(10);
-        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
-
-        // Act - Simulate concurrent calls with authenticator changes
-        var tasks = new Task[10];
-        for (int i = 0; i < 10; i++)
-        {
-            var taskIndex = i;
-            tasks[i] = Task.Run(() =>
-            {
-                try
-                {
-                    barrier.SignalAndWait();
-
-                    // Some tasks change the authenticator
-                    if (taskIndex % 2 == 0)
-                    {
-                        var newCertFactory = CreateMockCertificateFactory();
-                        var newCertAuth = new CertificateAuthenticator(newCertFactory.Object);
-                        clusterOptions.Authenticator = newCertAuth;
-                    }
-
-                    // All tasks call Create
-                    using var client = factory.Create();
-                    Assert.NotNull(client);
-                }
-                catch (Exception ex)
-                {
-                    exceptions.Add(ex);
-                }
-            });
-        }
-
-        await Task.WhenAll(tasks);
-
-        // Assert - No exceptions should have been thrown
-        Assert.Empty(exceptions);
-        Assert.NotNull(factory._sharedHandler);
-    }
-
-    [Fact]
     public async Task Create_RapidConcurrentCalls_DoesNotThrow()
     {
         // Arrange
@@ -439,7 +380,7 @@ public class CouchbaseHttpClientFactoryTests
 
     #region Helper Methods
 
-    private Mock<ICertificateFactory> CreateMockCertificateFactory()
+    internal static Mock<ICertificateFactory> CreateMockCertificateFactory()
     {
         var mockFactory = new Mock<ICertificateFactory>();
         mockFactory

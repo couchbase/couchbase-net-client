@@ -29,7 +29,9 @@ public class AppTelemetryEndpointTests
     private const int PortB = 2;
     private static readonly Uri NodeA = new("ws://127.0.0.1:1/_appTelemetry");
     private static readonly Uri NodeB = new("ws://127.0.0.1:2/_appTelemetry");
-    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
+    // Only bounds a wait for something the test expects, so a passing test never reaches it. The loop needs a
+    // thread-pool thread to make progress, and another test can block the pool for several seconds (NCBC-4317).
+    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(30);
 
     #region Collector
 
