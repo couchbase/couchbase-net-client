@@ -14,20 +14,24 @@ on:
   workflow_dispatch:
     inputs:
       preset:
-        description: FIT presets or preset groups to run, comma-separated. (`fit preset list`)
+        description: >-
+          FIT presets or preset groups to run, comma-separated. (`fit preset list`) Blank uses the
+          FIT_CLI_RELEASE_PRESET repository variable, or op-multi-release if that is not set.
         required: false
         type: string
-        default: op-multi-release
+        default: ''
       collect_extra_diagnostics:
         description: Collect additional diagnostics (includes cbcollect, is slower)
         required: false
         type: boolean
         default: true
       channel:
-        description: fit-cli install channel ("ci" or "latest").
+        description: >-
+          fit-cli install channel ("ci" or "latest"). Blank uses the FIT_CLI_CHANNEL repository
+          variable, or ci if that is not set.
         required: false
         type: string
-        default: ci
+        default: ''
       performer_tag:
         description: >-
           Tag of the ghcr.io/couchbase/dotnet-fit-performer image to test. Defaults to the branch
@@ -82,12 +86,14 @@ jobs:
     needs: performer-tag
     uses: couchbaselabs/fit-cli/.github/workflows/fit-cli.yaml@main
     with:
-      preset: ${{ vars.FIT_CLI_PRESET || inputs.preset || 'op-multi-release' }}
+      # preset and channel resolve as in fit-testing-dotnet.yml: the dispatch input, then the
+      # repository variable, then the literal. The preset has its own variable, not the nightly's
+      # FIT_CLI_PRESET, because the two runs want different presets.
+      preset: ${{ inputs.preset || vars.FIT_CLI_RELEASE_PRESET || 'op-multi-release' }}
       collect_extra_diagnostics: ${{ inputs.collect_extra_diagnostics == '' && true || inputs.collect_extra_diagnostics }}
       performer: dotnet-fit-performer:${{ needs.performer-tag.outputs.tag }}
-      # 'ci', not 'latest' — see fit-testing-dotnet.yml for why. The input default does not apply
-      # to scheduled runs, so this literal is what the weekly actually uses.
-      channel: ${{ vars.FIT_CLI_CHANNEL || inputs.channel || 'ci' }}
+      # 'ci' is only the fallback; see fit-testing-dotnet.yml.
+      channel: ${{ inputs.channel || vars.FIT_CLI_CHANNEL || 'ci' }}
       # Defaults to the weekly thread in #the-fit-stop. The FIT_SLACK_THREAD repo variable overrides it
       # without a code change; the shared workflow skips Slack only if this resolves to empty.
       slack_thread: ${{ inputs.slack_thread || vars.FIT_SLACK_THREAD || 'https://couchbase.slack.com/archives/C05LNBVQRE3/p1791239051044769' }}
