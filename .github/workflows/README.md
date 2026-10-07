@@ -2,8 +2,9 @@
 
 ## Build and test
 
-- **build-and-test.yml** — Builds the SDK and runs unit tests. Push to `master`, PRs, manual. Ubuntu x64/arm64, Windows, macOS.
-- **nightly-unit-tests.yml** — Same unit tests across the full OS and framework matrix. Daily at 06:00 UTC, manual. 8 OS images, net8.0/net10.0, plus net48 on Windows.
+- **unit-tests.yml** — Builds the SDK and runs every unit test project. Reusable only, called by the two workflows below. 8 OS images, net8.0/net10.0, plus net48 on Windows.
+- **build-and-test.yml** — Runs `unit-tests.yml`. Push to `master` and release branches, PRs, manual. Cancels a PR's superseded run.
+- **nightly-unit-tests.yml** — Runs `unit-tests.yml` against `master`, to catch runner image and .NET release changes. Daily at 06:00 UTC, manual.
 - **build-fit-performer.yml** — Builds `couchbase-fit-performer.sln` only, to catch performer build breaks early. Push to `master`, PRs, manual. Ubuntu, macOS.
 
 ## FIT
