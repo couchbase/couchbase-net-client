@@ -8,6 +8,7 @@ using Couchbase.Client.Transactions.Components;
 using Couchbase.Client.Transactions.DataModel;
 using Couchbase.Client.Transactions.LogUtil;
 using Couchbase.Client.Transactions.Support;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Protostellar.KV.V1;
 using Microsoft.Extensions.Logging;
@@ -65,25 +66,44 @@ namespace Couchbase.Client.Transactions.DataAccess
         }
 
         public override Task<AtrEntry?> FindEntryForTransaction(ICouchbaseCollection atrCollection, string atrId, string? attemptId = null)
-            => FindEntryForTransaction(atrCollection, atrId, attemptId ?? _attemptId, _overallContext?.Config?.KeyValueTimeout);
+            => FindEntryForTransaction(atrCollection, atrId, attemptId ?? _attemptId, _overallContext?.Config?.KeyValueTimeout, _logger);
 
         public static async Task<AtrEntry?> FindEntryForTransaction(
             ICouchbaseCollection atrCollection,
             string atrId,
             string attemptId,
-            TimeSpan? keyValueTimeout = null
+            TimeSpan? keyValueTimeout = null,
+            ILogger? logger = null
             )
         {
             _ = atrCollection ?? throw new ArgumentNullException(nameof(atrCollection));
             _ = atrId ?? throw new ArgumentNullException(nameof(atrId));
 
-            var lookupInResult = await atrCollection.LookupInAsync(atrId,
-                specs => specs.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
-                // Read the attempts xattr through the metadata (System.Text.Json) transcoder so it
-                // deserializes into a JsonElement. Without this it uses the collection's default
-                // serializer (Newtonsoft), which cannot produce a JsonElement and yields a default
-                // (Undefined) one, breaking the lookup below.
-                opts => opts.Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(Transactions.MetadataTranscoder)).CAF();
+            ILookupInResult lookupInResult;
+            try
+            {
+                lookupInResult = await atrCollection.LookupInAsync(atrId,
+                    specs => specs.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
+                    // Read the attempts xattr through the metadata (System.Text.Json) transcoder so it
+                    // deserializes into a JsonElement. Without this it uses the collection's default
+                    // serializer (Newtonsoft), which cannot produce a JsonElement and yields a default
+                    // (Undefined) one, breaking the lookup below.
+                    opts => opts.Defaults(keyValueTimeout).AccessDeleted(true).Transcoder(Transactions.MetadataTranscoder)).CAF();
+            }
+            catch (DocumentNotFoundException)
+            {
+                // A missing ATR document is treated the same as a missing entry (BF-CBD-3705): the
+                // ATR may have been deleted (e.g. its collection was dropped and recreated) and we
+                // cannot tell what state the transaction was in. Every caller already handles a
+                // missing entry as the spec requires for a missing ATR. Only a missing document
+                // qualifies: any other lookup failure, including an unknown collection, still fails
+                // as the spec requires. This matches ActiveTransactionRecord.findEntryForTransaction
+                // in Java.
+                logger?.LogWarning(
+                    "ATR document {atrId} in {atrCollection} not found; treating the entry for attempt {attemptId} as missing (BF-CBD-3705)",
+                    atrId, atrCollection.MakeKeyspace(), attemptId);
+                return null;
+            }
 
             if (!lookupInResult.Exists(0))
             {

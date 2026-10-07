@@ -175,7 +175,7 @@ internal class GetMultiManager<TSpec, TResult>
             var atrCollection =
                 await AtrRepository.GetAtrCollection(atrRef, _specs[0].Collection).CAF(); // TODO: adjust timeout!!
             // Need to add error handling and timeout passed into the FindEntryForTransacton call
-            var atr = await AtrRepository.FindEntryForTransaction(atrCollection!, atrRef.Id!, id.AttemptId).CAF();
+            var atr = await AtrRepository.FindEntryForTransaction(atrCollection!, atrRef.Id!, id.AttemptId, logger: _logger).CAF();
             if (atr == null)
             {
                 // the txn could have expired pre-commit and been cleaned up, or it could have been
