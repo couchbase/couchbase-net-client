@@ -375,17 +375,31 @@ public class StellarRetryHandlerTests
             $"Expected negative remaining, got {remaining.Value.TotalMilliseconds}ms");
     }
 
+    /// <summary>
+    /// A handler whose backoff advances <paramref name="fakeTime"/> by the backoff and completes at once.
+    /// RetryAsync then runs to the end on the calling thread, so each attempt sees exactly the time its
+    /// backoffs used. Advancing the clock from a second thread instead let the deadline pass before the
+    /// first attempt whenever the thread pool started RetryAsync late (NCBC-4317).
+    /// </summary>
+    private static StellarRetryHandler CreateHandler(Microsoft.Extensions.Time.Testing.FakeTimeProvider fakeTime) =>
+        new(fakeTime)
+        {
+            Delay = (backoff, _) =>
+            {
+                fakeTime.Advance(backoff);
+                return Task.CompletedTask;
+            }
+        };
+
     [Fact]
     public async Task Timeout_ThrowsUnambiguousTimeout_ForIdempotent_AfterRetries()
     {
         // Simulate: Unavailable errors exhaust the cumulative timeout.
         // The gRPC deadline mechanism fires DeadlineExceeded when RemainingTimeout goes negative.
-        // This test uses a background task for RetryAsync and advances time from the main thread
-        // so that backoff.Delay() timers complete correctly via FakeTimeProvider.
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime)
         {
             Timeout = TimeSpan.FromMilliseconds(5000),
@@ -403,18 +417,8 @@ public class StellarRetryHandlerTests
             throw new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
         }
 
-        // Run RetryAsync on a background task, advance time from this thread
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        // Pump time forward until the task completes or we give up
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1); // yield to let continuations run
-        }
-
         var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(
-            () => retryTask);
+            () => handler.RetryAsync(GrpcCall, request));
         var context = Assert.IsType<GenericErrorContext>(ex.Context);
         Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
@@ -425,7 +429,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime)
         {
             Timeout = TimeSpan.FromMilliseconds(5000),
@@ -442,16 +446,8 @@ public class StellarRetryHandlerTests
             throw new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1);
-        }
-
         var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
-            () => retryTask);
+            () => handler.RetryAsync(GrpcCall, request));
         var context = Assert.IsType<GenericErrorContext>(ex.Context);
         Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
     }
@@ -468,7 +464,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime)
         {
             Timeout = TimeSpan.FromMilliseconds(5000),
@@ -486,16 +482,8 @@ public class StellarRetryHandlerTests
             throw new RpcException(new Status(retryStatus, detail));
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(500));
-            await Task.Delay(1);
-        }
-
         var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.AmbiguousTimeoutException>(
-            () => retryTask);
+            () => handler.RetryAsync(GrpcCall, request));
         var context = Assert.IsType<GenericErrorContext>(ex.Context);
         Assert.Contains(expectedReason, context.RetryReasons);
     }
@@ -519,7 +507,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime)
         {
             Timeout = TimeSpan.FromMilliseconds(60000), // generous budget
@@ -540,15 +528,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
-
-        var result = await retryTask;
+        var result = await handler.RetryAsync(GrpcCall, request);
         Assert.NotNull(result);
         Assert.Equal(3, callCount);
 
@@ -567,7 +547,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime)
         {
             Timeout = TimeSpan.FromMilliseconds(60000),
@@ -590,16 +570,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            // Each advance covers the backoff delay and simulates elapsed time
-            fakeTime.Advance(TimeSpan.FromMilliseconds(1500));
-            await Task.Delay(1);
-        }
-
-        await retryTask;
+        await handler.RetryAsync(GrpcCall, request);
 
         Assert.Equal(4, observedRemaining.Count);
 
@@ -628,7 +599,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(5000), Idempotent = true };
         var callCount = 0;
 
@@ -639,15 +610,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
-
-        var result = await retryTask;
+        var result = await handler.RetryAsync(GrpcCall, request);
         Assert.NotNull(result);
         Assert.Equal(2, callCount); // Succeeded on the second try
         Assert.True(request.Attempts > 0, "Expected at least one retry attempt.");
@@ -659,7 +622,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(5000), Idempotent = true };
         var callCount = 0;
 
@@ -670,15 +633,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
-
-        var result = await retryTask;
+        var result = await handler.RetryAsync(GrpcCall, request);
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
         Assert.True(request.Attempts > 0, "Expected at least one retry attempt.");
@@ -690,7 +645,7 @@ public class StellarRetryHandlerTests
         var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
         fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
 
-        var handler = new StellarRetryHandler(fakeTime);
+        var handler = CreateHandler(fakeTime);
         var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(5000), Idempotent = true };
         var callCount = 0;
 
@@ -705,15 +660,7 @@ public class StellarRetryHandlerTests
             return Task.FromResult(new GetResponse());
         }
 
-        var retryTask = Task.Run(() => handler.RetryAsync(GrpcCall, request));
-
-        while (!retryTask.IsCompleted)
-        {
-            fakeTime.Advance(TimeSpan.FromMilliseconds(100));
-            await Task.Delay(1);
-        }
-
-        var result = await retryTask;
+        var result = await handler.RetryAsync(GrpcCall, request);
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
         Assert.True(request.Attempts > 0, "Expected at least one retry attempt.");
