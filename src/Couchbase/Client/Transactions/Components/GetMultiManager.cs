@@ -193,6 +193,11 @@ internal class GetMultiManager<TSpec, TResult>
                         ? Signal.Completed
                         : Signal.ResetAndRetry;
                 }
+                // mark the docs in T1 to be fetched again, so the next pass sees whether T1 committed.
+                _result.IterateResults(
+                    result => result?.TransactionXattrs?.Id?.Transactionid == id.Transactionid,
+                    (_, idx) => _result.GetMultiSpecResult(idx).State =
+                        GetMultiSpecResult.DocState.ToFetch);
                 _phase = Phase.ResolvingT1AtrEntryMissing;
                 return Signal.Retry;
             }
