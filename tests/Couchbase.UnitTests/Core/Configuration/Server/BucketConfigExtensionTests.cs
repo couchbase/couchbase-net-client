@@ -731,5 +731,78 @@ public class BucketConfigExtensionTests
         Assert.Equal("old-uuid", incoming.ClusterUuid);
     }
 
+    [Fact]
+    public void MergeClusterLabels_IncomingIsOlderThanCurrentLabels_KeepsCurrentName()
+    {
+        var current = new BucketConfig { ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        var newer = new BucketConfig { Rev = 437, RevEpoch = 1, ClusterName = "NewCluster", ClusterUuid = "uuid-1" };
+        var older = new BucketConfig { Rev = 436, RevEpoch = 1, ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        newer.OnDeserialized();
+        older.OnDeserialized();
+
+        newer.MergeClusterLabels(current);
+        older.MergeClusterLabels(current);
+
+        Assert.Equal("NewCluster", current.ClusterName);
+        Assert.Equal("NewCluster", older.ClusterName);
+    }
+
+    [Fact]
+    public void MergeClusterLabels_IncomingIsNewerAfterOlder_TakesNewName()
+    {
+        var current = new BucketConfig { Rev = 436, RevEpoch = 1, ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        current.OnDeserialized();
+        var newer = new BucketConfig { Rev = 437, RevEpoch = 1, ClusterName = "NewCluster", ClusterUuid = "uuid-1" };
+        newer.OnDeserialized();
+
+        newer.MergeClusterLabels(current);
+
+        Assert.Equal("NewCluster", current.ClusterName);
+    }
+
+
+    [Fact]
+    public void MergeClusterLabels_OlderIncomingKeptAsCurrent_IntermediateUpdateCannotRevertLabels()
+    {
+        var current = new BucketConfig { ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        var newest = new BucketConfig { Rev = 438, RevEpoch = 1, ClusterName = "NewCluster", ClusterUuid = "uuid-1" };
+        var older = new BucketConfig { Rev = 436, RevEpoch = 1, ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        var intermediate = new BucketConfig { Rev = 437, RevEpoch = 1, ClusterName = "OldCluster", ClusterUuid = "uuid-1" };
+        newest.OnDeserialized();
+        older.OnDeserialized();
+        intermediate.OnDeserialized();
+
+        newest.MergeClusterLabels(current);
+        // The older config is kept as the current one, so its labels must carry the newer version.
+        older.MergeClusterLabels(current);
+        intermediate.MergeClusterLabels(older);
+
+        Assert.Equal("NewCluster", older.ClusterName);
+        Assert.Equal("NewCluster", intermediate.ClusterName);
+    }
+
+
+    [Fact]
+    public void MergeClusterLabels_PartialUpdateThenLateOlderUpdate_EachLabelKeepsItsOwnVersion()
+    {
+        var current = new BucketConfig { Rev = 435, RevEpoch = 1, ClusterName = "Old", ClusterUuid = "u1" };
+        var partial = new BucketConfig { Rev = 437, RevEpoch = 1, ClusterName = null, ClusterUuid = "u2" };
+        var late = new BucketConfig { Rev = 436, RevEpoch = 1, ClusterName = "New", ClusterUuid = "u1" };
+        current.OnDeserialized();
+        partial.OnDeserialized();
+        late.OnDeserialized();
+
+        partial.MergeClusterLabels(current);
+        Assert.Equal("Old", current.ClusterName);
+        Assert.Equal("u2", current.ClusterUuid);
+
+        late.MergeClusterLabels(current);
+
+        Assert.Equal("New", current.ClusterName);
+        Assert.Equal("u2", current.ClusterUuid);
+        Assert.Equal("New", late.ClusterName);
+        Assert.Equal("u2", late.ClusterUuid);
+    }
+
     #endregion
 }
