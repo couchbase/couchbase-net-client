@@ -52,7 +52,7 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAsync()
     {
-        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await _collection.RemoveAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await _collection.GetAsync("key"));
     }
 
     [Fact]
