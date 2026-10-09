@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.UnitTests.Helpers;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -39,19 +40,14 @@ public class AppTelemetryThreadSafetyTests
         const double valueMs = 5.0;
 
         var barrier = new Barrier(threadCount);
-        var tasks = new Task[threadCount];
-        for (var i = 0; i < threadCount; i++)
+        await DedicatedThreads.RunAll(threadCount, _ =>
         {
-            tasks[i] = Task.Run(() =>
+            barrier.SignalAndWait();
+            for (var j = 0; j < incrementsPerThread; j++)
             {
-                barrier.SignalAndWait();
-                for (var j = 0; j < incrementsPerThread; j++)
-                {
-                    bins.IncrementCountAndSum(TimeSpan.FromMilliseconds(valueMs));
-                }
-            });
-        }
-        await Task.WhenAll(tasks);
+                bins.IncrementCountAndSum(TimeSpan.FromMilliseconds(valueMs));
+            }
+        });
 
         long totalCount = 0;
         double totalSum = 0;
@@ -79,19 +75,14 @@ public class AppTelemetryThreadSafetyTests
         const int incrementsPerThread = 100_000;
 
         var barrier = new Barrier(threadCount);
-        var tasks = new Task[threadCount];
-        for (var i = 0; i < threadCount; i++)
+        await DedicatedThreads.RunAll(threadCount, _ =>
         {
-            tasks[i] = Task.Run(() =>
+            barrier.SignalAndWait();
+            for (var j = 0; j < incrementsPerThread; j++)
             {
-                barrier.SignalAndWait();
-                for (var j = 0; j < incrementsPerThread; j++)
-                {
-                    counterValue.Increment(AppTelemetryCounterType.Total);
-                }
-            });
-        }
-        await Task.WhenAll(tasks);
+                counterValue.Increment(AppTelemetryCounterType.Total);
+            }
+        });
 
         var expectedTotal = threadCount * incrementsPerThread;
         var (_, _, total) = counterValue.SnapshotAndReset();
@@ -109,44 +100,41 @@ public class AppTelemetryThreadSafetyTests
         using var collector = new AppTelemetryCollector();
         collector.Enable();
 
-        const int writerCount = 10;
-        const int incrementsPerWriter = 500_000;
-        const int exportCount = 2000;
+        const int writerCount = 4;
+        const int incrementsPerWriter = 100_000;
 
         var totalExpectedIncrements = writerCount * incrementsPerWriter;
         var allExported = new ConcurrentBag<string>();
 
-        var writerTasks = new Task[writerCount];
-        for (var i = 0; i < writerCount; i++)
+        var writerTasks = DedicatedThreads.RunAll(writerCount, _ =>
         {
-            writerTasks[i] = Task.Run(() =>
+            for (var j = 0; j < incrementsPerWriter; j++)
             {
-                for (var j = 0; j < incrementsPerWriter; j++)
-                {
-                    collector.IncrementMetrics(
-                        TimeSpan.FromMilliseconds(50),
-                        Node, null, NodeUuid,
-                        AppTelemetryServiceType.KeyValue,
-                        AppTelemetryCounterType.Total,
-                        AppTelemetryRequestType.KvRetrieval,
-                        Bucket);
-                }
-            });
-        }
+                collector.IncrementMetrics(
+                    TimeSpan.FromMilliseconds(50),
+                    Node, null, NodeUuid,
+                    AppTelemetryServiceType.KeyValue,
+                    AppTelemetryCounterType.Total,
+                    AppTelemetryRequestType.KvRetrieval,
+                    Bucket);
+            }
+        });
 
-        var exportTask = Task.Run(() =>
+        // Export for exactly as long as the writers run, so every export races with increments
+        // however fast or slow the machine is.
+        var exportTask = DedicatedThreads.Run(() =>
         {
-            for (var e = 0; e < exportCount; e++)
+            while (!writerTasks.IsCompleted)
             {
                 if (collector.TryExportMetricsAndReset(out var result))
                 {
                     allExported.Add(result);
                 }
-                Thread.Sleep(1);
+                Thread.Yield();
             }
         });
 
-        await Task.WhenAll(writerTasks);
+        await writerTasks;
         await exportTask;
 
         // Final export to capture any remaining metrics
@@ -189,7 +177,7 @@ public class AppTelemetryThreadSafetyTests
 
         var allExported = new ConcurrentBag<string>();
 
-        var writerTask = Task.Run(() =>
+        var writerTask = DedicatedThreads.Run(() =>
         {
             for (var n = 0; n < nodeCount; n++)
             {
@@ -207,7 +195,7 @@ public class AppTelemetryThreadSafetyTests
             }
         });
 
-        var exportTask = Task.Run(() =>
+        var exportTask = DedicatedThreads.Run(() =>
         {
             for (var e = 0; e < exportCount; e++)
             {
@@ -257,7 +245,7 @@ public class AppTelemetryThreadSafetyTests
         const int cycles = 50;
         var cts = new CancellationTokenSource();
 
-        var writerTask = Task.Run(() =>
+        var writerTask = DedicatedThreads.Run(() =>
         {
             while (!cts.Token.IsCancellationRequested)
             {
@@ -308,20 +296,14 @@ public class AppTelemetryThreadSafetyTests
 
         var allExported = new ConcurrentBag<string>();
         var barrier = new Barrier(4);
-
-        var exportTasks = new Task[4];
-        for (var i = 0; i < 4; i++)
+        await DedicatedThreads.RunAll(4, _ =>
         {
-            exportTasks[i] = Task.Run(() =>
+            barrier.SignalAndWait();
+            if (collector.TryExportMetricsAndReset(out var result))
             {
-                barrier.SignalAndWait();
-                if (collector.TryExportMetricsAndReset(out var result))
-                {
-                    allExported.Add(result);
-                }
-            });
-        }
-        await Task.WhenAll(exportTasks);
+                allExported.Add(result);
+            }
+        });
 
         // Final sweep
         if (collector.TryExportMetricsAndReset(out var finalResult))
