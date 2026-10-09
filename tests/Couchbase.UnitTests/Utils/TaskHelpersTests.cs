@@ -66,7 +66,11 @@ public class TaskHelpersTests
     public async Task WhenAnySuccessful_Should_Finish_Despite_Races()
     {
         long sentinel = 0;
-        var faultyTasks = Enumerable.Range(0, 10_000)
+        // 100 is plenty: WhenAnySuccessful queues one pool continuation per task, so this is still far
+        // more continuations than pool workers racing the successful one. It was 10,000, which put that
+        // many items on the pool's shared queue and delayed other tests for 1-2.5 s on the CI runners.
+        // A mutant that gives up at the first failure is caught at 10,000, 100 and even 10 tasks.
+        var faultyTasks = Enumerable.Range(0, 100)
             .Select<int, Task<string>>(async i =>
             {
                 // using var foo = new ThrowsAfterDispose();
