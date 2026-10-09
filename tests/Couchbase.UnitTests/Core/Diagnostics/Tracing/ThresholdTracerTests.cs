@@ -99,18 +99,20 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         [Fact]
         public void TestChild2()
         {
-            var listener = new ActivityListener {
+            // Disposed, and limited to this test's source: a registered listener is process-wide, so
+            // otherwise it would see every other test's activities for the rest of the run.
+            using var listener = new ActivityListener {
                 ActivityStopped = activity =>
                 {
                 },
-                ShouldListenTo = s => true,
+                ShouldListenTo = s => s == source,
                 Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
                     ActivitySamplingResult.AllData
         };
             ActivitySource.AddActivityListener(listener);
 
-            var p2 =source.StartActivity("p2");
-            var c2 = source.StartActivity("c2");
+            using var p2 =source.StartActivity("p2");
+            using var c2 = source.StartActivity("c2");
         }
 
         [Fact]

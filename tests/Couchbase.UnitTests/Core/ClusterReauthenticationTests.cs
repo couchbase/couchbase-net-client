@@ -32,7 +32,7 @@ public class ClusterReauthenticationTests
             });
 
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options, mockNode.Object);
+        using var cluster = CreateClusterWithNodes(options, mockNode.Object);
 
         var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
 
@@ -65,7 +65,7 @@ public class ClusterReauthenticationTests
         var mockNode = CreateMockClusterNode(hasKv: true, isDead: false);
         var options = CreateClusterOptions();
         options.WithPasswordAuthentication("username", "password");
-        var cluster = CreateClusterWithNodes(options, mockNode.Object);
+        using var cluster = CreateClusterWithNodes(options, mockNode.Object);
 
         var passwordAuthenticator = new PasswordAuthenticator("username", "password");
 
@@ -97,7 +97,7 @@ public class ClusterReauthenticationTests
 
         var deadNode = CreateMockClusterNode(hasKv: true, isDead: true);
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options, liveNode.Object, deadNode.Object);
+        using var cluster = CreateClusterWithNodes(options, liveNode.Object, deadNode.Object);
 
         var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
 
@@ -137,7 +137,7 @@ public class ClusterReauthenticationTests
 
         var nonKvNode = CreateMockClusterNode(hasKv: false, isDead: false);
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options, kvNode.Object, nonKvNode.Object);
+        using var cluster = CreateClusterWithNodes(options, kvNode.Object, nonKvNode.Object);
 
         var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
 
@@ -167,7 +167,7 @@ public class ClusterReauthenticationTests
     {
         // Arrange
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options); // No nodes
+        using var cluster = CreateClusterWithNodes(options); // No nodes
 
         var jwtAuthenticator = new JwtAuthenticator("test-jwt-token");
 
@@ -185,7 +185,7 @@ public class ClusterReauthenticationTests
     {
         // Arrange
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options);
+        using var cluster = CreateClusterWithNodes(options);
 
         var jwtAuthenticator1 = new JwtAuthenticator("token-1");
         var jwtAuthenticator2 = new JwtAuthenticator("token-2");
@@ -234,7 +234,7 @@ public class ClusterReauthenticationTests
             });
 
         var options = CreateClusterOptions();
-        var cluster = CreateClusterWithNodes(options, mockNode.Object);
+        using var cluster = CreateClusterWithNodes(options, mockNode.Object);
 
         cluster.Authenticator(new JwtAuthenticator("token-1"));
 
