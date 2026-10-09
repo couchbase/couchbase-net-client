@@ -104,10 +104,10 @@ public class ClusterTests
       }
 
       [Theory]
-      [InlineData("couchbase://xxx", typeof(Cluster))]
-      [InlineData("couchbases://xxx", typeof(Cluster))]
+      [InlineData("couchbase://127.0.0.1:1", typeof(Cluster))]
+      [InlineData("couchbases://127.0.0.1:1", typeof(Cluster))]
 #if NETCOREAPP3_1_OR_GREATER
-      [InlineData("couchbase2://xxx", typeof(Couchbase.Stellar.StellarCluster))]
+      [InlineData("couchbase2://127.0.0.1:1", typeof(Couchbase.Stellar.StellarCluster))]
 #endif
       public async Task Test_Schema_Delivers_The_Correct_ICluster_Impl(string connectionString, Type type)
       {
@@ -115,7 +115,8 @@ public class ClusterTests
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
 #pragma warning restore CS0618 // Type or member is obsolete
           // Classic schemes do DNS SRV lookup during bootstrap which adds several seconds
-          // before bootstrap gives up against the unreachable "xxx" host.
+          // before bootstrap gives up against the unreachable host. The host is an IP address,
+          // not a name, so that no case depends on the machine's DNS resolver.
           options.WithFastFailTimeouts(FastFailServices.DisableDnsSrv);
           await using var cluster = await Cluster.ConnectAsync(connectionString,options);
 
@@ -124,7 +125,8 @@ public class ClusterTests
 
       public async Task<ICluster> CreateCluster()
       {
-          var connectionString = "couchbase2://xxx";
+          // An unreachable IP address and port rather than a host name, so no run depends on DNS.
+          var connectionString = "couchbase2://127.0.0.1:1";
 
 #pragma warning disable CS0618 // Type or member is obsolete
           var options = new ClusterOptions().WithCredentials("Administrator", "password");
@@ -146,7 +148,7 @@ public class ClusterTests
 #pragma warning restore CS0618 // Type or member is obsolete
 
           // Real-connect path: the cluster builds and owns the SocketsHttpHandler behind the channel.
-          var cluster = (StellarCluster)await Cluster.ConnectAsync("couchbase2://xxx", options);
+          var cluster = (StellarCluster)await Cluster.ConnectAsync("couchbase2://127.0.0.1:1", options);
           var handler = cluster.OwnedHttpHandler;
           Assert.NotNull(handler);
 
