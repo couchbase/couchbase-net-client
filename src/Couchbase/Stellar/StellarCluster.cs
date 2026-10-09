@@ -154,7 +154,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         };
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
-        var retryHandler = new StellarRetryHandler();
+        var retryHandler = new StellarRetryHandler(TimeProvider.System,
+            new Logger<StellarRetryHandler>(_clusterOptions.Logging ?? new NullLoggerFactory()));
         RetryHandler = retryHandler;
         HealthClient = new Health.HealthClient(GrpcChannel);
 
