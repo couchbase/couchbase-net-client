@@ -11,6 +11,7 @@ using Couchbase.Stellar.Core.Retry;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -664,6 +665,132 @@ public class StellarRetryHandlerTests
         Assert.NotNull(result);
         Assert.Equal(2, callCount);
         Assert.True(request.Attempts > 0, "Expected at least one retry attempt.");
+    }
+    // ──────────────────────────────────────────────────────────
+    //  Attempts that never complete (NCBC-4318)
+    // ──────────────────────────────────────────────────────────
+
+    // gRPC can lose a call's completion: its deadline fires, but the response task is never completed.
+    // These tests model that with a send that returns a task nothing ever completes. Before the
+    // per-attempt backstop the operation waited for it forever, so on that code these tests hang.
+
+    [Theory]
+    [InlineData(true, typeof(Couchbase.Core.Exceptions.UnambiguousTimeoutException))]
+    [InlineData(false, typeof(Couchbase.Core.Exceptions.AmbiguousTimeoutException))]
+    public async Task AttemptThatNeverCompletes_TimesOut_AfterDeadlinePlusGrace(bool readOnly, System.Type expected)
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+        var handler = CreateHandler(fakeTime);
+        var request = new StellarRequest(fakeTime)
+        {
+            Timeout = TimeSpan.FromMilliseconds(100),
+            Idempotent = true,
+            ReadOnly = readOnly
+        };
+        var neverCompletes = new TaskCompletionSource<GetResponse>();
+
+        var operation = handler.RetryAsync(() => neverCompletes.Task, request);
+
+        // 100 ms timeout + 100 ms minimum grace: not given up one tick early...
+        fakeTime.Advance(TimeSpan.FromMilliseconds(200) - TimeSpan.FromTicks(1));
+        Assert.False(operation.IsCompleted);
+
+        // ...but given up at the limit.
+        fakeTime.Advance(TimeSpan.FromTicks(1));
+        var ex = await Assert.ThrowsAsync(expected, () => operation);
+        Assert.Contains("did not complete", ex.Message);
+    }
+
+    [Fact]
+    public async Task AttemptThatNeverCompletes_LogsAWarning()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+        var logger = new Mock<ILogger<StellarRetryHandler>>();
+        logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+        var handler = new StellarRetryHandler(fakeTime, logger.Object)
+        {
+            Delay = (backoff, _) =>
+            {
+                fakeTime.Advance(backoff);
+                return Task.CompletedTask;
+            }
+        };
+        var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(100), Idempotent = true };
+
+        var operation = handler.RetryAsync(() => new TaskCompletionSource<GetResponse>().Task, request);
+        fakeTime.Advance(TimeSpan.FromMilliseconds(200));
+        await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(() => operation);
+
+        logger.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString().Contains("did not complete")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GrpcDeadline_StillWins_WithinTheGrace()
+    {
+        // The normal case: gRPC fails the call at its deadline. The caller must get gRPC's error, as
+        // before, not the backstop's.
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+        var handler = CreateHandler(fakeTime);
+        var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(100), Idempotent = true };
+        var call = new TaskCompletionSource<GetResponse>();
+        using var grpcDeadline = fakeTime.CreateTimer(
+            _ => call.TrySetException(new RpcException(new Status(StatusCode.DeadlineExceeded, "gRPC deadline exceeded"))),
+            null, TimeSpan.FromMilliseconds(100), Timeout.InfiniteTimeSpan);
+
+        var operation = handler.RetryAsync(() => call.Task, request);
+        fakeTime.Advance(TimeSpan.FromMilliseconds(100));
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(() => operation);
+        Assert.Contains("gRPC deadline exceeded", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExpiredBudget_GivesUp_WithoutSendingAgain()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        fakeTime.SetUtcNow(DateTimeOffset.UtcNow);
+        var handler = new StellarRetryHandler(fakeTime)
+        {
+            // A backoff that uses up the whole budget.
+            Delay = (_, _) =>
+            {
+                fakeTime.Advance(TimeSpan.FromMilliseconds(150));
+                return Task.CompletedTask;
+            }
+        };
+        var request = new StellarRequest(fakeTime) { Timeout = TimeSpan.FromMilliseconds(100), Idempotent = true };
+        var calls = 0;
+
+        Task<GetResponse> GrpcCall()
+        {
+            calls++;
+            throw new RpcException(new Status(StatusCode.Unavailable, "Service unavailable"));
+        }
+
+        var ex = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.UnambiguousTimeoutException>(
+            () => handler.RetryAsync(GrpcCall, request));
+        Assert.Equal(1, calls);
+        var context = Assert.IsType<GenericErrorContext>(ex.Context);
+        Assert.Contains(RetryReason.ServiceNotAvailable, context.RetryReasons);
+    }
+
+    [Theory]
+    [InlineData(100, 100)]     // KV fast-fail: the 100 ms minimum
+    [InlineData(500, 100)]     // 10% would be 50 ms, so the minimum
+    [InlineData(2_500, 250)]   // default KV timeout
+    [InlineData(75_000, 7_500)] // default query timeout
+    public void AttemptGrace_IsTenPercent_WithAMinimum(int timeoutMs, int expectedGraceMs)
+    {
+        Assert.Equal(TimeSpan.FromMilliseconds(expectedGraceMs),
+            StellarRetryHandler.AttemptGrace(TimeSpan.FromMilliseconds(timeoutMs)));
     }
 }
 #endif

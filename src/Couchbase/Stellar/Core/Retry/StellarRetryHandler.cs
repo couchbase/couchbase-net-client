@@ -12,6 +12,8 @@ using Couchbase.Management.Collections;
 using Google.Protobuf.WellKnownTypes;
 using Google.Rpc;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using BucketNotFoundException = Couchbase.Core.Exceptions.BucketNotFoundException;
 using CollectionNotFoundException = Couchbase.Core.Exceptions.CollectionNotFoundException;
 
@@ -19,9 +21,15 @@ using CollectionNotFoundException = Couchbase.Core.Exceptions.CollectionNotFound
 
 namespace Couchbase.Stellar.Core.Retry;
 
-internal class StellarRetryHandler : IRetryOrchestrator
+internal partial class StellarRetryHandler : IRetryOrchestrator
 {
+    /// <summary>
+    /// The smallest grace an attempt gets past its gRPC deadline before we stop waiting for it.
+    /// </summary>
+    internal static readonly TimeSpan MinimumAttemptGrace = TimeSpan.FromMilliseconds(100);
+
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<StellarRetryHandler> _logger;
 
     public StellarRetryHandler() : this(TimeProvider.System) { }
 
@@ -29,8 +37,14 @@ internal class StellarRetryHandler : IRetryOrchestrator
     /// Creates a StellarRetryHandler with a custom TimeProvider for deterministic testing.
     /// </summary>
     internal StellarRetryHandler(TimeProvider timeProvider)
+        : this(timeProvider, NullLogger<StellarRetryHandler>.Instance)
+    {
+    }
+
+    internal StellarRetryHandler(TimeProvider timeProvider, ILogger<StellarRetryHandler> logger)
     {
         _timeProvider = timeProvider;
+        _logger = logger;
         Delay = _timeProvider.Delay;
     }
 
@@ -52,19 +66,21 @@ internal class StellarRetryHandler : IRetryOrchestrator
         {
             while (true)
             {
-                if (request.Token.IsCancellationRequested)
+                var remaining = (request as StellarRequest)?.RemainingTimeout;
+                if (request.Token.IsCancellationRequested || remaining <= TimeSpan.Zero)
                 {
-                    if (IsReadOnly(request))
-                    {
-                        throw new UnambiguousTimeoutException("The request timed out.", context);
-                    }
-
-                    throw new AmbiguousTimeoutException("The request timed out.", context);
+                    // An expired budget gives up here rather than sending one more call with a
+                    // deadline already in the past.
+                    throw CreateTimeoutException(request, context, "The request timed out.");
                 }
 
                 try
                 {
-                    return await send().ConfigureAwait(false);
+                    var attempt = send();
+                    return remaining is { } budget
+                        ? await WaitForAttemptAsync(attempt, budget + AttemptGrace(request.Timeout), request, context)
+                            .ConfigureAwait(false)
+                        : await attempt.ConfigureAwait(false);
                 }
                 catch (RpcException e)
                 {
@@ -142,6 +158,54 @@ internal class StellarRetryHandler : IRetryOrchestrator
             Context = context
         };
     }
+
+    /// <summary>
+    /// How long past its gRPC deadline we keep waiting for an attempt: 10% of the operation's timeout,
+    /// and at least <see cref="MinimumAttemptGrace"/>. It lets gRPC's own DeadlineExceeded win in the
+    /// normal case, so the errors callers see do not change.
+    /// </summary>
+    internal static TimeSpan AttemptGrace(TimeSpan timeout)
+    {
+        var tenth = TimeSpan.FromTicks(timeout.Ticks / 10);
+        return tenth > MinimumAttemptGrace ? tenth : MinimumAttemptGrace;
+    }
+
+    /// <summary>
+    /// Waits for one attempt, but never longer than <paramref name="limit"/>. The gRPC deadline should
+    /// end the call first; this is the backstop for a call that gRPC never completes, which otherwise
+    /// left the operation waiting forever despite its timeout (NCBC-4318). The caller's token is not
+    /// passed here: gRPC already observes it, and turns it into the RequestCanceledException callers
+    /// expect.
+    /// </summary>
+    private async Task<T> WaitForAttemptAsync<T>(Task<T> attempt, TimeSpan limit, IRequest request,
+        GenericErrorContext context)
+    {
+        try
+        {
+            return await attempt.WaitAsync(limit, _timeProvider, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (System.TimeoutException) when (!attempt.IsCompleted)
+        {
+            // Nobody will await the abandoned call, so observe its exception if it ever faults.
+            _ = attempt.ContinueWith(static t => _ = t.Exception, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
+            LogAttemptDidNotComplete(limit, request.Attempts);
+            throw CreateTimeoutException(request, context,
+                "The request timed out: the gRPC call did not complete, even after its deadline.");
+        }
+    }
+
+    private static CouchbaseException CreateTimeoutException(IRequest request, GenericErrorContext context,
+        string message) =>
+        IsReadOnly(request)
+            ? new UnambiguousTimeoutException(message, context)
+            : new AmbiguousTimeoutException(message, context);
+
+    [LoggerMessage(1, LogLevel.Warning,
+        "A gRPC call did not complete within {Limit} (its deadline plus grace), so the operation gave up after {Attempts} retries.")]
+    private partial void LogAttemptDidNotComplete(TimeSpan limit, uint attempts);
 
     // Timeout ambiguity keys on whether the op mutates server state, not on idempotency: an
     // idempotent-but-mutating op (GetAndLock, MutateIn, ...) is safe to retry yet may have applied
