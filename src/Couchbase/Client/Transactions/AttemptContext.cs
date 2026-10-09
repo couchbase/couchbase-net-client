@@ -426,7 +426,7 @@ namespace Couchbase.Client.Transactions
                 var findEntryTask =
                     _atr?.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!, blockingTxn.Id!.AttemptId)
                     ?? AtrRepository.FindEntryForTransaction(docAtrCollection, blockingTxn.AtrRef.Id!,
-                        blockingTxn.Id!.AttemptId, _config.KeyValueTimeout);
+                        blockingTxn.Id!.AttemptId, _config.KeyValueTimeout, Logger);
 
                 AtrEntry? atrEntry = null;
                 try
@@ -2418,8 +2418,9 @@ namespace Couchbase.Client.Transactions
 
                 if (otherAtrCollection == null)
                 {
-                    // we couldn't get the ATR collection, which means that the entry was bad
-                    // --OR-- the bucket/collection/scope was deleted/locked/rebalanced
+                    // The document's ATR reference has no bucket or collection name, so its
+                    // transaction metadata is malformed. A dropped bucket throws above, and a
+                    // dropped collection fails the lookup below; neither reaches this branch.
                     throw CreateError(this, ErrorClass.FailHard)
                         .Cause(new Exception(
                             $"ATR entry '{Redactor.UserData(gr?.TransactionXattrs?.AtrRef?.ToString())}' could not be read.",
@@ -2431,7 +2432,7 @@ namespace Couchbase.Client.Transactions
                 txn.ValidateMinimum();
                 AtrEntry? otherAtr = _atr == null
                     ? await AtrRepository.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!,
-                        txn.Id!.AttemptId!, _config.KeyValueTimeout).CAF()
+                        txn.Id!.AttemptId!, _config.KeyValueTimeout, Logger).CAF()
                     : await _atr.FindEntryForTransaction(otherAtrCollection, txn.AtrRef!.Id!, txn.Id?.AttemptId).CAF();
 
                 if (otherAtr == null)

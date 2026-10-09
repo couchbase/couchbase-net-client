@@ -340,7 +340,7 @@ namespace Couchbase.Client.Transactions.Error.Attempts
             TransactionOperationFailedException? toThrow = ec switch
             {
                 FailPathNotFound => throw new ActiveTransactionRecordEntryNotFoundException(),
-                FailDocNotFound => Error(ec, new ActiveTransactionRecordNotFoundException()).Build(),
+                FailDocNotFound => throw new ActiveTransactionRecordNotFoundException(),
                 _ => err is TransactionOperationFailedException alreadyClassified ? alreadyClassified : Error(ec, err).Build()
             };
 
