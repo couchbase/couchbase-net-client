@@ -119,6 +119,11 @@ jobs:
             # LogFilePrefix, not LogFileName: the logger appends _<tfm>_<timestamp>, so results can
             # never overwrite each other. LogFileName pins one path, and a project run against
             # several frameworks then silently keeps only the last one's results.
+            # TEMPORARY (PR #215): record thread-pool pressure next to the TRX. Absolute path because
+            # the test host runs from the bin directory; `pwd -W` gives a Windows path under Git Bash.
+            mkdir -p TestResults
+            COUCHBASE_TEST_THREADPOOL_LOG="$(cd TestResults && (pwd -W 2>/dev/null || pwd))/threadpool-$name-$TFM.log"
+            export COUCHBASE_TEST_THREADPOOL_LOG
             if dotnet test "$proj" --configuration Release --framework "$TFM" --no-build \
                  --logger "trx;LogFilePrefix=$name" --results-directory TestResults \
                  --blame-hang --blame-hang-timeout 5min --blame-hang-dump-type full; then
@@ -150,5 +155,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-results-${{ matrix.os }}-${{ matrix.tfm }}
+          # TEMPORARY (PR #215): one artifact per attempt, so reruns keep every attempt's results.
+          name: unit-test-results-${{ matrix.os }}-${{ matrix.tfm }}-attempt${{ github.run_attempt }}
           path: TestResults
