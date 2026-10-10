@@ -38,18 +38,47 @@ namespace Couchbase.Core.Configuration.Server
 
         public static void MergeClusterLabels(this BucketConfig incomingConfig, BucketConfig currentConfig)
         {
-            if (incomingConfig.ClusterLabels.Equals(currentConfig.ClusterLabels)) return;
+            var currentLabels = currentConfig.ClusterLabels;
+            var incomingLabels = incomingConfig.ClusterLabels;
 
-            // Prefer incoming values (latest from server), fall back to current values
-            var name = incomingConfig.ClusterLabels.ClusterName ?? currentConfig.ClusterLabels.ClusterName;
-            var uuid = incomingConfig.ClusterLabels.ClusterUuid ?? currentConfig.ClusterLabels.ClusterUuid;
+            // Config pushes and polls can arrive out of order, and the labels have no revision of their own,
+            // so an older config must not overwrite a label already taken from a newer one.
+            // A config can supply one label and not the other, so each label has its own version.
+            var (name, nameVersion) = MergeLabel(
+                incomingLabels.ClusterName, incomingLabels.NameVersion, incomingConfig.ConfigVersion,
+                currentLabels.ClusterName, currentLabels.NameVersion, currentConfig.ConfigVersion);
+            var (uuid, uuidVersion) = MergeLabel(
+                incomingLabels.ClusterUuid, incomingLabels.UuidVersion, incomingConfig.ConfigVersion,
+                currentLabels.ClusterUuid, currentLabels.UuidVersion, currentConfig.ConfigVersion);
 
-            // Apply to both so labels are correct regardless of which config is used going forward
-            incomingConfig.ClusterLabels.ClusterName = name;
-            incomingConfig.ClusterLabels.ClusterUuid = uuid;
-            currentConfig.ClusterLabels.ClusterName = name;
-            currentConfig.ClusterLabels.ClusterUuid = uuid;
+            // Apply to both so labels, and the version each came from, are right whichever config is kept
+            incomingLabels.ClusterName = currentLabels.ClusterName = name;
+            incomingLabels.NameVersion = currentLabels.NameVersion = nameVersion;
+            incomingLabels.ClusterUuid = currentLabels.ClusterUuid = uuid;
+            incomingLabels.UuidVersion = currentLabels.UuidVersion = uuidVersion;
         }
+
+        private static (string? Value, ConfigVersion Version) MergeLabel(
+            string? incomingValue, ConfigVersion incomingLabelVersion, ConfigVersion incomingConfigVersion,
+            string? currentValue, ConfigVersion currentLabelVersion, ConfigVersion currentConfigVersion)
+        {
+            if (incomingValue is null)
+            {
+                return (currentValue, currentLabelVersion);
+            }
+
+            var incomingVersion = incomingLabelVersion > incomingConfigVersion ? incomingLabelVersion : incomingConfigVersion;
+            if (currentValue is null)
+            {
+                return (incomingValue, incomingVersion);
+            }
+
+            var currentVersion = currentLabelVersion > currentConfigVersion ? currentLabelVersion : currentConfigVersion;
+            return incomingVersion >= currentVersion
+                ? (incomingValue, incomingVersion)
+                : (currentValue, currentVersion);
+        }
+
         public static bool HasConfigChanges(this BucketConfig newConfig, BucketConfig? oldConfig, string bucketName)
         {
             //Wrong bucket name - configs are broadcast so keep on going
