@@ -18,6 +18,12 @@ internal partial class ConfigPushHandler : IDisposable
     private readonly Redactor _redactor;
     private readonly BucketBase _bucket;
 
+    // A node can be pushed a config version before the node asked for the config has it, and the server
+    // then answers that it has nothing newer. The same version is not pushed again, so we ask again.
+    internal const int MaxNullConfigRetries = 20;
+    internal static readonly TimeSpan InitialNullConfigRetryDelay = TimeSpan.FromMilliseconds(10);
+    internal static readonly TimeSpan MaxNullConfigRetryDelay = TimeSpan.FromMilliseconds(500);
+
     private readonly CancellationTokenSource _continueLoopingSource = new();
     private readonly object _lock = new();
     private readonly SemaphoreSlim _versionReceivedEvent = new(initialCount: 0, maxCount: 1);
@@ -56,6 +62,8 @@ internal partial class ConfigPushHandler : IDisposable
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
         ConfigVersion lastSkippedVersion = new(0, 0);
+        ConfigVersion nullRetriedVersion = new(0, 0);
+        int nullRetries = 0;
         long skipsWithNoPublish = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -153,6 +161,7 @@ internal partial class ConfigPushHandler : IDisposable
                         LogConfigPublished(_redactor.SystemData(_bucket.Name), fetchedBucketConfig.ConfigVersion,
                             effectiveVersion);
                         Interlocked.Exchange(ref skipsWithNoPublish, 0);
+                        nullRetries = 0;
                         _context.PublishConfig(fetchedBucketConfig);
                     }
                     else if (fetchedVersion < pushedVersion)
@@ -188,6 +197,28 @@ internal partial class ConfigPushHandler : IDisposable
                 else
                 {
                     LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
+
+                    if (!pushedVersion.Equals(nullRetriedVersion))
+                    {
+                        nullRetriedVersion = pushedVersion;
+                        nullRetries = 0;
+                    }
+
+                    if (nullRetries < MaxNullConfigRetries)
+                    {
+                        var delay = GetNullConfigRetryDelay(nullRetries);
+                        nullRetries++;
+                        LogRetryingAfterNullConfig(pushedVersion, nullRetries, delay);
+
+                        // Deliberately not cancellable, as in the delay above: the delay is short, and
+                        // cancelling would log a warning every time the consumer loop is torn down.
+                        await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
+                        TryReleaseNewVersionSemaphore();
+                    }
+                    else
+                    {
+                        LogGaveUpAfterNullConfig(pushedVersion, nullRetries);
+                    }
                 }
             }
             catch (Exception ex)
@@ -229,6 +260,13 @@ internal partial class ConfigPushHandler : IDisposable
 
             TryReleaseNewVersionSemaphore();
         }
+    }
+
+    internal static TimeSpan GetNullConfigRetryDelay(int retry)
+    {
+        // Doubles from the initial delay up to the maximum. The shift is capped to avoid overflow.
+        var ticks = InitialNullConfigRetryDelay.Ticks << Math.Min(retry, 20);
+        return TimeSpan.FromTicks(Math.Min(ticks, MaxNullConfigRetryDelay.Ticks));
     }
 
     private void TryReleaseNewVersionSemaphore()
@@ -287,6 +325,12 @@ internal partial class ConfigPushHandler : IDisposable
 
     [LoggerMessage(10, LogLevel.Warning, "No live KV nodes were found while processing {configVersion}")]
     private partial void LogNoLiveKvNodes(ConfigVersion configVersion);
+
+    [LoggerMessage(11, LogLevel.Trace, "Asking again for pushed version {pushedVersion} in {delay}: retry {retry}")]
+    private partial void LogRetryingAfterNullConfig(ConfigVersion pushedVersion, int retry, TimeSpan delay);
+
+    [LoggerMessage(12, LogLevel.Warning, "No node returned pushed version {pushedVersion} after {retries} retries. Waiting for the next push.")]
+    private partial void LogGaveUpAfterNullConfig(ConfigVersion pushedVersion, int retries);
 }
 
 /* ************************************************************
