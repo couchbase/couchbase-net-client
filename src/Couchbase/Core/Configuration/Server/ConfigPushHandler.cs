@@ -62,8 +62,7 @@ internal partial class ConfigPushHandler : IDisposable
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
         ConfigVersion lastSkippedVersion = new(0, 0);
-        ConfigVersion nullRetriedVersion = new(0, 0);
-        int nullRetries = 0;
+        var nullRetryTracker = new NullConfigRetryTracker();
         long skipsWithNoPublish = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -161,7 +160,7 @@ internal partial class ConfigPushHandler : IDisposable
                         LogConfigPublished(_redactor.SystemData(_bucket.Name), fetchedBucketConfig.ConfigVersion,
                             effectiveVersion);
                         Interlocked.Exchange(ref skipsWithNoPublish, 0);
-                        nullRetries = 0;
+                        nullRetryTracker.Reset();
                         _context.PublishConfig(fetchedBucketConfig);
                     }
                     else if (fetchedVersion < pushedVersion)
@@ -198,17 +197,9 @@ internal partial class ConfigPushHandler : IDisposable
                 {
                     LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
 
-                    if (!pushedVersion.Equals(nullRetriedVersion))
+                    if (nullRetryTracker.TryNextRetry(pushedVersion, effectiveVersion, out var delay))
                     {
-                        nullRetriedVersion = pushedVersion;
-                        nullRetries = 0;
-                    }
-
-                    if (nullRetries < MaxNullConfigRetries)
-                    {
-                        var delay = GetNullConfigRetryDelay(nullRetries);
-                        nullRetries++;
-                        LogRetryingAfterNullConfig(pushedVersion, nullRetries, delay);
+                        LogRetryingAfterNullConfig(pushedVersion, nullRetryTracker.Retries, delay);
 
                         // Deliberately not cancellable, as in the delay above: the delay is short, and
                         // cancelling would log a warning every time the consumer loop is torn down.
@@ -217,7 +208,7 @@ internal partial class ConfigPushHandler : IDisposable
                     }
                     else
                     {
-                        LogGaveUpAfterNullConfig(pushedVersion, nullRetries);
+                        LogGaveUpAfterNullConfig(pushedVersion, nullRetryTracker.Retries);
                     }
                 }
             }
@@ -259,6 +250,41 @@ internal partial class ConfigPushHandler : IDisposable
             _latestVersion = configVersion;
 
             TryReleaseNewVersionSemaphore();
+        }
+    }
+
+    /// <summary>
+    /// Counts the retries for one pushed version against one effective version. The count starts again when
+    /// either version changes, because a config published by another handler moves the effective version,
+    /// and the next attempt is then a new question for the server.
+    /// </summary>
+    internal struct NullConfigRetryTracker
+    {
+        private ConfigVersion _pushedVersion;
+        private ConfigVersion? _effectiveVersion;
+
+        public int Retries { get; private set; }
+
+        public void Reset() => Retries = 0;
+
+        public bool TryNextRetry(ConfigVersion pushedVersion, ConfigVersion? effectiveVersion, out TimeSpan delay)
+        {
+            if (!pushedVersion.Equals(_pushedVersion) || !Nullable.Equals(effectiveVersion, _effectiveVersion))
+            {
+                _pushedVersion = pushedVersion;
+                _effectiveVersion = effectiveVersion;
+                Retries = 0;
+            }
+
+            if (Retries >= MaxNullConfigRetries)
+            {
+                delay = TimeSpan.Zero;
+                return false;
+            }
+
+            delay = GetNullConfigRetryDelay(Retries);
+            Retries++;
+            return true;
         }
     }
 

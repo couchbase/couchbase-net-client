@@ -128,6 +128,74 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void NullConfigRetryTracker_StopsAfterTheMaximumRetries()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 3);
+        var effective = new ConfigVersion(1, 2);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            Assert.True(tracker.TryNextRetry(pushed, effective, out _));
+        }
+
+        Assert.False(tracker.TryNextRetry(pushed, effective, out _));
+        Assert.Equal(ConfigPushHandler.MaxNullConfigRetries, tracker.Retries);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_ExternalPublishRestartsTheCount()
+    {
+        // Another handler publishes a config that moves this bucket's effective version, but it is still
+        // below the pushed version. The retries then start again.
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 5);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            Assert.True(tracker.TryNextRetry(pushed, new ConfigVersion(1, 2), out _));
+        }
+
+        Assert.False(tracker.TryNextRetry(pushed, new ConfigVersion(1, 2), out _));
+        Assert.True(tracker.TryNextRetry(pushed, new ConfigVersion(1, 3), out var delay));
+        Assert.Equal(1, tracker.Retries);
+        Assert.Equal(ConfigPushHandler.InitialNullConfigRetryDelay, delay);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_NewPushedVersionRestartsTheCount()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var effective = new ConfigVersion(1, 2);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            tracker.TryNextRetry(new ConfigVersion(1, 3), effective, out _);
+        }
+
+        Assert.True(tracker.TryNextRetry(new ConfigVersion(1, 4), effective, out _));
+        Assert.Equal(1, tracker.Retries);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_ResetStartsTheCountAgain()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 3);
+        ConfigVersion? effective = null;
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            tracker.TryNextRetry(pushed, effective, out _);
+        }
+
+        tracker.Reset();
+
+        Assert.True(tracker.TryNextRetry(pushed, effective, out _));
+        Assert.Equal(1, tracker.Retries);
+    }
+
+    [Fact]
     public async Task ConfigPushHandler_BasicAdvance()
     {
         // server pushes (1,2), and returns (1,2)
