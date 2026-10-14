@@ -163,9 +163,22 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
     {
         await Assert.ThrowsAnyAsync<Exception>(async () =>
         {
+#pragma warning disable CS0618 // The obsolete overload still ships, so it is still covered
             foreach (var task in _collection.GetAllReplicasAsync("key"))
+#pragma warning restore CS0618
             {
                 await task;
+            }
+        });
+    }
+
+    [Fact]
+    public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAllReplicasStreamAsync()
+    {
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        {
+            await foreach (var _ in _collection.GetAllReplicasStreamAsync("key"))
+            {
             }
         });
     }

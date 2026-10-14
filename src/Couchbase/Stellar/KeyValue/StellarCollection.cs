@@ -127,6 +127,30 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return results;
     }
 
+    public IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(string id, GetAllReplicasOptions? options = null)
+    {
+        //Does not retry (NCBC-3626)
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
+        return GetAllReplicasStreamCoreAsync(id, opts);
+    }
+
+    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts)
+    {
+        // Results are yielded in the order the gateway streams them.
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
+        var request = KeyedRequest<GetAllReplicasRequest>(id);
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
+
+        using var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
+
+        await foreach (var replicaResult in response.ResponseStream.ReadAllAsync().ConfigureAwait(false))
+        {
+            yield return replicaResult.AsGetReplicaResult(transcoder);
+        }
+    }
+
     public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null)
     {
         _stellarCluster.ThrowIfBootStrapFailed();

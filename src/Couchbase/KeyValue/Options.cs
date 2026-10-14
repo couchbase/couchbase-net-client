@@ -184,7 +184,8 @@ namespace Couchbase.KeyValue
     #region GetAnyReplicaOptions
 
     /// <summary>
-    /// Optional parameters for <see cref="ICouchbaseCollection.GetAllReplicasAsync(string, GetAllReplicasOptions?)"/>
+    /// Optional parameters for <see cref="ICouchbaseCollection.GetAllReplicasStreamAsync(string, GetAllReplicasOptions?)"/>
+    /// and <see cref="ICouchbaseCollection.GetAllReplicasAsync(string, GetAllReplicasOptions?)"/>
     /// </summary>
     public class GetAllReplicasOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {

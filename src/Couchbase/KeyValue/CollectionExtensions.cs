@@ -489,6 +489,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="collection">Couchbase collection.</param>
         /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
+        [Obsolete("Use GetAllReplicasStreamAsync instead. This overload will be removed in the next major version, and GetAllReplicasStreamAsync renamed to GetAllReplicasAsync.")]
         public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAllReplicasAsync(id, GetAllReplicasOptions.Default);
@@ -502,12 +503,41 @@ namespace Couchbase.KeyValue
         /// <param name="collection">Couchbase collection.</param>
         /// <param name="configureOptions">Optional parameters</param>
         /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
+        [Obsolete("Use GetAllReplicasStreamAsync instead. This overload will be removed in the next major version, and GetAllReplicasStreamAsync renamed to GetAllReplicasAsync.")]
         public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
         {
             var options = new GetAllReplicasOptions();
             configureOptions(options);
 
             return collection.GetAllReplicasAsync(id, options);
+        }
+
+        /// <summary>
+        /// Gets a stream of document data from the server, leveraging both the active and all available
+        /// replicas. Results are yielded in the order they arrive.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <returns>An <see cref="IAsyncEnumerable{T}"/> of <see cref="IGetReplicaResult"/>, one for each read that succeeds.</returns>
+        public static IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(this ICouchbaseCollection collection, string id)
+        {
+            return collection.GetAllReplicasStreamAsync(id, GetAllReplicasOptions.Default);
+        }
+
+        /// <summary>
+        /// Gets a stream of document data from the server, leveraging both the active and all available
+        /// replicas. Results are yielded in the order they arrive.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An <see cref="IAsyncEnumerable{T}"/> of <see cref="IGetReplicaResult"/>, one for each read that succeeds.</returns>
+        public static IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(this ICouchbaseCollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
+        {
+            var options = new GetAllReplicasOptions();
+            configureOptions(options);
+
+            return collection.GetAllReplicasStreamAsync(id, options);
         }
 
         #endregion

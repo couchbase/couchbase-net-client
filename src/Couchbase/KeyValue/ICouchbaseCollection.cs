@@ -170,7 +170,22 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
+        [Obsolete("Use GetAllReplicasStreamAsync instead. This overload will be removed in the next major version, and GetAllReplicasStreamAsync renamed to GetAllReplicasAsync.")]
         IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null);
+
+        /// <summary>
+        /// Gets a stream of document data from the server, leveraging both the active and all available
+        /// replicas. Results are yielded in the order they arrive.
+        /// </summary>
+        /// <remarks>
+        /// A read that fails on the active or on a replica is left out of the stream, so the stream is
+        /// empty if every read fails. Errors that apply to the whole call, such as an unusable server
+        /// group, are thrown here rather than on enumeration.
+        /// </remarks>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An <see cref="IAsyncEnumerable{T}"/> of <see cref="IGetReplicaResult"/>, one for each read that succeeds.</returns>
+        IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(string id, GetAllReplicasOptions? options = null);
 
         /// <summary>
         /// Reads the document from a single replica chosen by the strategy. Only one request is sent.

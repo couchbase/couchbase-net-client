@@ -241,7 +241,11 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
             {
                 await collection.InsertAsync(key, person);
 
-                var results = await Task.WhenAll(collection.GetAllReplicasAsync(key));
+                var results = new List<IGetReplicaResult>();
+                await foreach (var replica in collection.GetAllReplicasStreamAsync(key))
+                {
+                    results.Add(replica);
+                }
                 foreach (var result in results)
                 {
                     Assert.True(result.IsActive);

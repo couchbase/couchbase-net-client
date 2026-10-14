@@ -114,4 +114,39 @@ public static class TaskHelpers
 
         return tcs.Task;
     }
+
+    /// <summary>
+    /// Orders tasks by when they finish. The nth task returned completes when the nth of
+    /// <paramref name="tasks"/> finishes, and its result is that finished task. This is
+    /// Task.WhenEach, which only exists from .NET 9.
+    /// </summary>
+    /// <remarks>
+    /// Every faulted task is marked as observed, so a caller that stops reading early does not
+    /// leave unobserved exceptions behind. Awaiting a returned task still throws.
+    /// </remarks>
+    internal static Task<Task<T>>[] InCompletionOrder<T>(IReadOnlyList<Task<T>> tasks)
+    {
+        var buckets = new TaskCompletionSource<Task<T>>[tasks.Count];
+        var ordered = new Task<Task<T>>[buckets.Length];
+        for (var i = 0; i < buckets.Length; i++)
+        {
+            buckets[i] = new TaskCompletionSource<Task<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ordered[i] = buckets[i].Task;
+        }
+
+        var next = -1;
+        foreach (var task in tasks)
+        {
+            task.ContinueWith(completed =>
+                {
+                    _ = completed.Exception;
+                    buckets[Interlocked.Increment(ref next)].TrySetResult(completed);
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+
+        return ordered;
+    }
 }

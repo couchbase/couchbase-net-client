@@ -1132,6 +1132,51 @@ namespace Couchbase.KeyValue
                 : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
         }
 
+        /// <inheritdoc />
+        public IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(string id,
+            GetAllReplicasOptions? options = null)
+        {
+            // The stream below only runs once enumerated, so anything that must fail at the call site
+            // is resolved here, as LookupInAllReplicasAsync does.
+            _bucket.ThrowIfBootStrapFailed();
+
+            options ??= GetAllReplicasOptions.Default;
+            var vBucket = VBucketForReplicas(id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
+
+            return GetAllReplicasInCompletionOrderAsync(id, options, vBucket, indexesInGroup);
+        }
+
+        private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasInCompletionOrderAsync(string id,
+            GetAllReplicasOptions options,
+            VBucket vBucket,
+            int[]? indexesInGroup)
+        {
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, options.RequestSpanValue);
+
+            var tasks = indexesInGroup is null
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
+
+            foreach (var next in TaskHelpers.InCompletionOrder(tasks))
+            {
+                IGetReplicaResult result;
+                try
+                {
+                    result = await (await next.ConfigureAwait(false)).ConfigureAwait(false);
+                }
+                catch (CouchbaseException)
+                {
+                    // A read of the active or of one replica failed, such as a timeout or a document
+                    // that is not on that replica. Like LookupInAllReplicas, leave it out of the
+                    // stream rather than faulting the stream.
+                    continue;
+                }
+
+                yield return result;
+            }
+        }
+
         private static List<short> GetReplicaIndexes(VBucket vBucket)
         {
             var replicas = vBucket.Replicas.Where(index => index > -1).ToList();
