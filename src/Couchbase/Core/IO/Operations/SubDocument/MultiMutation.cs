@@ -19,6 +19,9 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
+        /// <inheritdoc />
+        public override bool HasDurability => DurabilityLevel != DurabilityLevel.None;
+
         public TimeSpan? DurabilityTimeout { get; set; }
 
         public SubdocDocFlags DocFlags { get; set; }
