@@ -105,9 +105,12 @@ public class AppTelemetryThreadSafetyTests
 
         var totalExpectedIncrements = writerCount * incrementsPerWriter;
         var allExported = new ConcurrentBag<string>();
+        // The writers wait for the exporter, so no increment can happen before the exports start.
+        using var exporterRunning = new ManualResetEventSlim();
 
         var writerTasks = DedicatedThreads.RunAll(writerCount, _ =>
         {
+            exporterRunning.Wait();
             for (var j = 0; j < incrementsPerWriter; j++)
             {
                 collector.IncrementMetrics(
@@ -124,6 +127,7 @@ public class AppTelemetryThreadSafetyTests
         // however fast or slow the machine is.
         var exportTask = DedicatedThreads.Run(() =>
         {
+            exporterRunning.Set();
             while (!writerTasks.IsCompleted)
             {
                 if (collector.TryExportMetricsAndReset(out var result))
