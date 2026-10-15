@@ -12,7 +12,7 @@ namespace Couchbase.UnitTests.Stellar.KeyValue;
 
 /// <summary>
 /// Shared cluster/collection for <see cref="CollectionTests"/>. Every test drives a KV op against
-/// the same unreachable "couchbase2://xxx" host, so there is no reason to build a cluster per test:
+/// the same unreachable host, so there is no reason to build a cluster per test:
 /// the connection string and options never vary and the cluster never connects. One cluster is
 /// created once and disposed once here, which also tears down the GrpcChannel and its
 /// SocketsHttpHandler (and keep-alive ping timers) that would otherwise leak.
@@ -25,8 +25,10 @@ public sealed class StellarCollectionFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        // Represents an unreachable host - the SDK will fail when the first op is called.
-        var connectionString = "couchbase2://xxx";
+        // Represents an unreachable host - the SDK will fail when the first op is called. An IP
+        // address and a port nothing listens on, not a host name: a name would make every run
+        // depend on the machine's DNS resolver, which on CI sometimes takes seconds to fail.
+        var connectionString = "couchbase2://127.0.0.1:1";
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var options = new ClusterOptions().WithCredentials("Administrator", "password");
@@ -52,7 +54,7 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
     [Fact]
     public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAsync()
     {
-        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await _collection.RemoveAsync("key"));
+        await Assert.ThrowsAnyAsync<CouchbaseException>(async () => await _collection.GetAsync("key"));
     }
 
     [Fact]
