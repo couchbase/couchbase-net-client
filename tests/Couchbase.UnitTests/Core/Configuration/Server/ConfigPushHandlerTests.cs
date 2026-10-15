@@ -79,6 +79,123 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ConfigPushHandler_ServerReturnsNullThenConfig_AsksAgainAndPublishes()
+    {
+        // The server pushes (1,3), but the node asked has nothing newer than (1,2) and returns null.
+        // The same version is not pushed again, so the handler must ask again by itself.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
+        ClusterContext mockContext = mockBucket.Context;
+        var mockNode = new Mock<IClusterNode>();
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+        var fetches = new AsyncCounter();
+        mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult<BucketConfig>(fetches.Count < 3 ? null! : newConfig))
+            .Callback(() => fetches.Increment());
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
+        mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+        mockContext.Nodes.Add(mockNode.Object);
+        mockBucket.Nodes.Add(mockNode.Object);
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_ServerReturnsNullThenConfig_AsksAgainAndPublishes));
+        var redactor = new Redactor(RedactionLevel.None);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+
+        // No timeout: a handler which gives up after a null answer hangs the test, which is diagnosable.
+        var publishedConfig = await publishTcs.Task;
+
+        Assert.NotNull(publishedConfig);
+        Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
+        // Three nulls, then the config.
+        Assert.Equal(4, fetches.Count);
+    }
+
+    [Fact]
+    public void GetNullConfigRetryDelay_DoublesUpToTheMaximum()
+    {
+        Assert.Equal(ConfigPushHandler.InitialNullConfigRetryDelay, ConfigPushHandler.GetNullConfigRetryDelay(0));
+        Assert.Equal(TimeSpan.FromTicks(ConfigPushHandler.InitialNullConfigRetryDelay.Ticks * 2), ConfigPushHandler.GetNullConfigRetryDelay(1));
+        Assert.Equal(ConfigPushHandler.MaxNullConfigRetryDelay, ConfigPushHandler.GetNullConfigRetryDelay(ConfigPushHandler.MaxNullConfigRetries));
+        Assert.Equal(ConfigPushHandler.MaxNullConfigRetryDelay, ConfigPushHandler.GetNullConfigRetryDelay(int.MaxValue));
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_StopsAfterTheMaximumRetries()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 3);
+        var effective = new ConfigVersion(1, 2);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            Assert.True(tracker.TryNextRetry(pushed, effective, out _));
+        }
+
+        Assert.False(tracker.TryNextRetry(pushed, effective, out _));
+        Assert.Equal(ConfigPushHandler.MaxNullConfigRetries, tracker.Retries);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_ExternalPublishRestartsTheCount()
+    {
+        // Another handler publishes a config that moves this bucket's effective version, but it is still
+        // below the pushed version. The retries then start again.
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 5);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            Assert.True(tracker.TryNextRetry(pushed, new ConfigVersion(1, 2), out _));
+        }
+
+        Assert.False(tracker.TryNextRetry(pushed, new ConfigVersion(1, 2), out _));
+        Assert.True(tracker.TryNextRetry(pushed, new ConfigVersion(1, 3), out var delay));
+        Assert.Equal(1, tracker.Retries);
+        Assert.Equal(ConfigPushHandler.InitialNullConfigRetryDelay, delay);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_NewPushedVersionRestartsTheCount()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var effective = new ConfigVersion(1, 2);
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            tracker.TryNextRetry(new ConfigVersion(1, 3), effective, out _);
+        }
+
+        Assert.True(tracker.TryNextRetry(new ConfigVersion(1, 4), effective, out _));
+        Assert.Equal(1, tracker.Retries);
+    }
+
+    [Fact]
+    public void NullConfigRetryTracker_ResetStartsTheCountAgain()
+    {
+        var tracker = new ConfigPushHandler.NullConfigRetryTracker();
+        var pushed = new ConfigVersion(1, 3);
+        ConfigVersion? effective = null;
+
+        for (var i = 0; i < ConfigPushHandler.MaxNullConfigRetries; i++)
+        {
+            tracker.TryNextRetry(pushed, effective, out _);
+        }
+
+        tracker.Reset();
+
+        Assert.True(tracker.TryNextRetry(pushed, effective, out _));
+        Assert.Equal(1, tracker.Retries);
+    }
+
+    [Fact]
     public async Task ConfigPushHandler_BasicAdvance()
     {
         // server pushes (1,2), and returns (1,2)
