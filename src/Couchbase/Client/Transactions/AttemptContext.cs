@@ -2726,6 +2726,7 @@ namespace Couchbase.Client.Transactions
                                 return CreateError(this, ErrorClass.FailExpiry)
                                     .Cause(new AttemptExpiredException(this, "expired during query", err))
                                     .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                                    .DoNotRollbackAttempt()
                                     .Build();
                             case 17012: // Duplicate key
                                 return new DocumentExistsException(qec);
