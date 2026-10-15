@@ -6,6 +6,7 @@ using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Authentication.Authenticators;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -43,36 +44,29 @@ public class CouchbaseHttpClientFactoryStressTests
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
         // Act - Simulate concurrent calls with authenticator changes
-        var tasks = new Task[10];
-        for (int i = 0; i < 10; i++)
+        await DedicatedThreads.RunAll(10, taskIndex =>
         {
-            var taskIndex = i;
-            tasks[i] = Task.Run(() =>
+            try
             {
-                try
+                barrier.SignalAndWait();
+
+                // Some tasks change the authenticator
+                if (taskIndex % 2 == 0)
                 {
-                    barrier.SignalAndWait();
-
-                    // Some tasks change the authenticator
-                    if (taskIndex % 2 == 0)
-                    {
-                        var newCertFactory = CouchbaseHttpClientFactoryTests.CreateMockCertificateFactory();
-                        var newCertAuth = new CertificateAuthenticator(newCertFactory.Object);
-                        clusterOptions.Authenticator = newCertAuth;
-                    }
-
-                    // All tasks call Create
-                    using var client = factory.Create();
-                    Assert.NotNull(client);
+                    var newCertFactory = CouchbaseHttpClientFactoryTests.CreateMockCertificateFactory();
+                    var newCertAuth = new CertificateAuthenticator(newCertFactory.Object);
+                    clusterOptions.Authenticator = newCertAuth;
                 }
-                catch (Exception ex)
-                {
-                    exceptions.Add(ex);
-                }
-            });
-        }
 
-        await Task.WhenAll(tasks);
+                // All tasks call Create
+                using var client = factory.Create();
+                Assert.NotNull(client);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        });
 
         // Assert - No exceptions should have been thrown
         Assert.Empty(exceptions);
