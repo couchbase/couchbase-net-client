@@ -14,6 +14,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.KeyValue.ZoneAware;
 using Couchbase.Management.Query;
 using Couchbase.Protostellar.KV.V1;
 using Couchbase.Stellar.Core;
@@ -130,10 +131,18 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
     public IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(string id, GetAllReplicasOptions? options = null)
     {
+        var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
+
+        // The gateway picks the nodes to read and the request cannot name a server group, so a
+        // read preference cannot be honoured. Reject it rather than read every group.
+        if (opts.ReadPreference != InternalReadPreference.NoPreference)
+        {
+            throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ReadPreference), "Protostellar");
+        }
+
         //Does not retry (NCBC-3626)
         _stellarCluster.ThrowIfBootStrapFailed();
 
-        var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
         return GetAllReplicasStreamCoreAsync(id, opts);
     }
 

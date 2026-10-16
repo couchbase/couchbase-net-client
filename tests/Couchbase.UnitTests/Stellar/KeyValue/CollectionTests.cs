@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.KeyValue.ZoneAware;
 using Couchbase.UnitTests.Utils;
 using Xunit;
 
@@ -181,6 +182,14 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
             {
             }
         });
+    }
+
+    // The gateway cannot be told to read one server group, so the stream must not read them all.
+    [Fact]
+    public void GetAllReplicasStreamAsync_Rejects_A_Read_Preference()
+    {
+        Assert.Throws<FeatureNotAvailableException>(() => _collection.GetAllReplicasStreamAsync("key",
+            new GetAllReplicasOptions().ReadPreference(ReadPreference.SelectedServerGroup)));
     }
 }
 #endif
