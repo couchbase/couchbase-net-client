@@ -14,6 +14,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.KeyValue.ZoneAware;
 using Couchbase.Management.Query;
 using Couchbase.Protostellar.KV.V1;
 using Couchbase.Stellar.Core;
@@ -116,7 +117,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
-        var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
+        var response = _kvClient.GetAllReplicas(request,
+            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
             .ReadAllAsync()
@@ -125,6 +127,39 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             .ToBlockingEnumerable();
 
         return results;
+    }
+
+    public IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamAsync(string id, GetAllReplicasOptions? options = null)
+    {
+        var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
+
+        // The gateway picks the nodes to read and the request cannot name a server group, so a
+        // read preference cannot be honoured. Reject it rather than read every group.
+        if (opts.ReadPreference != InternalReadPreference.NoPreference)
+        {
+            throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ReadPreference), "Protostellar");
+        }
+
+        //Does not retry (NCBC-3626)
+        _stellarCluster.ThrowIfBootStrapFailed();
+
+        return GetAllReplicasStreamCoreAsync(id, opts);
+    }
+
+    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts)
+    {
+        // Results are yielded in the order the gateway streams them.
+        using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
+        var request = KeyedRequest<GetAllReplicasRequest>(id);
+        var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
+
+        using var response = _kvClient.GetAllReplicas(request,
+            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+
+        await foreach (var replicaResult in response.ResponseStream.ReadAllAsync().ConfigureAwait(false))
+        {
+            yield return replicaResult.AsGetReplicaResult(transcoder);
+        }
     }
 
     public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null)

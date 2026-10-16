@@ -130,4 +130,47 @@ public class TaskHelpersTests
         _ = Assert.ThrowsAsync<AggregateException>(() => whenAnySuccessful);
 #pragma warning restore xUnit2021
     }
+
+    [Fact]
+    public async Task InCompletionOrder_Returns_Tasks_In_The_Order_They_Finish()
+    {
+        var sources = Enumerable.Range(0, 3).Select(_ => new TaskCompletionSource<int>()).ToArray();
+
+        var ordered = TaskHelpers.InCompletionOrder(sources.Select(s => s.Task).ToList());
+
+        Assert.All(ordered, task => Assert.False(task.IsCompleted));
+
+        sources[2].SetResult(2);
+        Assert.Equal(2, await await ordered[0]);
+        Assert.False(ordered[1].IsCompleted);
+
+        sources[0].SetResult(0);
+        Assert.Equal(0, await await ordered[1]);
+
+        sources[1].SetResult(1);
+        Assert.Equal(1, await await ordered[2]);
+    }
+
+    [Fact]
+    public async Task InCompletionOrder_Hands_Back_A_Faulted_Task_As_Its_Result()
+    {
+        var failed = new TaskCompletionSource<int>();
+        var succeeded = new TaskCompletionSource<int>();
+
+        var ordered = TaskHelpers.InCompletionOrder(new List<Task<int>> { succeeded.Task, failed.Task });
+
+        failed.SetException(new InvalidOperationException("first to finish"));
+        var first = await ordered[0];
+        Assert.Same(failed.Task, first);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => first);
+
+        succeeded.SetResult(1);
+        Assert.Equal(1, await await ordered[1]);
+    }
+
+    [Fact]
+    public void InCompletionOrder_Of_No_Tasks_Is_Empty()
+    {
+        Assert.Empty(TaskHelpers.InCompletionOrder(new List<Task<int>>()));
+    }
 }
