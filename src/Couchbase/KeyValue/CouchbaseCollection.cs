@@ -1158,22 +1158,47 @@ namespace Couchbase.KeyValue
                 ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
                 : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
 
-            foreach (var next in TaskHelpers.InCompletionOrder(tasks))
+            var ordered = TaskHelpers.InCompletionOrder(tasks);
+            var consumed = 0;
+            try
             {
-                IGetReplicaResult result;
-                try
+                while (consumed < ordered.Length)
                 {
-                    result = await (await next.ConfigureAwait(false)).ConfigureAwait(false);
-                }
-                catch (CouchbaseException)
-                {
-                    // A read of the active or of one replica failed, such as a timeout or a document
-                    // that is not on that replica. Like LookupInAllReplicas, leave it out of the
-                    // stream rather than faulting the stream.
-                    continue;
-                }
+                    var next = ordered[consumed++];
+                    IGetReplicaResult result;
+                    try
+                    {
+                        result = await (await next.ConfigureAwait(false)).ConfigureAwait(false);
+                    }
+                    catch (CouchbaseException)
+                    {
+                        // A read of the active or of one replica failed, such as a timeout or a document
+                        // that is not on that replica. Like LookupInAllReplicas, leave it out of the
+                        // stream rather than faulting the stream.
+                        continue;
+                    }
 
-                yield return result;
+                    yield return result;
+                }
+            }
+            finally
+            {
+                // The caller stopped early or the stream threw. A result holds a pooled response
+                // buffer and the caller owns only those it was given, so dispose the rest, including
+                // reads that finish after this point.
+                for (var i = consumed; i < ordered.Length; i++)
+                {
+                    _ = ordered[i].ContinueWith(static finished =>
+                        {
+                            if (finished.Result.Status == TaskStatus.RanToCompletion)
+                            {
+                                finished.Result.Result.Dispose();
+                            }
+                        },
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+                }
             }
         }
 

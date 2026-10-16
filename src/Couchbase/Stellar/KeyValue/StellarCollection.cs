@@ -116,7 +116,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
-        var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
+        var response = _kvClient.GetAllReplicas(request,
+            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
             .ReadAllAsync()
@@ -143,7 +144,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
-        using var response = _kvClient.GetAllReplicas(request, _stellarCluster.GrpcCallOptions(opts.Token));
+        using var response = _kvClient.GetAllReplicas(request,
+            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         await foreach (var replicaResult in response.ResponseStream.ReadAllAsync().ConfigureAwait(false))
         {

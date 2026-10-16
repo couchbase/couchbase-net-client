@@ -1,4 +1,6 @@
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,6 +18,7 @@ using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.ZoneAware;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using Moq;
@@ -47,7 +50,7 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([null, (short) 0, (short) 2, (short) 3], bucket.DispatchedReplicaIndexes);
 
             bucket.Succeed(3);
-            Assert.True(await moved);
+            Assert.True(await Bounded(moved.AsTask()));
             Assert.Equal(3UL, stream.Current.Cas);
             Assert.False(stream.Current.IsActive);
 
@@ -137,12 +140,46 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
 
             bucket.Succeed(null);
-            Assert.True(await moved);
+            Assert.True(await Bounded(moved.AsTask()));
             Assert.True(stream.Current.IsActive);
 
             bucket.Succeed(0);
             Assert.True(await stream.MoveNextAsync());
             Assert.False(await stream.MoveNextAsync());
+        }
+
+        [Fact]
+        public async Task Disposes_The_Results_It_Did_Not_Yield_When_The_Caller_Stops_Early()
+        {
+            var (collection, bucket) = CreateCollection(preferredServerGroup: null);
+
+            var stream = collection.GetAllReplicasStreamAsync(DocId).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync();
+
+            // Replica 2 finishes before the caller stops, replica 3 after.
+            bucket.Succeed(0);
+            Assert.True(await moved);
+            using var yielded = stream.Current;
+            bucket.Succeed(2);
+            bucket.Fail(null);
+            await stream.DisposeAsync();
+            bucket.Succeed(3);
+
+            await Bounded(bucket.WhenBufferDisposed(2));
+            await Bounded(bucket.WhenBufferDisposed(3));
+            Assert.False(bucket.WhenBufferDisposed(0).IsCompleted);
+        }
+
+        private static async Task<T> Bounded<T>(Task<T> task)
+        {
+            // An ordering regression would wait on a read the test has not finished. Fail instead of
+            // hanging the run. Fact.Timeout is no help: xUnit 2 honours it only without parallelization.
+            if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10))) != task)
+            {
+                throw new System.TimeoutException("The test waited on something that did not happen.");
+            }
+
+            return await task;
         }
 
         private static (CouchbaseCollection Collection, PendingReadsBucket Bucket) CreateCollection(
@@ -185,6 +222,7 @@ namespace Couchbase.UnitTests.KeyValue
             public const ulong PrimaryCas = 100;
 
             private readonly Dictionary<short, (IOperation Operation, TaskCompletionSource<ResponseStatus> Read)> _reads = new();
+            private readonly Dictionary<short, TrackedBuffer> _buffers = new();
 
             public override Task<ResponseStatus> RecordAndFail(IOperation operation)
             {
@@ -200,10 +238,13 @@ namespace Couchbase.UnitTests.KeyValue
                 var (operation, read) = _reads[Key(replicaIndex)];
                 var cas = replicaIndex is { } index ? (ulong) index : PrimaryCas;
 
-                ((OperationBase) operation).Header = new OperationHeader { Status = ResponseStatus.Success, Cas = cas };
-                ((OperationBase) operation).Cas = cas;
+                var buffer = new TrackedBuffer(SuccessResponse(cas));
+                _buffers.Add(Key(replicaIndex), buffer);
+                ((OperationBase) operation).Read(new SlicedMemoryOwner<byte>(buffer));
                 read.SetResult(ResponseStatus.Success);
             }
+
+            public Task<bool> WhenBufferDisposed(short? replicaIndex) => _buffers[Key(replicaIndex)].Disposed;
 
             public void Fail(short? replicaIndex) =>
                 _reads[Key(replicaIndex)].Read.SetException(
@@ -211,6 +252,35 @@ namespace Couchbase.UnitTests.KeyValue
 
             // Dictionary keys cannot be null, so the primary is stored as -1.
             private static short Key(short? replicaIndex) => replicaIndex ?? -1;
+
+            // A success response with 4 bytes of flags as extras and a JSON body of {}.
+            private static byte[] SuccessResponse(ulong cas)
+            {
+                var packet = new byte[OperationHeader.Length + 4 + 2];
+                packet[0] = (byte) Magic.ClientResponse;
+                packet[4] = 4;
+                packet[5] = (byte) DataType.Json;
+                BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(8), 4 + 2);
+                BinaryPrimitives.WriteUInt64BigEndian(packet.AsSpan(16), cas);
+                packet[packet.Length - 2] = (byte) '{';
+                packet[packet.Length - 1] = (byte) '}';
+                return packet;
+            }
+        }
+
+        /// <summary>
+        /// A response buffer that records whether it was given back.
+        /// </summary>
+        private sealed class TrackedBuffer(byte[] bytes) : IMemoryOwner<byte>
+        {
+            private readonly TaskCompletionSource<bool> _disposed =
+                new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public Task<bool> Disposed => _disposed.Task;
+
+            public Memory<byte> Memory => bytes;
+
+            public void Dispose() => _disposed.TrySetResult(true);
         }
     }
 }

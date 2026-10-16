@@ -246,6 +246,7 @@ namespace Couchbase.Stellar.CombinationTests.KeyValue
                 {
                     results.Add(replica);
                 }
+                Assert.NotEmpty(results);
                 foreach (var result in results)
                 {
                     Assert.True(result.IsActive);
