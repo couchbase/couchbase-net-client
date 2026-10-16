@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests
                 .Returns(Task.FromResult(mockNode.Object));
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var cluster = new Cluster(ClusterOptions.Default
+            using var cluster = new Cluster(ClusterOptions.Default
                 .WithCredentials("Administrator", "password")
                 .WithConnectionString("couchbases://HostThatDoesNotExist.NoSuchDomain")
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -115,6 +115,7 @@ namespace Couchbase.UnitTests
             {
                 CallBase = true
             };
+            using var clusterObject = cluster.Object; // CallBase starts a real ClusterContext
             cluster
                 .Setup(m => m.EnsureBootstrapped())
                 .Returns(Task.CompletedTask);
@@ -163,6 +164,7 @@ namespace Couchbase.UnitTests
             {
                 CallBase = true
             };
+            using var clusterObject = cluster.Object; // CallBase starts a real ClusterContext
             cluster
                 .Setup(m => m.EnsureBootstrapped())
                 .Returns(Task.CompletedTask);

@@ -38,7 +38,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
             publishes.Increment();
             publishTcs.TrySetResult(bc);
         });
-        ClusterContext mockContext = mockBucket.Context;
+        using ClusterContext mockContext = mockBucket.Context;
         var mockNode = new Mock<IClusterNode>();
         BucketConfig getClusterMapResult = new BucketConfig() { RevEpoch = 1, Rev = 1 };
         getClusterMapResult.OnDeserialized();
@@ -88,7 +88,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         var mockBucket = CreateBucketMock(
             initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
 
-        ClusterContext mockContext = mockBucket.Context;
+        using ClusterContext mockContext = mockBucket.Context;
         var mockNode = new Mock<IClusterNode>();
         BucketConfig getClusterMapResult = new BucketConfig()
             { RevEpoch = 1, Rev = 2 };
@@ -138,6 +138,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockConfigHandler.Setup(ch => ch.Publish(It.IsAny<BucketConfig>())).Callback(onPublish);
         mockConfigHandler.Setup(ch => ch.Subscribe(It.IsAny<IConfigUpdateEventSink>())).Callback(doNothing);
         mockConfigHandler.Setup(ch => ch.Start(It.IsAny<bool>())).Callback(doNothing);
+        mockConfigHandler.Setup(ch => ch.Dispose()); // the tests dispose the ClusterContext
         var clusterOptions = new ClusterOptions().WithLogging(new TestOutputLoggerFactory(outputHelper)).WithPasswordAuthentication("username", "password");
         clusterOptions.AddClusterService(mockConfigHandler.Object);
         var mock = new Mock<BucketBase>(
