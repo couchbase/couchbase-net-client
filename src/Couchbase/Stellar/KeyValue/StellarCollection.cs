@@ -118,7 +118,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
     public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
     {
-        //Does not retry (NCBC-3626)
+        // No retry, by design (NCBC-3626, Won't Fix): the caller retries.
         _stellarCluster.ThrowIfBootStrapFailed();
 
         var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
@@ -149,7 +149,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             throw ThrowHelper.ThrowFeatureNotAvailableException(nameof(ReadPreference), "Protostellar");
         }
 
-        //Does not retry (NCBC-3626)
+        // No retry, by design (NCBC-3626, Won't Fix): the caller retries.
         _stellarCluster.ThrowIfBootStrapFailed();
 
         return GetAllReplicasStreamCoreAsync(id, opts);
@@ -164,7 +164,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         using var response = _kvClient.GetAllReplicas(request,
             _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
-        // Only used to map an error to an SDK exception: the call does not retry (NCBC-3626).
+        // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
