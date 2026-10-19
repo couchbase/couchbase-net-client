@@ -429,8 +429,9 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
     /// <summary>
     /// Redacts a gRPC <see cref="ResourceInfo.ResourceName"/>, whose category depends on its
     /// <see cref="ResourceInfo.ResourceType"/>. A document or path name holds the document key
-    /// ("bucket/scope/collection/key[/path]"), so it is user data, and so is a type this SDK does
-    /// not know. Bucket, scope, collection, index, user and cluster names are metadata.
+    /// ("bucket/scope/collection/key[/path]"), so it is user data, and so is a user name (as
+    /// <see cref="IRedactor.UserData"/> defines it) and a type this SDK does not know. Bucket, scope,
+    /// collection, index and cluster names are metadata.
     /// </summary>
     [return: NotNullIfNotNull("resourceName")]
     internal static string? RedactResourceName(Redactor redactor, string? resourceType, string? resourceName) =>
@@ -446,7 +447,6 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
             or StellarRetryStrings.ResourceTypeQueryIndex
             or StellarRetryStrings.ResourceTypeSearchIndex
             or StellarRetryStrings.ResourceTypeAnalyticsIndex
-            or StellarRetryStrings.ResourceTypeUser
             or StellarRetryStrings.ResourceTypeCluster;
 
     internal virtual Any? StatusDeserializer(RpcException ex)

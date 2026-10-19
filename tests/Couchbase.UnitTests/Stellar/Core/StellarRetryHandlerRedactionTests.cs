@@ -102,9 +102,10 @@ public class StellarRetryHandlerRedactionTests
     [Theory]
     [InlineData("document")]
     [InlineData("path")]
+    [InlineData("user")]
     [InlineData("somethingnew")]
     [InlineData(null)]
-    public void RedactResourceName_Treats_Document_Path_And_Unknown_As_UserData(string resourceType)
+    public void RedactResourceName_Treats_Document_Path_User_And_Unknown_As_UserData(string resourceType)
     {
         var redactor = new Redactor(RedactionLevel.Partial);
 
@@ -119,9 +120,8 @@ public class StellarRetryHandlerRedactionTests
     [InlineData("searchindex")]
     [InlineData("searchIndex")]
     [InlineData("analyticsindex")]
-    [InlineData("user")]
     [InlineData("cluster")]
-    public void RedactResourceName_Treats_Keyspace_Index_User_And_Cluster_As_MetaData(string resourceType)
+    public void RedactResourceName_Treats_Keyspace_Index_And_Cluster_As_MetaData(string resourceType)
     {
         // Metadata is left as it is at Partial and tagged at Full.
         Assert.Equal("name",
