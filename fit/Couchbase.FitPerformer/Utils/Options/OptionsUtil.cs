@@ -211,8 +211,7 @@ public static class OptionsUtil
         if (request.Options == null) return null;
         var opts = request.Options;
         var ret = new Couchbase.KeyValue.GetAnyReplicaOptions();
-        // TODO does .net not support timeout for GetAnyReplicaOptions?
-        //if (opts.HasTimeoutMsecs) ret.Timeout(TimeSpan.FromMilliseconds(opts.TimeoutMsecs));
+        if (opts.HasTimeoutMsecs) ret.Timeout(TimeSpan.FromMilliseconds(opts.TimeoutMsecs));
         if (opts.Transcoder != null) ret.Transcoder(ConvertTranscoder(opts.Transcoder));
         if (opts.HasReadPreference) ret.ReadPreference(opts.ReadPreference.ConvertReadPreference());
         if (opts.HasParentSpanId) ret.RequestSpan(spans[opts.ParentSpanId]);
@@ -235,8 +234,7 @@ public static class OptionsUtil
         if (request.Options == null) return null;
         var opts = request.Options;
         var ret = new Couchbase.KeyValue.GetAllReplicasOptions();
-        // TODO does .net not support timeout for GetAllReplicasOptions?
-        // if (opts.HasTimeoutMsecs) ret.Timeout(TimeSpan.FromMilliseconds(opts.TimeoutMsecs));
+        if (opts.HasTimeoutMsecs) ret.Timeout(TimeSpan.FromMilliseconds(opts.TimeoutMsecs));
         if (opts.Transcoder != null) ret.Transcoder(ConvertTranscoder(opts.Transcoder));
         if (opts.HasReadPreference) ret.ReadPreference(opts.ReadPreference.ConvertReadPreference());
         if (opts.HasParentSpanId) ret.RequestSpan(spans[opts.ParentSpanId]);

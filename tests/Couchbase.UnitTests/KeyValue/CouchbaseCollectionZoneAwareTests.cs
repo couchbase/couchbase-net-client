@@ -234,7 +234,7 @@ namespace Couchbase.UnitTests.KeyValue
             }
         }
 
-        private static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
+        internal static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
             string preferredServerGroup, short[] vBucketMapRow)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
@@ -295,9 +295,15 @@ namespace Couchbase.UnitTests.KeyValue
             /// </summary>
             public List<short?> DispatchedReplicaIndexes { get; } = new();
 
+            /// <summary>
+            /// The timeout of each read, in dispatch order.
+            /// </summary>
+            public List<TimeSpan> DispatchedTimeouts { get; } = new();
+
             public virtual Task<ResponseStatus> RecordAndFail(IOperation operation)
             {
                 DispatchedReplicaIndexes.Add(operation.ReplicaIdx);
+                DispatchedTimeouts.Add(operation.Timeout);
                 return Task.FromException<ResponseStatus>(
                     new TemporaryFailureException("The fake bucket serves no documents."));
             }
