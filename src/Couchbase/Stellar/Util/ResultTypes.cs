@@ -239,7 +239,7 @@ namespace Couchbase.Protostellar.KV.V1
 
     partial class GetAllReplicasResponse : IReplicaContentResult, IServiceResult
     {
-        public bool IsActive { get; set; }
+        public bool IsActive => !IsReplica;
         public RetryReason RetryReason { get; } = RetryReason.NoRetry;
     }
 
