@@ -18,6 +18,12 @@ internal partial class ConfigPushHandler : IDisposable
     private readonly Redactor _redactor;
     private readonly BucketBase _bucket;
 
+    // A node can be pushed a config version before the node asked for the config has it, and the server
+    // then answers that it has nothing newer. The same version is not pushed again, so we ask again.
+    internal const int MaxNullConfigRetries = 20;
+    internal static readonly TimeSpan InitialNullConfigRetryDelay = TimeSpan.FromMilliseconds(10);
+    internal static readonly TimeSpan MaxNullConfigRetryDelay = TimeSpan.FromMilliseconds(500);
+
     private readonly CancellationTokenSource _continueLoopingSource = new();
     private readonly object _lock = new();
     private readonly SemaphoreSlim _versionReceivedEvent = new(initialCount: 0, maxCount: 1);
@@ -56,6 +62,7 @@ internal partial class ConfigPushHandler : IDisposable
     private async Task ProcessConfigPushesAsync(CancellationToken cancellationToken)
     {
         ConfigVersion lastSkippedVersion = new(0, 0);
+        var nullRetryTracker = new NullConfigRetryTracker();
         long skipsWithNoPublish = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -74,7 +81,8 @@ internal partial class ConfigPushHandler : IDisposable
                     if (pushedVersion <= lastSkippedVersion)
                     {
                         // we already skipped this version once and it hasn't been updated.
-                        break;
+                        // Wait for the next push. This must not leave the loop, because nothing restarts it.
+                        continue;
                     }
                 }
 
@@ -100,8 +108,8 @@ internal partial class ConfigPushHandler : IDisposable
                             effectiveVersion.GetValueOrDefault());
                         await Task.Yield();
 
-                        // because of a possible race, we continue here and only break the loop in the locked section
-                        // at the beginning of this loop.
+                        // because of a possible race, we continue here and only skip the version again in the locked
+                        // section at the beginning of this loop.
                         continue;
                     }
                 }
@@ -153,6 +161,7 @@ internal partial class ConfigPushHandler : IDisposable
                         LogConfigPublished(_redactor.SystemData(_bucket.Name), fetchedBucketConfig.ConfigVersion,
                             effectiveVersion);
                         Interlocked.Exchange(ref skipsWithNoPublish, 0);
+                        nullRetryTracker.Reset();
                         _context.PublishConfig(fetchedBucketConfig);
                     }
                     else if (fetchedVersion < pushedVersion)
@@ -188,6 +197,20 @@ internal partial class ConfigPushHandler : IDisposable
                 else
                 {
                     LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
+
+                    if (nullRetryTracker.TryNextRetry(pushedVersion, effectiveVersion, out var delay))
+                    {
+                        LogRetryingAfterNullConfig(pushedVersion, nullRetryTracker.Retries, delay);
+
+                        // Deliberately not cancellable, as in the delay above: the delay is short, and
+                        // cancelling would log a warning every time the consumer loop is torn down.
+                        await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
+                        TryReleaseNewVersionSemaphore();
+                    }
+                    else
+                    {
+                        LogGaveUpAfterNullConfig(pushedVersion, nullRetryTracker.Retries);
+                    }
                 }
             }
             catch (Exception ex)
@@ -231,7 +254,52 @@ internal partial class ConfigPushHandler : IDisposable
         }
     }
 
-    private void TryReleaseNewVersionSemaphore()
+    /// <summary>
+    /// Counts the retries for one pushed version against one effective version. The count starts again when
+    /// either version changes, because a config published by another handler moves the effective version,
+    /// and the next attempt is then a new question for the server.
+    /// </summary>
+    internal struct NullConfigRetryTracker
+    {
+        private ConfigVersion _pushedVersion;
+        private ConfigVersion? _effectiveVersion;
+
+        public int Retries { get; private set; }
+
+        public void Reset() => Retries = 0;
+
+        public bool TryNextRetry(ConfigVersion pushedVersion, ConfigVersion? effectiveVersion, out TimeSpan delay)
+        {
+            if (!pushedVersion.Equals(_pushedVersion) || !Nullable.Equals(effectiveVersion, _effectiveVersion))
+            {
+                _pushedVersion = pushedVersion;
+                _effectiveVersion = effectiveVersion;
+                Retries = 0;
+            }
+
+            if (Retries >= MaxNullConfigRetries)
+            {
+                delay = TimeSpan.Zero;
+                return false;
+            }
+
+            delay = GetNullConfigRetryDelay(Retries);
+            Retries++;
+            return true;
+        }
+    }
+
+    internal static TimeSpan GetNullConfigRetryDelay(int retry)
+    {
+        // Doubles from the initial delay up to the maximum. The shift is capped to avoid overflow.
+        var ticks = InitialNullConfigRetryDelay.Ticks << Math.Min(retry, 20);
+        return TimeSpan.FromTicks(Math.Min(ticks, MaxNullConfigRetryDelay.Ticks));
+    }
+
+    // The number of wake-ups the processing loop has not yet taken. Only for tests.
+    internal int PendingWakeups => _versionReceivedEvent.CurrentCount;
+
+    internal void TryReleaseNewVersionSemaphore()
     {
         try
         {
@@ -287,6 +355,12 @@ internal partial class ConfigPushHandler : IDisposable
 
     [LoggerMessage(10, LogLevel.Warning, "No live KV nodes were found while processing {configVersion}")]
     private partial void LogNoLiveKvNodes(ConfigVersion configVersion);
+
+    [LoggerMessage(11, LogLevel.Trace, "Asking again for pushed version {pushedVersion} in {delay}: retry {retry}")]
+    private partial void LogRetryingAfterNullConfig(ConfigVersion pushedVersion, int retry, TimeSpan delay);
+
+    [LoggerMessage(12, LogLevel.Warning, "No node returned pushed version {pushedVersion} after {retries} retries. Waiting for the next push.")]
+    private partial void LogGaveUpAfterNullConfig(ConfigVersion pushedVersion, int retries);
 }
 
 /* ************************************************************
