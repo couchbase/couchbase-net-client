@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -153,7 +154,9 @@ namespace Couchbase.UnitTests.KeyValue
         [Fact]
         public async Task Disposes_The_Results_It_Did_Not_Yield_When_The_Caller_Stops_Early()
         {
-            var (collection, bucket) = CreateCollection(preferredServerGroup: null);
+            // The stream cancels the reads it leaves behind, so these reads ignore their token, as a
+            // read does when its response is already on the way. Then replica 3 can still finish.
+            var (collection, bucket) = CreateCollection(preferredServerGroup: null, honoursCancellation: false);
 
             var stream = collection.GetAllReplicasStreamAsync(DocId).GetAsyncEnumerator();
             var moved = stream.MoveNextAsync();
@@ -177,8 +180,63 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.False(bucket.WhenBufferDisposed(0).IsCompleted);
         }
 
-        private static (CouchbaseCollection Collection, PendingReadsBucket Bucket) CreateCollection(
-            string preferredServerGroup)
+        [Fact]
+        public async Task WithCancellation_Cancels_The_Pending_Reads()
+        {
+            var (collection, bucket) = CreateCollection(preferredServerGroup: null);
+            using var cts = new CancellationTokenSource();
+
+            await using var stream = collection.GetAllReplicasStreamAsync(DocId)
+                .WithCancellation(cts.Token).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync();
+
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            foreach (var replicaIndex in new short?[] { null, 0, 2, 3 })
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(replicaIndex));
+            }
+        }
+
+        [Fact]
+        public async Task Options_Token_Still_Cancels_The_Pending_Reads()
+        {
+            var (collection, bucket) = CreateCollection(preferredServerGroup: null);
+            using var cts = new CancellationTokenSource();
+
+            await using var stream = collection.GetAllReplicasStreamAsync(DocId,
+                new GetAllReplicasOptions().CancellationToken(cts.Token)).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync();
+
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(null));
+        }
+
+        [Fact]
+        public async Task Cancels_The_Reads_Still_In_Progress_When_The_Caller_Stops_Early()
+        {
+            var (collection, bucket) = CreateCollection(preferredServerGroup: null);
+
+            var stream = collection.GetAllReplicasStreamAsync(DocId).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync();
+
+            bucket.Succeed(0);
+            Assert.True(await moved);
+            using var yielded = stream.Current;
+
+            await stream.DisposeAsync();
+
+            foreach (var replicaIndex in new short?[] { null, 2, 3 })
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(replicaIndex));
+            }
+        }
+
+        internal static (CouchbaseCollection Collection, PendingReadsBucket Bucket) CreateCollection(
+            string preferredServerGroup, bool honoursCancellation = true)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -187,7 +245,10 @@ namespace Couchbase.UnitTests.KeyValue
             // collection ID is fetched.
             config.VBucketServerMap.VBucketMap = Enumerable.Repeat(VBucketMapRow, 1024).ToArray();
 
-            var bucket = new PendingReadsBucket(config, preferredServerGroup);
+            // For the LookupInAllReplicas tests, which use this collection too.
+            config.BucketCapabilities = [BucketCapabilities.SUBDOC_REPLICA_READ];
+
+            var bucket = new PendingReadsBucket(config, preferredServerGroup, honoursCancellation);
 
             var collection = new CouchbaseCollection(bucket,
                 new OperationConfigurator(new LegacyTranscoder(),
@@ -207,11 +268,16 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         /// <summary>
-        /// Holds every read until the test calls <see cref="Succeed"/> or <see cref="Fail"/>. The read
-        /// can reach the stream after they return, so a test awaits what it checks. A successful read
-        /// returns the replica index as its CAS, so a result shows which node it came from.
+        /// Holds every read until the test calls <see cref="Succeed"/>, <see cref="SucceedLookup"/> or
+        /// <see cref="Fail"/>, or until the read's token is cancelled. The read can reach the stream after
+        /// they return, so a test awaits what it checks. A successful read returns the replica index as
+        /// its CAS, so a result shows which node it came from.
         /// </summary>
-        private sealed class PendingReadsBucket(BucketConfig config, string preferredServerGroup)
+        /// <param name="honoursCancellation">
+        /// False to ignore the read's token, as a read does when its response is already on the way.
+        /// </param>
+        internal sealed class PendingReadsBucket(BucketConfig config, string preferredServerGroup,
+            bool honoursCancellation)
             : CouchbaseCollectionZoneAwareTests.ZoneAwareFakeBucket(config, preferredServerGroup)
         {
             public const ulong PrimaryCas = 100;
@@ -219,27 +285,51 @@ namespace Couchbase.UnitTests.KeyValue
             private readonly Dictionary<short, (IOperation Operation, TaskCompletionSource<ResponseStatus> Read)> _reads = new();
             private readonly Dictionary<short, TrackedBuffer> _buffers = new();
 
-            public override Task<ResponseStatus> RecordAndFail(IOperation operation)
+            public override Task<ResponseStatus> RecordAndFail(IOperation operation, CancellationTokenPair token)
             {
                 DispatchedReplicaIndexes.Add(operation.ReplicaIdx);
 
                 var read = new TaskCompletionSource<ResponseStatus>();
                 _reads.Add(Key(operation.ReplicaIdx), (operation, read));
+
+                // Only the external token: RetryOrchestrator throws OperationCanceledException for it,
+                // and turns a cancel of the internal (timeout) token into a timeout.
+                if (honoursCancellation)
+                {
+                    var external = token.ExternalToken;
+                    external.Register(() => read.TrySetCanceled(external));
+                }
+
                 return read.Task;
             }
 
-            public void Succeed(short? replicaIndex)
+            /// <summary>
+            /// The read sent to this replica, null for the primary. Await it to see that it was cancelled.
+            /// </summary>
+            public Task<ResponseStatus> Read(short? replicaIndex) => _reads[Key(replicaIndex)].Read.Task;
+
+            public void Succeed(short? replicaIndex) =>
+                Succeed(replicaIndex, SuccessResponse(CasFor(replicaIndex)));
+
+            /// <summary>
+            /// Finishes a sub-document lookup of one spec, which finds the value {}.
+            /// </summary>
+            public void SucceedLookup(short? replicaIndex) =>
+                Succeed(replicaIndex, LookupSuccessResponse(CasFor(replicaIndex)));
+
+            private void Succeed(short? replicaIndex, byte[] response)
             {
                 var (operation, read) = _reads[Key(replicaIndex)];
-                var cas = replicaIndex is { } index ? (ulong) index : PrimaryCas;
 
-                var buffer = new TrackedBuffer(SuccessResponse(cas));
+                var buffer = new TrackedBuffer(response);
                 _buffers.Add(Key(replicaIndex), buffer);
                 ((OperationBase) operation).Read(new SlicedMemoryOwner<byte>(buffer));
                 read.SetResult(ResponseStatus.Success);
             }
 
             public Task<bool> WhenBufferDisposed(short? replicaIndex) => _buffers[Key(replicaIndex)].Disposed;
+
+            private static ulong CasFor(short? replicaIndex) => replicaIndex is { } index ? (ulong) index : PrimaryCas;
 
             public void Fail(short? replicaIndex) =>
                 _reads[Key(replicaIndex)].Read.SetException(
@@ -257,6 +347,22 @@ namespace Couchbase.UnitTests.KeyValue
                 packet[5] = (byte) DataType.Json;
                 BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(8), 4 + 2);
                 BinaryPrimitives.WriteUInt64BigEndian(packet.AsSpan(16), cas);
+                packet[packet.Length - 2] = (byte) '{';
+                packet[packet.Length - 1] = (byte) '}';
+                return packet;
+            }
+
+            // A multi-lookup success response with no extras and one spec result: a status of
+            // success, a value length of 2 and the value {}.
+            private static byte[] LookupSuccessResponse(ulong cas)
+            {
+                var packet = new byte[OperationHeader.Length + 2 + 4 + 2];
+                packet[0] = (byte) Magic.ClientResponse;
+                packet[1] = (byte) OpCode.MultiLookup;
+                packet[5] = (byte) DataType.Json;
+                BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(8), 2 + 4 + 2);
+                BinaryPrimitives.WriteUInt64BigEndian(packet.AsSpan(16), cas);
+                BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(OperationHeader.Length + 2), 2);
                 packet[packet.Length - 2] = (byte) '{';
                 packet[packet.Length - 1] = (byte) '}';
                 return packet;

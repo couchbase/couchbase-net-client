@@ -155,31 +155,44 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return GetAllReplicasStreamCoreAsync(id, opts);
     }
 
-    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts)
+    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
-        using var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
-
-        // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
-        var stellarRequest = new StellarRequest
+        // Either the options token or the token passed to the enumerator, such as by
+        // WithCancellation, cancels the call.
+        var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
+        try
         {
-            Idempotent = true,
-            Token = opts.Token,
-            Timeout = _stellarCluster.ClusterOptions.KvTimeout
-        };
+            var token = linkedSource.Token;
 
-        await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
-                               e => _retryHandler is StellarRetryHandler handler
-                                   ? handler.MapMidStreamException(e, stellarRequest)
-                                   : e,
-                               opts.Token)
-                           .ConfigureAwait(false))
+            using var response = _kvClient.GetAllReplicas(request,
+                _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, token));
+
+            // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
+            var stellarRequest = new StellarRequest
+            {
+                Idempotent = true,
+                Token = token,
+                Timeout = _stellarCluster.ClusterOptions.KvTimeout
+            };
+
+            await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
+                                   e => _retryHandler is StellarRetryHandler handler
+                                       ? handler.MapMidStreamException(e, stellarRequest)
+                                       : e,
+                                   token)
+                               .ConfigureAwait(false))
+            {
+                yield return result;
+            }
+        }
+        finally
         {
-            yield return result;
+            linkedSource.CancelAndDispose();
         }
     }
 

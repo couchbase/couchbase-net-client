@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.Operations;
@@ -36,6 +37,15 @@ internal sealed class PartitionScan
     public IDictionary<string, IScanResult> Results { get; private set; }
 
     public ResponseStatus Status { get; set; }
+
+    public short PartitionId => _partitionId;
+
+    /// <summary>
+    /// Whether the server holds a scan for this partition that has not completed, so it must be
+    /// closed with <see cref="CancelAsync"/> if the caller stops early.
+    /// </summary>
+    public bool IsOpen => CanBeCanceled && _uuid.HasValue &&
+                          Status is not (ResponseStatus.RangeScanComplete or ResponseStatus.KeyNotFound);
 
     public async Task<PartitionScan> ScanAsync()
     {
@@ -138,7 +148,10 @@ internal sealed class PartitionScan
 
             _operationConfigurator.Configure(scanCancelOp, _options);
 
-            using var ctp2 = CreateRetryTimeoutCancellationTokenSource(_options, scanCancelOp);
+            // Not the options token: the scan is closed because that token was cancelled, and a
+            // close with it would fail before it is sent.
+            using var ctp2 = CancellationTokenPairSource.FromTimeout(GetTimeout(_options.TimeoutValue, scanCancelOp),
+                CancellationToken.None);
             Status = await _bucket.RetryAsync(scanCancelOp, ctp2.TokenPair).ConfigureAwait(false);
         }
     }

@@ -112,7 +112,11 @@ namespace Couchbase.KeyValue
         #region KV Range Scan
 
         [InterfaceStability(Level.Volatile)]
-        public async IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
+        public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null) =>
+            ScanCoreAsync(scanType, options ?? ScanOptions.Default);
+
+        private async IAsyncEnumerable<IScanResult> ScanCoreAsync(IScanType scanType, ScanOptions options,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             //fail-fast if the server doesn't support range scans
             if (!_rangeScanSupported)
@@ -124,76 +128,116 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= ScanOptions.Default;
-
             //PartitionScan builds its own operations and reads Cid directly, so it cannot go
             //through PrepareAsync: resolve the collection ID before handing it this collection.
             await EnsureCollectionIdAsync().ConfigureAwait(false);
 
             var mutationTokens = options.ConsistencyTokens;
 
+            // Either the options token or the token passed to the enumerator, such as by
+            // WithCancellation, cancels the scan. The partition scans get a copy of the options
+            // with the linked token, so the caller's options object is not changed.
+            var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenValue, cancellationToken);
+            var token = linkedSource.Token;
+            var scanOptions = options.WithToken(token);
+
             var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
             var partitionScans = new List<PartitionScan>(partitionCount);
-            for (short partitionId = 0; partitionId < partitionCount; partitionId++)
+            try
             {
-                var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, options, scanType,partitionId);
-
-                if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
+                for (short partitionId = 0; partitionId < partitionCount; partitionId++)
                 {
-                    partitionScan.MutationToken = mutationTokens[partitionId];
-                }
-                partitionScans.Add(partitionScan);
+                    var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType,partitionId);
 
-            }
-
-            //randomize the scan tasks
-            partitionScans.Shuffle();
-
-            //hacky but only sample scans have a global limit
-            var isSamplingScan = false;
-            var limit = 0ul;
-            if (scanType is SamplingScan samplingScan)
-            {
-                isSamplingScan = true;
-                limit = samplingScan.Limit;
-            }
-
-            var emptyPartitions = 0;
-            var count = 0ul;
-            while (emptyPartitions < partitionCount && !options.TokenValue.IsCancellationRequested)
-            {
-                foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
-                {
-                    var result = await partitionScan.ScanAsync().ConfigureAwait(false);
-
-                    if (partitionScan.Status == ResponseStatus.Success ||
-                        partitionScan.Status == ResponseStatus.RangeScanComplete ||
-                        partitionScan.Status == ResponseStatus.RangeScanMore)
+                    if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
                     {
-                        foreach (var scanResult in result.Results.Values)
+                        partitionScan.MutationToken = mutationTokens[partitionId];
+                    }
+                    partitionScans.Add(partitionScan);
+
+                }
+
+                //randomize the scan tasks
+                partitionScans.Shuffle();
+
+                //hacky but only sample scans have a global limit
+                var isSamplingScan = false;
+                var limit = 0ul;
+                if (scanType is SamplingScan samplingScan)
+                {
+                    isSamplingScan = true;
+                    limit = samplingScan.Limit;
+                }
+
+                var emptyPartitions = 0;
+                var count = 0ul;
+                while (emptyPartitions < partitionCount)
+                {
+                    foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
+                    {
+                        token.ThrowIfCancellationRequested();
+
+                        var result = await partitionScan.ScanAsync().ConfigureAwait(false);
+
+                        if (partitionScan.Status == ResponseStatus.Success ||
+                            partitionScan.Status == ResponseStatus.RangeScanComplete ||
+                            partitionScan.Status == ResponseStatus.RangeScanMore)
                         {
-                            var overLimit = isSamplingScan && count >= limit;
-                            if (overLimit || scanResult == null)
+                            foreach (var scanResult in result.Results.Values)
                             {
-                                _getLogger.LogDebug("Closing any leftover scans.");
-                                await CloseAll(partitionScans).ConfigureAwait(false);
-                                yield break;
+                                var overLimit = isSamplingScan && count >= limit;
+                                if (overLimit || scanResult == null)
+                                {
+                                    // The finally block closes the scans that are still open.
+                                    yield break;
+                                }
+                                yield return scanResult;
+                                count++;
                             }
-                            yield return scanResult;
-                            count++;
                         }
                     }
+                    emptyPartitions = partitionScans.Count(x =>
+                        x.Status == ResponseStatus.RangeScanComplete ||
+                        x.Status == ResponseStatus.KeyNotFound);
                 }
-                emptyPartitions = partitionScans.Count(x =>
-                    x.Status == ResponseStatus.RangeScanComplete ||
-                    x.Status == ResponseStatus.KeyNotFound);
+            }
+            finally
+            {
+                // The scan completed, reached its sampling limit, the caller stopped early, or it
+                // threw. Stop the partition read in progress, if any, then close the scans that are
+                // still open on the server. The closes are not awaited: the caller asked to stop, so
+                // it does not wait for the cleanup.
+                linkedSource.CancelAndDispose();
+                _ = CloseOpenScansAsync(partitionScans);
             }
         }
 
-        private async Task CloseAll(List<PartitionScan> partitionScans)
+        /// <summary>
+        /// Closes each partition scan that is still open on the server. A close is best-effort:
+        /// a failure is logged and does not stop the other closes. Never throws.
+        /// </summary>
+        private async Task CloseOpenScansAsync(List<PartitionScan> partitionScans)
         {
-            var partitionsToClose = partitionScans.Where(x => x.CanBeCanceled).Select(x => x.CancelAsync()).ToArray();
-            await Task.WhenAll(partitionsToClose).ConfigureAwait(false);
+            var openScans = partitionScans.Where(x => x.IsOpen).ToList();
+            if (openScans.Count == 0)
+            {
+                return;
+            }
+
+            _getLogger.LogDebug("Closing {Count} leftover scans.", openScans.Count);
+            await Task.WhenAll(openScans.Select(CloseScanAsync)).ConfigureAwait(false);
+
+            async Task CloseScanAsync(PartitionScan partitionScan)
+            {
+                try
+                {
+                    await partitionScan.CancelAsync().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    _getLogger.LogDebug(e, "Closing the scan of partition {PartitionId} failed.", partitionScan.PartitionId);
+                }
+            }
         }
 
         #endregion
@@ -658,7 +702,8 @@ namespace Couchbase.KeyValue
             IEnumerable<LookupInSpec> specs,
             LookupInOptions.ReadOnly opts,
             VBucket vBucket,
-            int[]? indexesInGroup)
+            int[]? indexesInGroup,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             // A top-level failure of the lookup (here, too many specs) must produce an empty stream
             // rather than throwing - unlike LookupIn/LookupInAnyReplica.
@@ -667,30 +712,42 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAllReplicas, opts.RequestSpan);
             var enumeratedSpecs = specs.ToList();
 
-            var tasks = indexesInGroup is null
-                ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, opts)
-                : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, opts);
-
-            foreach (var lookupTask in tasks)
+            // Either the options token or the token passed to the enumerator, such as by
+            // WithCancellation, cancels the lookups.
+            var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
+            try
             {
-                MultiLookup<byte[]> lookup;
-                try
-                {
-                    lookup = await lookupTask.ConfigureAwait(false);
-                }
-                catch (CouchbaseException)
-                {
-                    // A replica (or the active) failed this lookup at the top level - e.g. an invalid
-                    // or too-long path. Per the lookupInAllReplicas contract such failures are omitted
-                    // from the stream (yielding an empty stream when they all fail) rather than
-                    // faulting it.
-                    continue;
-                }
+                var linkedOpts = opts with { Token = linkedSource.Token };
+                var tasks = indexesInGroup is null
+                    ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, linkedOpts)
+                    : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, linkedOpts);
 
-                var responseStatus = lookup.Header.Status;
-                var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
-                                responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
-                yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+                foreach (var lookupTask in tasks)
+                {
+                    MultiLookup<byte[]> lookup;
+                    try
+                    {
+                        lookup = await lookupTask.ConfigureAwait(false);
+                    }
+                    catch (CouchbaseException)
+                    {
+                        // A replica (or the active) failed this lookup at the top level - e.g. an invalid
+                        // or too-long path. Per the lookupInAllReplicas contract such failures are omitted
+                        // from the stream (yielding an empty stream when they all fail) rather than
+                        // faulting it.
+                        continue;
+                    }
+
+                    var responseStatus = lookup.Header.Status;
+                    var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                                    responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
+                    yield return new LookupInResult(lookup, isDeleted, isReplica: lookup.ReplicaIdx != null);
+                }
+            }
+            finally
+            {
+                // The caller stopped early or the stream threw: stop the lookups still in progress.
+                linkedSource.CancelAndDispose();
             }
         }
 
@@ -993,8 +1050,8 @@ namespace Couchbase.KeyValue
             var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
 
             var tasks = indexesInGroup is null
-                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
-                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options);
 
             var firstCompleted = TaskHelpers.WhenAnySuccessful(tasks, options.TokenValue);
             try
@@ -1128,8 +1185,8 @@ namespace Couchbase.KeyValue
             var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
 
             return indexesInGroup is null
-                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
-                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options);
         }
 
         /// <inheritdoc />
@@ -1140,23 +1197,29 @@ namespace Couchbase.KeyValue
             // is resolved here, as LookupInAllReplicasAsync does.
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= GetAllReplicasOptions.Default;
+            var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
             var vBucket = VBucketForReplicas(id);
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreference);
 
-            return GetAllReplicasInCompletionOrderAsync(id, options, vBucket, indexesInGroup);
+            return GetAllReplicasInCompletionOrderAsync(id, opts, vBucket, indexesInGroup);
         }
 
         private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasInCompletionOrderAsync(string id,
-            GetAllReplicasOptions options,
+            GetAllReplicasOptions.ReadOnly opts,
             VBucket vBucket,
-            int[]? indexesInGroup)
+            int[]? indexesInGroup,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, options.RequestSpanValue);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
+
+            // Either the options token or the token passed to the enumerator, such as by
+            // WithCancellation, cancels the reads.
+            var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
+            var linkedOpts = opts with { Token = linkedSource.Token };
 
             var tasks = indexesInGroup is null
-                ? GetTasksForAllReplicas(vBucket, id, rootSpan, options.TokenValue, options)
-                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, options.TokenValue, options);
+                ? GetTasksForAllReplicas(vBucket, id, rootSpan, linkedOpts)
+                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, linkedOpts);
 
             var ordered = TaskHelpers.InCompletionOrder(tasks);
             var consumed = 0;
@@ -1186,9 +1249,11 @@ namespace Couchbase.KeyValue
             }
             finally
             {
-                // The caller stopped early or the stream threw. A result holds a pooled response
-                // buffer and the caller owns only those it was given, so dispose the rest, including
-                // reads that finish after this point.
+                // The caller stopped early or the stream threw: stop the reads still in progress.
+                linkedSource.CancelAndDispose();
+
+                // A result holds a pooled response buffer and the caller owns only those it was
+                // given, so dispose the rest, including reads that finish after this point.
                 for (var i = consumed; i < ordered.Length; i++)
                 {
                     _ = ordered[i].ContinueWith(static finished =>
@@ -1212,33 +1277,33 @@ namespace Couchbase.KeyValue
         }
 
         private List<Task<IGetReplicaResult>> GetTasksForAllReplicas(VBucket vBucket, string id, IRequestSpan span,
-            CancellationToken token, ITranscoderOverrideOptions options)
+            ITranscoderOverrideOptions options)
         {
-            var tasks = new List<Task<IGetReplicaResult>> { GetPrimary(id, span, token, options) };
+            var tasks = new List<Task<IGetReplicaResult>> { GetPrimary(id, span, options) };
 
-            tasks.AddRange(GetReplicaIndexes(vBucket).Select(index => GetReplica(id, index, span, token, options)));
+            tasks.AddRange(GetReplicaIndexes(vBucket).Select(index => GetReplica(id, index, span, options)));
 
             return tasks;
         }
 
         private List<Task<IGetReplicaResult>> GetTasksForServerGroup(VBucket vBucket, int[] indexesInGroup, string id,
-            IRequestSpan span, CancellationToken token, ITranscoderOverrideOptions options)
+            IRequestSpan span, ITranscoderOverrideOptions options)
         {
             var tasks = GetReplicaIndexes(vBucket)
                 .Where(index => indexesInGroup.Contains(index))
-                .Select(index => GetReplica(id, index, span, token, options))
+                .Select(index => GetReplica(id, index, span, options))
                 .ToList();
 
             if (indexesInGroup.Contains(vBucket.Primary))
             {
-                tasks.Add(GetPrimary(id, span, token, options));
+                tasks.Add(GetPrimary(id, span, options));
             }
 
             return tasks;
         }
 
         private async Task<IGetReplicaResult> GetPrimary(string id, IRequestSpan span,
-            CancellationToken cancellationToken, ITranscoderOverrideOptions options)
+            ITranscoderOverrideOptions options)
         {
             using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.Get, span);
             using var getOp = new Get<object>
@@ -1261,7 +1326,7 @@ namespace Couchbase.KeyValue
         }
 
         private async Task<IGetReplicaResult> GetReplica(string id, short index, IRequestSpan span,
-            CancellationToken cancellationToken, ITranscoderOverrideOptions options)
+            ITranscoderOverrideOptions options)
         {
             using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.ReplicaRead, span);
             using var getOp = new ReplicaRead<object>(id, index)

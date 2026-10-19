@@ -32,4 +32,19 @@ internal static class CancellationTokenExtensions
     {
         return cts?.Token ?? token;
     }
+
+    /// <summary>
+    /// Cancels this CancellationTokenSource, then disposes it.
+    /// </summary>
+    /// <remarks>
+    /// Use this when work that holds the token can still be running, such as the reads a stream
+    /// leaves behind when its caller stops early. On .NET Framework, a registration on the token of
+    /// a disposed source throws, but a registration on a cancelled token does not.
+    /// </remarks>
+    /// <param name="cts">This CancellationTokenSource object.</param>
+    public static void CancelAndDispose(this CancellationTokenSource cts)
+    {
+        cts.Cancel();
+        cts.Dispose();
+    }
 }

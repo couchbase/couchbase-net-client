@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Buffers;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -22,6 +23,7 @@ using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.KeyValue;
 using Couchbase.UnitTests.Stellar.Utils;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -380,6 +382,44 @@ public class StellarCollectionTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ReadAllAsync(collection, stream, cts.Token));
     }
 
+    [Fact]
+    public async Task GetAllReplicasStreamAsync_WithCancellation_Cancels_The_Call()
+    {
+        var handler = new PendingHttpHandler();
+        using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = handler });
+        var collection = await CreateCollectionAsync(channel);
+        using var cts = new CancellationTokenSource();
+
+        await using var stream = collection.GetAllReplicasStreamAsync("key")
+            .WithCancellation(cts.Token).GetAsyncEnumerator();
+        var moved = stream.MoveNextAsync();
+        await handler.Sent;
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+        await handler.Cancelled;
+    }
+
+    [Fact]
+    public async Task GetAllReplicasStreamAsync_Options_Token_Still_Cancels_The_Call()
+    {
+        var handler = new PendingHttpHandler();
+        using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = handler });
+        var collection = await CreateCollectionAsync(channel);
+        using var cts = new CancellationTokenSource();
+
+        await using var stream = collection.GetAllReplicasStreamAsync("key",
+            new GetAllReplicasOptions().CancellationToken(cts.Token)).GetAsyncEnumerator();
+        var moved = stream.MoveNextAsync();
+        await handler.Sent;
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+        await handler.Cancelled;
+    }
+
     private static readonly ITypeTranscoder Transcoder = new JsonTranscoder(DefaultSerializer.Instance);
 
     private static async Task<List<IGetReplicaResult>> ReadAllAsync(StellarCollection collection,
@@ -402,6 +442,42 @@ public class StellarCollectionTests
     {
         var bucket = (StellarBucket)await StellarMocks.CreateClusterFromMocks().BucketAsync("test");
         return (StellarCollection)bucket.DefaultCollection();
+    }
+
+    private static async Task<StellarCollection> CreateCollectionAsync(GrpcChannel channel)
+    {
+        var bucket = (StellarBucket)await StellarMocks.CreateClusterFromMocksWithOptions(channel: channel).BucketAsync("test");
+        return (StellarCollection)bucket.DefaultCollection();
+    }
+
+    /// <summary>
+    /// Holds every gRPC request until it is cancelled, and signals when a request is sent and when
+    /// it is cancelled. Without a cancel, the call ends at the KV timeout with a timeout error.
+    /// </summary>
+    private sealed class PendingHttpHandler : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource<bool> _sent = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _cancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Sent => _sent.Task;
+
+        public Task Cancelled => _cancelled.Task;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            _sent.TrySetResult(true);
+
+            var response = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() =>
+                   {
+                       _cancelled.TrySetResult(true);
+                       response.TrySetCanceled(cancellationToken);
+                   }))
+            {
+                return await response.Task.ConfigureAwait(false);
+            }
+        }
     }
 
     private static GetAllReplicasResponse Replica(bool isReplica, ulong cas) => new()
