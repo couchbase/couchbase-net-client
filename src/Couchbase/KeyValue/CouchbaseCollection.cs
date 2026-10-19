@@ -715,15 +715,17 @@ namespace Couchbase.KeyValue
             // Either the options token or the token passed to the enumerator, such as by
             // WithCancellation, cancels the lookups.
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
+            var linkedOpts = opts with { Token = linkedSource.Token };
+            var tasks = indexesInGroup is null
+                ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, linkedOpts)
+                : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, linkedOpts);
+
+            var consumed = 0;
             try
             {
-                var linkedOpts = opts with { Token = linkedSource.Token };
-                var tasks = indexesInGroup is null
-                    ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, linkedOpts)
-                    : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, linkedOpts);
-
-                foreach (var lookupTask in tasks)
+                while (consumed < tasks.Count)
                 {
+                    var lookupTask = tasks[consumed++];
                     MultiLookup<byte[]> lookup;
                     try
                     {
@@ -748,6 +750,23 @@ namespace Couchbase.KeyValue
             {
                 // The caller stopped early or the stream threw: stop the lookups still in progress.
                 linkedSource.CancelAndDispose();
+
+                // A lookup holds a pooled response buffer and the caller owns only the results it was
+                // given, so dispose the rest, including lookups that finish after this point. A failed
+                // lookup is already disposed by ExecuteLookupIn.
+                for (var i = consumed; i < tasks.Count; i++)
+                {
+                    _ = tasks[i].ContinueWith(static finished =>
+                        {
+                            if (finished.Status == TaskStatus.RanToCompletion)
+                            {
+                                finished.Result.Dispose();
+                            }
+                        },
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+                }
             }
         }
 
