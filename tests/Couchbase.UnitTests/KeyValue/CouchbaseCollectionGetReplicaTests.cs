@@ -115,7 +115,7 @@ namespace Couchbase.UnitTests.KeyValue
 
         #endregion
 
-        private static (CouchbaseCollection Collection, GetReplicaFakeBucket Bucket) CreateCollection(
+        internal static (CouchbaseCollection Collection, GetReplicaFakeBucket Bucket) CreateCollection(
             Exception failWith = null)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
