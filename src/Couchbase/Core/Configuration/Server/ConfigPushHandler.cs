@@ -81,7 +81,8 @@ internal partial class ConfigPushHandler : IDisposable
                     if (pushedVersion <= lastSkippedVersion)
                     {
                         // we already skipped this version once and it hasn't been updated.
-                        break;
+                        // Wait for the next push. This must not leave the loop, because nothing restarts it.
+                        continue;
                     }
                 }
 
@@ -107,8 +108,8 @@ internal partial class ConfigPushHandler : IDisposable
                             effectiveVersion.GetValueOrDefault());
                         await Task.Yield();
 
-                        // because of a possible race, we continue here and only break the loop in the locked section
-                        // at the beginning of this loop.
+                        // because of a possible race, we continue here and only skip the version again in the locked
+                        // section at the beginning of this loop.
                         continue;
                     }
                 }
@@ -295,7 +296,10 @@ internal partial class ConfigPushHandler : IDisposable
         return TimeSpan.FromTicks(Math.Min(ticks, MaxNullConfigRetryDelay.Ticks));
     }
 
-    private void TryReleaseNewVersionSemaphore()
+    // The number of wake-ups the processing loop has not yet taken. Only for tests.
+    internal int PendingWakeups => _versionReceivedEvent.CurrentCount;
+
+    internal void TryReleaseNewVersionSemaphore()
     {
         try
         {

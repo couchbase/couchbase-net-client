@@ -196,6 +196,52 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task ConfigPushHandler_WakeUpWithoutNewVersion_KeepsProcessingPushes()
+    {
+        // A wake-up can arrive with no newer version than the last one skipped, for example a retry release
+        // that lands after the version was skipped. The handler must wait for the next push, and not stop.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
+        ClusterContext mockContext = mockBucket.Context;
+        var mockNode = new Mock<IClusterNode>();
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+        mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(newConfig));
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
+        mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+        mockContext.Nodes.Add(mockNode.Object);
+        mockBucket.Nodes.Add(mockNode.Object);
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_WakeUpWithoutNewVersion_KeepsProcessingPushes));
+        var redactor = new Redactor(RedactionLevel.None);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
+
+        // Wake the handler with no version pushed, and wait until it has taken the wake-up. No timeout: the
+        // loop takes it at once, and a handler which does not hangs the test, which is diagnosable.
+        configPushHandler.TryReleaseNewVersionSemaphore();
+        while (configPushHandler.PendingWakeups > 0)
+        {
+            await Task.Delay(1);
+        }
+
+        // Give a handler which stops on that wake-up time to do so before the push below.
+        await Task.Delay(100);
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+
+        var publishedConfig = await publishTcs.Task;
+
+        Assert.NotNull(publishedConfig);
+        Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
+    }
+
+    [Fact]
     public async Task ConfigPushHandler_BasicAdvance()
     {
         // server pushes (1,2), and returns (1,2)
