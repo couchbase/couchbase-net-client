@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.KeyValue.ZoneAware;
 using Couchbase.UnitTests.Utils;
 using Xunit;
 
@@ -165,11 +166,32 @@ public class CollectionTests : IClassFixture<StellarCollectionFixture>
     {
         await Assert.ThrowsAnyAsync<Exception>(async () =>
         {
+#pragma warning disable CS0618 // The obsolete overload still ships, so it is still covered
             foreach (var task in _collection.GetAllReplicasAsync("key"))
+#pragma warning restore CS0618
             {
                 await task;
             }
         });
+    }
+
+    [Fact]
+    public async Task Throw_Exception_When_ClusterConnectAsync_Fails_GetAllReplicasStreamAsync()
+    {
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+        {
+            await foreach (var _ in _collection.GetAllReplicasStreamAsync("key"))
+            {
+            }
+        });
+    }
+
+    // The gateway cannot be told to read one server group, so the stream must not read them all.
+    [Fact]
+    public void GetAllReplicasStreamAsync_Rejects_A_Read_Preference()
+    {
+        Assert.Throws<FeatureNotAvailableException>(() => _collection.GetAllReplicasStreamAsync("key",
+            new GetAllReplicasOptions().ReadPreference(ReadPreference.SelectedServerGroup)));
     }
 }
 #endif

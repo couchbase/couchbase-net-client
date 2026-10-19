@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.TestData;
@@ -52,7 +53,11 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.InsertAsync(key, person);
 
-                var result = await Task.WhenAll(collection.GetAllReplicasAsync(key));
+                var result = new List<IGetReplicaResult>();
+                await foreach (var replica in collection.GetAllReplicasStreamAsync(key))
+                {
+                    result.Add(replica);
+                }
                 Assert.Contains(result, x => x.IsActive);
                 Assert.Contains(result, x => !x.IsActive);
 
