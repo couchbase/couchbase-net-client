@@ -65,6 +65,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private readonly ConcurrentDictionary<string, IBucket> _buckets = new();
     private readonly ILogger<StellarCluster> _logger;
     private readonly Redactor _redactor;
+    internal Redactor Redactor => _redactor;
     private volatile bool _disposed;
     private readonly IServiceProvider _clusterServices;
     private readonly bool _isCompressionEnabled;
@@ -155,7 +156,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
         GrpcChannel = GrpcChannel.ForAddress(_clusterOptions.ConnectionStringValue!.GetStellarBootstrapUri(), grpcChannelOptions);
         var retryHandler = new StellarRetryHandler(TimeProvider.System,
-            new Logger<StellarRetryHandler>(_clusterOptions.Logging ?? new NullLoggerFactory()));
+            new Logger<StellarRetryHandler>(_clusterOptions.Logging ?? new NullLoggerFactory()), _redactor);
         RetryHandler = retryHandler;
         HealthClient = new Health.HealthClient(GrpcChannel);
 

@@ -12,8 +12,9 @@ public class GenericErrorContext : IErrorContext
     public List<RetryReason> RetryReasons { get; } = new();
     public Dictionary<string, object> Fields { get; } = new();
 
+    // RestoreTags keeps the redaction tags in Fields readable by cblogredaction (NCBC-4300).
     public override string ToString()
     {
-        return JsonSerializer.Serialize(Fields);
+        return RedactionSafeJson.RestoreTags(JsonSerializer.Serialize(Fields));
     }
 }
