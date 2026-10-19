@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
+using Couchbase.KeyValue.ZoneAware;
 using Xunit;
 
 namespace Couchbase.UnitTests.KeyValue
@@ -139,6 +140,24 @@ namespace Couchbase.UnitTests.KeyValue
 
             var anyReadOnly = new GetAnyReplicaOptions.ReadOnly(default, null, null, null, default);
             Assert.Null(anyReadOnly.Timeout);
+        }
+
+        // The old members were generated from the record's positional parameters, so a caller may
+        // name their arguments in PascalCase. The kept members use the same names.
+        [Fact]
+        public void ReadOnly_Keeps_The_Parameter_Names_Without_Timeout()
+        {
+            var allReplicas = new GetAllReplicasOptions.ReadOnly(Token: default, Transcoder: null,
+                RetryStrategy: null, RequestSpan: null, ReadPreference: InternalReadPreference.SelectedServerGroup);
+            allReplicas.Deconstruct(Token: out _, Transcoder: out _, RetryStrategy: out _, RequestSpan: out _,
+                ReadPreference: out var allPreference);
+            Assert.Equal(InternalReadPreference.SelectedServerGroup, allPreference);
+
+            var anyReplica = new GetAnyReplicaOptions.ReadOnly(Token: default, Transcoder: null,
+                RetryStrategy: null, RequestSpan: null, ReadPreference: InternalReadPreference.SelectedServerGroup);
+            anyReplica.Deconstruct(Token: out _, Transcoder: out _, RetryStrategy: out _, RequestSpan: out _,
+                ReadPreference: out var anyPreference);
+            Assert.Equal(InternalReadPreference.SelectedServerGroup, anyPreference);
         }
 
         private static void AssertEveryReadUses(CouchbaseCollectionZoneAwareTests.ZoneAwareFakeBucket bucket,

@@ -344,15 +344,16 @@ namespace Couchbase.KeyValue
         {
             // Kept for compatibility with callers compiled before Timeout was added.
             [EditorBrowsable(EditorBrowsableState.Never)]
-            public ReadOnly(CancellationToken token, ITypeTranscoder? transcoder, IRetryStrategy? retryStrategy, IRequestSpan? requestSpan, InternalReadPreference readPreference)
-                : this(null, token, transcoder, retryStrategy, requestSpan, readPreference)
+            // The parameter names match the generated positional members, so named-argument calls still compile.
+            public ReadOnly(CancellationToken Token, ITypeTranscoder? Transcoder, IRetryStrategy? RetryStrategy, IRequestSpan? RequestSpan, InternalReadPreference ReadPreference)
+                : this(null, Token, Transcoder, RetryStrategy, RequestSpan, ReadPreference)
             {
             }
 
             // Kept for compatibility with callers compiled before Timeout was added.
             [EditorBrowsable(EditorBrowsableState.Never)]
-            public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference) =>
-                Deconstruct(out _, out token, out transcoder, out retryStrategy, out requestSpan, out readPreference);
+            public void Deconstruct(out CancellationToken Token, out ITypeTranscoder? Transcoder, out IRetryStrategy? RetryStrategy, out IRequestSpan? RequestSpan, out InternalReadPreference ReadPreference) =>
+                Deconstruct(out _, out Token, out Transcoder, out RetryStrategy, out RequestSpan, out ReadPreference);
         }
     }
 
@@ -514,15 +515,16 @@ namespace Couchbase.KeyValue
         {
             // Kept for compatibility with callers compiled before Timeout was added.
             [EditorBrowsable(EditorBrowsableState.Never)]
-            public ReadOnly(CancellationToken token, ITypeTranscoder? transcoder, IRetryStrategy? retryStrategy, IRequestSpan? requestSpan, InternalReadPreference readPreference)
-                : this(null, token, transcoder, retryStrategy, requestSpan, readPreference)
+            // The parameter names match the generated positional members, so named-argument calls still compile.
+            public ReadOnly(CancellationToken Token, ITypeTranscoder? Transcoder, IRetryStrategy? RetryStrategy, IRequestSpan? RequestSpan, InternalReadPreference ReadPreference)
+                : this(null, Token, Transcoder, RetryStrategy, RequestSpan, ReadPreference)
             {
             }
 
             // Kept for compatibility with callers compiled before Timeout was added.
             [EditorBrowsable(EditorBrowsableState.Never)]
-            public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference) =>
-                Deconstruct(out _, out token, out transcoder, out retryStrategy, out requestSpan, out readPreference);
+            public void Deconstruct(out CancellationToken Token, out ITypeTranscoder? Transcoder, out IRetryStrategy? RetryStrategy, out IRequestSpan? RequestSpan, out InternalReadPreference ReadPreference) =>
+                Deconstruct(out _, out Token, out Transcoder, out RetryStrategy, out RequestSpan, out ReadPreference);
         }
     }
 
