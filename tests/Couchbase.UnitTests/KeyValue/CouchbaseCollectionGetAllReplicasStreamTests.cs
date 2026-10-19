@@ -162,13 +162,15 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.True(await moved);
             using var yielded = stream.Current;
 
-            // Replica 2 has reached the stream when the caller stops, so it is disposed with the stream.
+            // Replica 2 finishes before the caller stops and replica 3 after. The stream disposes each
+            // result it did not yield whenever its read finishes, so the test awaits the disposal. It
+            // does not check it at once: a read can reach the stream after Succeed returns, because
+            // await continuations are not always run inline (seen on net48).
             bucket.Succeed(2);
             bucket.Fail(null);
             await stream.DisposeAsync();
-            Assert.True(bucket.WhenBufferDisposed(2).IsCompleted);
+            await bucket.WhenBufferDisposed(2);
 
-            // Replica 3 finishes after the caller stops.
             bucket.Succeed(3);
             await bucket.WhenBufferDisposed(3);
 
@@ -205,9 +207,9 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         /// <summary>
-        /// Holds every read until the test calls <see cref="Succeed"/> or <see cref="Fail"/>, which
-        /// run the read through to the stream before they return. A successful read returns the
-        /// replica index as its CAS, so a result shows which node it came from.
+        /// Holds every read until the test calls <see cref="Succeed"/> or <see cref="Fail"/>. The read
+        /// can reach the stream after they return, so a test awaits what it checks. A successful read
+        /// returns the replica index as its CAS, so a result shows which node it came from.
         /// </summary>
         private sealed class PendingReadsBucket(BucketConfig config, string preferredServerGroup)
             : CouchbaseCollectionZoneAwareTests.ZoneAwareFakeBucket(config, preferredServerGroup)
@@ -221,7 +223,6 @@ namespace Couchbase.UnitTests.KeyValue
             {
                 DispatchedReplicaIndexes.Add(operation.ReplicaIdx);
 
-                // Continuations run inline, so a read is in the stream when Succeed or Fail returns.
                 var read = new TaskCompletionSource<ResponseStatus>();
                 _reads.Add(Key(operation.ReplicaIdx), (operation, read));
                 return read.Task;
