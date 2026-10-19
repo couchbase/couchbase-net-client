@@ -30,6 +30,8 @@ namespace Couchbase.UnitTests.KeyValue
     /// GetAllReplicasStreamAsync (NCBC-3625): results arrive in the order the reads finish, failed
     /// reads are left out, and errors for the whole call are thrown before enumeration. Every read
     /// stays pending until the test finishes it, so the order is set by the test, not the scheduler.
+    /// An ordering regression makes a test wait forever for a read it has not finished; there is no
+    /// wall-clock bound, because CI's --blame-hang fails a hung run and keeps a dump.
     /// </summary>
     public class CouchbaseCollectionGetAllReplicasStreamTests
     {
@@ -50,7 +52,7 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([null, (short) 0, (short) 2, (short) 3], bucket.DispatchedReplicaIndexes);
 
             bucket.Succeed(3);
-            Assert.True(await Bounded(moved.AsTask()));
+            Assert.True(await moved);
             Assert.Equal(3UL, stream.Current.Cas);
             Assert.False(stream.Current.IsActive);
 
@@ -140,7 +142,7 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
 
             bucket.Succeed(null);
-            Assert.True(await Bounded(moved.AsTask()));
+            Assert.True(await moved);
             Assert.True(stream.Current.IsActive);
 
             bucket.Succeed(0);
@@ -168,21 +170,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             // Replica 3 finishes after the caller stops.
             bucket.Succeed(3);
-            await Bounded(bucket.WhenBufferDisposed(3));
+            await bucket.WhenBufferDisposed(3);
 
             Assert.False(bucket.WhenBufferDisposed(0).IsCompleted);
-        }
-
-        private static async Task<T> Bounded<T>(Task<T> task)
-        {
-            // An ordering regression would wait on a read the test has not finished. Fail instead of
-            // hanging the run. Fact.Timeout is no help: xUnit 2 honours it only without parallelization.
-            if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10))) != task)
-            {
-                throw new System.TimeoutException("The test waited on something that did not happen.");
-            }
-
-            return await task;
         }
 
         private static (CouchbaseCollection Collection, PendingReadsBucket Bucket) CreateCollection(
