@@ -26,7 +26,7 @@ public class RotatingCertificateFactoryTests(
     public void Constructor_WithValidParameters_ShouldNotThrow()
     {
         // Arrange & Act
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMinutes(5),
             TimeSpan.FromMinutes(30),
@@ -65,7 +65,7 @@ public class RotatingCertificateFactoryTests(
     public void HasUpdates_InitialState_ShouldBeFalse()
     {
         // Arrange
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMinutes(5),
             TimeSpan.FromMinutes(30),
@@ -83,7 +83,7 @@ public class RotatingCertificateFactoryTests(
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(expectedCertificates);
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromHours(1),
             TimeSpan.FromMinutes(30),
@@ -105,7 +105,7 @@ public class RotatingCertificateFactoryTests(
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(expectedCertificates);
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromHours(1),
             TimeSpan.FromMinutes(30),
@@ -135,7 +135,7 @@ public class RotatingCertificateFactoryTests(
                 return expectedCertificates;
             });
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMilliseconds(50),
             TimeSpan.FromMinutes(30),
@@ -170,7 +170,7 @@ public class RotatingCertificateFactoryTests(
                 return callCount == 1 ? initialCertificates : newValidCertificates;
             });
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMilliseconds(50),
             TimeSpan.FromMinutes(30),
@@ -273,7 +273,7 @@ public class RotatingCertificateFactoryTests(
                 return callCount == 1 ? initialCertificates : expiredCertificates;
             });
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMilliseconds(50),
             TimeSpan.FromMinutes(30),
@@ -320,7 +320,7 @@ public class RotatingCertificateFactoryTests(
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()))
             .Callback(() => warningLoggedTcs.TrySetResult(true));
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromMilliseconds(50),
             TimeSpan.FromMinutes(1),
@@ -356,7 +356,7 @@ public class RotatingCertificateFactoryTests(
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(certificates);
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromHours(1), // Long interval to prevent timer firing
             TimeSpan.FromMinutes(130),
@@ -477,7 +477,7 @@ public class RotatingCertificateFactoryTests(
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(certificates);
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromHours(1),
             TimeSpan.FromMinutes(30),
@@ -498,7 +498,7 @@ public class RotatingCertificateFactoryTests(
         _mockCertificateFactory.Setup(x => x.GetCertificates())
             .Returns(emptyCertificates);
 
-        var factory = new RotatingCertificateFactory(
+        using var factory = new RotatingCertificateFactory(
             _mockCertificateFactory.Object,
             TimeSpan.FromHours(1),
             TimeSpan.FromMinutes(130),
