@@ -1,9 +1,13 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
@@ -12,9 +16,13 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
+using Couchbase.Protostellar.KV.V1;
 using Couchbase.Stellar;
+using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.KeyValue;
 using Couchbase.UnitTests.Stellar.Utils;
+using Grpc.Core;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -322,5 +330,110 @@ public class StellarCollectionTests
         Assert.Null(content);
     }
 
+    #region GetAllReplicasStreamAsync
+
+    // The gateway sends every read that succeeds and then ends the stream with the error of a read
+    // that failed. For a missing document, like the classic stream, that read is left out rather
+    // than faulting the stream.
+    [Fact]
+    public async Task ReadReplicaStreamAsync_Ends_The_Stream_When_A_Read_Finds_No_Document()
+    {
+        var collection = await CreateCollectionAsync();
+        var stream = new FakeReplicaStream(
+            [Replica(isReplica: false, cas: 1), Replica(isReplica: true, cas: 2)],
+            new RpcException(new Status(StatusCode.NotFound, "document not found")));
+
+        var results = await ReadAllAsync(collection, stream, CancellationToken.None);
+
+        Assert.Equal([1ul, 2ul], results.Select(result => result.Cas));
+        Assert.Equal([true, false], results.Select(result => result.IsActive));
+    }
+
+    [Fact]
+    public async Task ReadReplicaStreamAsync_Is_Empty_When_The_Document_Is_Missing()
+    {
+        var collection = await CreateCollectionAsync();
+        var stream = new FakeReplicaStream([], new RpcException(new Status(StatusCode.NotFound, "document not found")));
+
+        Assert.Empty(await ReadAllAsync(collection, stream, CancellationToken.None));
+    }
+
+    // An error for the whole call, such as an unreachable gateway, is not a read to leave out.
+    [Fact]
+    public async Task ReadReplicaStreamAsync_Throws_The_Mapped_Error_For_Any_Other_Failure()
+    {
+        var collection = await CreateCollectionAsync();
+        var stream = new FakeReplicaStream([], new RpcException(new Status(StatusCode.PermissionDenied, "denied")));
+
+        await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+            ReadAllAsync(collection, stream, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReadReplicaStreamAsync_Throws_When_The_Caller_Cancels()
+    {
+        var collection = await CreateCollectionAsync();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var stream = new FakeReplicaStream([], new RpcException(new Status(StatusCode.Cancelled, "cancelled")));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ReadAllAsync(collection, stream, cts.Token));
+    }
+
+    private static readonly ITypeTranscoder Transcoder = new JsonTranscoder(DefaultSerializer.Instance);
+
+    private static async Task<List<IGetReplicaResult>> ReadAllAsync(StellarCollection collection,
+        FakeReplicaStream stream, CancellationToken token)
+    {
+        var retryHandler = new StellarRetryHandler(TimeProvider.System, NullLogger<StellarRetryHandler>.Instance);
+        var request = new StellarRequest { Idempotent = true, Token = token, Timeout = TimeSpan.FromSeconds(2.5) };
+
+        var results = new List<IGetReplicaResult>();
+        await foreach (var result in collection.ReadReplicaStreamAsync(stream, Transcoder, "key",
+                           e => retryHandler.MapMidStreamException(e, request), token))
+        {
+            results.Add(result);
+        }
+
+        return results;
+    }
+
+    private static async Task<StellarCollection> CreateCollectionAsync()
+    {
+        var bucket = (StellarBucket)await StellarMocks.CreateClusterFromMocks().BucketAsync("test");
+        return (StellarCollection)bucket.DefaultCollection();
+    }
+
+    private static GetAllReplicasResponse Replica(bool isReplica, ulong cas) => new()
+    {
+        IsReplica = isReplica,
+        Cas = cas,
+        Content = Google.Protobuf.ByteString.CopyFromUtf8("{}")
+    };
+
+    /// <summary>
+    /// Returns the given responses, then throws the given error, as the gateway's stream does when
+    /// a read failed.
+    /// </summary>
+    private sealed class FakeReplicaStream(GetAllReplicasResponse[] responses, Exception endError)
+        : IAsyncStreamReader<GetAllReplicasResponse>
+    {
+        private int _next;
+
+        public GetAllReplicasResponse Current { get; private set; } = null!;
+
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
+        {
+            if (_next < responses.Length)
+            {
+                Current = responses[_next++];
+                return Task.FromResult(true);
+            }
+
+            return Task.FromException<bool>(endError);
+        }
+    }
+
+    #endregion
 }
 #endif

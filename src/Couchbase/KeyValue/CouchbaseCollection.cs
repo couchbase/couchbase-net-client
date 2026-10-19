@@ -1170,11 +1170,14 @@ namespace Couchbase.KeyValue
                     {
                         result = await (await next.ConfigureAwait(false)).ConfigureAwait(false);
                     }
-                    catch (CouchbaseException)
+                    catch (CouchbaseException e)
                     {
                         // A read of the active or of one replica failed, such as a timeout or a document
                         // that is not on that replica. Like LookupInAllReplicas, leave it out of the
-                        // stream rather than faulting the stream.
+                        // stream rather than faulting the stream. Log it, because an empty stream
+                        // alone cannot tell a missing document from a failed read.
+                        Logger.LogDebug(e, "A read for GetAllReplicasStreamAsync of [{Id}] failed and is left out of the stream.",
+                            Redactor.UserData(id));
                         continue;
                     }
 

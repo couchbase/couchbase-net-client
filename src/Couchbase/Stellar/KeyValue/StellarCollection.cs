@@ -4,6 +4,8 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -11,6 +13,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
@@ -25,6 +28,8 @@ using Couchbase.Utils;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ExistsRequest = Couchbase.Protostellar.KV.V1.ExistsRequest;
 using GetAndLockRequest = Couchbase.Protostellar.KV.V1.GetAndLockRequest;
 using GetAndTouchRequest = Couchbase.Protostellar.KV.V1.GetAndTouchRequest;
@@ -52,6 +57,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
     private readonly string _scopeName;
     private readonly string _bucketName;
     private readonly IRetryOrchestrator _retryHandler;
+    private readonly ILogger<StellarCollection> _logger;
+    private readonly IRedactor _redactor;
 
     private const string DefaultCollectionName = "_default";
 
@@ -66,6 +73,8 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         _scopeName = _stellarScope.Name;
         _stellarCollectionQueryIndexes = new StellarCollectionQueryIndexManager(stellarCluster.QueryIndexes, _bucketName, _scopeName, Name);
         _retryHandler = stellarCluster.RetryHandler;
+        _logger = new Logger<StellarCollection>(stellarCluster.ClusterOptions.Logging ?? NullLoggerFactory.Instance);
+        _redactor = new Redactor(stellarCluster.ClusterOptions);
     }
 
     public uint? Cid =>
@@ -148,7 +157,6 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
 
     private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts)
     {
-        // Results are yielded in the order the gateway streams them.
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
@@ -156,9 +164,66 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         using var response = _kvClient.GetAllReplicas(request,
             _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
-        await foreach (var replicaResult in response.ResponseStream.ReadAllAsync().ConfigureAwait(false))
+        // Only used to map an error to an SDK exception: the call does not retry (NCBC-3626).
+        var stellarRequest = new StellarRequest
         {
-            yield return replicaResult.AsGetReplicaResult(transcoder);
+            Idempotent = true,
+            Token = opts.Token,
+            Timeout = _stellarCluster.ClusterOptions.KvTimeout
+        };
+
+        await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
+                               e => _retryHandler is StellarRetryHandler handler
+                                   ? handler.MapMidStreamException(e, stellarRequest)
+                                   : e,
+                               opts.Token)
+                           .ConfigureAwait(false))
+        {
+            yield return result;
+        }
+    }
+
+    /// <summary>
+    /// Yields the results in the order the gateway streams them. The gateway sends every read that
+    /// succeeds and then, if any read failed, ends the stream with that read's error. A missing
+    /// document ends it with NOT_FOUND: like the classic stream, which leaves out a failed read,
+    /// that ends the stream rather than faulting it. Any other error is mapped and thrown.
+    /// </summary>
+    internal async IAsyncEnumerable<IGetReplicaResult> ReadReplicaStreamAsync(
+        IAsyncStreamReader<GetAllReplicasResponse> stream,
+        ITypeTranscoder transcoder,
+        string id,
+        Func<Exception, Exception> mapError,
+        [EnumeratorCancellation] CancellationToken token)
+    {
+        while (true)
+        {
+            bool hasNext;
+            try
+            {
+                hasNext = await stream.MoveNext(token).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+            {
+                token.ThrowIfCancellationRequested();
+
+                var mapped = mapError(e);
+                if (mapped is not DocumentNotFoundException)
+                {
+                    throw mapped;
+                }
+
+                _logger.LogDebug(mapped, "A read for GetAllReplicasStreamAsync of [{Id}] found no document, which ends the stream.",
+                    _redactor.UserData(id));
+                yield break;
+            }
+
+            if (!hasNext)
+            {
+                yield break;
+            }
+
+            yield return stream.Current.AsGetReplicaResult(transcoder);
         }
     }
 
