@@ -887,6 +887,171 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
         #endregion
 
+        #region Dead connections
+
+        // NCBC-4372: a connection the server closed while the pool was idle stayed in the pool until the
+        // next queued operation woke its processor, which for an idle application could be days.
+        [Fact]
+        public async Task IdleConnection_ClosedByServer_IsReplacedWithoutAnyTraffic()
+        {
+            // Arrange
+
+            var connections = new List<ControllableConnection>();
+            var replacementCreated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new ControllableConnection();
+                    lock (connections)
+                    {
+                        connections.Add(connection);
+                        if (connections.Count == 3)
+                        {
+                            replacementCreated.TrySetResult(true);
+                        }
+                    }
+
+                    return connection.Object;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync();
+
+            // Act
+
+            var closed = connections[0];
+            closed.CloseFromServer();
+
+            // Assert
+
+            await replacementCreated.Task;
+
+            // The replacement is added while the pool is locked, so freezing waits for it to finish.
+            await using (await pool.FreezePoolAsync())
+            {
+                var live = pool.GetConnections().ToList();
+                Assert.DoesNotContain(closed.Object, live);
+                Assert.Contains(connections[2].Object, live);
+                Assert.Equal(2, live.Count);
+            }
+        }
+
+        // NCBC-4372: TrySendImmediatelyAsync (used for config fetches) sent on a dead connection. That failed
+        // without queuing anything, so the dead connection's processor never woke and it was never replaced.
+        [Fact]
+        public async Task TrySendImmediatelyAsync_AllConnectionsDead_FallsBackToTheQueue()
+        {
+            // Arrange
+
+            var connections = new List<ControllableConnection>();
+            var replacementsCreated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new ControllableConnection();
+                    lock (connections)
+                    {
+                        connections.Add(connection);
+                        if (connections.Count == 4)
+                        {
+                            replacementsCreated.TrySetResult(true);
+                        }
+                    }
+
+                    return connection.Object;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync();
+
+            // Dead, but their close was never signalled, so their processors are still waiting.
+            var dead = connections.ToList();
+            dead.ForEach(c => c.MarkDeadSilently());
+
+            var sentOn = new ConcurrentBag<IConnection>();
+            var operation = new FakeOperation { SendStarted = sentOn.Add };
+
+            // Act
+
+            var sentImmediately = await pool.TrySendImmediatelyAsync(operation);
+
+            // Assert
+
+            Assert.False(sentImmediately);
+            Assert.DoesNotContain(sentOn, c => dead.Any(d => d.Object == c));
+
+            // The queued operation wakes both processors, which replace their dead connections.
+            await replacementsCreated.Task;
+            await using (await pool.FreezePoolAsync())
+            {
+                Assert.All(pool.GetConnections(), c => Assert.DoesNotContain(dead, d => d.Object == c));
+            }
+        }
+
+        [Fact]
+        public async Task SelectBucketAsync_NoLiveConnections_NamesTheRequestedBucket()
+        {
+            // Arrange
+
+            var connection = new ControllableConnection();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            await pool.InitializeAsync();
+            connection.MarkDeadSilently();
+
+            // Act
+
+            var ex = await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("travel-sample"));
+
+            // Assert
+
+            Assert.Equal("Failed to select bucket travel-sample.", ex.Message);
+        }
+
+        /// <summary>
+        /// A connection whose death the test controls: either signalled, as when the server closes the socket,
+        /// or silent, as for a connection that died before <see cref="IConnection.ClosedToken"/> fired.
+        /// </summary>
+        private sealed class ControllableConnection
+        {
+            private readonly CancellationTokenSource _closed = new();
+            private volatile bool _dead;
+
+            public ControllableConnection()
+            {
+                var mock = new Mock<IConnection>();
+                mock.SetupGet(m => m.ClosedToken).Returns(_closed.Token);
+                mock.SetupGet(m => m.IsDead).Returns(() => _dead);
+                Object = mock.Object;
+            }
+
+            public IConnection Object { get; }
+
+            public void CloseFromServer()
+            {
+                _dead = true;
+                _closed.Cancel();
+            }
+
+            public void MarkDeadSilently() => _dead = true;
+        }
+
+        #endregion
+
         #region Helpers
 
         private ChannelConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,

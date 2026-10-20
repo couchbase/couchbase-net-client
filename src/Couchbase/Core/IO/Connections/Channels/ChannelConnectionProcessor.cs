@@ -108,6 +108,10 @@ namespace Couchbase.Core.IO.Connections.Channels
         {
             var token = _cts?.Token ?? default(CancellationToken);
 
+            // Also wake when the connection closes. Without this an idle processor only notices a dead
+            // connection when the next operation is queued, so the pool never replaces it in the meantime.
+            using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(token, Connection.ClosedToken);
+
             try
             {
                 // Avoid object[] heap allocations if trace logging is disabled
@@ -119,7 +123,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                     return;
                 }
 
-                while (await _channelReader.WaitToReadAsync(token).ConfigureAwait(false))
+                while (await _channelReader.WaitToReadAsync(waitCts.Token).ConfigureAwait(false))
                 {
                     if (traceLogging)
                     {
@@ -173,6 +177,12 @@ namespace Couchbase.Core.IO.Connections.Channels
                         }
                     }
                 }
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                // The connection closed while we were waiting. Cancellation callbacks run inline on the
+                // thread that closed it, so yield before the cleanup below creates a replacement connection.
+                await Task.Yield();
             }
             finally
             {

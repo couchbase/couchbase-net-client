@@ -165,7 +165,8 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            IConnection? connection = GetConnectionsCore().RandomOrDefault();
+            // Skip dead connections: sending on one fails without waking its processor, so it is never replaced.
+            IConnection? connection = GetConnectionsCore().RandomOrDefault(static c => !c.IsDead);
             if (connection is null)
             {
                 // Fallback to sending via the queue if no connections are available

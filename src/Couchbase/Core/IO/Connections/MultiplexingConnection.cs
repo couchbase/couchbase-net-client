@@ -54,6 +54,9 @@ namespace Couchbase.Core.IO.Connections
         private int _disposed;
         private int _closing;
 
+        // Never disposed: ClosedToken must stay readable after the connection closes.
+        private readonly CancellationTokenSource _closedCts = new();
+
         private readonly string _remoteHostString;
         private readonly string _localHostString;
         private readonly string _remotePortString;
@@ -148,6 +151,9 @@ namespace Couchbase.Core.IO.Connections
 
         /// <inheritdoc />
         public bool IsDead => Volatile.Read(ref _disposed) > 0 || Volatile.Read(ref _closing) > 0;
+
+        /// <inheritdoc />
+        public CancellationToken ClosedToken => _closedCts.Token;
 
         /// <inheritdoc />
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
@@ -460,6 +466,8 @@ namespace Couchbase.Core.IO.Connections
                 _statesInFlight.Dispose();
 
                 EndpointState = EndpointState.Disconnected;
+
+                _closedCts.Cancel();
             }
             else
             {
