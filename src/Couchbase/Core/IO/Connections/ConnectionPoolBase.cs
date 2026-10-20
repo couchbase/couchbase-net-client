@@ -143,6 +143,11 @@ namespace Couchbase.Core.IO.Connections
         {
             await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
             {
+                // Record the bucket before selecting it. If a select fails, the connection is disposed and its
+                // replacement must open with this bucket selected; otherwise the node is left serving the bucket
+                // through connections that have no bucket, and every operation gets BucketNotConnected.
+                BucketName = name;
+
                 var tasks = GetConnections()
                     .Where(p => !p.IsDead)
                     .Select(connection => Task.Run(async () =>
@@ -169,8 +174,6 @@ namespace Couchbase.Core.IO.Connections
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
-
-                BucketName = name;
             }
         }
 
