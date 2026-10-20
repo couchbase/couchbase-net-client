@@ -180,14 +180,39 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
                 Timeout = _stellarCluster.ClusterOptions.KvTimeout
             };
 
-            await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
-                                   e => _retryHandler is StellarRetryHandler handler
-                                       ? handler.MapMidStreamException(e, stellarRequest)
-                                       : e,
-                                   token)
-                               .ConfigureAwait(false))
+            // Enumerated by hand, so that a cancel can be given the caller's token: a catch cannot
+            // enclose a yield.
+            var results = ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
+                    e => _retryHandler is StellarRetryHandler handler
+                        ? handler.MapMidStreamException(e, stellarRequest)
+                        : e,
+                    token)
+                .GetAsyncEnumerator(token);
+            try
             {
-                yield return result;
+                while (true)
+                {
+                    bool hasNext;
+                    try
+                    {
+                        hasNext = await results.MoveNextAsync().ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException e) when (e.NeedsCallerToken(opts.Token, cancellationToken))
+                    {
+                        throw e.WithCallerToken(opts.Token, cancellationToken);
+                    }
+
+                    if (!hasNext)
+                    {
+                        yield break;
+                    }
+
+                    yield return results.Current;
+                }
+            }
+            finally
+            {
+                await results.DisposeAsync().ConfigureAwait(false);
             }
         }
         finally

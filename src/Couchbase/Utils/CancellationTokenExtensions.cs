@@ -47,4 +47,32 @@ internal static class CancellationTokenExtensions
         cts.Cancel();
         cts.Dispose();
     }
+
+    /// <summary>
+    /// Throws an <see cref="OperationCanceledException"/> for the first of two caller tokens that is
+    /// cancelled.
+    /// </summary>
+    public static void ThrowIfEitherCancellationRequested(CancellationToken first, CancellationToken second)
+    {
+        first.ThrowIfCancellationRequested();
+        second.ThrowIfCancellationRequested();
+    }
+
+    /// <summary>
+    /// Whether this exception must be replaced by <see cref="WithCallerToken"/>: one of the two caller
+    /// tokens is cancelled, but the exception carries a different token, such as a token linked from
+    /// them.
+    /// </summary>
+    public static bool NeedsCallerToken(this OperationCanceledException e, CancellationToken first,
+        CancellationToken second) =>
+        (first.IsCancellationRequested || second.IsCancellationRequested) &&
+        e.CancellationToken != first && e.CancellationToken != second;
+
+    /// <summary>
+    /// A copy of this exception that carries the first of two caller tokens that is cancelled, so a
+    /// caller can match the exception to its own token. The original is the inner exception.
+    /// </summary>
+    public static OperationCanceledException WithCallerToken(this OperationCanceledException e,
+        CancellationToken first, CancellationToken second) =>
+        new(e.Message, e, first.IsCancellationRequested ? first : second);
 }

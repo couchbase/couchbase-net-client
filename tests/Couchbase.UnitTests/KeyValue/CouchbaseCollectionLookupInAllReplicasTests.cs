@@ -30,7 +30,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             cts.Cancel();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+
+            Assert.Equal(cts.Token, canceled.CancellationToken);
             foreach (var replicaIndex in new short?[] { null, 0, 2, 3 })
             {
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(replicaIndex));
@@ -47,7 +49,9 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.LookupInAllReplicasAsync(DocId, Specs)
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+
+            Assert.Equal(cts.Token, canceled.CancellationToken);
             foreach (var replicaIndex in new short?[] { null, 0, 2, 3 })
             {
                 await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(replicaIndex));
@@ -68,7 +72,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             cts.Cancel();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+
+            Assert.Equal(cts.Token, canceled.CancellationToken);
             Assert.Equal(optionsCts.Token, options.TokenValue);
             Assert.False(optionsCts.IsCancellationRequested);
         }
@@ -85,7 +91,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             cts.Cancel();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+
+            Assert.Equal(cts.Token, canceled.CancellationToken);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(null));
         }
 

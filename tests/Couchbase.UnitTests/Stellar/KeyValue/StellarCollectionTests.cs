@@ -397,7 +397,9 @@ public class StellarCollectionTests
 
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+        var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+
+        Assert.Equal(cts.Token, canceled.CancellationToken);
         await handler.Cancelled;
     }
 
@@ -413,7 +415,9 @@ public class StellarCollectionTests
         await using var stream = collection.GetAllReplicasStreamAsync("key")
             .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+        var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+
+        Assert.Equal(cts.Token, canceled.CancellationToken);
     }
 
     [Fact]
@@ -431,7 +435,9 @@ public class StellarCollectionTests
 
         cts.Cancel();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+        var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+
+        Assert.Equal(cts.Token, canceled.CancellationToken);
         await handler.Cancelled;
     }
 

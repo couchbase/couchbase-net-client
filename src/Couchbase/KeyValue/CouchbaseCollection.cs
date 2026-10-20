@@ -138,13 +138,14 @@ namespace Couchbase.KeyValue
             // WithCancellation, cancels the scan. The partition scans get a copy of the options
             // with the linked token, so the caller's options object is not changed.
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenValue, cancellationToken);
-            var token = linkedSource.Token;
-            var scanOptions = options.WithToken(token);
-
-            var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
-            var partitionScans = new List<PartitionScan>(partitionCount);
+            List<PartitionScan>? partitionScans = null;
+            var endedByScan = false;
             try
             {
+                var scanOptions = options.WithToken(linkedSource.Token);
+
+                var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
+                partitionScans = new List<PartitionScan>(partitionCount);
                 for (short partitionId = 0; partitionId < partitionCount; partitionId++)
                 {
                     var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType,partitionId);
@@ -175,9 +176,17 @@ namespace Couchbase.KeyValue
                 {
                     foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
                     {
-                        token.ThrowIfCancellationRequested();
+                        CancellationTokenExtensions.ThrowIfEitherCancellationRequested(options.TokenValue, cancellationToken);
 
-                        var result = await partitionScan.ScanAsync().ConfigureAwait(false);
+                        PartitionScan result;
+                        try
+                        {
+                            result = await partitionScan.ScanAsync().ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException e) when (e.NeedsCallerToken(options.TokenValue, cancellationToken))
+                        {
+                            throw e.WithCallerToken(options.TokenValue, cancellationToken);
+                        }
 
                         if (partitionScan.Status == ResponseStatus.Success ||
                             partitionScan.Status == ResponseStatus.RangeScanComplete ||
@@ -189,6 +198,7 @@ namespace Couchbase.KeyValue
                                 if (overLimit || scanResult == null)
                                 {
                                     // The finally block closes the scans that are still open.
+                                    endedByScan = true;
                                     yield break;
                                 }
                                 yield return scanResult;
@@ -205,16 +215,27 @@ namespace Couchbase.KeyValue
             {
                 // The scan completed, reached its sampling limit, the caller stopped early, or it
                 // threw. Stop the partition read in progress, if any, then close the scans that are
-                // still open on the server. The closes are not awaited: the caller asked to stop, so
-                // it does not wait for the cleanup.
+                // still open on the server.
                 linkedSource.CancelAndDispose();
-                ScanCleanup = CloseOpenScansAsync(partitionScans);
+                if (partitionScans is not null)
+                {
+                    ScanCleanup = CloseOpenScansAsync(partitionScans);
+
+                    // When the scan ends the stream itself, at the sampling limit, the caller did not
+                    // ask to stop, so the stream ends only after the closes, as before NCBC-4365. When
+                    // the caller stops early or cancels, it does not wait for the cleanup.
+                    if (endedByScan)
+                    {
+                        await ScanCleanup.ConfigureAwait(false);
+                    }
+                }
             }
         }
 
         /// <summary>
         /// The cleanup started by the most recent scan on this collection, which closes the scans it
-        /// left open. For tests only: it lets a test wait for every close the scan sends.
+        /// left open. For tests only: it lets a test wait for every close the scan sends. With
+        /// concurrent scans on one collection, it holds the cleanup of the scan that ended last.
         /// </summary>
         internal Task ScanCleanup { get; private set; } = Task.CompletedTask;
 
@@ -721,14 +742,15 @@ namespace Couchbase.KeyValue
             // Either the options token or the token passed to the enumerator, such as by
             // WithCancellation, cancels the lookups.
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
-            var linkedOpts = opts with { Token = linkedSource.Token };
-            var tasks = indexesInGroup is null
-                ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, linkedOpts)
-                : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, linkedOpts);
-
+            List<Task<MultiLookup<byte[]>>>? tasks = null;
             var consumed = 0;
             try
             {
+                var linkedOpts = opts with { Token = linkedSource.Token };
+                tasks = indexesInGroup is null
+                    ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, linkedOpts)
+                    : LookupInTasksForServerGroup(vBucket, indexesInGroup, id, enumeratedSpecs, rootSpan, linkedOpts);
+
                 while (consumed < tasks.Count)
                 {
                     var lookupTask = tasks[consumed++];
@@ -745,6 +767,10 @@ namespace Couchbase.KeyValue
                         // faulting it.
                         continue;
                     }
+                    catch (OperationCanceledException e) when (e.NeedsCallerToken(opts.Token, cancellationToken))
+                    {
+                        throw e.WithCallerToken(opts.Token, cancellationToken);
+                    }
 
                     var responseStatus = lookup.Header.Status;
                     var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
@@ -760,18 +786,9 @@ namespace Couchbase.KeyValue
                 // A lookup holds a pooled response buffer and the caller owns only the results it was
                 // given, so dispose the rest, including lookups that finish after this point. A failed
                 // lookup is already disposed by ExecuteLookupIn.
-                for (var i = consumed; i < tasks.Count; i++)
+                if (tasks is not null)
                 {
-                    _ = tasks[i].ContinueWith(static finished =>
-                        {
-                            if (finished.Status == TaskStatus.RanToCompletion)
-                            {
-                                finished.Result.Dispose();
-                            }
-                        },
-                        CancellationToken.None,
-                        TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default);
+                    TaskHelpers.DisposeWhenCompleted(tasks.Skip(consumed));
                 }
             }
         }
@@ -1240,16 +1257,16 @@ namespace Couchbase.KeyValue
             // Either the options token or the token passed to the enumerator, such as by
             // WithCancellation, cancels the reads.
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
-            var linkedOpts = opts with { Token = linkedSource.Token };
-
-            var tasks = indexesInGroup is null
-                ? GetTasksForAllReplicas(vBucket, id, rootSpan, linkedOpts)
-                : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, linkedOpts);
-
-            var ordered = TaskHelpers.InCompletionOrder(tasks);
+            Task<Task<IGetReplicaResult>>[]? ordered = null;
             var consumed = 0;
             try
             {
+                var linkedOpts = opts with { Token = linkedSource.Token };
+                var tasks = indexesInGroup is null
+                    ? GetTasksForAllReplicas(vBucket, id, rootSpan, linkedOpts)
+                    : GetTasksForServerGroup(vBucket, indexesInGroup, id, rootSpan, linkedOpts);
+
+                ordered = TaskHelpers.InCompletionOrder(tasks);
                 while (consumed < ordered.Length)
                 {
                     var next = ordered[consumed++];
@@ -1268,6 +1285,10 @@ namespace Couchbase.KeyValue
                             Redactor.UserData(id));
                         continue;
                     }
+                    catch (OperationCanceledException e) when (e.NeedsCallerToken(opts.Token, cancellationToken))
+                    {
+                        throw e.WithCallerToken(opts.Token, cancellationToken);
+                    }
 
                     yield return result;
                 }
@@ -1279,18 +1300,9 @@ namespace Couchbase.KeyValue
 
                 // A result holds a pooled response buffer and the caller owns only those it was
                 // given, so dispose the rest, including reads that finish after this point.
-                for (var i = consumed; i < ordered.Length; i++)
+                if (ordered is not null)
                 {
-                    _ = ordered[i].ContinueWith(static finished =>
-                        {
-                            if (finished.Result.Status == TaskStatus.RanToCompletion)
-                            {
-                                finished.Result.Result.Dispose();
-                            }
-                        },
-                        CancellationToken.None,
-                        TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default);
+                    TaskHelpers.DisposeWhenCompleted(ordered.Skip(consumed).Select(finished => finished.Unwrap()));
                 }
             }
         }
