@@ -117,10 +117,66 @@ namespace Couchbase.UnitTests.KeyValue
 
             await stream.DisposeAsync();
 
-            // The scan sends every close before it awaits any of them, so when the close of the open
-            // scan arrives, a close of the completed scan would have arrived too.
-            await bucket.WhenClosed(second);
+            // Wait for the whole cleanup, so a close of the completed scan cannot arrive after the assert.
+            await collection.ScanCleanup;
             Assert.Equal([second], bucket.Closed);
+        }
+
+        [Fact]
+        public async Task WithCancellation_Already_Cancelled_Throws_Before_A_Scan_Is_Created()
+        {
+            var (collection, bucket) = CreateCollection();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await using var stream = collection.ScanAsync(new RangeScan())
+                .WithCancellation(cts.Token).GetAsyncEnumerator();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+            await collection.ScanCleanup;
+            Assert.Empty(bucket.Created);
+            Assert.Empty(bucket.Closed);
+        }
+
+        [Fact]
+        public async Task WithCancellation_Leaves_The_Callers_Options_Unchanged()
+        {
+            var (collection, bucket) = CreateCollection();
+            using var optionsCts = new CancellationTokenSource();
+            using var cts = new CancellationTokenSource();
+            var options = new ScanOptions().Token(optionsCts.Token);
+
+            await using var stream = collection.ScanAsync(new RangeScan(), options)
+                .WithCancellation(cts.Token).GetAsyncEnumerator();
+
+            var moved = stream.MoveNextAsync();
+            await bucket.NextContinue();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            Assert.Equal(optionsCts.Token, options.TokenValue);
+            Assert.False(optionsCts.IsCancellationRequested);
+        }
+
+        // The sampling limit ends the stream through the same exit as an early stop: the scan that
+        // still has documents is closed.
+        [Fact]
+        public async Task Sampling_Limit_Closes_The_Open_Scans()
+        {
+            var (collection, bucket) = CreateCollection();
+
+            await using var stream = collection.ScanAsync(new SamplingScan(limit: 1)).GetAsyncEnumerator();
+
+            var moved = stream.MoveNextAsync().AsTask();
+            var first = await bucket.NextContinue();
+            bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a", "b");
+            Assert.True(await moved);
+            Assert.Equal("a", stream.Current.Id);
+
+            Assert.False(await stream.MoveNextAsync());
+
+            await collection.ScanCleanup;
+            Assert.Equal([first], bucket.Closed);
         }
 
         [Fact]
@@ -190,6 +246,11 @@ namespace Couchbase.UnitTests.KeyValue
             public bool FailCloses { get; set; }
 
             /// <summary>
+            /// The partitions that a RangeScanCreate was sent for, in the order they were sent.
+            /// </summary>
+            public ConcurrentQueue<short> Created { get; } = new();
+
+            /// <summary>
             /// The partitions that a RangeScanCancel was sent for, in the order they were sent.
             /// </summary>
             public ConcurrentQueue<short> Closed { get; } = new();
@@ -199,6 +260,7 @@ namespace Couchbase.UnitTests.KeyValue
                 switch (operation)
                 {
                     case RangeScanCreate create:
+                        Created.Enqueue((short) create.VBucketId!);
                         // The scan's 16-byte UUID, which RangeScanContinue and RangeScanCancel send back.
                         create.Read(new SlicedMemoryOwner<byte>(new TestMemoryOwner(new byte[OperationHeader.Length + 16], 16)));
                         return Task.FromResult(ResponseStatus.Success);

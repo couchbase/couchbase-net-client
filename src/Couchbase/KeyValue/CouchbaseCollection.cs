@@ -208,9 +208,15 @@ namespace Couchbase.KeyValue
                 // still open on the server. The closes are not awaited: the caller asked to stop, so
                 // it does not wait for the cleanup.
                 linkedSource.CancelAndDispose();
-                _ = CloseOpenScansAsync(partitionScans);
+                ScanCleanup = CloseOpenScansAsync(partitionScans);
             }
         }
+
+        /// <summary>
+        /// The cleanup started by the most recent scan on this collection, which closes the scans it
+        /// left open. For tests only: it lets a test wait for every close the scan sends.
+        /// </summary>
+        internal Task ScanCleanup { get; private set; } = Task.CompletedTask;
 
         /// <summary>
         /// Closes each partition scan that is still open on the server. A close is best-effort:

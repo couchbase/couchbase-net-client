@@ -228,21 +228,67 @@ namespace Couchbase.UnitTests.Core.Retry
                 ;
         }
 
-        [Fact(Skip = "inconsistent results in jenkins")]
-        public async Task Operation_Throws_OperationCanceledException_After_External_Cancellation()
+        // The KV streams depend on this: an external cancel must throw OperationCanceledException, not a
+        // CouchbaseException, which the streams leave out of their results. The send stays pending until
+        // the test cancels, and the internal timeout runs on a fake clock, so no timer decides the result.
+        [Fact]
+        public async Task Operation_Throws_OperationCanceledException_When_Externally_Cancelled_During_Send()
         {
-            var operation = new Get<dynamic>
-            {
-                RetryStrategy = new BestEffortRetryStrategy()
-            };
+            var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
+            var op = new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() };
+            var sent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var exception = new NotMyVBucketException();
+            var bucketMock = CreateBucketMock(retryOrchestrator);
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
+                .Returns((IOperation _, CancellationTokenPair pair) =>
+                {
+                    var response = new TaskCompletionSource<ResponseStatus>();
+                    pair.Register(() => response.TrySetCanceled(pair.CanceledToken));
+                    sent.TrySetResult(true);
+                    return response.Task;
+                });
 
-            using var cts = new CancellationTokenSource(5000);
+            using var cts = new CancellationTokenSource();
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(timeProvider, TimeSpan.FromSeconds(10), cts.Token);
 
-            await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 0,
-                externalCancellationToken: cts.Token);
+            var retry = retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair);
+            await sent.Task;
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => retry);
         }
+
+        [Fact]
+        public async Task Operation_Throws_OperationCanceledException_When_Externally_Cancelled_Before_A_Retry()
+        {
+            var retryOrchestrator = CreateRetryOrchestrator(out var timeProvider);
+            var op = new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() };
+            using var cts = new CancellationTokenSource();
+
+            // The first send asks for a retry, and the caller cancels before the retry is sent.
+            var bucketMock = CreateBucketMock(retryOrchestrator);
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
+                .Returns(() =>
+                {
+                    cts.Cancel();
+                    return Task.FromResult(ResponseStatus.TemporaryFailure);
+                });
+
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(timeProvider, TimeSpan.FromSeconds(10), cts.Token);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair));
+            bucketMock.Verify(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()), Times.Once);
+        }
+
+        private static Mock<BucketBase> CreateBucketMock(IRetryOrchestrator retryOrchestrator) =>
+            new("fake", new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
+                new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new Redactor(RedactionLevel.None),
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object,
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
 
         [Fact]
         public async Task Operation_Throws_UnambiguousTimeout_After_Timeout_When_Mutation_Op_Not_Sent()

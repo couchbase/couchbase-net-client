@@ -38,6 +38,42 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         [Fact]
+        public async Task WithCancellation_Already_Cancelled_Throws()
+        {
+            var (collection, bucket) = CouchbaseCollectionGetAllReplicasStreamTests.CreateCollection(preferredServerGroup: null);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await using var stream = collection.LookupInAllReplicasAsync(DocId, Specs)
+                .WithCancellation(cts.Token).GetAsyncEnumerator();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+            foreach (var replicaIndex in new short?[] { null, 0, 2, 3 })
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bucket.Read(replicaIndex));
+            }
+        }
+
+        [Fact]
+        public async Task WithCancellation_Leaves_The_Callers_Options_Unchanged()
+        {
+            var (collection, bucket) = CouchbaseCollectionGetAllReplicasStreamTests.CreateCollection(preferredServerGroup: null);
+            using var optionsCts = new CancellationTokenSource();
+            using var cts = new CancellationTokenSource();
+            var options = new LookupInAllReplicasOptions().CancellationToken(optionsCts.Token);
+
+            await using var stream = collection.LookupInAllReplicasAsync(DocId, Specs, options)
+                .WithCancellation(cts.Token).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync();
+
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            Assert.Equal(optionsCts.Token, options.TokenValue);
+            Assert.False(optionsCts.IsCancellationRequested);
+        }
+
+        [Fact]
         public async Task Options_Token_Still_Cancels_The_Pending_Lookups()
         {
             var (collection, bucket) = CouchbaseCollectionGetAllReplicasStreamTests.CreateCollection(preferredServerGroup: null);

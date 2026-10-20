@@ -402,6 +402,21 @@ public class StellarCollectionTests
     }
 
     [Fact]
+    public async Task GetAllReplicasStreamAsync_WithCancellation_Already_Cancelled_Throws()
+    {
+        var handler = new PendingHttpHandler();
+        using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = handler });
+        var collection = await CreateCollectionAsync(channel);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await using var stream = collection.GetAllReplicasStreamAsync("key")
+            .WithCancellation(cts.Token).GetAsyncEnumerator();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+    }
+
+    [Fact]
     public async Task GetAllReplicasStreamAsync_Options_Token_Still_Cancels_The_Call()
     {
         var handler = new PendingHttpHandler();
@@ -444,15 +459,20 @@ public class StellarCollectionTests
         return (StellarCollection)bucket.DefaultCollection();
     }
 
+    // The KV timeout is the deadline of the gRPC call, on the real clock. It is long so that it cannot
+    // end the call before the test cancels it, however slow the machine.
     private static async Task<StellarCollection> CreateCollectionAsync(GrpcChannel channel)
     {
-        var bucket = (StellarBucket)await StellarMocks.CreateClusterFromMocksWithOptions(channel: channel).BucketAsync("test");
+        var cluster = StellarMocks.CreateClusterFromMocksWithOptions(
+            configureOptions: options => options.KvTimeout = TimeSpan.FromHours(1), channel: channel);
+        var bucket = (StellarBucket)await cluster.BucketAsync("test");
         return (StellarCollection)bucket.DefaultCollection();
     }
 
     /// <summary>
     /// Holds every gRPC request until it is cancelled, and signals when a request is sent and when
-    /// it is cancelled. Without a cancel, the call ends at the KV timeout with a timeout error.
+    /// it is cancelled. A request that is never cancelled makes the test wait, and CI's --blame-hang
+    /// fails a hung run and keeps a dump.
     /// </summary>
     private sealed class PendingHttpHandler : HttpMessageHandler
     {
