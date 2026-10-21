@@ -158,10 +158,13 @@ namespace Couchbase.Core.IO
             {
                 state.Operation.HandleOperationCompleted(in state._response);
             }
-            catch
+            catch (Exception ex)
             {
                 state._response.Dispose();
-                throw;
+
+                // Never rethrow: this runs on a thread-pool thread, where an unhandled exception ends the process.
+                // Fail the operation instead. If it has already completed, there is nothing left to report to.
+                state.Operation.TrySetException(ex);
             }
             finally
             {

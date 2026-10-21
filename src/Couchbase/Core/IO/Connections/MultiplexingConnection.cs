@@ -245,6 +245,9 @@ namespace Couchbase.Core.IO.Connections
                     // Process as many complete operation as we have in the buffer
                     while (TryReadOperation(ref buffer, out SlicedMemoryOwner<byte> operationResponse))
                     {
+                        // Once Complete returns, the buffer belongs to the state (and the operation it queues),
+                        // so the catch below must not dispose it.
+                        var handedOff = false;
                         try
                         {
                             var magic = (Magic) operationResponse.Memory.Span[HeaderOffsets.Magic];
@@ -262,7 +265,9 @@ namespace Couchbase.Core.IO.Connections
                                         false);
                                 if (_statesInFlight.TryGet(opaque, out var state))
                                 {
-                                    if (state.Complete(in operationResponse))
+                                    var completed = state.Complete(in operationResponse);
+                                    handedOff = true;
+                                    if (completed)
                                     {
                                         _statesInFlight.TryRemove(opaque, out _);
                                     }
@@ -275,9 +280,11 @@ namespace Couchbase.Core.IO.Connections
                         }
                         catch
                         {
-                            // Ownership of the buffer was not accepted by state.Complete due to an exception
-                            // Make sure we release the buffer
-                            operationResponse.Dispose();
+                            // Release the buffer only if state.Complete did not take it (it threw before or inside Complete)
+                            if (!handedOff)
+                            {
+                                operationResponse.Dispose();
+                            }
                             throw;
                         }
 
