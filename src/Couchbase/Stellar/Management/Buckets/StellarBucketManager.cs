@@ -171,7 +171,7 @@ internal class StellarBucketManager : IBucketManager
         }
         catch (KeyNotFoundException)
         {
-            throw new BucketNotFoundException($"Bucket '{bucketName}' not found.");
+            throw new BucketNotFoundException($"Bucket '{_stellarCluster.Redactor.MetaDataString(bucketName)}' not found.");
         }
     }
 

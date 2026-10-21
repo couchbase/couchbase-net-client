@@ -33,6 +33,7 @@ public static class StellarRetryStrings
     public const string ResourceTypeScope = "scope";
     public const string ResourceTypeCollection = "collection";
     public const string ResourceTypePath = "path";
+    public const string ResourceTypeCluster = "cluster";
 
     public const string ReasonCasMismatch = "CAS_MISMATCH";
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -28,8 +30,11 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
     /// </summary>
     internal static readonly TimeSpan MinimumAttemptGrace = TimeSpan.FromMilliseconds(100);
 
+    private static readonly Redactor NoRedaction = new(RedactionLevel.None);
+
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<StellarRetryHandler> _logger;
+    private readonly Redactor _redactor;
 
     public StellarRetryHandler() : this(TimeProvider.System) { }
 
@@ -42,9 +47,15 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
     }
 
     internal StellarRetryHandler(TimeProvider timeProvider, ILogger<StellarRetryHandler> logger)
+        : this(timeProvider, logger, NoRedaction)
+    {
+    }
+
+    internal StellarRetryHandler(TimeProvider timeProvider, ILogger<StellarRetryHandler> logger, Redactor redactor)
     {
         _timeProvider = timeProvider;
         _logger = logger;
+        _redactor = redactor;
         Delay = _timeProvider.Delay;
     }
 
@@ -223,6 +234,11 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
     {
         var status = protoException.StatusCode;
         var detail = protoException.Status.Detail;
+
+        // The gateway writes the document key, and sometimes a subdoc path, into the detail text
+        // (for example "Document 'k' not found in 'b/s/c'."), so the whole string is user data.
+        // The raw text is still used below to pick the exception type.
+        var redactedDetail = _redactor.UserDataString(detail);
         var detailBlock = StatusDeserializer(protoException);
         var typeUrl = detailBlock?.TypeUrl;
 
@@ -236,8 +252,8 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                     var resourceName = info.ResourceName;
                     var resourceType = info.ResourceType;
 
-                    context.Fields.Add("Detail", detail);
-                    context.Fields.Add("ResourceName", resourceName);
+                    context.Fields.Add("Detail", redactedDetail);
+                    context.Fields.Add("ResourceName", RedactResourceName(_redactor, resourceType, resourceName));
                     context.Fields.Add("ResourceType", resourceType);
 
                     switch (status)
@@ -271,12 +287,12 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                                 case StellarRetryStrings.ResourceTypeDocument:
                                     throw new DocumentExistsException(context);
                                 case StellarRetryStrings.ResourceTypeBucket:
-                                    throw new BucketExistsException(resourceName);
+                                    throw new BucketExistsException(_redactor.MetaDataString(resourceName));
                                 case StellarRetryStrings.ResourceTypeScope:
-                                    throw new ScopeExistsException(resourceName);
+                                    throw new ScopeExistsException(_redactor.MetaDataString(resourceName));
                                 case StellarRetryStrings.ResourceTypeCollection:
                                     throw new CollectionExistsException(
-                                        $"The collection at {resourceName} already exists.");
+                                        $"The collection at {_redactor.MetaDataString(resourceName)} already exists.");
                                 case StellarRetryStrings.ResourceTypePath:
                                     throw new PathExistsException(context);
                                 case StellarRetryStrings.ResourceTypeAnalyticsIndex:
@@ -338,7 +354,7 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                                     new ValueInvalidException(); //Prone to change as it's unclear what this Precondition failure maps to.
                             default:
                                 // Unknown precondition (e.g. the removed "CAS") — terminal, not retried.
-                                throw CreateTerminalException(context, status, detail);
+                                throw CreateTerminalException(context, status, redactedDetail);
                         }
                     }
                 }
@@ -368,17 +384,17 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                 if (detail.Contains(StellarRetryStrings.PathMismatch)) throw new PathMismatchException(context);
                 if (detail.Contains(StellarRetryStrings.ValueOutOfRange)) throw new ValueInvalidException();
                 if (detail.Contains(StellarRetryStrings.PathValueOutOfRange)) throw new NumberTooBigException();
-                if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException(detail);
+                if (detail.Contains(StellarRetryStrings.ValueTooLarge)) throw new ValueToolargeException(redactedDetail);
                 // Unmapped FAILED_PRECONDITION is non-retryable (LOCKED aside) — terminal.
-                throw CreateTerminalException(context, status, detail);
+                throw CreateTerminalException(context, status, redactedDetail);
             case StatusCode.PermissionDenied:
             case StatusCode.Unauthenticated:
                 throw new AuthenticationFailureException(context);
             case StatusCode.Cancelled:
-                throw new RequestCanceledException(detail) { Context = context };
+                throw new RequestCanceledException(redactedDetail) { Context = context };
             case StatusCode.DeadlineExceeded:
-                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(detail, context);
-                throw new AmbiguousTimeoutException(detail, context);
+                if (IsReadOnly(request)) throw new UnambiguousTimeoutException(redactedDetail, context);
+                throw new AmbiguousTimeoutException(redactedDetail, context);
             case StatusCode.Internal:
                 if (IsTransientGrpcTransportError(protoException))
                 {
@@ -389,7 +405,7 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                     request.Attempts++;
                     break;
                 }
-                throw new InternalServerFailureException(detail);
+                throw new InternalServerFailureException(redactedDetail);
             case StatusCode.Unavailable:
                 context.RetryReasons.Add(RetryReason.ServiceNotAvailable);
                 request.Attempts++;
@@ -398,7 +414,7 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
                 throw new InvalidArgumentException(context);
             // RESOURCE_EXHAUSTED (rate-limit only, not in RFC 77) is unmapped — falls through to default.
             default:
-                throw CreateTerminalException(context, status, detail);
+                throw CreateTerminalException(context, status, redactedDetail);
         }
     }
 
@@ -409,6 +425,29 @@ internal partial class StellarRetryHandler : IRetryOrchestrator
         context.Fields.Add("status", status);
         return new CouchbaseException(context, detail);
     }
+
+    /// <summary>
+    /// Redacts a gRPC <see cref="ResourceInfo.ResourceName"/>, whose category depends on its
+    /// <see cref="ResourceInfo.ResourceType"/>. A document or path name holds the document key
+    /// ("bucket/scope/collection/key[/path]"), so it is user data, and so is a user name (as
+    /// <see cref="IRedactor.UserData"/> defines it) and a type this SDK does not know. Bucket, scope,
+    /// collection, index and cluster names are metadata.
+    /// </summary>
+    [return: NotNullIfNotNull("resourceName")]
+    internal static string? RedactResourceName(Redactor redactor, string? resourceType, string? resourceName) =>
+        IsMetaDataResource(resourceType)
+            ? redactor.MetaDataString(resourceName)
+            : redactor.UserDataString(resourceName);
+
+    // The gateway is not consistent about case: it sends both "searchIndex" and "searchindex".
+    private static bool IsMetaDataResource(string? resourceType) =>
+        resourceType?.ToLowerInvariant() is StellarRetryStrings.ResourceTypeBucket
+            or StellarRetryStrings.ResourceTypeScope
+            or StellarRetryStrings.ResourceTypeCollection
+            or StellarRetryStrings.ResourceTypeQueryIndex
+            or StellarRetryStrings.ResourceTypeSearchIndex
+            or StellarRetryStrings.ResourceTypeAnalyticsIndex
+            or StellarRetryStrings.ResourceTypeCluster;
 
     internal virtual Any? StatusDeserializer(RpcException ex)
     {
