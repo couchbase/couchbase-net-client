@@ -106,6 +106,10 @@ namespace Couchbase.Core.IO.Connections.Channels
                 return;
             }
 
+            // AddConnectionsAsync assumes the pool is locked. A processor whose connection closes exits at once and
+            // calls RemoveConnectionAsync, which takes this lock; holding it here makes that wait until every initial
+            // processor is registered, so it removes the right one and refills from an accurate count.
+            await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
@@ -116,6 +120,10 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // the rest. A lossy path can drop one connection's handshake while its sibling
                 // succeeds, and discarding the node then throws away a usable connection.
                 LogPartialPoolInitialization(_redactor.SystemData(EndPoint), Size, MinimumSize, ex);
+            }
+            finally
+            {
+                _lock.Release();
             }
 
             // AddConnectionsAsync drops a dead connection without throwing, so the pool can end up
