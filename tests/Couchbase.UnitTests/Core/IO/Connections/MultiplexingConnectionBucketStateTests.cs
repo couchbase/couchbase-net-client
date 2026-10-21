@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -140,7 +141,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             var packet = Response(opCode, status);
             // The SDK writes the opaque little-endian and the server echoes it unchanged.
-            BitConverter.TryWriteBytes(packet.AsSpan(HeaderOffsets.Opaque, 4), opaque);
+            BinaryPrimitives.WriteUInt32LittleEndian(packet.AsSpan(HeaderOffsets.Opaque), opaque);
             return packet;
         }
 
