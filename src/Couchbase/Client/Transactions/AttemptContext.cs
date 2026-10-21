@@ -2669,7 +2669,7 @@ namespace Couchbase.Client.Transactions
 
             var expiresSoon = _overallContext.RemainingUntilExpiration < ExpiryThreshold;
             var docIdForHook = string.IsNullOrEmpty(statement) ? expiresSoon.ToString() : statement;
-            if (HasExpiredClientSide(docId: docIdForHook, hookPoint: hookPoint))
+            if (HasExpiredClientSide(docId: docIdForHook, hookPoint: hookPoint) || expiresSoon)
             {
                 Logger.LogInformation("transaction has expired in stage '{stage}' remaining={remaining} threshold={threshold}",
                     hookPoint, _overallContext.RemainingUntilExpiration.TotalMilliseconds, ExpiryThreshold.TotalMilliseconds);
