@@ -108,7 +108,23 @@ namespace Couchbase.Core.IO.Connections
                 ThrowHelper.ThrowArgumentNullException(nameof(state));
             }
 
-            await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            // Also wait on the set's lifetime. Dispose (the connection closing) cancels it before disposing the
+            // semaphore, and SemaphoreSlim.Dispose drops pending waiters without completing them. The pool's send
+            // path passes no token, so without this a send waiting for a slot on a closing connection never
+            // completes, and neither does the connection's processor, so the connection is never replaced.
+            var lifetime = GetLifetimeToken();
+            using var linked = cancellationToken.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime)
+                : null;
+            try
+            {
+                await _semaphore.WaitAsync(linked?.Token ?? lifetime).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+            {
+                // Not sent, so the operation can safely be retried on another connection.
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(InFlightOperationSet));
+            }
 
             if (!_statesInFlight.TryAdd(state.Opaque, state))
             {
@@ -116,6 +132,26 @@ namespace Couchbase.Core.IO.Connections
                 // release the semaphore so we don't leak.
 
                 _semaphore.Release();
+            }
+        }
+
+        private CancellationToken GetLifetimeToken()
+        {
+            var cts = _cts;
+            if (cts is null)
+            {
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(InFlightOperationSet));
+            }
+
+            try
+            {
+                return cts.Token;
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose cancels before it disposes, so a disposed source means the set is closed.
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(InFlightOperationSet));
+                return default;
             }
         }
 
@@ -229,7 +265,10 @@ namespace Couchbase.Core.IO.Connections
                 cts.Dispose();
             }
 
-            _semaphore.Dispose();
+            // The semaphore is deliberately not disposed. A waiter cancelled above wakes asynchronously and must
+            // remove itself from the semaphore's waiter list; SemaphoreSlim.Dispose clears that list, and the waiter
+            // then awaits forever. Without AvailableWaitHandle (never used here) it holds no unmanaged resources.
+            // This also lets a late TryRemove release a slot without throwing ObjectDisposedException.
 
             foreach (var state in _statesInFlight.Values)
             {

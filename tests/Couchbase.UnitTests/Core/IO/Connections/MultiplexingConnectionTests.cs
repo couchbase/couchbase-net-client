@@ -129,6 +129,36 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             Assert.False(conn.IsTrackedForDiagnostics);
         }
 
+        #region Close while sends wait
+
+        // NCBC-4328 (A), fixed under NCBC-4372: closing a connection while a send waits for an in-flight slot left
+        // that send, and so the pool's processor awaiting it, waiting forever.
+        [Fact]
+        public async Task SendAsync_WaitingForASlot_FailsWhenTheConnectionCloses()
+        {
+            // Arrange
+
+            using var stream = new BlockingStream();
+            var conn = new MultiplexingConnection(stream, 1, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            // The first send takes the only slot; nothing ever answers it.
+            await conn.SendAsync(new byte[24], Mock.Of<IOperation>(op => op.Opaque == 1));
+            var waiting = conn.SendAsync(new byte[24], Mock.Of<IOperation>(op => op.Opaque == 2)).AsTask();
+            Assert.False(waiting.IsCompleted);
+
+            // Act
+
+            conn.Close();
+
+            // Assert
+
+            // Retriable: the second operation was never sent.
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => waiting);
+        }
+
+        #endregion
+
         #region GetConnectionCount
 
         // Each connection gets its own stream throughout this region. Closing a stream makes the owning
