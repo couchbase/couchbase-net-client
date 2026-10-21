@@ -267,6 +267,7 @@ namespace Couchbase.Core.IO.Connections
                                 {
                                     var completed = state.Complete(in operationResponse);
                                     handedOff = true;
+                                    AfterStateCompletedForTests?.Invoke();
                                     if (completed)
                                     {
                                         _statesInFlight.TryRemove(opaque, out _);
@@ -430,6 +431,12 @@ namespace Couchbase.Core.IO.Connections
         /// which in turn convert the response into a cluster map and possible publish to the ConfigHandler.
         /// </summary>
         public Action<SlicedMemoryOwner<byte>>? OnClusterMapChangeNotification { get; set; }
+
+        /// <summary>
+        /// Test seam, always null in production: invoked in the receive loop after a state has taken a response's
+        /// buffer, so a test can fail that point and check that the buffer stays with the operation.
+        /// </summary>
+        internal Action? AfterStateCompletedForTests;
 
         private void UpdateLastActivity()
         {
