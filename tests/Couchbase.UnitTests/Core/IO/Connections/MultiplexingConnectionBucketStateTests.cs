@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -93,6 +94,41 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             connection.Dispose();
         }
 
+        // The close is graceful: the connection takes no new sends at once, but operations already in flight still
+        // get their responses. An immediate Close() would lose them.
+        [Fact]
+        public async Task NoBucket_AfterSelectingABucket_DrainsTheOperationsInFlightBeforeClosing()
+        {
+            // Arrange
+
+            using var stream = new FeedStream();
+            var connection = CreateConnection(stream);
+            var first = new Noop();
+            var second = new Noop();
+            await connection.SendAsync(new byte[HeaderOffsets.HeaderLength], first);
+            await connection.SendAsync(new byte[HeaderOffsets.HeaderLength], second);
+
+            // Act
+
+            stream.Feed(Response(OpCode.SelectBucket, ResponseStatus.Success));
+            stream.Feed(Response(OpCode.NoOp, ResponseStatus.BucketNotConnected, first.Opaque));
+
+            // Assert
+
+            Assert.Equal(ResponseStatus.BucketNotConnected, await first.Completed);
+
+            // Marked dead at once, so nothing new is sent on it.
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() =>
+                connection.SendAsync(new byte[HeaderOffsets.HeaderLength], new Noop()).AsTask());
+
+            // Still open: the close waits for the second operation, which is in flight.
+            Assert.False(stream.Disposed.IsCompleted);
+
+            stream.Feed(Response(OpCode.NoOp, ResponseStatus.Success, second.Opaque));
+            Assert.Equal(ResponseStatus.Success, await second.Completed);
+            await stream.Disposed;
+        }
+
         #region Helpers
 
         private static MultiplexingConnection CreateConnection(Stream stream) =>
@@ -100,6 +136,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 new Logger<MultiplexingConnection>(new LoggerFactory()));
 
         // A 24-byte response header with no body; the opaque matches no in-flight operation.
+        private static byte[] Response(OpCode opCode, ResponseStatus status, uint opaque)
+        {
+            var packet = Response(opCode, status);
+            // The SDK writes the opaque little-endian and the server echoes it unchanged.
+            BitConverter.TryWriteBytes(packet.AsSpan(HeaderOffsets.Opaque, 4), opaque);
+            return packet;
+        }
+
         private static byte[] Response(OpCode opCode, ResponseStatus status)
         {
             var packet = new byte[HeaderOffsets.HeaderLength];
