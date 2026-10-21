@@ -127,7 +127,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+            _stellarCluster.GrpcCallOptions(opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
             .ReadAllAsync()
@@ -161,15 +161,16 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
+        var timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout;
         using var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+            _stellarCluster.GrpcCallOptions(timeout, opts.Token));
 
         // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
         var stellarRequest = new StellarRequest
         {
             Idempotent = true,
             Token = opts.Token,
-            Timeout = _stellarCluster.ClusterOptions.KvTimeout
+            Timeout = timeout
         };
 
         await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,

@@ -64,9 +64,10 @@ internal static class StellarMocks
     public static StellarCluster CreateClusterFromMocksWithOptions(
         IOperationCompressor? compressor = null,
         Action<ClusterOptions>? configureOptions = null,
-        Mock<IRetryOrchestrator>? requestOrchestratorMock = null)
+        Mock<IRetryOrchestrator>? requestOrchestratorMock = null,
+        GrpcChannel? channel = null)
     {
-        var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));
+        channel ??= GrpcChannel.ForAddress(new Uri("https://xxx"));
         var bucketManager = new Mock<IBucketManager>();
         var searchIndexManager = new Mock<ISearchIndexManager>();
         var queryServiceClient = new Mock<IQueryClient>();
