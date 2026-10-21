@@ -42,6 +42,10 @@ internal class WebSocketClientHandler : IDisposable
     private readonly TimeProvider _timeProvider;
     private int _attempt;
     private string? _pendingMetrics;
+    private bool _warnedPlaintextOverride;
+#if NET8_0_OR_GREATER
+    private SocketsHttpHandler? _overrideHandler;
+#endif
 
     // Released to wake the loop when the remote set changes.
     private readonly SemaphoreSlim _wakeSignal = new(0, 1);
@@ -179,34 +183,90 @@ internal class WebSocketClientHandler : IDisposable
     private async Task InitializeWebSocketAsync(Uri endpoint, CancellationToken cancellationToken)
     {
         _webSocket?.Dispose();
-        _webSocket = new ClientWebSocket();
-        _webSocket.Options.KeepAliveInterval = _appTelemetryCollector.PingInterval;
+        _webSocket = CreateWebSocket(endpoint, out var handler);
 
-        // If .NET >= 8, we can simply take the configured HttpMessageHandler from the CouchbaseHttpClientFactory
-        // which is already properly configured with the given Authenticator.
 #if NET8_0_OR_GREATER
-        var handler = _couchbaseHttpClientFactory.Handler;
-        await _webSocket.ConnectAsync(endpoint, new HttpMessageInvoker(handler), cancellationToken).ConfigureAwait(false);
+        await _webSocket.ConnectAsync(endpoint, new HttpMessageInvoker(handler!), cancellationToken).ConfigureAwait(false);
         _logger.LogDebug("Successfully established WebSocket connection to {Endpoint}", _redactor.SystemData(endpoint));
 #else
+        await _webSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+#endif
+    }
+
+    /// <summary>
+    /// True when <paramref name="remote"/> is the endpoint the application configured, not a node the cluster advertised.
+    /// The cluster's credentials belong to the cluster, so they must never be offered to an endpoint of the application's choosing.
+    /// </summary>
+    private bool IsOverrideEndpoint(Uri remote) =>
+        _appTelemetryCollector.ClusterContext?.ClusterOptions?.AppTelemetry?.Endpoint is { } configured
+        && configured == remote;
+
+    /// <summary>
+    /// Builds the socket for <paramref name="endpoint"/>. A cluster node is authenticated like any other HTTP request to
+    /// the cluster. A configured override endpoint is only given the server certificate validation, never a password,
+    /// token or client certificate (RFC 0084: the override endpoint is unauthenticated).
+    /// </summary>
+    /// <param name="endpoint">The remote the socket will connect to.</param>
+    /// <param name="handler">On .NET 8 and later, the handler the connection must use. Always null on earlier targets.</param>
+    internal ClientWebSocket CreateWebSocket(Uri endpoint, out HttpMessageHandler? handler)
+    {
+        var webSocket = new ClientWebSocket();
+        webSocket.Options.KeepAliveInterval = _appTelemetryCollector.PingInterval;
+        var isOverride = IsOverrideEndpoint(endpoint);
+
+        if (isOverride && !_warnedPlaintextOverride && string.Equals(endpoint.Scheme, "ws", StringComparison.OrdinalIgnoreCase))
+        {
+            _warnedPlaintextOverride = true;
+            _logger.LogWarning(
+                "The App Telemetry endpoint {Endpoint} uses ws://, so telemetry is sent unencrypted. Use wss:// outside of development.",
+                _redactor.SystemData(endpoint));
+        }
+
+#if NET8_0_OR_GREATER
+        // If .NET >= 8, we can take a configured HttpMessageHandler instead of configuring the socket options.
+        handler = isOverride ? GetOverrideHandler() : _couchbaseHttpClientFactory.Handler;
+#else
+        handler = null;
+
         // The previous WebSocket object does not take an HttpMessageInvoker (through which we pass the configured handler above)
         // We must therefore manually configure the ClientWebSocketOptions to match what would have been done
         // by the HttpClientHandler in the CouchbaseHttpClientFactory.
         // (Meaning configuring the RemoteCertificateValidationCallback, and client authentication via Password, Jwt or Client Certificates)
 #if NET5_0_OR_GREATER
-            var certValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
-            _webSocket.Options.RemoteCertificateValidationCallback = certValidationCallback;
+        var certValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
+        webSocket.Options.RemoteCertificateValidationCallback = certValidationCallback;
 #endif
 #if !NETCOREAPP3_1_OR_GREATER
-            _logger.LogDebug("This version of .NET does not support custom RemoteCertificateValidationCallback on the ClientWebSocketOptions");
+        _logger.LogDebug("This version of .NET does not support custom RemoteCertificateValidationCallback on the ClientWebSocketOptions");
 #endif
 
-        _appTelemetryCollector.Authenticator!.AuthenticateClientWebSocket(_webSocket);
-
-        await _webSocket.ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
+        if (!isOverride)
+        {
+            _appTelemetryCollector.Authenticator!.AuthenticateClientWebSocket(webSocket);
+        }
 #endif
 
+        return webSocket;
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// A handler that validates the server certificate like the cluster's handler but carries no client certificate.
+    /// It is kept for the life of this object so connections to the override endpoint can reuse it.
+    /// </summary>
+    private SocketsHttpHandler GetOverrideHandler()
+    {
+        if (_overrideHandler is not null) return _overrideHandler;
+
+        var tls = _appTelemetryCollector.ClusterContext!.ClusterOptions.TlsSettings;
+        var handler = new SocketsHttpHandler();
+        handler.SslOptions.CertificateRevocationCheckMode = tls.EnableCertificateRevocation
+            ? X509RevocationMode.Online
+            : X509RevocationMode.NoCheck;
+        handler.SslOptions.RemoteCertificateValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
+        return _overrideHandler = handler;
+    }
+#endif
 
     private async Task ReceiveAsync(CancellationToken cancellationToken)
     {
@@ -298,6 +358,9 @@ internal class WebSocketClientHandler : IDisposable
     {
         // The collector cancels the loop token first. The wake signal is not disposed because the loop may still wait on it.
         _webSocket?.Dispose();
+#if NET8_0_OR_GREATER
+        _overrideHandler?.Dispose();
+#endif
     }
 
     /// <summary>
