@@ -93,7 +93,9 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan(), new ScanOptions().Token(cts.Token))
                 .GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync().AsTask();
+            // Awaited as a ValueTask, as in the other tests: on .NET Framework, ValueTask.AsTask() completes the
+            // task as cancelled without the exception's token, so the token could not be checked.
+            var moved = stream.MoveNextAsync();
             var first = await bucket.NextContinue();
             cts.Cancel();
 
