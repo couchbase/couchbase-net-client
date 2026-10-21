@@ -60,12 +60,15 @@ namespace Couchbase.Core.Logging
         // it yields a useless "<ud></ud>". When RedactionLevel is None these return the same
         // string instance, so the default configuration stays allocation-free.
 
+        [return: NotNullIfNotNull("value")]
         public string? UserDataString(string? value) =>
             string.IsNullOrEmpty(value) ? value : UserData(value).ToString();
 
+        [return: NotNullIfNotNull("value")]
         public string? MetaDataString(string? value) =>
             string.IsNullOrEmpty(value) ? value : MetaData(value).ToString();
 
+        [return: NotNullIfNotNull("value")]
         public string? SystemDataString(string? value) =>
             string.IsNullOrEmpty(value) ? value : SystemData(value).ToString();
 

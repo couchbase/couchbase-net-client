@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -190,7 +191,9 @@ namespace Couchbase.KeyValue
     public class GetAllReplicasOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         public static readonly ReadOnly DefaultReadOnly = new GetAllReplicasOptions().AsReadOnly();
-        TimeSpan? ITimeoutOptions.Timeout => default;
+
+        internal TimeSpan? TimeoutValue { get; private set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
@@ -293,10 +296,31 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which each read, of the active and of each replica, will timeout if it does not complete.
+        /// If not set, <see cref="ClusterOptions.KvTimeout"/> is used.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
+        public GetAllReplicasOptions Timeout(TimeSpan timeout)
+        {
+            if (ReferenceEquals(this, Default))
+            {
+                return new GetAllReplicasOptions
+                {
+                    TimeoutValue = timeout
+                };
+            }
+
+            TimeoutValue = timeout;
+            return this;
+        }
+
         public static GetAllReplicasOptions Default { get; } = new();
 
-        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
+            timeout = TimeoutValue;
             token = TokenValue;
             transcoder = TranscoderValue;
             retryStrategy = RetryStrategyValue;
@@ -304,20 +328,37 @@ namespace Couchbase.KeyValue
             readPreference = ReadPreferenceValue;
         }
 
+        // Kept for compatibility with callers compiled before Timeout was added.
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference) =>
+            Deconstruct(out _, out token, out transcoder, out retryStrategy, out requestSpan, out readPreference);
+
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
-            return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
+            return new ReadOnly(timeout, token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
         public record ReadOnly(
+            TimeSpan? Timeout,
             CancellationToken Token,
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
             InternalReadPreference ReadPreference) : ITranscoderOverrideOptions, ITimeoutOptions
         {
-            TimeSpan? ITimeoutOptions.Timeout => default;
+            // Kept for compatibility with callers compiled before Timeout was added.
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            // The parameter names match the generated positional members, so named-argument calls still compile.
+            public ReadOnly(CancellationToken Token, ITypeTranscoder? Transcoder, IRetryStrategy? RetryStrategy, IRequestSpan? RequestSpan, InternalReadPreference ReadPreference)
+                : this(null, Token, Transcoder, RetryStrategy, RequestSpan, ReadPreference)
+            {
+            }
+
+            // Kept for compatibility with callers compiled before Timeout was added.
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            public void Deconstruct(out CancellationToken Token, out ITypeTranscoder? Transcoder, out IRetryStrategy? RetryStrategy, out IRequestSpan? RequestSpan, out InternalReadPreference ReadPreference) =>
+                Deconstruct(out _, out Token, out Transcoder, out RetryStrategy, out RequestSpan, out ReadPreference);
         }
     }
 
@@ -331,7 +372,9 @@ namespace Couchbase.KeyValue
     public class GetAnyReplicaOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         public static readonly ReadOnly DefaultReadOnly = new GetAnyReplicaOptions().AsReadOnly();
-        TimeSpan? ITimeoutOptions.Timeout => default;
+
+        internal TimeSpan? TimeoutValue { get; private set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -424,10 +467,31 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which each read, of the active and of each replica, will timeout if it does not complete.
+        /// If not set, <see cref="ClusterOptions.KvTimeout"/> is used.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="GetAnyReplicaOptions"/> instance for chaining.</returns>
+        public GetAnyReplicaOptions Timeout(TimeSpan timeout)
+        {
+            if (ReferenceEquals(this, Default))
+            {
+                return new GetAnyReplicaOptions
+                {
+                    TimeoutValue = timeout
+                };
+            }
+
+            TimeoutValue = timeout;
+            return this;
+        }
+
         public static GetAnyReplicaOptions Default { get; } = new();
 
-        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
+        public void Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference)
         {
+            timeout = TimeoutValue;
             token = TokenValue;
             transcoder = TranscoderValue;
             retryStrategy = RetryStrategyValue;
@@ -435,18 +499,38 @@ namespace Couchbase.KeyValue
             readPreference = ReadPreferenceValue;
         }
 
+        // Kept for compatibility with callers compiled before Timeout was added.
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference) =>
+            Deconstruct(out _, out token, out transcoder, out retryStrategy, out requestSpan, out readPreference);
+
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
-            return new ReadOnly(token, transcoder, retryStrategy, requestSpan, readPreference);
+            this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out InternalReadPreference readPreference);
+            return new ReadOnly(timeout, token, transcoder, retryStrategy, requestSpan, readPreference);
         }
 
         public record ReadOnly(
+            TimeSpan? Timeout,
             CancellationToken Token,
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            InternalReadPreference ReadPreference);
+            InternalReadPreference ReadPreference)
+        {
+            // Kept for compatibility with callers compiled before Timeout was added.
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            // The parameter names match the generated positional members, so named-argument calls still compile.
+            public ReadOnly(CancellationToken Token, ITypeTranscoder? Transcoder, IRetryStrategy? RetryStrategy, IRequestSpan? RequestSpan, InternalReadPreference ReadPreference)
+                : this(null, Token, Transcoder, RetryStrategy, RequestSpan, ReadPreference)
+            {
+            }
+
+            // Kept for compatibility with callers compiled before Timeout was added.
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            public void Deconstruct(out CancellationToken Token, out ITypeTranscoder? Transcoder, out IRetryStrategy? RetryStrategy, out IRequestSpan? RequestSpan, out InternalReadPreference ReadPreference) =>
+                Deconstruct(out _, out Token, out Transcoder, out RetryStrategy, out RequestSpan, out ReadPreference);
+        }
     }
 
     #endregion

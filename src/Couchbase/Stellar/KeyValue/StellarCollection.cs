@@ -127,7 +127,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+            _stellarCluster.GrpcCallOptions(opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
             .ReadAllAsync()
@@ -162,6 +162,9 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
+        // The per-call timeout, or the cluster's KV timeout if none is set.
+        var timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout;
+
         // Either the options token or the token passed to the enumerator, such as by
         // WithCancellation, cancels the call.
         var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
@@ -170,14 +173,14 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
             var token = linkedSource.Token;
 
             using var response = _kvClient.GetAllReplicas(request,
-                _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, token));
+                _stellarCluster.GrpcCallOptions(timeout, token));
 
             // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
             var stellarRequest = new StellarRequest
             {
                 Idempotent = true,
                 Token = token,
-                Timeout = _stellarCluster.ClusterOptions.KvTimeout
+                Timeout = timeout
             };
 
             // Enumerated by hand, so that a cancel can be given the caller's token: a catch cannot
