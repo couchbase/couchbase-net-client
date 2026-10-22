@@ -76,7 +76,7 @@ namespace Couchbase.UnitTests.Core.DI
         }
 #endif
 
-        // ── CreatePasswordMechanism(IConnection, enableTls, ...) — negotiation from cached list ──────────
+        // ── CreatePasswordMechanism(IConnection, ...) — PLAIN over TLS, otherwise negotiation from cached list ──
 
         private static SaslMechanismFactory CreateFactory() => new(
             new Mock<ILogger<PlainSaslMechanism>>().Object,
@@ -85,10 +85,11 @@ namespace Couchbase.UnitTests.Core.DI
             NoopRequestTracer.Instance,
             Mock.Of<IOperationConfigurator>());
 
-        private static IConnection ConnectionWith(string supportedSaslMechanisms)
+        private static IConnection ConnectionWith(string supportedSaslMechanisms, bool isSecure = false)
         {
             var connection = new Mock<IConnection>();
             connection.SetupGet(c => c.SupportedSaslMechanisms).Returns(supportedSaslMechanisms);
+            connection.SetupGet(c => c.IsSecure).Returns(isSecure);
             return connection.Object;
         }
 
@@ -96,9 +97,20 @@ namespace Couchbase.UnitTests.Core.DI
         public void CreatePasswordMechanism_Tls_ReturnsPlain_WithoutNegotiation()
         {
             // Over TLS, PLAIN is used directly; the server list is irrelevant (here it's even null).
-            var result = CreateFactory().CreatePasswordMechanism(ConnectionWith(null), enableTls: true, "ted", "secret");
+            var result = CreateFactory().CreatePasswordMechanism(ConnectionWith(null, isSecure: true), "ted", "secret");
 
             Assert.IsType<PlainSaslMechanism>(result);
+        }
+
+        [Fact]
+        public void CreatePasswordMechanism_NonTls_ServerOffersOnlyPlain_ThrowsRatherThanSendingPlain()
+        {
+            // NCBC-4331: the password must never go out as PLAIN on an unencrypted connection, even when
+            // PLAIN is the only mechanism the server offers.
+            var ex = Assert.Throws<AuthenticationFailureException>(() =>
+                CreateFactory().CreatePasswordMechanism(ConnectionWith("PLAIN"), "ted", "secret"));
+
+            Assert.Contains("No common SASL mechanism", ex.Message);
         }
 
         [Theory]
@@ -107,7 +119,7 @@ namespace Couchbase.UnitTests.Core.DI
         public void CreatePasswordMechanism_NonTls_EmptyServerList_Throws(string serverList)
         {
             var ex = Assert.Throws<AuthenticationFailureException>(() =>
-                CreateFactory().CreatePasswordMechanism(ConnectionWith(serverList), enableTls: false, "ted", "secret"));
+                CreateFactory().CreatePasswordMechanism(ConnectionWith(serverList), "ted", "secret"));
 
             Assert.Contains("bootstrap", ex.Message);
         }
@@ -118,7 +130,7 @@ namespace Couchbase.UnitTests.Core.DI
         [InlineData("SCRAM-SHA256 SCRAM-SHA1 PLAIN", MechanismType.ScramSha256)]
         public void CreatePasswordMechanism_NonTls_OnNet8Plus_SelectsStrongest(string serverList, MechanismType expected)
         {
-            var result = CreateFactory().CreatePasswordMechanism(ConnectionWith(serverList), enableTls: false, "ted", "secret");
+            var result = CreateFactory().CreatePasswordMechanism(ConnectionWith(serverList), "ted", "secret");
 
             var scram = Assert.IsType<ScramShaMechanism>(result);
             Assert.Equal(expected, scram.MechanismType);
@@ -129,7 +141,7 @@ namespace Couchbase.UnitTests.Core.DI
         {
             // Server offers only SHA-1, which is disabled on .NET 8+ → no common mechanism.
             var ex = Assert.Throws<AuthenticationFailureException>(() =>
-                CreateFactory().CreatePasswordMechanism(ConnectionWith("SCRAM-SHA1 PLAIN"), enableTls: false, "ted", "secret"));
+                CreateFactory().CreatePasswordMechanism(ConnectionWith("SCRAM-SHA1 PLAIN"), "ted", "secret"));
 
             Assert.Contains("No common SASL mechanism", ex.Message);
         }
@@ -138,7 +150,7 @@ namespace Couchbase.UnitTests.Core.DI
         public void CreatePasswordMechanism_NonTls_OnNetStandard_SelectsSha1()
         {
             var result = CreateFactory().CreatePasswordMechanism(
-                ConnectionWith("SCRAM-SHA512 SCRAM-SHA256 SCRAM-SHA1 PLAIN"), enableTls: false, "ted", "secret");
+                ConnectionWith("SCRAM-SHA512 SCRAM-SHA256 SCRAM-SHA1 PLAIN"), "ted", "secret");
 
             var scram = Assert.IsType<ScramShaMechanism>(result);
 #pragma warning disable CS0618

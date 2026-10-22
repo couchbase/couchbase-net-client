@@ -61,10 +61,12 @@ namespace Couchbase.Core.DI
             };
         }
 
-        public ISaslMechanism CreatePasswordMechanism(IConnection connection, bool enableTls, string username, string password)
+        public ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password)
         {
-            // PLAIN is safe over TLS and needs no negotiation.
-            if (enableTls)
+            // PLAIN sends the password as-is, so it is only used when this connection is encrypted. The
+            // transport is the source of truth: a flag captured when the authenticator was created can be
+            // wrong for the connection actually being authenticated.
+            if (connection.IsSecure)
             {
                 return CreatePasswordMechanism(MechanismType.Plain, username, password);
             }
