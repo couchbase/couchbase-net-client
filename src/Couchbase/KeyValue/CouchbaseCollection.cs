@@ -176,7 +176,7 @@ namespace Couchbase.KeyValue
                 {
                     foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
                     {
-                        CancellationTokenExtensions.ThrowIfEitherCancellationRequested(options.TokenValue, cancellationToken);
+                        options.TokenValue.ThrowIfEitherCancellationRequested(cancellationToken);
 
                         PartitionScan result;
                         try

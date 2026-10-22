@@ -52,7 +52,7 @@ internal static class CancellationTokenExtensions
     /// Throws an <see cref="OperationCanceledException"/> for the first of two caller tokens that is
     /// cancelled.
     /// </summary>
-    public static void ThrowIfEitherCancellationRequested(CancellationToken first, CancellationToken second)
+    public static void ThrowIfEitherCancellationRequested(this CancellationToken first, CancellationToken second)
     {
         first.ThrowIfCancellationRequested();
         second.ThrowIfCancellationRequested();
