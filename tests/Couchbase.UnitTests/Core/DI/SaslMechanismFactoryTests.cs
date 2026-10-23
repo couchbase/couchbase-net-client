@@ -160,5 +160,96 @@ namespace Couchbase.UnitTests.Core.DI
 #pragma warning restore CS0618
         }
 #endif
+
+        // ── CreateLdapCompatibleMechanism — PLAIN on every transport, warning once on non-TLS (NCBC-4375) ──
+
+        private static (SaslMechanismFactory Factory, Mock<ILogger<PlainSaslMechanism>> PlainLogger) CreateFactoryWithPlainLogger()
+        {
+            var plainLogger = new Mock<ILogger<PlainSaslMechanism>>();
+            var factory = new SaslMechanismFactory(
+                plainLogger.Object,
+                new Mock<ILogger<ScramShaMechanism>>().Object,
+                new Mock<ILogger<OAuthBearerSaslMechanism>>().Object,
+                NoopRequestTracer.Instance,
+                Mock.Of<IOperationConfigurator>());
+            return (factory, plainLogger);
+        }
+
+        private static void VerifyWarnings(Mock<ILogger<PlainSaslMechanism>> logger, Times times) =>
+            logger.Verify(
+                l => l.Log(LogLevel.Warning, It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("cleartext")),
+                    It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                times);
+
+        [Theory]
+        [InlineData("SCRAM-SHA512 SCRAM-SHA256 SCRAM-SHA1 PLAIN")]
+        [InlineData("PLAIN")]
+        public void CreateLdapCompatibleMechanism_NonTls_ServerOffersPlain_ReturnsPlain(string serverList)
+        {
+            var (factory, _) = CreateFactoryWithPlainLogger();
+
+            var result = factory.CreateLdapCompatibleMechanism(ConnectionWith(serverList), "ted", "secret");
+
+            Assert.IsType<PlainSaslMechanism>(result);
+        }
+
+        [Fact]
+        public void CreateLdapCompatibleMechanism_NonTls_ServerDoesNotOfferPlain_Throws()
+        {
+            var (factory, logger) = CreateFactoryWithPlainLogger();
+
+            var ex = Assert.Throws<AuthenticationFailureException>(() =>
+                factory.CreateLdapCompatibleMechanism(ConnectionWith("SCRAM-SHA512 SCRAM-SHA256"), "ted", "secret"));
+
+            Assert.Contains("SCRAM-SHA512 SCRAM-SHA256", ex.Message);
+            VerifyWarnings(logger, Times.Never());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void CreateLdapCompatibleMechanism_NonTls_NoServerList_StillTriesPlain(string serverList)
+        {
+            var (factory, _) = CreateFactoryWithPlainLogger();
+
+            var result = factory.CreateLdapCompatibleMechanism(ConnectionWith(serverList), "ted", "secret");
+
+            Assert.IsType<PlainSaslMechanism>(result);
+        }
+
+        [Fact]
+        public void CreateLdapCompatibleMechanism_NonTls_WarnsOnce()
+        {
+            var (factory, logger) = CreateFactoryWithPlainLogger();
+
+            for (var i = 0; i < 3; i++)
+            {
+                factory.CreateLdapCompatibleMechanism(ConnectionWith("PLAIN"), "ted", "secret");
+            }
+
+            VerifyWarnings(logger, Times.Once());
+        }
+
+        [Fact]
+        public void CreateLdapCompatibleMechanism_Tls_ReturnsPlain_WithoutWarning()
+        {
+            var (factory, logger) = CreateFactoryWithPlainLogger();
+
+            var result = factory.CreateLdapCompatibleMechanism(ConnectionWith(null, isSecure: true), "ted", "secret");
+
+            Assert.IsType<PlainSaslMechanism>(result);
+            VerifyWarnings(logger, Times.Never());
+        }
+
+        [Fact]
+        public void CreatePasswordMechanism_NonTls_DoesNotWarn()
+        {
+            var (factory, logger) = CreateFactoryWithPlainLogger();
+
+            factory.CreatePasswordMechanism(ConnectionWith("SCRAM-SHA512 SCRAM-SHA256 SCRAM-SHA1 PLAIN"), "ted", "secret");
+
+            VerifyWarnings(logger, Times.Never());
+        }
     }
 }

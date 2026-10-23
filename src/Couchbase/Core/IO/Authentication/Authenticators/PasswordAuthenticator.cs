@@ -23,6 +23,7 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     public readonly string Username;
     public readonly string Password;
     private readonly string _encodedCredentials;
+    private readonly bool _ldapCompatible;
 
     public override AuthenticatorType AuthenticatorType => AuthenticatorType.Password;
     public override bool CanReauthenticateKv => false;
@@ -37,13 +38,35 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     /// <param name="username">The username.</param>
     /// <param name="password">The password.</param>
     public PasswordAuthenticator(string username, string password)
+        : this(ldapCompatible: false, username, password)
+    {
+    }
+
+    private PasswordAuthenticator(bool ldapCompatible, string username, string password)
     {
         Username = username;
         Password = password;
+        _ldapCompatible = ldapCompatible;
 
         var usernameAndPasswordBytes = Encoding.UTF8.GetBytes($"{Username}:{Password}");
         _encodedCredentials = Convert.ToBase64String(usernameAndPasswordBytes);
     }
+
+    /// <summary>
+    /// Creates a PasswordAuthenticator that authenticates KV connections with SASL PLAIN only, for users
+    /// that have no SCRAM credentials, such as LDAP users.
+    /// </summary>
+    /// <remarks>
+    /// WARNING: on a non-TLS connection (<c>couchbase://</c>) PLAIN sends the password in cleartext, to anyone
+    /// who can observe the network. Connect with <c>couchbases://</c> instead whenever possible. The SDK logs
+    /// a warning the first time it sends PLAIN on a non-TLS connection. Over TLS, this authenticator behaves
+    /// the same as one created with <see cref="PasswordAuthenticator(string, string)"/>.
+    /// </remarks>
+    /// <param name="username">The username.</param>
+    /// <param name="password">The password.</param>
+    /// <returns>A PasswordAuthenticator that uses SASL PLAIN on every KV connection.</returns>
+    public static PasswordAuthenticator LdapCompatible(string username, string password) =>
+        new(ldapCompatible: true, username, password);
 
     /// <summary>
     /// Creates a new PasswordAuthenticator with the specified credentials.
@@ -76,9 +99,11 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     {
         // The factory resolves the mechanism from the connection's transport: PLAIN over TLS, otherwise the
         // strongest SCRAM mechanism mutually supported by this target framework and the server (negotiated
-        // from the SASL_LIST_MECHS list cached on the connection during bootstrap).
-        var saslMechanism = saslMechanismFactory.CreatePasswordMechanism(
-            connection, Username, Password);
+        // from the SASL_LIST_MECHS list cached on the connection during bootstrap). LdapCompatible uses PLAIN
+        // on every transport.
+        var saslMechanism = _ldapCompatible
+            ? saslMechanismFactory.CreateLdapCompatibleMechanism(connection, Username, Password)
+            : saslMechanismFactory.CreatePasswordMechanism(connection, Username, Password);
 
         await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
     }

@@ -22,6 +22,17 @@ namespace Couchbase.Core.DI
         ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password);
 
         /// <summary>
+        /// Creates the PLAIN mechanism for <c>PasswordAuthenticator.LdapCompatible</c>, on any transport.
+        /// On a non-TLS connection it requires the server to advertise PLAIN, and logs a warning (once) that
+        /// the password is sent in cleartext.
+        /// </summary>
+        /// <param name="connection">The connection being authenticated; supplies its transport and the cached server mechanism list.</param>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        /// <returns>A PLAIN SASL mechanism.</returns>
+        ISaslMechanism CreateLdapCompatibleMechanism(IConnection connection, string username, string password);
+
+        /// <summary>
         /// Creates an OAUTHBEARER SASL mechanism for JWT authentication.
         /// </summary>
         /// <param name="token">The JWT token.</param>

@@ -48,6 +48,33 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.Authenticators
             Assert.IsType<PlainSaslMechanism>(chosen);
         }
 
+        // NCBC-4375: LdapCompatible is the explicit opt-in to PLAIN on a non-TLS connection.
+
+        [Fact]
+        public async Task AuthenticateKv_LdapCompatible_NonTlsConnection_UsesPlain()
+        {
+            var chosen = await AuthenticateAsync(PasswordAuthenticator.LdapCompatible("ted", "secret"), isSecure: false);
+
+            Assert.IsType<PlainSaslMechanism>(chosen);
+        }
+
+        [Fact]
+        public async Task AuthenticateKv_LdapCompatible_TlsConnection_UsesPlain()
+        {
+            var chosen = await AuthenticateAsync(PasswordAuthenticator.LdapCompatible("ted", "secret"), isSecure: true);
+
+            Assert.IsType<PlainSaslMechanism>(chosen);
+        }
+
+        [Fact]
+        public void LdapCompatible_KeepsTheCredentials()
+        {
+            var authenticator = PasswordAuthenticator.LdapCompatible("ted", "secret");
+
+            Assert.Equal("ted", authenticator.Username);
+            Assert.Equal("secret", authenticator.Password);
+        }
+
         private static async Task<ISaslMechanism> AuthenticateAsync(PasswordAuthenticator authenticator, bool isSecure)
         {
             var connection = new Mock<IConnection>();
@@ -79,6 +106,12 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.Authenticators
             public ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password)
             {
                 Chosen = _inner.CreatePasswordMechanism(connection, username, password);
+                return Mock.Of<ISaslMechanism>();
+            }
+
+            public ISaslMechanism CreateLdapCompatibleMechanism(IConnection connection, string username, string password)
+            {
+                Chosen = _inner.CreateLdapCompatibleMechanism(connection, username, password);
                 return Mock.Of<ISaslMechanism>();
             }
 
