@@ -196,10 +196,11 @@ internal class WebSocketClientHandler : IDisposable
     /// <summary>
     /// True when <paramref name="remote"/> is the endpoint the application configured, not a node the cluster advertised.
     /// The cluster's credentials belong to the cluster, so they must never be offered to an endpoint of the application's choosing.
+    /// The collector captured the endpoint when it was created and keeps using it for its remotes, so this compares with that
+    /// value. Changing the options afterwards must not turn the override into a cluster node.
     /// </summary>
     private bool IsOverrideEndpoint(Uri remote) =>
-        _appTelemetryCollector.ClusterContext?.ClusterOptions?.AppTelemetry?.Endpoint is { } configured
-        && configured == remote;
+        _appTelemetryCollector.OverrideEndpoint is { } configured && configured == remote;
 
     /// <summary>
     /// Builds the socket for <paramref name="endpoint"/>. A cluster node is authenticated like any other HTTP request to
@@ -251,8 +252,8 @@ internal class WebSocketClientHandler : IDisposable
 
 #if NET8_0_OR_GREATER
     /// <summary>
-    /// A handler that validates the server certificate like the cluster's handler but carries no client certificate.
-    /// It is kept for the life of this object so connections to the override endpoint can reuse it.
+    /// A handler that applies the cluster's TLS policy (server certificate validation, revocation, protocols and cipher
+    /// suites) but carries no client certificate. It is kept for the life of this object so connections to the override endpoint can reuse it.
     /// </summary>
     private SocketsHttpHandler GetOverrideHandler()
     {
@@ -264,6 +265,15 @@ internal class WebSocketClientHandler : IDisposable
             ? X509RevocationMode.Online
             : X509RevocationMode.NoCheck;
         handler.SslOptions.RemoteCertificateValidationCallback = _certificateValidationCallbackFactory.CreateForHttp();
+
+        // The application's TLS restrictions apply to every endpoint it connects to, so only the credentials are left out.
+        handler.SslOptions.EnabledSslProtocols = tls.EnabledSslProtocols;
+        var clusterOptions = _appTelemetryCollector.ClusterContext.ClusterOptions;
+        if (clusterOptions.PlatformSupportsCipherSuite && clusterOptions.EnabledTlsCipherSuites is { Count: > 0 })
+        {
+            handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(clusterOptions.EnabledTlsCipherSuites);
+        }
+
         return _overrideHandler = handler;
     }
 #endif

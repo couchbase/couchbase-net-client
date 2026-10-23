@@ -3,14 +3,20 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -49,6 +55,78 @@ public class AppTelemetryOverrideEndpointTests
         Assert.Empty(socket.Options.ClientCertificates);
 #endif
     }
+
+    [Fact]
+    public void Override_Endpoint_Is_Still_The_Override_When_The_Options_Change_Afterwards()
+    {
+        // The collector keeps using the endpoint it captured, so the options must not decide what counts as the override.
+        using var collector = CreateCollector(Override);
+        collector.ClusterContext!.ClusterOptions.AppTelemetry.Endpoint = null;
+        using var handler = new WebSocketClientHandler(collector);
+        using var socket = handler.CreateWebSocket(Override, out var connectionHandler);
+
+        AssertHasNoCredentials(collector, socket, connectionHandler);
+
+        collector.ClusterContext.ClusterOptions.AppTelemetry.Endpoint = ClusterNode;
+        using var again = handler.CreateWebSocket(Override, out var againHandler);
+
+        AssertHasNoCredentials(collector, again, againHandler);
+    }
+
+    [Fact]
+    public void Override_Endpoint_Is_Not_Given_The_Cluster_Client_Certificate()
+    {
+        using var certificate = TlsTestPki.CreateServerLeaf("client", "client.test");
+        using var collector = CreateCollector(Override, auth: AuthKind.Certificate, clientCertificate: certificate);
+        using var handler = new WebSocketClientHandler(collector);
+        using var overrideSocket = handler.CreateWebSocket(Override, out var overrideHandler);
+        using var nodeSocket = handler.CreateWebSocket(ClusterNode, out var nodeHandler);
+
+#if NET8_0_OR_GREATER
+        // The cluster node still gets the certificate, so the override check below is not an empty configuration.
+        var shared = Assert.IsType<SocketsHttpHandler>(Assert.IsType<AuthenticatingHttpMessageHandler>(nodeHandler).InnerHandler);
+        Assert.Equal(1, shared.SslOptions.ClientCertificates?.Count);
+
+        var sockets = Assert.IsType<SocketsHttpHandler>(overrideHandler);
+        Assert.NotSame(shared, sockets);
+        Assert.True(sockets.SslOptions.ClientCertificates is null or { Count: 0 });
+#else
+        Assert.Null(overrideHandler);
+        Assert.Null(nodeHandler);
+        Assert.Equal(1, nodeSocket.Options.ClientCertificates.Count);
+        Assert.Empty(overrideSocket.Options.ClientCertificates);
+#endif
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void Override_Endpoint_Keeps_The_Cluster_Tls_Restrictions()
+    {
+        var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+        options.AppTelemetry.Endpoint = Override;
+        options.TlsSettings.EnabledSslProtocols = SslProtocols.Tls13;
+        options.TlsSettings.EnableCertificateRevocation = true;
+        // Cipher suites are not supported on Windows, and macOS cannot build the policy either.
+        var applyCipherSuites = OperatingSystem.IsLinux();
+        if (OperatingSystem.IsLinux())
+        {
+            options.EnabledTlsCipherSuites = [TlsCipherSuite.TLS_AES_256_GCM_SHA384];
+        }
+
+        using var collector = CollectorFor(options);
+        using var handler = new WebSocketClientHandler(collector);
+        using var socket = handler.CreateWebSocket(Override, out var connectionHandler);
+
+        var sockets = Assert.IsType<SocketsHttpHandler>(connectionHandler);
+        Assert.Equal(SslProtocols.Tls13, sockets.SslOptions.EnabledSslProtocols);
+        Assert.Equal(X509RevocationMode.Online, sockets.SslOptions.CertificateRevocationCheckMode);
+        Assert.NotNull(sockets.SslOptions.RemoteCertificateValidationCallback);
+        if (applyCipherSuites)
+        {
+            Assert.NotNull(sockets.SslOptions.CipherSuitesPolicy);
+        }
+    }
+#endif
 
     [Fact]
     public void Override_Endpoint_Handler_Is_Reused_Across_Connections()
@@ -230,17 +308,39 @@ public class AppTelemetryOverrideEndpointTests
     public enum AuthKind
     {
         Password,
-        Jwt
+        Jwt,
+        Certificate
     }
 
-    private static AppTelemetryCollector CreateCollector(Uri endpoint, ILoggerFactory loggerFactory = null, AuthKind auth = AuthKind.Password)
+    private static void AssertHasNoCredentials(AppTelemetryCollector collector, ClientWebSocket socket, HttpMessageHandler connectionHandler)
     {
-        var options = auth == AuthKind.Jwt
-            ? new ClusterOptions().WithJwtAuthentication(JwtToken)
-            : new ClusterOptions().WithPasswordAuthentication("username", "password");
+#if NET8_0_OR_GREATER
+        var shared = collector.ClusterContext!.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>().Handler;
+        Assert.NotSame(shared, connectionHandler);
+#else
+        Assert.Null(connectionHandler);
+        Assert.Null(socket.Options.Credentials);
+        Assert.Empty(socket.Options.ClientCertificates);
+#endif
+    }
+
+    private static AppTelemetryCollector CreateCollector(Uri endpoint, ILoggerFactory loggerFactory = null, AuthKind auth = AuthKind.Password,
+        X509Certificate2 clientCertificate = null)
+    {
+        var options = auth switch
+        {
+            AuthKind.Jwt => new ClusterOptions().WithJwtAuthentication(JwtToken),
+            AuthKind.Certificate => new ClusterOptions().WithCertificateAuthentication(CertificateFactory.FromCertificates(clientCertificate)),
+            _ => new ClusterOptions().WithPasswordAuthentication("username", "password")
+        };
         options.AppTelemetry.Endpoint = endpoint;
         if (loggerFactory is not null) options.WithLogging(loggerFactory);
 
+        return CollectorFor(options);
+    }
+
+    private static AppTelemetryCollector CollectorFor(ClusterOptions options)
+    {
         var context = new ClusterContext(null, options);
         return new AppTelemetryCollector(context, new Redactor(RedactionLevel.None), NullLogger<AppTelemetryCollector>.Instance);
     }

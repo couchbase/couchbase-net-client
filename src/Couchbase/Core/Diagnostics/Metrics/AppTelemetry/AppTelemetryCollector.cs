@@ -39,6 +39,7 @@ internal class AppTelemetryCollector : IAppTelemetryCollector
     //Shim for unit tests
     internal ConcurrentDictionary<NodeAndBucket, AppTelemetryMetricSet> MetricSets => _metricSets;
     internal WebSocketClientHandler? WebSocketClientHandler => _webSocketClientHandler;
+    public Uri? OverrideEndpoint => _endpoint;
     internal bool IsPaused
     {
         get { lock (_remotesLock) return _paused; }
