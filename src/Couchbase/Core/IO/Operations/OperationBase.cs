@@ -754,10 +754,12 @@ namespace Couchbase.Core.IO.Operations
                 return;
             }
 
-            var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
-
             try
             {
+                // Inside the try: _isCompleted is already set, so if this read throws (for example on a buffer
+                // that was freed), only the catch below can still fail the operation.
+                var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
+
                 if (status == ResponseStatus.Success
                     || status == ResponseStatus.VBucketBelongsToAnotherServer
                     || status == ResponseStatus.AuthenticationContinue
