@@ -61,6 +61,10 @@ namespace Couchbase.Core.IO.Connections
         private readonly string _localHostString;
         private readonly string _remotePortString;
         private readonly string _localPortString;
+
+        // Only read and written by the receive loop.
+        private bool _bucketSelected;
+        private static readonly TimeSpan InvalidatedCloseTimeout = TimeSpan.FromMinutes(1);
         private readonly string _logicalRemoteHostname;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
@@ -266,6 +270,7 @@ namespace Couchbase.Core.IO.Connections
                                 var opaque =
                                     ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque),
                                         false);
+                                TrackBucketState(operationResponse.Memory.Span);
                                 if (_statesInFlight.TryGet(opaque, out var state))
                                 {
                                     if (state.Complete(in operationResponse))
@@ -313,6 +318,34 @@ namespace Couchbase.Core.IO.Connections
             finally
             {
                 await reader.CompleteAsync().ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Watches responses for the connection's bucket state. Once a bucket has been selected, a NO_BUCKET
+        /// response means the server no longer associates this connection with it. The KV error map marks
+        /// NO_BUCKET as conn-state-invalidated, so the connection must be dropped; the pool's replacement
+        /// selects the bucket again.
+        /// </summary>
+        private void TrackBucketState(ReadOnlySpan<byte> response)
+        {
+            var status = (ResponseStatus) ByteConverter.ToInt16(response.Slice(HeaderOffsets.Status), true);
+            if ((OpCode) response[HeaderOffsets.Opcode] == OpCode.SelectBucket)
+            {
+                if (status == ResponseStatus.Success)
+                {
+                    _bucketSelected = true;
+                }
+            }
+            else if (status == ResponseStatus.BucketNotConnected && _bucketSelected && !IsDead)
+            {
+                _logger.LogWarning(
+                    "Connection {cid} received NO_BUCKET after selecting a bucket; closing it so it can be replaced.",
+                    ConnectionId);
+
+                // Graceful: IsDead is set at once so nothing new is sent here, while responses to operations
+                // already in flight are still received and handled normally.
+                _ = CloseAsync(InvalidatedCloseTimeout).AsTask();
             }
         }
 
