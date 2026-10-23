@@ -30,6 +30,7 @@ namespace Couchbase.LoadTests.Helpers
         public EndPoint LocalEndPoint { get; set; }
         public EndpointState EndpointState { get; set; }
         public bool IsDead { get; set; }
+        public CancellationToken ClosedToken => CancellationToken.None;
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
         public string SupportedSaslMechanisms { get; set; }

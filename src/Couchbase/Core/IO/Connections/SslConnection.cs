@@ -65,6 +65,9 @@ namespace Couchbase.Core.IO.Connections
         public bool IsDead => _multiplexingConnection.IsDead;
 
         /// <inheritdoc />
+        public CancellationToken ClosedToken => _multiplexingConnection.ClosedToken;
+
+        /// <inheritdoc />
         public TimeSpan IdleTime => _multiplexingConnection.IdleTime;
 
         /// <inheritdoc />

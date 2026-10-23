@@ -887,6 +887,276 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
         #endregion
 
+        #region Dead connections
+
+        // NCBC-4372: a connection the server closed while the pool was idle stayed in the pool until the
+        // next queued operation woke its processor, which for an idle application could be days.
+        [Fact]
+        public async Task IdleConnection_ClosedByServer_IsReplacedWithoutAnyTraffic()
+        {
+            // Arrange
+
+            var connections = new List<ControllableConnection>();
+            var replacementCreated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new ControllableConnection();
+                    lock (connections)
+                    {
+                        connections.Add(connection);
+                        if (connections.Count == 3)
+                        {
+                            replacementCreated.TrySetResult(true);
+                        }
+                    }
+
+                    return connection.Object;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync();
+
+            // Act
+
+            var closed = connections[0];
+            closed.CloseFromServer();
+
+            // Assert
+
+            await replacementCreated.Task;
+
+            // The replacement is added while the pool is locked, so freezing waits for it to finish.
+            await using (await pool.FreezePoolAsync())
+            {
+                var live = pool.GetConnections().ToList();
+                Assert.DoesNotContain(closed.Object, live);
+                Assert.Contains(connections[2].Object, live);
+                Assert.Equal(2, live.Count);
+            }
+        }
+
+        // NCBC-4372: TrySendImmediatelyAsync (used for config fetches) sent on a dead connection. That failed
+        // without queuing anything, so the dead connection's processor never woke and it was never replaced.
+        [Fact]
+        public async Task TrySendImmediatelyAsync_AllConnectionsDead_FallsBackToTheQueue()
+        {
+            // Arrange
+
+            var connections = new List<ControllableConnection>();
+            var replacementsCreated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new ControllableConnection();
+                    lock (connections)
+                    {
+                        connections.Add(connection);
+                        if (connections.Count == 4)
+                        {
+                            replacementsCreated.TrySetResult(true);
+                        }
+                    }
+
+                    return connection.Object;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync();
+
+            // Dead, but their close was never signalled, so their processors are still waiting.
+            var dead = connections.ToList();
+            dead.ForEach(c => c.MarkDeadSilently());
+
+            var sentOn = new ConcurrentBag<IConnection>();
+            var operation = new FakeOperation { SendStarted = sentOn.Add };
+
+            // Act
+
+            var sentImmediately = await pool.TrySendImmediatelyAsync(operation);
+
+            // Assert
+
+            Assert.False(sentImmediately);
+            Assert.DoesNotContain(sentOn, c => dead.Any(d => d.Object == c));
+
+            // The queued operation wakes both processors, which replace their dead connections.
+            await replacementsCreated.Task;
+            await using (await pool.FreezePoolAsync())
+            {
+                Assert.All(pool.GetConnections(), c => Assert.DoesNotContain(dead, d => d.Object == c));
+            }
+        }
+
+        [Fact]
+        public async Task SelectBucketAsync_NoLiveConnections_NamesTheRequestedBucket()
+        {
+            // Arrange
+
+            var connection = new ControllableConnection();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            await pool.InitializeAsync();
+            connection.MarkDeadSilently();
+
+            // Act
+
+            var ex = await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("travel-sample"));
+
+            // Assert
+
+            Assert.Equal("Failed to select bucket travel-sample.", ex.Message);
+        }
+
+        // Initialization must hold the pool lock: AddConnectionsAsync assumes it is held, and a processor whose
+        // connection closes calls RemoveConnectionAsync, which takes it. Without the lock that removal could run
+        // before every initial processor was registered.
+        [Fact]
+        public async Task InitializeAsync_HoldsThePoolLock_UntilEveryInitialConnectionIsRegistered()
+        {
+            // Arrange
+
+            var secondConnectionSetup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pool = CreatePoolWithGatedSecondConnection(secondConnectionSetup.Task, new List<ControllableConnection>());
+
+            // Act
+
+            var initialize = pool.InitializeAsync();
+            var freeze = pool.FreezePoolAsync().AsTask();
+
+            // Assert
+
+            // A held lock returns an incomplete task at once, so no wait is needed to see it.
+            Assert.False(freeze.IsCompleted);
+
+            secondConnectionSetup.SetResult(true);
+            await initialize;
+            await (await freeze).DisposeAsync();
+        }
+
+        // With the lock this end state is forced: the removal waits until the sibling is registered. The test above
+        // is what detects a missing lock; without it this test usually still passes, because the sibling tends to
+        // register first.
+        [Fact]
+        public async Task InitializeAsync_ConnectionClosesWhileASiblingConnects_PoolEndsAtMinimumWithoutIt()
+        {
+            // Arrange
+
+            var connections = new List<ControllableConnection>();
+            var secondConnectionSetup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pool = CreatePoolWithGatedSecondConnection(secondConnectionSetup.Task, connections,
+                replacementCreated: out var replacementCreated);
+
+            var initialize = pool.InitializeAsync();
+
+            // Act
+
+            // The first connection is registered; its sibling is still connecting.
+            var closed = connections[0];
+            closed.CloseFromServer();
+            secondConnectionSetup.SetResult(true);
+            await initialize;
+            await replacementCreated;
+
+            // Assert
+
+            await using (await pool.FreezePoolAsync())
+            {
+                var live = pool.GetConnections().ToList();
+                Assert.Equal(2, live.Count);
+                Assert.DoesNotContain(closed.Object, live);
+            }
+        }
+
+        private ChannelConnectionPool CreatePoolWithGatedSecondConnection(Task secondConnectionSetup,
+            List<ControllableConnection> connections) =>
+            CreatePoolWithGatedSecondConnection(secondConnectionSetup, connections, out _);
+
+        /// <summary>
+        /// A pool of exactly 2 whose second connection's setup waits for <paramref name="secondConnectionSetup"/>.
+        /// <paramref name="replacementCreated"/> completes when a third connection is created.
+        /// </summary>
+        private ChannelConnectionPool CreatePoolWithGatedSecondConnection(Task secondConnectionSetup,
+            List<ControllableConnection> connections, out Task replacementCreated)
+        {
+            var replacement = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            replacementCreated = replacement.Task;
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new ControllableConnection();
+                    lock (connections)
+                    {
+                        connections.Add(connection);
+                        if (connections.Count == 3)
+                        {
+                            replacement.TrySetResult(true);
+                        }
+                    }
+
+                    return connection.Object;
+                });
+
+            var setups = 0;
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            connectionInitializer
+                .Setup(m => m.InitializeConnectionAsync(It.IsAny<IConnection>(), It.IsAny<CancellationToken>()))
+                .Returns(() => Interlocked.Increment(ref setups) == 2 ? secondConnectionSetup : Task.CompletedTask);
+
+            var pool = CreatePool(connectionInitializer.Object, connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            return pool;
+        }
+
+        /// <summary>
+        /// A connection whose death the test controls: either signalled, as when the server closes the socket,
+        /// or silent, as for a connection that died before <see cref="IConnection.ClosedToken"/> fired.
+        /// </summary>
+        private sealed class ControllableConnection
+        {
+            private readonly CancellationTokenSource _closed = new();
+            private volatile bool _dead;
+
+            public ControllableConnection()
+            {
+                var mock = new Mock<IConnection>();
+                mock.SetupGet(m => m.ClosedToken).Returns(_closed.Token);
+                mock.SetupGet(m => m.IsDead).Returns(() => _dead);
+                Object = mock.Object;
+            }
+
+            public IConnection Object { get; }
+
+            public void CloseFromServer()
+            {
+                _dead = true;
+                _closed.Cancel();
+            }
+
+            public void MarkDeadSilently() => _dead = true;
+        }
+
+        #endregion
+
         #region Helpers
 
         private ChannelConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,

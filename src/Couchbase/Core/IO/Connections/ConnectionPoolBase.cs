@@ -165,7 +165,7 @@ namespace Couchbase.Core.IO.Connections
                 if (tasks.Count == 0)
                 {
                     // There are no healthy connections, so we cannot select the bucket
-                    throw new DocumentNotFoundException($"Failed to select bucket {BucketName}.");
+                    throw new DocumentNotFoundException($"Failed to select bucket {name}.");
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);

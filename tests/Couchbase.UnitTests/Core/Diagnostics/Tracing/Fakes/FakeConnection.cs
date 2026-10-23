@@ -27,6 +27,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public EndPoint LocalEndPoint { get; internal set; }
         public EndpointState EndpointState { get; set; }
         public bool IsDead { get; }
+        public CancellationToken ClosedToken => CancellationToken.None;
         public TimeSpan IdleTime { get; }
         public ServerFeatureSet ServerFeatures { get; set; }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -83,6 +84,43 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Assert
 
             Assert.True(state.CompletionTask.IsCompleted);
+        }
+
+        // NCBC-4328 (A), fixed under NCBC-4372: SemaphoreSlim.Dispose drops pending waiters without completing them,
+        // and the pool's send path waits with no token, so a send waiting for a slot when its connection closed
+        // never completed, and neither did the connection's processor.
+        [Fact]
+        public async Task AddAsync_WaitingForASlot_FailsWhenTheSetIsDisposed()
+        {
+            // Arrange
+
+            var set = new InFlightOperationSet(1, TimeSpan.FromSeconds(75));
+            await set.AddAsync(MakeState(6));
+
+            var addTask = set.AddAsync(MakeState(5));
+            Assert.False(addTask.IsCompleted); // semaphore is full
+
+            // Act
+
+            set.Dispose();
+
+            // Assert
+
+            // Hangs (caught by --blame-hang) if the waiter is not released.
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => addTask);
+        }
+
+        [Fact]
+        public async Task AddAsync_AfterDispose_ThrowsSocketNotAvailable()
+        {
+            // Arrange
+
+            var set = new InFlightOperationSet(8, TimeSpan.FromSeconds(75));
+            set.Dispose();
+
+            // Act & Assert
+
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => set.AddAsync(MakeState(5)));
         }
 
         #endregion
