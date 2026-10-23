@@ -140,7 +140,12 @@ public class AppTelemetryOverrideEndpointTests
     }
 
     [Theory]
+#if NET8_0_OR_GREATER
+    // On .NET Framework, ClientWebSocket sends NetworkCredential only after the server answers 401 with a challenge,
+    // and the listener answers 400, so there is no Basic header on the first request. The header-level Password check
+    // is for .NET 8+, and Cluster_Node_Is_Still_Authenticated_When_An_Override_Is_Configured covers the credentials there.
     [InlineData(AuthKind.Password, "Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=")]
+#endif
     [InlineData(AuthKind.Jwt, "Authorization: Bearer " + JwtToken)]
     public async Task Cluster_Node_Receives_The_Cluster_Authorization_Header(AuthKind auth, string expectedHeader)
     {
