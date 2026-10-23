@@ -7,6 +7,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -16,7 +17,6 @@ using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
-using Couchbase.UnitTests.Core.IO.Authentication.X509.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -76,7 +76,7 @@ public class AppTelemetryOverrideEndpointTests
     [Fact]
     public void Override_Endpoint_Is_Not_Given_The_Cluster_Client_Certificate()
     {
-        using var certificate = TlsTestPki.CreateServerLeaf("client", "client.test");
+        using var certificate = CreateClientCertificate();
         using var collector = CreateCollector(Override, auth: AuthKind.Certificate, clientCertificate: certificate);
         using var handler = new WebSocketClientHandler(collector);
         using var overrideSocket = handler.CreateWebSocket(Override, out var overrideHandler);
@@ -310,6 +310,18 @@ public class AppTelemetryOverrideEndpointTests
         Password,
         Jwt,
         Certificate
+    }
+
+    /// <summary>
+    /// A throwaway self-signed certificate. These tests only look at which handler or socket carries it.
+    /// Built here because the shared test PKI helper does not exist on every target framework.
+    /// </summary>
+    private static X509Certificate2 CreateClientCertificate()
+    {
+        // The key is not disposed: the certificate may keep using it, and this is a throwaway test key.
+        var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=client", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
     }
 
     private static void AssertHasNoCredentials(AppTelemetryCollector collector, ClientWebSocket socket, HttpMessageHandler connectionHandler)
