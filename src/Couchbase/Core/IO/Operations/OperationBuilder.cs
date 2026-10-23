@@ -287,6 +287,7 @@ namespace Couchbase.Core.IO.Operations
             var headerSize = isMutation ? 8 : 4;
 
             _operationSpecStartPosition = _position;
+            EnsureCapacity(_position + headerSize);
             Advance(headerSize);
 
             _operationSpecIsMutation = isMutation;
