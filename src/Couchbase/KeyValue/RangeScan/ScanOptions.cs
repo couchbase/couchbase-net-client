@@ -132,12 +132,27 @@ namespace Couchbase.KeyValue.RangeScan
         /// <summary>
         /// A <see cref="CancellationToken"/> for cooperative cancellation.
         /// </summary>
+        /// <remarks>
+        /// Prefer to pass the token with <c>WithCancellation</c> on the stream that
+        /// <see cref="ICouchbaseCollection.ScanAsync"/> returns. The scan starts only when the stream is
+        /// enumerated, so either token cancels the same scan. A future version will deprecate this method.
+        /// </remarks>
         /// <param name="token"></param>
         /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
         public ScanOptions Token(CancellationToken token)
         {
             TokenValue = token;
             return this;
+        }
+
+        /// <summary>
+        /// A copy of these options with a different token, so the original is not changed.
+        /// </summary>
+        internal ScanOptions WithToken(CancellationToken token)
+        {
+            var copy = (ScanOptions)MemberwiseClone();
+            copy.TokenValue = token;
+            return copy;
         }
 
         /// <summary>

@@ -42,4 +42,10 @@ internal interface IAppTelemetryCollector : IDisposable
     TimeSpan PingInterval { get; set; }
     TimeSpan PingTimeout { get; set; }
     IAuthenticator? Authenticator { get; set; }
+
+    /// <summary>
+    /// The App Telemetry endpoint the application configured, as read when the collector was created. Null when the
+    /// remotes come from the cluster. This is the endpoint that must never be given the cluster's credentials.
+    /// </summary>
+    Uri? OverrideEndpoint { get; }
 }

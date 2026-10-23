@@ -234,7 +234,7 @@ namespace Couchbase.UnitTests.KeyValue
             }
         }
 
-        private static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
+        internal static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
             string preferredServerGroup, short[] vBucketMapRow)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
@@ -295,9 +295,15 @@ namespace Couchbase.UnitTests.KeyValue
             /// </summary>
             public List<short?> DispatchedReplicaIndexes { get; } = new();
 
-            public virtual Task<ResponseStatus> RecordAndFail(IOperation operation)
+            /// <summary>
+            /// The timeout of each read, in dispatch order.
+            /// </summary>
+            public List<TimeSpan> DispatchedTimeouts { get; } = new();
+
+            public virtual Task<ResponseStatus> RecordAndFail(IOperation operation, CancellationTokenPair token)
             {
                 DispatchedReplicaIndexes.Add(operation.ReplicaIdx);
+                DispatchedTimeouts.Add(operation.Timeout);
                 return Task.FromException<ResponseStatus>(
                     new TemporaryFailureException("The fake bucket serves no documents."));
             }
@@ -308,14 +314,14 @@ namespace Couchbase.UnitTests.KeyValue
 
                 mock.Setup(m => m.RetryAsync(It.IsAny<BucketBase>(), It.IsAny<IOperation>(),
                         It.IsAny<CancellationTokenPair>()))
-                    .Returns((BucketBase bucket, IOperation op, CancellationTokenPair _) =>
-                        ((ZoneAwareFakeBucket) bucket).RecordAndFail(op));
+                    .Returns((BucketBase bucket, IOperation op, CancellationTokenPair token) =>
+                        ((ZoneAwareFakeBucket) bucket).RecordAndFail(op, token));
 
                 return mock.Object;
             }
 
             internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default) =>
-                RecordAndFail(op);
+                RecordAndFail(op, token);
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 

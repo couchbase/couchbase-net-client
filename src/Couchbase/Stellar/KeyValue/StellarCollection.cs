@@ -127,7 +127,7 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
         var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+            _stellarCluster.GrpcCallOptions(opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout, opts.Token));
 
         IEnumerable<Task<IGetReplicaResult>> results = response.ResponseStream
             .ReadAllAsync()
@@ -155,31 +155,72 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         return GetAllReplicasStreamCoreAsync(id, opts);
     }
 
-    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts)
+    private async IAsyncEnumerable<IGetReplicaResult> GetAllReplicasStreamCoreAsync(string id, GetAllReplicasOptions.ReadOnly opts,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var childSpan = TraceSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, opts.RequestSpan);
         var request = KeyedRequest<GetAllReplicasRequest>(id);
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
 
-        using var response = _kvClient.GetAllReplicas(request,
-            _stellarCluster.GrpcCallOptions(_stellarCluster.ClusterOptions.KvTimeout, opts.Token));
+        // The per-call timeout, or the cluster's KV timeout if none is set.
+        var timeout = opts.Timeout ?? _stellarCluster.ClusterOptions.KvTimeout;
 
-        // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
-        var stellarRequest = new StellarRequest
+        // Either the options token or the token passed to the enumerator, such as by
+        // WithCancellation, cancels the call.
+        var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(opts.Token, cancellationToken);
+        try
         {
-            Idempotent = true,
-            Token = opts.Token,
-            Timeout = _stellarCluster.ClusterOptions.KvTimeout
-        };
+            var token = linkedSource.Token;
 
-        await foreach (var result in ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
-                               e => _retryHandler is StellarRetryHandler handler
-                                   ? handler.MapMidStreamException(e, stellarRequest)
-                                   : e,
-                               opts.Token)
-                           .ConfigureAwait(false))
+            using var response = _kvClient.GetAllReplicas(request,
+                _stellarCluster.GrpcCallOptions(timeout, token));
+
+            // Only used to map an error to an SDK exception. The call is not retried (NCBC-3626).
+            var stellarRequest = new StellarRequest
+            {
+                Idempotent = true,
+                Token = token,
+                Timeout = timeout
+            };
+
+            // Enumerated by hand, so that a cancel can be given the caller's token: a catch cannot
+            // enclose a yield.
+            var results = ReadReplicaStreamAsync(response.ResponseStream, transcoder, id,
+                    e => _retryHandler is StellarRetryHandler handler
+                        ? handler.MapMidStreamException(e, stellarRequest)
+                        : e,
+                    token)
+                .GetAsyncEnumerator(token);
+            try
+            {
+                while (true)
+                {
+                    bool hasNext;
+                    try
+                    {
+                        hasNext = await results.MoveNextAsync().ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException e) when (e.NeedsCallerToken(opts.Token, cancellationToken))
+                    {
+                        throw e.WithCallerToken(opts.Token, cancellationToken);
+                    }
+
+                    if (!hasNext)
+                    {
+                        yield break;
+                    }
+
+                    yield return results.Current;
+                }
+            }
+            finally
+            {
+                await results.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        finally
         {
-            yield return result;
+            linkedSource.CancelAndDispose();
         }
     }
 
