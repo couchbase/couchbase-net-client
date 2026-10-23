@@ -84,6 +84,16 @@ namespace Couchbase.Core.DI
 
             if (!ScramShaMechanism.TrySelectMechanism(serverMechanisms!, out var mechanismType))
             {
+                // A PLAIN-only server (e.g. LDAP users, who have no SCRAM credentials) needs TLS, not SCRAM.
+                var advertised = serverMechanisms!.Split(' ');
+                if (advertised.Contains("PLAIN") && !advertised.Any(m => m.StartsWith("SCRAM-", StringComparison.Ordinal)))
+                {
+                    throw new AuthenticationFailureException(
+                        $"No common SASL mechanism. Server advertises [{serverMechanisms}]. PLAIN sends the " +
+                        "password in cleartext, so it is only used over TLS. Connect with couchbases:// " +
+                        "(required for LDAP users).");
+                }
+
                 throw new AuthenticationFailureException(
                     $"No common SASL mechanism. Server advertises [{serverMechanisms}]; this client supports " +
                     $"[{string.Join(", ", ScramShaMechanism.ClientSupportedMechanisms.Select(m => m.GetDescription()))}]. " +

@@ -111,6 +111,7 @@ namespace Couchbase.UnitTests.Core.DI
                 CreateFactory().CreatePasswordMechanism(ConnectionWith("PLAIN"), "ted", "secret"));
 
             Assert.Contains("No common SASL mechanism", ex.Message);
+            Assert.Contains("couchbases://", ex.Message);
         }
 
         [Theory]
@@ -144,6 +145,7 @@ namespace Couchbase.UnitTests.Core.DI
                 CreateFactory().CreatePasswordMechanism(ConnectionWith("SCRAM-SHA1 PLAIN"), "ted", "secret"));
 
             Assert.Contains("No common SASL mechanism", ex.Message);
+            Assert.DoesNotContain("couchbases://", ex.Message);
         }
 #else
         [Fact]
