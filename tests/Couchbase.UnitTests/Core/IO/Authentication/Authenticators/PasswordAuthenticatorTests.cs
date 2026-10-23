@@ -29,11 +29,9 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.Authenticators
         }
 
         [Fact]
-        public async Task AuthenticateKv_NonTlsConnection_IgnoresObsoleteEnableTlsFlag()
+        public async Task AuthenticateKv_NonTlsConnection_IgnoresDeprecatedEnableTlsFlag()
         {
-#pragma warning disable CS0618 // Type or member is obsolete
             var authenticator = new PasswordAuthenticator("ted", "secret", enableTls: true);
-#pragma warning restore CS0618
 
             var chosen = await AuthenticateAsync(authenticator, isSecure: false);
 
@@ -43,9 +41,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication.Authenticators
         [Fact]
         public async Task AuthenticateKv_TlsConnection_UsesPlain()
         {
-#pragma warning disable CS0618 // Type or member is obsolete
             var authenticator = new PasswordAuthenticator("ted", "secret", enableTls: false);
-#pragma warning restore CS0618
 
             var chosen = await AuthenticateAsync(authenticator, isSecure: true);
 

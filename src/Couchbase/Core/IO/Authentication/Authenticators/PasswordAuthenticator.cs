@@ -51,7 +51,10 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     /// <param name="username">The username.</param>
     /// <param name="password">The password.</param>
     /// <param name="enableTls">Ignored. The SASL mechanism is chosen from each connection's transport.</param>
-    [Obsolete("enableTls is ignored; the SASL mechanism is chosen from each connection's transport. Use PasswordAuthenticator(username, password).")]
+    /// <remarks>
+    /// DEPRECATED: Use <see cref="PasswordAuthenticator(string, string)"/> instead. The
+    /// <paramref name="enableTls"/> argument is ignored.
+    /// </remarks>
     public PasswordAuthenticator(string username, string password, bool enableTls)
         : this(username, password)
     {
