@@ -300,7 +300,7 @@ namespace Couchbase.UnitTests.KeyValue
             /// </summary>
             public List<TimeSpan> DispatchedTimeouts { get; } = new();
 
-            public virtual Task<ResponseStatus> RecordAndFail(IOperation operation)
+            public virtual Task<ResponseStatus> RecordAndFail(IOperation operation, CancellationTokenPair token)
             {
                 DispatchedReplicaIndexes.Add(operation.ReplicaIdx);
                 DispatchedTimeouts.Add(operation.Timeout);
@@ -314,14 +314,14 @@ namespace Couchbase.UnitTests.KeyValue
 
                 mock.Setup(m => m.RetryAsync(It.IsAny<BucketBase>(), It.IsAny<IOperation>(),
                         It.IsAny<CancellationTokenPair>()))
-                    .Returns((BucketBase bucket, IOperation op, CancellationTokenPair _) =>
-                        ((ZoneAwareFakeBucket) bucket).RecordAndFail(op));
+                    .Returns((BucketBase bucket, IOperation op, CancellationTokenPair token) =>
+                        ((ZoneAwareFakeBucket) bucket).RecordAndFail(op, token));
 
                 return mock.Object;
             }
 
             internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default) =>
-                RecordAndFail(op);
+                RecordAndFail(op, token);
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 

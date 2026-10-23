@@ -149,4 +149,33 @@ public static class TaskHelpers
 
         return ordered;
     }
+
+    /// <summary>
+    /// Disposes the result of each task when it completes successfully, including tasks that complete
+    /// later. A fault is observed, so that it is not reported as an unobserved task exception.
+    /// </summary>
+    /// <remarks>
+    /// For a stream that stops early: the caller owns only the results it was given, so the stream
+    /// disposes the rest.
+    /// </remarks>
+    internal static void DisposeWhenCompleted<T>(IEnumerable<Task<T>> tasks) where T : IDisposable
+    {
+        foreach (var task in tasks)
+        {
+            _ = task.ContinueWith(static finished =>
+                {
+                    if (finished.Status == TaskStatus.RanToCompletion)
+                    {
+                        finished.Result.Dispose();
+                    }
+                    else
+                    {
+                        _ = finished.Exception;
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+    }
 }

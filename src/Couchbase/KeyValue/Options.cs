@@ -275,6 +275,11 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// A <see cref="CancellationToken"/> for cooperative cancellation.
         /// </summary>
+        /// <remarks>
+        /// For <see cref="ICouchbaseCollection.GetAllReplicasStreamAsync(string, GetAllReplicasOptions?)"/>,
+        /// prefer to pass the token with <c>WithCancellation</c> on the stream. The stream sends no reads until
+        /// it is enumerated, so either token cancels the same reads. A future version will deprecate this method.
+        /// </remarks>
         /// <param name="token"></param>
         /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
         public GetAllReplicasOptions CancellationToken(CancellationToken token)
@@ -340,7 +345,7 @@ namespace Couchbase.KeyValue
             ITypeTranscoder? Transcoder,
             IRetryStrategy? RetryStrategy,
             IRequestSpan? RequestSpan,
-            InternalReadPreference ReadPreference)
+            InternalReadPreference ReadPreference) : ITranscoderOverrideOptions, ITimeoutOptions
         {
             // Kept for compatibility with callers compiled before Timeout was added.
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -900,6 +905,12 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// A <see cref="CancellationToken"/> for cooperative cancellation.
         /// </summary>
+        /// <remarks>
+        /// Prefer to pass the token with <c>WithCancellation</c> on the stream that
+        /// <see cref="ICouchbaseCollection.LookupInAllReplicasAsync"/> returns. The stream sends no lookups
+        /// until it is enumerated, so either token cancels the same lookups. A future version will deprecate
+        /// this method.
+        /// </remarks>
         /// <param name="token"></param>
         /// <returns>An options instance for chaining.</returns>
         public LookupInAllReplicasOptions CancellationToken(CancellationToken token)
