@@ -85,7 +85,7 @@ public class AppTelemetryOverrideEndpointTests
 #if NET8_0_OR_GREATER
         // The cluster node still gets the certificate, so the override check below is not an empty configuration.
         var shared = Assert.IsType<SocketsHttpHandler>(Assert.IsType<AuthenticatingHttpMessageHandler>(nodeHandler).InnerHandler);
-        Assert.Equal(1, shared.SslOptions.ClientCertificates?.Count);
+        Assert.Single(shared.SslOptions.ClientCertificates);
 
         var sockets = Assert.IsType<SocketsHttpHandler>(overrideHandler);
         Assert.NotSame(shared, sockets);
@@ -93,7 +93,7 @@ public class AppTelemetryOverrideEndpointTests
 #else
         Assert.Null(overrideHandler);
         Assert.Null(nodeHandler);
-        Assert.Equal(1, nodeSocket.Options.ClientCertificates.Count);
+        Assert.Single(nodeSocket.Options.ClientCertificates);
         Assert.Empty(overrideSocket.Options.ClientCertificates);
 #endif
     }
