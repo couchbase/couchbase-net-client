@@ -128,10 +128,10 @@ public class AppTelemetryOverrideEndpointTests
     [InlineData(AuthKind.Jwt)]
     public async Task Override_Endpoint_Receives_No_Authorization_Header(AuthKind auth)
     {
-        using var listener = StartListener(out var remote);
-        using var collector = CreateCollector(remote, auth: auth);
+        using var listener = new LoopbackListener();
+        using var collector = CreateCollector(listener.Remote, auth: auth);
 
-        var request = await CaptureUpgradeRequestAsync(collector, listener, remote);
+        var request = await CaptureUpgradeRequestAsync(collector, listener);
 
         Assert.StartsWith("GET /_appTelemetry", request);
         Assert.DoesNotContain("authorization:", request, StringComparison.OrdinalIgnoreCase);
@@ -144,32 +144,44 @@ public class AppTelemetryOverrideEndpointTests
     [InlineData(AuthKind.Jwt, "Authorization: Bearer " + JwtToken)]
     public async Task Cluster_Node_Receives_The_Cluster_Authorization_Header(AuthKind auth, string expectedHeader)
     {
-        using var listener = StartListener(out var remote);
+        using var listener = new LoopbackListener();
         // No override is configured, so the remote counts as a node the cluster advertised.
         using var collector = CreateCollector(null, auth: auth);
 
-        var request = await CaptureUpgradeRequestAsync(collector, listener, remote);
+        var request = await CaptureUpgradeRequestAsync(collector, listener);
 
         Assert.Contains(expectedHeader, request, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static TcpListener StartListener(out Uri remote)
+    /// <summary>
+    /// TcpListener is not IDisposable on .NET Framework, so this stops it on dispose.
+    /// </summary>
+    private sealed class LoopbackListener : IDisposable
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        remote = new Uri($"ws://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}/_appTelemetry");
-        return listener;
+        private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
+
+        public LoopbackListener()
+        {
+            _listener.Start();
+            Remote = new Uri($"ws://127.0.0.1:{((IPEndPoint)_listener.LocalEndpoint).Port}/_appTelemetry");
+        }
+
+        public Uri Remote { get; }
+
+        public Task<TcpClient> AcceptTcpClientAsync() => _listener.AcceptTcpClientAsync();
+
+        public void Dispose() => _listener.Stop();
     }
 
     /// <summary>
-    /// Runs the real connect loop against <paramref name="remote"/> and returns the raw upgrade request the listener received.
+    /// Runs the real connect loop against the listener and returns the raw upgrade request the listener received.
     /// The listener answers 400, so the connect fails and the loop only backs off until it is cancelled.
     /// </summary>
-    private static async Task<string> CaptureUpgradeRequestAsync(AppTelemetryCollector collector, TcpListener listener, Uri remote)
+    private static async Task<string> CaptureUpgradeRequestAsync(AppTelemetryCollector collector, LoopbackListener listener)
     {
         using var handler = new WebSocketClientHandler(collector);
         using var cts = new CancellationTokenSource();
-        handler.UpdateRemotes(new[] { remote });
+        handler.UpdateRemotes(new[] { listener.Remote });
         var loop = handler.StartAsync(cts.Token);
 
         try
