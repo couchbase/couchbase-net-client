@@ -25,7 +25,7 @@ on:
 permissions:
   contents: read
 
-# Each push to a PR starts 18 jobs, so cancel the run it supersedes rather than let it finish. Only
+# Each push to a PR starts 19 jobs, so cancel the run it supersedes rather than let it finish. Only
 # for pull requests: every push to master or a release branch is its own commit to test.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,3 +37,45 @@ jobs:
   build-and-test:
     name: Build and Test
     uses: ./.github/workflows/unit-tests.yml
+
+  # The tests build unsigned, but release.yml packs with SignAssembly=true. That defines SIGNING,
+  # and src/Couchbase/AssemblyInfo.cs then drops every InternalsVisibleTo, so code that compiles
+  # only with those attributes passes the tests and breaks the release (NCBC-4379). This builds
+  # what release.yml packs, signed, so that break shows up here instead.
+  #
+  # The compile does not depend on which key signs it, so this uses the committed Dynamic.snk and
+  # never needs the NETSDK_SIGNKEY secret, which pull_request runs from forks do not get anyway.
+  # One OS is enough: signing does not change by OS, and every target framework builds on Linux.
+  signed-build:
+    name: Build (Release, signed)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+          cache: false
+
+      # The same three projects release.yml packs. Each builds all of its target frameworks,
+      # because the #if blocks differ between them.
+      - name: Build (Release, signed)
+        run: |
+          for proj in \
+            src/Couchbase/Couchbase.csproj \
+            src/Couchbase.Extensions.DependencyInjection/Couchbase.Extensions.DependencyInjection.csproj \
+            src/Couchbase.Extensions.OpenTelemetry/Couchbase.Extensions.OpenTelemetry.csproj
+          do
+            dotnet build "$proj" \
+              --configuration Release \
+              -p:SignAssembly=true \
+              -p:AssemblyOriginatorKeyFile="$GITHUB_WORKSPACE/src/Couchbase.Extensions.DependencyInjection/Dynamic.snk"
+          done
