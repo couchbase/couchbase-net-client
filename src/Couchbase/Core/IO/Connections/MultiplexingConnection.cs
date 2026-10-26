@@ -475,7 +475,11 @@ namespace Couchbase.Core.IO.Connections
         /// Test seam, always null in production: invoked in the receive loop after a state has taken a response's
         /// buffer, so a test can fail that point and check that the buffer stays with the operation.
         /// </summary>
-        internal Action? AfterStateCompletedForTests;
+        /// <remarks>
+        /// A property, not a field: signed builds have no InternalsVisibleTo, so nothing in the assembly assigns it,
+        /// and an unassigned field is error CS0649 there.
+        /// </remarks>
+        internal Action? AfterStateCompletedForTests { get; set; }
 
         private void UpdateLastActivity()
         {
