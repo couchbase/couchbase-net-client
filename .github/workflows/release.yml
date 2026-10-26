@@ -29,6 +29,10 @@ on:
         required: false
         default: true
 
+# Jobs that need more than this ask for it themselves: the publish jobs add id-token: write.
+permissions:
+  contents: read
+
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: 1
@@ -266,8 +270,6 @@ jobs:
     name: Pack & Sign (Windows)
     runs-on: windows-latest
     needs: [validate-inputs, build-and-test]
-    env:
-      NETSDK_SIGNKEY: ${{ secrets.NETSDK_SIGNKEY }}
     steps:
       - name: Checkout master (smoke)
         if: needs.validate-inputs.outputs.publish != 'true'
@@ -310,11 +312,16 @@ jobs:
             10.0.x
           cache: false
 
+      # The secret goes to this step only, not the whole job, so it is not in the environment
+      # of the other steps. It is read from the environment at run time: a ${{ }} expression
+      # would paste it into the script text.
       - name: Prepare strong-name key (SNK)
         shell: pwsh
+        env:
+          NETSDK_SIGNKEY: ${{ secrets.NETSDK_SIGNKEY }}
         run: |
-          if ("${{ env.NETSDK_SIGNKEY }}" -eq '') { Write-Error "NETSDK_SIGNKEY secret is required"; exit 1 }
-          $bytes = [System.Convert]::FromBase64String("${{ env.NETSDK_SIGNKEY }}")
+          if (-not $env:NETSDK_SIGNKEY) { Write-Error "NETSDK_SIGNKEY secret is required"; exit 1 }
+          $bytes = [System.Convert]::FromBase64String($env:NETSDK_SIGNKEY)
           [IO.File]::WriteAllBytes("signkey.snk", $bytes)
           $signPath = (Resolve-Path "signkey.snk").Path
           "SIGNKEY_PATH=$signPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8

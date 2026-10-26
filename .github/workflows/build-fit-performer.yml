@@ -7,6 +7,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Checkout is the only thing the build needs the GITHUB_TOKEN for.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build FIT Performer (${{ matrix.os }})

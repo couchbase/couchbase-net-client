@@ -29,6 +29,12 @@ on:
         required: false
         default: false
 
+# Jobs that need more than this ask for it themselves: the publish jobs add id-token: write.
+# release.yml calls this workflow, and a caller must grant at least what the workflow it calls
+# declares.
+permissions:
+  contents: read
+
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: 1
