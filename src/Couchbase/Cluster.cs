@@ -26,6 +26,7 @@ using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
+using Couchbase.Search.Queries.Script;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 using Couchbase.Core.RateLimiting;
@@ -51,6 +52,8 @@ namespace Couchbase
         private readonly object _syncObject = new object();
         private bool _disposed;
         private readonly ClusterContext _context;
+        // Test seam: lets unit tests supply the GlobalConfig that capability checks read.
+        internal ClusterContext Context => _context;
         private bool _hasBootStrapped = false;
 
         // Warn once on entering the failed state, not on every bootstrapper poll (2.5s by
@@ -587,6 +590,12 @@ namespace Couchbase
             {
                 _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCORE_FUSION,
                     "Score fusion is not available on this version of Couchbase Server");
+            }
+
+            if (searchRequest.ContainsCustomScriptQuery())
+            {
+                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SEARCH_UDF_QUERY,
+                    "Custom score or filter queries are not available on this version of Couchbase Server");
             }
 
             FtsSearchRequest ftsSearchRequest = new()

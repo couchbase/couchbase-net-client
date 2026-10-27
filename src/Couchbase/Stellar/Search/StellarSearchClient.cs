@@ -12,6 +12,7 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Protostellar.Search.V1;
 using Couchbase.Search;
+using Couchbase.Search.Queries.Script;
 using Couchbase.Search.Queries.Vector;
 using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
@@ -56,6 +57,12 @@ namespace Couchbase.Stellar.Search
             if (opts.Scoring?.RequiresScoreFusionCapability == true)
             {
                 throw new FeatureNotAvailableException("Score fusion is not available over couchbase2.");
+            }
+
+            // The protocol has no custom score or filter query types, and QueryConverter would send them as an empty query.
+            if (query.ContainsCustomScriptQuery())
+            {
+                throw new FeatureNotAvailableException("Custom score or filter queries are not available over couchbase2.");
             }
 
             var searchQuery = QueryConverter(query);
@@ -429,6 +436,10 @@ namespace Couchbase.Stellar.Search
                         protoQuery.MatchQuery.Operator = coreQuery.MatchOperator.Value.ToProto();
                 }
                     break;
+                default:
+                    // Without this, an unknown query type would be sent as an empty query rather than failing.
+                    throw new FeatureNotAvailableException(
+                        $"{couchbaseQuery.GetType().Name} is not supported over couchbase2.");
             }
 
             return protoQuery;

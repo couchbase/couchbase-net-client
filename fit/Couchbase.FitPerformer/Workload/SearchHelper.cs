@@ -20,6 +20,8 @@ using Newtonsoft.Json.Linq;
 using BooleanFieldQuery = Couchbase.Search.Queries.Simple.BooleanFieldQuery;
 using BooleanQuery = Couchbase.Search.Queries.Compound.BooleanQuery;
 using ConjunctionQuery = Couchbase.Search.Queries.Compound.ConjunctionQuery;
+using CustomFilterQuery = Couchbase.Search.Queries.Script.CustomFilterQuery;
+using CustomScoreQuery = Couchbase.Search.Queries.Script.CustomScoreQuery;
 using DateRangeQuery = Couchbase.Search.Queries.Range.DateRangeQuery;
 using DisjunctionQuery = Couchbase.Search.Queries.Compound.DisjunctionQuery;
 using DocIdQuery = Couchbase.Search.Queries.Simple.DocIdQuery;
@@ -461,6 +463,22 @@ public class SearchHelper
                 {
                     return new MatchNoneQuery();
                 }
+                case SearchQuery.QueryOneofCase.CustomScore:
+                {
+                    var proto = innerProtoQuery.CustomScore;
+                    var coreQuery = new CustomScoreQuery(ProtoSearchQueryToCore(protoQuery, proto.Query), proto.Source);
+                    if (proto.Fields.Count > 0) coreQuery.Fields(proto.Fields.ToArray());
+                    if (proto.Parameters is not null) coreQuery.Parameters(StructToDictionary(proto.Parameters));
+                    return coreQuery;
+                }
+                case SearchQuery.QueryOneofCase.CustomFilter:
+                {
+                    var proto = innerProtoQuery.CustomFilter;
+                    var coreQuery = new CustomFilterQuery(ProtoSearchQueryToCore(protoQuery, proto.Query), proto.Source);
+                    if (proto.Fields.Count > 0) coreQuery.Fields(proto.Fields.ToArray());
+                    if (proto.Parameters is not null) coreQuery.Parameters(StructToDictionary(proto.Parameters));
+                    return coreQuery;
+                }
                 case SearchQuery.QueryOneofCase.MatchPhrase:
                 {
                     var coreQuery = new MatchPhraseQuery(innerProtoQuery.MatchPhrase.MatchPhrase);
@@ -549,4 +567,18 @@ public class SearchHelper
 
             throw new UnsupportedException($"Could not determine Search Query type: {protoQuery}");
         }
+
+    private static Dictionary<string, object?> StructToDictionary(Struct protoStruct) =>
+        protoStruct.Fields.ToDictionary(field => field.Key, field => ProtoValueToObject(field.Value));
+
+    private static object? ProtoValueToObject(Value value) => value.KindCase switch
+    {
+        Value.KindOneofCase.NullValue => null,
+        Value.KindOneofCase.NumberValue => value.NumberValue,
+        Value.KindOneofCase.StringValue => value.StringValue,
+        Value.KindOneofCase.BoolValue => value.BoolValue,
+        Value.KindOneofCase.StructValue => StructToDictionary(value.StructValue),
+        Value.KindOneofCase.ListValue => value.ListValue.Values.Select(ProtoValueToObject).ToList(),
+        _ => throw new UnsupportedException($"Unsupported protobuf Value kind: {value.KindCase}")
+    };
 }

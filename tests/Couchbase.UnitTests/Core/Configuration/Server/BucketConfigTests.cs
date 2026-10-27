@@ -690,6 +690,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Theory]
         [InlineData(ClusterCapabilities.SCORE_FUSION, true)]
         [InlineData(ClusterCapabilities.VECTOR_SEARCH, true)]
+        [InlineData(ClusterCapabilities.SEARCH_UDF_QUERY, true)]
         [InlineData("search.somethingElse", false)]
         public void Test_HasClusterCap(string capability, bool expected)
         {
@@ -697,7 +698,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             {
                 ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
                 {
-                    ["search"] = new[] { "vectorSearch", "scopedSearchIndex", "scoreFusion" }
+                    ["search"] = new[] { "vectorSearch", "scopedSearchIndex", "scoreFusion", "udfQuery" }
                 }
             };
 
