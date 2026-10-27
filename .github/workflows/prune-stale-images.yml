@@ -19,6 +19,11 @@ on:
     - cron: '53 3 * * *'
   workflow_dispatch:
 
+# The default for any job that does not declare its own. A job that does, like the one below,
+# gets only what it declares.
+permissions:
+  contents: read
+
 jobs:
   prune:
     name: Prune dotnet-fit-performer
