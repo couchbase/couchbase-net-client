@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -54,6 +56,37 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
 #pragma warning disable CS0618
             var result = new MutateInResult(op);
 #pragma warning restore CS0618
+        }
+
+        [Fact]
+        public async Task SendAsync_FirstSpecEndsInLastEightBytesOfBuffer_DoesNotThrow()
+        {
+            // NCBC-4376: BeginOperationSpec must grow the buffer before writing the spec header
+            var failedLengths = new List<int>();
+
+            for (var length = 16_200; length < 16_400; length++)
+            {
+                var builder = new MutateInSpecBuilder();
+                builder.Upsert("a", new string('x', length));
+                builder.Upsert("b", 1);
+
+                var op = new MultiMutation<byte[]>("thekey", builder.Specs)
+                {
+                    Transcoder = new JsonTranscoder()
+                };
+                op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
+
+                try
+                {
+                    await op.SendAsync(Mock.Of<IConnection>(c => c.ServerFeatures == ServerFeatureSet.Empty));
+                }
+                catch (InvalidOperationException)
+                {
+                    failedLengths.Add(length);
+                }
+            }
+
+            Assert.Empty(failedLengths);
         }
     }
 }
