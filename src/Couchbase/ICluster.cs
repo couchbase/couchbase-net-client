@@ -12,13 +12,15 @@ using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Couchbase.Search;
 
 #nullable enable
 
 namespace Couchbase
 {
-    public interface ICluster : ISearchRequester, IDisposable, IAsyncDisposable, IClusterAuthenticator
+    public interface ICluster : ISearchRequester, IDisposable, IAsyncDisposable, IClusterAuthenticator,
+        IConversationalQueryRequester
     {
         /// <summary>
         /// An <see cref="IServiceProvider"/> which provides access to cluster services, such as <see cref="ITypeSerializer"/>.

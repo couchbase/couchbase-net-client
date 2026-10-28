@@ -30,6 +30,7 @@ using Couchbase.Management.Users;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
 using Couchbase.Stellar.Core.Retry;
@@ -304,6 +305,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     public Transactions Transactions =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("Transactions", "Protostellar");
+
+    public IConversationalQuery ConversationalQuery => StellarConversationalQuery.Instance;
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {

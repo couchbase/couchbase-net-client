@@ -171,6 +171,13 @@ namespace Couchbase.Query
             return this;
         }
 
+        // Always returns a copy. The conversational options keep a QueryOptions as a template and send a copy.
+        internal QueryOptions Clone()
+        {
+            Interlocked.Exchange(ref _isUsed, 1);
+            return CloneIfUsedAlready();
+        }
+
         /// <summary>
         /// Creates a new QueryOptions object.
         /// </summary>

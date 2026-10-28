@@ -121,7 +121,7 @@ namespace Couchbase.Query
                 options.ClientContextId(Guid.NewGuid().ToString());
             }
 
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, options)
+            using var rootSpan = RootSpan(RootSpanName(options.Conversational), options)
                 .WithOperationId(options)
                 .WithStatement(statement)
                 .WithLocalAddress();
@@ -529,6 +529,18 @@ namespace Couchbase.Query
         }
 
         #region tracing
+        private static string RootSpanName(ConversationalRequest? conversational) => conversational?.Operation switch
+        {
+            null => OuterRequestSpans.ServiceSpan.N1QLQuery,
+            ConversationalOperation.Query => OuterRequestSpans.ServiceSpan.ConversationalQuery,
+            ConversationalOperation.BeginChat => OuterRequestSpans.ServiceSpan.ConversationalQueryBeginChat,
+            ConversationalOperation.Ask => OuterRequestSpans.ServiceSpan.ConversationalQueryAsk,
+            ConversationalOperation.Pause => OuterRequestSpans.ServiceSpan.ConversationalQueryPause,
+            ConversationalOperation.Resume => OuterRequestSpans.ServiceSpan.ConversationalQueryResume,
+            ConversationalOperation.End => OuterRequestSpans.ServiceSpan.ConversationalQueryEnd,
+            _ => OuterRequestSpans.ServiceSpan.N1QLQuery
+        };
+
         private IRequestSpan RootSpan(string operation, QueryOptions options)
         {
             var span = _tracer.RequestSpan(operation, options.RequestSpanValue);

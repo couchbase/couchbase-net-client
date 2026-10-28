@@ -86,6 +86,18 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string N1QLQuery = "query";
             public const string AnalyticsQuery = "analytics";
             public const string SearchQuery = "search";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQuery = "conversational_query";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQueryBeginChat = "conversational_query_begin_chat";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQueryAsk = "conversational_query_ask";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQueryPause = "conversational_query_pause";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQueryResume = "conversational_query_resume";
+            [InterfaceStability(Level.Volatile)]
+            public const string ConversationalQueryEnd = "conversational_query_end";
             public const string Eventing = "eventing";
             public const string Transaction = "transaction";
             public const string Management = "management";
