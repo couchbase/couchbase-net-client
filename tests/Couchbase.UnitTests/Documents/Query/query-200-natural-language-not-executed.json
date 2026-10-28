@@ -1,0 +1,19 @@
+{
+  "requestID": "623a0b64-f29e-460c-bda1-b5c9d6729298",
+  "clientContextID": "ctx-2",
+  "status": "success",
+  "generated_statement": "SELECT `h`.`country`, COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` GROUP BY `h`.`country`",
+  "requestTokens": {
+    "promptTokens": 700
+  },
+  "chatId": "23a2c880-4566-4f78-9e81-86ea755b2a7f",
+  "metrics": {
+    "elapsedTime": "2.825483228s",
+    "executionTime": "0s",
+    "resultCount": 0,
+    "resultSize": 0,
+    "serviceLoad": 0,
+    "naturalLanguageProcessingTime": "2.825383895s",
+    "generatedStatementExecuted": false
+  }
+}

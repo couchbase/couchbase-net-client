@@ -49,6 +49,8 @@ namespace Couchbase.Query
         public uint ErrorCount { get; set; }
         public uint WarningCount { get; set; }
         public uint SortCount { get; set; }
+        public string NaturalLanguageProcessingTime { get; set; }
+        public bool? GeneratedStatementExecuted { get; set; }
 
         internal QueryMetrics ToMetrics()
         {

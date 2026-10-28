@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Retry;
+using Couchbase.Query.Conversational;
 using Couchbase.Utils;
 
 #nullable enable
@@ -134,6 +135,11 @@ namespace Couchbase.Query
         /// Get the prepared query plan name stored in the cluster.
         /// </summary>
         public string? PreparedPlanName { get; protected set; }
+
+        /// <summary>
+        /// Fields returned by natural language requests and chats.
+        /// </summary>
+        internal NaturalLanguageResponse NaturalLanguage { get; } = new();
 
         /// <summary>
         /// Initializes the reader, and reads all attributes until result rows are encountered.
