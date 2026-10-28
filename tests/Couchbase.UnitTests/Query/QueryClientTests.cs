@@ -571,7 +571,12 @@ namespace Couchbase.UnitTests.Query
             CreateQueryClient(provider, sent, new Mock<ILogger<QueryClient>>().Object, responses);
 
         private static QueryClient CreateQueryClient(Mock<IServiceUriProvider> provider,
-            List<(Uri Uri, string Body)> sent, ILogger<QueryClient> logger, params Func<HttpResponseMessage>[] responses)
+            List<(Uri Uri, string Body)> sent, ILogger<QueryClient> logger, params Func<HttpResponseMessage>[] responses) =>
+            CreateQueryClient(provider, sent, logger, NoopRequestTracer.Instance, responses);
+
+        private static QueryClient CreateQueryClient(Mock<IServiceUriProvider> provider,
+            List<(Uri Uri, string Body)> sent, ILogger<QueryClient> logger, IRequestTracer tracer,
+            params Func<HttpResponseMessage>[] responses)
         {
             var handler = new Mock<HttpMessageHandler>();
             handler.Protected().Setup<Task<HttpResponseMessage>>(
@@ -589,7 +594,7 @@ namespace Couchbase.UnitTests.Query
 
             return new QueryClient(httpClientFactory, provider.Object, DefaultSerializer.Instance,
                 NullFallbackTypeSerializerProvider.Instance, logger,
-                NoopRequestTracer.Instance, TestRedactor.None);
+                tracer, TestRedactor.None);
         }
 
         private static RetryOrchestrator CreateRetryOrchestrator() =>
@@ -916,6 +921,54 @@ namespace Couchbase.UnitTests.Query
                 Assert.DoesNotContain(TestApiKey, text);
                 Assert.DoesNotContain(TestConfigValue, text);
                 Assert.DoesNotContain("natural_", text);
+            }
+        }
+
+        #endregion
+
+        #region Conversational spans
+
+        [Theory]
+        [InlineData(null, "query")]
+        [InlineData(nameof(ConversationalOperation.Query), "conversational_query")]
+        [InlineData(nameof(ConversationalOperation.BeginChat), "conversational_query_begin_chat")]
+        [InlineData(nameof(ConversationalOperation.Ask), "conversational_query_ask")]
+        [InlineData(nameof(ConversationalOperation.Pause), "conversational_query_pause")]
+        [InlineData(nameof(ConversationalOperation.Resume), "conversational_query_resume")]
+        [InlineData(nameof(ConversationalOperation.End), "conversational_query_end")]
+        public async Task QueryAsync_RootSpanName_FollowsTheConversationalOperation(string operation, string expected)
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var provider = QueryNodeProvider(node, node);
+            var tracer = new RecordingTracer();
+            var client = CreateQueryClient(provider, new List<(Uri Uri, string Body)>(),
+                new Mock<ILogger<QueryClient>>().Object, tracer, SuccessResponse);
+
+            var options = new QueryOptions();
+            if (operation is not null)
+            {
+                options.Conversational = Conversational(operation);
+            }
+
+            using var result = await client.QueryAsync<dynamic>("SELECT 1", options);
+
+            Assert.Equal(expected, Assert.Single(tracer.Names));
+        }
+
+        private sealed class RecordingTracer : IRequestTracer
+        {
+            public List<string> Names { get; } = new();
+
+            public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+            {
+                Names.Add(name);
+                return NoopRequestSpan.Instance;
+            }
+
+            public IRequestTracer Start(TraceListener listener) => this;
+
+            public void Dispose()
+            {
             }
         }
 
