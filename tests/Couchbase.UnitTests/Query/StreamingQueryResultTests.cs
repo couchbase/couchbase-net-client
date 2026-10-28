@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Authentication;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
@@ -518,6 +520,67 @@ namespace Couchbase.UnitTests.Query
             Assert.Null(naturalLanguage.ChatId);
             Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
             Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+        }
+
+        #endregion
+
+        #region Error reason
+
+        [Theory]
+        [InlineData(false, "\"plain reason\"", 0, "plain reason", null)]
+        [InlineData(true, "\"plain reason\"", 0, "plain reason", null)]
+        [InlineData(false, "{\"caller\":\"c\",\"code\":19240,\"key\":\"k\",\"message\":\"with message\"}", 19240, "with message", "c")]
+        [InlineData(true, "{\"caller\":\"c\",\"code\":19240,\"key\":\"k\",\"message\":\"with message\"}", 19240, "with message", "c")]
+        [InlineData(false, "{\"code\":19240,\"msg\":\"with msg\",\"extra\":{\"a\":[1]}}", 19240, "with msg", null)]
+        [InlineData(true, "{\"code\":19240,\"msg\":\"with msg\",\"extra\":{\"a\":[1]}}", 19240, "with msg", null)]
+        [InlineData(false, "{\"msg\":\"ignored\",\"message\":\"wins\"}", 0, "wins", null)]
+        [InlineData(true, "{\"msg\":\"ignored\",\"message\":\"wins\"}", 0, "wins", null)]
+        public async Task InitializeAsync_Reason_Shapes_Are_Read(bool useSystemTextJson, string reason,
+            int expectedCode, string expectedMessage, string expectedCaller)
+        {
+            var json = $$"""{"requestID":"r-1","errors":[{"code":19243,"msg":"outer","reason":{{reason}},"retry":true}],"status":"fatal"}""";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            await streamingResult.InitializeAsync();
+
+            Assert.Equal(QueryStatus.Fatal, streamingResult.MetaData.Status);
+            var error = Assert.Single(streamingResult.Errors);
+            Assert.Equal(19243, error.Code);
+            Assert.Equal("outer", error.Message);
+            Assert.True(error.Retry);
+            Assert.Equal(expectedCode, error.Reason.Code);
+            Assert.Equal(expectedMessage, error.Reason.Message);
+            Assert.Equal(expectedCaller, error.Reason.Caller);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_Reason_Of_Other_Type_Is_Null(bool useSystemTextJson)
+        {
+            var json = """{"requestID":"r-1","errors":[{"code":5000,"msg":"outer","reason":[1,{"a":2}],"retry":true}],"status":"fatal"}""";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            await streamingResult.InitializeAsync();
+
+            var error = Assert.Single(streamingResult.Errors);
+            Assert.Null(error.Reason);
+            Assert.True(error.Retry);
+        }
+
+        [Fact]
+        public void Reason_Serializes_As_Object()
+        {
+            var context = new QueryErrorContext
+            {
+                Errors = new() { new Error { Code = 19243, Reason = new Reason { Code = 19240, Message = "busy" } } }
+            };
+            const string expected = "\"reason\":{\"caller\":null,\"code\":19240,\"key\":null,\"message\":\"busy\"}";
+
+            Assert.Contains(expected, JsonSerializer.Serialize(context, QuerySerializerContext.Default.QueryErrorContext));
+            Assert.Contains(expected, Newtonsoft.Json.JsonConvert.SerializeObject(context));
         }
 
         #endregion

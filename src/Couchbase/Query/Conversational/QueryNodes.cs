@@ -11,25 +11,22 @@ namespace Couchbase.Query.Conversational
     internal static class QueryNodes
     {
         public static bool TryResolve(IEnumerable<IClusterNode> nodes, string? nodeUuid,
-            [NotNullWhen(true)] out Uri? queryUri)
+            [NotNullWhen(true)] out IClusterNode? queryNode)
         {
             if (!string.IsNullOrEmpty(nodeUuid))
             {
                 foreach (var node in nodes)
                 {
-                    if (node.HasQuery && string.Equals(node.NodeUuid, nodeUuid, StringComparison.Ordinal))
+                    if (node.HasQuery && string.Equals(node.NodeUuid, nodeUuid, StringComparison.Ordinal)
+                        && node.QueryUri is not null)
                     {
-                        var uri = node.QueryUri;
-                        if (uri is not null)
-                        {
-                            queryUri = uri;
-                            return true;
-                        }
+                        queryNode = node;
+                        return true;
                     }
                 }
             }
 
-            queryUri = null;
+            queryNode = null;
             return false;
         }
 

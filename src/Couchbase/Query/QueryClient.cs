@@ -20,6 +20,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
+using Couchbase.Query.Conversational;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -232,14 +233,27 @@ namespace Couchbase.Query
                     Message = GetErrorMessage(failedQueryResult, currentContextId, statusCode),
                     Errors = failedQueryResult.Errors,
                     HttpStatus = statusCode,
-                    QueryStatus = failedQueryResult.MetaData?.Status ?? QueryStatus.Fatal
+                    QueryStatus = failedQueryResult.MetaData?.Status ?? QueryStatus.Fatal,
+                    Conversational = options.Conversational
                 };
             }
 
             // try get Query node, excluding nodes that failed on prior retries
             var requestBase = request as RequestBase;
-            var queryNode = _serviceUriProvider.GetRandomQueryNode(requestBase?.ExcludedNodes);
-            var queryUri = options.LastDispatchedNode ?? queryNode.QueryUri;
+            var targetNodeUuid = options.Conversational?.TargetNodeUuid;
+            IClusterNode queryNode;
+            Uri queryUri;
+            if (targetNodeUuid is null)
+            {
+                queryNode = _serviceUriProvider.GetRandomQueryNode(requestBase?.ExcludedNodes);
+                queryUri = options.LastDispatchedNode ?? queryNode.QueryUri;
+            }
+            else
+            {
+                queryNode = _serviceUriProvider.GetQueryNode(targetNodeUuid)
+                            ?? throw CreateTargetNodeUnavailableException(options.Conversational!);
+                queryUri = queryNode.QueryUri;
+            }
 
             var requestStopwatch = LightweightStopwatch.StartNew();
             TimeSpan? operationElapsed;
@@ -309,7 +323,8 @@ namespace Couchbase.Query
                         _logger.LogDebug("Request {currentContextId} has failed because {status}.",
                             currentContextId, queryResult.MetaData?.Status);
 
-                        if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
+                        // A conversational request reached Query, so it is never retried.
+                        if (options.Conversational is null && queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                         {
                             queryResult.NoRetryException = queryResult.CreateExceptionForError(ErrorContextFactory(queryResult, response.StatusCode));
                             if (queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
@@ -337,7 +352,7 @@ namespace Couchbase.Query
                                 AppTelemetryServiceType.Query,
                                 AppTelemetryCounterType.TimedOut);
 
-                            if (options.IsReadOnly)
+                            if (options.IsIdempotent)
                             {
                                 throw new UnambiguousTimeoutException
                                 {
@@ -393,7 +408,7 @@ namespace Couchbase.Query
                 };
 
                 _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
-                if (options.IsReadOnly)
+                if (options.IsIdempotent)
                 {
                     throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
                     {
@@ -430,17 +445,26 @@ namespace Couchbase.Query
                     QueryStatus = QueryStatus.Fatal
                 };
 
+                // A conversational request may have reached Query, so only a pre-connect failure is retried.
+                var retryAmbiguousError = options.IsReadOnly && options.Conversational is null;
+
                 // Retriable transport error → exclude this node and let the orchestrator re-dispatch
-                if (e.TryExcludeFailedNode(options.IsReadOnly, requestBase, queryUri))
+                // A request with a target node keeps that node, so the retry goes to the same node.
+                if (targetNodeUuid is null
+                        ? e.TryExcludeFailedNode(retryAmbiguousError, requestBase, queryUri)
+                        : e.IsRetriableTransportError(retryAmbiguousError))
                 {
                     _logger.LogDebug(LoggingEvents.QueryEvent,
                         "Request {currentContextId} hit a retriable transport error on node {endpoint}, will retry.",
                         currentContextId, queryUri);
 
-                    // Clear LastDispatchedNode so the next retry picks a new node
-                    options.LastDispatchedNode = null;
+                    if (targetNodeUuid is null)
+                    {
+                        // Clear LastDispatchedNode so the next retry picks a new node
+                        options.LastDispatchedNode = null;
+                    }
 
-                    // Synthetic result flagged for retry so the orchestrator re-dispatches to another node;
+                    // Synthetic result flagged for retry so the orchestrator re-dispatches the request;
                     // NoRetryException is surfaced only if the retry strategy decides not to retry.
                     var failResult = new BlockQueryResult<T>(Stream.Null, serializer);
                     failResult.RetryReason = RetryReason.ServiceNotAvailable;
@@ -484,6 +508,12 @@ namespace Couchbase.Query
             }
 
         }
+
+        // Ask, Pause and End need the node that owns the chat. Other operations report the Query service as unreachable.
+        private static CouchbaseException CreateTargetNodeUnavailableException(ConversationalRequest conversational) =>
+            ChatCurrentlyUnavailableException.AppliesTo(conversational.Operation)
+                ? new ChatCurrentlyUnavailableException(conversational, context: null)
+                : new ServiceNotAvailableException(ServiceType.Query);
 
         private string GetErrorMessage<T>(QueryResultBase<T> queryResult, string requestId, HttpStatusCode statusCodeFallback)
         {

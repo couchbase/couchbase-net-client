@@ -7,6 +7,7 @@ using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Utils;
+using Couchbase.Query.Conversational;
 
 namespace Couchbase.Query
 {
@@ -60,6 +61,12 @@ namespace Couchbase.Query
         /// <returns>Exception</returns>
         public static CouchbaseException CreateExceptionForError<T>(this IQueryResult<T> result, QueryErrorContext context)
         {
+            if (context.Conversational is not null &&
+                CreateConversationalException(result.Errors.FirstOrDefault(), context) is { } conversationalException)
+            {
+                return conversationalException;
+            }
+
             foreach (var error in result.Errors)
             {
                 // The server may omit "msg"/"reason" entirely, or send them as null, so neither can be
@@ -126,7 +133,13 @@ namespace Couchbase.Query
                 //query_context was not included in the request and the server requires it
                 if (error.Code == 1197) return new QueryContextMissingException(context);
 
-                if (error.Code == 1080) return new UnambiguousTimeoutException("Query timed out while streaming/receiving rows.", context);
+                if (error.Code == 1080)
+                {
+                    const string timeoutMessage = "Query timed out while streaming/receiving rows.";
+                    if (context.Conversational is { Operation: not ConversationalOperation.Query })
+                        return new AmbiguousTimeoutException(timeoutMessage, context);
+                    return new UnambiguousTimeoutException(timeoutMessage, context);
+                }
 
                 //query_context *was* included in the request, but the server doesn't support it
                 if (error.Code == 1065 && message.Contains("query_context"))
@@ -137,6 +150,31 @@ namespace Couchbase.Query
             if (context.HttpStatus == HttpStatusCode.BadRequest) return new InvalidArgumentException(context);
 
             return new CouchbaseException(context);
+        }
+
+        // For a conversational request the first error decides. Null keeps the ordinary mapping.
+        private static CouchbaseException CreateConversationalException(Error error, QueryErrorContext context)
+        {
+            switch (error?.Code)
+            {
+                case 19220:
+                case 19221:
+                    return new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
+                case 19222:
+                    return new FeatureNotAvailableException(context.Message ?? "Feature Not Available") { Context = context };
+                case 19236 when ChatCurrentlyUnavailableException.AppliesTo(context.Conversational.Operation):
+                    return new ChatCurrentlyUnavailableException(context.Conversational, context);
+                case 19240:
+                case 19243 when error.Reason?.Code == 19240:
+                    return new TemporaryFailureException(context);
+                case 19241:
+                    return new AuthenticationFailureException(context);
+                case 19243:
+                case 19255:
+                    return new CouchbaseException(context);
+                default:
+                    return null;
+            }
         }
 
         /// <summary>

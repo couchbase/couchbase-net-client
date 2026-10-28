@@ -9,7 +9,7 @@ namespace Couchbase.Core.Retry.Query
         //specific to query
         public QueryOptions Options { get; set; }
 
-        public override bool Idempotent => Options.IsReadOnly;
+        public override bool Idempotent => Options.IsIdempotent;
 
         #nullable enable
 

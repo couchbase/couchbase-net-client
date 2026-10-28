@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace Couchbase.Query
 {
+    [Newtonsoft.Json.JsonConverter(typeof(ReasonNewtonsoftConverter))]
+    [System.Text.Json.Serialization.JsonConverter(typeof(ReasonJsonConverter))]
     public class Reason
     {
         [JsonProperty("caller")]

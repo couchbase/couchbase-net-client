@@ -1,8 +1,11 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
 using Xunit;
@@ -323,6 +326,39 @@ namespace Couchbase.UnitTests.Query
             Assert.Null(naturalLanguage.ChatId);
             Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
             Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+        }
+
+        #endregion
+
+        #region Error reason
+
+        [Theory]
+        [InlineData(false, "\"plain reason\"", 0, "plain reason", null)]
+        [InlineData(true, "\"plain reason\"", 0, "plain reason", null)]
+        [InlineData(false, "{\"caller\":\"c\",\"code\":19240,\"key\":\"k\",\"message\":\"with message\"}", 19240, "with message", "c")]
+        [InlineData(true, "{\"caller\":\"c\",\"code\":19240,\"key\":\"k\",\"message\":\"with message\"}", 19240, "with message", "c")]
+        [InlineData(false, "{\"code\":19240,\"msg\":\"with msg\",\"extra\":{\"a\":[1]}}", 19240, "with msg", null)]
+        [InlineData(true, "{\"code\":19240,\"msg\":\"with msg\",\"extra\":{\"a\":[1]}}", 19240, "with msg", null)]
+        [InlineData(false, "{\"msg\":\"ignored\",\"message\":\"wins\"}", 0, "wins", null)]
+        [InlineData(true, "{\"msg\":\"ignored\",\"message\":\"wins\"}", 0, "wins", null)]
+        public async Task InitializeAsync_Reason_Shapes_Are_Read(bool useSystemTextJson, string reason,
+            int expectedCode, string expectedMessage, string expectedCaller)
+        {
+            var json = $$"""{"requestID":"5e0f3c2a-7d41-4b6e-a8c9-1f2d3e4b5a60","errors":[{"code":19243,"msg":"outer","reason":{{reason}},"retry":true}],"status":"fatal"}""";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+            ITypeSerializer serializer = useSystemTextJson ? SystemTextJsonSerializer.Create() : new DefaultSerializer();
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, serializer);
+            await blockResult.InitializeAsync();
+
+            Assert.Equal(QueryStatus.Fatal, blockResult.MetaData.Status);
+            var error = Assert.Single(blockResult.Errors);
+            Assert.Equal(19243, error.Code);
+            Assert.Equal("outer", error.Message);
+            Assert.True(error.Retry);
+            Assert.Equal(expectedCode, error.Reason.Code);
+            Assert.Equal(expectedMessage, error.Reason.Message);
+            Assert.Equal(expectedCaller, error.Reason.Caller);
         }
 
         #endregion

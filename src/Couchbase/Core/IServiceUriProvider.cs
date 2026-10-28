@@ -113,6 +113,13 @@ namespace Couchbase.Core
         [InterfaceStability(Level.Volatile)]
         IClusterNode GetRandomEventingNode();
         #endregion
+
+        /// <summary>
+        /// Get the <see cref="IClusterNode"/> with the Query service and the given node UUID.
+        /// </summary>
+        /// <param name="nodeUuid">The node UUID.</param>
+        /// <returns>The node, or <c>null</c> if no Query node in the cluster map has this node UUID.</returns>
+        IClusterNode? GetQueryNode(string nodeUuid);
     }
 }
 

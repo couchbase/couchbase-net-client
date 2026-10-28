@@ -17,6 +17,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
+using Couchbase.Query.Conversational;
 using Couchbase.Utils;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
@@ -163,6 +164,7 @@ namespace Couchbase.Query
                 // Pins a transaction's statements to the node that began the work; unlike the rest
                 // of this state, nothing downstream re-derives it.
                 queryOptions.LastDispatchedNode = LastDispatchedNode;
+                queryOptions.Conversational = Conversational;
                 return queryOptions;
             }
 
@@ -891,6 +893,13 @@ namespace Couchbase.Query
         /// <returns></returns>
         internal string? QueryContext { get; set; }
 
+        internal ConversationalRequest? Conversational { get; set; }
+
+        // A one-shot conversational query does not change chat state, a chat operation may.
+        internal bool IsIdempotent => Conversational is null
+            ? IsReadOnly
+            : Conversational.Operation == ConversationalOperation.Query;
+
         internal QueryOptions QueryPlan(QueryPlan queryPlan)
         {
             _preparedPayload = queryPlan;
@@ -915,6 +924,7 @@ namespace Couchbase.Query
                     "Only ScanConsistency.AtPlus is supported for this query request.");
             }
 
+            var model = Conversational?.Model;
             var dto = new QueryOptionsDto
             {
                 AutoExecute = _autoExecute,
@@ -922,6 +932,12 @@ namespace Couchbase.Query
                 FlexIndex = _flexIndex,
                 IncludeMetrics = _includeMetrics,
                 MaxServerParallelism = _maxServerParallelism?.ToString(),
+                NaturalChatId = Conversational?.ChatId,
+                NaturalConfig = model?.Config,
+                NaturalCred = model?.Cred,
+                NaturalModel = model?.Model,
+                NaturalOrgId = model?.OrgId,
+                NaturalVendor = model?.Vendor,
                 PipelineBatch = _pipelineBatch,
                 PipelineCapacity = _pipelineCapacity,
                 PreserveExpiry = _preserveExpiry,
