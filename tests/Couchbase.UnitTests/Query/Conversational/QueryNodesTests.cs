@@ -12,7 +12,7 @@ namespace Couchbase.UnitTests.Query.Conversational
     public class QueryNodesTests
     {
         [Fact]
-        public void TryResolve_KnownUuid_ReturnsQueryUri()
+        public void TryResolve_KnownUuid_ReturnsNode()
         {
             var nodes = new[]
             {
@@ -20,8 +20,8 @@ namespace Couchbase.UnitTests.Query.Conversational
                 Node("uuid-b", "http://b:8093/query/service")
             };
 
-            Assert.True(QueryNodes.TryResolve(nodes, "uuid-b", out var queryUri));
-            Assert.Equal(new Uri("http://b:8093/query/service"), queryUri);
+            Assert.True(QueryNodes.TryResolve(nodes, "uuid-b", out var queryNode));
+            Assert.Same(nodes[1], queryNode);
         }
 
         [Theory]
@@ -35,8 +35,8 @@ namespace Couchbase.UnitTests.Query.Conversational
                 Node("uuid-b", "http://b:8093/query/service")
             };
 
-            Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out var queryUri));
-            Assert.Null(queryUri);
+            Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out var queryNode));
+            Assert.Null(queryNode);
         }
 
         [Fact]
@@ -66,7 +66,7 @@ namespace Couchbase.UnitTests.Query.Conversational
         }
 
         [Fact]
-        public void TryResolve_SeveralNodeObjectsForOneUuid_ReturnsQueryUri()
+        public void TryResolve_SeveralNodeObjectsForOneUuid_ReturnsNodeWithQueryUri()
         {
             // The node list holds a global node plus one node per open bucket.
             var nodes = new[]
@@ -76,8 +76,8 @@ namespace Couchbase.UnitTests.Query.Conversational
                 Node("uuid-a", "http://a:8093/query/service")
             };
 
-            Assert.True(QueryNodes.TryResolve(nodes, "uuid-a", out var queryUri));
-            Assert.Equal(new Uri("http://a:8093/query/service"), queryUri);
+            Assert.True(QueryNodes.TryResolve(nodes, "uuid-a", out var queryNode));
+            Assert.Equal(new Uri("http://a:8093/query/service"), queryNode.QueryUri);
         }
 
         [Fact]

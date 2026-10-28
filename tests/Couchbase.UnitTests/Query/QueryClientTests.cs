@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -17,7 +18,10 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
+using Couchbase.Core.Retry.Query;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
@@ -402,5 +406,519 @@ namespace Couchbase.UnitTests.Query
                 return config;
             }
         }
+
+        #region Target node
+
+        [Fact]
+        public async Task QueryAsync_TargetNode_SendsToThatNodeOnly()
+        {
+            var target = QueryNode("uuid-a", "http://a:8093/query/service");
+            var random = QueryNode("uuid-b", "http://b:8093/query/service");
+            var provider = QueryNodeProvider(random, target);
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, SuccessResponse);
+
+            var options = new QueryOptions
+            {
+                LastDispatchedNode = new Uri("http://c:8093/query/service"),
+                Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a")
+            };
+            var request = new QueryRequest
+            {
+                Options = options,
+                ExcludedNodes = new List<Uri> { new("http://a:8093/query/service") }
+            };
+
+            using var result = await client.QueryAsync<dynamic>("USING AI hello", options, request);
+
+            var (uri, body) = Assert.Single(sent);
+            Assert.Equal(new Uri("http://a:8093/query/service"), uri);
+            using var json = JsonDocument.Parse(body);
+            Assert.Equal("chat-1", json.RootElement.GetProperty("natural_chatid").GetString());
+            provider.Verify(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()), Times.Never);
+            target.VerifyGet(n => n.NodesAdapter, Times.AtLeastOnce());
+            random.VerifyGet(n => n.NodesAdapter, Times.Never());
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Ask), typeof(ChatCurrentlyUnavailableException))]
+        [InlineData(nameof(ConversationalOperation.Pause), typeof(ChatCurrentlyUnavailableException))]
+        [InlineData(nameof(ConversationalOperation.End), typeof(ChatCurrentlyUnavailableException))]
+        [InlineData(nameof(ConversationalOperation.BeginChat), typeof(ServiceNotAvailableException))]
+        [InlineData(nameof(ConversationalOperation.Resume), typeof(ServiceNotAvailableException))]
+        [InlineData(nameof(ConversationalOperation.Query), typeof(ServiceNotAvailableException))]
+        public async Task QueryAsync_TargetNodeNotInClusterMap_ThrowsWithoutSendingOrRetrying(string operation, Type expected)
+        {
+            var provider = QueryNodeProvider(QueryNode("uuid-b", "http://b:8093/query/service"));
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, SuccessResponse);
+
+            var op = (ConversationalOperation)Enum.Parse(typeof(ConversationalOperation), operation);
+            var options = new QueryOptions
+            {
+                Conversational = new ConversationalRequest(op, "chat-1", "uuid-gone")
+            };
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            var calls = 0;
+            var ex = await Assert.ThrowsAsync(expected, () =>
+                CreateRetryOrchestrator().RetryAsync(() =>
+                {
+                    calls++;
+                    return client.QueryAsync<dynamic>(request.Statement, options, request);
+                }, request));
+
+            if (ex is ChatCurrentlyUnavailableException chat)
+            {
+                Assert.Equal("chat-1", chat.ChatId);
+                Assert.Equal("uuid-gone", chat.OwnerNodeUuid);
+                Assert.Equal(operation.ToLowerInvariant(), chat.Operation);
+                Assert.Null(chat.Context);
+                Assert.Contains("ResumeAsync", chat.Message);
+            }
+
+            Assert.Equal(1, calls);
+            Assert.Equal(0u, request.Attempts);
+            Assert.Empty(sent);
+            provider.Verify(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task QueryAsync_TargetNodePreConnectFailure_RetriesOnTheSameNode()
+        {
+            var target = QueryNode("uuid-a", "http://a:8093/query/service");
+            var provider = QueryNodeProvider(QueryNode("uuid-b", "http://b:8093/query/service"), target);
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, ConnectionRefused, SuccessResponse);
+
+            var lastDispatchedNode = new Uri("http://c:8093/query/service");
+            var options = new QueryOptions
+            {
+                LastDispatchedNode = lastDispatchedNode,
+                Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a")
+            };
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            using var result = await CreateRetryOrchestrator().RetryAsync(
+                () => client.QueryAsync<dynamic>(request.Statement, options, request), request);
+
+            var targetUri = new Uri("http://a:8093/query/service");
+            Assert.Equal(new[] { targetUri, targetUri }, sent.Select(x => x.Uri));
+            Assert.Equal(1u, request.Attempts);
+            Assert.Null(request.ExcludedNodes);
+            Assert.Equal(lastDispatchedNode, options.LastDispatchedNode);
+            provider.Verify(m => m.GetQueryNode("uuid-a"), Times.Exactly(2));
+            provider.Verify(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task QueryAsync_NoTargetNodePreConnectFailure_ExcludesTheNode()
+        {
+            var random = QueryNode("uuid-b", "http://b:8093/query/service");
+            var provider = QueryNodeProvider(random);
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, ConnectionRefused);
+
+            var options = new QueryOptions { LastDispatchedNode = new Uri("http://c:8093/query/service") };
+            var request = new QueryRequest { Options = options };
+
+            using var result = await client.QueryAsync<dynamic>("SELECT 1", options, request);
+
+            Assert.Equal(RetryReason.ServiceNotAvailable, result.RetryReason);
+            Assert.Equal(new[] { new Uri("http://c:8093/query/service") }, request.ExcludedNodes);
+            Assert.Null(options.LastDispatchedNode);
+            provider.Verify(m => m.GetQueryNode(It.IsAny<string>()), Times.Never);
+        }
+
+        private static Mock<IClusterNode> QueryNode(string nodeUuid, string queryUri)
+        {
+            var uri = new Uri(queryUri);
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(n => n.NodeUuid).Returns(nodeUuid);
+            node.SetupGet(n => n.HasQuery).Returns(true);
+            node.SetupGet(n => n.QueryUri).Returns(uri);
+            node.SetupGet(n => n.NodesAdapter).Returns(new NodeAdapter { CanonicalHostname = uri.Host });
+            return node;
+        }
+
+        private static Mock<IServiceUriProvider> QueryNodeProvider(Mock<IClusterNode> randomNode,
+            params Mock<IClusterNode>[] nodesByUuid)
+        {
+            var provider = new Mock<IServiceUriProvider>();
+            provider
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()))
+                .Returns(randomNode.Object);
+            foreach (var node in nodesByUuid)
+            {
+                provider.Setup(m => m.GetQueryNode(node.Object.NodeUuid)).Returns(node.Object);
+            }
+
+            return provider;
+        }
+
+        private static QueryClient CreateQueryClient(Mock<IServiceUriProvider> provider,
+            List<(Uri Uri, string Body)> sent, params Func<HttpResponseMessage>[] responses) =>
+            CreateQueryClient(provider, sent, new Mock<ILogger<QueryClient>>().Object, responses);
+
+        private static QueryClient CreateQueryClient(Mock<IServiceUriProvider> provider,
+            List<(Uri Uri, string Body)> sent, ILogger<QueryClient> logger, params Func<HttpResponseMessage>[] responses)
+        {
+            var handler = new Mock<HttpMessageHandler>();
+            handler.Protected().Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (message, _) =>
+                {
+                    sent.Add((message.RequestUri, await ReadBodyAsync(message.Content)));
+                    return responses[sent.Count - 1]();
+                });
+
+            // QueryClient disposes the HttpClient on a transport error, so each attempt needs a new one.
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(handler.Object, disposeHandler: false));
+
+            return new QueryClient(httpClientFactory, provider.Object, DefaultSerializer.Instance,
+                NullFallbackTypeSerializerProvider.Instance, logger,
+                NoopRequestTracer.Instance, TestRedactor.None);
+        }
+
+        private static RetryOrchestrator CreateRetryOrchestrator() =>
+            new(TimeProvider.System, new Mock<ILogger<RetryOrchestrator>>().Object, TestRedactor.None)
+            {
+                Delay = (_, _) => Task.CompletedTask
+            };
+
+        // net48 has no ReadAsStringAsync overload with a token, so the handler token stays out of scope.
+        private static Task<string> ReadBodyAsync(HttpContent content) => content.ReadAsStringAsync();
+
+        private static HttpResponseMessage SuccessResponse() =>
+            new(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"requestID":"r-1","status":"success","results":[]}""")
+            };
+
+        private static HttpResponseMessage ConnectionRefused() =>
+            throw new HttpRequestException("Connection refused",
+                new SocketException((int)SocketError.ConnectionRefused));
+
+        #endregion
+
+        #region Conversational retry and timeout
+
+        private const string RetryableServerError =
+            """{"requestID":"r-1","errors":[{"code":5010,"msg":"Try again","retry":true}],"status":"fatal"}""";
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query))]
+        [InlineData(nameof(ConversationalOperation.Ask))]
+        public async Task QueryAsync_ConversationalRetryableServerError_IsNotRetried(string operation)
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(QueryNodeProvider(node, node), sent,
+                JsonResponse(RetryableServerError, HttpStatusCode.ServiceUnavailable), SuccessResponse);
+
+            var options = new QueryOptions { Conversational = Conversational(operation) };
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            var ex = await Assert.ThrowsAsync<InternalServerFailureException>(() =>
+                CreateRetryOrchestrator().RetryAsync(
+                    () => client.QueryAsync<dynamic>(request.Statement, options, request), request));
+
+            Assert.Single(sent);
+            Assert.Equal(0u, request.Attempts);
+            var context = Assert.IsType<QueryErrorContext>(ex.Context);
+            Assert.True(Assert.Single(context.Errors).Retry);
+        }
+
+        [Fact]
+        public async Task QueryAsync_OrdinaryRetryableServerError_IsRetried()
+        {
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(QueryNodeProvider(QueryNode("uuid-a", "http://a:8093/query/service")), sent,
+                JsonResponse(RetryableServerError, HttpStatusCode.ServiceUnavailable), SuccessResponse);
+
+            var options = new QueryOptions();
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "SELECT 1",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            using var result = await CreateRetryOrchestrator().RetryAsync(
+                () => client.QueryAsync<dynamic>(request.Statement, options, request), request);
+
+            Assert.Equal(2, sent.Count);
+            Assert.Equal(1u, request.Attempts);
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query), false)]
+        [InlineData(nameof(ConversationalOperation.Query), true)]
+        [InlineData(nameof(ConversationalOperation.Ask), true)]
+        public async Task QueryAsync_ConversationalAmbiguousTransportError_IsNotRetried(string operation, bool readOnly)
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(QueryNodeProvider(node, node), sent, ConnectionReset, SuccessResponse);
+
+            var options = new QueryOptions { Conversational = Conversational(operation) }.Readonly(readOnly);
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            await Assert.ThrowsAsync<RequestCanceledException>(() =>
+                CreateRetryOrchestrator().RetryAsync(
+                    () => client.QueryAsync<dynamic>(request.Statement, options, request), request));
+
+            Assert.Single(sent);
+            Assert.Equal(0u, request.Attempts);
+            Assert.Null(request.ExcludedNodes);
+        }
+
+        [Fact]
+        public async Task QueryAsync_OneShotConversationalPreConnectFailure_RetriesOnAnotherNode()
+        {
+            var a = QueryNode("uuid-a", "http://a:8093/query/service");
+            var b = QueryNode("uuid-b", "http://b:8093/query/service");
+            var provider = new Mock<IServiceUriProvider>();
+            provider
+                .Setup(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()))
+                .Returns<IList<Uri>>(excluded => excluded?.Contains(a.Object.QueryUri) == true ? b.Object : a.Object);
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, ConnectionRefused, SuccessResponse);
+
+            var options = new QueryOptions { Conversational = Conversational(nameof(ConversationalOperation.Query)) };
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            using var result = await CreateRetryOrchestrator().RetryAsync(
+                () => client.QueryAsync<dynamic>(request.Statement, options, request), request);
+
+            Assert.Equal(new[] { a.Object.QueryUri, b.Object.QueryUri }, sent.Select(x => x.Uri));
+            Assert.Equal(1u, request.Attempts);
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query), false, "token", typeof(UnambiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Query), false, "status timeout", typeof(UnambiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Query), false, "1080 fatal", typeof(UnambiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Query), false, "1080 after rows", typeof(UnambiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Ask), false, "token", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Ask), false, "status timeout", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Ask), false, "1080 fatal", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Ask), false, "1080 after rows", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.End), true, "token", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.End), true, "status timeout", typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.End), true, "1080 fatal", typeof(AmbiguousTimeoutException))]
+        [InlineData(null, false, "token", typeof(AmbiguousTimeoutException))]
+        [InlineData(null, false, "status timeout", typeof(AmbiguousTimeoutException))]
+        [InlineData(null, false, "1080 fatal", typeof(UnambiguousTimeoutException))]
+        [InlineData(null, false, "1080 after rows", typeof(UnambiguousTimeoutException))]
+        [InlineData(null, true, "token", typeof(UnambiguousTimeoutException))]
+        [InlineData(null, true, "status timeout", typeof(UnambiguousTimeoutException))]
+        public async Task QueryAsync_Timeout_MapsToTimeoutType(string operation, bool readOnly, string timeout, Type expected)
+        {
+            Func<HttpResponseMessage> response = timeout switch
+            {
+                "token" => () => throw new TaskCanceledException(),
+                "status timeout" => JsonResponse(
+                    """{"requestID":"r-1","errors":[{"code":1080,"msg":"Timeout 1s exceeded"}],"status":"timeout"}"""),
+                "1080 fatal" => JsonResponse(
+                    """{"requestID":"r-1","errors":[{"code":1080,"msg":"Timeout 1s exceeded"}],"status":"fatal"}"""),
+                _ => JsonResponse(
+                    """{"requestID":"r-1","results":[{"a":1}],"errors":[{"code":1080,"msg":"Timeout 1s exceeded"}],"status":"timeout"}""")
+            };
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var client = CreateQueryClient(QueryNodeProvider(node, node), new List<(Uri Uri, string Body)>(), response);
+
+            var options = new QueryOptions { Conversational = Conversational(operation) }.Readonly(readOnly);
+
+            async Task Run()
+            {
+                using var result = await client.QueryAsync<dynamic>("USING AI hello", options);
+                await foreach (var row in result)
+                {
+                }
+            }
+
+            await Assert.ThrowsAsync(expected, Run);
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query), false, typeof(UnambiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Ask), false, typeof(AmbiguousTimeoutException))]
+        [InlineData(nameof(ConversationalOperation.Pause), true, typeof(AmbiguousTimeoutException))]
+        [InlineData(null, false, typeof(AmbiguousTimeoutException))]
+        [InlineData(null, true, typeof(UnambiguousTimeoutException))]
+        public async Task RetryAsync_Timeout_MapsToTimeoutType(string operation, bool readOnly, Type expected)
+        {
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var request = new QueryRequest
+            {
+                Options = new QueryOptions { Conversational = Conversational(operation) }.Readonly(readOnly),
+                Token = cts.Token,
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            var calls = 0;
+            await Assert.ThrowsAsync(expected, () => CreateRetryOrchestrator().RetryAsync(() =>
+            {
+                calls++;
+                return Task.FromResult<IQueryResult<dynamic>>(null);
+            }, request));
+
+            Assert.Equal(0, calls);
+        }
+
+        private static ConversationalRequest Conversational(string operation)
+        {
+            if (operation is null)
+            {
+                return null;
+            }
+
+            var op = (ConversationalOperation)Enum.Parse(typeof(ConversationalOperation), operation);
+            return op == ConversationalOperation.Query
+                ? new ConversationalRequest(op, null, null)
+                : new ConversationalRequest(op, "chat-1", "uuid-a");
+        }
+
+        private static Func<HttpResponseMessage> JsonResponse(string json,
+            HttpStatusCode statusCode = HttpStatusCode.OK) =>
+            () => new HttpResponseMessage(statusCode) { Content = new StringContent(json) };
+
+        private static HttpResponseMessage ConnectionReset() =>
+            throw new HttpRequestException("Connection reset",
+                new SocketException((int)SocketError.ConnectionReset));
+
+        #endregion
+
+        #region Conversational errors
+
+        [Fact]
+        public async Task QueryAsync_ChatNotFoundOnAsk_ThrowsChatCurrentlyUnavailableWithContext()
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var client = CreateQueryClient(QueryNodeProvider(node, node), new List<(Uri Uri, string Body)>(),
+                JsonResponse("""{"requestID":"r-1","errors":[{"code":19236,"msg":"no chat found"}],"status":"fatal"}"""));
+
+            var options = new QueryOptions { Conversational = Conversational(nameof(ConversationalOperation.Ask)) };
+
+            var ex = await Assert.ThrowsAsync<ChatCurrentlyUnavailableException>(() =>
+                client.QueryAsync<dynamic>("USING AI hello", options));
+
+            Assert.Equal("chat-1", ex.ChatId);
+            Assert.Equal("uuid-a", ex.OwnerNodeUuid);
+            Assert.Equal("ask", ex.Operation);
+            var context = Assert.IsType<QueryErrorContext>(ex.Context);
+            var error = Assert.Single(context.Errors);
+            Assert.Equal(19236, error.Code);
+            Assert.Equal("no chat found", error.Message);
+        }
+
+        [Fact]
+        public async Task QueryAsync_ChatNotFoundOnOrdinaryQuery_KeepsTodaysMapping()
+        {
+            var client = CreateQueryClient(QueryNodeProvider(QueryNode("uuid-a", "http://a:8093/query/service")),
+                new List<(Uri Uri, string Body)>(),
+                JsonResponse("""{"requestID":"r-1","errors":[{"code":19236,"msg":"no chat found"}],"status":"fatal"}"""));
+
+            var ex = await Assert.ThrowsAsync<CouchbaseException>(() =>
+                client.QueryAsync<dynamic>("SELECT 1", new QueryOptions()));
+
+            Assert.IsType<CouchbaseException>(ex);
+        }
+
+        private const string TestPassword = "test-password-6f1c";
+        private const string TestApiKey = "test-api-key-9b2e";
+        private const string TestConfigValue = "test-config-value-4d7a";
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task QueryAsync_ConversationalError_DiagnosticsNeverContainTheModel(bool capella)
+        {
+            var model = capella
+                ? ModelParameters.Create(new ModelOptions().Provider("openai").Name("gpt-4o"),
+                    ModelCredential.Capella("user@example.com", TestPassword, "org-1"))
+                : ModelParameters.Create(new ModelOptions().Provider("openai").Raw("organization", TestConfigValue),
+                    ModelCredential.ApiKey(TestApiKey));
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var sent = new List<(Uri Uri, string Body)>();
+            var logger = new Mock<ILogger<QueryClient>>();
+            logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+            var client = CreateQueryClient(QueryNodeProvider(node, node), sent, logger.Object,
+                JsonResponse("""{"requestID":"r-1","errors":[{"code":19236,"msg":"no chat found"}],"status":"fatal"}"""),
+                JsonResponse("""{"requestID":"r-1","errors":[{"code":19241,"msg":"model auth failed"}],"status":"fatal"}"""));
+
+            var exceptions = new List<CouchbaseException>();
+            foreach (var expected in new[] { typeof(ChatCurrentlyUnavailableException), typeof(AuthenticationFailureException) })
+            {
+                var options = new QueryOptions().Parameter("p", 1).Raw("r", 2);
+                options.Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a", model);
+
+                exceptions.Add((CouchbaseException)await Assert.ThrowsAsync(expected, () =>
+                    client.QueryAsync<dynamic>("USING AI hello", options)));
+            }
+
+            // The secrets are in the request body, so the checks below are not vacuous.
+            Assert.All(sent, x => Assert.Contains(capella ? TestPassword : TestApiKey, x.Body));
+
+            var diagnostics = new List<string>();
+            foreach (var ex in exceptions)
+            {
+                var context = Assert.IsType<QueryErrorContext>(ex.Context);
+                Assert.Same(model, context.Conversational.Model);
+                diagnostics.Add(context.Parameters);
+                diagnostics.Add(ex.ToString());
+                diagnostics.Add(context.ToString());
+                diagnostics.Add(context.Conversational.ToString());
+                diagnostics.Add(JsonSerializer.Serialize(context, QuerySerializerContext.Default.QueryErrorContext));
+                diagnostics.Add(JsonSerializer.Serialize(context));
+                diagnostics.Add(Newtonsoft.Json.JsonConvert.SerializeObject(context));
+            }
+
+            foreach (var invocation in logger.Invocations.Where(i => i.Method.Name == nameof(ILogger.Log)))
+            {
+                diagnostics.Add(invocation.Arguments[2]?.ToString());
+                diagnostics.Add(invocation.Arguments[3]?.ToString());
+            }
+
+            Assert.NotEmpty(logger.Invocations);
+            foreach (var text in diagnostics.Where(x => x is not null))
+            {
+                Assert.DoesNotContain(TestPassword, text);
+                Assert.DoesNotContain(TestApiKey, text);
+                Assert.DoesNotContain(TestConfigValue, text);
+                Assert.DoesNotContain("natural_", text);
+            }
+        }
+
+        #endregion
     }
 }

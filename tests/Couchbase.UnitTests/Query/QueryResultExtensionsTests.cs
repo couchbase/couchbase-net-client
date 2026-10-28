@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.RateLimiting;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Moq;
 using Xunit;
 
@@ -259,4 +261,110 @@ public class QueryResultExtensionsTests
         Assert.IsType(expectedType, ex);
         Assert.Same(errorContext, ex.Context);
     }
+
+    #region Conversational
+
+    [Theory]
+    [InlineData(19220, nameof(ConversationalOperation.Ask), typeof(RateLimitedException))]
+    [InlineData(19221, nameof(ConversationalOperation.Query), typeof(RateLimitedException))]
+    [InlineData(19222, nameof(ConversationalOperation.BeginChat), typeof(FeatureNotAvailableException))]
+    [InlineData(19236, nameof(ConversationalOperation.Ask), typeof(ChatCurrentlyUnavailableException))]
+    [InlineData(19236, nameof(ConversationalOperation.Pause), typeof(ChatCurrentlyUnavailableException))]
+    [InlineData(19236, nameof(ConversationalOperation.End), typeof(ChatCurrentlyUnavailableException))]
+    [InlineData(19236, nameof(ConversationalOperation.BeginChat), typeof(CouchbaseException))]
+    [InlineData(19236, nameof(ConversationalOperation.Resume), typeof(CouchbaseException))]
+    [InlineData(19236, nameof(ConversationalOperation.Query), typeof(CouchbaseException))]
+    [InlineData(19240, nameof(ConversationalOperation.Ask), typeof(TemporaryFailureException))]
+    [InlineData(19241, nameof(ConversationalOperation.Query), typeof(AuthenticationFailureException))]
+    [InlineData(19243, nameof(ConversationalOperation.Ask), typeof(CouchbaseException))]
+    [InlineData(19255, nameof(ConversationalOperation.Ask), typeof(CouchbaseException))]
+    public void Conversational_Error_Maps_To_Exception(int code, string operation, Type expected)
+    {
+        var errors = new List<Error> { new() { Code = code, Message = "cq error", Reason = new Reason { Code = 1 } } };
+        var context = ConversationalContext(errors, operation);
+
+        var ex = CreateException(errors, context);
+
+        Assert.IsType(expected, ex);
+        Assert.Same(context, ex.Context);
+        var error = Assert.Single(context.Errors);
+        Assert.Equal(code, error.Code);
+        Assert.Equal("cq error", error.Message);
+        Assert.Equal(1, error.Reason.Code);
+        if (ex is RateLimitedException rateLimited)
+        {
+            Assert.Equal(RateLimitedReason.ConcurrentRequestLimitReached, rateLimited.Reason);
+        }
+        if (ex is ChatCurrentlyUnavailableException chat)
+        {
+            Assert.Equal("chat-1", chat.ChatId);
+            Assert.Equal("uuid-a", chat.OwnerNodeUuid);
+            Assert.Equal(operation.ToLowerInvariant(), chat.Operation);
+        }
+    }
+
+    [Fact]
+    public void Conversational_Error_19243_With_Nested_19240_Is_TemporaryFailure()
+    {
+        var errors = new List<Error> { new() { Code = 19243, Reason = new Reason { Code = 19240, Message = "busy" } } };
+        var context = ConversationalContext(errors, nameof(ConversationalOperation.Ask));
+
+        var ex = CreateException(errors, context);
+
+        Assert.IsType<TemporaryFailureException>(ex);
+        Assert.Same(context, ex.Context);
+    }
+
+    [Theory]
+    [InlineData(19240, 3000, typeof(TemporaryFailureException))]
+    [InlineData(3000, 19240, typeof(ParsingFailureException))]
+    [InlineData(19243, 3000, typeof(CouchbaseException))]
+    [InlineData(19255, 19241, typeof(CouchbaseException))]
+    [InlineData(99999, 19241, typeof(CouchbaseException))]
+    public void Conversational_First_Error_Decides(int first, int second, Type expected)
+    {
+        var errors = new List<Error> { new() { Code = first }, new() { Code = second } };
+
+        var ex = CreateException(errors, ConversationalContext(errors, nameof(ConversationalOperation.Ask)));
+
+        Assert.IsType(expected, ex);
+    }
+
+    [Theory]
+    [InlineData(19220, 0)]
+    [InlineData(19221, 0)]
+    [InlineData(19222, 0)]
+    [InlineData(19236, 0)]
+    [InlineData(19240, 0)]
+    [InlineData(19241, 0)]
+    [InlineData(19243, 19240)]
+    [InlineData(19255, 0)]
+    public void Ordinary_Query_Keeps_Todays_Mapping_For_Conversational_Codes(int code, int reasonCode)
+    {
+        var errors = new List<Error> { new() { Code = code, Reason = new Reason { Code = reasonCode } } };
+
+        var ex = CreateException(errors, new QueryErrorContext { Errors = errors });
+
+        Assert.IsType<CouchbaseException>(ex);
+    }
+
+    private static QueryErrorContext ConversationalContext(List<Error> errors, string operation)
+    {
+        var op = (ConversationalOperation)Enum.Parse(typeof(ConversationalOperation), operation);
+        return new QueryErrorContext
+        {
+            Message = "cq error [code]",
+            Errors = errors,
+            Conversational = new ConversationalRequest(op, op == ConversationalOperation.Query ? null : "chat-1", "uuid-a")
+        };
+    }
+
+    private static CouchbaseException CreateException(List<Error> errors, QueryErrorContext context)
+    {
+        var result = new Mock<IQueryResult<object>>(MockBehavior.Strict);
+        result.Setup(qr => qr.Errors).Returns(errors);
+        return QueryResultExtensions.CreateExceptionForError(result.Object, context);
+    }
+
+    #endregion
 }
