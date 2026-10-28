@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Query.Conversational;
 using Couchbase.Utils;
 
 #nullable enable
@@ -69,6 +70,15 @@ namespace Couchbase.Query
 
             PreparedPlanName = body.prepared;
 
+            NaturalLanguage.GeneratedStatement = body.generated_statement;
+            NaturalLanguage.RequestTokens = body.requestTokens;
+            NaturalLanguage.ChatTokens = body.chatTokens;
+            NaturalLanguage.ChatId = body.chatId;
+            if (body.metrics != null)
+            {
+                NaturalLanguage.ReadMetrics(body.metrics);
+            }
+
             if (body.warnings != null)
             {
                 MetaData.Warnings.AddRange(body.warnings.Select(p => p.ToWarning()));
@@ -115,6 +125,10 @@ namespace Couchbase.Query
             public MetricsData? metrics { get; set; }
             public dynamic? profile { get; set; }
             public string? prepared { get; set; }
+            public string? generated_statement { get; set; }
+            public TokenUsage? requestTokens { get; set; }
+            public TokenUsage? chatTokens { get; set; }
+            public string? chatId { get; set; }
         }
     }
 }

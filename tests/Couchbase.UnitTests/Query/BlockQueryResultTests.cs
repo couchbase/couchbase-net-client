@@ -167,5 +167,164 @@ namespace Couchbase.UnitTests.Query
         }
 
         #endregion
+
+        #region Natural language
+
+        [Fact]
+        public async Task InitializeAsync_GeneratedStatementExecuted_AllFieldsPresent()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-executed.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = blockResult.NaturalLanguage;
+            Assert.True(blockResult.Success);
+            Assert.Equal(
+                "SELECT COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` WHERE `h`.`country` = \"United States\"",
+                naturalLanguage.GeneratedStatement);
+            Assert.Equal(812, naturalLanguage.RequestTokens.PromptTokens);
+            Assert.Equal(31, naturalLanguage.RequestTokens.CompletionTokens);
+            Assert.Equal(843, naturalLanguage.RequestTokens.TotalTokens);
+            Assert.Equal(1630, naturalLanguage.ChatTokens.PromptTokens);
+            Assert.Equal(60, naturalLanguage.ChatTokens.CompletionTokens);
+            Assert.Equal(1690, naturalLanguage.ChatTokens.TotalTokens);
+            Assert.Null(naturalLanguage.ChatId);
+            Assert.Equal(TimeSpan.FromTicks(19_836_398), naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.True(naturalLanguage.GeneratedStatementExecuted);
+            Assert.Single(await blockResult.ToListAsync());
+        }
+
+        [Fact]
+        public async Task InitializeAsync_NothingExecuted_AllFieldsPresent()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-not-executed.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = blockResult.NaturalLanguage;
+            Assert.True(blockResult.Success);
+            Assert.Equal(
+                "SELECT `h`.`country`, COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` GROUP BY `h`.`country`",
+                naturalLanguage.GeneratedStatement);
+            Assert.Equal(700, naturalLanguage.RequestTokens.PromptTokens);
+            Assert.Null(naturalLanguage.RequestTokens.CompletionTokens);
+            Assert.Null(naturalLanguage.RequestTokens.TotalTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Equal("23a2c880-4566-4f78-9e81-86ea755b2a7f", naturalLanguage.ChatId);
+            Assert.Equal(TimeSpan.FromTicks(28_253_839), naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.False(naturalLanguage.GeneratedStatementExecuted);
+            Assert.Empty(await blockResult.ToListAsync());
+        }
+
+        [Fact]
+        public async Task InitializeAsync_BeginChat_HasChatIdOnly()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-begin-chat.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = blockResult.NaturalLanguage;
+            Assert.True(blockResult.Success);
+            Assert.Equal("23a2c880-4566-4f78-9e81-86ea755b2a7f", naturalLanguage.ChatId);
+            Assert.Null(naturalLanguage.GeneratedStatement);
+            Assert.Null(naturalLanguage.RequestTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+            Assert.Equal("85.322µs", blockResult.MetaData.Metrics.ElapsedTime);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_ChatNotFound_HasError()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-chat-not-found-error.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            Assert.False(blockResult.Success);
+            Assert.Equal(QueryStatus.Fatal, blockResult.MetaData.Status);
+            Assert.Equal(19236, Assert.Single(blockResult.Errors).Code);
+            Assert.Null(blockResult.NaturalLanguage.ChatId);
+            Assert.Null(blockResult.NaturalLanguage.GeneratedStatement);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_InvalidProcessingTime_LeavesTimeUnset()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-bad-duration.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            Assert.True(blockResult.Success);
+            Assert.Equal("SELECT 1", blockResult.NaturalLanguage.GeneratedStatement);
+            Assert.Null(blockResult.NaturalLanguage.NaturalLanguageProcessingTime);
+            Assert.False(blockResult.NaturalLanguage.GeneratedStatementExecuted);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_RegularQuery_NoNaturalLanguageFields()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await blockResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = blockResult.NaturalLanguage;
+            Assert.Null(naturalLanguage.GeneratedStatement);
+            Assert.Null(naturalLanguage.RequestTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Null(naturalLanguage.ChatId);
+            Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+        }
+
+        #endregion
     }
 }

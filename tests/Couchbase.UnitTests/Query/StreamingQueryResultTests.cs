@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Security.Authentication;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
 using Xunit;
@@ -318,7 +320,215 @@ namespace Couchbase.UnitTests.Query
 
         #endregion
 
+        #region Natural language
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_GeneratedStatementExecuted_FieldsBeforeResultsPresent(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-executed.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = streamingResult.NaturalLanguage;
+            Assert.Equal(
+                "SELECT COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` WHERE `h`.`country` = \"United States\"",
+                naturalLanguage.GeneratedStatement);
+            Assert.Equal(812, naturalLanguage.RequestTokens.PromptTokens);
+            Assert.Equal(31, naturalLanguage.RequestTokens.CompletionTokens);
+            Assert.Equal(843, naturalLanguage.RequestTokens.TotalTokens);
+            Assert.Equal(1630, naturalLanguage.ChatTokens.PromptTokens);
+            Assert.Equal(60, naturalLanguage.ChatTokens.CompletionTokens);
+            Assert.Equal(1690, naturalLanguage.ChatTokens.TotalTokens);
+            Assert.Null(naturalLanguage.ChatId);
+            Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetAsyncEnumerator_GeneratedStatementExecuted_MetricsPresentAfterRows(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-executed.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+            await streamingResult.InitializeAsync();
+
+            // Act
+
+            var result = await streamingResult.ToListAsync();
+
+            // Assert
+
+            Assert.Single(result);
+            Assert.True(streamingResult.Success);
+            Assert.Equal("1.990032281s", streamingResult.MetaData.Metrics.ElapsedTime);
+            Assert.Equal(TimeSpan.FromTicks(19_836_398), streamingResult.NaturalLanguage.NaturalLanguageProcessingTime);
+            Assert.True(streamingResult.NaturalLanguage.GeneratedStatementExecuted);
+            Assert.Equal(843, streamingResult.NaturalLanguage.RequestTokens.TotalTokens);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_NothingExecuted_AllFieldsPresent(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-not-executed.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = streamingResult.NaturalLanguage;
+            Assert.True(streamingResult.Success);
+            Assert.Equal(
+                "SELECT `h`.`country`, COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` GROUP BY `h`.`country`",
+                naturalLanguage.GeneratedStatement);
+            Assert.Equal(700, naturalLanguage.RequestTokens.PromptTokens);
+            Assert.Null(naturalLanguage.RequestTokens.CompletionTokens);
+            Assert.Null(naturalLanguage.RequestTokens.TotalTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Equal("23a2c880-4566-4f78-9e81-86ea755b2a7f", naturalLanguage.ChatId);
+            Assert.Equal(TimeSpan.FromTicks(28_253_839), naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.False(naturalLanguage.GeneratedStatementExecuted);
+            Assert.Empty(await streamingResult.ToListAsync());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_BeginChat_HasChatIdOnly(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-begin-chat.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            var naturalLanguage = streamingResult.NaturalLanguage;
+            Assert.True(streamingResult.Success);
+            Assert.Equal("23a2c880-4566-4f78-9e81-86ea755b2a7f", naturalLanguage.ChatId);
+            Assert.Null(naturalLanguage.GeneratedStatement);
+            Assert.Null(naturalLanguage.RequestTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+            Assert.Equal("85.322µs", streamingResult.MetaData.Metrics.ElapsedTime);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_ChatNotFound_HasError(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-chat-not-found-error.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            Assert.False(streamingResult.Success);
+            Assert.Equal(QueryStatus.Fatal, streamingResult.MetaData.Status);
+            Assert.Equal(19236, Assert.Single(streamingResult.Errors).Code);
+            Assert.Null(streamingResult.NaturalLanguage.ChatId);
+            Assert.Null(streamingResult.NaturalLanguage.GeneratedStatement);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitializeAsync_InvalidProcessingTime_LeavesTimeUnset(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-natural-language-bad-duration.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            Assert.True(streamingResult.Success);
+            Assert.Equal("SELECT 1", streamingResult.NaturalLanguage.GeneratedStatement);
+            Assert.Null(streamingResult.NaturalLanguage.NaturalLanguageProcessingTime);
+            Assert.False(streamingResult.NaturalLanguage.GeneratedStatementExecuted);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetAsyncEnumerator_RegularQuery_NoNaturalLanguageFields(bool useSystemTextJson)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, CreateDeserializer(useSystemTextJson), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+            await streamingResult.InitializeAsync();
+
+            // Act
+
+            await streamingResult.ToListAsync();
+
+            // Assert
+
+            var naturalLanguage = streamingResult.NaturalLanguage;
+            Assert.Null(naturalLanguage.GeneratedStatement);
+            Assert.Null(naturalLanguage.RequestTokens);
+            Assert.Null(naturalLanguage.ChatTokens);
+            Assert.Null(naturalLanguage.ChatId);
+            Assert.Null(naturalLanguage.NaturalLanguageProcessingTime);
+            Assert.Null(naturalLanguage.GeneratedStatementExecuted);
+        }
+
+        #endregion
+
         #region Helpers
+
+        // Options without camel case show that the internal types are read through the SDK's own context.
+        private static IStreamingTypeDeserializer CreateDeserializer(bool useSystemTextJson) =>
+            useSystemTextJson
+                ? SystemTextJsonSerializer.Create(new JsonSerializerOptions())
+                : new DefaultSerializer();
 
         private QueryErrorContext ErrorContextFactory<T>(QueryResultBase<T> failedQueryResult,
             HttpStatusCode statusCode) =>

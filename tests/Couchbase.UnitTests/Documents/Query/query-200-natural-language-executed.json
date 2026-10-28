@@ -1,0 +1,33 @@
+{
+  "requestID": "b29381db-1382-4729-b1fa-d18e0e8e5355",
+  "clientContextID": "ctx-1",
+  "generated_statement": "SELECT COUNT(*) AS `count` FROM `travel-sample`.`inventory`.`hotel` AS `h` WHERE `h`.`country` = \"United States\"",
+  "requestTokens": {
+    "promptTokens": 812,
+    "completionTokens": 31,
+    "totalTokens": 843
+  },
+  "chatTokens": {
+    "promptTokens": 1630,
+    "completionTokens": 60,
+    "totalTokens": 1690
+  },
+  "signature": {
+    "count": "number"
+  },
+  "results": [
+    {
+      "count": 361
+    }
+  ],
+  "status": "success",
+  "metrics": {
+    "elapsedTime": "1.990032281s",
+    "executionTime": "6.282322ms",
+    "resultCount": 1,
+    "resultSize": 13,
+    "serviceLoad": 1,
+    "naturalLanguageProcessingTime": "1.983639787s",
+    "generatedStatementExecuted": true
+  }
+}
