@@ -304,8 +304,8 @@ public class SearchHelper
                 {
                     //--------Initialise BooleanQuery--------
                     var coreQuery = new BooleanQuery();
-                    if (protoQuery.Boolean.HasBoost) coreQuery.Boost(protoQuery.Boolean.Boost);
-                    if (protoQuery.Boolean.HasShouldMin) coreQuery.ShouldMin((int)protoQuery.Boolean.ShouldMin);
+                    if (innerProtoQuery.Boolean.HasBoost) coreQuery.Boost(innerProtoQuery.Boolean.Boost);
+                    if (innerProtoQuery.Boolean.HasShouldMin) coreQuery.ShouldMin((int)innerProtoQuery.Boolean.ShouldMin);
 
                     //--------Recurse to add converted queries to the above compound queries--------
                     if (innerProtoQuery.Boolean.Must.Count > 0)
