@@ -495,7 +495,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         }
 
         [Fact]
-        private void EnsureCapacity_OneMore_Doubles()
+        private void EnsureCapacity_OneMore_Grows()
         {
             // Arrange
 
@@ -504,15 +504,17 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity + 1);
+            var requested = currentCapacity + 1;
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 2, builder.Capacity);
+            // The shared pool may return a larger array than requested, so only a lower bound holds.
+            Assert.InRange(builder.Capacity, requested, int.MaxValue);
         }
 
         [Fact]
-        private void EnsureCapacity_Double_Doubles()
+        private void EnsureCapacity_Double_Grows()
         {
             // Arrange
 
@@ -521,15 +523,17 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 2);
+            var requested = currentCapacity * 2;
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 2, builder.Capacity);
+            // The shared pool may return a larger array than requested, so only a lower bound holds.
+            Assert.InRange(builder.Capacity, requested, int.MaxValue);
         }
 
         [Fact]
-        private void EnsureCapacity_OneMoreThanDouble_Quadruples()
+        private void EnsureCapacity_OneMoreThanDouble_Grows()
         {
             // Arrange
 
@@ -538,15 +542,17 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 2 + 1);
+            var requested = currentCapacity * 2 + 1;
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 4, builder.Capacity);
+            // The shared pool may return a larger array than requested, so only a lower bound holds.
+            Assert.InRange(builder.Capacity, requested, int.MaxValue);
         }
 
         [Fact]
-        private void EnsureCapacity_Quadruple_Quadruples()
+        private void EnsureCapacity_Quadruple_Grows()
         {
             // Arrange
 
@@ -555,11 +561,13 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Act
 
-            builder.EnsureCapacity(currentCapacity * 4);
+            var requested = currentCapacity * 4;
+            builder.EnsureCapacity(requested);
 
             // Assert
 
-            Assert.Equal(currentCapacity * 4, builder.Capacity);
+            // The shared pool may return a larger array than requested, so only a lower bound holds.
+            Assert.InRange(builder.Capacity, requested, int.MaxValue);
         }
 
         #endregion
