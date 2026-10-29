@@ -466,6 +466,8 @@ public class SearchHelper
                 case SearchQuery.QueryOneofCase.CustomScore:
                 {
                     var proto = innerProtoQuery.CustomScore;
+                    // A null inner query would fall back to the root and recurse forever.
+                    if (proto.Query is null) throw new UnsupportedException("CustomScoreQuery has no inner query");
                     var coreQuery = new CustomScoreQuery(ProtoSearchQueryToCore(protoQuery, proto.Query), proto.Source);
                     if (proto.Fields.Count > 0) coreQuery.Fields(proto.Fields.ToArray());
                     if (proto.Parameters is not null) coreQuery.Parameters(StructToDictionary(proto.Parameters));
@@ -474,6 +476,8 @@ public class SearchHelper
                 case SearchQuery.QueryOneofCase.CustomFilter:
                 {
                     var proto = innerProtoQuery.CustomFilter;
+                    // A null inner query would fall back to the root and recurse forever.
+                    if (proto.Query is null) throw new UnsupportedException("CustomFilterQuery has no inner query");
                     var coreQuery = new CustomFilterQuery(ProtoSearchQueryToCore(protoQuery, proto.Query), proto.Source);
                     if (proto.Fields.Count > 0) coreQuery.Fields(proto.Fields.ToArray());
                     if (proto.Parameters is not null) coreQuery.Parameters(StructToDictionary(proto.Parameters));
