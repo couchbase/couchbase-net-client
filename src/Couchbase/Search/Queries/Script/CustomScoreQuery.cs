@@ -1,8 +1,8 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Compatibility;
-using Couchbase.Core.Exceptions;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Script
@@ -54,18 +54,9 @@ namespace Couchbase.Search.Queries.Script
         /// The function sees no fields unless this is set. Pass <c>"*"</c> for all fields.
         /// </summary>
         /// <remarks>
-        /// <para>
         /// The values come from the Search index, not from the stored document, so a field must be indexed to be
-        /// available. Numbers and booleans are unchanged. Text values are the terms produced by the field's
-        /// analyzer. With the default <c>standard</c> analyzer, text is lowercased, punctuation and stop words are
-        /// removed, and the remaining terms are de-duplicated and sorted. Word order is lost.
-        /// </para>
-        /// <para>
-        /// A text value with one term is a string and a value with several terms is an array: <c>"Dublin"</c>
-        /// becomes <c>"dublin"</c>, but <c>"New York"</c> becomes <c>["new", "york"]</c>. Write functions that
-        /// handle both, for example <c>[].concat(doc.fields.city || [])</c>. To get the exact original text, map
-        /// the field with the <c>keyword</c> analyzer in the index definition.
-        /// </para>
+        /// available. Text values are the terms from the field's analyzer, not the original text. Use the
+        /// <c>keyword</c> analyzer to get the exact text.
         /// </remarks>
         /// <returns>This <see cref="CustomScoreQuery"/> for chaining.</returns>
         public CustomScoreQuery Fields(params string[] fields)
@@ -79,6 +70,10 @@ namespace Couchbase.Search.Queries.Script
         /// Values may be any JSON-serializable value, including nested dictionaries and lists.
         /// The same parameters are given to the function for every result.
         /// </summary>
+        /// <remarks>
+        /// The values are serialized with Newtonsoft.Json, not with the cluster's serializer. Use plain .NET values;
+        /// System.Text.Json types such as <c>JsonElement</c> are not serialized correctly.
+        /// </remarks>
         /// <returns>This <see cref="CustomScoreQuery"/> for chaining.</returns>
         public CustomScoreQuery Parameters(IDictionary<string, object?> parameters)
         {
@@ -87,13 +82,12 @@ namespace Couchbase.Search.Queries.Script
         }
 
         /// <summary>
-        /// Not supported. The Search service ignores a boost on this query type, so apply the boost to the inner
+        /// Has no effect. The Search service ignores a boost on this query type, so apply the boost to the inner
         /// query instead.
         /// </summary>
-        /// <exception cref="InvalidArgumentException">Always.</exception>
-        public ISearchQuery Boost(double boost) =>
-            throw new InvalidArgumentException(
-                "CustomScoreQuery does not support boost. Apply the boost to the inner query instead.");
+        /// <returns>This <see cref="CustomScoreQuery"/>, unchanged.</returns>
+        [Obsolete("CustomScoreQuery does not support boost. Apply the boost to the inner query instead.")]
+        public ISearchQuery Boost(double boost) => this;
 
         [RequiresUnreferencedCode(SearchClient.SearchRequiresUnreferencedMembersWarning)]
         [RequiresDynamicCode(SearchClient.SearchRequiresDynamicCodeWarning)]

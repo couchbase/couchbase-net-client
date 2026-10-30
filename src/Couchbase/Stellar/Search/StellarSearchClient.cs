@@ -59,7 +59,7 @@ namespace Couchbase.Stellar.Search
                 throw new FeatureNotAvailableException("Score fusion is not available over couchbase2.");
             }
 
-            // The protocol has no custom score or filter query types, and QueryConverter would send them as an empty query.
+            // The protocol has no custom score or filter query types. QueryConverter would also reject them, but this error names the feature.
             if (query.ContainsCustomScriptQuery())
             {
                 throw new FeatureNotAvailableException("Custom score or filter queries are not available over couchbase2.");
@@ -437,7 +437,6 @@ namespace Couchbase.Stellar.Search
                 }
                     break;
                 default:
-                    // Without this, an unknown query type would be sent as an empty query rather than failing.
                     throw new FeatureNotAvailableException(
                         $"{couchbaseQuery.GetType().Name} is not supported over couchbase2.");
             }

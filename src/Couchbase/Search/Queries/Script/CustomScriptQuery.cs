@@ -16,9 +16,13 @@ namespace Couchbase.Search.Queries.Script
         public CustomScriptQuery(ISearchQuery query, string source)
         {
             Query = query ?? throw new ArgumentNullException(nameof(query));
-            if (string.IsNullOrWhiteSpace(source))
+            if (source is null)
             {
                 throw new ArgumentNullException(nameof(source));
+            }
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                throw new ArgumentException("The source must not be empty or whitespace.", nameof(source));
             }
             Source = source;
         }

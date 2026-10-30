@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Couchbase.Core.Exceptions;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Compound;
 using Couchbase.Search.Queries.Script;
@@ -153,10 +152,17 @@ namespace Couchbase.UnitTests.Search
 
         [Theory]
         [MemberData(nameof(QueryTypes))]
-        public void Ctor_WhenSourceIsNullOrWhitespace_ThrowsArgumentNullException(string queryType)
+        public void Ctor_WhenSourceIsNull_ThrowsArgumentNullException(string queryType)
         {
             Assert.Throws<ArgumentNullException>(() => Create(queryType, new MatchAllQuery(), null));
-            Assert.Throws<ArgumentNullException>(() => Create(queryType, new MatchAllQuery(), " "));
+        }
+
+        [Theory]
+        [MemberData(nameof(QueryTypes))]
+        public void Ctor_WhenSourceIsEmptyOrWhitespace_ThrowsArgumentException(string queryType)
+        {
+            Assert.Throws<ArgumentException>(() => Create(queryType, new MatchAllQuery(), ""));
+            Assert.Throws<ArgumentException>(() => Create(queryType, new MatchAllQuery(), " "));
         }
 
         [Fact]
@@ -173,14 +179,16 @@ namespace Couchbase.UnitTests.Search
             Assert.Throws<ArgumentNullException>(() => new CustomFilterQuery(new MatchAllQuery(), Source).Parameters(null));
         }
 
-        // FTS silently ignores a boost on these query types (checked against 8.5.0-1308), so the SDK rejects it.
+        // FTS silently ignores a boost on these query types (checked against 8.5.0-1308), so, as in Java, Boost does nothing.
         [Theory]
         [MemberData(nameof(QueryTypes))]
-        public void Boost_ThrowsInvalidArgumentException(string queryType)
+        public void Boost_HasNoEffect(string queryType)
         {
             var query = Create(queryType, new MatchAllQuery(), Source);
+            var expected = query.Export().ToString();
 
-            Assert.Throws<InvalidArgumentException>(() => query.Boost(2));
+            Assert.Same(query, query.Boost(2));
+            Assert.Equal(expected, query.Export().ToString());
         }
 
         [Fact]
