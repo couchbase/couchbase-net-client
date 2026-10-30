@@ -33,6 +33,8 @@
   </ItemGroup>
   <ItemGroup Condition="'$(ExplicitCouchbaseNetClientNuget)' != ''">
     <PackageReference Include="CouchbaseNetClient" VersionOverride="$(ExplicitCouchbaseNetClientNuget)" />
+    <!-- The cluster map builder needs SDK internals, which the package does not expose. -->
+    <Compile Remove="Configuration/**" />
   </ItemGroup>
 
 </Project>
