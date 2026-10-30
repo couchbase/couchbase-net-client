@@ -10,16 +10,16 @@ namespace Couchbase.Core.DI
         ISaslMechanism CreatePasswordMechanism(MechanismType mechanismType, string username, string password);
 
         /// <summary>
-        /// Resolves and creates the SASL mechanism for a password authenticator by negotiating against the
+        /// Resolves and creates the SASL mechanism for a password authenticator. PLAIN is used only when
+        /// <paramref name="connection"/> is encrypted; otherwise the mechanism is negotiated against the
         /// mechanisms advertised by the server (cached on the connection during bootstrap as
         /// <see cref="IConnection.SupportedSaslMechanisms"/>).
         /// </summary>
-        /// <param name="connection">The connection being authenticated; supplies the cached server mechanism list.</param>
-        /// <param name="enableTls">When <c>true</c>, PLAIN is used directly (safe over TLS, no negotiation).</param>
+        /// <param name="connection">The connection being authenticated; supplies its transport and the cached server mechanism list.</param>
         /// <param name="username">The username.</param>
         /// <param name="password">The password.</param>
         /// <returns>A fully-resolved SASL mechanism ready to authenticate.</returns>
-        ISaslMechanism CreatePasswordMechanism(IConnection connection, bool enableTls, string username, string password);
+        ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password);
 
         /// <summary>
         /// Creates an OAUTHBEARER SASL mechanism for JWT authentication.
