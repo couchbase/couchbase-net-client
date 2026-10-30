@@ -599,6 +599,7 @@ namespace Couchbase.Core.Configuration.Server
         public const string SCOPED_SEARCH_INDEX = "search.scopedSearchIndex";
         public const string VECTOR_SEARCH = "search.vectorSearch";
         public const string SCORE_FUSION = "search.scoreFusion";
+        public const string SEARCH_UDF_QUERY = "search.udfQuery";
 
         [JsonPropertyName("clusterCapabilitiesVer")] public IEnumerable<int> Version { get; set; }
         [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
