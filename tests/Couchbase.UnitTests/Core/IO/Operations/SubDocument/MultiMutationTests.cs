@@ -74,7 +74,10 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
                 {
                     Transcoder = new JsonTranscoder()
                 };
-                op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
+                // A fresh pool each time, so every send starts from an unexpanded buffer. The provider's pool
+                // disposes the builders it holds, which returns their buffers to ArrayPool<byte>.Shared.
+                var pool = new DefaultObjectPoolProvider().Create(new OperationBuilderPoolPolicy());
+                op.OperationBuilderPool = pool;
 
                 try
                 {
@@ -83,6 +86,10 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
                 catch (InvalidOperationException)
                 {
                     failedLengths.Add(length);
+                }
+                finally
+                {
+                    ((IDisposable)pool).Dispose();
                 }
             }
 
