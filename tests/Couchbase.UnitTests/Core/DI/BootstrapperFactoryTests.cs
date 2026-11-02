@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
-using Couchbase.UnitTests.Helpers;
+using Couchbase.Test.Common.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

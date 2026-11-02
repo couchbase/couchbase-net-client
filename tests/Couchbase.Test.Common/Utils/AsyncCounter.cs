@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Couchbase.UnitTests.Helpers;
+namespace Couchbase.Test.Common.Utils;
 
 /// <summary>
 /// Counts something the code under test does — a call it makes, a callback it invokes, a lap of a
