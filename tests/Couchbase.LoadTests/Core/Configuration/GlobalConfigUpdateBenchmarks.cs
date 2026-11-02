@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Couchbase.Core.Configuration.Server;
@@ -33,7 +34,8 @@ namespace Couchbase.LoadTests.Core.Configuration
         public async Task Setup()
         {
             _map = BenchmarkMaps.Global(Nodes, rev: 1);
-            _harness = ConfigHarness.Create(_map);
+            // Real time keeps the fake clock bookkeeping out of the measured cost.
+            _harness = ConfigHarness.Create(_map, clock: TimeProvider.System);
             _bootstrapCopy = BenchmarkMaps.Arrived(_map, _harness.Options);
             _latest = BenchmarkMaps.Arrived(_map.Rev(_rev), _harness.Options);
             await _harness.Context.ConfigUpdatedAsync(_latest);

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Moq;

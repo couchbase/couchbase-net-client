@@ -14,7 +14,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Test.Common.Utils;
-using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

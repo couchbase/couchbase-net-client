@@ -43,6 +43,12 @@ namespace Couchbase.Test.Common.Configuration
         private readonly Dictionary<string, Queue<byte[]>> _notMyVBucket = new(StringComparer.Ordinal);
         private readonly List<ConfigFetch> _fetches = new();
         private readonly List<Connection> _connections = new();
+        private long _requests;
+
+        /// <summary>
+        /// How many requests the nodes answered, of any kind.
+        /// </summary>
+        public long RequestCount => Interlocked.Read(ref _requests);
 
         /// <summary>
         /// Every config fetch the nodes answered, in order.
@@ -125,6 +131,20 @@ namespace Couchbase.Test.Common.Configuration
                 foreach (var host in hosts)
                 {
                     _answersLeft[host] = fetches;
+                }
+            }
+        }
+
+        /// <summary>
+        /// These nodes answer every config fetch again, after <see cref="FailFetchesAfter"/>.
+        /// </summary>
+        public void AnswerFetches(params string[] hosts)
+        {
+            lock (_lock)
+            {
+                foreach (var host in hosts)
+                {
+                    _answersLeft.Remove(host);
                 }
             }
         }
@@ -215,6 +235,7 @@ namespace Couchbase.Test.Common.Configuration
 
         private SlicedMemoryOwner<byte> Answer(Connection connection, ReadOnlySpan<byte> packet)
         {
+            Interlocked.Increment(ref _requests);
             var request = new Request(packet);
             switch (request.OpCode)
             {

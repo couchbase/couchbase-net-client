@@ -77,8 +77,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.StartPolling();
 
             // In either poll order, the second rev 15 comes after the only rev 20.
-            await harness.WaitForPublishedAsync(Global, Rev(15), Timeout, times: 2);
-            await harness.DrainAsync();
+            await harness.AdvanceAsync(PollPasses(2));
 
             Assert.All(harness.Nodes, n => Assert.Equal(Rev(20), n.Version));
             Assert.Equal(9093, harness.Nodes[0].QueryUri!.Port);
@@ -98,9 +97,13 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
                 .Node(NodeBuilder.HostPlaceholder, n => n.Uuid("node-uuid-0").Kv().Query())
                 .Node(Node1, n => n.Uuid("node-uuid-1").Kv().Query())
                 .VBuckets(1024, replicas: 2));
-            // The bucket holds no documents, so the retry after not-my-vbucket fails. Only the config matters here.
-            await Record.ExceptionAsync(() => bucket.DefaultCollection().GetAsync(key));
+            // Only the not-my-vbucket reply matters, so the Get stops once its config is published.
+            // Its retries wait on the harness clock, which does not move here.
+            using var cts = new System.Threading.CancellationTokenSource();
+            var get = Record.ExceptionAsync(() => bucket.DefaultCollection().GetAsync(key, o => o.CancellationToken(cts.Token)));
             await harness.WaitForPublishedAsync(BucketName, Rev(11), Timeout);
+            cts.Cancel();
+            await get;
             await harness.DrainAsync();
 
             // The SDK turns a hostname that still holds $HOST into localhost, so check every host.

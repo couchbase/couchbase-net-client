@@ -16,7 +16,7 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
-using Couchbase.UnitTests.Helpers;
+using Couchbase.Test.Common.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
