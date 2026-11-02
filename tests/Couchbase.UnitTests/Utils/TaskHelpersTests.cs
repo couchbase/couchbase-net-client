@@ -96,39 +96,101 @@ public class TaskHelpersTests
         Assert.Equal("success", result);
     }
 
-    [Fact]
-    public void WhenAnySuccessful_AllCanceled_ShouldThrowCancellationException()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(1));
-        var t1 = Task.Run(async () =>
-        {
-            await Task.Delay(10, cts.Token);
-            cts.Token.ThrowIfCancellationRequested();
-            return 1;
-        }, cts.Token);
-        var t2 = Task.Run(async () =>
-        {
-            await Task.Delay(10, cts.Token);
-            cts.Token.ThrowIfCancellationRequested();
-            return 2;
-        }, cts.Token);
+    // The tests below drive each replica with a TaskCompletionSource that runs its continuations
+    // inline, so WhenAnySuccessful has settled by the time SetResult, SetException or Cancel returns.
+    // Each one asserts the state straight away and never waits.
 
-        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new List<Task<int>>() { t1, t2 }, cts.Token);
-#pragma warning disable xUnit2021
-        _ = Assert.ThrowsAsync<OperationCanceledException>(() => whenAnySuccessful);
-#pragma warning restore xUnit2021
+    [Fact]
+    public async Task WhenAnySuccessful_AllCanceled_ShouldThrowCancellationException()
+    {
+        var replica1 = new TaskCompletionSource<int>();
+        var replica2 = new TaskCompletionSource<int>();
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica1.Task, replica2.Task }, CancellationToken.None);
+
+        replica1.SetCanceled();
+        Assert.False(whenAnySuccessful.IsCompleted);
+        replica2.SetCanceled();
+
+        Assert.True(whenAnySuccessful.IsCanceled);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => whenAnySuccessful);
     }
 
     [Fact]
-    public void WhenAnySuccessful_AllFailed_ShouldThrowAggregate()
+    public async Task WhenAnySuccessful_AllFailed_ShouldThrowAggregate()
     {
-        Func<int> alwaysThrows = () => throw new Exception("foo");
-        var t1 = Task.Run(alwaysThrows);
-        var t2 = Task.Run(alwaysThrows);
-        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new List<Task<int>>() { t1, t2 }, CancellationToken.None);
-#pragma warning disable xUnit2021
-        _ = Assert.ThrowsAsync<AggregateException>(() => whenAnySuccessful);
-#pragma warning restore xUnit2021
+        var replica1 = new TaskCompletionSource<int>();
+        var replica2 = new TaskCompletionSource<int>();
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica1.Task, replica2.Task }, CancellationToken.None);
+
+        replica1.SetException(new Exception("first"));
+        Assert.False(whenAnySuccessful.IsCompleted);
+        replica2.SetException(new Exception("second"));
+
+        Assert.True(whenAnySuccessful.IsFaulted);
+        var aggregate = await Assert.ThrowsAsync<AggregateException>(() => whenAnySuccessful);
+        Assert.Equal(new[] { "first", "second" }, aggregate.InnerExceptions.Select(e => e.Message).OrderBy(m => m));
+    }
+
+    [Fact]
+    public async Task WhenAnySuccessful_CanceledBeforeReplicasFail_ShouldBeCanceled()
+    {
+        var replica1 = new TaskCompletionSource<int>();
+        var replica2 = new TaskCompletionSource<int>();
+        using var cts = new CancellationTokenSource();
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica1.Task, replica2.Task }, cts.Token);
+
+        cts.Cancel();
+        Assert.True(whenAnySuccessful.IsCanceled);
+
+        replica1.SetCanceled();
+        replica2.SetException(new Exception("replica read failed"));
+
+        Assert.True(whenAnySuccessful.IsCanceled);
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => whenAnySuccessful);
+        Assert.Equal(cts.Token, exception.CancellationToken);
+    }
+
+    [Fact]
+    public void WhenAnySuccessful_CanceledBeforeReplicaSucceeds_ShouldBeCanceled()
+    {
+        var replica1 = new TaskCompletionSource<int>();
+        var replica2 = new TaskCompletionSource<int>();
+        using var cts = new CancellationTokenSource();
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica1.Task, replica2.Task }, cts.Token);
+
+        cts.Cancel();
+        replica1.SetResult(42);
+        replica2.SetCanceled();
+
+        Assert.True(whenAnySuccessful.IsCanceled);
+    }
+
+    [Fact]
+    public void WhenAnySuccessful_AlreadyCanceledToken_ShouldBeCanceled()
+    {
+        var replica = new TaskCompletionSource<int>();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica.Task }, cts.Token);
+
+        Assert.True(whenAnySuccessful.IsCanceled);
+    }
+
+    [Fact]
+    public async Task WhenAnySuccessful_CanceledAfterReplicaSucceeds_ShouldReturnResult()
+    {
+        var replica1 = new TaskCompletionSource<int>();
+        var replica2 = new TaskCompletionSource<int>();
+        using var cts = new CancellationTokenSource();
+        var whenAnySuccessful = TaskHelpers.WhenAnySuccessful(new[] { replica1.Task, replica2.Task }, cts.Token);
+
+        replica1.SetResult(7);
+        cts.Cancel();
+        replica2.SetCanceled();
+
+        Assert.Equal(TaskStatus.RanToCompletion, whenAnySuccessful.Status);
+        Assert.Equal(7, await whenAnySuccessful);
     }
 
     [Fact]
