@@ -1,0 +1,16 @@
+{
+  "connectionString": "couchbases://cb.<your-cluster-id>.cloud.couchbase.com",
+  "username": "<database-user>",
+  "password": "<database-password>",
+  "bucket": "<bucket>",
+  "outputFolder": "runs",
+  "probeIntervalMs": 500,
+  "sdkSampleIntervalMs": 1000,
+  "dnsSrvIntervalMs": 10000,
+  "load": {
+    "workers": 64,
+    "keyCount": 10000,
+    "valueSize": 256
+  },
+  "acceptAnyServerCertificate": false
+}
