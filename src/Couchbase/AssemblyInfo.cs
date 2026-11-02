@@ -20,6 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Couchbase.Test.Common")]
 [assembly: InternalsVisibleTo("Couchbase.UnitTests")]
 [assembly: InternalsVisibleTo("Couchbase.LoadTests")]
+[assembly: InternalsVisibleTo("Couchbase.ConfigRecorder")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests.Management")]
 [assembly: InternalsVisibleTo("Couchbase.Extensions.OpenTelemetry.UnitTests")]
