@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
+using Couchbase.Test.Common.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
@@ -26,10 +28,16 @@ namespace Couchbase.Test.Common.Configuration
     /// <summary>
     /// Runs the SDK config handling (config handler, cluster context, buckets, real cluster nodes) with no network.
     /// Each node has one connection to <see cref="Server"/>, set up by the node like a real connection.
+    /// By default the SDK services run on a <see cref="SteppableClock"/>, so time moves only in <see cref="AdvanceAsync"/>.
     /// </summary>
     internal sealed class ConfigHarness : IAsyncDisposable
     {
         private const string BarrierName = "config-harness-barrier";
+        private const int QuietRounds = 3;
+        private const int PoolHopsPerRound = 2;
+        private static readonly TimeSpan MinQuietTime = TimeSpan.FromMilliseconds(1);
+        private static readonly TimeSpan CompileGrace = TimeSpan.FromMilliseconds(50);
+        private static readonly TimeSpan SettleLimit = TimeSpan.FromSeconds(10);
 
         private readonly NodeFactory _nodeFactory;
         private readonly IConfigHandler _handler;
@@ -37,20 +45,27 @@ namespace Couchbase.Test.Common.Configuration
         private readonly HandlerSink _sink = new();
         private readonly ConcurrentDictionary<string, CouchbaseBucket> _buckets = new();
         private int _barrierCount;
+        private volatile bool _handlerStarted;
 
         private ConfigHarness(ClusterContext context, FakeClusterServer server, NodeFactory nodeFactory,
-            IConfigHandler handler, bool polling)
+            IConfigHandler handler, bool polling, TimeProvider clock)
         {
             Context = context;
             Server = server;
             _nodeFactory = nodeFactory;
             _handler = handler;
             _polling = polling;
+            Clock = clock;
         }
 
         public ClusterContext Context { get; }
 
         public FakeClusterServer Server { get; }
+
+        /// <summary>
+        /// The clock of the SDK services.
+        /// </summary>
+        public TimeProvider Clock { get; }
 
         public ClusterOptions Options => Context.ClusterOptions;
 
@@ -77,9 +92,15 @@ namespace Couchbase.Test.Common.Configuration
         /// <param name="pollInterval">
         /// Turns config polling on. The handler then starts in <see cref="StartPolling"/>, so the test sets the server state first.
         /// </param>
+        /// <param name="clock">
+        /// The clock of the SDK services. A new <see cref="SteppableClock"/> when null. Pass <see cref="TimeProvider.System"/> for real time.
+        /// </param>
         public static ConfigHarness Create(ClusterMapBuilder globalMap, Action<ClusterOptions>? configure = null,
-            TimeSpan? pollInterval = null)
+            TimeSpan? pollInterval = null, TimeProvider? clock = null)
         {
+            var config = globalMap.Build();
+            config.Name = BucketConfig.GlobalBucketName;
+
             var options = new ClusterOptions
             {
                 EnableConfigPolling = pollInterval is not null,
@@ -89,6 +110,10 @@ namespace Couchbase.Test.Common.Configuration
             options.AppTelemetry.Enabled = false;
             options.LoggingMeterOptions.Enabled(false);
             configure?.Invoke(options);
+            // Polling reads the connection string after a pass where no node returned a config.
+            options.ConnectionString ??= $"couchbase://{config.GetNodes()[0].Hostname}";
+            clock ??= new SteppableClock();
+            options.AddClusterService<TimeProvider, TimeProvider>(clock);
 
             var server = new FakeClusterServer();
             server.SetMap(globalMap);
@@ -101,8 +126,6 @@ namespace Couchbase.Test.Common.Configuration
             var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
             nodeFactory.Attach(context);
 
-            var config = globalMap.Build();
-            config.Name = BucketConfig.GlobalBucketName;
             config.SetEffectiveNetworkResolution(options);
             context.GlobalConfig = config;
             foreach (var adapter in config.GetNodes())
@@ -112,10 +135,14 @@ namespace Couchbase.Test.Common.Configuration
 
             var handler = context.ServiceProvider.GetRequiredService<IConfigHandler>();
             var polling = pollInterval is not null;
-            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling);
+            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling, clock);
             handler.Subscribe(context);
             handler.Subscribe(harness._sink);
-            if (!polling) handler.Start(withPolling: false);
+            if (!polling)
+            {
+                handler.Start(withPolling: false);
+                harness._handlerStarted = true;
+            }
             return harness;
         }
 
@@ -127,6 +154,7 @@ namespace Couchbase.Test.Common.Configuration
         {
             if (!_polling) throw new InvalidOperationException("Create the harness with a poll interval to poll.");
             _handler.Start(withPolling: true);
+            _handlerStarted = true;
         }
 
         /// <summary>
@@ -206,6 +234,102 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
+        /// Returns once the pipeline has no work left that it can do without the clock moving.
+        /// </summary>
+        /// <remarks>
+        /// Each round lets queued thread pool work run, drains the handler, and reads four signals. They are the configs
+        /// dispatched (barriers left out), the requests the server answered, the timers created and the pending timers.
+        /// The server answers a request before the send returns, so a fetch counts as soon as it is sent.
+        /// The pipeline is idle once the signals stay the same for <see cref="QuietRounds"/> rounds and <see cref="MinQuietTime"/>
+        /// of real time, so each call takes at least that long.
+        /// Code that runs between two signals shows nothing, for example a push handler that woke up and has not sent its fetch yet.
+        /// The first run of such code in the process can take milliseconds, mostly to compile it. So a round in which the runtime
+        /// compiled methods restarts the quiet count, for up to <see cref="CompileGrace"/> after the last signal change.
+        /// Work that shows nothing for longer is missed.
+        /// It throws a <see cref="TimeoutException"/> after <see cref="SettleLimit"/> of real time, so a pipeline that does not
+        /// go quiet, or a handler that waits on the clock, fails the test instead of hanging it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The harness does not run on a <see cref="SteppableClock"/>.</exception>
+        public async Task SettleAsync()
+        {
+            var clock = SteppableClockFor(nameof(SettleAsync));
+            var elapsed = Stopwatch.StartNew();
+            using var limit = new CancellationTokenSource(SettleLimit);
+            var limitReached = Task.Delay(Timeout.InfiniteTimeSpan, limit.Token);
+            var last = ReadSignals(clock);
+            var lastCompiled = CompiledMethodCount();
+            var lastSignalChange = TimeSpan.Zero;
+            var quietSince = TimeSpan.Zero;
+            var quietRounds = 0;
+            while (quietRounds < QuietRounds || elapsed.Elapsed - quietSince < MinQuietTime)
+            {
+                await YieldToThreadPoolAsync().ConfigureAwait(false);
+
+                // Before StartPolling the handler takes no configs, so there is nothing to drain.
+                if (_handlerStarted)
+                {
+                    var drained = DrainAsync();
+                    if (await Task.WhenAny(drained, limitReached).ConfigureAwait(false) != drained)
+                    {
+                        throw NotSettled("The config handler did not drain", clock);
+                    }
+                    await drained.ConfigureAwait(false);
+                }
+
+                var now = elapsed.Elapsed;
+                var signals = ReadSignals(clock);
+                var compiled = CompiledMethodCount();
+                if (signals != last)
+                {
+                    last = signals;
+                    lastSignalChange = now;
+                    quietSince = now;
+                    quietRounds = 0;
+                }
+                else if (compiled != lastCompiled && now - lastSignalChange < CompileGrace)
+                {
+                    quietSince = now;
+                    quietRounds = 0;
+                }
+                else
+                {
+                    quietRounds++;
+                }
+                lastCompiled = compiled;
+
+                if (elapsed.Elapsed > SettleLimit)
+                {
+                    throw NotSettled("The config pipeline did not go quiet", clock);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Moves the clock forward by <paramref name="duration"/>, one due timer at a time, and settles after each step.
+        /// </summary>
+        /// <remarks>
+        /// One big step would squash the timeline. The clock fires every timer due in one call, and a timer that the
+        /// woken code creates is due relative to the time at which it is created.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">The harness does not run on a <see cref="SteppableClock"/>.</exception>
+        public async Task AdvanceAsync(TimeSpan duration)
+        {
+            if (duration < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration), duration, "Time cannot go back.");
+
+            var clock = SteppableClockFor(nameof(AdvanceAsync));
+            var end = clock.GetUtcNow() + duration;
+            await SettleAsync().ConfigureAwait(false);
+            while (clock.NextDueTime is { } due && due <= end)
+            {
+                clock.Advance(NotNegative(due - clock.GetUtcNow()));
+                await SettleAsync().ConfigureAwait(false);
+            }
+
+            clock.Advance(NotNegative(end - clock.GetUtcNow()));
+            await SettleAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Forgets the configs dispatched so far. A benchmark calls it between runs, because each wait scans the record.
         /// </summary>
         public void ForgetDispatched() => _sink.Forget();
@@ -237,6 +361,44 @@ namespace Couchbase.Test.Common.Configuration
         public void FailNodeCreation(string host) => _nodeFactory.SetFailing(host, failing: true);
 
         public void AllowNodeCreation(string host) => _nodeFactory.SetFailing(host, failing: false);
+
+        private SteppableClock SteppableClockFor(string caller) =>
+            Clock as SteppableClock ?? throw new InvalidOperationException(
+                $"{caller} needs a harness on a {nameof(SteppableClock)}, but this one runs on {Clock.GetType().Name}.");
+
+        private (long Dispatched, long Requests, long TimersCreated, int PendingTimers) ReadSignals(SteppableClock clock) =>
+            (_sink.DispatchedCount, Server.RequestCount, clock.TimersCreated, clock.PendingTimers.Count);
+
+        private TimeoutException NotSettled(string reason, SteppableClock clock)
+        {
+            var now = clock.GetUtcNow();
+            var pending = string.Join(", ", clock.PendingTimers.Select(t => $"due in {(t.DueTime - now).TotalMilliseconds} ms"));
+            var (dispatched, requests, timersCreated, _) = ReadSignals(clock);
+            return new TimeoutException(
+                $"{reason} in {SettleLimit.TotalSeconds} s of real time. Configs dispatched {dispatched} [{_sink.Dispatched()}], " +
+                $"requests answered {requests}, timers created {timersCreated}, pending timers [{pending}].");
+        }
+
+        // The count covers the whole process, so other tests that compile code delay the quiet rounds too.
+        // .NET Framework has no such count.
+        private static long CompiledMethodCount() =>
+#if NET6_0_OR_GREATER
+            System.Runtime.JitInfo.GetCompiledMethodCount();
+#else
+            0;
+#endif
+
+        // A Task.Yield on a pool thread queues to the global queue, behind the work queued there before it.
+        // The thread also runs its own local queue first, where Task.Run and most continuations go.
+        private static Task YieldToThreadPoolAsync() => Task.Run(static async () =>
+        {
+            for (var i = 0; i < PoolHopsPerRound; i++)
+            {
+                await Task.Yield();
+            }
+        });
+
+        private static TimeSpan NotNegative(TimeSpan duration) => duration < TimeSpan.Zero ? TimeSpan.Zero : duration;
 
         public async ValueTask DisposeAsync()
         {
@@ -466,15 +628,21 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
-        /// Records every config the handler dispatches, so a test can wait for one.
+        /// Records every config the handler dispatches, so a test can wait for one. Barrier configs are not recorded.
         /// </summary>
         private sealed class HandlerSink : IConfigUpdateEventSink
         {
             private readonly object _lock = new();
             private readonly List<(string? Name, ConfigVersion Version)> _dispatched = new();
             private readonly List<Waiter> _waiters = new();
+            private long _dispatchedCount;
 
             public string Name => BarrierName;
+
+            /// <summary>
+            /// How many configs the handler dispatched. <see cref="Forget"/> does not reset it.
+            /// </summary>
+            public long DispatchedCount => Interlocked.Read(ref _dispatchedCount);
 
             public IEnumerable<IClusterNode> ClusterNodes => [];
 
@@ -500,17 +668,21 @@ namespace Couchbase.Test.Common.Configuration
             {
                 lock (_lock)
                 {
-                    return string.Join(", ", _dispatched
-                        .Where(d => d.Name is null || !d.Name.StartsWith(BarrierName, StringComparison.Ordinal))
-                        .Select(d => $"{d.Name} {d.Version}"));
+                    return string.Join(", ", _dispatched.Select(d => $"{d.Name} {d.Version}"));
                 }
             }
 
             public Task ConfigUpdatedAsync(BucketConfig newConfig)
             {
+                var barrier = newConfig.Name is not null && newConfig.Name.StartsWith(BarrierName, StringComparison.Ordinal);
                 lock (_lock)
                 {
-                    _dispatched.Add((newConfig.Name, newConfig.ConfigVersion));
+                    if (!barrier)
+                    {
+                        _dispatched.Add((newConfig.Name, newConfig.ConfigVersion));
+                        Interlocked.Increment(ref _dispatchedCount);
+                    }
+
                     foreach (var waiter in _waiters.Where(w => w.Name == newConfig.Name && w.Version.Equals(newConfig.ConfigVersion)).ToList())
                     {
                         if (--waiter.Remaining > 0) continue;

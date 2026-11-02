@@ -9,7 +9,6 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Test.Common.Utils;
-using Couchbase.UnitTests.Helpers;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;

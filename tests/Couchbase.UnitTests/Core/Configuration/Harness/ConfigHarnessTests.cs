@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Test.Common.Configuration;
+using Couchbase.Test.Common.Utils;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Harness
@@ -163,6 +164,23 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.Equal(Rev(12), view.Version);
             Assert.Equal(12UL, view.KeyMapperRev);
             Assert.Equal(2, bucket.CurrentConfig!.VBucketServerMap.NumReplicas);
+        }
+
+        [Fact]
+        public async Task AdvanceAsync_StepsFromTimerToTimer()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: TimeSpan.FromSeconds(1));
+            var clock = (SteppableClock)harness.Clock;
+            var start = clock.GetUtcNow();
+            harness.StartPolling();
+
+            // One jump to 3.5 s would run one pass, and the next pass would be due at 4.5 s.
+            await harness.AdvanceAsync(TimeSpan.FromSeconds(3.5));
+
+            // Each pass fetches node-0 and node-1.
+            Assert.Equal(6, harness.Server.Fetches.Count);
+            Assert.Equal(start.AddSeconds(3.5), clock.GetUtcNow());
+            Assert.Equal(start.AddSeconds(4), clock.NextDueTime);
         }
 
         // The network chosen at bootstrap must not depend on the order of nodesExt.

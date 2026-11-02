@@ -42,7 +42,8 @@ namespace Couchbase.LoadTests.Core.Configuration
         [GlobalSetup]
         public async Task Setup()
         {
-            _harness = ConfigHarness.Create(BenchmarkMaps.Global(NodeCount, rev: 1));
+            // Real time keeps the fake clock bookkeeping out of the measured cost.
+            _harness = ConfigHarness.Create(BenchmarkMaps.Global(NodeCount, rev: 1), clock: TimeProvider.System);
             _map = BenchmarkMaps.Bucket(NodeCount, rev: _rev);
             await _harness.OpenBucketAsync(_map);
             _hosts = new string[NodeCount];

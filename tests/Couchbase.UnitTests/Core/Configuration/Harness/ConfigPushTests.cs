@@ -2,7 +2,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Test.Common.Configuration;
 using Xunit;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigHarnessTests;
@@ -16,9 +15,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     {
         internal const string Node0 = "node-0.example.com";
         internal const string Node1 = "node-1.example.com";
-        internal const string Global = BucketConfig.GlobalBucketName;
         internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
-        internal static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(20);
+
+        /// <summary>
+        /// The SDK default.
+        /// </summary>
+        internal static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2.5);
+
+        internal static TimeSpan PollPasses(int passes) => TimeSpan.FromTicks(passes * PollInterval.Ticks);
 
         [Fact]
         public async Task BriefPush_ForNewerVersion_FetchesWithKnownVersionAndAppliesMap()
@@ -109,13 +113,41 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             // Node-1 stays on rev 10. Node-0 has nothing newer for its next three fetches, so three fetch passes find nothing.
             harness.Server.SetMapAfter(3, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
             harness.Server.PushBrief(Node0, 1, 11);
-            await harness.WaitForPublishedAsync(BucketName, Rev(11), Timeout);
-            await harness.DrainAsync();
+            // The handler waits 10, 20 and then 40 ms after each empty pass.
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(70));
 
             Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
             Assert.Equal(4, harness.Server.FetchCount(Node0));
             Assert.InRange(harness.Server.FetchCount(Node1), 3, 4);
             Assert.All(harness.Server.Fetches, f => Assert.Equal(Rev(10), f.KnownVersion));
+        }
+
+        [Fact]
+        public async Task BriefPush_WhileServerHasNothingNewer_AsksAgainAfter10MsThen20Ms()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            // The bucket is on node-0 only, so each fetch pass is one fetch.
+            await harness.OpenBucketAsync(OneNodeBucketMap(10));
+            harness.Server.ClearFetches();
+            harness.Server.SetMapAfter(2, OneNodeBucketMap(11).VBuckets(1024, replicas: 0), Node0);
+
+            harness.Server.PushBrief(Node0, 1, 11);
+            await harness.SettleAsync();
+            Assert.Single(harness.Server.Fetches);
+
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(9));
+            Assert.Single(harness.Server.Fetches);
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(1));
+            Assert.Equal(2, harness.Server.Fetches.Count);
+
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(19));
+            Assert.Equal(2, harness.Server.Fetches.Count);
+            Assert.Equal(Rev(10), harness.Bucket(BucketName).Version);
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(1));
+
+            Assert.Equal([null, null, Rev(11)], harness.Server.Fetches.Select(f => f.Served));
+            Assert.All(harness.Server.Fetches, f => Assert.Equal(Rev(10), f.KnownVersion));
+            Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
         }
 
         [Fact]
@@ -126,18 +158,41 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.StartPolling();
 
             // The first pass fetches node-0 and node-1. Each later pass also fetches node-3.
-            await harness.WaitForPublishedAsync(Global, Rev(11), Timeout, times: 2);
-            await harness.DrainAsync();
+            await harness.AdvanceAsync(PollInterval);
+            Assert.Equal(2, harness.Server.Fetches.Count);
             var adapters = harness.Context.Nodes.ToDictionary(n => n.EndPoint.Host, n => n.NodesAdapter);
 
-            await harness.WaitForPublishedAsync(Global, Rev(11), Timeout, times: 8);
-            await harness.DrainAsync();
+            await harness.AdvanceAsync(PollPasses(2));
+            Assert.Equal(8, harness.Server.Fetches.Count);
 
             Assert.Equal(Rev(11), harness.GlobalVersion);
             Assert.Equal(4, harness.NodesCreated);
             Assert.All(harness.Context.Nodes, n => Assert.Same(adapters[n.EndPoint.Host], n.NodesAdapter));
             Assert.All(harness.Server.Fetches, f => Assert.Null(f.KnownVersion));
         }
+
+        [Fact]
+        public async Task Polling_AfterPassWhereEveryNodeFails_KeepsPolling()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: PollInterval);
+            harness.Server.FailFetchesAfter(0, Node0, Node1);
+            harness.StartPolling();
+
+            await harness.AdvanceAsync(PollInterval);
+            Assert.Equal(2, harness.Server.Fetches.Count);
+            Assert.All(harness.Server.Fetches, f => Assert.Null(f.Served));
+
+            harness.Server.AnswerFetches(Node0, Node1);
+            harness.Server.SetMap(GlobalMap(11).Node("node-3.example.com"));
+            await harness.AdvanceAsync(PollInterval);
+
+            Assert.Equal(4, harness.Server.Fetches.Count);
+            Assert.Equal(Rev(11), harness.GlobalVersion);
+            Assert.Equal(4, harness.NodesCreated);
+        }
+
+        private static ClusterMapBuilder OneNodeBucketMap(ulong rev) =>
+            ClusterMapBuilder.Bucket(BucketName).Rev(rev).Nodes(1, n => n.Kv().Query());
     }
 }
 
