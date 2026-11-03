@@ -60,6 +60,8 @@ namespace Couchbase.Test.Common.Configuration
         private ProfileVBucketLayout? _layout;
         private bool _forwardMap;
         private ProfileVBucketLayout? _forwardLayout;
+        private short[][]? _chains;
+        private short[][]? _forwardChains;
 
         private ClusterMapBuilder(string name, bool isGlobal, ClusterProfile? profile = null)
         {
@@ -77,6 +79,10 @@ namespace Couchbase.Test.Common.Configuration
         /// The profile the map follows, or null for a map with the fields the SDK reads.
         /// </summary>
         public ClusterProfile? Profile { get; }
+
+        internal int VBucketCount => _vbucketCount;
+
+        internal int Replicas => _replicas;
 
         /// <summary>
         /// A global (GCCCP) map. It has no name field, so the SDK names it <see cref="BucketConfig.GlobalBucketName"/>.
@@ -133,6 +139,22 @@ namespace Couchbase.Test.Common.Configuration
             }
 
             AddNode(Profile is null ? new NodeBuilder(hostname) : new NodeBuilder(hostname, Profile, MemberFor(hostname)), configure);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a node of a profile map as one member of the capture, whatever its hostname. A host that left the
+        /// cluster and joined again is a new member with the same hostname.
+        /// </summary>
+        public ClusterMapBuilder Node(string hostname, int member, Action<NodeBuilder>? configure = null)
+        {
+            var profile = Profile ?? throw new InvalidOperationException("A member needs a profile map.");
+            if (_nodes.Exists(n => n.Hostname == hostname || n.Member == member))
+            {
+                throw new ArgumentException($"The map has node {hostname} or member {member} already.", nameof(hostname));
+            }
+
+            AddNode(new NodeBuilder(hostname, profile, member), configure);
             return this;
         }
 
@@ -223,10 +245,33 @@ namespace Couchbase.Test.Common.Configuration
             return this;
         }
 
+        /// <summary>
+        /// Sets the chain of every vbucket, active first, as indexes into serverList and -1 for a missing copy.
+        /// The chains win over a layout. Each write checks them against the vbucket count, the replicas and serverList.
+        /// </summary>
+        public ClusterMapBuilder VBucketMap(short[][] chains)
+        {
+            ThrowIfGlobal(nameof(VBucketMap));
+            _chains = Copy(chains);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds vBucketMapForward with these chains, in the form of <see cref="VBucketMap"/>. They win over a layout.
+        /// </summary>
+        public ClusterMapBuilder ForwardMap(short[][] chains)
+        {
+            ThrowIfGlobal(nameof(ForwardMap));
+            _forwardMap = true;
+            _forwardChains = Copy(chains);
+            return this;
+        }
+
         public ClusterMapBuilder ClearForwardMap()
         {
             _forwardMap = false;
             _forwardLayout = null;
+            _forwardChains = null;
             return this;
         }
 
@@ -249,7 +294,9 @@ namespace Couchbase.Test.Common.Configuration
                 _clusterUuid = _clusterUuid,
                 _layout = _layout,
                 _forwardMap = _forwardMap,
-                _forwardLayout = _forwardLayout
+                _forwardLayout = _forwardLayout,
+                _chains = _chains,
+                _forwardChains = _forwardChains
             };
             clone._nodes.AddRange(_nodes.Select(n => n.Clone()));
             clone._bucketCapabilities.AddRange(_bucketCapabilities);
@@ -492,10 +539,15 @@ namespace Couchbase.Test.Common.Configuration
                         writer.WriteEndArray();
                         break;
                     case "vBucketMap":
-                        WriteChains(writer, key, VBucketChains(bucketNodes.Count, _layout, roundRobin: Profile is null && _layout is null));
+                        WriteChains(writer, key, _chains is null
+                            ? VBucketChains(bucketNodes.Count, _layout, roundRobin: Profile is null && _layout is null)
+                            : Checked(_chains, bucketNodes.Count, key));
                         break;
                     case "vBucketMapForward":
-                        if (_forwardMap) WriteChains(writer, key, VBucketChains(bucketNodes.Count, _forwardLayout, roundRobin: false));
+                        if (!_forwardMap) break;
+                        WriteChains(writer, key, _forwardChains is null
+                            ? VBucketChains(bucketNodes.Count, _forwardLayout, roundRobin: false)
+                            : Checked(_forwardChains, bucketNodes.Count, key));
                         break;
                     default:
                         if (constant?[key] is { } value)
@@ -574,6 +626,34 @@ namespace Couchbase.Test.Common.Configuration
                     ? replicas[node] > 0
                     : notActive[node] - replicas[node] < notActive[other] - replicas[other];
         }
+
+        private short[][] Checked(short[][] chains, int servers, string name)
+        {
+            if (chains.Length != _vbucketCount)
+            {
+                throw new InvalidOperationException($"{name} has {chains.Length} chains, but the map has {_vbucketCount} vbuckets.");
+            }
+            for (var vbucket = 0; vbucket < chains.Length; vbucket++)
+            {
+                var chain = chains[vbucket];
+                if (chain.Length != _replicas + 1)
+                {
+                    throw new InvalidOperationException(
+                        $"{name} chain {vbucket} has {chain.Length} copies, but the map has {_replicas + 1} copies per vbucket.");
+                }
+                foreach (var copy in chain)
+                {
+                    if (copy < -1 || copy >= servers)
+                    {
+                        throw new InvalidOperationException(
+                            $"{name} chain {vbucket} has server {copy}, but serverList has {servers} servers.");
+                    }
+                }
+            }
+            return chains;
+        }
+
+        private static short[][] Copy(short[][] chains) => chains.Select(c => (short[])c.Clone()).ToArray();
 
         private void CheckLayout(ProfileVBucketLayout layout, int servers)
         {
