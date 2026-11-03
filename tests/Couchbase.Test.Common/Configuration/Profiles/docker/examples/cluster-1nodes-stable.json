@@ -1,0 +1,31 @@
+{
+  "rev": 5901,
+  "nodesExt": [
+    {
+      "nodeUUID": "a0000000000000000000000000000000",
+      "services": {"capi": 8092, "capiSSL": 18092, "kv": 11210, "kvSSL": 11207, "mgmt": 8091, "mgmtSSL": 18091, "projector": 9999},
+      "thisNode": true,
+      "hostname": "node-0.example.com",
+      "serverGroup": "Group 1"
+    }
+  ],
+  "revEpoch": 2,
+  "clusterCapabilitiesVer": [1, 0],
+  "clusterCapabilities": {
+    "n1ql": [
+      "costBasedOptimizer",
+      "indexAdvisor",
+      "javaScriptFunctions",
+      "inlineFunctions",
+      "enhancedPreparedStatements",
+      "readFromReplica",
+      "externalCollections",
+      "conversationalQuery"
+    ],
+    "search": ["vectorSearch", "scopedSearchIndex", "scoreFusion", "udfQuery"]
+  },
+  "clusterUUID": "c0000000000000000000000000000000",
+  "clusterName": "test-cluster",
+  "prod": "server",
+  "prodName": "Couchbase Server"
+}

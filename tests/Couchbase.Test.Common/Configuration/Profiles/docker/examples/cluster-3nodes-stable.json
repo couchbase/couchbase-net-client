@@ -1,16 +1,16 @@
 {
-  "rev": 1646,
+  "rev": 114,
   "nodesExt": [
     {
       "nodeUUID": "a0000000000000000000000000000000",
       "services": {"capi": 8092, "capiSSL": 18092, "kv": 11210, "kvSSL": 11207, "mgmt": 8091, "mgmtSSL": 18091, "projector": 9999},
+      "thisNode": true,
       "hostname": "node-0.example.com",
       "serverGroup": "Group 1"
     },
     {
       "nodeUUID": "a0000000000000000000000000000001",
       "services": {"capi": 8092, "capiSSL": 18092, "kv": 11210, "kvSSL": 11207, "mgmt": 8091, "mgmtSSL": 18091, "projector": 9999},
-      "thisNode": true,
       "hostname": "node-1.example.com",
       "serverGroup": "Group 1"
     },
@@ -24,8 +24,17 @@
   "revEpoch": 1,
   "clusterCapabilitiesVer": [1, 0],
   "clusterCapabilities": {
-    "n1ql": ["costBasedOptimizer", "indexAdvisor", "javaScriptFunctions", "inlineFunctions", "enhancedPreparedStatements", "readFromReplica"],
-    "search": ["vectorSearch", "scopedSearchIndex"]
+    "n1ql": [
+      "costBasedOptimizer",
+      "indexAdvisor",
+      "javaScriptFunctions",
+      "inlineFunctions",
+      "enhancedPreparedStatements",
+      "readFromReplica",
+      "externalCollections",
+      "conversationalQuery"
+    ],
+    "search": ["vectorSearch", "scopedSearchIndex", "scoreFusion", "udfQuery"]
   },
   "clusterUUID": "c0000000000000000000000000000000",
   "clusterName": "test-cluster",
