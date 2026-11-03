@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     /// </summary>
     public class RealConnectionTests
     {
-        private static readonly TimeSpan SmallKvTimeout = TimeSpan.FromMilliseconds(200);
+        internal static readonly TimeSpan SmallKvTimeout = TimeSpan.FromMilliseconds(200);
 
         /// <summary>
         /// How long a test waits to show that something does not happen.
