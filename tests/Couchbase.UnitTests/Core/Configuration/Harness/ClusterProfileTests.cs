@@ -17,7 +17,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         // The server sends these, but the SDK config classes have no property for them.
         private static readonly string[] SdkIgnoredPaths =
         [
-            "prodName", "bucketType", "storageBackend", "numVBuckets", "collectionsManifestUid",
+            "prodName", "bucketType", "storageBackend", "numVBuckets", "collectionsManifestUid", "externalCollectionsManifestUid",
             "nodes[].alternateAddresses.external.hostname"
         ];
 
@@ -272,6 +272,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
                 ? ClusterMapBuilder.Bucket(root.GetProperty("name").GetString()!, profile)
                 : ClusterMapBuilder.Global(profile);
             builder.Rev(example.Rev);
+            if (root.TryGetProperty("revEpoch", out var epoch)) builder.Epoch(epoch.GetUInt64());
 
             var serverList = isBucket
                 ? root.GetProperty("vBucketServerMap").GetProperty("serverList").EnumerateArray()
