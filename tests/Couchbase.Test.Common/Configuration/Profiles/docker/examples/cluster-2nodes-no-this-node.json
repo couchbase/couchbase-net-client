@@ -1,5 +1,5 @@
 {
-  "rev": 3147,
+  "rev": 1296,
   "nodesExt": [
     {
       "nodeUUID": "a0000000000000000000000000000000",
@@ -17,8 +17,17 @@
   "revEpoch": 1,
   "clusterCapabilitiesVer": [1, 0],
   "clusterCapabilities": {
-    "n1ql": ["costBasedOptimizer", "indexAdvisor", "javaScriptFunctions", "inlineFunctions", "enhancedPreparedStatements", "readFromReplica"],
-    "search": ["vectorSearch", "scopedSearchIndex"]
+    "n1ql": [
+      "costBasedOptimizer",
+      "indexAdvisor",
+      "javaScriptFunctions",
+      "inlineFunctions",
+      "enhancedPreparedStatements",
+      "readFromReplica",
+      "externalCollections",
+      "conversationalQuery"
+    ],
+    "search": ["vectorSearch", "scopedSearchIndex", "scoreFusion", "udfQuery"]
   },
   "clusterUUID": "c0000000000000000000000000000000",
   "clusterName": "test-cluster",
