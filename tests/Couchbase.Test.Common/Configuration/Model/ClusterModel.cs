@@ -14,6 +14,8 @@ namespace Couchbase.Test.Common.Configuration.Model
     /// <remarks>
     /// The cluster has one rev counter, like the server. A change to the nodes or their services gives the cluster map
     /// and every bucket map a new version with the same rev. A change to one bucket gives only that bucket a new version.
+    /// A failover changes every map. Hosts that join nodesExt or a bucket node list go in ordinal hostname order, like
+    /// on the server, so the indexes of the later bucket nodes shift.
     /// A scale out like the one seen on Capella.
     /// <code>
     /// var model = ClusterModel.Create(ClusterProfile.Load(ClusterProfile.CapellaPrivateLink));
@@ -32,7 +34,6 @@ namespace Couchbase.Test.Common.Configuration.Model
         // NodeBuilder.Services adds these by itself.
         private static readonly string[] ImpliedServices = ["mgmt", "capi", "projector"];
 
-        private readonly ulong _epoch;
         private readonly int _vbuckets;
         private readonly int _replicas;
         private readonly HashSet<string> _knownServices;
@@ -40,6 +41,8 @@ namespace Couchbase.Test.Common.Configuration.Model
         private readonly Dictionary<string, List<ModelMap>> _buckets = new(StringComparer.Ordinal);
         private readonly List<(ModelEvent Event, ulong Rev)> _applied = [];
         private readonly List<string> _trace = [];
+        private readonly Dictionary<string, FailedNode> _failed = new(StringComparer.Ordinal);
+        private ulong _epoch;
         private ulong _rev;
         private int _nextMember;
 
@@ -83,6 +86,11 @@ namespace Couchbase.Test.Common.Configuration.Model
         public IReadOnlyList<(ModelEvent Event, ulong Rev)> Applied => _applied;
 
         /// <summary>
+        /// The failed hosts that <see cref="RecoverNode"/> can bring back, in ordinal order.
+        /// </summary>
+        public IReadOnlyList<string> FailedHosts => _failed.Keys.OrderBy(h => h, StringComparer.Ordinal).ToList();
+
+        /// <summary>
         /// A model of <paramref name="nodes"/> members with the default services. Every node is in every bucket, and each
         /// bucket has a balanced map. Every map starts at version (<paramref name="epoch"/>, <paramref name="rev"/>).
         /// </summary>
@@ -104,7 +112,8 @@ namespace Couchbase.Test.Common.Configuration.Model
             }
 
             var version = new ConfigVersion(epoch, rev);
-            var members = Enumerable.Range(0, nodes).Select(m => model.NewNode(Hostname(m), m, model.DefaultServices)).ToList();
+            var members = Enumerable.Range(0, nodes).Select(m => model.NewNode(Hostname(m), m, model.DefaultServices))
+                .OrderBy(n => n.Hostname, StringComparer.Ordinal).ToList();
             model._cluster.Add(ModelMap.ForCluster(version, members));
             model._nextMember = nodes;
 
@@ -143,7 +152,7 @@ namespace Couchbase.Test.Common.Configuration.Model
             if (e is null) throw new ArgumentNullException(nameof(e));
 
             // Each handler checks the event and builds the new maps before anything changes.
-            var version = new ConfigVersion(_epoch, _rev + 1);
+            var version = new ConfigVersion(e is BumpEpoch ? _epoch + 1 : _epoch, _rev + 1);
             var changed = e switch
             {
                 AddNodes add => Apply(add, version),
@@ -156,13 +165,19 @@ namespace Couchbase.Test.Common.Configuration.Model
                 RemoveFromBucket remove => Apply(remove, version),
                 EjectNodes eject => Apply(eject, version),
                 BumpRev bump => Apply(bump, version),
+                BumpAll or BumpEpoch => WithClusterNodes(Cluster.Nodes, version),
+                FailOver fail => Apply(fail, version),
+                StartGracefulFailover start => Apply(start, version),
+                RecoverNode recover => Apply(recover, version),
                 _ => throw new ArgumentException($"The model has no rule for {e.GetType().Name}.", nameof(e))
             };
 
+            Remember(e);
             foreach (var map in changed)
             {
                 (map.Bucket is null ? _cluster : _buckets[map.Bucket]).Add(map);
             }
+            _epoch = version.Epoch;
             _rev = version.Revision;
             _nextMember = Math.Max(_nextMember, Cluster.Nodes.Select(n => n.Member + 1).DefaultIfEmpty(0).Max());
             _applied.Add((e, _rev));
@@ -211,13 +226,14 @@ namespace Couchbase.Test.Common.Configuration.Model
             var nodes = Cluster.Nodes.ToList();
             for (var member = _nextMember; member < _nextMember + e.Count; member++)
             {
-                nodes.Add(NewNode(Hostname(member), member, services));
+                nodes = Joined(nodes, NewNode(Hostname(member), member, services), n => n.Hostname);
             }
             return WithClusterNodes(nodes, version);
         }
 
         private List<ModelMap> Apply(RejoinNode e, ConfigVersion version)
         {
+            if (_failed.ContainsKey(e.Host)) throw Rejected(e, $"{e.Host} is failed. RecoverNode brings it back with its node UUID.");
             if (Cluster.Node(e.Host) is not null) throw Rejected(e, $"{e.Host} is in nodesExt.");
             if (!_cluster.Any(m => m.Node(e.Host) is not null))
             {
@@ -225,7 +241,7 @@ namespace Couchbase.Test.Common.Configuration.Model
             }
 
             var services = Checked(e, e.Services ?? DefaultServices);
-            return WithClusterNodes([.. Cluster.Nodes, NewNode(e.Host, _nextMember, services)], version);
+            return WithClusterNodes(Joined(Cluster.Nodes, NewNode(e.Host, _nextMember, services), n => n.Hostname), version);
         }
 
         private List<ModelMap> Apply(SetServices e, ConfigVersion version)
@@ -247,11 +263,13 @@ namespace Couchbase.Test.Common.Configuration.Model
             foreach (var host in e.Hosts)
             {
                 var node = Cluster.Node(host) ?? throw Rejected(e, $"{host} is not in nodesExt.");
+                if (_failed.ContainsKey(host)) throw Rejected(e, $"{host} is failed. RecoverNode brings it back.");
                 if (!node.Has(Kv)) throw Rejected(e, $"{host} has no kv.");
                 if (map.IsBucketNode(host)) throw Rejected(e, $"{host} is in the bucket already.");
             }
 
-            return [NextBucket(map, version, [.. map.BucketNodes, .. e.Hosts], map.Chains, map.ForwardChains)];
+            var (bucketNodes, chains, forward) = WithBucketNodes(map, e.Hosts);
+            return [NextBucket(map, version, bucketNodes, chains, forward)];
         }
 
         private List<ModelMap> Apply(StartRebalance e, ConfigVersion version)
@@ -351,6 +369,122 @@ namespace Couchbase.Test.Common.Configuration.Model
             return [NextBucket(map, version, map.BucketNodes, map.Chains, map.ForwardChains)];
         }
 
+        private List<ModelMap> Apply(FailOver e, ConfigVersion version)
+        {
+            CheckHosts(e, e.Hosts);
+            foreach (var host in e.Hosts)
+            {
+                if (Cluster.Node(host) is null) throw Rejected(e, $"{host} is not in nodesExt.");
+                if (_failed.ContainsKey(host)) throw Rejected(e, $"{host} is failed already.");
+            }
+
+            var maps = new List<ModelMap> { ModelMap.ForCluster(version, Cluster.Nodes) };
+            foreach (var bucket in Buckets)
+            {
+                var map = Bucket(bucket);
+                var bucketNodes = map.BucketNodes.Where(h => !e.Hosts.Contains(h)).ToList();
+                if (bucketNodes.Count == map.BucketNodes.Count)
+                {
+                    maps.Add(NextBucket(map, version, map.BucketNodes, map.Chains, map.ForwardChains));
+                    continue;
+                }
+                if (map.ForwardChains is not null) throw Rejected(e, $"A rebalance is running in bucket {bucket}.");
+                if (bucketNodes.Count == 0) throw Rejected(e, $"Bucket {bucket} would keep no node.");
+
+                var newIndex = NewIndexes(map.BucketNodes, bucketNodes);
+                maps.Add(NextBucket(map, version, bucketNodes, map.Chains.Select(c => Compacted(c, newIndex)).ToArray(), null));
+            }
+            return maps;
+        }
+
+        private List<ModelMap> Apply(StartGracefulFailover e, ConfigVersion version)
+        {
+            var map = BucketMap(e, e.Bucket);
+            if (map.ForwardChains is not null) throw Rejected(e, "A rebalance is running.");
+            CheckHosts(e, e.Hosts);
+            if (e.Hosts.FirstOrDefault(h => !map.IsBucketNode(h)) is { } stranger) throw Rejected(e, $"{stranger} is not in the bucket.");
+
+            var failing = new HashSet<short>(NewIndexes(e.Hosts, map.BucketNodes));
+            var forward = new short[map.Chains.Length][];
+            for (var vbucket = 0; vbucket < forward.Length; vbucket++)
+            {
+                var chain = map.Chains[vbucket];
+                forward[vbucket] = chain;
+                if (chain[0] < 0 || !failing.Contains(chain[0])) continue;
+
+                var replica = Array.FindIndex(chain, 1, c => c >= 0 && !failing.Contains(c));
+                if (replica < 0) throw Rejected(e, $"vbucket {vbucket} has no replica on another host.");
+                var swapped = (short[])chain.Clone();
+                (swapped[0], swapped[replica]) = (swapped[replica], swapped[0]);
+                forward[vbucket] = swapped;
+            }
+
+            return [NextBucket(map, version, map.BucketNodes, map.Chains, forward)];
+        }
+
+        private List<ModelMap> Apply(RecoverNode e, ConfigVersion version)
+        {
+            if (!_failed.TryGetValue(e.Host, out var failed))
+            {
+                throw Rejected(e, $"{e.Host} is not failed. A rebalance forgets the failed hosts.");
+            }
+
+            var nodes = Cluster.Node(e.Host) is null ? Joined(Cluster.Nodes, failed.Node, n => n.Hostname) : Cluster.Nodes;
+            var maps = new List<ModelMap> { ModelMap.ForCluster(version, nodes) };
+            foreach (var bucket in Buckets)
+            {
+                var map = Bucket(bucket);
+                if (!e.Delta || !failed.Held.TryGetValue(bucket, out var held))
+                {
+                    maps.Add(ModelMap.ForBucket(bucket, version, nodes, map.BucketNodes, map.Chains, map.ForwardChains, _replicas));
+                    continue;
+                }
+                if (map.ForwardChains is not null) throw Rejected(e, $"A rebalance is running in bucket {bucket}.");
+
+                var (bucketNodes, chains, _) = WithBucketNodes(map, [e.Host]);
+                var index = (short)bucketNodes.IndexOf(e.Host);
+                foreach (var vbucket in held)
+                {
+                    // The copy comes back as a replica, in the first missing replica slot.
+                    var free = Array.IndexOf(chains[vbucket], (short)-1, 1);
+                    if (free < 0 || Array.IndexOf(chains[vbucket], index) >= 0) continue;
+                    chains[vbucket] = (short[])chains[vbucket].Clone();
+                    chains[vbucket][free] = index;
+                }
+                maps.Add(ModelMap.ForBucket(bucket, version, nodes, bucketNodes, chains, null, _replicas));
+            }
+            return maps;
+        }
+
+        /// <summary>
+        /// Keeps the failed hosts up to date. It runs before the new maps are added, so it reads the maps before the event.
+        /// </summary>
+        private void Remember(ModelEvent e)
+        {
+            switch (e)
+            {
+                case FailOver fail:
+                    foreach (var host in fail.Hosts)
+                    {
+                        var held = new Dictionary<string, IReadOnlyList<int>>(StringComparer.Ordinal);
+                        foreach (var map in Buckets.Select(Bucket).Where(m => m.IsBucketNode(host)))
+                        {
+                            var index = (short)map.BucketNodes.ToList().IndexOf(host);
+                            held[map.Bucket!] = Enumerable.Range(0, map.VBucketCount).Where(v => Array.IndexOf(map.Chains[v], index) >= 0).ToList();
+                        }
+                        _failed[host] = new FailedNode(Cluster.Node(host)!, held);
+                    }
+                    break;
+                case RecoverNode recover:
+                    _failed.Remove(recover.Host);
+                    break;
+                // The server ejects the failed hosts at the next rebalance.
+                case StartRebalance:
+                    _failed.Clear();
+                    break;
+            }
+        }
+
         private List<ModelMap> WithClusterNodes(IReadOnlyList<ModelNode> nodes, ConfigVersion version)
         {
             var maps = new List<ModelMap> { ModelMap.ForCluster(version, nodes) };
@@ -360,6 +494,35 @@ namespace Couchbase.Test.Common.Configuration.Model
                 maps.Add(ModelMap.ForBucket(bucket, version, nodes, map.BucketNodes, map.Chains, map.ForwardChains, _replicas));
             }
             return maps;
+        }
+
+        /// <summary>
+        /// The bucket node list with the hosts added in ordinal order, and the chains with the new indexes.
+        /// </summary>
+        private static (List<string> Nodes, short[][] Chains, short[][]? Forward) WithBucketNodes(ModelMap map, IEnumerable<string> hosts)
+        {
+            var nodes = map.BucketNodes.ToList();
+            foreach (var host in hosts) nodes = Joined(nodes, host, h => h);
+            var newIndex = NewIndexes(map.BucketNodes, nodes);
+            var chains = map.Chains.Select(c => Reindexed(c, newIndex)).ToArray();
+            var forward = map.ForwardChains?.Select((c, v) => ReferenceEquals(c, map.Chains[v]) ? chains[v] : Reindexed(c, newIndex)).ToArray();
+            return (nodes, chains, forward);
+        }
+
+        // The item goes before the first one with a greater hostname.
+        private static List<T> Joined<T>(IReadOnlyList<T> items, T item, Func<T, string> hostname)
+        {
+            var list = items.ToList();
+            var at = list.FindIndex(i => string.CompareOrdinal(hostname(i), hostname(item)) > 0);
+            list.Insert(at < 0 ? list.Count : at, item);
+            return list;
+        }
+
+        // The index of each host in the other list, or -1 when it is not there.
+        private static short[] NewIndexes(IReadOnlyList<string> hosts, IReadOnlyList<string> other)
+        {
+            var list = other.ToList();
+            return hosts.Select(h => (short)list.IndexOf(h)).ToArray();
         }
 
         private ModelMap NextBucket(ModelMap map, ConfigVersion version, IReadOnlyList<string> bucketNodes, short[][] chains,
@@ -421,6 +584,15 @@ namespace Couchbase.Test.Common.Configuration.Model
             return chain.Select(c => c < 0 ? c : newIndex[c]).ToArray();
         }
 
+        // Drops the copies on nodes that left. The other copies keep their order and move up, and every -1 goes to the
+        // end, so the first copy left becomes the active.
+        private static short[] Compacted(short[] chain, short[] newIndex)
+        {
+            if (chain.All(c => c < 0 || newIndex[c] == c)) return chain;
+            return chain.Where(c => c >= 0 && newIndex[c] >= 0).Select(c => newIndex[c])
+                .Concat(Enumerable.Repeat((short)-1, chain.Length)).Take(chain.Length).ToArray();
+        }
+
         private static bool SameChain(short[] chain, short[] other) => ReferenceEquals(chain, other) || chain.AsSpan().SequenceEqual(other);
 
         private Random PlanRandom(string bucket, ulong rev)
@@ -437,6 +609,11 @@ namespace Couchbase.Test.Common.Configuration.Model
         private static string Hostname(int member) => $"node-{member}.example.com";
 
         private static InvalidOperationException Rejected(ModelEvent e, string reason) => new($"The model rejects {e}. {reason}");
+
+        /// <summary>
+        /// A failed host. It keeps its node, and for each bucket it was in, the vbuckets where it held a copy.
+        /// </summary>
+        private sealed record FailedNode(ModelNode Node, IReadOnlyDictionary<string, IReadOnlyList<int>> Held);
     }
 }
 

@@ -35,8 +35,8 @@ namespace Couchbase.Test.Common.Configuration.Model
         public ConfigVersion Version { get; }
 
         /// <summary>
-        /// The nodes in nodesExt order. A bucket map lists the bucket nodes first in serverList order, then the other
-        /// nodes in member order. The cluster map lists the nodes in member order.
+        /// The nodes in nodesExt order. The cluster map lists the nodes in ordinal hostname order. A bucket map lists the
+        /// bucket nodes first in serverList order, then the other nodes in the order of the cluster map.
         /// </summary>
         public IReadOnlyList<ModelNode> Nodes { get; }
 
@@ -66,7 +66,7 @@ namespace Couchbase.Test.Common.Configuration.Model
         internal static ModelMap ForCluster(ConfigVersion version, IReadOnlyList<ModelNode> nodes) =>
             new(null, version, nodes, [], [], null, 0);
 
-        /// <param name="clusterNodes">Every node of the cluster, in member order.</param>
+        /// <param name="clusterNodes">Every node of the cluster, in the order of the cluster map.</param>
         internal static ModelMap ForBucket(string bucket, ConfigVersion version, IReadOnlyList<ModelNode> clusterNodes,
             IReadOnlyList<string> bucketNodes, short[][] chains, short[][]? forward, int replicas)
         {
@@ -102,7 +102,7 @@ namespace Couchbase.Test.Common.Configuration.Model
 
     /// <summary>
     /// One node of a <see cref="ClusterModel"/>. A member is one node with one node UUID, so a host that rejoins is a
-    /// new member.
+    /// new member. A recovered host keeps its member.
     /// </summary>
     internal sealed class ModelNode(string hostname, string nodeUuid, int member, string? serverGroup, IReadOnlyList<string> services)
     {
