@@ -194,6 +194,38 @@ namespace Couchbase.Test.Common.Configuration
             }
         }
 
+        /// <summary>
+        /// The node serves the map from now on, then tells its connections that use the map. A connection uses a bucket
+        /// map when it selected that bucket, and the global map when it selected none. It gets a brief notification when it
+        /// negotiated brief ones, else a full one when it negotiated full ones, else none.
+        /// </summary>
+        public void Serve(string host, ClusterMapBuilder map) => Serve(host, ServedMap.From(map));
+
+        /// <summary>
+        /// Serves a prepared map, like <see cref="Serve(string, ClusterMapBuilder)"/>.
+        /// </summary>
+        /// <param name="notify">False to only set the map, so the connections learn of it on their next fetch.</param>
+        public void Serve(string host, ServedMap map, bool notify = true)
+        {
+            SetMap(map.Name, map, [host]);
+            if (!notify) return;
+
+            var bucket = map.Name == BucketConfig.GlobalBucketName ? null : map.Name;
+            foreach (var connection in ConnectionsOn(host))
+            {
+                if (connection.Bucket != bucket) continue;
+
+                if (connection.Has(ServerFeatures.ClustermapChangeNotificationBrief))
+                {
+                    connection.Push(Notification(map.Version, bucket, DataType.None, []));
+                }
+                else if (connection.Has(ServerFeatures.ClustermapChangeNotification))
+                {
+                    connection.Push(Notification(map.Version, bucket, DataType.Json, map.Json));
+                }
+            }
+        }
+
         internal Connection Connect(HostEndpointWithPort endPoint)
         {
             var connection = new Connection(this, endPoint);
