@@ -9,89 +9,33 @@ namespace Couchbase.ConfigRecorder;
 internal sealed class SummarizeCommand
 {
     private const int MaxDiffLines = 40;
-    private const string ProbeBody = "probe body";
+    private const string ProbeBody = RunFolder.ProbeBody;
     private const int MaxValueLength = 70;
     private static readonly string[] CollapsedPrefixes = ["vBucketServerMap.vBucketMap[", "vBucketServerMap.vBucketMapForward["];
 
-    private readonly string _folder;
+    private readonly RunFolder _run;
     private readonly TextWriter _out;
-    private readonly List<Event> _events = [];
+    private readonly IReadOnlyList<RunEvent> _events;
     private readonly Dictionary<string, Dictionary<string, string>?> _flatBodies = new(StringComparer.Ordinal);
-    private int _badLines;
-    private string? _bucketName;
 
-    private SummarizeCommand(string folder, TextWriter output)
+    private SummarizeCommand(RunFolder run, TextWriter output)
     {
-        _folder = folder;
+        _run = run;
+        _events = run.Events;
         _out = output;
     }
 
     public static int Run(string folder, TextWriter output)
     {
-        var path = Path.Combine(folder, "events.jsonl");
-        if (!File.Exists(path))
+        if (!File.Exists(RunFolder.EventsPath(folder)))
         {
             Console.Error.WriteLine($"No events.jsonl in '{folder}'.");
             return 2;
         }
 
-        var command = new SummarizeCommand(folder, output);
-        command.Load(path);
+        var command = new SummarizeCommand(RunFolder.Load(folder), output);
         command.Print();
         return 0;
-    }
-
-    private sealed record Event(double T, string Ts, string Stream, string Kind, JsonElement E)
-    {
-        public string? Str(string name) =>
-            E.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-
-        public ulong? U64(string name) =>
-            E.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetUInt64(out var n) ? n : null;
-
-        public double? Dbl(string name) =>
-            E.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
-
-        public bool? Bool(string name) =>
-            E.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.True or JsonValueKind.False ? v.GetBoolean() : null;
-    }
-
-    private readonly record struct Ver(ulong Epoch, ulong Rev) : IComparable<Ver>
-    {
-        public int CompareTo(Ver other) => Epoch != other.Epoch ? Epoch.CompareTo(other.Epoch) : Rev.CompareTo(other.Rev);
-
-        public override string ToString() => $"{Epoch}/{Rev}";
-    }
-
-    private void Load(string path)
-    {
-        foreach (var line in File.ReadLines(path))
-        {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            try
-            {
-                using var doc = JsonDocument.Parse(line);
-                var root = doc.RootElement.Clone();
-                _events.Add(new Event(
-                    root.GetProperty("t").GetDouble(),
-                    root.GetProperty("ts").GetString() ?? "",
-                    root.GetProperty("stream").GetString() ?? "",
-                    root.GetProperty("kind").GetString() ?? "",
-                    root));
-            }
-            catch (Exception)
-            {
-                _badLines++;
-            }
-        }
-
-        _events.Sort((a, b) => a.T.CompareTo(b.T));
-        var start = _events.FirstOrDefault(e => e.Stream == "recorder" && e.Kind == "start");
-        if (start is not null && start.E.TryGetProperty("settings", out var settings)
-                              && settings.TryGetProperty("bucket", out var bucket))
-        {
-            _bucketName = bucket.GetString();
-        }
     }
 
     private void Print()
@@ -132,7 +76,7 @@ internal sealed class SummarizeCommand
     private void PrintOverview()
     {
         Heading("Run");
-        _out.WriteLine($"Folder      {Path.GetFullPath(_folder)}");
+        _out.WriteLine($"Folder      {Path.GetFullPath(_run.Folder)}");
         if (_events.Count == 0)
         {
             _out.WriteLine("No events.");
@@ -143,7 +87,7 @@ internal sealed class SummarizeCommand
         var last = _events[^1];
         _out.WriteLine($"Started     {first.Ts}");
         _out.WriteLine($"Length      {S(last.T - first.T)} s");
-        _out.WriteLine($"Events      {_events.Count}{(_badLines > 0 ? $" ({_badLines} unreadable lines skipped)" : "")}");
+        _out.WriteLine($"Events      {_events.Count}{(_run.BadLines > 0 ? $" ({_run.BadLines} unreadable lines skipped)" : "")}");
         var start = _events.FirstOrDefault(e => e.Stream == "recorder" && e.Kind == "start");
         if (start is not null)
         {
@@ -151,7 +95,7 @@ internal sealed class SummarizeCommand
             if (start.E.TryGetProperty("settings", out var settings))
             {
                 _out.WriteLine($"Connection  {settings.GetProperty("connectionString").GetString()}");
-                _out.WriteLine($"Bucket      {_bucketName}");
+                _out.WriteLine($"Bucket      {_run.BucketName}");
             }
         }
 
@@ -199,8 +143,6 @@ internal sealed class SummarizeCommand
         }
     }
 
-    private string ScopeOf(string? name) => name is null || name == "CLUSTER" ? "cluster" : "bucket";
-
     private void PrintProbeTimeline(string scope)
     {
         Heading($"Probe timeline, {scope} config (seconds since start, when each node first served each version)");
@@ -219,10 +161,10 @@ internal sealed class SummarizeCommand
             _out.WriteLine($"{labels[node],-4} {node}");
         }
 
-        var first = new Dictionary<(Ver, string), double>();
+        var first = new Dictionary<(MapVersion, string), double>();
         foreach (var e in versions)
         {
-            var key = (new Ver(e.U64("epoch") ?? 0, e.U64("rev") ?? 0), e.Str("node")!);
+            var key = (new MapVersion(e.U64("epoch") ?? 0, e.U64("rev") ?? 0), e.Str("node")!);
             first.TryAdd(key, e.T);
         }
 
@@ -249,7 +191,7 @@ internal sealed class SummarizeCommand
 
         // Coverage. A node can miss a version that came and went between two probes, or that was
         // published before the node joined or after it left.
-        var seenAnywhere = AllVersions(scope);
+        var seenAnywhere = _run.AllVersions(scope);
         _out.WriteLine();
         foreach (var node in nodes)
         {
@@ -260,58 +202,10 @@ internal sealed class SummarizeCommand
         }
     }
 
-    /// <summary>
-    /// Every version of a scope that any source delivered.
-    /// </summary>
-    private List<Ver> AllVersions(string scope) =>
-        Arrivals(scope).Select(a => a.Version).Distinct().OrderBy(v => v).ToList();
-
-    private readonly record struct Arrival(string Source, Ver Version, double T, string? Host, string? Hash);
-
-    private IEnumerable<Arrival> Arrivals(string scope)
-    {
-        foreach (var e in _events)
-        {
-            switch (e.Stream, e.Kind)
-            {
-                case ("tap" or "probe-tap", "push"):
-                {
-                    var brief = e.Bool("brief") == true;
-                    var pushScope = string.IsNullOrEmpty(e.Str("pushBucket")) ? "cluster" : "bucket";
-                    if (pushScope != scope) break;
-                    var v = e.U64("bodyRev") is { } bodyRev
-                        ? new Ver(e.U64("bodyRevEpoch") ?? 0, bodyRev)
-                        : new Ver(e.U64("epoch") ?? 0, e.U64("rev") ?? 0);
-                    var source = (e.Stream == "probe-tap" ? "probe " : "") + (brief ? "brief push" : "full push");
-                    yield return new Arrival(source, v, e.T, e.Str("host"), e.Str("hash"));
-                    break;
-                }
-                case ("tap" or "probe-tap", "config" or "nmvb"):
-                {
-                    if (e.Str("hash") is null || e.U64("bodyRev") is not { } rev) break;
-                    if (ScopeOf(e.Str("name")) != scope) break;
-                    // Probe fetch bodies only feed the field diffs. The probe column comes from probe version events.
-                    var source = e.Stream == "probe-tap" ? ProbeBody : e.Kind == "nmvb" ? "nmvb body" : "fetch reply";
-
-                    yield return new Arrival(source, new Ver(e.U64("bodyRevEpoch") ?? 0, rev), e.T, e.Str("host"), e.Str("hash"));
-                    break;
-                }
-                case ("probe", "version"):
-                    if (e.Str("scope") != scope) break;
-                    yield return new Arrival("probe", new Ver(e.U64("epoch") ?? 0, e.U64("rev") ?? 0), e.T, e.Str("node"), null);
-                    break;
-                case ("sdk", "dispatch"):
-                    if (ScopeOf(e.Str("name")) != scope) break;
-                    yield return new Arrival("dispatched", new Ver(e.U64("epoch") ?? 0, e.U64("rev") ?? 0), e.T, null, null);
-                    break;
-            }
-        }
-    }
-
     private void PrintArrivals(string scope)
     {
         Heading($"New {scope} versions, first arrival per source (seconds since start)");
-        var arrivals = Arrivals(scope).Where(a => a.Source != ProbeBody).ToList();
+        var arrivals = _run.Arrivals(scope).Where(a => a.Source != ProbeBody).ToList();
         if (arrivals.Count == 0)
         {
             _out.WriteLine("No versions.");
@@ -375,23 +269,23 @@ internal sealed class SummarizeCommand
         _out.WriteLine($"  {label}, median {S(At(0.5))} s, p95 {S(At(0.95))} s, max {S(lags[^1])} s ({lags.Count} versions)");
     }
 
-    private static bool Applied(Event state, string column, Ver v)
+    private static bool Applied(RunEvent state, string column, MapVersion v)
     {
         switch (column)
         {
             case "CurrentConfig":
-                return state.U64("bucketRev") is { } rev && new Ver(state.U64("bucketEpoch") ?? 0, rev).CompareTo(v) >= 0;
+                return state.U64("bucketRev") is { } rev && new MapVersion(state.U64("bucketEpoch") ?? 0, rev).CompareTo(v) >= 0;
             case "KeyMapper":
                 return state.U64("keyMapperRev") is { } kmRev && kmRev >= v.Rev;
             default:
-                return state.U64("globalRev") is { } globalRev && new Ver(state.U64("globalEpoch") ?? 0, globalRev).CompareTo(v) >= 0;
+                return state.U64("globalRev") is { } globalRev && new MapVersion(state.U64("globalEpoch") ?? 0, globalRev).CompareTo(v) >= 0;
         }
     }
 
     private void PrintDiffs(string scope)
     {
         Heading($"Changed fields between consecutive {scope} versions");
-        var bodies = Arrivals(scope).Where(a => a.Hash is not null)
+        var bodies = _run.Arrivals(scope).Where(a => a.Hash is not null)
             .GroupBy(a => a.Version)
             .ToDictionary(g => g.Key, g => g.GroupBy(a => a.Host ?? "").ToDictionary(h => h.Key, h => h.First().Hash!));
         var versions = bodies.Keys.OrderBy(v => v).ToList();
@@ -518,7 +412,7 @@ internal sealed class SummarizeCommand
         Dictionary<string, string>? flat = null;
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(_folder, "configs", hash + ".json")));
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(_run.BodyPath(hash)));
             flat = ConfigJson.Flatten(doc.RootElement);
         }
         catch (Exception)
@@ -532,7 +426,7 @@ internal sealed class SummarizeCommand
 
     private void PrintPaths()
     {
-        var folder = Path.Combine(_folder, "configs");
+        var folder = Path.Combine(_run.Folder, "configs");
         var files = Directory.Exists(folder) ? Directory.GetFiles(folder, "*.json") : [];
         foreach (var scope in new[] { "cluster", "bucket" })
         {
@@ -543,7 +437,7 @@ internal sealed class SummarizeCommand
                 var flat = Flat(Path.GetFileNameWithoutExtension(file), cache: false);
                 if (flat is null) continue;
                 var name = flat.TryGetValue("name", out var n) ? n.Trim('"') : null;
-                if (ScopeOf(name) != scope) continue;
+                if (RunFolder.ScopeOf(name) != scope) continue;
 
                 total++;
                 foreach (var path in flat.Keys.Select(ConfigJson.Normalize).Distinct())
