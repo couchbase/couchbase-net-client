@@ -26,9 +26,38 @@ using Moq;
 namespace Couchbase.Test.Common.Configuration
 {
     /// <summary>
-    /// Runs the SDK config handling (config handler, cluster context, buckets, real cluster nodes) with no network.
-    /// Each node has one connection to <see cref="Server"/>, set up by the node like a real connection.
+    /// How the cluster nodes of a <see cref="ConfigHarness"/> reach its <see cref="FakeClusterServer"/>.
+    /// </summary>
+    /// <remarks>
+    /// The harness clock drives the config handler poll loop, the push handler retry delays, the circuit breakers, and
+    /// the timeouts and retry delays of the operations a bucket sends through its retry orchestrator.
+    /// Real time drives the operations a node sends itself, which are connection setup, select bucket, the manifest and
+    /// the cluster map fetch. They time out after KvTimeout. In real mode real time also drives the 75 s cleanup of
+    /// operations left in flight, the pool scale controller (every 30 s) and the grace a closing connection gives its
+    /// operations. So a test that needs a timeout on a hung host runs on <see cref="TimeProvider.System"/> with a small
+    /// KvTimeout.
+    /// </remarks>
+    public enum ConnectionMode
+    {
+        /// <summary>
+        /// Each node has one fake connection, which answers each request before the send returns.
+        /// </summary>
+        Fake,
+
+        /// <summary>
+        /// Each node has the SDK connection pool, of real MultiplexingConnection objects. That is 2 connections by default,
+        /// or the single connection pool when a test sets 1. Each connection runs over an in-memory duplex stream that the
+        /// server reads and answers, so connection setup, in-flight limits and the receive loop run as on a socket.
+        /// The nodes skip SASL in both modes.
+        /// </summary>
+        Real
+    }
+
+    /// <summary>
+    /// Runs the SDK config handling (config handler, cluster context, buckets, real cluster nodes) against
+    /// <see cref="Server"/>, with no sockets. Each node sets up its connections like a real node.
     /// By default the SDK services run on a <see cref="SteppableClock"/>, so time moves only in <see cref="AdvanceAsync"/>.
+    /// Read <see cref="ConnectionMode"/> for the parts that run on real time.
     /// </summary>
     internal sealed class ConfigHarness : IAsyncDisposable
     {
@@ -38,6 +67,7 @@ namespace Couchbase.Test.Common.Configuration
         private static readonly TimeSpan MinQuietTime = TimeSpan.FromMilliseconds(1);
         private static readonly TimeSpan CompileGrace = TimeSpan.FromMilliseconds(50);
         private static readonly TimeSpan SettleLimit = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan PollStep = TimeSpan.FromMilliseconds(5);
 
         private readonly NodeFactory _nodeFactory;
         private readonly IConfigHandler _handler;
@@ -48,7 +78,7 @@ namespace Couchbase.Test.Common.Configuration
         private volatile bool _handlerStarted;
 
         private ConfigHarness(ClusterContext context, FakeClusterServer server, NodeFactory nodeFactory,
-            IConfigHandler handler, bool polling, TimeProvider clock)
+            IConfigHandler handler, bool polling, TimeProvider clock, ConnectionMode mode)
         {
             Context = context;
             Server = server;
@@ -56,6 +86,7 @@ namespace Couchbase.Test.Common.Configuration
             _handler = handler;
             _polling = polling;
             Clock = clock;
+            Mode = mode;
         }
 
         public ClusterContext Context { get; }
@@ -66,6 +97,8 @@ namespace Couchbase.Test.Common.Configuration
         /// The clock of the SDK services.
         /// </summary>
         public TimeProvider Clock { get; }
+
+        public ConnectionMode Mode { get; }
 
         public ClusterOptions Options => Context.ClusterOptions;
 
@@ -95,9 +128,17 @@ namespace Couchbase.Test.Common.Configuration
         /// <param name="clock">
         /// The clock of the SDK services. A new <see cref="SteppableClock"/> when null. Pass <see cref="TimeProvider.System"/> for real time.
         /// </param>
+        /// <param name="mode">How the nodes reach <see cref="Server"/>.</param>
+        /// <param name="network">The network of <see cref="ConnectionMode.Real"/>. The defaults when null.</param>
         public static ConfigHarness Create(ClusterMapBuilder globalMap, Action<ClusterOptions>? configure = null,
-            TimeSpan? pollInterval = null, TimeProvider? clock = null)
+            TimeSpan? pollInterval = null, TimeProvider? clock = null, ConnectionMode mode = ConnectionMode.Fake,
+            NetworkOptions? network = null)
         {
+            if (network is not null && mode != ConnectionMode.Real)
+            {
+                throw new ArgumentException($"Network options need {nameof(ConnectionMode)}.{nameof(ConnectionMode.Real)}.", nameof(network));
+            }
+
             var config = globalMap.Build();
             config.Name = BucketConfig.GlobalBucketName;
 
@@ -115,27 +156,42 @@ namespace Couchbase.Test.Common.Configuration
             clock ??= new SteppableClock();
             options.AddClusterService<TimeProvider, TimeProvider>(clock);
 
-            var server = new FakeClusterServer();
+            var server = mode == ConnectionMode.Real ? new FakeClusterServer(network ?? new NetworkOptions()) : new FakeClusterServer();
             server.SetMap(globalMap);
-            var nodeFactory = new NodeFactory(server);
+            var nodeFactory = new NodeFactory(server, mode);
             options.AddClusterService<IClusterNodeFactory, NodeFactory>(nodeFactory);
+            if (mode == ConnectionMode.Real)
+            {
+                // The SDK pool factory then builds its pools on these connections.
+                options.AddClusterService<IConnectionFactory, StreamConnectionFactory>(sp =>
+                    new StreamConnectionFactory(server, options, sp.GetRequiredService<ILogger<MultiplexingConnection>>()));
+            }
             // The real bootstrapper polls on a timer and rebootstraps over the network when a bucket has errors.
             options.AddClusterService<IBootstrapperFactory, IdleBootstrapper>(new IdleBootstrapper());
 
             // A scope reads the cluster for its search index manager.
             var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
-            nodeFactory.Attach(context);
-
-            config.SetEffectiveNetworkResolution(options);
-            context.GlobalConfig = config;
-            foreach (var adapter in config.GetNodes())
+            try
             {
-                context.AddNode(nodeFactory.Create(HostEndpointWithPort.Create(adapter, options), adapter));
+                nodeFactory.Attach(context);
+
+                config.SetEffectiveNetworkResolution(options);
+                context.GlobalConfig = config;
+                foreach (var adapter in config.GetNodes())
+                {
+                    context.AddNode(nodeFactory.Create(HostEndpointWithPort.Create(adapter, options), adapter));
+                }
+            }
+            catch
+            {
+                if (server.HasNetwork) server.ShutDownNetwork();
+                context.Dispose();
+                throw;
             }
 
             var handler = context.ServiceProvider.GetRequiredService<IConfigHandler>();
             var polling = pollInterval is not null;
-            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling, clock);
+            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling, clock, mode);
             handler.Subscribe(context);
             handler.Subscribe(harness._sink);
             if (!polling)
@@ -239,7 +295,11 @@ namespace Couchbase.Test.Common.Configuration
         /// <remarks>
         /// Each round lets queued thread pool work run, drains the handler, and reads four signals. They are the configs
         /// dispatched (barriers left out), the requests the server answered, the timers created and the pending timers.
-        /// The server answers a request before the send returns, so a fetch counts as soon as it is sent.
+        /// In fake mode the server answers a request before the send returns, so a fetch counts as soon as it is sent.
+        /// In real mode a fifth signal moves with every byte, request and connection on the network, and a round does not
+        /// count as quiet while bytes or requests are on their way. Bytes that a stalled host does not read and the replies
+        /// that a hung host holds do not count, so they do not keep the pipeline busy. A timeout on real time that has not
+        /// fired yet is not work either, so the call can return before it.
         /// The pipeline is idle once the signals stay the same for <see cref="QuietRounds"/> rounds and <see cref="MinQuietTime"/>
         /// of real time, so each call takes at least that long.
         /// Code that runs between two signals shows nothing, for example a push handler that woke up and has not sent its fetch yet.
@@ -279,7 +339,7 @@ namespace Couchbase.Test.Common.Configuration
                 var now = elapsed.Elapsed;
                 var signals = ReadSignals(clock);
                 var compiled = CompiledMethodCount();
-                if (signals != last)
+                if (signals != last || Server.IsNetworkBusy)
                 {
                     last = signals;
                     lastSignalChange = now;
@@ -366,17 +426,36 @@ namespace Couchbase.Test.Common.Configuration
             Clock as SteppableClock ?? throw new InvalidOperationException(
                 $"{caller} needs a harness on a {nameof(SteppableClock)}, but this one runs on {Clock.GetType().Name}.");
 
-        private (long Dispatched, long Requests, long TimersCreated, int PendingTimers) ReadSignals(SteppableClock clock) =>
-            (_sink.DispatchedCount, Server.RequestCount, clock.TimersCreated, clock.PendingTimers.Count);
+        /// <summary>
+        /// Checks the condition every few milliseconds of real time until it holds. For tests on real time, where
+        /// <see cref="SettleAsync"/> does not apply.
+        /// </summary>
+        /// <exception cref="TimeoutException">The condition does not hold after <paramref name="timeout"/>.</exception>
+        public async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout, string what)
+        {
+            var elapsed = Stopwatch.StartNew();
+            while (!condition())
+            {
+                if (elapsed.Elapsed > timeout)
+                {
+                    throw new TimeoutException($"{what} did not happen in {timeout.TotalSeconds} s.");
+                }
+                await Task.Delay(PollStep).ConfigureAwait(false);
+            }
+        }
+
+        private (long Dispatched, long Requests, long TimersCreated, int PendingTimers, long Network) ReadSignals(SteppableClock clock) =>
+            (_sink.DispatchedCount, Server.RequestCount, clock.TimersCreated, clock.PendingTimers.Count, Server.NetworkActivity);
 
         private TimeoutException NotSettled(string reason, SteppableClock clock)
         {
             var now = clock.GetUtcNow();
             var pending = string.Join(", ", clock.PendingTimers.Select(t => $"due in {(t.DueTime - now).TotalMilliseconds} ms"));
-            var (dispatched, requests, timersCreated, _) = ReadSignals(clock);
+            var (dispatched, requests, timersCreated, _, _) = ReadSignals(clock);
+            var network = Server.HasNetwork ? $" Busy connections [{Server.BusyStreams()}]." : "";
             return new TimeoutException(
                 $"{reason} in {SettleLimit.TotalSeconds} s of real time. Configs dispatched {dispatched} [{_sink.Dispatched()}], " +
-                $"requests answered {requests}, timers created {timersCreated}, pending timers [{pending}].");
+                $"requests answered {requests}, timers created {timersCreated}, pending timers [{pending}].{network}");
         }
 
         // The count covers the whole process, so other tests that compile code delay the quiet rounds too.
@@ -402,6 +481,10 @@ namespace Couchbase.Test.Common.Configuration
 
         public async ValueTask DisposeAsync()
         {
+            // In real mode the network stops first, so no SDK teardown waits on a host that hangs or stalls.
+            // The SDK sees every connection end and any reconnect is refused.
+            if (Server.HasNetwork) Server.ShutDownNetwork();
+
             foreach (var bucket in _buckets.Values)
             {
                 await bucket.DisposeAsync().ConfigureAwait(false);
@@ -409,6 +492,8 @@ namespace Couchbase.Test.Common.Configuration
 
             // Also disposes the config handler and every node.
             Context.Dispose();
+
+            if (Server.HasNetwork) await Server.WhenNetworkStoppedAsync().ConfigureAwait(false);
         }
 
         internal sealed class NodeView
@@ -482,9 +567,10 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
-        /// Wraps the real node factory, so nodes are real <see cref="ClusterNode"/> objects with an offline pool.
+        /// Wraps the real node factory, so nodes are real <see cref="ClusterNode"/> objects. In fake mode each node has
+        /// a pool of one fake connection, and in real mode the pool the SDK builds.
         /// </summary>
-        private sealed class NodeFactory(FakeClusterServer server) : IClusterNodeFactory
+        private sealed class NodeFactory(FakeClusterServer server, ConnectionMode mode) : IClusterNodeFactory
         {
             private readonly ConcurrentDictionary<string, bool> _failingHosts = new(StringComparer.Ordinal);
             private ClusterNodeFactory? _inner;
@@ -495,7 +581,10 @@ namespace Couchbase.Test.Common.Configuration
             public void Attach(ClusterContext context)
             {
                 var services = context.ServiceProvider;
-                _inner = new ClusterNodeFactory(context, new ServerPoolFactory(server),
+                var pools = mode == ConnectionMode.Real
+                    ? services.GetRequiredService<IConnectionPoolFactory>()
+                    : new ServerPoolFactory(server);
+                _inner = new ClusterNodeFactory(context, pools,
                     services.GetRequiredService<ILogger<ClusterNode>>(),
                     services.GetRequiredService<ObjectPool<OperationBuilder>>(),
                     new NoSaslMechanismFactory(),
@@ -510,7 +599,8 @@ namespace Couchbase.Test.Common.Configuration
                 else _failingHosts.TryRemove(host, out _);
             }
 
-            // The real factory completes at once because the fake server answers before each send returns.
+            // Only the harness calls it, before a test can hang a host. In fake mode it completes at once, and in real
+            // mode once each connection is set up. A setup request times out after KvTimeout of real time.
             public IClusterNode Create(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter) =>
                 CreateAndConnectAsync(endPoint, nodeAdapter).GetAwaiter().GetResult();
 
@@ -534,6 +624,32 @@ namespace Couchbase.Test.Common.Configuration
         private sealed class ServerPoolFactory(FakeClusterServer server) : IConnectionPoolFactory
         {
             public IConnectionPool Create(ClusterNode clusterNode) => new ServerPool(clusterNode, server);
+        }
+
+        /// <summary>
+        /// Takes the place of the SDK connection factory in real mode. It skips DNS, the socket and TLS, and returns the
+        /// same <see cref="MultiplexingConnection"/> over a stream to the server.
+        /// </summary>
+        private sealed class StreamConnectionFactory(FakeClusterServer server, ClusterOptions options,
+            ILogger<MultiplexingConnection> logger) : IConnectionFactory
+        {
+            public Task<IConnection> CreateAndConnectAsync(HostEndpointWithPort hostEndpoint,
+                CancellationToken cancellationToken = default)
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var stream = server.ConnectStream(hostEndpoint);
+                    IConnection connection = new MultiplexingConnection(stream,
+                        options.Tuning.MaximumInFlightOperationsPerConnection, stream.LocalEndPoint, stream.RemoteEndPoint,
+                        logger, hostEndpoint.Host);
+                    return Task.FromResult(connection);
+                }
+                catch (Exception e)
+                {
+                    return Task.FromException<IConnection>(e);
+                }
+            }
         }
 
         /// <summary>

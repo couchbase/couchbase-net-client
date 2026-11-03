@@ -404,12 +404,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// The SDK follows a scale out that the model drives, one event at a time. Every node notifies its connections of
         /// each new version.
         /// </summary>
-        [Fact]
-        public async Task ScaleOut_WithSdk_EndsOnModelMaps()
+        [Theory]
+        [InlineData(ConnectionMode.Fake)]
+        [InlineData(ConnectionMode.Real)]
+        public async Task ScaleOut_WithSdk_EndsOnModelMaps(ConnectionMode mode)
         {
             var model = ClusterModel.Create(CapellaPublic, seed: 3);
             var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null));
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
             var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
             var server = new ModelServer(model, harness.Server);
             server.Seed();
@@ -427,12 +429,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// <summary>
         /// Like the public Capella capture, the first node leaves. It is the node the SDK bootstrapped from.
         /// </summary>
-        [Fact]
-        public async Task ScaleIn_WithSdk_FollowsEveryVersion()
+        [Theory]
+        [InlineData(ConnectionMode.Fake)]
+        [InlineData(ConnectionMode.Real)]
+        public async Task ScaleIn_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
             var model = ClusterModel.Create(CapellaPublic, nodes: 4, seed: 4);
             var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null));
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
             var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
             var server = new ModelServer(model, harness.Server);
             server.Seed();
