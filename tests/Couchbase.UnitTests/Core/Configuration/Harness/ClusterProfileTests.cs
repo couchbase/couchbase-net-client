@@ -323,7 +323,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// Every leaf of a JSON document in document order, as "path type value". Empty objects and arrays are leaves.
         /// The vbucket map entries have no value, because the builder places vbuckets in its own way.
         /// </summary>
-        private static List<string> Leaves(string json, bool withValues = true)
+        internal static List<string> Leaves(string json, bool withValues = true)
         {
             using var doc = JsonDocument.Parse(json);
             var leaves = new List<string>();
@@ -393,7 +393,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             $"eventing={node.Eventing}/{node.EventingSsl} projector={node.Projector} index={node.IndexAdmin}/{node.IndexScan}/" +
             $"{node.IndexHttp}/{node.IndexStreamInit}/{node.IndexStreamCatchup}/{node.IndexStreamMaint} api={node.CouchbaseApiBase}";
 
-        private static List<int> CopiesPerServer(short[][] map, int servers, Func<short[], IEnumerable<short>> copies) =>
+        internal static List<int> CopiesPerServer(short[][] map, int servers, Func<short[], IEnumerable<short>> copies) =>
             Enumerable.Range(0, servers).Select(server => map.Count(chain => copies(chain).Contains((short)server))).OrderBy(n => n).ToList();
     }
 }

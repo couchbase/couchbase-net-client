@@ -445,6 +445,8 @@ namespace Couchbase.Test.Common.Configuration
 
         internal sealed class BucketView
         {
+            private readonly Lazy<IReadOnlyDictionary<string, string[]>> _serverGroups;
+
             internal BucketView(CouchbaseBucket bucket)
             {
                 var config = bucket.CurrentConfig;
@@ -453,10 +455,11 @@ namespace Couchbase.Test.Common.Configuration
                 Nodes = bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h, StringComparer.Ordinal).ToList();
 
                 var servers = config?.VBucketServerMap.ServerList ?? [];
-                ServerGroups = config?.ServerGroupNodeIndexes.ToDictionary(
-                                   g => g.Key,
-                                   g => g.Value.Select(i => servers[i]).OrderBy(s => s, StringComparer.Ordinal).ToArray())
-                               ?? new Dictionary<string, string[]>();
+                _serverGroups = new Lazy<IReadOnlyDictionary<string, string[]>>(() =>
+                    config?.ServerGroupNodeIndexes.ToDictionary(
+                        g => g.Key,
+                        g => g.Value.Select(i => servers[i]).OrderBy(s => s, StringComparer.Ordinal).ToArray())
+                    ?? new Dictionary<string, string[]>());
             }
 
             /// <summary>
@@ -468,8 +471,9 @@ namespace Couchbase.Test.Common.Configuration
 
             /// <summary>
             /// Each server group of the current config, with its vbucket server list entries (host:port).
+            /// It is read on first use, because the SDK throws while nodesExt has a data node outside serverList.
             /// </summary>
-            public IReadOnlyDictionary<string, string[]> ServerGroups { get; }
+            public IReadOnlyDictionary<string, string[]> ServerGroups => _serverGroups.Value;
 
             /// <summary>
             /// Hostnames of the nodes the bucket sends operations to.
