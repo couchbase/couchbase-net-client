@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Test.Common.Configuration;
 using Xunit;
@@ -265,6 +266,38 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await harness.DrainAsync();
 
             Assert.Equal(NetworkResolution.External, harness.Options.EffectiveNetworkResolution);
+        }
+
+        // Bug 18
+        [Fact]
+        public async Task BucketMap_WithDataNodeOutsideBucket_MapsServerGroupsToBucketNodes()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            var bucket = await harness.OpenBucketAsync(WithServerGroups(BucketMap()));
+
+            // The node joined the cluster but not yet the bucket, like at the start of a Capella scale out.
+            harness.Publish(WithServerGroups(BucketMap(11))
+                .Node("node-3.example.com", n => n.Uuid("node-uuid-3").Kv().ServerGroup("group-1").OutsideBucket()));
+            await harness.DrainAsync();
+
+            Assert.Equal(Rev(11), bucket.CurrentConfig!.ConfigVersion);
+            Assert.Null(Record.Exception(() => bucket.CurrentConfig.ServerGroupNodeIndexes));
+            var groups = harness.Bucket(BucketName).ServerGroups;
+            Assert.Equal(["node-0.example.com:11210"], groups["group-1"]);
+            Assert.Equal(["node-1.example.com:11210"], groups["group-2"]);
+        }
+
+        // Bug 19
+        [Fact]
+        public async Task BucketMap_WithForwardMap_GivesEachForwardVBucketOneEntryPerReplica()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+
+            var bucket = await harness.OpenBucketAsync(BucketMap().ForwardMap());
+
+            var forward = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper).GetVBucketsForwards();
+            Assert.NotEmpty(forward);
+            Assert.Equal([1], forward.Values.Select(v => ((VBucket)v).Replicas.Length).Distinct());
         }
 
         private static ClusterMapBuilder WithServerGroups(ClusterMapBuilder map) => map
