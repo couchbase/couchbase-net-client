@@ -1,0 +1,97 @@
+{
+  "rev": 277,
+  "nodesExt": [
+    {
+      "nodeUUID": "a0000000000000000000000000000000",
+      "services": {
+        "capi": 8092,
+        "capiSSL": 18092,
+        "indexAdmin": 9100,
+        "indexHttp": 9102,
+        "indexHttps": 19102,
+        "indexScan": 9101,
+        "indexStreamCatchup": 9104,
+        "indexStreamInit": 9103,
+        "indexStreamMaint": 9105,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "projector": 9999
+      },
+      "thisNode": true,
+      "hostname": "node-0.example.com",
+      "serverGroup": "group:1"
+    },
+    {
+      "nodeUUID": "a0000000000000000000000000000001",
+      "services": {
+        "capi": 8092,
+        "capiSSL": 18092,
+        "indexAdmin": 9100,
+        "indexHttp": 9102,
+        "indexHttps": 19102,
+        "indexScan": 9101,
+        "indexStreamCatchup": 9104,
+        "indexStreamInit": 9103,
+        "indexStreamMaint": 9105,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "projector": 9999
+      },
+      "hostname": "node-1.example.com",
+      "serverGroup": "group:2"
+    },
+    {
+      "nodeUUID": "a0000000000000000000000000000002",
+      "services": {
+        "capi": 8092,
+        "capiSSL": 18092,
+        "indexAdmin": 9100,
+        "indexHttp": 9102,
+        "indexHttps": 19102,
+        "indexScan": 9101,
+        "indexStreamCatchup": 9104,
+        "indexStreamInit": 9103,
+        "indexStreamMaint": 9105,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "projector": 9999
+      },
+      "hostname": "node-2.example.com",
+      "serverGroup": "group:3"
+    },
+    {
+      "nodeUUID": "a0000000000000000000000000000003",
+      "services": {"capi": 8092, "capiSSL": 18092, "kv": 11210, "kvSSL": 11207, "mgmt": 8091, "mgmtSSL": 18091, "projector": 9999},
+      "hostname": "node-3.example.com",
+      "serverGroup": "group:1"
+    },
+    {
+      "nodeUUID": "a0000000000000000000000000000004",
+      "services": {"capi": 8092, "capiSSL": 18092, "kv": 11210, "kvSSL": 11207, "mgmt": 8091, "mgmtSSL": 18091, "projector": 9999},
+      "hostname": "node-4.example.com",
+      "serverGroup": "group:2"
+    }
+  ],
+  "revEpoch": 1,
+  "clusterCapabilitiesVer": [1, 0],
+  "clusterCapabilities": {
+    "n1ql": ["costBasedOptimizer", "indexAdvisor", "javaScriptFunctions", "inlineFunctions", "enhancedPreparedStatements", "readFromReplica"],
+    "search": ["vectorSearch", "scopedSearchIndex"]
+  },
+  "clusterUUID": "c0000000000000000000000000000000",
+  "clusterName": "",
+  "prod": "server",
+  "prodName": "Couchbase Server"
+}
