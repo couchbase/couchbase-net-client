@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Sharding;
@@ -7,6 +8,7 @@ using Couchbase.Test.Common.Configuration;
 using Xunit;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigHarnessTests;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigPushTests;
+using static Couchbase.UnitTests.Core.Configuration.Harness.RealConnectionTests;
 
 namespace Couchbase.UnitTests.Core.Configuration.Harness
 {
@@ -15,6 +17,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     /// </summary>
     public class ConfigHandlingBugTests
     {
+        /// <summary>
+        /// The real time a bucket gets to apply a pushed map while one of its nodes hangs.
+        /// </summary>
+        private static readonly TimeSpan HungNodeDeadline = TimeSpan.FromSeconds(2);
+
         // Bug 1
         [Fact]
         public async Task NewerGlobalMap_WithSameHosts_ReplacesGlobalConfig()
@@ -298,6 +305,53 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var forward = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper).GetVBucketsForwards();
             Assert.NotEmpty(forward);
             Assert.Equal([1], forward.Values.Select(v => ((VBucket)v).Replicas.Length).Distinct());
+        }
+
+        // Bug 20
+        // The push handler fetches the map from a random bucket node. On node-1 the fetch waits for an in-flight slot
+        // with no timeout, and the hung node keeps every slot, so the fetch never ends.
+        [Fact]
+        public async Task BucketMap_PushedWhileANodeHangsWithFullSlots_IsApplied()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), options =>
+            {
+                options.KvTimeout = SmallKvTimeout;
+                options.Tuning.MaximumInFlightOperationsPerConnection = 1;
+            }, clock: TimeProvider.System, mode: ConnectionMode.Real);
+            var bucket = await harness.OpenBucketAsync(BucketMap());
+            harness.Server.Hang(Node1);
+            foreach (var key in KeysOn(bucket, Node1).Take(4))
+            {
+                _ = bucket.DefaultCollection().GetAsync(key);
+            }
+            await harness.WaitUntilAsync(() => harness.Server.ConnectionsOn(Node1) is { Count: 2 } open && open.All(c => c.RepliesHeld == 1),
+                Timeout, "Each node-1 connection holding one Get");
+
+            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
+            harness.Server.PushBrief(Node0, 1, 11);
+
+            await harness.WaitUntilAsync(() => harness.Bucket(BucketName).Version == Rev(11), HungNodeDeadline,
+                "The bucket taking rev 11");
+        }
+
+        // Bug 20
+        // The fetch on the hung node-1 times out. The push handler then drops the pushed version and waits for a newer
+        // push, and polling skips bucket nodes, so nothing fetches the map again.
+        [Fact]
+        public async Task BucketMap_PushedWhileANodeHangs_IsApplied()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), options => options.KvTimeout = SmallKvTimeout,
+                clock: TimeProvider.System, mode: ConnectionMode.Real);
+            await harness.OpenBucketAsync(BucketMap());
+            harness.Server.Hang(Node1);
+
+            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
+            harness.Server.PushBrief(Node0, 1, 11);
+
+            await harness.WaitUntilAsync(() => harness.Bucket(BucketName).Version == Rev(11), HungNodeDeadline,
+                "The bucket taking rev 11");
         }
 
         private static ClusterMapBuilder WithServerGroups(ClusterMapBuilder map) => map
