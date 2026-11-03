@@ -36,6 +36,7 @@ internal sealed partial class ProfileBuilder
     private readonly Dictionary<(int Run, string Kind, MapVersion Version), string> _firstBody = new();
     private readonly List<string> _unreadable = [];
     private readonly SortedDictionary<int, JsonObject> _vbucketLayouts = new();
+    private readonly Dictionary<int, (int NoActive, int MissingCopy)> _layoutGaps = new();
     private string? _bucketName;
     private string? _bucketUuid;
 
@@ -230,11 +231,20 @@ internal sealed partial class ProfileBuilder
             body.NodesExt.Select(n => n.Host ?? "").ToHashSet(StringComparer.OrdinalIgnoreCase));
         _bodies[body.Hash] = info;
         _bodyOrder.Add(info);
-        if (info.Kind == "bucket" && info.Stable && body.Map is not null && !_vbucketLayouts.ContainsKey(info.NodesExt))
+        if (info.Kind == "bucket" && info.Stable && body.Map is not null)
         {
-            _vbucketLayouts[info.NodesExt] = VBucketLayout(body);
+            // A failover leaves stable maps with lost copies, so keep the most complete map per node count.
+            var gaps = Gaps(body.Map);
+            if (!_layoutGaps.TryGetValue(info.NodesExt, out var kept) || gaps.CompareTo(kept) < 0)
+            {
+                _vbucketLayouts[info.NodesExt] = VBucketLayout(body);
+                _layoutGaps[info.NodesExt] = gaps;
+            }
         }
     }
+
+    private static (int NoActive, int MissingCopy) Gaps(string[][] map) =>
+        (map.Count(c => c.FirstOrDefault() is null or ""), map.Count(c => c.Contains("")));
 
     /// <summary>
     /// How a stable bucket map spreads vbuckets over the nodes. activeRuns counts the runs of the same
