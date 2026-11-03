@@ -24,6 +24,14 @@
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
+  <!-- Cluster map profiles written by the reduce command of tests/Couchbase.ConfigRecorder. -->
+  <ItemGroup>
+    <None Remove="Configuration\Profiles\**\*.json" />
+    <EmbeddedResource Include="Configuration\Profiles\**\*.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <ItemGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net48'))">
     <PackageReference Include="System.Net.Http" />
   </ItemGroup>

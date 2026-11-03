@@ -42,6 +42,39 @@ Step 1 starts at the repository root. All later commands run from this folder.
    dotnet bin/Release/net10.0/Couchbase.ConfigRecorder.dll summarize runs/<UTC timestamp>
    ```
 
+## Reduce runs to a profile
+
+`reduce` turns the run folders of one cluster type into a small anonymized profile. The config harness in
+`tests/Couchbase.Test.Common` builds realistic cluster maps from it. Pass several run folders to merge runs of the
+same cluster type. The server version is not in the bodies, so give it with `--server-version`.
+
+```
+dotnet bin/Release/net10.0/Couchbase.ConfigRecorder.dll reduce --name capella-public \
+  --out ../Couchbase.Test.Common/Configuration/Profiles --server-version 8.0.3 runs/<UTC timestamp>
+```
+
+The tool writes `<out>/<name>/` and replaces what is there.
+
+- `profile.json` holds the source of the capture, a template of the values that stay the same in every body,
+  the node shape, every JSON path with its scope and whether the SDK models it, and every version step.
+- `examples/*.json` holds up to 10 real bodies, one per shape, such as `bucket-5nodes-forward-map.json`.
+- `profile.md` is a short report that the tool writes from `profile.json`.
+
+Notes.
+
+- Node host names become `node-<n>.example.com`, counted from 0 in order of first appearance. A host name that
+  several nodes share as an alternate address, such as a Private Link endpoint, becomes `private-endpoint.example.com`.
+  UUIDs become fake hex strings of the same length. Ports, services, capabilities, server groups, the bucket name,
+  rev and revEpoch stay real.
+- The tool writes to a temporary folder first and scans it for the original host names, their domain parts and
+  the original UUIDs. If it finds one, it stops with exit code 1 and does not touch `<out>`.
+- The same input gives the same bytes. The order of the run folders on the command line does not matter.
+- A path counts as modeled by the SDK when a property of `BucketConfig` or its types binds it. That is a
+  `[JsonPropertyName]` attribute, or a public settable property that the camel case policy of the SDK binds by name.
+- A step compares the first body of a version with the first body of the version before it, without `thisNode`.
+  A rebalance is a run of bucket versions with a forward map, plus the node additions before it and the node
+  removals after it.
+
 ## Settings
 
 | Field | Default | Meaning |
