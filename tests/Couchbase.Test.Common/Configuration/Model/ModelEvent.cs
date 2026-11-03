@@ -12,7 +12,8 @@ namespace Couchbase.Test.Common.Configuration.Model
     }
 
     /// <summary>
-    /// New members join nodesExt, outside every bucket. Null services are the default services of the model.
+    /// New members join nodesExt in hostname order, outside every bucket. Null services are the default services of
+    /// the model.
     /// </summary>
     internal sealed record AddNodes(int Count, IReadOnlyList<string>? Services = null) : ModelEvent
     {
@@ -20,7 +21,8 @@ namespace Couchbase.Test.Common.Configuration.Model
     }
 
     /// <summary>
-    /// An ejected host joins again as a new member, with the same hostname and a new node UUID.
+    /// An ejected host joins again as a new member, with the same hostname and a new node UUID. A failed host comes back
+    /// with <see cref="RecoverNode"/> instead, until a rebalance forgets it.
     /// </summary>
     internal sealed record RejoinNode(string Host, IReadOnlyList<string>? Services = null) : ModelEvent
     {
@@ -33,7 +35,7 @@ namespace Couchbase.Test.Common.Configuration.Model
     }
 
     /// <summary>
-    /// Data nodes join the bucket node list at the end. They hold no vbuckets until a rebalance.
+    /// Data nodes join the bucket node list in hostname order. They hold no vbuckets until a rebalance.
     /// </summary>
     internal sealed record AddToBucket(string Bucket, IReadOnlyList<string> Hosts) : ModelEvent
     {
@@ -73,7 +75,7 @@ namespace Couchbase.Test.Common.Configuration.Model
     }
 
     /// <summary>
-    /// Hosts that are in no bucket leave nodesExt.
+    /// Hosts that are in no bucket leave nodesExt. A failed host can still recover after it leaves.
     /// </summary>
     internal sealed record EjectNodes(IReadOnlyList<string> Hosts) : ModelEvent
     {
@@ -86,6 +88,47 @@ namespace Couchbase.Test.Common.Configuration.Model
     internal sealed record BumpRev(string? Bucket) : ModelEvent
     {
         public override string ToString() => $"BumpRev {Bucket ?? "cluster"}";
+    }
+
+    /// <summary>
+    /// A new version of every map with no other change.
+    /// </summary>
+    internal sealed record BumpAll : ModelEvent
+    {
+        public override string ToString() => "BumpAll";
+    }
+
+    /// <summary>
+    /// Every map gets the next epoch and the next rev with no other change. An unsafe failover starts with it.
+    /// </summary>
+    internal sealed record BumpEpoch : ModelEvent
+    {
+        public override string ToString() => "BumpEpoch";
+    }
+
+    /// <summary>
+    /// Hosts leave every bucket node list and stay in nodesExt. Each chain drops their copies and pads the end with -1.
+    /// </summary>
+    internal sealed record FailOver(IReadOnlyList<string> Hosts) : ModelEvent
+    {
+        public override string ToString() => $"FailOver {List(Hosts)}";
+    }
+
+    /// <summary>
+    /// Sets a forward map that swaps each active copy on the hosts with the first replica on another host.
+    /// </summary>
+    internal sealed record StartGracefulFailover(string Bucket, IReadOnlyList<string> Hosts) : ModelEvent
+    {
+        public override string ToString() => $"StartGracefulFailover {Bucket} {List(Hosts)}";
+    }
+
+    /// <summary>
+    /// A failed host comes back with its node UUID. Full recovery adds it to nodesExt only. Delta recovery also adds it
+    /// to its buckets with a replica copy of each vbucket it held.
+    /// </summary>
+    internal sealed record RecoverNode(string Host, bool Delta) : ModelEvent
+    {
+        public override string ToString() => $"RecoverNode {Host} {(Delta ? "delta" : "full")}";
     }
 }
 
