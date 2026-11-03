@@ -534,12 +534,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// Like the hard-full capture. The failed host leaves nodesExt and comes back with a full recovery. Then a
         /// rebalance fills it.
         /// </summary>
-        [Fact]
-        public async Task HardFailoverThenFullRecovery_WithSdk_FollowsEveryVersion()
+        [Theory]
+        [InlineData(ConnectionMode.Fake)]
+        [InlineData(ConnectionMode.Real)]
+        public async Task HardFailoverThenFullRecovery_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
             var model = ClusterModel.Create(Docker, seed: 1);
             var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null));
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
             var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
             var server = new ModelServer(model, harness.Server);
             server.Seed();
@@ -553,12 +555,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// <summary>
         /// Like the graceful-delta capture. Node 1 comes back between the other two, so the index of node 2 shifts.
         /// </summary>
-        [Fact]
-        public async Task GracefulFailoverThenDeltaRecovery_WithSdk_FollowsEveryVersion()
+        [Theory]
+        [InlineData(ConnectionMode.Fake)]
+        [InlineData(ConnectionMode.Real)]
+        public async Task GracefulFailoverThenDeltaRecovery_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
             var model = ClusterModel.Create(Docker, seed: 2);
             var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null));
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
             var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
             var server = new ModelServer(model, harness.Server);
             server.Seed();
@@ -573,12 +577,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// Like the unsafe capture. The epoch goes up and two of three hosts fail. Then the rebalance creates the lost
         /// vbuckets.
         /// </summary>
-        [Fact]
-        public async Task UnsafeFailover_WithSdk_FollowsEveryVersion()
+        [Theory]
+        [InlineData(ConnectionMode.Fake)]
+        [InlineData(ConnectionMode.Real)]
+        public async Task UnsafeFailover_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
             var model = ClusterModel.Create(Docker, seed: 3);
             var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null));
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
             var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
             var server = new ModelServer(model, harness.Server);
             server.Seed();

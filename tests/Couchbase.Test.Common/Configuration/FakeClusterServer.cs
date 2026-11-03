@@ -30,7 +30,7 @@ namespace Couchbase.Test.Common.Configuration
     /// HELLO grants every feature the SDK asks for. A connection serves the map of the bucket it selected,
     /// or the global map when it selected none.
     /// </remarks>
-    internal sealed class FakeClusterServer
+    internal sealed partial class FakeClusterServer
     {
         private static readonly byte[] ErrorMap = Encoding.UTF8.GetBytes("""{"version":2,"revision":1,"errors":{}}""");
         private static readonly byte[] SaslMechanisms = Encoding.UTF8.GetBytes("SCRAM-SHA512 SCRAM-SHA256");
@@ -41,14 +41,59 @@ namespace Couchbase.Test.Common.Configuration
         private readonly Dictionary<string, BucketMaps> _maps = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _answersLeft = new(StringComparer.Ordinal);
         private readonly Dictionary<string, Queue<byte[]>> _notMyVBucket = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, HostState> _hosts = new(StringComparer.Ordinal);
         private readonly List<ConfigFetch> _fetches = new();
-        private readonly List<Connection> _connections = new();
+        private readonly List<ServerRequest> _received = new();
+        private readonly List<Session> _sessions = new();
         private long _requests;
+
+        /// <summary>
+        /// A server that answers inside each send, for <see cref="ConnectionMode.Fake"/>.
+        /// </summary>
+        public FakeClusterServer()
+        {
+        }
+
+        /// <summary>
+        /// A server that the SDK reaches over in-memory streams, for <see cref="ConnectionMode.Real"/>.
+        /// </summary>
+        public FakeClusterServer(NetworkOptions network)
+        {
+            _network = network ?? throw new ArgumentNullException(nameof(network));
+        }
 
         /// <summary>
         /// How many requests the nodes answered, of any kind.
         /// </summary>
         public long RequestCount => Interlocked.Read(ref _requests);
+
+        /// <summary>
+        /// Every request the nodes received, in order. In real mode a request counts once the node has read all of it.
+        /// </summary>
+        public IReadOnlyList<ServerRequest> Received
+        {
+            get
+            {
+                lock (_lock) return _received.ToList();
+            }
+        }
+
+        public int ReceivedCount(string host, OpCode opCode)
+        {
+            lock (_lock) return _received.Count(r => r.Host == host && r.OpCode == opCode);
+        }
+
+        /// <summary>
+        /// What happened on the connections to the host so far.
+        /// </summary>
+        public HostCounters Counters(string host)
+        {
+            var state = HostFor(host);
+            lock (state.Lock)
+            {
+                return new HostCounters(state, state.Sessions.Where(s => !s.IsClosed).ToList());
+            }
+        }
 
         /// <summary>
         /// Every config fetch the nodes answered, in order.
@@ -66,9 +111,16 @@ namespace Couchbase.Test.Common.Configuration
             lock (_lock) return _fetches.Count(f => f.Host == host);
         }
 
+        /// <summary>
+        /// Forgets the config fetches and the received requests recorded so far. The counters keep counting.
+        /// </summary>
         public void ClearFetches()
         {
-            lock (_lock) _fetches.Clear();
+            lock (_lock)
+            {
+                _fetches.Clear();
+                _received.Clear();
+            }
         }
 
         /// <summary>
@@ -183,6 +235,7 @@ namespace Couchbase.Test.Common.Configuration
 
         /// <summary>
         /// The node pushes only the version, to each connection that negotiated brief notifications.
+        /// It does not change the map the node serves.
         /// </summary>
         public void PushBrief(string host, ulong epoch, ulong rev)
         {
@@ -228,14 +281,46 @@ namespace Couchbase.Test.Common.Configuration
 
         internal Connection Connect(HostEndpointWithPort endPoint)
         {
+            if (_network is not null)
+            {
+                throw new InvalidOperationException("This server takes stream connections. Call ConnectStream.");
+            }
+
             var connection = new Connection(this, endPoint);
-            lock (_lock) _connections.Add(connection);
+            var state = HostFor(connection.Host);
+            lock (state.Lock) state.Sessions.Add(connection);
+            lock (_lock) _sessions.Add(connection);
+            Interlocked.Increment(ref state.ConnectionsOpened);
             return connection;
         }
 
-        private void Disconnect(Connection connection)
+        private void Disconnect(Session session)
         {
-            lock (_lock) _connections.Remove(connection);
+            var state = HostFor(session.Host);
+            lock (state.Lock) state.Sessions.Remove(session);
+            lock (_lock) _sessions.Remove(session);
+            Interlocked.Increment(ref state.ConnectionsClosed);
+        }
+
+        /// <summary>
+        /// The open connections to the host, in the order they opened.
+        /// </summary>
+        public IReadOnlyList<Session> ConnectionsOn(string host)
+        {
+            lock (_lock) return _sessions.Where(c => c.Host == host && !c.IsClosed).ToList();
+        }
+
+        private HostState HostFor(string host)
+        {
+            lock (_lock)
+            {
+                if (!_hosts.TryGetValue(host, out var state))
+                {
+                    state = new HostState(host);
+                    _hosts[host] = state;
+                }
+                return state;
+            }
         }
 
         private void SetMap(string name, ServedMap served, string[] hosts)
@@ -250,11 +335,6 @@ namespace Couchbase.Test.Common.Configuration
             }
         }
 
-        private List<Connection> ConnectionsOn(string host)
-        {
-            lock (_lock) return _connections.Where(c => c.Host == host).ToList();
-        }
-
         private BucketMaps MapsFor(string name)
         {
             if (!_maps.TryGetValue(name, out var maps))
@@ -265,39 +345,55 @@ namespace Couchbase.Test.Common.Configuration
             return maps;
         }
 
-        private SlicedMemoryOwner<byte> Answer(Connection connection, ReadOnlySpan<byte> packet)
+        /// <summary>
+        /// Records a request the node has read. Call <see cref="Answer"/> for it next, now or once the host stops hanging.
+        /// </summary>
+        private void Receive(Session session, ReadOnlySpan<byte> packet)
+        {
+            var request = new Request(packet);
+            var record = new ServerRequest(session.Host, session.Id, request.OpCode, session.Bucket,
+                request.OpCode == OpCode.GetClusterConfig ? KnownVersion(request) : null);
+            lock (_lock) _received.Add(record);
+            Interlocked.Increment(ref HostFor(session.Host).RequestsReceived);
+        }
+
+        private SlicedMemoryOwner<byte> Answer(Session session, ReadOnlySpan<byte> packet)
         {
             Interlocked.Increment(ref _requests);
+            Interlocked.Increment(ref HostFor(session.Host).RequestsAnswered);
             var request = new Request(packet);
             switch (request.OpCode)
             {
                 case OpCode.Helo:
                     var features = new byte[request.Value.Length];
                     request.Value.CopyTo(features);
-                    connection.Negotiate(features);
+                    session.Negotiate(features);
                     return Response(request, ResponseStatus.Success, DataType.None, features);
                 case OpCode.GetErrorMap:
                     return Response(request, ResponseStatus.Success, DataType.Json, ErrorMap);
                 case OpCode.SaslList:
                     return Response(request, ResponseStatus.Success, DataType.None, SaslMechanisms);
                 case OpCode.SelectBucket:
-                    connection.Bucket = Encoding.UTF8.GetString(request.Key.ToArray());
+                    session.Bucket = Encoding.UTF8.GetString(request.Key.ToArray());
                     return Response(request, ResponseStatus.Success);
                 case OpCode.GetCollectionsManifest:
                     return Response(request, ResponseStatus.Success, DataType.Json, Manifest);
                 case OpCode.GetClusterConfig:
-                    return ClusterConfig(connection, request);
+                    return ClusterConfig(session, request);
                 default:
-                    return DataOperation(connection, request);
+                    return DataOperation(session, request);
             }
         }
 
-        private SlicedMemoryOwner<byte> ClusterConfig(Connection connection, Request request)
-        {
-            ConfigVersion? known = request.Extras.Length == 16
+        private static ConfigVersion? KnownVersion(Request request) =>
+            request.Extras.Length == 16
                 ? new ConfigVersion(BinaryPrimitives.ReadUInt64BigEndian(request.Extras),
                     BinaryPrimitives.ReadUInt64BigEndian(request.Extras.Slice(8)))
                 : null;
+
+        private SlicedMemoryOwner<byte> ClusterConfig(Session connection, Request request)
+        {
+            var known = KnownVersion(request);
 
             lock (_lock)
             {
@@ -342,7 +438,7 @@ namespace Couchbase.Test.Common.Configuration
             return node.Map;
         }
 
-        private SlicedMemoryOwner<byte> DataOperation(Connection connection, Request request)
+        private SlicedMemoryOwner<byte> DataOperation(Session connection, Request request)
         {
             byte[]? body = null;
             lock (_lock)
@@ -476,38 +572,95 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
-        /// One KV connection from a <see cref="ClusterNode"/> to a node of the fake server.
-        /// Requests are answered before <see cref="SendAsync"/> returns.
+        /// What a node knows about one connection to it, in either mode.
         /// </summary>
-        internal sealed class Connection : IConnection
+        internal abstract class Session
         {
-            private static long _lastConnectionId;
+            private static int _lastId;
 
-            private readonly FakeClusterServer _server;
-            private readonly CancellationTokenSource _closed = new();
             private volatile HashSet<ServerFeatures> _features = new();
             private string? _bucket;
-            private int _disposed;
 
-            internal Connection(FakeClusterServer server, HostEndpointWithPort endPoint)
+            protected Session(string host)
             {
-                _server = server;
-                Host = endPoint.Host;
-                EndPoint = new IPEndPoint(IPAddress.Loopback, endPoint.Port);
-                ConnectionId = (ulong)Interlocked.Increment(ref _lastConnectionId);
-                ContextId = ConnectionId.ToString("x16");
+                Host = host;
+                Id = Interlocked.Increment(ref _lastId);
             }
 
             public string Host { get; }
 
             /// <summary>
+            /// Tells the connections apart in <see cref="ServerRequest.Session"/>.
+            /// </summary>
+            public int Id { get; }
+
+            /// <summary>
             /// The selected bucket, or null.
             /// </summary>
-            internal string? Bucket
+            public string? Bucket
             {
                 get => Volatile.Read(ref _bucket);
-                set => Volatile.Write(ref _bucket, value);
+                internal set => Volatile.Write(ref _bucket, value);
             }
+
+            /// <summary>
+            /// Requests the node read on this connection and holds unanswered, because the host hangs.
+            /// </summary>
+            public virtual int RepliesHeld => 0;
+
+            /// <summary>
+            /// Cluster map notifications the node holds for this connection, because the host hangs.
+            /// </summary>
+            public virtual int PushesHeld => 0;
+
+            /// <summary>
+            /// SDK writes on this connection that wait for room in the buffer to the node.
+            /// </summary>
+            public virtual int BlockedWrites => 0;
+
+            public abstract bool IsClosed { get; }
+
+            internal bool Has(ServerFeatures feature) => _features.Contains(feature);
+
+            internal void Negotiate(byte[] features)
+            {
+                var negotiated = new HashSet<ServerFeatures>();
+                for (var i = 0; i + 1 < features.Length; i += 2)
+                {
+                    negotiated.Add((ServerFeatures)BinaryPrimitives.ReadUInt16BigEndian(features.AsSpan(i)));
+                }
+                _features = negotiated;
+            }
+
+            /// <summary>
+            /// Sends a server request frame to the client. The session owns the frame from here.
+            /// </summary>
+            internal abstract void Push(SlicedMemoryOwner<byte> frame);
+
+            public override string ToString() => $"{Host} #{Id} bucket={Bucket ?? "none"} held={RepliesHeld}";
+        }
+
+        /// <summary>
+        /// One KV connection from a <see cref="ClusterNode"/> to a node of the fake server.
+        /// Requests are answered before <see cref="SendAsync"/> returns.
+        /// </summary>
+        internal sealed class Connection : Session, IConnection
+        {
+            private static long _lastConnectionId;
+
+            private readonly FakeClusterServer _server;
+            private readonly CancellationTokenSource _closed = new();
+            private int _disposed;
+
+            internal Connection(FakeClusterServer server, HostEndpointWithPort endPoint) : base(endPoint.Host)
+            {
+                _server = server;
+                EndPoint = new IPEndPoint(IPAddress.Loopback, endPoint.Port);
+                ConnectionId = (ulong)Interlocked.Increment(ref _lastConnectionId);
+                ContextId = ConnectionId.ToString("x16");
+            }
+
+            public override bool IsClosed => IsDead;
 
             public string ContextId { get; }
 
@@ -549,6 +702,7 @@ namespace Couchbase.Test.Common.Configuration
                     throw new SocketNotAvailableException($"The connection to {Host} is closed.");
                 }
 
+                _server.Receive(this, buffer.Span);
                 operation.HandleOperationCompleted(_server.Answer(this, buffer.Span));
                 return default;
             }
@@ -572,20 +726,8 @@ namespace Couchbase.Test.Common.Configuration
                 _closed.Dispose();
             }
 
-            internal bool Has(ServerFeatures feature) => _features.Contains(feature);
-
-            internal void Negotiate(byte[] features)
-            {
-                var negotiated = new HashSet<ServerFeatures>();
-                for (var i = 0; i + 1 < features.Length; i += 2)
-                {
-                    negotiated.Add((ServerFeatures)BinaryPrimitives.ReadUInt16BigEndian(features.AsSpan(i)));
-                }
-                _features = negotiated;
-            }
-
             // The receive loop of a real connection hands server requests to the same callback.
-            internal void Push(SlicedMemoryOwner<byte> frame)
+            internal override void Push(SlicedMemoryOwner<byte> frame)
             {
                 var callback = OnClusterMapChangeNotification;
                 if (callback is null)
@@ -622,6 +764,103 @@ namespace Couchbase.Test.Common.Configuration
 
         public override string ToString() =>
             $"{Host} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"} served={Served?.ToString() ?? "none"}";
+    }
+
+    /// <summary>
+    /// One request a node received, answered or not.
+    /// </summary>
+    internal sealed class ServerRequest(string host, int session, OpCode opCode, string? bucket, ConfigVersion? knownVersion)
+    {
+        public string Host { get; } = host;
+
+        /// <summary>
+        /// The <see cref="FakeClusterServer.Session.Id"/> of the connection.
+        /// </summary>
+        public int Session { get; } = session;
+
+        public OpCode OpCode { get; } = opCode;
+
+        /// <summary>
+        /// The bucket selected on the connection when the request came, or null.
+        /// </summary>
+        public string? Bucket { get; } = bucket;
+
+        /// <summary>
+        /// For a GetClusterConfig, the version the client sent in the extras, or null.
+        /// </summary>
+        public ConfigVersion? KnownVersion { get; } = knownVersion;
+
+        public override string ToString() =>
+            $"{Host} #{Session} {OpCode} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"}";
+    }
+
+    /// <summary>
+    /// What happened on the connections to one host, read at one point in time.
+    /// </summary>
+    internal sealed class HostCounters
+    {
+        internal HostCounters(FakeClusterServer.HostState state, IReadOnlyList<FakeClusterServer.Session> open)
+        {
+            RequestsReceived = Interlocked.Read(ref state.RequestsReceived);
+            RequestsAnswered = Interlocked.Read(ref state.RequestsAnswered);
+            ConnectionsOpened = Interlocked.Read(ref state.ConnectionsOpened);
+            ConnectionsClosed = Interlocked.Read(ref state.ConnectionsClosed);
+            ConnectionsRefused = Interlocked.Read(ref state.ConnectionsRefused);
+            PartialReadsByServer = Interlocked.Read(ref state.PartialReadsByServer);
+            PartialReadsBySdk = Interlocked.Read(ref state.PartialReadsBySdk);
+            OpenConnections = open.Count;
+            RepliesHeld = open.Sum(s => s.RepliesHeld);
+            PushesHeld = open.Sum(s => s.PushesHeld);
+            BlockedWrites = open.Sum(s => s.BlockedWrites);
+        }
+
+        public long RequestsReceived { get; }
+
+        public long RequestsAnswered { get; }
+
+        /// <summary>
+        /// Requests the node read and holds unanswered, because the host hangs.
+        /// </summary>
+        public int RepliesHeld { get; }
+
+        /// <summary>
+        /// Cluster map notifications the node holds, because the host hangs.
+        /// </summary>
+        public int PushesHeld { get; }
+
+        public long ConnectionsOpened { get; }
+
+        /// <summary>
+        /// Connections that ended, closed by either side.
+        /// </summary>
+        public long ConnectionsClosed { get; }
+
+        /// <summary>
+        /// Connects that failed because the host refuses connections.
+        /// </summary>
+        public long ConnectionsRefused { get; }
+
+        public int OpenConnections { get; }
+
+        /// <summary>
+        /// SDK writes that wait for room in the buffer to the node.
+        /// </summary>
+        public int BlockedWrites { get; }
+
+        /// <summary>
+        /// Reads by the node that ended inside a request frame.
+        /// </summary>
+        public long PartialReadsByServer { get; }
+
+        /// <summary>
+        /// Reads by the SDK that ended inside a reply or notification frame.
+        /// </summary>
+        public long PartialReadsBySdk { get; }
+
+        public override string ToString() =>
+            $"received={RequestsReceived} answered={RequestsAnswered} held={RepliesHeld} pushesHeld={PushesHeld} " +
+            $"opened={ConnectionsOpened} closed={ConnectionsClosed} refused={ConnectionsRefused} open={OpenConnections} " +
+            $"blockedWrites={BlockedWrites}";
     }
 }
 
