@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Test.Common.Configuration;
 using Couchbase.Test.Common.Configuration.Model;
+using Couchbase.Test.Common.Configuration.Scenarios;
 using Xunit;
 using Xunit.Abstractions;
+using static Couchbase.Test.Common.Configuration.Scenarios.ModelSequences;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ClusterModelTests;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ClusterProfileTests;
 
@@ -539,17 +541,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         [InlineData(ConnectionMode.Real)]
         public async Task HardFailoverThenFullRecovery_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
-            var model = ClusterModel.Create(Docker, seed: 1);
-            var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
-            var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
-            var server = new ModelServer(model, harness.Server);
-            server.Seed();
+            await using var scenario = await Scenario.On(ClusterProfile.Docker).Connections(mode).StartAsync();
 
-            var differences = await DriveAsync(harness, server, bucket, model, HardFailoverThenFullRecovery(model, bucketName, Node2, seed: 1));
+            await scenario.FailOver(Node2, Failover.Hard).Recover(Node2, Recovery.Full).RunAsync();
 
-            Assert.Empty(differences);
-            Assert.Contains(Node2, harness.Bucket(bucketName).Nodes);
+            Assert.Contains(Node2, scenario.View().Nodes);
         }
 
         /// <summary>
@@ -560,17 +556,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         [InlineData(ConnectionMode.Real)]
         public async Task GracefulFailoverThenDeltaRecovery_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
-            var model = ClusterModel.Create(Docker, seed: 2);
-            var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
-            var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
-            var server = new ModelServer(model, harness.Server);
-            server.Seed();
+            await using var scenario = await Scenario.On(ClusterProfile.Docker).Connections(mode).StartAsync();
 
-            var differences = await DriveAsync(harness, server, bucket, model, GracefulFailoverThenDeltaRecovery(model, bucketName, Node1, seed: 2));
+            await scenario.FailOver(Node1, Failover.Graceful).Recover(Node1, Recovery.Delta).RunAsync();
 
-            Assert.Empty(differences);
-            Assert.Equal([Node0, Node1, Node2], harness.Bucket(bucketName).Nodes);
+            Assert.Equal([Node0, Node1, Node2], scenario.View().Nodes);
         }
 
         /// <summary>
@@ -582,63 +572,12 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         [InlineData(ConnectionMode.Real)]
         public async Task UnsafeFailover_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
-            var model = ClusterModel.Create(Docker, seed: 3);
-            var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
-            var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
-            var server = new ModelServer(model, harness.Server);
-            server.Seed();
+            await using var scenario = await Scenario.On(ClusterProfile.Docker).Connections(mode).StartAsync();
 
-            var differences = await DriveAsync(harness, server, bucket, model, UnsafeFailover(model, bucketName, [Node1, Node2], seed: 3));
+            await scenario.FailOver([Node1, Node2], Failover.Unsafe).RunAsync();
 
-            Assert.Empty(differences);
-            Assert.Equal(2UL, harness.Bucket(bucketName).Version!.Value.Epoch);
-            Assert.Equal([Node0], harness.Bucket(bucketName).Nodes);
-        }
-
-        /// <summary>
-        /// The forward map swaps the actives off the host, the moves take 1 or 2 vbuckets each, and the failover comes
-        /// once the forward map is cleared. Read <see cref="ClusterModelTests.ScaleOut"/> for how to apply the events.
-        /// </summary>
-        internal static IEnumerable<ModelEvent> GracefulFailover(ClusterModel model, string bucket, string host, int seed)
-        {
-            yield return new StartGracefulFailover(bucket, [host]);
-            var random = new Random(seed);
-            while (model.PendingMoves(bucket) is { Count: > 0 } pending)
-            {
-                var take = random.Next(1, 3);
-                yield return new MoveVBuckets(bucket, pending.OrderBy(_ => random.Next()).Take(take).OrderBy(v => v).ToList());
-            }
-            yield return new FinishRebalance(bucket);
-            yield return new FailOver([host]);
-        }
-
-        internal static IEnumerable<ModelEvent> HardFailoverThenFullRecovery(ClusterModel model, string bucket, string host, int seed)
-        {
-            yield return new FailOver([host]);
-            yield return new EjectNodes([host]);
-            yield return new BumpAll();
-            yield return new RecoverNode(host, Delta: false);
-            yield return new AddToBucket(bucket, [host]);
-            foreach (var e in Rebalance(model, bucket, [], seed)) yield return e;
-        }
-
-        internal static IEnumerable<ModelEvent> GracefulFailoverThenDeltaRecovery(ClusterModel model, string bucket, string host, int seed)
-        {
-            yield return new BumpAll();
-            foreach (var e in GracefulFailover(model, bucket, host, seed)) yield return e;
-            yield return new EjectNodes([host]);
-            yield return new BumpAll();
-            yield return new RecoverNode(host, Delta: true);
-            foreach (var e in Rebalance(model, bucket, [], seed)) yield return e;
-        }
-
-        internal static IEnumerable<ModelEvent> UnsafeFailover(ClusterModel model, string bucket, IReadOnlyList<string> hosts, int seed)
-        {
-            yield return new BumpEpoch();
-            yield return new FailOver(hosts);
-            yield return new EjectNodes(hosts);
-            foreach (var e in Rebalance(model, bucket, [], seed)) yield return e;
+            Assert.Equal(2UL, scenario.View().Version!.Value.Epoch);
+            Assert.Equal([Node0], scenario.View().Nodes);
         }
 
         private static IEnumerable<int> VBuckets(ModelMap map) => Enumerable.Range(0, map.VBucketCount);

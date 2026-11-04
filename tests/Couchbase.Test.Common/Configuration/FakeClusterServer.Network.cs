@@ -250,6 +250,7 @@ namespace Couchbase.Test.Common.Configuration
             public long ConnectionsRefused;
             public long PartialReadsByServer;
             public long PartialReadsBySdk;
+            public long PushesSent;
 
             public string Host { get; } = host;
 
