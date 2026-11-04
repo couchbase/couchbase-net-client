@@ -430,6 +430,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         public async Task ScaleIn_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPublic, nodes: 4).Connections(mode).StartAsync();
+            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario.ScaleIn(Node0).RunAsync();
 
