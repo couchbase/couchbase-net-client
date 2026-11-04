@@ -42,7 +42,8 @@ namespace Couchbase.Test.Common.Configuration
     public enum ConnectionMode
     {
         /// <summary>
-        /// Each node has one fake connection, which answers each request before the send returns.
+        /// Each node has one fake connection, which answers each request before the send returns. The pool never
+        /// reconnects, so a node that leaves keeps its connection. Read <see cref="FakeClusterServer.Leave"/>.
         /// </summary>
         Fake,
 

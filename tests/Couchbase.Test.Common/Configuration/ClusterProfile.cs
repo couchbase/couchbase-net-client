@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Test.Common.Configuration
 {
@@ -24,6 +25,14 @@ namespace Couchbase.Test.Common.Configuration
 
         private static readonly ConcurrentDictionary<string, ClusterProfile> Loaded = new(StringComparer.Ordinal);
         private static readonly Lazy<IReadOnlyList<string>> AllNames = new(FindNames);
+
+        // The reply to SELECT_BUCKET on a node that a rebalance had removed from the bucket, in the SDK reconnects of each capture.
+        private static readonly Dictionary<string, ResponseStatus> LeftNodeStatuses = new(StringComparer.Ordinal)
+        {
+            [CapellaPublic] = ResponseStatus.Eaccess,
+            [CapellaPrivateLink] = ResponseStatus.KeyNotFound,
+            [Docker] = ResponseStatus.Eaccess
+        };
 
         private readonly string _resourceFolder;
         private readonly string _json;
@@ -48,6 +57,7 @@ namespace Couchbase.Test.Common.Configuration
             }
             SdkPathsNotSent = ProfileJson.Strings(fields["sdkPathsNotSent"]);
             Examples = ProfileJson.Items(root["examples"]).Select(e => new ProfileExample(this, e!.AsObject())).ToList();
+            LeftNodeSelectBucketStatus = LeftNodeStatuses.TryGetValue(Name, out var status) ? status : ResponseStatus.Eaccess;
         }
 
         public const string ClusterKind = "cluster";
@@ -90,6 +100,12 @@ namespace Couchbase.Test.Common.Configuration
         public IReadOnlyList<string> SdkPathsNotSent { get; }
 
         public IReadOnlyList<ProfileExample> Examples { get; }
+
+        /// <summary>
+        /// What a node that left the bucket answers to SELECT_BUCKET, as in the captures. It is Eaccess for a profile with
+        /// no capture of it.
+        /// </summary>
+        public ResponseStatus LeftNodeSelectBucketStatus { get; }
 
         /// <summary>
         /// The whole profile.json, as a new copy.
