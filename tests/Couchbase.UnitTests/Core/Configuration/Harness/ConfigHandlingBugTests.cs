@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Test.Common.Configuration;
+using Couchbase.Test.Common.Configuration.Scenarios;
 using Xunit;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigHarnessTests;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigPushTests;
@@ -352,6 +353,18 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             await harness.WaitUntilAsync(() => harness.Bucket(BucketName).Version == Rev(11), HungNodeDeadline,
                 "The bucket taking rev 11");
+        }
+
+        // Bug 22
+        // Polling skips a bucket connection that negotiated brief push, and once a bucket opens every kv node belongs to
+        // it. So a map that comes with no push, or a push the handler dropped, never reaches the bucket.
+        // The expected behaviour is the Java SDK's, which polls a bucket on its interval with push on. No RFC requires it.
+        [Fact]
+        public async Task BucketMap_ServedWithNoPush_IsFoundByPolling()
+        {
+            await using var scenario = await Scenario.On(ClusterProfile.Docker).StartAsync();
+
+            await scenario.NoPush().FailOver("node-2", Failover.Hard).RunAsync();
         }
 
         private static ClusterMapBuilder WithServerGroups(ClusterMapBuilder map) => map
