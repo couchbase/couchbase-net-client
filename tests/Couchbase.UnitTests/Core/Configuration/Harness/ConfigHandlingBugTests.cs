@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Test.Common.Configuration;
@@ -415,6 +416,30 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var global = GlobalNodes(harness).Select(n => n.Node).ToList();
             Assert.True(global.SequenceEqual(MapNodes(model.Cluster)),
                 $"{leaving} left the global map, but the global nodes are [{string.Join(", ", global)}].");
+        }
+
+        // Bug 24
+        // Node-1 left the cluster. It closed its connections and every reconnect fails SELECT_BUCKET, so its pool has no
+        // live connection. The push handler still picks it, and the fetch waits in a send queue that nothing reads until
+        // KvTimeout. The KV timeout is longer than the deadline, so the bucket misses the deadline.
+        [Theory]
+        [InlineData(ResponseStatus.Eaccess)]
+        [InlineData(ResponseStatus.KeyNotFound)]
+        public async Task BucketMap_PushedAfterANodeLeft_IsApplied(ResponseStatus selectBucketStatus)
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), options => options.KvTimeout = TimeSpan.FromSeconds(10),
+                clock: TimeProvider.System, mode: ConnectionMode.Real);
+            await harness.OpenBucketAsync(BucketMap());
+            harness.Server.Leave(Node1, selectBucketStatus);
+            await harness.WaitUntilAsync(() => harness.Server.Counters(Node1) is { SelectBucketsFailed: > 0, OpenConnections: 0 },
+                Timeout, "Node-1 failing SELECT_BUCKET with no open connection");
+
+            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
+            harness.Server.PushBrief(Node0, 1, 11);
+
+            await harness.WaitUntilAsync(() => harness.Bucket(BucketName).Version == Rev(11), HungNodeDeadline,
+                "The bucket taking rev 11");
         }
 
         private static ClusterProfile PrivateLink => ClusterProfile.Load(ClusterProfile.CapellaPrivateLink);
