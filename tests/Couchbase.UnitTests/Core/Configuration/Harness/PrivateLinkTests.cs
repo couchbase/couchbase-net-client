@@ -147,7 +147,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPrivateLink, nodes: 4).Connections(mode).StartAsync();
             Assert.Contains(scenario.Harness.Server.ConnectionsOn(Node0), s => s.IsSeed);
-            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            // Leaving nodes keep their connections here because of bug 24.
             if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario.ScaleIn("node-0").RunAsync();

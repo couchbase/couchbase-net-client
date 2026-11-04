@@ -81,7 +81,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPublic, nodes: 4).Connections(mode).StartAsync();
             var leftMember = scenario.Model.Cluster.Node(Node3)!.Member;
-            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            // Leaving nodes keep their connections here because of bug 24.
             if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var scenario = await Scenario.On(ClusterProfile.Docker, nodes: 4).Buckets("travel", "audit").Connections(mode).StartAsync();
             string? startedIn = null;
-            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            // Leaving nodes keep their connections here because of bug 24.
             if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario
@@ -433,7 +433,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         public async Task RunAsyncTwice_RunsOnlyStepsAddedSince(ConnectionMode mode)
         {
             await using var scenario = await Scenario.On(ClusterProfile.Docker).Connections(mode).StartAsync();
-            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            // Leaving nodes keep their connections here because of bug 24.
             if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario.ScaleOut(1).RunAsync();
@@ -484,7 +484,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
                 .Connections(mode)
                 .Configure(o => o.KvTimeout = TimeSpan.FromMilliseconds(500))
                 .StartAsync();
-            // Leaving nodes keep their connections here, as the SDK can drop the version that removes a node that closed them.
+            // Leaving nodes keep their connections here because of bug 24.
             if (mode == ConnectionMode.Real) scenario.Server.NodesLeave = false;
 
             await scenario
