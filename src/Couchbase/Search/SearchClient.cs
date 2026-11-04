@@ -243,6 +243,12 @@ namespace Couchbase.Search
                             }
                         }
 
+                        // RFC 58: an HTTP 400 that nothing above maps is an invalid argument.
+                        if (response.StatusCode == HttpStatusCode.BadRequest)
+                        {
+                            throw new InvalidArgumentException(errors ?? "") { Context = ctx };
+                        }
+
                         //Internal service errors
                         if (response.StatusCode == HttpStatusCode.InternalServerError)
                         {

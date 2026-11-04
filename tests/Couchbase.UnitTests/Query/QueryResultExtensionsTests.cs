@@ -1,6 +1,7 @@
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Operations;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
@@ -220,5 +221,42 @@ public class QueryResultExtensionsTests
         mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
         var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, new QueryErrorContext());
         Assert.IsAssignableFrom<DocumentNotFoundException>(ex);
+    }
+
+    [Theory]
+    // RFC 58: an HTTP 400 is an invalid argument unless the error code has its own mapping.
+    [InlineData(1050, "No statement or prepared value", HttpStatusCode.BadRequest, typeof(InvalidArgumentException))]
+    [InlineData(1065, "Unrecognized parameter in request: preserve_expiry", HttpStatusCode.BadRequest, typeof(InvalidArgumentException))]
+    [InlineData(3000, "syntax error - line 1, column 1", HttpStatusCode.BadRequest, typeof(ParsingFailureException))]
+    [InlineData(4100, "No index available on keyspace", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
+    [InlineData(1050, "No statement or prepared value", HttpStatusCode.ServiceUnavailable, typeof(CouchbaseException))]
+    [InlineData(1050, "No statement or prepared value", HttpStatusCode.OK, typeof(CouchbaseException))]
+    public void Test_Http_400_Falls_Back_To_InvalidArgument(int code, string message, HttpStatusCode httpStatus, Type expectedType)
+    {
+        List<Error> errors = new()
+        {
+            new Error
+            {
+                Code = code,
+                Message = message,
+                Severity = 0,
+                Retry = false
+            }
+        };
+
+        QueryErrorContext errorContext = new()
+        {
+            Errors = errors,
+            HttpStatus = httpStatus,
+            QueryStatus = QueryStatus.Fatal
+        };
+
+        var mockQueryResult = new Mock<IQueryResult<object>>(MockBehavior.Strict);
+        mockQueryResult.Setup(qr => qr.Errors).Returns(errors);
+        var ex = QueryResultExtensions.CreateExceptionForError(mockQueryResult.Object, errorContext);
+
+        // Exact type: every mapped exception derives from CouchbaseException.
+        Assert.IsType(expectedType, ex);
+        Assert.Same(errorContext, ex.Context);
     }
 }
