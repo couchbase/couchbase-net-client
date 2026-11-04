@@ -1,10 +1,12 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Test.Common.Configuration;
+using Couchbase.Test.Common.Configuration.Model;
 using Couchbase.Test.Common.Configuration.Scenarios;
 using Xunit;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigHarnessTests;
@@ -366,6 +368,92 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             await scenario.NoPush().FailOver("node-2", Failover.Hard).RunAsync();
         }
+
+        // Bug 23
+        // On Private Link every map node has the seed host. The bootstrap matches the map nodes to the seed node by host
+        // only, so it creates no node for them and gives the seed node the adapter of each map node in turn.
+        [Fact]
+        public async Task PrivateLink_Bootstrap_CreatesAGlobalNodePerMapNode()
+        {
+            var model = ClusterModel.Create(PrivateLink, buckets: []);
+
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), ConnectThroughPrivateEndpoint,
+                bootstrap: BootstrapMode.Sdk);
+
+            AssertGlobalNodePerMapNode(harness, model.Cluster);
+        }
+
+        // Bug 23
+        // A global map update finds the node of each map node by host only. On Private Link that is the first node for
+        // every map node, so a new node gets no global node and the first node gets the adapter of the last map node.
+        [Fact]
+        public async Task PrivateLink_NewerGlobalMapWithNewNode_KeepsAGlobalNodePerMapNode()
+        {
+            var model = ClusterModel.Create(PrivateLink, buckets: []);
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), ConnectThroughPrivateEndpoint);
+
+            model.Apply(new AddNodes(1));
+            await PublishGlobalAsync(harness, model);
+
+            AssertGlobalNodePerMapNode(harness, model.Cluster);
+        }
+
+        // Bug 23
+        // The prune keeps a global node when a map node has its host. On Private Link every map node has it, so a node
+        // that leaves the map keeps its global node.
+        [Fact]
+        public async Task PrivateLink_NewerGlobalMapWithoutANode_RemovesItsGlobalNode()
+        {
+            var model = ClusterModel.Create(PrivateLink, buckets: []);
+            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), ConnectThroughPrivateEndpoint);
+
+            var leaving = model.Cluster.Nodes[^1].Hostname;
+            model.Apply(new EjectNodes([leaving]));
+            await PublishGlobalAsync(harness, model);
+
+            // Only the names count, as the update also gives the adapters by host.
+            var global = GlobalNodes(harness).Select(n => n.Node).ToList();
+            Assert.True(global.SequenceEqual(MapNodes(model.Cluster)),
+                $"{leaving} left the global map, but the global nodes are [{string.Join(", ", global)}].");
+        }
+
+        private static ClusterProfile PrivateLink => ClusterProfile.Load(ClusterProfile.CapellaPrivateLink);
+
+        private static void ConnectThroughPrivateEndpoint(ClusterOptions options)
+        {
+            options.ConnectionString = "couchbases://private-endpoint.example.com";
+            options.NetworkResolution = NetworkResolution.Auto;
+        }
+
+        private static async Task PublishGlobalAsync(ConfigHarness harness, ClusterModel model)
+        {
+            var map = model.Render(model.Cluster, null);
+            harness.Server.SetMap(map);
+            harness.Publish(map);
+            await harness.DrainAsync();
+        }
+
+        // Each global node as the node at its endpoint and the node at the endpoint of its adapter. Null is no node.
+        private static List<(string? Node, string? Adapter)> GlobalNodes(ConfigHarness harness) => harness.Context.Nodes
+            .Where(n => n.Owner is null)
+            .Select(n => (harness.Server.NodeAt(n.EndPoint),
+                n.NodesAdapter is { } adapter ? harness.Server.NodeAt(HostEndpointWithPort.Create(adapter, harness.Options)) : null))
+            .OrderBy(n => n.Item1, StringComparer.Ordinal)
+            .ToList();
+
+        private static void AssertGlobalNodePerMapNode(ConfigHarness harness, ModelMap map)
+        {
+            var global = GlobalNodes(harness);
+
+            // The seed node can stay or go.
+            Assert.True(MapNodes(map).Select(n => (n, n)).SequenceEqual(global.Where(n => n.Node is not null)),
+                $"Each of [{string.Join(", ", MapNodes(map))}] needs one global node at its own endpoint with its own " +
+                $"adapter, but the global nodes are " +
+                $"[{string.Join(", ", global.Select(n => $"{n.Node ?? "seed"} with the adapter of {n.Adapter ?? "none"}"))}].");
+        }
+
+        private static IEnumerable<string?> MapNodes(ModelMap map) =>
+            map.Nodes.Select(n => (string?)n.Hostname).OrderBy(n => n, StringComparer.Ordinal);
 
         private static ClusterMapBuilder WithServerGroups(ClusterMapBuilder map) => map
             .Node("node-0.example.com", n => n.ServerGroup("group-1"))
