@@ -390,6 +390,12 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
+        /// True when the handler has dispatched the config since the harness was created or <see cref="ForgetDispatched"/>
+        /// was last called.
+        /// </summary>
+        public bool HasDispatched(string name, ConfigVersion version) => _sink.Has(name, version);
+
+        /// <summary>
         /// Forgets the configs dispatched so far. A benchmark calls it between runs, because each wait scans the record.
         /// </summary>
         public void ForgetDispatched() => _sink.Forget();
@@ -777,6 +783,11 @@ namespace Couchbase.Test.Common.Configuration
                     _waiters.Add(waiter);
                     return waiter.Done.Task;
                 }
+            }
+
+            public bool Has(string name, ConfigVersion version)
+            {
+                lock (_lock) return _dispatched.Any(d => d.Name == name && d.Version.Equals(version));
             }
 
             public void Forget()
