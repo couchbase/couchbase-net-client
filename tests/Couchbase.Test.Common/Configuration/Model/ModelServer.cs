@@ -20,14 +20,17 @@ namespace Couchbase.Test.Common.Configuration.Model
         /// <summary>
         /// The node serves the latest version of every map, and notifies its connections of the maps that changed for it.
         /// </summary>
-        public void Deliver(string host) => Deliver(host, seed: false);
+        /// <param name="notify">False to only serve the maps, so the connections learn of them on their next fetch.</param>
+        public void Deliver(string host, bool notify = true) => Deliver(host, seed: false, notify);
 
         /// <summary>
         /// Delivers to every node of the latest cluster map. A node that served a cluster map with itself in it, and is
         /// not in the latest one, gets one more delivery. So an ejected node learns that it left and serves bodies
         /// without itself.
         /// </summary>
-        public void DeliverAll()
+        /// <param name="notify">False to only serve the maps, like <see cref="Deliver"/>.</param>
+        /// <param name="except">Hosts that get no delivery, so they keep serving the versions they served.</param>
+        public void DeliverAll(bool notify = true, IReadOnlyCollection<string>? except = null)
         {
             var hosts = model.Cluster.Nodes.Select(n => n.Hostname).ToList();
             hosts.AddRange(_served
@@ -38,7 +41,8 @@ namespace Couchbase.Test.Common.Configuration.Model
                 .ToList());
             foreach (var host in hosts)
             {
-                Deliver(host, seed: false);
+                if (except?.Contains(host) == true) continue;
+                Deliver(host, seed: false, notify);
             }
         }
 
@@ -53,7 +57,7 @@ namespace Couchbase.Test.Common.Configuration.Model
         {
             foreach (var node in model.Cluster.Nodes)
             {
-                Deliver(node.Hostname, seed: true);
+                Deliver(node.Hostname, seed: true, notify: false);
             }
         }
 
@@ -64,7 +68,7 @@ namespace Couchbase.Test.Common.Configuration.Model
         public ConfigVersion? Served(string host, string? bucket) =>
             _served.TryGetValue((host, bucket ?? BucketConfig.GlobalBucketName), out var delivery) ? delivery.Map.Version : null;
 
-        private void Deliver(string host, bool seed)
+        private void Deliver(string host, bool seed, bool notify)
         {
             foreach (var map in model.Buckets.Select(model.Bucket).Prepend(model.Cluster))
             {
@@ -79,7 +83,7 @@ namespace Couchbase.Test.Common.Configuration.Model
                 var body = model.Render(map, host).ToUtf8Bytes();
                 delivery = new Delivery(map, new FakeClusterServer.ServedMap(name, body, map.Version));
                 _served[key] = delivery;
-                server.Serve(host, delivery.Body, notify: !seed);
+                server.Serve(host, delivery.Body, notify);
             }
         }
 
