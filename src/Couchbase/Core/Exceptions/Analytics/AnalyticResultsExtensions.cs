@@ -7,7 +7,8 @@ namespace Couchbase.Core.Exceptions.Analytics
     {
         public static bool CompilationFailure<T>(this AnalyticsResultBase<T> result)
         {
-            return result.Errors.Any(error => error.Code > 24000 && error.Code < 24047);
+            // RFC 58: the 24xxx range. Codes in it with their own mapping are checked before this one.
+            return result.Errors.Any(error => error.Code > 24000 && error.Code < 25000);
         }
 
         public static bool JobQueueFull<T>(this AnalyticsResultBase<T> result)
