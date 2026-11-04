@@ -229,7 +229,7 @@ namespace Couchbase.Test.Common.Configuration
             {
                 if (connection.Bucket != bucket || !connection.Has(ServerFeatures.ClustermapChangeNotification)) continue;
 
-                connection.Push(Notification(served.Version, bucket, DataType.Json, served.Json));
+                Notify(connection, Notification(served.Version, bucket, DataType.Json, served.Json));
             }
         }
 
@@ -243,7 +243,7 @@ namespace Couchbase.Test.Common.Configuration
             {
                 if (!connection.Has(ServerFeatures.ClustermapChangeNotificationBrief)) continue;
 
-                connection.Push(Notification(new ConfigVersion(epoch, rev), connection.Bucket, DataType.None, []));
+                Notify(connection, Notification(new ConfigVersion(epoch, rev), connection.Bucket, DataType.None, []));
             }
         }
 
@@ -270,13 +270,19 @@ namespace Couchbase.Test.Common.Configuration
 
                 if (connection.Has(ServerFeatures.ClustermapChangeNotificationBrief))
                 {
-                    connection.Push(Notification(map.Version, bucket, DataType.None, []));
+                    Notify(connection, Notification(map.Version, bucket, DataType.None, []));
                 }
                 else if (connection.Has(ServerFeatures.ClustermapChangeNotification))
                 {
-                    connection.Push(Notification(map.Version, bucket, DataType.Json, map.Json));
+                    Notify(connection, Notification(map.Version, bucket, DataType.Json, map.Json));
                 }
             }
+        }
+
+        private void Notify(Session connection, SlicedMemoryOwner<byte> frame)
+        {
+            Interlocked.Increment(ref HostFor(connection.Host).PushesSent);
+            connection.Push(frame);
         }
 
         internal Connection Connect(HostEndpointWithPort endPoint)
@@ -808,6 +814,7 @@ namespace Couchbase.Test.Common.Configuration
             ConnectionsRefused = Interlocked.Read(ref state.ConnectionsRefused);
             PartialReadsByServer = Interlocked.Read(ref state.PartialReadsByServer);
             PartialReadsBySdk = Interlocked.Read(ref state.PartialReadsBySdk);
+            PushesSent = Interlocked.Read(ref state.PushesSent);
             OpenConnections = open.Count;
             RepliesHeld = open.Sum(s => s.RepliesHeld);
             PushesHeld = open.Sum(s => s.PushesHeld);
@@ -827,6 +834,11 @@ namespace Couchbase.Test.Common.Configuration
         /// Cluster map notifications the node holds, because the host hangs.
         /// </summary>
         public int PushesHeld { get; }
+
+        /// <summary>
+        /// Cluster map notifications the node sent or holds, brief and full.
+        /// </summary>
+        public long PushesSent { get; }
 
         public long ConnectionsOpened { get; }
 
@@ -858,7 +870,7 @@ namespace Couchbase.Test.Common.Configuration
         public long PartialReadsBySdk { get; }
 
         public override string ToString() =>
-            $"received={RequestsReceived} answered={RequestsAnswered} held={RepliesHeld} pushesHeld={PushesHeld} " +
+            $"received={RequestsReceived} answered={RequestsAnswered} held={RepliesHeld} pushes={PushesSent} pushesHeld={PushesHeld} " +
             $"opened={ConnectionsOpened} closed={ConnectionsClosed} refused={ConnectionsRefused} open={OpenConnections} " +
             $"blockedWrites={BlockedWrites}";
     }

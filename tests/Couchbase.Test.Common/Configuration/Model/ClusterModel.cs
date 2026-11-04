@@ -606,7 +606,12 @@ namespace Couchbase.Test.Common.Configuration.Model
             return new Random(unchecked((int)hash ^ (Seed * 486187739) ^ (int)rev * 7919));
         }
 
-        private static string Hostname(int member) => $"node-{member}.example.com";
+        /// <summary>
+        /// The domain of every hostname in the model.
+        /// </summary>
+        public const string Domain = "example.com";
+
+        private static string Hostname(int member) => $"node-{member}.{Domain}";
 
         private static InvalidOperationException Rejected(ModelEvent e, string reason) => new($"The model rejects {e}. {reason}");
 

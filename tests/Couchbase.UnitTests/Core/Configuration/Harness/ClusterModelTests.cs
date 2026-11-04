@@ -5,10 +5,11 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Sharding;
 using Couchbase.Test.Common.Configuration;
 using Couchbase.Test.Common.Configuration.Model;
+using Couchbase.Test.Common.Configuration.Scenarios;
 using Xunit;
+using static Couchbase.Test.Common.Configuration.Scenarios.ModelSequences;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ClusterProfileTests;
 
 namespace Couchbase.UnitTests.Core.Configuration.Harness
@@ -409,21 +410,15 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         [InlineData(ConnectionMode.Real)]
         public async Task ScaleOut_WithSdk_EndsOnModelMaps(ConnectionMode mode)
         {
-            var model = ClusterModel.Create(CapellaPublic, seed: 3);
-            var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
-            var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
-            var server = new ModelServer(model, harness.Server);
-            server.Seed();
+            await using var scenario = await Scenario.On(ClusterProfile.CapellaPublic).Connections(mode).StartAsync();
 
-            var differences = await DriveAsync(harness, server, bucket, model, ScaleOut(model, bucketName, 2));
+            await scenario.ScaleOut(2).RunAsync();
 
-            Assert.Empty(differences);
-            var latest = model.Bucket(bucketName);
-            var view = harness.Bucket(bucketName);
+            var latest = scenario.Model.Bucket(scenario.Model.Profile.BucketName);
+            var view = scenario.View();
             Assert.Equal(latest.Version, view.Version);
             Assert.Equal(latest.BucketNodes.OrderBy(h => h, StringComparer.Ordinal), view.Nodes);
-            Assert.Empty(WrongActives(bucket, latest));
+            Assert.Empty(ScenarioCheck.WrongActives(scenario.Bucket(), latest));
         }
 
         /// <summary>
@@ -434,110 +429,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         [InlineData(ConnectionMode.Real)]
         public async Task ScaleIn_WithSdk_FollowsEveryVersion(ConnectionMode mode)
         {
-            var model = ClusterModel.Create(CapellaPublic, nodes: 4, seed: 4);
-            var bucketName = model.Profile.BucketName;
-            await using var harness = ConfigHarness.Create(model.Render(model.Cluster, null), mode: mode);
-            var bucket = await harness.OpenBucketAsync(model.Render(model.Bucket(bucketName), null));
-            var server = new ModelServer(model, harness.Server);
-            server.Seed();
+            await using var scenario = await Scenario.On(ClusterProfile.CapellaPublic, nodes: 4).Connections(mode).StartAsync();
 
-            var differences = await DriveAsync(harness, server, bucket, model, ScaleIn(model, bucketName, Node0));
+            await scenario.ScaleIn(Node0).RunAsync();
 
-            Assert.Empty(differences);
-            Assert.DoesNotContain(Node0, harness.Bucket(bucketName).Nodes);
-        }
-
-        /// <summary>
-        /// Applies each event, delivers it to every node, waits for the SDK, and lists how the SDK bucket differs from the model.
-        /// </summary>
-        /// <remarks>
-        /// Settling alone can return while a fetched map is still on its way to the bucket, because the fetch counts as
-        /// activity when it is sent. So it first waits until the handler dispatched the new bucket version.
-        /// The SDK does not take a version that only changes the rev or the epoch (bug 6), so nothing is checked after one.
-        /// </remarks>
-        internal static async Task<List<string>> DriveAsync(ConfigHarness harness, ModelServer server, CouchbaseBucket bucket,
-            ClusterModel model, IEnumerable<ModelEvent> events)
-        {
-            var differences = new List<string>();
-            foreach (var e in events)
-            {
-                model.Apply(e);
-                server.DeliverAll();
-                var map = model.Bucket(bucket.Name);
-                await harness.WaitForPublishedAsync(bucket.Name, map.Version, ConfigPushTests.Timeout);
-                await harness.DrainAsync();
-                await harness.SettleAsync();
-                if (e is BumpRev or BumpAll or BumpEpoch) continue;
-
-                var view = harness.Bucket(bucket.Name);
-                if (view.Version != map.Version)
-                {
-                    differences.Add($"After {e} the SDK has {view.Version} and the model has {map.Version}.");
-                }
-                if (!view.Nodes.SequenceEqual(map.BucketNodes.OrderBy(h => h, StringComparer.Ordinal)))
-                {
-                    differences.Add($"After {e} the SDK bucket nodes are {string.Join(", ", view.Nodes)}.");
-                }
-                if (WrongActives(bucket, map) is { Count: > 0 } wrong)
-                {
-                    differences.Add($"After {e} the SDK maps {wrong.Count} vbuckets to another active node, first {wrong[0]}.");
-                }
-            }
-            return differences;
-        }
-
-        /// <summary>
-        /// The vbuckets the SDK maps to another active host than the model. A vbucket with no copy in the model is skipped.
-        /// </summary>
-        internal static List<int> WrongActives(CouchbaseBucket bucket, ModelMap map)
-        {
-            var keyMapper = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper);
-            return Enumerable.Range(0, map.VBucketCount)
-                .Where(v => map.ActiveHost(v) is { } active && keyMapper[(short)v].LocatePrimary()?.Host != active)
-                .ToList();
-        }
-
-        /// <summary>
-        /// The events of a scale out seen on Capella. Apply each event before the next one is read, because the later
-        /// events depend on the state.
-        /// </summary>
-        internal static IEnumerable<ModelEvent> ScaleOut(ClusterModel model, string bucket, int count, int seed = 0)
-        {
-            var before = model.Cluster.Nodes.Select(n => n.Hostname).ToList();
-            yield return new AddNodes(count, ["kv"]);
-
-            var added = model.Cluster.Nodes.Select(n => n.Hostname).Where(h => !before.Contains(h)).ToList();
-            yield return new AddToBucket(bucket, added);
-            foreach (var e in Rebalance(model, bucket, [], seed)) yield return e;
-            foreach (var host in added) yield return new SetServices(host, ["kv", "n1ql"]);
-            foreach (var host in added) yield return new SetServices(host, model.DefaultServices);
-        }
-
-        /// <summary>
-        /// The events of a Capella scale in of one node. Read <see cref="ScaleOut"/> for how to apply them.
-        /// </summary>
-        internal static IEnumerable<ModelEvent> ScaleIn(ClusterModel model, string bucket, string host, int seed = 0)
-        {
-            foreach (var e in Rebalance(model, bucket, [host], seed)) yield return e;
-            yield return new RemoveFromBucket(bucket, [host]);
-            yield return new SetServices(host, ["index", "kv"]);
-            yield return new SetServices(host, ["kv"]);
-            yield return new EjectNodes([host]);
-        }
-
-        /// <summary>
-        /// Each move takes 1 to 3 pending vbuckets in a seeded random order.
-        /// </summary>
-        internal static IEnumerable<ModelEvent> Rebalance(ClusterModel model, string bucket, IReadOnlyList<string> leaving, int seed)
-        {
-            yield return new StartRebalance(bucket, leaving);
-            var random = new Random(seed);
-            while (model.PendingMoves(bucket) is { Count: > 0 } pending)
-            {
-                var take = random.Next(1, 4);
-                yield return new MoveVBuckets(bucket, pending.OrderBy(_ => random.Next()).Take(take).OrderBy(v => v).ToList());
-            }
-            yield return new FinishRebalance(bucket);
+            Assert.DoesNotContain(Node0, scenario.View().Nodes);
         }
 
         private static ClusterProfile PrivateLink => ClusterProfile.Load(ClusterProfile.CapellaPrivateLink);
@@ -551,15 +447,6 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var model = ClusterModel.Create(PrivateLink, seed: seed);
             Run(model, ScaleOut(model, model.Profile.BucketName, 2, seed));
             return model;
-        }
-
-        internal static void Run(ClusterModel model, IEnumerable<ModelEvent> events, Action<ModelEvent>? after = null)
-        {
-            foreach (var e in events)
-            {
-                model.Apply(e);
-                after?.Invoke(e);
-            }
         }
 
         internal static IEnumerable<ModelMap> Latest(ClusterModel model) => model.Buckets.Select(model.Bucket).Prepend(model.Cluster);
