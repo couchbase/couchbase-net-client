@@ -229,7 +229,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var bucket = await harness.OpenBucketAsync(WithServerGroups(External(ClusterMapBuilder.Bucket(BucketName).Rev(10))));
             harness.Server.SetMap(WithServerGroups(External(ClusterMapBuilder.Bucket(BucketName).Rev(11)).VBuckets(1024, replicas: 0)));
 
-            harness.Server.PushBrief("203.0.113.10", 1, 11);
+            harness.Server.PushBrief(Node0, 1, 11);
             await harness.WaitForPublishedAsync(BucketName, Rev(11), Timeout);
             await harness.DrainAsync();
 

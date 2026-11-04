@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -16,6 +17,7 @@ using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Sharding;
 using Couchbase.Management.Buckets;
 using Couchbase.Test.Common.Utils;
 using Couchbase.Utils;
@@ -54,6 +56,24 @@ namespace Couchbase.Test.Common.Configuration
     }
 
     /// <summary>
+    /// How a <see cref="ConfigHarness"/> creates the global nodes and opens buckets.
+    /// </summary>
+    public enum BootstrapMode
+    {
+        /// <summary>
+        /// The harness creates one global node per node of the global map, with the map in place of the first fetch. It
+        /// opens a bucket on the first bootstrap node of the map, like CreateAndBootStrapBucketAsync.
+        /// </summary>
+        Harness,
+
+        /// <summary>
+        /// The SDK bootstraps from the connection string with BootstrapGlobalAsync and opens each bucket with
+        /// GetOrCreateBucketAsync. DNS SRV returns no records, so the SDK starts from the connection string hosts.
+        /// </summary>
+        Sdk
+    }
+
+    /// <summary>
     /// Runs the SDK config handling (config handler, cluster context, buckets, real cluster nodes) against
     /// <see cref="Server"/>, with no sockets. Each node sets up its connections like a real node.
     /// By default the SDK services run on a <see cref="SteppableClock"/>, so time moves only in <see cref="AdvanceAsync"/>.
@@ -78,7 +98,7 @@ namespace Couchbase.Test.Common.Configuration
         private volatile bool _handlerStarted;
 
         private ConfigHarness(ClusterContext context, FakeClusterServer server, NodeFactory nodeFactory,
-            IConfigHandler handler, bool polling, TimeProvider clock, ConnectionMode mode)
+            IConfigHandler handler, bool polling, TimeProvider clock, ConnectionMode mode, BootstrapMode bootstrap)
         {
             Context = context;
             Server = server;
@@ -87,6 +107,7 @@ namespace Couchbase.Test.Common.Configuration
             _polling = polling;
             Clock = clock;
             Mode = mode;
+            Bootstrap = bootstrap;
         }
 
         public ClusterContext Context { get; }
@@ -100,6 +121,8 @@ namespace Couchbase.Test.Common.Configuration
 
         public ConnectionMode Mode { get; }
 
+        public BootstrapMode Bootstrap { get; }
+
         public ClusterOptions Options => Context.ClusterOptions;
 
         /// <summary>
@@ -110,18 +133,23 @@ namespace Couchbase.Test.Common.Configuration
         public ConfigVersion? GlobalVersion => Context.GlobalConfig?.ConfigVersion;
 
         /// <summary>
-        /// Every node of the context, sorted by hostname then owner.
+        /// Every node of the context, sorted by node name (endpoint when the endpoint matches no node) then owner.
         /// </summary>
         public IReadOnlyList<NodeView> Nodes => Context.Nodes
-            .Select(n => new NodeView(n, Options))
-            .OrderBy(n => n.Hostname, StringComparer.Ordinal)
+            .Select(n => new NodeView(n, Options, Server))
+            .OrderBy(n => n.Name ?? n.EndPoint.ToString(), StringComparer.Ordinal)
             .ThenBy(n => n.Owner, StringComparer.Ordinal)
             .ToList();
 
         /// <summary>
-        /// Bootstraps the global map the way BootstrapGlobalAsync does, with the map in place of the CCCP fetch.
-        /// Every node serves the map.
+        /// Bootstraps the SDK on the global map. Every node serves the map.
         /// </summary>
+        /// <remarks>
+        /// With <see cref="BootstrapMode.Harness"/> the harness does what BootstrapGlobalAsync does, with the map in place of
+        /// the CCCP fetch. With <see cref="BootstrapMode.Sdk"/> the SDK runs BootstrapGlobalAsync and fetches the map from
+        /// the connection string hosts. The connection string is the first node of the map unless
+        /// <paramref name="configure"/> sets one.
+        /// </remarks>
         /// <param name="pollInterval">
         /// Turns config polling on. The handler then starts in <see cref="StartPolling"/>, so the test sets the server state first.
         /// </param>
@@ -130,9 +158,10 @@ namespace Couchbase.Test.Common.Configuration
         /// </param>
         /// <param name="mode">How the nodes reach <see cref="Server"/>.</param>
         /// <param name="network">The network of <see cref="ConnectionMode.Real"/>. The defaults when null.</param>
+        /// <param name="bootstrap">Who creates the global nodes and opens the buckets.</param>
         public static ConfigHarness Create(ClusterMapBuilder globalMap, Action<ClusterOptions>? configure = null,
             TimeSpan? pollInterval = null, TimeProvider? clock = null, ConnectionMode mode = ConnectionMode.Fake,
-            NetworkOptions? network = null)
+            NetworkOptions? network = null, BootstrapMode bootstrap = BootstrapMode.Harness)
         {
             if (network is not null && mode != ConnectionMode.Real)
             {
@@ -151,12 +180,14 @@ namespace Couchbase.Test.Common.Configuration
             options.AppTelemetry.Enabled = false;
             options.LoggingMeterOptions.Enabled(false);
             configure?.Invoke(options);
-            // Polling reads the connection string after a pass where no node returned a config.
+            // The SDK bootstrap reads it, and so does polling after a pass where no node returned a config.
             options.ConnectionString ??= $"couchbase://{config.GetNodes()[0].Hostname}";
             clock ??= new SteppableClock();
             options.AddClusterService<TimeProvider, TimeProvider>(clock);
+            options.AddClusterService<IDnsResolver, NoDnsRecords>(new NoDnsRecords());
 
             var server = mode == ConnectionMode.Real ? new FakeClusterServer(network ?? new NetworkOptions()) : new FakeClusterServer();
+            server.Tls = options.EffectiveEnableTls;
             server.SetMap(globalMap);
             var nodeFactory = new NodeFactory(server, mode);
             options.AddClusterService<IClusterNodeFactory, NodeFactory>(nodeFactory);
@@ -171,15 +202,26 @@ namespace Couchbase.Test.Common.Configuration
 
             // A scope reads the cluster for its search index manager.
             var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            var handler = context.ServiceProvider.GetRequiredService<IConfigHandler>();
             try
             {
                 nodeFactory.Attach(context);
 
-                config.SetEffectiveNetworkResolution(options);
-                context.GlobalConfig = config;
-                foreach (var adapter in config.GetNodes())
+                if (bootstrap == BootstrapMode.Sdk)
                 {
-                    context.AddNode(nodeFactory.Create(HostEndpointWithPort.Create(adapter, options), adapter));
+                    // It subscribes the context to the handler, even when it fails. A setup request times out after
+                    // KvTimeout of real time.
+                    context.BootstrapGlobalAsync().GetAwaiter().GetResult();
+                }
+                else
+                {
+                    config.SetEffectiveNetworkResolution(options);
+                    context.GlobalConfig = config;
+                    foreach (var adapter in config.GetNodes())
+                    {
+                        context.AddNode(nodeFactory.Create(HostEndpointWithPort.Create(adapter, options), adapter));
+                    }
+                    handler.Subscribe(context);
                 }
             }
             catch
@@ -189,10 +231,8 @@ namespace Couchbase.Test.Common.Configuration
                 throw;
             }
 
-            var handler = context.ServiceProvider.GetRequiredService<IConfigHandler>();
             var polling = pollInterval is not null;
-            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling, clock, mode);
-            handler.Subscribe(context);
+            var harness = new ConfigHarness(context, server, nodeFactory, handler, polling, clock, mode, bootstrap);
             handler.Subscribe(harness._sink);
             if (!polling)
             {
@@ -214,12 +254,23 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
-        /// Opens a bucket the way CreateAndBootStrapBucketAsync does. Every node serves the map,
-        /// and the bucket fetches it over CCCP from the first bootstrap node.
+        /// Opens a bucket. Every node serves the map, and the bucket fetches it over CCCP from the first bootstrap node.
+        /// With <see cref="BootstrapMode.Harness"/> the harness does what CreateAndBootStrapBucketAsync does. With
+        /// <see cref="BootstrapMode.Sdk"/> the SDK opens it with GetOrCreateBucketAsync.
         /// </summary>
         public async Task<CouchbaseBucket> OpenBucketAsync(ClusterMapBuilder bucketMap)
         {
             Server.SetMap(bucketMap);
+            var bucket = Bootstrap == BootstrapMode.Sdk
+                ? await Context.GetOrCreateBucketAsync(bucketMap.Name).ConfigureAwait(false) as CouchbaseBucket
+                  ?? throw new InvalidOperationException($"Bucket {bucketMap.Name} is not a Couchbase bucket.")
+                : await OpenBucketByHandAsync(bucketMap).ConfigureAwait(false);
+            _buckets[bucket.Name] = bucket;
+            return bucket;
+        }
+
+        private async Task<CouchbaseBucket> OpenBucketByHandAsync(ClusterMapBuilder bucketMap)
+        {
             var endpoint = Context.GlobalConfig.GetBootstrapEndpoints(Options.EnableTls).First();
             var node = Context.GetUnassignedNode(endpoint);
             var newNode = node is null;
@@ -247,7 +298,6 @@ namespace Couchbase.Test.Common.Configuration
             }
 
             Context.RegisterBucket(bucket);
-            _buckets[bucket.Name] = bucket;
             return bucket;
         }
 
@@ -419,10 +469,11 @@ namespace Couchbase.Test.Common.Configuration
             return _buckets[bucketName].ConfigUpdatedAsync(config);
         }
 
-        public BucketView Bucket(string name) => new(_buckets[name]);
+        public BucketView Bucket(string name) => new(_buckets[name], Server);
 
         /// <summary>
-        /// Makes node creation throw for this host until <see cref="AllowNodeCreation"/> is called.
+        /// Makes node creation throw for the endpoints of this node until <see cref="AllowNodeCreation"/> is called.
+        /// An endpoint that matches no node goes by its host.
         /// </summary>
         public void FailNodeCreation(string host) => _nodeFactory.SetFailing(host, failing: true);
 
@@ -504,10 +555,12 @@ namespace Couchbase.Test.Common.Configuration
 
         internal sealed class NodeView
         {
-            internal NodeView(IClusterNode node, ClusterOptions options)
+            internal NodeView(IClusterNode node, ClusterOptions options, FakeClusterServer server)
             {
                 var adapter = node.NodesAdapter;
+                EndPoint = node.EndPoint;
                 Hostname = node.EndPoint.Host;
+                Name = server.NodeAt(node.EndPoint);
                 NodeUuid = node.NodeUuid;
                 Owner = node.Owner?.Name;
                 Version = adapter?.ConfigVersion;
@@ -515,7 +568,18 @@ namespace Couchbase.Test.Common.Configuration
                 QueryUri = adapter is { IsQueryNode: true } ? adapter.GetQueryUri(options) : null;
             }
 
+            /// <summary>
+            /// The host the SDK connects to. It is the alternate address on an external network.
+            /// </summary>
             public string Hostname { get; }
+
+            public HostEndpointWithPort EndPoint { get; }
+
+            /// <summary>
+            /// The name of the server node at <see cref="EndPoint"/>, or null when the endpoint matches no node, like the
+            /// Private Link seed.
+            /// </summary>
+            public string? Name { get; }
 
             public string NodeUuid { get; }
 
@@ -531,19 +595,23 @@ namespace Couchbase.Test.Common.Configuration
 
             public Uri? QueryUri { get; }
 
-            public override string ToString() => $"{Hostname} owner={Owner ?? "none"} rev={Version} query={QueryUri}";
+            public override string ToString() => $"{Name ?? $"{EndPoint} seed"} owner={Owner ?? "none"} rev={Version} query={QueryUri}";
         }
 
         internal sealed class BucketView
         {
             private readonly Lazy<IReadOnlyDictionary<string, string[]>> _serverGroups;
+            private readonly IKeyMapper? _keyMapper;
+            private readonly FakeClusterServer _server;
 
-            internal BucketView(CouchbaseBucket bucket)
+            internal BucketView(CouchbaseBucket bucket, FakeClusterServer server)
             {
                 var config = bucket.CurrentConfig;
+                _server = server;
+                _keyMapper = bucket.KeyMapper;
                 Version = config?.ConfigVersion;
-                KeyMapperRev = bucket.KeyMapper?.Rev;
-                Nodes = bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h, StringComparer.Ordinal).ToList();
+                KeyMapperRev = _keyMapper?.Rev;
+                Nodes = bucket.Nodes.Select(n => NameOf(n.EndPoint)).OrderBy(h => h, StringComparer.Ordinal).ToList();
 
                 var servers = config?.VBucketServerMap.ServerList ?? [];
                 _serverGroups = new Lazy<IReadOnlyDictionary<string, string[]>>(() =>
@@ -567,9 +635,22 @@ namespace Couchbase.Test.Common.Configuration
             public IReadOnlyDictionary<string, string[]> ServerGroups => _serverGroups.Value;
 
             /// <summary>
-            /// Hostnames of the nodes the bucket sends operations to.
+            /// Names of the nodes the bucket sends operations to. An endpoint that matches no node shows as host:port.
             /// </summary>
             public IReadOnlyList<string> Nodes { get; }
+
+            /// <summary>
+            /// The name of the node that the key mapper sends the vbucket to, or null when it has none.
+            /// </summary>
+            /// <exception cref="InvalidOperationException">The bucket has no vbucket key mapper.</exception>
+            public string? Active(int vbucket)
+            {
+                var keyMapper = _keyMapper as VBucketKeyMapper
+                                ?? throw new InvalidOperationException($"The bucket has a {_keyMapper?.GetType().Name ?? "null"} key mapper.");
+                return keyMapper[(short)vbucket].LocatePrimary() is { } endPoint ? NameOf(endPoint) : null;
+            }
+
+            private string NameOf(HostEndpointWithPort endPoint) => _server.NodeAt(endPoint) ?? endPoint.ToString();
         }
 
         /// <summary>
@@ -616,9 +697,10 @@ namespace Couchbase.Test.Common.Configuration
             public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
                 CancellationToken cancellationToken = default)
             {
-                if (_failingHosts.ContainsKey(endPoint.Host))
+                var host = server.NodeAt(endPoint) ?? endPoint.Host;
+                if (_failingHosts.ContainsKey(host))
                 {
-                    throw new InvalidOperationException($"The harness fails node creation for {endPoint.Host}.");
+                    throw new InvalidOperationException($"The harness fails node creation for {host}.");
                 }
 
                 var node = await _inner!.CreateAndConnectAsync(endPoint, nodeAdapter, cancellationToken).ConfigureAwait(false);
@@ -736,6 +818,15 @@ namespace Couchbase.Test.Common.Configuration
             public ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password) => this;
 
             public ISaslMechanism CreateOAuthBearerMechanism(string token) => this;
+        }
+
+        private sealed class NoDnsRecords : IDnsResolver
+        {
+            public Task<IPAddress?> GetIpAddressAsync(string hostName, CancellationToken cancellationToken = default) =>
+                Task.FromResult<IPAddress?>(null);
+
+            public Task<IEnumerable<HostEndpoint>> GetDnsSrvEntriesAsync(Uri bootstrapUri, CancellationToken cancellationToken = default) =>
+                Task.FromResult<IEnumerable<HostEndpoint>>([]);
         }
 
         private sealed class IdleBootstrapper : IBootstrapperFactory, IBootstrapper

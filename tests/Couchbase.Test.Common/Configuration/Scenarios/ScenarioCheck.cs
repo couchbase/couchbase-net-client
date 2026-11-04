@@ -6,10 +6,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Sharding;
 using Couchbase.Test.Common.Configuration.Model;
 using Couchbase.Test.Common.Utils;
-using Xunit;
 
 namespace Couchbase.Test.Common.Configuration.Scenarios
 {
@@ -104,15 +102,13 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         }
 
         /// <summary>
-        /// The vbuckets the SDK maps to another active host than the model. A vbucket with no copy in the model is skipped.
+        /// The vbuckets the SDK maps to another active node than the model. A vbucket with no copy in the model is skipped.
+        /// The view names each node from its endpoint, so the check also holds when nodes share a host.
         /// </summary>
-        public static List<int> WrongActives(CouchbaseBucket bucket, ModelMap map)
-        {
-            var keyMapper = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper);
-            return Enumerable.Range(0, map.VBucketCount)
-                .Where(v => map.ActiveHost(v) is { } active && keyMapper[(short)v].LocatePrimary()?.Host != active)
+        public static List<int> WrongActives(ConfigHarness.BucketView view, ModelMap map) =>
+            Enumerable.Range(0, map.VBucketCount)
+                .Where(v => map.ActiveHost(v) is { } active && view.Active(v) != active)
                 .ToList();
-        }
 
         /// <returns>The buckets whose latest version the handler did not dispatch in time.</returns>
         private async Task<List<string>> WaitForBucketsAsync(bool push, string after, List<string> differences)
@@ -187,7 +183,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                                 $"and the model nodes are [{string.Join(", ", nodes)}].");
             }
 
-            if (WrongActives(context.Bucket(bucket), latest) is { Count: > 0 } wrong)
+            if (WrongActives(view, latest) is { Count: > 0 } wrong)
             {
                 differences.Add($"After {after}, the SDK maps {wrong.Count} vbuckets of {bucket} to another active node, " +
                                 $"the first is vbucket {wrong[0]}.");
