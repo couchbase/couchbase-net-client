@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Test.Common.Configuration.Model;
+using Couchbase.Test.Common.Utils;
 
 namespace Couchbase.Test.Common.Configuration.Scenarios
 {
@@ -14,6 +15,9 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
     /// After each model event every node that does not lag gets the latest maps. A check follows each model event,
     /// each <see cref="WaitStep"/> and each <see cref="CatchUpStep"/>, except inside <see cref="UncheckedStep"/>.
     /// The check after an event that only changes the rev or the epoch waits for the SDK and compares nothing (bug 6).
+    /// A node that leaves the cluster ends its connections before its delivery, as <see cref="ModelServer.Leave"/> says.
+    /// In real mode on the virtual clock the runner then settles before the delivery, so the SDK has time to reconnect and
+    /// get the select bucket failure before the map without the node. On real time the two race, as in the captures.
     /// </remarks>
     internal sealed class ScenarioRunner(ScenarioContext context, ScenarioCheck check)
     {
@@ -55,6 +59,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                     break;
                 case CatchUpStep catchUp:
                     _lagging.Remove(catchUp.Host);
+                    await LeaveAsync(step.ToString()).ConfigureAwait(false);
                     context.Server.Deliver(catchUp.Host, _push);
                     if (checking) await CheckAsync(step.ToString(), compare: true).ConfigureAwait(false);
                     break;
@@ -93,6 +98,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                 var changed = model.Apply(e);
                 Write(depth + 1, $"{model.Applied[model.Applied.Count - 1].Rev} {e} -> {string.Join(", ", changed.Select(m => m.Bucket ?? "cluster"))}");
                 check.Applied(e, changed);
+                await LeaveAsync($"{e} in {step}").ConfigureAwait(false);
                 context.Server.DeliverAll(_push, _lagging);
                 if (checking)
                 {
@@ -125,6 +131,21 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
             foreach (var step in steps)
             {
                 await RunAsync(step, depth + 2, checking).ConfigureAwait(false);
+            }
+        }
+
+        private async Task LeaveAsync(string during)
+        {
+            var harness = context.Harness;
+            if (context.Server.Leave(_lagging).Count == 0 || !harness.Server.HasNetwork || harness.Clock is not SteppableClock) return;
+
+            try
+            {
+                await harness.SettleAsync().ConfigureAwait(false);
+            }
+            catch (TimeoutException e)
+            {
+                _differences.Add($"After the leave in {during}, {e.Message}");
             }
         }
 
