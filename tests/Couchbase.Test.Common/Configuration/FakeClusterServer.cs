@@ -47,6 +47,9 @@ namespace Couchbase.Test.Common.Configuration
         private readonly List<ServerRequest> _received = new();
         private readonly List<Session> _sessions = new();
 
+        // The nodes that left the cluster, with their reply to SELECT_BUCKET.
+        private readonly Dictionary<string, ResponseStatus> _left = new(StringComparer.Ordinal);
+
         // The node name at each alternate address endpoint, from every map set so far. So a node keeps its endpoint
         // after it leaves the maps, and the last map to name an endpoint wins.
         private readonly Dictionary<(string Host, int Port), string> _plainEndpoints = new();
@@ -79,7 +82,7 @@ namespace Couchbase.Test.Common.Configuration
         /// <summary>
         /// The node that takes each connection to an endpoint that matches no node, like the Private Link seed on 11207.
         /// A real endpoint load balancer picks a node that the client cannot see. When null, it is the first node by name
-        /// of the latest cluster map the server serves.
+        /// of the latest cluster map the server serves, among the nodes that did not <see cref="Leave"/>.
         /// </summary>
         public string? SeedNode { get; set; }
 
@@ -129,7 +132,7 @@ namespace Couchbase.Test.Common.Configuration
                 .Where(m => m is not null)
                 .OrderByDescending(m => m!.Version)
                 .FirstOrDefault();
-            return latest?.Nodes.Select(n => n.Name).OrderBy(n => n, StringComparer.Ordinal).FirstOrDefault();
+            return latest?.Nodes.Select(n => n.Name).Where(n => !_left.ContainsKey(n)).OrderBy(n => n, StringComparer.Ordinal).FirstOrDefault();
         }
 
         /// <summary>
@@ -209,6 +212,7 @@ namespace Couchbase.Test.Common.Configuration
                 maps.Default = map;
                 maps.Nodes.Clear();
                 Index(map);
+                if (_left.Count > 0) Rejoin(map, _left.Keys.ToList());
             }
         }
 
@@ -346,6 +350,38 @@ namespace Couchbase.Test.Common.Configuration
             }
         }
 
+        /// <summary>
+        /// The node leaves the cluster, like a node that a rebalance removed. It ends every connection to it, seed
+        /// connections included, and it has no bucket from now on. It still accepts connections and answers HELLO, the
+        /// error map and config fetches, but SELECT_BUCKET fails with <paramref name="selectBucketStatus"/>.
+        /// <see cref="HostCounters.SelectBucketsFailed"/> counts these failures. The seed endpoint no longer picks the node.
+        /// The node is back once it serves a bucket map that lists it in the vbucket server list, as when it joins again
+        /// and a bucket adds it.
+        /// </summary>
+        /// <remarks>
+        /// In fake mode the connections stay open, and only the connections that open later see the state. A fake node
+        /// pool never replaces a closed connection, so the node would stay without connections for as long as the SDK
+        /// keeps it. In real mode the SDK pool sees the close and reconnects, as with a real node.
+        /// </remarks>
+        public void Leave(string host, ResponseStatus selectBucketStatus)
+        {
+            if (selectBucketStatus == ResponseStatus.Success)
+            {
+                throw new ArgumentException("A node that left fails SELECT_BUCKET.", nameof(selectBucketStatus));
+            }
+
+            lock (_lock) _left[host] = selectBucketStatus;
+            if (_network is not null) CloseStreams(HostFor(host));
+        }
+
+        /// <summary>
+        /// True from <see cref="Leave"/> until the node serves a bucket map that lists it as a bucket node.
+        /// </summary>
+        public bool HasLeft(string host)
+        {
+            lock (_lock) return _left.ContainsKey(host);
+        }
+
         private void Notify(Session connection, SlicedMemoryOwner<byte> frame)
         {
             Interlocked.Increment(ref HostFor(connection.Host).PushesSent);
@@ -407,6 +443,18 @@ namespace Couchbase.Test.Common.Configuration
                 {
                     maps.Nodes[host] = new NodeMap(served);
                 }
+                Rejoin(served, hosts);
+            }
+        }
+
+        // The caller holds the lock. A node that left is back once it serves a map that lists it as a bucket node.
+        private void Rejoin(ServedMap map, IReadOnlyCollection<string> hosts)
+        {
+            if (_left.Count == 0 || map.Name == BucketConfig.GlobalBucketName) return;
+
+            foreach (var host in hosts)
+            {
+                if (_left.ContainsKey(host) && map.BucketNodes.Contains(host)) _left.Remove(host);
             }
         }
 
@@ -465,6 +513,11 @@ namespace Couchbase.Test.Common.Configuration
                 case OpCode.SaslList:
                     return Response(request, ResponseStatus.Success, DataType.None, SaslMechanisms);
                 case OpCode.SelectBucket:
+                    if (SelectBucketStatus(session.Host) is { } refused)
+                    {
+                        Interlocked.Increment(ref HostFor(session.Host).SelectBucketsFailed);
+                        return Response(request, refused);
+                    }
                     session.Bucket = Encoding.UTF8.GetString(request.Key.ToArray());
                     return Response(request, ResponseStatus.Success);
                 case OpCode.GetCollectionsManifest:
@@ -474,6 +527,11 @@ namespace Couchbase.Test.Common.Configuration
                 default:
                     return DataOperation(session, request);
             }
+        }
+
+        private ResponseStatus? SelectBucketStatus(string host)
+        {
+            lock (_lock) return _left.TryGetValue(host, out var status) ? status : null;
         }
 
         private static ConfigVersion? KnownVersion(Request request) =>
@@ -634,6 +692,7 @@ namespace Couchbase.Test.Common.Configuration
         {
             private bool? _hasAlternateAddresses;
             private IReadOnlyList<ServedNode>? _nodes;
+            private HashSet<string>? _bucketNodes;
 
             public string Name { get; } = name;
 
@@ -649,11 +708,32 @@ namespace Couchbase.Test.Common.Configuration
             /// </summary>
             internal IReadOnlyList<ServedNode> Nodes => _nodes ??= ServedNode.Read(Json);
 
+            /// <summary>
+            /// The node names of the vbucket server list, read from the JSON on first use. Empty for the global map.
+            /// </summary>
+            internal IReadOnlyCollection<string> BucketNodes => _bucketNodes ??= ReadServerList(Json);
+
             public static ServedMap From(ClusterMapBuilder map)
             {
                 var json = map.ToUtf8Bytes();
                 var config = JsonSerializer.Deserialize(json, InternalSerializationContext.Default.BucketConfig)!;
                 return new ServedMap(map.Name, json, config.ConfigVersion);
+            }
+
+            private static HashSet<string> ReadServerList(byte[] json)
+            {
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                using var document = JsonDocument.Parse(json);
+                if (document.RootElement.TryGetProperty("vBucketServerMap", out var map) && map.TryGetProperty("serverList", out var servers))
+                {
+                    foreach (var server in servers.EnumerateArray())
+                    {
+                        if (server.GetString() is not { } entry) continue;
+                        var colon = entry.LastIndexOf(':');
+                        names.Add(colon < 0 ? entry : entry.Substring(0, colon));
+                    }
+                }
+                return names;
             }
         }
 
@@ -997,6 +1077,7 @@ namespace Couchbase.Test.Common.Configuration
             PartialReadsByServer = Interlocked.Read(ref state.PartialReadsByServer);
             PartialReadsBySdk = Interlocked.Read(ref state.PartialReadsBySdk);
             PushesSent = Interlocked.Read(ref state.PushesSent);
+            SelectBucketsFailed = Interlocked.Read(ref state.SelectBucketsFailed);
             OpenConnections = open.Count;
             RepliesHeld = open.Sum(s => s.RepliesHeld);
             PushesHeld = open.Sum(s => s.PushesHeld);
@@ -1021,6 +1102,11 @@ namespace Couchbase.Test.Common.Configuration
         /// Cluster map notifications the node sent or holds, brief and full.
         /// </summary>
         public long PushesSent { get; }
+
+        /// <summary>
+        /// SELECT_BUCKET requests the node failed, because it left the cluster.
+        /// </summary>
+        public long SelectBucketsFailed { get; }
 
         public long ConnectionsOpened { get; }
 
@@ -1054,7 +1140,7 @@ namespace Couchbase.Test.Common.Configuration
         public override string ToString() =>
             $"received={RequestsReceived} answered={RequestsAnswered} held={RepliesHeld} pushes={PushesSent} pushesHeld={PushesHeld} " +
             $"opened={ConnectionsOpened} closed={ConnectionsClosed} refused={ConnectionsRefused} open={OpenConnections} " +
-            $"blockedWrites={BlockedWrites}";
+            $"blockedWrites={BlockedWrites} selectBucketsFailed={SelectBucketsFailed}";
     }
 }
 

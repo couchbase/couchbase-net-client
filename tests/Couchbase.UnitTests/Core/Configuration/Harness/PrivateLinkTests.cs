@@ -153,6 +153,26 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.Equal([Node1, Node2, Node3], scenario.View().Nodes);
         }
 
+        /// <summary>
+        /// The seed endpoint routes to node 0. Node 0 ends the seed connections when it leaves, and the seed pool
+        /// reconnects to another node. The scale in and the wait are unchecked, as in <see cref="LeavingNodeTests"/>.
+        /// </summary>
+        [Fact]
+        public async Task ScaleInOfSeedNode_EndsSeedConnections_AndSeedReconnectsToAnotherNode()
+        {
+            await using var scenario = await Scenario.On(ClusterProfile.CapellaPrivateLink, nodes: 4).RealConnections().StartAsync();
+            var server = scenario.Harness.Server;
+            var seeds = server.ConnectionsOn(Node0).Where(s => s.IsSeed).ToList();
+            Assert.NotEmpty(seeds);
+
+            await scenario.Unchecked(s => s.ScaleIn("node-0").Wait(TimeSpan.FromSeconds(1))).RunAsync();
+
+            Assert.True(server.HasLeft(Node0));
+            Assert.All(seeds, s => Assert.True(s.IsClosed));
+            Assert.DoesNotContain(server.ConnectionsOn(Node0), s => s.IsSeed);
+            Assert.Contains(server.ConnectionsOn(Node1), s => s.IsSeed);
+        }
+
         [Theory]
         [InlineData(ConnectionMode.Fake)]
         [InlineData(ConnectionMode.Real)]

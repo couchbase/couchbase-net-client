@@ -108,9 +108,10 @@ namespace Couchbase.Test.Common.Configuration
         /// The host ends every connection to it. The SDK reads what the host sent before, then the end of the stream.
         /// The replies and notifications the host held are lost.
         /// </summary>
-        public void Close(string host)
+        public void Close(string host) => CloseStreams(NetworkHost(host));
+
+        private static void CloseStreams(HostState state)
         {
-            var state = NetworkHost(host);
             List<StreamSession> sessions;
             lock (state.Lock) sessions = state.Sessions.OfType<StreamSession>().ToList();
             foreach (var session in sessions)
@@ -170,12 +171,7 @@ namespace Couchbase.Test.Common.Configuration
             lock (_lock) hosts = _hosts.Values.ToList();
             foreach (var state in hosts)
             {
-                List<StreamSession> sessions;
-                lock (state.Lock) sessions = state.Sessions.OfType<StreamSession>().ToList();
-                foreach (var session in sessions)
-                {
-                    session.Close();
-                }
+                CloseStreams(state);
             }
         }
 
@@ -252,6 +248,7 @@ namespace Couchbase.Test.Common.Configuration
             public long PartialReadsByServer;
             public long PartialReadsBySdk;
             public long PushesSent;
+            public long SelectBucketsFailed;
 
             public string Host { get; } = host;
 
