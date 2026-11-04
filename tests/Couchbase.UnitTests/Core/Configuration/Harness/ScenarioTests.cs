@@ -52,6 +52,26 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
+        /// The SDK bootstrap from the connection string ends with the nodes, owners, versions and bucket nodes of the
+        /// bootstrap the harness does by hand.
+        /// </summary>
+        [Theory]
+        [InlineData(ClusterProfile.Docker, ConnectionMode.Fake)]
+        [InlineData(ClusterProfile.Docker, ConnectionMode.Real)]
+        [InlineData(ClusterProfile.CapellaPublic, ConnectionMode.Fake)]
+        [InlineData(ClusterProfile.CapellaPublic, ConnectionMode.Real)]
+        public async Task StartAsync_WithSdkBootstrap_EndsLikeHarnessBootstrap(string profile, ConnectionMode mode)
+        {
+            await using var byHand = await Scenario.On(profile).Connections(mode).Bootstrap(BootstrapMode.Harness).StartAsync();
+            await using var bySdk = await Scenario.On(profile).Connections(mode).StartAsync();
+
+            Assert.Equal(BootstrapMode.Harness, byHand.Harness.Bootstrap);
+            Assert.Equal(BootstrapMode.Sdk, bySdk.Harness.Bootstrap);
+            Assert.Equal(EndState(byHand), EndState(bySdk));
+            Assert.Equal([Node0, Node1, Node2], bySdk.View().Nodes);
+        }
+
+        /// <summary>
         /// The added node and the rejoined host stay outside the bucket, so for them only nodesExt changes.
         /// </summary>
         [Theory]
@@ -579,6 +599,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             Assert.True(scenario.Harness.Server.Counters(Node1).ConnectionsClosed >= closed + 2);
             Assert.Equal([Node0, Node1, Node2, Node3, Node4], scenario.View().Nodes);
+        }
+
+        private static List<string> EndState(Scenario scenario)
+        {
+            var state = scenario.Harness.Nodes.Select(n => $"{n.EndPoint} {n} uuid={n.NodeUuid}").ToList();
+            state.Add($"global {scenario.Harness.GlobalVersion}");
+            state.AddRange(scenario.Model.Buckets.Select(b => $"{b} {scenario.View(b).Version} [{string.Join(", ", scenario.View(b).Nodes)}]"));
+            return state;
         }
 
         private sealed record Point(string Name, int Pending, bool Forward, ModelEvent Last, ConfigVersion ModelVersion, ConfigVersion? SdkVersion)

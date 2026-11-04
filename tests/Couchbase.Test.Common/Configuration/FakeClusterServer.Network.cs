@@ -129,13 +129,14 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
-        /// Opens a connection to the host and returns the SDK end of it.
+        /// Opens a connection to the node at the endpoint and returns the SDK end of it. Read <see cref="Route"/>.
         /// </summary>
-        /// <exception cref="SocketException">The host refuses connections, or the network is shut down.</exception>
+        /// <exception cref="SocketException">The node refuses connections, or the network is shut down.</exception>
         internal ClientStream ConnectStream(HostEndpointWithPort endPoint)
         {
             var options = _network ?? throw new InvalidOperationException("This server answers inside each send. Call Connect.");
-            var state = HostFor(endPoint.Host);
+            var (host, seed) = Route(endPoint);
+            var state = HostFor(host);
             StreamSession session;
             lock (state.Lock)
             {
@@ -145,7 +146,7 @@ namespace Couchbase.Test.Common.Configuration
                     throw new SocketException((int)SocketError.ConnectionRefused);
                 }
 
-                session = new StreamSession(this, state, endPoint, options, Interlocked.Increment(ref _streamsOpened));
+                session = new StreamSession(this, state, endPoint, seed, options, Interlocked.Increment(ref _streamsOpened));
                 state.Sessions.Add(session);
             }
 
@@ -307,8 +308,8 @@ namespace Couchbase.Test.Common.Configuration
             private long _bytesToClient;
             private int _isClosed;
 
-            public StreamSession(FakeClusterServer server, HostState state, HostEndpointWithPort endPoint,
-                NetworkOptions options, int index) : base(state.Host)
+            public StreamSession(FakeClusterServer server, HostState state, HostEndpointWithPort endPoint, bool isSeed,
+                NetworkOptions options, int index) : base(state.Host, endPoint, isSeed)
             {
                 if (options.BufferSize < 1)
                 {
