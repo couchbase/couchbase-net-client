@@ -9,8 +9,15 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
 {
     /// <summary>
     /// Sets up a <see cref="Scenario"/>. By default it has the bucket of the profile, fake connections, the virtual
-    /// clock and the SDK options of <see cref="ConfigHarness.Create"/> with config polling on.
+    /// clock, the SDK bootstrap and the SDK options of <see cref="ConfigHarness.Create"/> with config polling on.
     /// </summary>
+    /// <remarks>
+    /// When the profile nodes share one external host, like on Private Link, the SDK connects the way the captured SDK
+    /// did. The connection string is couchbases:// with that host, so TLS is on and the seed is that host on 11207, which
+    /// is in no map. The network resolution is auto, the SDK default, so the SDK picks the external network at bootstrap.
+    /// Else the SDK connects to the first model node on the default network, with no TLS. <see cref="Configure"/> runs
+    /// after this and can change it.
+    /// </remarks>
     internal sealed class ScenarioSetup
     {
         /// <summary>
@@ -25,6 +32,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         private readonly int _nodes;
         private IReadOnlyList<string>? _buckets;
         private ConnectionMode _mode = ConnectionMode.Fake;
+        private BootstrapMode _bootstrap = BootstrapMode.Sdk;
         private NetworkOptions? _network;
         private Action<ClusterOptions>? _configure;
         private TimeProvider? _clock;
@@ -58,6 +66,15 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         {
             _mode = ConnectionMode.Real;
             _network = network;
+            return this;
+        }
+
+        /// <summary>
+        /// Who creates the global nodes and opens the buckets. It is <see cref="BootstrapMode.Sdk"/> by default.
+        /// </summary>
+        public ScenarioSetup Bootstrap(BootstrapMode bootstrap)
+        {
+            _bootstrap = bootstrap;
             return this;
         }
 
@@ -107,7 +124,8 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         public async Task<Scenario> StartAsync()
         {
             var model = ClusterModel.Create(_profile, _nodes, _buckets, _seed);
-            var harness = ConfigHarness.Create(model.Render(model.Cluster, null), _configure, PollInterval, _clock, _mode, _network);
+            var harness = ConfigHarness.Create(model.Render(model.Cluster, null), CapturedConnection() + _configure,
+                PollInterval, _clock, _mode, _network, _bootstrap);
             try
             {
                 harness.StartPolling();
@@ -127,6 +145,20 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                 await harness.DisposeAsync().ConfigureAwait(false);
                 throw;
             }
+        }
+
+        private Action<ClusterOptions>? CapturedConnection()
+        {
+            if (_profile.NodeShape.AlternateAddresses.FirstOrDefault(a => a.SharedHostname is not null)?.SharedHostname is not { } host)
+            {
+                return null;
+            }
+
+            return options =>
+            {
+                options.ConnectionString = $"couchbases://{host}";
+                options.NetworkResolution = NetworkResolution.Auto;
+            };
         }
     }
 }

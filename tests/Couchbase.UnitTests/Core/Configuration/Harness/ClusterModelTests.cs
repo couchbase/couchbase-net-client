@@ -418,7 +418,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var view = scenario.View();
             Assert.Equal(latest.Version, view.Version);
             Assert.Equal(latest.BucketNodes.OrderBy(h => h, StringComparer.Ordinal), view.Nodes);
-            Assert.Empty(ScenarioCheck.WrongActives(scenario.Bucket(), latest));
+            Assert.Empty(ScenarioCheck.WrongActives(view, latest));
         }
 
         /// <summary>

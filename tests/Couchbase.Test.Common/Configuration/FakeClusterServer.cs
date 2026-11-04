@@ -26,7 +26,8 @@ namespace Couchbase.Test.Common.Configuration
     /// Each node answers connection setup, serves the cluster map set for it and pushes cluster map changes.
     /// </summary>
     /// <remarks>
-    /// A host is the address the SDK connects to, so it is the alternate address on an external network.
+    /// A host is a node name, the hostname of the node in nodesExt. Every method that takes a host takes that name.
+    /// The server finds the node of a connection from the endpoint the SDK connects to. Read <see cref="NodeAt"/>.
     /// HELLO grants every feature the SDK asks for. A connection serves the map of the bucket it selected,
     /// or the global map when it selected none.
     /// </remarks>
@@ -45,6 +46,13 @@ namespace Couchbase.Test.Common.Configuration
         private readonly List<ConfigFetch> _fetches = new();
         private readonly List<ServerRequest> _received = new();
         private readonly List<Session> _sessions = new();
+
+        // The node name at each alternate address endpoint, from every map set so far. So a node keeps its endpoint
+        // after it leaves the maps, and the last map to name an endpoint wins.
+        private readonly Dictionary<(string Host, int Port), string> _plainEndpoints = new();
+        private readonly Dictionary<(string Host, int Port), string> _tlsEndpoints = new();
+        private readonly HashSet<string> _alternateHosts = new(StringComparer.Ordinal);
+        private readonly HashSet<(string Map, ConfigVersion Version)> _indexed = new();
         private long _requests;
 
         /// <summary>
@@ -63,9 +71,66 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
+        /// True when the SDK connects to the TLS ports. An alternate address endpoint then matches a node by its kvSSL
+        /// port, else by its kv port.
+        /// </summary>
+        public bool Tls { get; set; }
+
+        /// <summary>
+        /// The node that takes each connection to an endpoint that matches no node, like the Private Link seed on 11207.
+        /// A real endpoint load balancer picks a node that the client cannot see. When null, it is the first node by name
+        /// of the latest cluster map the server serves.
+        /// </summary>
+        public string? SeedNode { get; set; }
+
+        /// <summary>
         /// How many requests the nodes answered, of any kind.
         /// </summary>
         public long RequestCount => Interlocked.Read(ref _requests);
+
+        /// <summary>
+        /// The name of the node at the endpoint, or null when the endpoint matches no node, like the Private Link seed.
+        /// </summary>
+        /// <remarks>
+        /// An endpoint on an alternate address host matches the node with that host and port in a map the server was
+        /// given. The port is the kv port, or the kvSSL port with <see cref="Tls"/>. Any other host is a node name, so on
+        /// the default network the endpoint host is the name.
+        /// </remarks>
+        public string? NodeAt(HostEndpointWithPort endPoint)
+        {
+            lock (_lock)
+            {
+                var endpoints = Tls ? _tlsEndpoints : _plainEndpoints;
+                if (endpoints.TryGetValue((endPoint.Host, endPoint.Port), out var name)) return name;
+                return _alternateHosts.Contains(endPoint.Host) ? null : endPoint.Host;
+            }
+        }
+
+        /// <summary>
+        /// The node that takes a connection to the endpoint. It is <see cref="SeedNode"/> for an endpoint that matches no node.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The endpoint matches no node and the server serves no cluster map.</exception>
+        internal (string Host, bool Seed) Route(HostEndpointWithPort endPoint)
+        {
+            if (NodeAt(endPoint) is { } name) return (name, false);
+
+            lock (_lock)
+            {
+                return (SeedNode ?? FirstNodeOfLatestClusterMap()
+                    ?? throw new InvalidOperationException($"{endPoint} matches no node, and no node serves a cluster map to pick a seed node from."), true);
+            }
+        }
+
+        private string? FirstNodeOfLatestClusterMap()
+        {
+            if (!_maps.TryGetValue(BucketConfig.GlobalBucketName, out var maps)) return null;
+
+            var latest = maps.Nodes.Values.Select(n => n.Map).Prepend(maps.Default)
+                .Where(m => m is not null)
+                .OrderByDescending(m => m!.Version)
+                .FirstOrDefault();
+            return latest?.Nodes.Select(n => n.Name).OrderBy(n => n, StringComparer.Ordinal).FirstOrDefault();
+        }
 
         /// <summary>
         /// Every request the nodes received, in order. In real mode a request counts once the node has read all of it.
@@ -143,6 +208,7 @@ namespace Couchbase.Test.Common.Configuration
                 var maps = MapsFor(map.Name);
                 maps.Default = map;
                 maps.Nodes.Clear();
+                Index(map);
             }
         }
 
@@ -160,6 +226,7 @@ namespace Couchbase.Test.Common.Configuration
             lock (_lock)
             {
                 var maps = MapsFor(map.Name);
+                Index(served);
                 foreach (var host in hosts)
                 {
                     if (!maps.Nodes.TryGetValue(host, out var node))
@@ -292,8 +359,9 @@ namespace Couchbase.Test.Common.Configuration
                 throw new InvalidOperationException("This server takes stream connections. Call ConnectStream.");
             }
 
-            var connection = new Connection(this, endPoint);
-            var state = HostFor(connection.Host);
+            var (host, seed) = Route(endPoint);
+            var connection = new Connection(this, endPoint, host, seed);
+            var state = HostFor(host);
             lock (state.Lock) state.Sessions.Add(connection);
             lock (_lock) _sessions.Add(connection);
             Interlocked.Increment(ref state.ConnectionsOpened);
@@ -334,9 +402,26 @@ namespace Couchbase.Test.Common.Configuration
             lock (_lock)
             {
                 var maps = MapsFor(name);
+                Index(served);
                 foreach (var host in hosts)
                 {
                     maps.Nodes[host] = new NodeMap(served);
+                }
+            }
+        }
+
+        // The caller holds the lock. Every node serves the same nodes for one version of a map, so one body per version is read.
+        private void Index(ServedMap map)
+        {
+            if (!map.HasAlternateAddresses || !_indexed.Add((map.Name, map.Version))) return;
+
+            foreach (var node in map.Nodes)
+            {
+                foreach (var alternate in node.Alternates)
+                {
+                    _alternateHosts.Add(alternate.Host);
+                    if (alternate.Kv > 0) _plainEndpoints[(alternate.Host, alternate.Kv)] = node.Name;
+                    if (alternate.KvSsl > 0) _tlsEndpoints[(alternate.Host, alternate.KvSsl)] = node.Name;
                 }
             }
         }
@@ -358,7 +443,7 @@ namespace Couchbase.Test.Common.Configuration
         {
             var request = new Request(packet);
             var record = new ServerRequest(session.Host, session.Id, request.OpCode, session.Bucket,
-                request.OpCode == OpCode.GetClusterConfig ? KnownVersion(request) : null);
+                request.OpCode == OpCode.GetClusterConfig ? KnownVersion(request) : null, session.IsSeed);
             lock (_lock) _received.Add(record);
             Interlocked.Increment(ref HostFor(session.Host).RequestsReceived);
         }
@@ -413,7 +498,7 @@ namespace Couchbase.Test.Common.Configuration
                 {
                     if (answersLeft == 0)
                     {
-                        _fetches.Add(new ConfigFetch(connection.Host, connection.Bucket, known, null));
+                        _fetches.Add(new ConfigFetch(connection.Host, connection.Bucket, known, null, connection.IsSeed));
                         return Response(request, ResponseStatus.TemporaryFailure);
                     }
                     _answersLeft[connection.Host] = answersLeft - 1;
@@ -424,7 +509,7 @@ namespace Couchbase.Test.Common.Configuration
 
                 // Like the server, answer with no map when the client already has this version or a newer one.
                 var newer = known is null || map.Version > known.Value;
-                _fetches.Add(new ConfigFetch(connection.Host, connection.Bucket, known, newer ? map.Version : null));
+                _fetches.Add(new ConfigFetch(connection.Host, connection.Bucket, known, newer ? map.Version : null, connection.IsSeed));
                 return newer
                     ? Response(request, ResponseStatus.Success, DataType.Json, map.Json)
                     : Response(request, ResponseStatus.Success);
@@ -547,11 +632,22 @@ namespace Couchbase.Test.Common.Configuration
         /// </summary>
         internal sealed class ServedMap(string name, byte[] json, ConfigVersion version)
         {
+            private bool? _hasAlternateAddresses;
+            private IReadOnlyList<ServedNode>? _nodes;
+
             public string Name { get; } = name;
 
             public byte[] Json { get; } = json;
 
             public ConfigVersion Version { get; } = version;
+
+            internal bool HasAlternateAddresses =>
+                _hasAlternateAddresses ??= Json.AsSpan().IndexOf("\"alternateAddresses\""u8) >= 0;
+
+            /// <summary>
+            /// The nodesExt entries that have a hostname, read from the JSON on first use.
+            /// </summary>
+            internal IReadOnlyList<ServedNode> Nodes => _nodes ??= ServedNode.Read(Json);
 
             public static ServedMap From(ClusterMapBuilder map)
             {
@@ -559,6 +655,65 @@ namespace Couchbase.Test.Common.Configuration
                 var config = JsonSerializer.Deserialize(json, InternalSerializationContext.Default.BucketConfig)!;
                 return new ServedMap(map.Name, json, config.ConfigVersion);
             }
+        }
+
+        /// <summary>
+        /// The name of one nodesExt entry and the KV endpoints of its alternate addresses.
+        /// </summary>
+        internal sealed class ServedNode(string name, IReadOnlyList<(string Host, int Kv, int KvSsl)> alternates)
+        {
+            public string Name { get; } = name;
+
+            public IReadOnlyList<(string Host, int Kv, int KvSsl)> Alternates { get; } = alternates;
+
+            // Like the SDK, an alternate address with ports offers only those ports, and one without keeps the node ports.
+            public static IReadOnlyList<ServedNode> Read(byte[] json)
+            {
+                // Only nodesExt is parsed, as the vbucket maps are most of the body.
+                var reader = new Utf8JsonReader(json);
+                reader.Read();
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    var isNodesExt = reader.ValueTextEquals("nodesExt"u8);
+                    reader.Read();
+                    if (!isNodesExt)
+                    {
+                        reader.Skip();
+                        continue;
+                    }
+
+                    using var nodesExt = JsonDocument.ParseValue(ref reader);
+                    return Read(nodesExt.RootElement);
+                }
+                return [];
+            }
+
+            private static List<ServedNode> Read(JsonElement nodesExt)
+            {
+                var nodes = new List<ServedNode>();
+                foreach (var node in nodesExt.EnumerateArray())
+                {
+                    if (!node.TryGetProperty("hostname", out var hostname) || hostname.GetString() is not { } name) continue;
+
+                    node.TryGetProperty("services", out var services);
+                    var alternates = new List<(string, int, int)>();
+                    if (node.TryGetProperty("alternateAddresses", out var networks))
+                    {
+                        foreach (var network in networks.EnumerateObject())
+                        {
+                            if (!network.Value.TryGetProperty("hostname", out var host) || host.GetString() is not { } alternateHost) continue;
+
+                            var ports = network.Value.TryGetProperty("ports", out var alternatePorts) ? alternatePorts : services;
+                            alternates.Add((alternateHost, Port(ports, "kv"), Port(ports, "kvSSL")));
+                        }
+                    }
+                    nodes.Add(new ServedNode(name, alternates));
+                }
+                return nodes;
+            }
+
+            private static int Port(JsonElement ports, string key) =>
+                ports.ValueKind == JsonValueKind.Object && ports.TryGetProperty(key, out var port) ? port.GetInt32() : 0;
         }
 
         private sealed class NodeMap(ServedMap map)
@@ -587,13 +742,28 @@ namespace Couchbase.Test.Common.Configuration
             private volatile HashSet<ServerFeatures> _features = new();
             private string? _bucket;
 
-            protected Session(string host)
+            protected Session(string host, HostEndpointWithPort address, bool isSeed)
             {
                 Host = host;
+                Address = address;
+                IsSeed = isSeed;
                 Id = Interlocked.Increment(ref _lastId);
             }
 
+            /// <summary>
+            /// The name of the node that serves the connection.
+            /// </summary>
             public string Host { get; }
+
+            /// <summary>
+            /// The endpoint the SDK connected to. It is the alternate address on an external network.
+            /// </summary>
+            public HostEndpointWithPort Address { get; }
+
+            /// <summary>
+            /// True when <see cref="Address"/> matches no node, so the connection went to <see cref="SeedNode"/>.
+            /// </summary>
+            public bool IsSeed { get; }
 
             /// <summary>
             /// Tells the connections apart in <see cref="ServerRequest.Session"/>.
@@ -643,7 +813,8 @@ namespace Couchbase.Test.Common.Configuration
             /// </summary>
             internal abstract void Push(SlicedMemoryOwner<byte> frame);
 
-            public override string ToString() => $"{Host} #{Id} bucket={Bucket ?? "none"} held={RepliesHeld}";
+            public override string ToString() =>
+                $"{Host}{(IsSeed ? $" seed {Address}" : "")} #{Id} bucket={Bucket ?? "none"} held={RepliesHeld}";
         }
 
         /// <summary>
@@ -658,7 +829,8 @@ namespace Couchbase.Test.Common.Configuration
             private readonly CancellationTokenSource _closed = new();
             private int _disposed;
 
-            internal Connection(FakeClusterServer server, HostEndpointWithPort endPoint) : base(endPoint.Host)
+            internal Connection(FakeClusterServer server, HostEndpointWithPort endPoint, string host, bool isSeed)
+                : base(host, endPoint, isSeed)
             {
                 _server = server;
                 EndPoint = new IPEndPoint(IPAddress.Loopback, endPoint.Port);
@@ -694,7 +866,7 @@ namespace Couchbase.Test.Common.Configuration
 
             public string? SupportedSaslMechanisms { get; set; }
 
-            public string RemoteHost => Host;
+            public string RemoteHost => Address.Host;
 
             public string LocalHost => "127.0.0.1";
 
@@ -749,9 +921,14 @@ namespace Couchbase.Test.Common.Configuration
     /// <summary>
     /// One GetClusterConfig request a node answered.
     /// </summary>
-    internal sealed class ConfigFetch(string host, string? bucket, ConfigVersion? knownVersion, ConfigVersion? served)
+    internal sealed class ConfigFetch(string host, string? bucket, ConfigVersion? knownVersion, ConfigVersion? served, bool seed)
     {
         public string Host { get; } = host;
+
+        /// <summary>
+        /// The <see cref="FakeClusterServer.Session.IsSeed"/> of the connection.
+        /// </summary>
+        public bool Seed { get; } = seed;
 
         /// <summary>
         /// The bucket selected on the connection, or null for the global map.
@@ -769,15 +946,20 @@ namespace Couchbase.Test.Common.Configuration
         public ConfigVersion? Served { get; } = served;
 
         public override string ToString() =>
-            $"{Host} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"} served={Served?.ToString() ?? "none"}";
+            $"{Host}{(Seed ? " seed" : "")} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"} served={Served?.ToString() ?? "none"}";
     }
 
     /// <summary>
     /// One request a node received, answered or not.
     /// </summary>
-    internal sealed class ServerRequest(string host, int session, OpCode opCode, string? bucket, ConfigVersion? knownVersion)
+    internal sealed class ServerRequest(string host, int session, OpCode opCode, string? bucket, ConfigVersion? knownVersion, bool seed)
     {
         public string Host { get; } = host;
+
+        /// <summary>
+        /// The <see cref="FakeClusterServer.Session.IsSeed"/> of the connection.
+        /// </summary>
+        public bool Seed { get; } = seed;
 
         /// <summary>
         /// The <see cref="FakeClusterServer.Session.Id"/> of the connection.
@@ -797,7 +979,7 @@ namespace Couchbase.Test.Common.Configuration
         public ConfigVersion? KnownVersion { get; } = knownVersion;
 
         public override string ToString() =>
-            $"{Host} #{Session} {OpCode} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"}";
+            $"{Host}{(Seed ? " seed" : "")} #{Session} {OpCode} bucket={Bucket ?? "none"} known={KnownVersion?.ToString() ?? "none"}";
     }
 
     /// <summary>
