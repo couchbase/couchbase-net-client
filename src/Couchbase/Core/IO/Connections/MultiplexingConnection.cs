@@ -195,9 +195,24 @@ namespace Couchbase.Core.IO.Connections
 
             // _writeMutex is used to prevent interleaved writes from different threads. This primarily
             // occurs when running Diagnostics pings or when using IConnectionPool.TrySendImmediatelyAsync.
-            await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
+                await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Nothing was written, so no reply frees the slot.
+                if (_statesInFlight.TryRemove(state.Opaque, out var removed))
+                {
+                    removed.Dispose();
+                }
+
+                throw;
+            }
+
+            try
+            {
+                // A write cut by the token leaves part of a frame on the stream, so the catch below closes the connection.
 #if SPAN_SUPPORT
                 await _stream.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 #else
@@ -211,11 +226,10 @@ namespace Couchbase.Core.IO.Connections
                     .ConfigureAwait(false);
 #endif
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e) when (cancellationToken.IsCancellationRequested)
             {
-                // Don't let cancellations kill the connection, just ignore.
-                // It's also unnecessary to forward this to the operation, as it is monitoring for cancellation
-                // and throws the correct exception type based on internal vs. external cancellation.
+                HandleDisconnect(e);
+                throw;
             }
             catch (Exception e)
             {

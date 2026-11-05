@@ -98,7 +98,7 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="operation">Operation being sent which will receive the completion notification.</param>
-        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
+        /// <param name="cancellationToken">Cancellation token which cancels the send. A write it cancels also closes the connection, which fails the operations in flight on it.</param>
         /// <remarks>
         /// Completion of the returned task indicates that the operation has been sent on the wire.
         /// The operation will be marked as complete when a response is received.
