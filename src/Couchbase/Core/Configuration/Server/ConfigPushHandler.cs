@@ -17,6 +17,7 @@ internal partial class ConfigPushHandler : IDisposable
     private readonly ClusterContext _context;
     private readonly Redactor _redactor;
     private readonly BucketBase _bucket;
+    private readonly TimeProvider _timeProvider;
 
     // A node can be pushed a config version before the node asked for the config has it, and the server
     // then answers that it has nothing newer. The same version is not pushed again, so we ask again.
@@ -32,12 +33,14 @@ internal partial class ConfigPushHandler : IDisposable
     private ConfigVersion _latestVersion;
     private volatile bool _disposed;
 
-    public ConfigPushHandler(BucketBase bucket, ClusterContext context, ILogger logger, Redactor redactor)
+    public ConfigPushHandler(BucketBase bucket, ClusterContext context, ILogger logger, Redactor redactor,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _bucket = bucket;
         _context = context;
         _redactor = redactor;
+        _timeProvider = timeProvider;
 
         bool restoreFlow = false;
         try
@@ -188,7 +191,8 @@ internal partial class ConfigPushHandler : IDisposable
                             // Deliberately not cancellable: 10ms never delays shutdown, and
                             // cancelling here would throw into the catch-all below and log a
                             // warning every time the consumer loop is torn down.
-                            await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
+                            await _timeProvider.Delay(TimeSpan.FromMilliseconds(10), CancellationToken.None)
+                                .ConfigureAwait(false);
                         }
 
                         TryReleaseNewVersionSemaphore();
@@ -204,7 +208,7 @@ internal partial class ConfigPushHandler : IDisposable
 
                         // Deliberately not cancellable, as in the delay above: the delay is short, and
                         // cancelling would log a warning every time the consumer loop is torn down.
-                        await Task.Delay(delay, CancellationToken.None).ConfigureAwait(false);
+                        await _timeProvider.Delay(delay, CancellationToken.None).ConfigureAwait(false);
                         TryReleaseNewVersionSemaphore();
                     }
                     else
