@@ -188,9 +188,10 @@ internal partial class ConfigPushHandler : IDisposable
                         var skips = Interlocked.Increment(ref skipsWithNoPublish);
                         if (skips > 100)
                         {
-                            // Deliberately not cancellable: 10ms never delays shutdown, and
-                            // cancelling here would throw into the catch-all below and log a
-                            // warning every time the consumer loop is torn down.
+                            // Deliberately not cancellable. Cancelling here would throw into the catch-all
+                            // below and log a warning every time the loop is torn down. On the real clock
+                            // 10ms never delays shutdown. A test clock must be advanced, or the loop stays
+                            // parked here after the handler is disposed.
                             await _timeProvider.Delay(TimeSpan.FromMilliseconds(10), CancellationToken.None)
                                 .ConfigureAwait(false);
                         }
@@ -206,8 +207,8 @@ internal partial class ConfigPushHandler : IDisposable
                     {
                         LogRetryingAfterNullConfig(pushedVersion, nullRetryTracker.Retries, delay);
 
-                        // Deliberately not cancellable, as in the delay above: the delay is short, and
-                        // cancelling would log a warning every time the consumer loop is torn down.
+                        // Deliberately not cancellable, as in the delay above. A test clock must be
+                        // advanced past this delay, or the loop stays parked after the handler is disposed.
                         await _timeProvider.Delay(delay, CancellationToken.None).ConfigureAwait(false);
                         TryReleaseNewVersionSemaphore();
                     }
