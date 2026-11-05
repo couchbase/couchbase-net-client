@@ -61,10 +61,12 @@ namespace Couchbase.Core.DI
             };
         }
 
-        public ISaslMechanism CreatePasswordMechanism(IConnection connection, bool enableTls, string username, string password)
+        public ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password)
         {
-            // PLAIN is safe over TLS and needs no negotiation.
-            if (enableTls)
+            // PLAIN sends the password as-is, so it is only used when this connection is encrypted. The
+            // transport is the source of truth: a flag captured when the authenticator was created can be
+            // wrong for the connection actually being authenticated.
+            if (connection.IsSecure)
             {
                 return CreatePasswordMechanism(MechanismType.Plain, username, password);
             }
@@ -82,6 +84,16 @@ namespace Couchbase.Core.DI
 
             if (!ScramShaMechanism.TrySelectMechanism(serverMechanisms!, out var mechanismType))
             {
+                // A PLAIN-only server (e.g. LDAP users, who have no SCRAM credentials) needs TLS, not SCRAM.
+                var advertised = serverMechanisms!.Split(' ');
+                if (advertised.Contains("PLAIN") && !advertised.Any(m => m.StartsWith("SCRAM-", StringComparison.Ordinal)))
+                {
+                    throw new AuthenticationFailureException(
+                        $"No common SASL mechanism. Server advertises [{serverMechanisms}]. PLAIN sends the " +
+                        "password in cleartext, so it is only used over TLS. Connect with couchbases:// " +
+                        "(required for LDAP users).");
+                }
+
                 throw new AuthenticationFailureException(
                     $"No common SASL mechanism. Server advertises [{serverMechanisms}]; this client supports " +
                     $"[{string.Join(", ", ScramShaMechanism.ClientSupportedMechanisms.Select(m => m.GetDescription()))}]. " +

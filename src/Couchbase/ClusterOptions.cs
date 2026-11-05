@@ -347,7 +347,7 @@ namespace Couchbase
         /// <returns>A reference to this <see cref="ClusterOptions"/> object for method chaining.</returns>
         public ClusterOptions WithPasswordAuthentication(string username, string password)
         {
-            Authenticator = new PasswordAuthenticator(username, password, EffectiveEnableTls);
+            Authenticator = new PasswordAuthenticator(username, password);
             return this;
         }
 
@@ -444,7 +444,7 @@ namespace Couchbase
 
             if (!string.IsNullOrEmpty(UserName))
             {
-                return Authenticator = new PasswordAuthenticator(UserName!, Password ?? string.Empty, EffectiveEnableTls);
+                return Authenticator = new PasswordAuthenticator(UserName!, Password ?? string.Empty);
             }
 #pragma warning restore CS0618 // Type or member is obsolete
 

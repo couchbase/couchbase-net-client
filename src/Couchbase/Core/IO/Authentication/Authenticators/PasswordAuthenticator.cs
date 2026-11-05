@@ -23,7 +23,6 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     public readonly string Username;
     public readonly string Password;
     private readonly string _encodedCredentials;
-    private readonly bool _enableTls;
 
     public override AuthenticatorType AuthenticatorType => AuthenticatorType.Password;
     public override bool CanReauthenticateKv => false;
@@ -31,17 +30,31 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     /// <summary>
     /// Creates a new PasswordAuthenticator with the specified credentials.
     /// </summary>
+    /// <remarks>
+    /// The SASL mechanism is chosen for each KV connection from that connection's transport: PLAIN over
+    /// TLS, otherwise the strongest SCRAM mechanism the server supports.
+    /// </remarks>
     /// <param name="username">The username.</param>
     /// <param name="password">The password.</param>
-    /// <param name="enableTls">Whether TLS is enabled (affects SASL mechanism selection).</param>
-    public PasswordAuthenticator(string username, string password, bool enableTls = true)
+    public PasswordAuthenticator(string username, string password)
     {
         Username = username;
         Password = password;
-        _enableTls = enableTls;
 
         var usernameAndPasswordBytes = Encoding.UTF8.GetBytes($"{Username}:{Password}");
         _encodedCredentials = Convert.ToBase64String(usernameAndPasswordBytes);
+    }
+
+    /// <summary>
+    /// Creates a new PasswordAuthenticator with the specified credentials.
+    /// </summary>
+    /// <param name="username">The username.</param>
+    /// <param name="password">The password.</param>
+    /// <param name="enableTls">Ignored. The SASL mechanism is chosen from each connection's transport.</param>
+    [Obsolete("enableTls is ignored; the SASL mechanism is chosen from each connection's transport. Use PasswordAuthenticator(username, password).")]
+    public PasswordAuthenticator(string username, string password, bool enableTls)
+        : this(username, password)
+    {
     }
 
     /// <inheritdoc />
@@ -58,11 +71,11 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
         ISaslMechanismFactory saslMechanismFactory,
         CancellationToken cancellationToken)
     {
-        // The factory resolves the mechanism authoritatively: PLAIN over TLS, otherwise the strongest
-        // SCRAM mechanism mutually supported by this target framework and the server (negotiated from the
-        // SASL_LIST_MECHS list cached on the connection during bootstrap).
+        // The factory resolves the mechanism from the connection's transport: PLAIN over TLS, otherwise the
+        // strongest SCRAM mechanism mutually supported by this target framework and the server (negotiated
+        // from the SASL_LIST_MECHS list cached on the connection during bootstrap).
         var saslMechanism = saslMechanismFactory.CreatePasswordMechanism(
-            connection, _enableTls, Username, Password);
+            connection, Username, Password);
 
         await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
     }

@@ -918,7 +918,8 @@ namespace Couchbase.Core
                 // Pre-fetch and cache the server's SASL mechanism list on non-TLS connections so the
                 // authenticator can negotiate the strongest mutually-supported SCRAM mechanism without an
                 // extra round-trip per auth. TLS connections use PLAIN without negotiation, so we skip it.
-                if (!_context.ClusterOptions.EffectiveEnableTls)
+                // Decided from the connection itself, as the SASL mechanism factory does, so the two agree.
+                if (!connection.IsSecure)
                 {
                     using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
                     connection.SupportedSaslMechanisms =
