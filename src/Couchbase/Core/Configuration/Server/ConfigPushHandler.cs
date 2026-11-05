@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -73,8 +71,6 @@ internal partial class ConfigPushHandler : IDisposable
             await _versionReceivedEvent.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var failedConfigFetchNodes = new HashSet<IClusterNode>();
-
                 ConfigVersion pushedVersion;
                 lock (_lock)
                 {
@@ -127,6 +123,8 @@ internal partial class ConfigPushHandler : IDisposable
                 }
 
                 BucketConfig fetchedBucketConfig = null;
+                var nullCount = 0;
+                var failedCount = 0;
                 foreach (var node in randomNodes)
                 {
                     if (node is null) continue;
@@ -139,19 +137,17 @@ internal partial class ConfigPushHandler : IDisposable
                         {
                             break;
                         }
+
+                        nullCount++;
                     }
-                    catch (SocketNotAvailableException)
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                     {
-                        failedConfigFetchNodes.Add(node);
-                        _logger.LogWarning("Socket closed on {EndPoint} retrying on next random node",
-                            node.EndPoint);
+                        // The server does not push the same version again, so a failed node must not end the pass.
+                        failedCount++;
+                        LogConfigFetchFailed(pushedVersion, _redactor.SystemData(_bucket.Name),
+                            _redactor.SystemData(node.EndPoint), ex.GetType().Name, ex.Message);
                         await Task.Yield();
                     }
-                }
-
-                if (failedConfigFetchNodes.Count == randomNodes.Count)
-                {
-                    _logger.LogCritical("All {count} nodes failed to fetch config.", randomNodes.Count);
                 }
 
                 if (fetchedBucketConfig != null)
@@ -188,11 +184,7 @@ internal partial class ConfigPushHandler : IDisposable
                         var skips = Interlocked.Increment(ref skipsWithNoPublish);
                         if (skips > 100)
                         {
-                            // Deliberately not cancellable. Cancelling here would throw into the catch-all
-                            // below and log a warning every time the loop is torn down. On the real clock
-                            // 10ms never delays shutdown. A test clock must be advanced, or the loop stays
-                            // parked here after the handler is disposed.
-                            await _timeProvider.Delay(TimeSpan.FromMilliseconds(10), CancellationToken.None)
+                            await _timeProvider.Delay(TimeSpan.FromMilliseconds(10), cancellationToken)
                                 .ConfigureAwait(false);
                         }
 
@@ -201,22 +193,26 @@ internal partial class ConfigPushHandler : IDisposable
                 }
                 else
                 {
-                    LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault());
+                    LogServerReturnedNullConfig(pushedVersion, effectiveVersion.GetValueOrDefault(), nullCount,
+                        failedCount);
 
                     if (nullRetryTracker.TryNextRetry(pushedVersion, effectiveVersion, out var delay))
                     {
                         LogRetryingAfterNullConfig(pushedVersion, nullRetryTracker.Retries, delay);
 
-                        // Deliberately not cancellable, as in the delay above. A test clock must be
-                        // advanced past this delay, or the loop stays parked after the handler is disposed.
-                        await _timeProvider.Delay(delay, CancellationToken.None).ConfigureAwait(false);
+                        await _timeProvider.Delay(delay, cancellationToken).ConfigureAwait(false);
                         TryReleaseNewVersionSemaphore();
                     }
                     else
                     {
-                        LogGaveUpAfterNullConfig(pushedVersion, nullRetryTracker.Retries);
+                        LogGaveUpAfterNullConfig(pushedVersion, nullRetryTracker.Retries, nullCount, failedCount);
                     }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // The handler was disposed during a fetch or a delay. Leave without a warning.
+                break;
             }
             catch (Exception ex)
             {
@@ -349,8 +345,8 @@ internal partial class ConfigPushHandler : IDisposable
     [LoggerMessage(6, LogLevel.Trace, "Trying again: the next version is {nextVersion} is greater the published {publishedVersion}")]
     private partial void LogAttemptedButSkipped(ConfigVersion nextVersion, ConfigVersion publishedVersion);
 
-    [LoggerMessage(7, LogLevel.Trace,"The server returned null for pushed version {pushedVersion} currentVersion: {effectiveVersion}")]
-    private partial void LogServerReturnedNullConfig(ConfigVersion pushedVersion, ConfigVersion effectiveVersion);
+    [LoggerMessage(7, LogLevel.Trace, "No node returned pushed version {pushedVersion}, current version {effectiveVersion}, {nullCount} had nothing newer and {failedCount} failed")]
+    private partial void LogServerReturnedNullConfig(ConfigVersion pushedVersion, ConfigVersion effectiveVersion, int nullCount, int failedCount);
 
     [LoggerMessage(8, LogLevel.Trace, "The node was null for {effectiveVersion}")]
     private partial void LogNodeWasNull(ConfigVersion effectiveVersion);
@@ -364,8 +360,11 @@ internal partial class ConfigPushHandler : IDisposable
     [LoggerMessage(11, LogLevel.Trace, "Asking again for pushed version {pushedVersion} in {delay}: retry {retry}")]
     private partial void LogRetryingAfterNullConfig(ConfigVersion pushedVersion, int retry, TimeSpan delay);
 
-    [LoggerMessage(12, LogLevel.Warning, "No node returned pushed version {pushedVersion} after {retries} retries. Waiting for the next push.")]
-    private partial void LogGaveUpAfterNullConfig(ConfigVersion pushedVersion, int retries);
+    [LoggerMessage(12, LogLevel.Warning, "No node returned pushed version {pushedVersion} after {retries} retries, {nullCount} had nothing newer and {failedCount} failed. Waiting for the next push.")]
+    private partial void LogGaveUpAfterNullConfig(ConfigVersion pushedVersion, int retries, int nullCount, int failedCount);
+
+    [LoggerMessage(13, LogLevel.Warning, "Fetching pushed version {pushedVersion} of {bucket} from {endpoint} failed with {exceptionType}, {exceptionMessage}")]
+    private partial void LogConfigFetchFailed(ConfigVersion pushedVersion, Redacted<string> bucket, Redacted<HostEndpointWithPort> endpoint, string exceptionType, string exceptionMessage);
 }
 
 /* ************************************************************
