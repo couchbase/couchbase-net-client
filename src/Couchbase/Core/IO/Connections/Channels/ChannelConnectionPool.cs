@@ -182,11 +182,8 @@ namespace Couchbase.Core.IO.Connections.Channels
                 return false;
             }
 
-            // Create queue item and send it so that we replicate all behaviors of the queue item.
-            // However, don't capture the ExecutionContext since we're not queueing on the pool and therefore
-            // don't need to restore the context. It's captured instead when awaiting.
-            var queueItem = new ChannelQueueItem(op, cancellationToken, captureContext: false);
-            await queueItem.SendAsync(connection).ConfigureAwait(false);
+            // Unlike the queue, pass the token, so the send stops waiting for a busy connection when it fires.
+            await op.SendAsync(connection, cancellationToken).ConfigureAwait(false);
 
             return true;
         }
