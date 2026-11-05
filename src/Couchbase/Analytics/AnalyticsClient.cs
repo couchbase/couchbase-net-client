@@ -285,6 +285,9 @@ namespace Couchbase.Analytics
             if (result.ParsingFailure()) return new ParsingFailureException(context);
             if (result.CompilationFailure()) return new CompilationFailureException(context);
 
+            // RFC 58: an HTTP 400 that no error code above maps is an invalid argument.
+            if (context.HttpStatus == HttpStatusCode.BadRequest) return new InvalidArgumentException(context);
+
             if (couchbaseExceptionFallback)
             {
                 return new CouchbaseException(context);

@@ -122,11 +122,6 @@ namespace Couchbase.Management.Buckets
 
                         throw ex;
                     }
-
-                    var argEx = new InvalidArgumentException() { Context = ctx };
-                    rootSpan.SetStatus(RequestSpanStatusCode.Error);
-
-                    throw argEx;
                 }
 
                 //Throw any other error cases

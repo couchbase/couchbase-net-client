@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -131,6 +132,9 @@ namespace Couchbase.Query
                 if (error.Code == 1065 && message.Contains("query_context"))
                     return new FeatureNotAvailableException("query_context not available on this server version");
             }
+
+            // RFC 58: an HTTP 400 that no error code above maps is an invalid argument.
+            if (context.HttpStatus == HttpStatusCode.BadRequest) return new InvalidArgumentException(context);
 
             return new CouchbaseException(context);
         }

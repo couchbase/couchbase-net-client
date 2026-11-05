@@ -135,6 +135,7 @@ namespace Couchbase.Management.Users
                     throw new UserNotFoundException(username);
                 }
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get user from result
@@ -198,6 +199,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get users from result
@@ -266,6 +268,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
@@ -325,6 +328,7 @@ namespace Couchbase.Management.Users
                     throw new UserNotFoundException(username);
                 }
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
             }
@@ -395,6 +399,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 if (!result.IsSuccessStatusCode)
                 {
                     throw new HttpRequestException(
@@ -458,6 +463,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get roles from result
@@ -533,6 +539,7 @@ namespace Couchbase.Management.Users
                     throw new GroupNotFoundException(groupName);
                 }
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get group from result
@@ -600,6 +607,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get groups from results
@@ -669,6 +677,7 @@ namespace Couchbase.Management.Users
                     AppTelemetryServiceType.Management,
                     AppTelemetryCounterType.Total);
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);
@@ -735,6 +744,7 @@ namespace Couchbase.Management.Users
                     throw new GroupNotFoundException(groupName);
                 }
 
+                await result.ThrowIfBadRequestAsync().ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 rootSpan.SetStatus(RequestSpanStatusCode.Ok);

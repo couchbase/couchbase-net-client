@@ -139,18 +139,20 @@ namespace Couchbase.Views
 
                         await viewResult.InitializeAsync().ConfigureAwait(false);
 
+                        var errorContext = new ViewContextError
+                        {
+                            DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
+                            ViewName = _redactor.MetaDataString(query.ViewName),
+                            ClientContextId = query.ClientContextId,
+                            HttpStatus = response.StatusCode,
+                            Errors = viewResult.Message
+                        };
+
                         if (viewResult.ShouldRetry())
                         {
                             viewResult.NoRetryException = new CouchbaseException()
                             {
-                                Context = new ViewContextError
-                                {
-                                    DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
-                                    ViewName = _redactor.MetaDataString(query.ViewName),
-                                    ClientContextId = query.ClientContextId,
-                                    HttpStatus = response.StatusCode,
-                                    Errors = viewResult.Message
-                                }
+                                Context = errorContext
                             };
                             UpdateLastActivity();
                             rootSpan.SetStatus(RequestSpanStatusCode.Ok);
@@ -162,14 +164,16 @@ namespace Couchbase.Views
                         {
                             throw new ViewNotFoundException("The queried view is not found on the server.")
                             {
-                                Context = new ViewContextError
-                                {
-                                    DesignDocumentName = _redactor.MetaDataString(query.DesignDocName),
-                                    ViewName = _redactor.MetaDataString(query.ViewName),
-                                    ClientContextId = query.ClientContextId,
-                                    HttpStatus = response.StatusCode,
-                                    Errors = viewResult.Message
-                                }
+                                Context = errorContext
+                            };
+                        }
+
+                        // RFC 58: an HTTP 400 is an invalid argument.
+                        if (response.StatusCode == HttpStatusCode.BadRequest)
+                        {
+                            throw new InvalidArgumentException(viewResult.Message)
+                            {
+                                Context = errorContext
                             };
                         }
                     }

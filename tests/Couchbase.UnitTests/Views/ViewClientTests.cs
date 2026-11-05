@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
@@ -128,6 +130,34 @@ namespace Couchbase.UnitTests.Views
                 m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(),
                     It.IsAny<CancellationToken>()),
                 Times.AtLeastOnce);
+        }
+
+        [Theory]
+        [InlineData(typeof(DefaultSerializer))]
+        [InlineData(typeof(NonStreamingSerializer))]
+        public async Task ExecuteAsync_BadRequest_Throws_InvalidArgumentException(Type serializerType)
+        {
+            // RFC 58: an HTTP 400 is an invalid argument. The client used to return the failed result.
+            const string body = "{\"error\":\"query_parse_error\",\"reason\":\"Invalid value for integer parameter: \\\"abc\\\"\"}";
+            var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent(body)
+            });
+
+            var httpClientFactory = new MockHttpClientFactory(new HttpClient(handler));
+            var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
+            var queryClient = new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
+                new Redactor(RedactionLevel.None), NoopRequestTracer.Instance);
+
+            var query = new ViewQuery("bucket-name", "http://localhost");
+            query.Limit(-1);
+
+            var ex = await Assert.ThrowsAsync<InvalidArgumentException>(() =>
+                queryClient.ExecuteAsync<dynamic, dynamic>(query));
+
+            var context = Assert.IsType<ViewContextError>(ex.Context);
+            Assert.Equal(HttpStatusCode.BadRequest, context.HttpStatus);
+            Assert.Equal(body, context.Errors);
         }
     }
 

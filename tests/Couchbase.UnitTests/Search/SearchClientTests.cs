@@ -8,7 +8,9 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.Logging;
+using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -162,6 +164,46 @@ public class SearchClientTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
+    }
+
+    [Theory]
+    // RFC 58: an HTTP 400 is an invalid argument unless a more specific error applies.
+    [InlineData(HttpStatusCode.BadRequest, "bad request: invalid min for disjunction", typeof(InvalidArgumentException))]
+    [InlineData(HttpStatusCode.BadRequest, "rest_auth: preparePerms, err: index not found", typeof(IndexNotFoundException))]
+    [InlineData(HttpStatusCode.BadRequest, "num_fts_indexes (active + pending) exceeded", typeof(QuotaLimitedException))]
+    [InlineData(HttpStatusCode.InternalServerError, "bad request: invalid min for disjunction", typeof(InternalServerFailureException))]
+    [InlineData(HttpStatusCode.NotFound, "page not found", typeof(CouchbaseException))]
+    public async Task Query_Error_Status_Maps_To_Exception(HttpStatusCode statusCode, string error, Type expectedType)
+    {
+        const string indexName = "test-index";
+
+        using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
+        {
+            Content = new StringContent($"{{\"error\":\"{error}\",\"request\":{{}},\"status\":\"fail\"}}"),
+            StatusCode = statusCode
+        });
+        var httpClientFactory = new MockHttpClientFactory(new HttpClient(handler));
+
+        var nodeMock = new Mock<IClusterNode>();
+        nodeMock
+            .Setup(n => n.SearchUri)
+            .Returns(new Uri("http://localhost:8093"));
+
+        var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+        mockServiceUriProvider
+            .Setup(m => m.GetRandomSearchNode(It.IsAny<IList<Uri>>()))
+            .Returns(nodeMock.Object);
+
+        var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
+            new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
+
+        var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+            client.QueryAsync(indexName, new FtsSearchRequest { Index = indexName }, null, null, CancellationToken.None));
+
+        // Exact type: every mapped exception derives from CouchbaseException.
+        Assert.IsType(expectedType, ex);
+        var context = Assert.IsType<SearchErrorContext>(ex.Context);
+        Assert.Equal(statusCode, context.HttpStatus);
     }
 }
 

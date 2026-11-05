@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.RateLimiting;
 
@@ -59,15 +60,42 @@ namespace Couchbase.Management
                 throw new AuthenticationFailureException(ctx);
             }
 
-            if (msg.StatusCode == HttpStatusCode.BadRequest &&
-                ctx.Message.Contains("Number of vbuckets cannot be modified"))
+            throw msg.CreateUnmappedError(ctx);
+        }
+
+        /// <summary>
+        /// Creates the exception for an error response that has no more specific mapping:
+        /// <see cref="InvalidArgumentException"/> for an HTTP 400 (RFC 58), otherwise <see cref="CouchbaseException"/>.
+        /// </summary>
+        internal static CouchbaseException CreateUnmappedError(this HttpResponseMessage msg, ManagementErrorContext ctx) =>
+            msg.StatusCode == HttpStatusCode.BadRequest
+                ? new InvalidArgumentException(ctx)
+                : new CouchbaseException(ctx);
+
+        /// <summary>
+        /// Creates the exception for an error response that has no more specific mapping, with a
+        /// <see cref="ManagementErrorContext"/> built from the response.
+        /// </summary>
+        internal static CouchbaseException CreateUnmappedError(this HttpResponseMessage msg, string body) =>
+            msg.CreateUnmappedError(new ManagementErrorContext
             {
-                throw new InvalidArgumentException(ctx);
+                HttpStatus = msg.StatusCode,
+                Message = body
+            });
+
+        /// <summary>
+        /// Throws <see cref="InvalidArgumentException"/> for an HTTP 400 (RFC 58). Call it after the
+        /// more specific mappings.
+        /// </summary>
+        internal static async Task ThrowIfBadRequestAsync(this HttpResponseMessage msg)
+        {
+            if (msg.StatusCode != HttpStatusCode.BadRequest)
+            {
+                return;
             }
-            throw new CouchbaseException
-            {
-                Context = ctx
-            };
+
+            var body = await msg.Content.ReadAsStringAsync().ConfigureAwait(false);
+            throw msg.CreateUnmappedError(body);
         }
     }
 }

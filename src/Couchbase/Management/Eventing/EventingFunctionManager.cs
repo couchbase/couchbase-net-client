@@ -116,7 +116,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -195,7 +195,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -253,6 +253,7 @@ namespace Couchbase.Management.Eventing
                         AppTelemetryServiceType.Eventing,
                         AppTelemetryCounterType.Total);
 
+                    await response.ThrowIfBadRequestAsync().ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -365,7 +366,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -444,7 +445,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -514,7 +515,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -591,7 +592,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -668,7 +669,7 @@ namespace Couchbase.Management.Eventing
                     }
 
                     //throw any non-specific errors
-                    throw new CouchbaseException(content);
+                    throw response.CreateUnmappedError(content);
                 }
             }
             catch (Exception e)
@@ -726,6 +727,7 @@ namespace Couchbase.Management.Eventing
                         AppTelemetryServiceType.Eventing,
                         AppTelemetryCounterType.Total);
 
+                    await response.ThrowIfBadRequestAsync().ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

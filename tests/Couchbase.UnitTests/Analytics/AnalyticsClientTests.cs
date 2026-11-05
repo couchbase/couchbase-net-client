@@ -189,14 +189,16 @@ namespace Couchbase.UnitTests.Analytics
         [InlineData(24044, typeof(DatasetNotFoundException))]
         [InlineData(24045, typeof(DatasetNotFoundException))]
         [InlineData(24025, typeof(DatasetNotFoundException))]
-        [InlineData(23007, typeof(JobQueueFullException))]
         [InlineData(25000, typeof(InternalServerFailureException))]
         [InlineData(20000, typeof(AuthenticationFailureException))]
-        [InlineData(23000, typeof(TemporaryFailureException))]
         [InlineData(24000, typeof(ParsingFailureException))]
         [InlineData(24047, typeof(IndexNotFoundException))]
         [InlineData(24048, typeof(IndexExistsException))]//24044, 24045, 24025
+        [InlineData(24010, typeof(CompilationFailureException))]
         [InlineData(24500, typeof(CompilationFailureException))]
+        // RFC 58: an HTTP 400 with no more specific mapping is an invalid argument.
+        [InlineData(22000, typeof(InvalidArgumentException))]
+        [InlineData(21001, typeof(InvalidArgumentException))]
         public async Task ShouldThrowException(int errorCode, Type type)
         {
             var response = "{\"requestID\":\"eb8a8d08-9e25-4473-81f8-6565c51a43d9\",\"signature\":{\"*\": \"*\"},\"errors\":[{\"code\":XXXX,\"msg\":\"Some error\"}],\"status\": \"fatal\"}";
@@ -234,17 +236,59 @@ namespace Couchbase.UnitTests.Analytics
             var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
-            try
-            {
-                await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions());
-            }
-            catch (Exception ex)
-            {
-                if(ex.GetType() != type)
+            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+                client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()));
+
+            // Exact type: every mapped exception derives from CouchbaseException.
+            Assert.IsType(type, ex);
+        }
+
+        [Theory]
+        // Retryable codes are not thrown by the client; the retry orchestrator raises NoRetryException.
+        [InlineData(23000, typeof(TemporaryFailureException))]
+        [InlineData(23007, typeof(JobQueueFullException))]
+        public async Task Retryable_Error_Sets_NoRetryException(int errorCode, Type type)
+        {
+            var response = "{\"requestID\":\"eb8a8d08-9e25-4473-81f8-6565c51a43d9\",\"signature\":{\"*\": \"*\"},\"errors\":[{\"code\":XXXX,\"msg\":\"Some error\"}],\"status\": \"fatal\"}";
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
                 {
-                    throw;
+                    Content = new StringContent(response.Replace("XXXX", errorCode.ToString()))
+                })) ;
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+            var nodeMock = new Mock<IClusterNode>();
+            nodeMock.Setup(n => n.AnalyticsUri)
+                .Returns(new Uri("http://localhost:8096"));
+
+            var nodeAdapterMock = new Mock<NodeAdapter>
+            {
+                Object =
+                {
+                    CanonicalHostname = "localhost"
                 }
-            }
+            };
+
+            nodeMock.Setup(n => n.NodesAdapter)
+                .Returns(nodeAdapterMock.Object);
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsUri())
+                .Returns(new Uri("http://localhost:8096"));
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsNode(It.IsAny<System.Collections.Generic.IList<System.Uri>>()))
+                .Returns(nodeMock.Object);
+
+            var serializer = new DefaultSerializer();
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
+
+            var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions());
+
+            var analyticsResult = Assert.IsAssignableFrom<AnalyticsResultBase<dynamic>>(result);
+            Assert.True(analyticsResult.ShouldRetry());
+            Assert.IsType(type, analyticsResult.NoRetryException);
         }
 
         [Fact]
