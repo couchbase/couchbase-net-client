@@ -12,16 +12,18 @@ internal class ConfigPushHandlerFactory : IConfigPushHandlerFactory
 {
     private readonly ILogger<ConfigPushHandler> _logger;
     private readonly Redactor _redactor;
+    private readonly TimeProvider _timeProvider;
 
-    public ConfigPushHandlerFactory(ILogger<ConfigPushHandler> logger, Redactor redactor)
+    public ConfigPushHandlerFactory(ILogger<ConfigPushHandler> logger, Redactor redactor, TimeProvider timeProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public ConfigPushHandler Create(CouchbaseBucket bucket, ClusterContext clusterContext)
     {
-        return  new ConfigPushHandler(bucket, clusterContext, _logger, _redactor);
+        return  new ConfigPushHandler(bucket, clusterContext, _logger, _redactor, _timeProvider);
     }
 }
 

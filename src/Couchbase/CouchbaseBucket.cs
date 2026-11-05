@@ -40,6 +40,7 @@ namespace Couchbase
 #pragma warning restore CS0618 // Type or member is obsolete
         private readonly LazyService<ICollectionManagerFactory> _collectionManagerLazy;
         private readonly SemaphoreSlim _configMutex = new(1, 1);
+        private readonly TimeProvider _timeProvider;
 
         // It isn't imperative that race conditions accessing these fields the first time must
         // always return the same singleton. In the unlikely event two threads access them the
@@ -67,6 +68,7 @@ namespace Couchbase
             _viewManagerLazy = new LazyService<IViewIndexManagerFactory>(context.ServiceProvider);
 #pragma warning restore CS0618 // Type or member is obsolete
             _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
+            _timeProvider = context.ServiceProvider.GetRequiredService<TimeProvider>();
             _configPushHandler = configPushHandlerFactory.Create(this, Context);
         }
 
@@ -104,7 +106,7 @@ namespace Couchbase
 
             if (shouldPublish)
             {
-                using var cts = new CancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
+                using var cts = _timeProvider.CreateCancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
                 await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
                 try
                 {
