@@ -29,6 +29,7 @@ namespace Couchbase
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly SemaphoreSlim _configMutex = new(1, 1);
+        private readonly TimeProvider _timeProvider;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<MemcachedBucket> logger, Redactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IHttpClusterMapFactory httpClusterMapFactory, BucketConfig config) :
@@ -46,6 +47,7 @@ namespace Couchbase
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _httpClusterMapFactory = httpClusterMapFactory ?? throw new ArgumentNullException(nameof(httpClusterMapFactory));
             _httpClusterMap = _httpClusterMapFactory.Create(Context);
+            _timeProvider = context.ServiceProvider.GetRequiredService<TimeProvider>();
         }
 
         public override IScope Scope(string scopeName)
@@ -80,7 +82,7 @@ namespace Couchbase
                 return;
             }
 
-            using var cts = new CancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
+            using var cts = _timeProvider.CreateCancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
             try
             {
