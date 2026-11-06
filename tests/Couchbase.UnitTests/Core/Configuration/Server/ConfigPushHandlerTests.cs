@@ -56,7 +56,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_ServerVersionRegressed));
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
         var pushedVersion = new ConfigVersion(1, 3);
         configPushHandler.ProcessConfigPush(pushedVersion);
 
@@ -105,7 +105,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_ServerReturnsNullThenConfig_AsksAgainAndPublishes));
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
 
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
 
@@ -220,7 +220,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_WakeUpWithoutNewVersion_KeepsProcessingPushes));
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
 
         // Wake the handler with no version pushed, and wait until it has taken the wake-up. No timeout: the
         // loop takes it at once, and a handler which does not hangs the test, which is diagnosable.
@@ -273,7 +273,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         var redactor = new Redactor(RedactionLevel.None);
         using var configPushHandler =
             new ConfigPushHandler(mockBucket, mockContext, logger,
-                redactor);
+                redactor, TimeProvider.System);
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 2));
 
         // Awaited with no timeout, and asserted out here rather than inside the publish callback: the

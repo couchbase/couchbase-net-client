@@ -27,6 +27,7 @@ namespace Couchbase.Core.Configuration.Server
         private readonly CancellationTokenSource _tokenSource = new();
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
+        private readonly TimeProvider _timeProvider;
 
         // Will be set to null when disposed
         private volatile ConcurrentDictionary<string, HttpStreamingConfigListener>? _httpConfigListeners = new();
@@ -36,11 +37,13 @@ namespace Couchbase.Core.Configuration.Server
         private volatile bool _running;
         private volatile bool _disposed;
 
-        public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger)
+        public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger,
+            TimeProvider timeProvider)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _configListenerFactory = configListenerFactory ?? throw new ArgumentNullException(nameof(configListenerFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
         public void Start(bool withPolling = false)
@@ -109,7 +112,7 @@ namespace Couchbase.Core.Configuration.Server
                 {
                     _logger.LogTrace("Waiting for {interval} before polling.",
                         _context.ClusterOptions.ConfigPollInterval);
-                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
+                    await _timeProvider.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
                         .ConfigureAwait(false);
 
                     _logger.LogTrace("Done waiting, polling...");
