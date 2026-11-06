@@ -150,6 +150,9 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=0")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=-1")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=lots")]
+        // Above Couchbase Server's maximum of 10,000,000.
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=10000001")]
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=2147483647")]
         // Repeated or malformed attribute.
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,r=other,s=QSXCR+Q6sek8bf92,i=4096")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,,s=QSXCR+Q6sek8bf92,i=4096")]
@@ -174,6 +177,17 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
 
             Assert.Equal(Rfc5802Sha1.ServerNonce, nonce);
             Assert.Equal(4096, iterationCount);
+        }
+
+        [Fact]
+        public void Server_Maximum_Iteration_Count_Is_Accepted()
+        {
+            var mech = Mechanism(Rfc5802Sha1);
+
+            var (_, _, iterationCount) = mech.ParseServerFirst(
+                "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=10000000");
+
+            Assert.Equal(10_000_000, iterationCount);
         }
 
         private static ScramShaMechanism Mechanism(Vector vector) =>

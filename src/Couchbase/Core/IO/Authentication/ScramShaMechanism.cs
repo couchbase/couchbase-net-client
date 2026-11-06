@@ -27,6 +27,10 @@ namespace Couchbase.Core.IO.Authentication
         private const string ClientKey = "Client Key";
         private const string ServerKey = "Server Key";
 
+        // Couchbase Server's own maximum for scramShaIterations (ns_server PBKDF2_ITER_MAX). A higher
+        // count cannot come from a real cluster; it would make the client spin in PBKDF2 for minutes.
+        internal const int MaxIterationCount = 10_000_000;
+
         /// <summary>
         /// Client-supported SCRAM mechanisms in strongest-first preference order, constrained by the
         /// target framework. On .NET 8+, SHA-256/512 are available via <c>Rfc2898DeriveBytes.Pbkdf2</c>,
@@ -267,7 +271,7 @@ namespace Couchbase.Core.IO.Authentication
             }
 
             if (!int.TryParse(encodedIterationCount, NumberStyles.None, CultureInfo.InvariantCulture,
-                    out var iterationCount) || iterationCount <= 0)
+                    out var iterationCount) || iterationCount <= 0 || iterationCount > MaxIterationCount)
             {
                 throw new AuthenticationFailureException(
                     "Malformed SCRAM server-first-message: invalid iteration count.");
