@@ -135,6 +135,31 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
         }
 
         [Theory]
+        // Control characters could forge log lines.
+        [InlineData("ok\n[INFO] forged log line")]
+        // Longer than any RFC 5802 error value.
+        [InlineData("a-very-long-error-value-that-no-scram-server-would-ever-send-as-its-e-attribute")]
+        public async Task Unrecognized_Server_Error_Is_Not_Repeated(string error)
+        {
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, "e=" + error);
+
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                Mechanism(Rfc5802Sha1).AuthenticateAsync(server.Connection, CancellationToken.None));
+
+            Assert.DoesNotContain(error, ex.Message);
+            Assert.Contains("an unrecognized error", ex.Message);
+        }
+
+        [Fact]
+        public async Task Server_Final_With_A_Non_Letter_Attribute_Is_Rejected()
+        {
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, "v=" + Rfc5802Sha1.ServerSignature + ",1=x");
+
+            await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                Mechanism(Rfc5802Sha1).AuthenticateAsync(server.Connection, CancellationToken.None));
+        }
+
+        [Theory]
         // Does not start with the client nonce.
         [InlineData("r=ATTACKER-CHOSEN-NONCE,s=QSXCR+Q6sek8bf92,i=4096")]
         // Equal to the client nonce: the server added nothing.
@@ -160,6 +185,9 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
         // Repeated or malformed attribute.
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,r=other,s=QSXCR+Q6sek8bf92,i=4096")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,,s=QSXCR+Q6sek8bf92,i=4096")]
+        // Attribute name that is not a letter.
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096,1=x")]
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096, =x")]
         // Mandatory extension the client does not support.
         [InlineData("m=ext,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096")]
         public async Task Invalid_Server_First_Is_Rejected_Before_The_Proof_Is_Sent(string serverFirst)

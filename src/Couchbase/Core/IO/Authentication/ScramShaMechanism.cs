@@ -214,7 +214,8 @@ namespace Couchbase.Core.IO.Authentication
             var attributes = new Dictionary<string, string>();
             foreach (var att in message.Split(','))
             {
-                if (att.Length < 2 || att[1] != '=')
+                // RFC 5802: attr-val = ALPHA "=" value
+                if (att.Length < 2 || att[1] != '=' || !IsAsciiLetter(att[0]))
                 {
                     throw new AuthenticationFailureException("Malformed SCRAM server message: invalid attribute.");
                 }
@@ -304,7 +305,8 @@ namespace Couchbase.Core.IO.Authentication
 
             if (attributes.TryGetValue("e", out var error))
             {
-                throw new AuthenticationFailureException($"SCRAM server reported an error: {error}.");
+                throw new AuthenticationFailureException(
+                    $"SCRAM server reported an error: {SafeServerError(error)}.");
             }
 
             if (!attributes.TryGetValue("v", out var encodedVerifier))
@@ -332,9 +334,32 @@ namespace Couchbase.Core.IO.Authentication
             }
         }
 
+        private static bool IsAsciiLetter(char c) => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z';
+
+        // The e= value comes from an unauthenticated server and ends up in the logs. Pass through only
+        // short values made of the characters RFC 5802's error values use; drop anything else.
+        internal static string SafeServerError(string error)
+        {
+            const int maxLength = 64;
+            if (error.Length == 0 || error.Length > maxLength)
+            {
+                return "an unrecognized error";
+            }
+
+            foreach (var c in error)
+            {
+                if (!IsAsciiLetter(c) && c is not (>= '0' and <= '9') && c != '-')
+                {
+                    return "an unrecognized error";
+                }
+            }
+
+            return error;
+        }
+
         private static bool FixedTimeEquals(byte[] left, byte[] right)
         {
-#if NET8_0_OR_GREATER
+#if NET8_0_OR_GREATER || NETSTANDARD2_1
             return CryptographicOperations.FixedTimeEquals(left, right);
 #else
             if (left.Length != right.Length)
