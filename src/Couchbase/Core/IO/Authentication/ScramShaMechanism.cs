@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -24,11 +25,20 @@ namespace Couchbase.Core.IO.Authentication
     internal class ScramShaMechanism : SaslMechanismBase
     {
         private const string ClientKey = "Client Key";
+        private const string ServerKey = "Server Key";
+
+        // Couchbase Server's own maximum for scramShaIterations (ns_server PBKDF2_ITER_MAX). A higher
+        // count cannot come from a real cluster; it would make the client spin in PBKDF2 for minutes.
+        internal const int MaxIterationCount = 10_000_000;
+
+        // .NET Framework's Rfc2898DeriveBytes throws ArgumentException for a shorter salt. Couchbase
+        // Server's salts are the digest size (20, 32 or 64 bytes), so a real cluster never sends one.
+        internal const int MinSaltLength = 8;
 
         /// <summary>
         /// Client-supported SCRAM mechanisms in strongest-first preference order, constrained by the
-        /// target framework. On .NET 8+, SHA-256/512 are available via <c>Rfc2898DeriveBytes.Pbkdf2</c>
-        /// and SHA-1 is disallowed for new HMAC/PBKDF2 use (NIST SP 800-131A Rev 2). On netstandard2.x,
+        /// target framework. On .NET 8+, SHA-256/512 are available via <c>Rfc2898DeriveBytes.Pbkdf2</c>,
+        /// so SHA-1 is not offered. On netstandard2.x,
         /// <see cref="Rfc2898DeriveBytes"/> only supports SHA-1 PBKDF2, so SHA-1 remains the only option.
         /// </summary>
 #if NET8_0_OR_GREATER
@@ -101,11 +111,7 @@ namespace Couchbase.Core.IO.Authentication
 
                 var serverFirstResult = await SaslStart(connection, clientFirstMessage, rootSpan, cancellationToken)
                     .ConfigureAwait(false);
-                var serverFirstMessage = DecodeResponse(serverFirstResult);
-
-                var serverNonce = serverFirstMessage["r"];
-                var salt = Convert.FromBase64String(serverFirstMessage["s"]);
-                var iterationCount = Convert.ToInt32(serverFirstMessage["i"]);
+                var (serverNonce, salt, iterationCount) = ParseServerFirst(serverFirstResult);
 
                 //normalize and salt the password using the salt and iteration count
                 var normalizedPassword = _password.Normalize(NormalizationForm.FormKC);
@@ -119,7 +125,11 @@ namespace Couchbase.Core.IO.Authentication
 
                 var finalServerResponse = await SaslStep(connection, clientFinalMessage, rootSpan, cancellationToken)
                     .ConfigureAwait(false);
-                Logger!.LogInformation(LoggingEvents.AuthenticationEvent, finalServerResponse);
+
+                //a success status alone does not authenticate the server; its signature must match
+                VerifyServerFinal(saltedPassword, authMessage, finalServerResponse);
+                Logger!.LogDebug(LoggingEvents.AuthenticationEvent,
+                    "SCRAM {Mechanism} authentication succeeded.", MechanismType);
             }
             catch (AuthenticationFailureException e)
             {
@@ -198,9 +208,173 @@ namespace Couchbase.Core.IO.Authentication
         /// </summary>
         /// <param name="message">The message.</param>
         /// <returns></returns>
+        /// <exception cref="AuthenticationFailureException">An attribute is malformed or repeated.</exception>
         internal IDictionary<string, string> DecodeResponse(string message)
         {
-            return message.Split(',').ToDictionary(att => att.Substring(0, 1), att => att.Substring(2));
+            var attributes = new Dictionary<string, string>();
+            foreach (var att in message.Split(','))
+            {
+                // RFC 5802: attr-val = ALPHA "=" value
+                if (att.Length < 2 || att[1] != '=' || !IsAsciiLetter(att[0]))
+                {
+                    throw new AuthenticationFailureException("Malformed SCRAM server message: invalid attribute.");
+                }
+
+                var name = att.Substring(0, 1);
+                if (attributes.ContainsKey(name))
+                {
+                    throw new AuthenticationFailureException(
+                        $"Malformed SCRAM server message: repeated attribute '{name}'.");
+                }
+
+                attributes.Add(name, att.Substring(2));
+            }
+
+            return attributes;
+        }
+
+        /// <summary>
+        /// Parses and validates the server-first-message (RFC 5802 §5.1, §7).
+        /// </summary>
+        /// <param name="serverFirstMessage">The raw server-first-message.</param>
+        /// <returns>The combined nonce, the salt and the iteration count.</returns>
+        /// <exception cref="AuthenticationFailureException">The message is malformed, carries a mandatory
+        /// extension, or its nonce does not extend <see cref="ClientNonce"/>.</exception>
+        internal (string Nonce, byte[] Salt, int IterationCount) ParseServerFirst(string serverFirstMessage)
+        {
+            var attributes = DecodeResponse(serverFirstMessage);
+
+            if (attributes.ContainsKey("m"))
+            {
+                throw new AuthenticationFailureException(
+                    "SCRAM server-first-message requires an unsupported mandatory extension.");
+            }
+
+            if (!attributes.TryGetValue("r", out var nonce) ||
+                !attributes.TryGetValue("s", out var encodedSalt) ||
+                !attributes.TryGetValue("i", out var encodedIterationCount))
+            {
+                throw new AuthenticationFailureException(
+                    "Malformed SCRAM server-first-message: missing nonce, salt or iteration count.");
+            }
+
+            //RFC 5802 §5.1: the client MUST verify that the nonce starts with the one it sent
+            if (nonce.Length <= ClientNonce.Length || !nonce.StartsWith(ClientNonce, StringComparison.Ordinal))
+            {
+                throw new AuthenticationFailureException(
+                    "SCRAM server nonce does not extend the client nonce.");
+            }
+
+            byte[] salt;
+            try
+            {
+                salt = Convert.FromBase64String(encodedSalt);
+            }
+            catch (FormatException)
+            {
+                throw new AuthenticationFailureException("Malformed SCRAM server-first-message: invalid salt.");
+            }
+
+            if (salt.Length < MinSaltLength)
+            {
+                throw new AuthenticationFailureException("Malformed SCRAM server-first-message: salt is too short.");
+            }
+
+            if (!int.TryParse(encodedIterationCount, NumberStyles.None, CultureInfo.InvariantCulture,
+                    out var iterationCount) || iterationCount <= 0 || iterationCount > MaxIterationCount)
+            {
+                throw new AuthenticationFailureException(
+                    "Malformed SCRAM server-first-message: invalid iteration count.");
+            }
+
+            return (nonce, salt, iterationCount);
+        }
+
+        /// <summary>
+        /// Authenticates the server from its server-final-message (RFC 5802 §5): the message must carry
+        /// a verifier equal to <c>HMAC(HMAC(SaltedPassword, "Server Key"), AuthMessage)</c>.
+        /// </summary>
+        /// <param name="saltedPassword">Output of <see cref="GetSaltedPassword"/>.</param>
+        /// <param name="authMessage">The SCRAM auth-message string.</param>
+        /// <param name="serverFinalMessage">The raw server-final-message.</param>
+        /// <exception cref="AuthenticationFailureException">The server reported an error, sent no verifier,
+        /// or sent a verifier that does not match.</exception>
+        internal void VerifyServerFinal(byte[] saltedPassword, string authMessage, string serverFinalMessage)
+        {
+            var attributes = DecodeResponse(serverFinalMessage ?? string.Empty);
+
+            if (attributes.TryGetValue("e", out var error))
+            {
+                throw new AuthenticationFailureException(
+                    $"SCRAM server reported an error: {SafeServerError(error)}.");
+            }
+
+            if (!attributes.TryGetValue("v", out var encodedVerifier))
+            {
+                throw new AuthenticationFailureException(
+                    "Malformed SCRAM server-final-message: missing server signature.");
+            }
+
+            byte[] verifier;
+            try
+            {
+                verifier = Convert.FromBase64String(encodedVerifier);
+            }
+            catch (FormatException)
+            {
+                throw new AuthenticationFailureException(
+                    "Malformed SCRAM server-final-message: invalid server signature.");
+            }
+
+            var serverSignature = ComputeHash(ComputeHash(saltedPassword, ServerKey), authMessage);
+            if (!FixedTimeEquals(serverSignature, verifier))
+            {
+                throw new AuthenticationFailureException(
+                    "SCRAM server signature is invalid; the server could not prove it knows the password.");
+            }
+        }
+
+        private static bool IsAsciiLetter(char c) => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z';
+
+        // The e= value comes from an unauthenticated server and ends up in the logs. Pass through only
+        // short values made of the characters RFC 5802's error values use; drop anything else.
+        internal static string SafeServerError(string error)
+        {
+            const int maxLength = 64;
+            if (error.Length == 0 || error.Length > maxLength)
+            {
+                return "an unrecognized error";
+            }
+
+            foreach (var c in error)
+            {
+                if (!IsAsciiLetter(c) && c is not (>= '0' and <= '9') && c != '-')
+                {
+                    return "an unrecognized error";
+                }
+            }
+
+            return error;
+        }
+
+        private static bool FixedTimeEquals(byte[] left, byte[] right)
+        {
+#if NET8_0_OR_GREATER || NETSTANDARD2_1
+            return CryptographicOperations.FixedTimeEquals(left, right);
+#else
+            if (left.Length != right.Length)
+            {
+                return false;
+            }
+
+            var difference = 0;
+            for (var i = 0; i < left.Length; ++i)
+            {
+                difference |= left[i] ^ right[i];
+            }
+
+            return difference == 0;
+#endif
         }
 
         /// <summary>
