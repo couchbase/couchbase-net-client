@@ -71,6 +71,7 @@ namespace Couchbase
         private readonly IAppTelemetryCollector _appTelemetryCollector;
         private CancellationTokenSource? _reauthCts;
         private readonly AuthenticatorType _authenticatorType;
+        private readonly bool _ldapCompatible;
         // Internal is used to provide a seam for unit tests
         internal LazyService<IQueryClient> LazyQueryClient;
         internal LazyService<ISearchClient> LazySearchClient;
@@ -95,6 +96,7 @@ namespace Couchbase
             var authenticator = clusterOptions.GetEffectiveAuthenticator();
             // Cache the authenticator type to prevent user from changing it with cluster.Authenticator()
             _authenticatorType = authenticator.AuthenticatorType;
+            _ldapCompatible = authenticator is PasswordAuthenticator { IsLdapCompatible: true };
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
@@ -285,6 +287,16 @@ namespace Couchbase
             if (_authenticatorType != authenticator.AuthenticatorType)
             {
                 throw new InvalidArgumentException($"Cannot change authenticator type from {_authenticatorType.GetDescription()} to {authenticator.AuthenticatorType.GetDescription()} on an existing Cluster.");
+            }
+
+            // A swap between LdapCompatible and the default would otherwise fail only when a new
+            // non-TLS KV connection opens, or silently keep PLAIN going for a non-LDAP user.
+            var ldapCompatible = authenticator is PasswordAuthenticator { IsLdapCompatible: true };
+            if (_ldapCompatible != ldapCompatible)
+            {
+                throw new InvalidArgumentException(_ldapCompatible
+                    ? "Cannot change from a PasswordAuthenticator.LdapCompatible authenticator to a default PasswordAuthenticator on an existing Cluster. Use PasswordAuthenticator.LdapCompatible(username, password) to change the password."
+                    : "Cannot change from a default PasswordAuthenticator to a PasswordAuthenticator.LdapCompatible authenticator on an existing Cluster. Use new PasswordAuthenticator(username, password) to change the password.");
             }
 
             _context.ClusterOptions.Authenticator = authenticator;

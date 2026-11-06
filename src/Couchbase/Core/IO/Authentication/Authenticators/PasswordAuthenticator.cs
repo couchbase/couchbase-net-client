@@ -29,6 +29,11 @@ public sealed class PasswordAuthenticator : BaseAuthenticator
     public override bool CanReauthenticateKv => false;
 
     /// <summary>
+    /// True if this authenticator was created with <see cref="LdapCompatible"/>.
+    /// </summary>
+    internal bool IsLdapCompatible => _ldapCompatible;
+
+    /// <summary>
     /// Creates a new PasswordAuthenticator with the specified credentials.
     /// </summary>
     /// <remarks>

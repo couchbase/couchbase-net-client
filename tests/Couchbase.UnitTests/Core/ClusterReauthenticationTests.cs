@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Authentication.Authenticators;
 using Moq;
 using Xunit;
@@ -155,6 +156,43 @@ public class ClusterReauthenticationTests
         // Assert
         kvNode.Verify(n => n.ReauthenticateKvConnectionsAsync(It.IsAny<CancellationToken>()), Times.Once);
         nonKvNode.Verify(n => n.ReauthenticateKvConnectionsAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>
+    /// A swap between LdapCompatible and the default PasswordAuthenticator is rejected in both directions.
+    /// Otherwise it would surface only when a new non-TLS KV connection fails, or keep sending PLAIN for a
+    /// user who rotated with the default constructor.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Authenticator_SwitchingLdapCompatibleMode_Throws(bool startLdapCompatible)
+    {
+        var options = CreateClusterOptions();
+        options.WithAuthenticator(CreatePasswordAuthenticator(startLdapCompatible, "password"));
+        using var cluster = CreateClusterWithNodes(options);
+        var original = options.Authenticator;
+
+        var ex = Assert.Throws<InvalidArgumentException>(() =>
+            cluster.Authenticator(CreatePasswordAuthenticator(!startLdapCompatible, "new-password")));
+
+        Assert.Contains("LdapCompatible", ex.Message);
+        Assert.Same(original, options.Authenticator);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Authenticator_SameLdapCompatibleMode_IsAccepted(bool ldapCompatible)
+    {
+        var options = CreateClusterOptions();
+        options.WithAuthenticator(CreatePasswordAuthenticator(ldapCompatible, "password"));
+        using var cluster = CreateClusterWithNodes(options);
+
+        var rotated = CreatePasswordAuthenticator(ldapCompatible, "new-password");
+        cluster.Authenticator(rotated);
+
+        Assert.Same(rotated, options.Authenticator);
     }
 
     /// <summary>
@@ -324,6 +362,11 @@ public class ClusterReauthenticationTests
             .WithJwtAuthentication("initial-token")
             .WithConnectionString("couchbases://localhost");
     }
+
+    private static PasswordAuthenticator CreatePasswordAuthenticator(bool ldapCompatible, string password) =>
+        ldapCompatible
+            ? PasswordAuthenticator.LdapCompatible("username", password)
+            : new PasswordAuthenticator("username", password);
 
     private static Mock<IClusterNode> CreateMockClusterNode(bool hasKv, bool isDead)
     {
