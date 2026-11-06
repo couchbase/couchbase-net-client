@@ -147,6 +147,10 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92")]
         // Malformed salt or iteration count.
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=not base64!,i=4096")]
+        // Salt shorter than 8 bytes (0, 3 and 7 bytes).
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=,i=4096")]
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=AAAA,i=4096")]
+        [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=AAAAAAAAAA==,i=4096")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=0")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=-1")]
         [InlineData("r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=lots")]
@@ -188,6 +192,17 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
                 "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=10000000");
 
             Assert.Equal(10_000_000, iterationCount);
+        }
+
+        [Fact]
+        public void Eight_Byte_Salt_Is_Accepted()
+        {
+            var mech = Mechanism(Rfc5802Sha1);
+
+            var (_, salt, _) = mech.ParseServerFirst(
+                "r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=AAAAAAAAAAA=,i=4096");
+
+            Assert.Equal(8, salt.Length);
         }
 
         private static ScramShaMechanism Mechanism(Vector vector) =>

@@ -31,6 +31,10 @@ namespace Couchbase.Core.IO.Authentication
         // count cannot come from a real cluster; it would make the client spin in PBKDF2 for minutes.
         internal const int MaxIterationCount = 10_000_000;
 
+        // .NET Framework's Rfc2898DeriveBytes throws ArgumentException for a shorter salt. Couchbase
+        // Server's salts are the digest size (20, 32 or 64 bytes), so a real cluster never sends one.
+        internal const int MinSaltLength = 8;
+
         /// <summary>
         /// Client-supported SCRAM mechanisms in strongest-first preference order, constrained by the
         /// target framework. On .NET 8+, SHA-256/512 are available via <c>Rfc2898DeriveBytes.Pbkdf2</c>,
@@ -268,6 +272,11 @@ namespace Couchbase.Core.IO.Authentication
             catch (FormatException)
             {
                 throw new AuthenticationFailureException("Malformed SCRAM server-first-message: invalid salt.");
+            }
+
+            if (salt.Length < MinSaltLength)
+            {
+                throw new AuthenticationFailureException("Malformed SCRAM server-first-message: salt is too short.");
             }
 
             if (!int.TryParse(encodedIterationCount, NumberStyles.None, CultureInfo.InvariantCulture,
