@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
@@ -18,6 +19,7 @@ namespace Couchbase.Core.DI
         private readonly ILogger<OAuthBearerSaslMechanism> _oauthLogger;
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
+        private int _plainOverNonTlsWarned;
 
         public SaslMechanismFactory(
             ILogger<PlainSaslMechanism> plainLogger,
@@ -106,6 +108,33 @@ namespace Couchbase.Core.DI
             }
 
             return CreatePasswordMechanism(mechanismType, username, password);
+        }
+
+        public ISaslMechanism CreateLdapCompatibleMechanism(IConnection connection, string username, string password)
+        {
+            if (!connection.IsSecure)
+            {
+                // The user asked for PLAIN, so it is sent on a non-TLS connection too, but only if the server
+                // offers it (as the Java SDK requires). An empty list means SASL_LIST_MECHS failed; PLAIN is
+                // still tried, and the server rejects it if it is not supported.
+                var serverMechanisms = connection.SupportedSaslMechanisms;
+                if (!string.IsNullOrEmpty(serverMechanisms) && !serverMechanisms!.Split(' ').Contains("PLAIN"))
+                {
+                    throw new AuthenticationFailureException(
+                        $"PasswordAuthenticator.LdapCompatible uses SASL PLAIN, but the server advertises only " +
+                        $"[{serverMechanisms}] on this connection.");
+                }
+
+                if (Interlocked.Exchange(ref _plainOverNonTlsWarned, 1) == 0)
+                {
+                    _plainLogger.LogWarning(
+                        "PasswordAuthenticator.LdapCompatible is sending the password with SASL PLAIN on a " +
+                        "non-TLS connection, so the password is sent in cleartext. Connect with couchbases:// " +
+                        "to encrypt it. This warning is logged once.");
+                }
+            }
+
+            return CreatePasswordMechanism(MechanismType.Plain, username, password);
         }
 
         public ISaslMechanism CreateOAuthBearerMechanism(string token)
