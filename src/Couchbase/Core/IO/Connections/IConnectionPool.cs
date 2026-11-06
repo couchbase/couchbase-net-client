@@ -74,6 +74,10 @@ namespace Couchbase.Core.IO.Connections
         /// write to complete before sending this operation. Also, if multiple operations are sent simultaneously via
         /// TrySendImmediatelyAsync they may block each other waiting for a connection to become available.
         /// </para>
+        /// <para>
+        /// A pool with no live connection may throw <see cref="Couchbase.Core.Exceptions.KeyValue.SocketNotAvailableException"/>
+        /// instead of queueing the operation.
+        /// </para>
         /// </remarks>
         Task<bool> TrySendImmediatelyAsync(IOperation op, CancellationToken cancellationToken = default);
 

@@ -157,5 +157,91 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             connectionMock
                 .Verify(e => e.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()), times: Times.Once);
         }
+
+        // A connection in a graceful close is dead before its ClosedToken fires, so only the wake makes the processor exit.
+        [Fact]
+        public async Task WakeIfConnectionDead_DeadConnection_ProcessorExitsAndThePoolReplacesIt()
+        {
+            // Arrange
+
+            var connectionMock = new Mock<IConnection>();
+            connectionMock
+                .SetupGet(e => e.IsDead)
+                .Returns(true);
+
+            var replacement = new Mock<IConnection>().Object;
+            var connectionFactoryMock = new Mock<IConnectionFactory>();
+            connectionFactoryMock
+                .Setup(e => e.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(replacement);
+
+            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(3)
+            {
+                AllowSynchronousContinuations = true
+            });
+
+            var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
+            pool.MinimumSize = 1;
+
+            var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
+            var process = processor.Process();
+
+            // Act
+
+            processor.WakeIfConnectionDead();
+
+            // Assert
+
+            Assert.Same(process, await Task.WhenAny(process, Task.Delay(TimeSpan.FromSeconds(5))));
+            Assert.True(processor.IsComplete);
+            connectionMock
+                .Verify(e => e.CloseAsync(It.IsAny<TimeSpan>()), times: Times.Once);
+
+            // The pool replaces a connection only when its processor removes itself.
+            Assert.Equal(new[] { replacement }, pool.GetConnections());
+
+            // A late wake, as from a pool that copied its list before the removal, is harmless.
+            processor.WakeIfConnectionDead();
+        }
+
+        [Fact]
+        public async Task WakeIfConnectionDead_LiveConnection_ProcessorKeepsSending()
+        {
+            // Arrange
+
+            var sent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionMock = new Mock<IConnection>();
+            connectionMock
+                .Setup(e => e.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Callback(() => sent.TrySetResult(true))
+                .Returns(default(ValueTask));
+
+            var connectionFactoryMock = new Mock<IConnectionFactory>();
+
+            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(3)
+            {
+                AllowSynchronousContinuations = true
+            });
+
+            var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
+
+            var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
+            _ = processor.Process();
+
+            // Act
+
+            processor.WakeIfConnectionDead();
+
+            // Assert
+
+            // Only a running processor reads the queue.
+            await pool.SendAsync(new ChannelProcessorFakeOperation());
+            Assert.Same(sent.Task, await Task.WhenAny(sent.Task, Task.Delay(TimeSpan.FromSeconds(5))));
+            Assert.False(processor.IsComplete);
+            connectionFactoryMock
+                .Verify(e => e.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()), times: Times.Never);
+
+            await processor.CompleteAsync();
+        }
     }
 }

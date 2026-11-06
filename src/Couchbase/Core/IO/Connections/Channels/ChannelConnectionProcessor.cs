@@ -28,6 +28,9 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly TaskCompletionSource<bool> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private CancellationTokenSource? _cts = new();
 
+        // Never disposed, so a wake after the processor completes cannot throw.
+        private readonly CancellationTokenSource _wakeCts = new();
+
         /// <summary>
         /// Connection managed by this class.
         /// </summary>
@@ -108,9 +111,9 @@ namespace Couchbase.Core.IO.Connections.Channels
         {
             var token = _cts?.Token ?? default(CancellationToken);
 
-            // Also wake when the connection closes. Without this an idle processor only notices a dead
-            // connection when the next operation is queued, so the pool never replaces it in the meantime.
-            using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(token, Connection.ClosedToken);
+            // Also wake when the connection closes, or when the pool finds it dead. Without this an idle processor only
+            // notices a dead connection when the next operation is queued, so the pool never replaces it in the meantime.
+            using var waitCts = CancellationTokenSource.CreateLinkedTokenSource(token, Connection.ClosedToken, _wakeCts.Token);
 
             try
             {
@@ -180,8 +183,8 @@ namespace Couchbase.Core.IO.Connections.Channels
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {
-                // The connection closed while we were waiting. Cancellation callbacks run inline on the
-                // thread that closed it, so yield before the cleanup below creates a replacement connection.
+                // The connection closed or died while we were waiting. Cancellation callbacks run inline on the
+                // thread that cancelled, so yield before the cleanup below creates a replacement connection.
                 await Task.Yield();
             }
             finally
@@ -224,6 +227,21 @@ namespace Couchbase.Core.IO.Connections.Channels
             }
 
             return Completion;
+        }
+
+        /// <summary>
+        /// If the connection is dead, wakes the processor so it exits and the pool replaces the connection.
+        /// Does nothing if the connection is live. Safe to call at any time.
+        /// </summary>
+        /// <remarks>
+        /// A connection is dead before <see cref="IConnection.ClosedToken"/> fires while it drains in a graceful close.
+        /// </remarks>
+        public void WakeIfConnectionDead()
+        {
+            if (Connection.IsDead)
+            {
+                _wakeCts.Cancel();
+            }
         }
 
         #region Logging

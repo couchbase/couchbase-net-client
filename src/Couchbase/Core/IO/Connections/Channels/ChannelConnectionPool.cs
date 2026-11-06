@@ -177,9 +177,10 @@ namespace Couchbase.Core.IO.Connections.Channels
             IConnection? connection = GetConnectionsCore().RandomOrDefault(static c => !c.IsDead);
             if (connection is null)
             {
-                // Fallback to sending via the queue if no connections are available
-                await SendAsync(op, cancellationToken).ConfigureAwait(false);
-                return false;
+                // A queued send can wait in a queue that no processor reads, so fail at once and let the caller retry.
+                // Waking the processors of dead connections makes the pool replace them.
+                WakeProcessorsWithDeadConnections();
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(ChannelConnectionPool));
             }
 
             // Unlike the queue, pass the token, so the send stops waiting for a busy connection when it fires.
@@ -200,6 +201,25 @@ namespace Couchbase.Core.IO.Connections.Channels
             _connections
                 .Where(static p => !p.IsComplete)
                 .Select(static p => p.Connection);
+
+        private void WakeProcessorsWithDeadConnections()
+        {
+            // Not under _lock, which is held while new connections connect. Adds lock the list, so it can only shrink
+            // during the copy, which leaves nulls.
+            ChannelConnectionProcessor?[] processors;
+            lock (_connections)
+            {
+                processors = _connections.ToArray();
+            }
+
+            foreach (var processor in processors)
+            {
+                if (processor is { IsComplete: false })
+                {
+                    processor.WakeIfConnectionDead();
+                }
+            }
+        }
 
         /// <inheritdoc />
         public override async Task ScaleAsync(int delta)
