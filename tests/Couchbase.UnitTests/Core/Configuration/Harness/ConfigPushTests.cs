@@ -113,7 +113,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             // Node-1 stays on rev 10. Node-0 has nothing newer for its next three fetches, so three fetch passes find nothing.
             harness.Server.SetMapAfter(3, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
             harness.Server.PushBrief(Node0, 1, 11);
-            // The handler waits 10, 20 and then 40 ms after each empty pass.
+            // The bucket refresher waits 10, 20 and then 40 ms after each empty pass.
             await harness.AdvanceAsync(TimeSpan.FromMilliseconds(70));
 
             Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
@@ -157,18 +157,21 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.SetMap(GlobalMap(11).Node("node-3.example.com"));
             harness.StartPolling();
 
-            // The first pass fetches node-0 and node-1. Each later pass also fetches node-3.
+            // Each pass fetches from one random KV node, with the version the SDK has.
             await harness.AdvanceAsync(PollInterval);
-            Assert.Equal(2, harness.Server.Fetches.Count);
+            var first = Assert.Single(harness.Server.Fetches);
+            Assert.Equal(Rev(10), first.KnownVersion);
             var adapters = harness.Context.Nodes.ToDictionary(n => n.EndPoint.Host, n => n.NodesAdapter);
 
+            // The SDK has rev 11 now, so the nodes have nothing newer for the later passes.
             await harness.AdvanceAsync(PollPasses(2));
-            Assert.Equal(8, harness.Server.Fetches.Count);
+            Assert.Equal(3, harness.Server.Fetches.Count);
+            Assert.All(harness.Server.Fetches.Skip(1), f => Assert.Equal(Rev(11), f.KnownVersion));
+            Assert.All(harness.Server.Fetches.Skip(1), f => Assert.Null(f.Served));
 
             Assert.Equal(Rev(11), harness.GlobalVersion);
             Assert.Equal(4, harness.NodesCreated);
             Assert.All(harness.Context.Nodes, n => Assert.Same(adapters[n.EndPoint.Host], n.NodesAdapter));
-            Assert.All(harness.Server.Fetches, f => Assert.Null(f.KnownVersion));
         }
 
         [Fact]
@@ -178,6 +181,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.FailFetchesAfter(0, Node0, Node1);
             harness.StartPolling();
 
+            // A failed fetch moves the pass to the next node, so the pass asks both.
             await harness.AdvanceAsync(PollInterval);
             Assert.Equal(2, harness.Server.Fetches.Count);
             Assert.All(harness.Server.Fetches, f => Assert.Null(f.Served));
@@ -186,7 +190,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.SetMap(GlobalMap(11).Node("node-3.example.com"));
             await harness.AdvanceAsync(PollInterval);
 
-            Assert.Equal(4, harness.Server.Fetches.Count);
+            Assert.Equal(3, harness.Server.Fetches.Count);
             Assert.Equal(Rev(11), harness.GlobalVersion);
             Assert.Equal(4, harness.NodesCreated);
         }

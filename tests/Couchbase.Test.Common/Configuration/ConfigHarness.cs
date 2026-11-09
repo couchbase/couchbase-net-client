@@ -31,13 +31,14 @@ namespace Couchbase.Test.Common.Configuration
     /// How the cluster nodes of a <see cref="ConfigHarness"/> reach its <see cref="FakeClusterServer"/>.
     /// </summary>
     /// <remarks>
-    /// The harness clock drives the config handler poll loop, the push handler retry delays, the circuit breakers, and
+    /// The harness clock drives the config refresher loops and their retry delays, the circuit breakers, and
     /// the timeouts and retry delays of the operations a bucket sends through its retry orchestrator.
     /// Real time drives the operations a node sends itself, which are connection setup, select bucket, the manifest and
-    /// the cluster map fetch. They time out after KvTimeout. In real mode real time also drives the 75 s cleanup of
-    /// operations left in flight, the pool scale controller (every 30 s) and the grace a closing connection gives its
-    /// operations. So a test that needs a timeout on a hung host runs on <see cref="TimeProvider.System"/> with a small
-    /// KvTimeout.
+    /// the cluster map fetch. They time out after KvTimeout, except a config refresher fetch, which times out after the
+    /// poll interval kept between 1 s and 5 s. In real mode real time also drives the 75 s cleanup of operations left in
+    /// flight, the pool scale controller (every 30 s) and the grace a closing connection gives its operations. So a test
+    /// that needs a timeout on a hung host runs on <see cref="TimeProvider.System"/> with a small KvTimeout and poll
+    /// interval.
     /// </remarks>
     public enum ConnectionMode
     {
@@ -237,20 +238,26 @@ namespace Couchbase.Test.Common.Configuration
             handler.Subscribe(harness._sink);
             if (!polling)
             {
-                handler.Start(withPolling: false);
-                harness._handlerStarted = true;
+                harness.StartConfigUpdates();
             }
             return harness;
         }
 
         /// <summary>
-        /// Starts the config handler with polling. Each poll pass fetches the map from every KV node in turn,
-        /// except bucket nodes, which rely on brief push.
+        /// Starts the config handler and the cluster config refresher, which then polls. Each poll fetches the map from
+        /// one random KV node that no bucket owns. Each bucket polls one of its nodes in the same way once it is open.
         /// </summary>
         public void StartPolling()
         {
             if (!_polling) throw new InvalidOperationException("Create the harness with a poll interval to poll.");
-            _handler.Start(withPolling: true);
+            StartConfigUpdates();
+        }
+
+        // Like ClusterContext.Start, without the tracing listeners.
+        private void StartConfigUpdates()
+        {
+            _handler.Start();
+            Context.GlobalConfigRefresher.Start();
             _handlerStarted = true;
         }
 
@@ -353,7 +360,7 @@ namespace Couchbase.Test.Common.Configuration
         /// fired yet is not work either, so the call can return before it.
         /// The pipeline is idle once the signals stay the same for <see cref="QuietRounds"/> rounds and <see cref="MinQuietTime"/>
         /// of real time, so each call takes at least that long.
-        /// Code that runs between two signals shows nothing, for example a push handler that woke up and has not sent its fetch yet.
+        /// Code that runs between two signals shows nothing, for example a config refresher that woke up and has not sent its fetch yet.
         /// The first run of such code in the process can take milliseconds, mostly to compile it. So a round in which the runtime
         /// compiled methods restarts the quiet count, for up to <see cref="CompileGrace"/> after the last signal change.
         /// Work that shows nothing for longer is missed.

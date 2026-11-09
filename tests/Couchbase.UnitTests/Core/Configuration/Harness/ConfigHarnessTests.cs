@@ -177,8 +177,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             // One jump to 3.5 s would run one pass, and the next pass would be due at 4.5 s.
             await harness.AdvanceAsync(TimeSpan.FromSeconds(3.5));
 
-            // Each pass fetches node-0 and node-1.
-            Assert.Equal(6, harness.Server.Fetches.Count);
+            // Each pass fetches from one node.
+            Assert.Equal(3, harness.Server.Fetches.Count);
             Assert.Equal(start.AddSeconds(3.5), clock.GetUtcNow());
             Assert.Equal(start.AddSeconds(4), clock.NextDueTime);
         }

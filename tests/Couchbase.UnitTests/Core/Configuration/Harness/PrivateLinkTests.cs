@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions;
 using Couchbase.Test.Common.Configuration;
 using Couchbase.Test.Common.Configuration.Model;
 using Couchbase.Test.Common.Configuration.Scenarios;
@@ -84,13 +85,12 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             var fromNode0 = await node0.GetClusterMap();
             var fromNode1 = await node1.GetClusterMap();
-            var failed = await node0.GetClusterMap();
+            await Assert.ThrowsAsync<TemporaryFailureException>(() => node0.GetClusterMap());
 
             Assert.Equal([(Endpoint, 11210, Node0), (Endpoint, 11209, Node1)],
                 harness.Nodes.Select(n => (n.Hostname, n.EndPoint.Port, n.Name)));
             Assert.Equal(new ConfigVersion(1, 1), fromNode0.ConfigVersion);
             Assert.Equal(new ConfigVersion(1, 2), fromNode1.ConfigVersion);
-            Assert.Null(failed);
             Assert.Equal(2, harness.Server.FetchCount(Node0));
             Assert.Equal(1, harness.Server.FetchCount(Node1));
             Assert.Null(harness.Server.Fetches.Last().Served);
