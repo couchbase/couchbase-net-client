@@ -16,7 +16,6 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
-using Couchbase.UnitTests.Helpers;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -46,7 +45,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
             handler.Subscribe(bucket);
@@ -100,7 +99,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
             handler.Subscribe(bucket);
@@ -128,7 +127,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
             handler.Subscribe(bucket);
@@ -165,7 +164,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
             handler.Subscribe(bucket);
@@ -201,7 +200,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
             handler.Start();
@@ -231,94 +230,13 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
             handler.Subscribe(bucket);
 
             //act/assert
             Assert.Throws<NotImplementedException>(() => handler.Get("default"));
-        }
-
-        [Fact]
-        public async Task Poll_Skips_Only_Nodes_Where_Push_Is_Handled()
-        {
-            var bucket = new FakeBucket(_output, new SemaphoreSlim(0, 1));
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
-            context.ClusterOptions.ConfigPollInterval = TimeSpan.FromMilliseconds(10);
-
-            // Config push on a node without a bucket owner is dropped, so that node must still be polled.
-            var owner = new CouchbaseBucket("default", context, new Mock<IScopeFactory>().Object,
-                new Mock<IRetryOrchestrator>().Object, new Mock<IVBucketKeyMapperFactory>().Object,
-                new Mock<ILogger<CouchbaseBucket>>().Object, new Redactor(RedactionLevel.None),
-                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
-                new Mock<IOperationConfigurator>().Object, new BestEffortRetryStrategy(), new BucketConfig(),
-                new Mock<IConfigPushHandlerFactory>().Object);
-            var bucketNode = CreatePushNode("host1", owner);
-            var globalNode = CreatePushNode("host2", owner: null);
-
-            var globalPolls = new SemaphoreSlim(0);
-            globalNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
-                .Callback(() => globalPolls.Release())
-                .ReturnsAsync((BucketConfig)null);
-
-            context.AddNode(bucketNode.Object);
-            context.AddNode(globalNode.Object);
-
-            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, TimeProvider.System);
-            handler.Start(withPolling: true);
-
-            // Two polls of the global node mean at least one full pass over all nodes.
-            Assert.True(await globalPolls.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.True(await globalPolls.WaitAsync(TimeSpan.FromSeconds(5)));
-            bucketNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Poll_Waits_On_The_Injected_Clock()
-        {
-            // A real sleep this long would hang the test.
-            var pollInterval = TimeSpan.FromSeconds(30);
-            var clock = new SteppableClock();
-
-            var bucket = new FakeBucket(_output, new SemaphoreSlim(0, 1));
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
-            context.ClusterOptions.ConfigPollInterval = pollInterval;
-
-            // A returned config marks the cluster as reachable, so the loop goes back to sleep.
-            var node = CreatePushNode("host1", owner: null);
-            var polls = new AsyncCounter();
-            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
-                .Callback(() => polls.Increment())
-                .ReturnsAsync(new BucketConfig { Name = "default" });
-            context.AddNode(node.Object);
-
-            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object, clock);
-            handler.Start(withPolling: true);
-
-            await clock.WaitForSleepAsync(pollInterval);
-            Assert.Equal(0, polls.Count);
-
-            clock.Advance(pollInterval);
-            await polls.WaitForAsync(1);
-
-            // Reaching the next sleep means the pass ran to completion.
-            await clock.WaitForSleepAsync(pollInterval);
-            Assert.Equal(1, polls.Count);
-        }
-
-        private static Mock<IClusterNode> CreatePushNode(string host, IBucket owner)
-        {
-            var node = new Mock<IClusterNode>();
-            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
-            node.SetupGet(x => x.HasKv).Returns(true);
-            node.SetupGet(x => x.BucketType).Returns(BucketType.Couchbase);
-            node.SetupGet(x => x.ServerFeatures)
-                .Returns(new ServerFeatureSet(new[] { ServerFeatures.ClustermapChangeNotificationBrief }));
-            node.SetupProperty(x => x.Owner, owner);
-            return node;
         }
 
         internal class FakeBucket : BucketBase

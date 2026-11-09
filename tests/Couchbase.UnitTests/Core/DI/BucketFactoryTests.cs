@@ -42,7 +42,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 new Mock<IHttpClusterMapFactory>().Object,
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
 
                 // Act
 
@@ -73,7 +73,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 new Mock<IHttpClusterMapFactory>().Object,
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
 
             // Act/Assert
 

@@ -647,7 +647,7 @@ public class BucketConfigExtensionTests
             new Mock<IOperationConfigurator>().Object,
             new BestEffortRetryStrategy(),
             bootstrapConfig,
-            new Mock<IConfigPushHandlerFactory>().Object);
+            clusterCtx.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
 
         node.Setup(x => x.Owner).Returns(bucket);
 

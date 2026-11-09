@@ -31,6 +31,13 @@ namespace Couchbase
         [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = true;
 
         /// <summary>
+        /// With push config on, the SDK still polls the cluster and each bucket every
+        /// <see cref="ClusterOptions.ConfigPollInterval"/>, like the Java SDK, so it finds a config change the server
+        /// did not push. It has no effect when push config is off, because the SDK then always polls.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)] public bool EnablePollingWithPushConfig { get; set; } = true;
+
+        /// <summary>
         /// This is an internal setting to bypass product validation when doing Analytics queries against
         /// an EA cluster.
         /// </summary>
