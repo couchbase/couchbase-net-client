@@ -17,7 +17,10 @@ public interface IClusterAuthenticator
     /// <para>
     /// <b>Note:</b> The type of <see cref="IAuthenticator"/> should not change at runtime.
     /// If you used Password authentication when creating the cluster, you should continue to use
-    /// Password authentication when changing the authenticator.
+    /// Password authentication when changing the authenticator. In the same way, an authenticator created with
+    /// <see cref="PasswordAuthenticator.LdapCompatible"/> can only be replaced by another one created with
+    /// <see cref="PasswordAuthenticator.LdapCompatible"/>, and a default <see cref="PasswordAuthenticator"/>
+    /// only by another default one.
     /// </para>
     /// For <see cref="JwtAuthenticator"/>: In addition to applying to new connections, the SDK will
     /// asynchronously re-authenticate all existing KV connections using the new JWT.
