@@ -153,7 +153,7 @@ namespace Couchbase.Core.DI
                     })));
             yield return (typeof(IHttpClusterMapFactory), new SingletonServiceFactory(typeof(HttpClusterMapFactory)));
             yield return (typeof(ICollectionQueryIndexManager), new SingletonServiceFactory(typeof(CollectionQueryIndexManager)));
-            yield return (typeof(IConfigPushHandlerFactory), new SingletonServiceFactory(typeof(ConfigPushHandlerFactory)));
+            yield return (typeof(IConfigRefresherFactory), new SingletonServiceFactory(typeof(ConfigRefresherFactory)));
 
             yield return (typeof(IAppTelemetryCollector), new SingletonServiceFactory(typeof(AppTelemetryCollector)));
         }

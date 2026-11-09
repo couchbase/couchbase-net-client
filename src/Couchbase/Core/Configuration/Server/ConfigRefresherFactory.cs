@@ -1,6 +1,4 @@
 using System;
-using System.Security.Authentication;
-using System.Security.Cryptography;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -8,23 +6,29 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server;
 
-internal class ConfigPushHandlerFactory : IConfigPushHandlerFactory
+internal class ConfigRefresherFactory : IConfigRefresherFactory
 {
-    private readonly ILogger<ConfigPushHandler> _logger;
+    private readonly IConfigHandler _configHandler;
+    private readonly ILogger<BucketConfigRefresher> _bucketLogger;
+    private readonly ILogger<GlobalConfigRefresher> _globalLogger;
     private readonly Redactor _redactor;
     private readonly TimeProvider _timeProvider;
 
-    public ConfigPushHandlerFactory(ILogger<ConfigPushHandler> logger, Redactor redactor, TimeProvider timeProvider)
+    public ConfigRefresherFactory(IConfigHandler configHandler, ILogger<BucketConfigRefresher> bucketLogger,
+        ILogger<GlobalConfigRefresher> globalLogger, Redactor redactor, TimeProvider timeProvider)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configHandler = configHandler ?? throw new ArgumentNullException(nameof(configHandler));
+        _bucketLogger = bucketLogger ?? throw new ArgumentNullException(nameof(bucketLogger));
+        _globalLogger = globalLogger ?? throw new ArgumentNullException(nameof(globalLogger));
         _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public ConfigPushHandler Create(CouchbaseBucket bucket, ClusterContext clusterContext)
-    {
-        return  new ConfigPushHandler(bucket, clusterContext, _logger, _redactor, _timeProvider);
-    }
+    public BucketConfigRefresher CreateBucketRefresher(BucketBase bucket) =>
+        new(bucket, _configHandler, _bucketLogger, _redactor, _timeProvider);
+
+    public GlobalConfigRefresher CreateGlobalRefresher(ClusterContext context) =>
+        new(context, _configHandler, _globalLogger, _redactor, _timeProvider);
 }
 
 /* ************************************************************

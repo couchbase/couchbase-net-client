@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 new BucketConfig(),
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
 
             bucket.Scope("doesnotexist");
             await bucket.ScopeAsync("doesnotexist");
@@ -85,6 +85,6 @@ namespace Couchbase.UnitTests
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 config,
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
     }
 }

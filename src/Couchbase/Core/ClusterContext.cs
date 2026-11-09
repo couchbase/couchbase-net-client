@@ -46,6 +46,7 @@ namespace Couchbase.Core
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private int _disposed;
+        private int _rebootstrapping;
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -78,6 +79,7 @@ namespace Couchbase.Core
             _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();
             _redactor = ServiceProvider.GetRequiredService<Redactor>();
             _configHandler = ServiceProvider.GetRequiredService<IConfigHandler>();
+            GlobalConfigRefresher = ServiceProvider.GetRequiredService<IConfigRefresherFactory>().CreateGlobalRefresher(this);
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
             _httpClusterMapFactory = ServiceProvider.GetRequiredService<IHttpClusterMapFactory>();
             _httpClusterMap = _httpClusterMapFactory.Create(this);
@@ -103,6 +105,11 @@ namespace Couchbase.Core
         public ICouchbaseServiceProvider ServiceProvider { get; }
 
         public BucketConfig GlobalConfig { get; set; }
+
+        /// <summary>
+        /// Keeps <see cref="GlobalConfig"/> up to date over KV.
+        /// </summary>
+        internal GlobalConfigRefresher GlobalConfigRefresher { get; }
 
         public bool IsGlobal => GlobalConfig != null && GlobalConfig.IsGlobal;
 
@@ -156,7 +163,8 @@ namespace Couchbase.Core
                 }
             }
 
-            _configHandler.Start(ClusterOptions.EnableConfigPolling);
+            _configHandler.Start();
+            GlobalConfigRefresher.Start();
         }
 
         public void RegisterBucket(BucketBase bucket)
@@ -833,6 +841,31 @@ namespace Couchbase.Core
             return bucket;
         }
 
+        /// <summary>
+        /// A config refresher calls this when every node failed to return a config. With a DNS SRV connection string
+        /// the cluster may have moved, so this reads the DNS SRV records again, then bootstraps the cluster and every
+        /// bucket on the hosts it finds. One rebootstrap runs at a time, and a call made while one runs does nothing.
+        /// </summary>
+        internal async Task SignalConfigRefreshFailedAsync()
+        {
+            if (ClusterOptions.ConnectionStringValue is not { IsDnsSrv: true }
+                || Interlocked.Exchange(ref _rebootstrapping, 1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("Bootstrapping: no node returned a config, so the SDK rebootstraps from the DNS SRV records.");
+                await BootstrapGlobalAsync().ConfigureAwait(false);
+                await RebootstrapAllBuckets().ConfigureAwait(false);
+            }
+            finally
+            {
+                Volatile.Write(ref _rebootstrapping, 0);
+            }
+        }
+
         public async Task RebootstrapAllBuckets()
         {
             foreach(var bucket in Buckets)
@@ -1138,6 +1171,7 @@ namespace Couchbase.Core
                 _logger.LogWarning(ex, "Error cancelling the cluster token source during disposal.");
             }
 
+            GlobalConfigRefresher.Dispose();
             _configHandler?.Dispose();
             _semaphore.Dispose();
             _tokenSource?.Dispose();

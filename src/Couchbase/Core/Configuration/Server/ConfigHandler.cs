@@ -9,9 +9,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
-using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -27,7 +25,6 @@ namespace Couchbase.Core.Configuration.Server
         private readonly CancellationTokenSource _tokenSource = new();
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
-        private readonly TimeProvider _timeProvider;
 
         // Will be set to null when disposed
         private volatile ConcurrentDictionary<string, HttpStreamingConfigListener>? _httpConfigListeners = new();
@@ -37,16 +34,14 @@ namespace Couchbase.Core.Configuration.Server
         private volatile bool _running;
         private volatile bool _disposed;
 
-        public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger,
-            TimeProvider timeProvider)
+        public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _configListenerFactory = configListenerFactory ?? throw new ArgumentNullException(nameof(configListenerFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        public void Start(bool withPolling = false)
+        public void Start()
         {
             if (_running)
             {
@@ -73,134 +68,23 @@ namespace Couchbase.Core.Configuration.Server
             });
 
             _running = true;
-
-            if (withPolling)
-            {
-                StartPoll();
-            }
         }
 
-        private void StartPoll()
+        public void StartHttpStreaming(string? name = null)
         {
-            // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever
-            // as the parent span for all polling activities.
-            bool restoreFlow = false;
-            try
+            var listeners = _httpConfigListeners;
+            if (listeners is null)
             {
-                if (!ExecutionContext.IsFlowSuppressed())
-                {
-                    ExecutionContext.SuppressFlow();
-                    restoreFlow = true;
-                }
-
-                _ = PollAsync();
+                return;
             }
-            finally
+
+            foreach (var listener in listeners)
             {
-                if (restoreFlow)
+                if ((name is null || listener.Key == name) && !listener.Value.Started)
                 {
-                    ExecutionContext.RestoreFlow();
+                    _logger.LogDebug("Starting the HTTP streaming listener of {name}.", listener.Key);
+                    listener.Value.StartListening();
                 }
-            }
-        }
-
-        private async Task PollAsync()
-        {
-            try
-            {
-                while (!_tokenSource.IsCancellationRequested)
-                {
-                    _logger.LogTrace("Waiting for {interval} before polling.",
-                        _context.ClusterOptions.ConfigPollInterval);
-                    await _timeProvider.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
-                        .ConfigureAwait(false);
-
-                    _logger.LogTrace("Done waiting, polling...");
-
-                    bool connected = false;
-                    foreach (var clusterNode in _context.Nodes.Where(x =>
-                        x.HasKv && x.BucketType != BucketType.Memcached))
-                    {
-                        //Skip nodes where config push is handled. Only bucket nodes handle it,
-                        //so global nodes are still polled.
-                        if (clusterNode.ServerFeatures.ClustermapChangeNotificationBrief
-                            && clusterNode.Owner is CouchbaseBucket)
-                        {
-                            //we really don't know if we are connected in this case
-                            //but we need to rely on the Faster Failover logic
-                            connected = true;
-                            continue;
-                        }
-
-                        _logger.LogDebug("Checking {node} in polling.", clusterNode.EndPoint);
-                        try
-                        {
-                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
-                            if (config != null)
-                            {
-                                connected = true;
-                                config.Name ??= BucketConfig.GlobalBucketName;
-                                Publish(config);
-                            }
-                            else
-                            {
-                                _logger.LogDebug("Null config for {node} in polling.", clusterNode.EndPoint);
-                            }
-                        }
-                        catch (DocumentNotFoundException)
-                        {
-                            //If this happens were a mixed node cluster and need to break
-                            //out of the loop and switch to HTTP streaming for cluster configs.
-                           throw;
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogWarning(LoggingEvents.ConfigEvent, e,
-                                "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
-                        }
-                    }
-
-                    if (!connected && _context.ClusterOptions!.ConnectionStringValue!.IsDnsSrv)
-                    {
-                        _logger.LogInformation("Bootstrapping: The handler can no longer connect " +
-                            " to the cluster and will attempt to rebootstrap against the DNS SRV records.");
-
-                        //If we reach here, we cannot connect to the cluster via CCCP
-                        //and we know we are using DNS SRV lookup. Since, the bucket
-                        //may have moved to a different cluster so we want to refresh
-                        //the seed list by doing a DNS SRV lookup and then continuing
-                        //to cycle threw the new nodes list.
-                        await _context.BootstrapGlobalAsync().ConfigureAwait(false);
-                        await _context.RebootstrapAllBuckets().ConfigureAwait(false);
-                    }
-                }
-
-                _logger.LogDebug("Broke out of polling loop.");
-            }
-            catch (DocumentNotFoundException)
-            {
-                _logger.LogDebug("Switching to HTTP streaming for config handling.");
-
-                //Were in a mixed node cluster so switch to HttpStreaming
-                var httpListeners = _httpConfigListeners?.Values;
-
-                _logger.LogDebug("Getting the HTTP streaming listener ready.");
-                if (httpListeners != null)
-                {
-                    foreach (var httpListener in httpListeners)
-                    {
-                        if (!httpListener.Started)
-                        {
-                            _logger.LogDebug("Starting the HTTP streaming listener.");
-                            httpListener.StartListening();
-                            _logger.LogDebug("Started the HTTP streaming listener.");
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogDebug("Polling exception: {e}", e);
             }
         }
 
