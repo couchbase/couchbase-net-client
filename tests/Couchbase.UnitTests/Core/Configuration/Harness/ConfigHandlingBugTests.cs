@@ -22,9 +22,15 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     public class ConfigHandlingBugTests
     {
         /// <summary>
-        /// The real time a bucket gets to apply a pushed map while one of its nodes hangs.
+        /// The real time a bucket gets to apply a pushed map while one of its nodes hangs. Two passes can each wait out
+        /// the shortest config fetch timeout on the hung node.
         /// </summary>
-        private static readonly TimeSpan HungNodeDeadline = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan HungNodeDeadline = TimeSpan.FromSeconds(3);
+
+        /// <summary>
+        /// Gives the shortest config fetch timeout, which is 1 s.
+        /// </summary>
+        private static readonly TimeSpan FastestPollInterval = TimeSpan.FromSeconds(1);
 
         // Bug 1
         [Fact]
@@ -82,14 +88,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         public async Task Polling_WithLaggingNode_LeavesNodesAtNewestRev()
         {
             await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: PollInterval);
-            harness.Server.SetMap(GlobalMap(20).Node(Node0, n => n.Query(9093)), Node0);
-            harness.Server.SetMap(GlobalMap(15), Node1);
-            // Node-0 serves rev 20 once, so every later pass delivers only rev 15 from the lagging node-1.
-            harness.Server.FailFetchesAfter(1, Node0);
+            harness.Server.SetMap(GlobalMap(20).Node(Node0, n => n.Query(9093)), Node0, Node1);
             harness.StartPolling();
+            await harness.AdvanceAsync(PollInterval);
 
-            // In either poll order, the second rev 15 comes after the only rev 20.
-            await harness.AdvanceAsync(PollPasses(2));
+            // Node-1 now lags on rev 15 and node-0 fails, so the next poll gets rev 15 from node-1 after rev 20.
+            harness.Server.SetMap(GlobalMap(15), Node1);
+            harness.Server.FailFetchesAfter(0, Node0);
+            await harness.AdvanceAsync(PollInterval);
 
             Assert.All(harness.Nodes, n => Assert.Equal(Rev(20), n.Version));
             Assert.Equal(9093, harness.Nodes[0].QueryUri!.Port);
@@ -314,12 +320,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         // Bug 20
         // The push handler fetches the map from a random bucket node. On node-1 the fetch waits for an in-flight slot
         // with no timeout, and the hung node keeps every slot, so the fetch never ends.
+        // A config fetch times out after the poll interval, and at least 1 s.
         [Fact]
         public async Task BucketMap_PushedWhileANodeHangsWithFullSlots_IsApplied()
         {
             await using var harness = ConfigHarness.Create(GlobalMap(), options =>
             {
                 options.KvTimeout = SmallKvTimeout;
+                options.ConfigPollInterval = FastestPollInterval;
                 options.Tuning.MaximumInFlightOperationsPerConnection = 1;
             }, clock: TimeProvider.System, mode: ConnectionMode.Real);
             var bucket = await harness.OpenBucketAsync(BucketMap());
@@ -331,7 +339,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await harness.WaitUntilAsync(() => harness.Server.ConnectionsOn(Node1) is { Count: 2 } open && open.All(c => c.RepliesHeld == 1),
                 Timeout, "Each node-1 connection holding one Get");
 
-            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            // Node-0 has nothing newer for the first fetch, so the bucket refresher asks node-1 in either order.
             harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
             harness.Server.PushBrief(Node0, 1, 11);
 
@@ -342,15 +350,19 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         // Bug 20
         // The fetch on the hung node-1 times out. The push handler then drops the pushed version and waits for a newer
         // push, and polling skips bucket nodes, so nothing fetches the map again.
+        // A config fetch times out after the poll interval, and at least 1 s.
         [Fact]
         public async Task BucketMap_PushedWhileANodeHangs_IsApplied()
         {
-            await using var harness = ConfigHarness.Create(GlobalMap(), options => options.KvTimeout = SmallKvTimeout,
-                clock: TimeProvider.System, mode: ConnectionMode.Real);
+            await using var harness = ConfigHarness.Create(GlobalMap(), options =>
+            {
+                options.KvTimeout = SmallKvTimeout;
+                options.ConfigPollInterval = FastestPollInterval;
+            }, clock: TimeProvider.System, mode: ConnectionMode.Real);
             await harness.OpenBucketAsync(BucketMap());
             harness.Server.Hang(Node1);
 
-            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            // Node-0 has nothing newer for the first fetch, so the bucket refresher asks node-1 in either order.
             harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
             harness.Server.PushBrief(Node0, 1, 11);
 
@@ -421,20 +433,24 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         // Bug 24
         // Node-1 left the cluster. It closed its connections and every reconnect fails SELECT_BUCKET, so its pool has no
         // live connection. The push handler still picks it, and the fetch waits in a send queue that nothing reads until
-        // KvTimeout. The KV timeout is longer than the deadline, so the bucket misses the deadline.
+        // it times out. The fetch timeout, 5 s for this poll interval, is longer than the deadline, so the bucket misses
+        // the deadline.
         [Theory]
         [InlineData(ResponseStatus.Eaccess)]
         [InlineData(ResponseStatus.KeyNotFound)]
         public async Task BucketMap_PushedAfterANodeLeft_IsApplied(ResponseStatus selectBucketStatus)
         {
-            await using var harness = ConfigHarness.Create(GlobalMap(), options => options.KvTimeout = TimeSpan.FromSeconds(10),
-                clock: TimeProvider.System, mode: ConnectionMode.Real);
+            await using var harness = ConfigHarness.Create(GlobalMap(), options =>
+            {
+                options.KvTimeout = TimeSpan.FromSeconds(10);
+                options.ConfigPollInterval = TimeSpan.FromSeconds(10);
+            }, clock: TimeProvider.System, mode: ConnectionMode.Real);
             await harness.OpenBucketAsync(BucketMap());
             harness.Server.Leave(Node1, selectBucketStatus);
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node1) is { SelectBucketsFailed: > 0, OpenConnections: 0 },
                 Timeout, "Node-1 failing SELECT_BUCKET with no open connection");
 
-            // Node-0 has nothing newer for the first fetch, so the handler asks node-1 in either order.
+            // Node-0 has nothing newer for the first fetch, so the bucket refresher asks node-1 in either order.
             harness.Server.SetMapAfter(1, BucketMap(11).VBuckets(1024, replicas: 2), Node0);
             harness.Server.PushBrief(Node0, 1, 11);
 

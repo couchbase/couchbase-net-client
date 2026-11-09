@@ -173,7 +173,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// <summary>
         /// Like the captures, the leaving node ends its connections right before the map without it in the bucket. The
         /// SDK reconnects, gets HELLO and then the select bucket failure of the profile. The scale in and the wait are
-        /// unchecked. The push handler can fetch from the node that left, whose pool has no connection, and drop the
+        /// unchecked. The bucket refresher can fetch from the node that left, whose pool has no connection, and drop the
         /// version, so the SDK can stay on the map from before the removal.
         /// </summary>
         [Theory]
