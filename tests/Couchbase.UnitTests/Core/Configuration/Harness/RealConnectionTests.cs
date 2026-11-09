@@ -299,7 +299,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.Stall(Node1);
             _ = bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0));
             _ = bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node1));
-            // The push handler fetches from node-0 too, or waits on node-1 first.
+            // The bucket refresher fetches from node-0 too, or waits on node-1 first.
             harness.Server.PushBrief(Node1, 1, 11);
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).RepliesHeld >= 1, Timeout, "A request reaching node-0");
 
