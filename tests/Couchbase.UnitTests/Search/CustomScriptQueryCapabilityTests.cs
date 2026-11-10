@@ -101,6 +101,27 @@ namespace Couchbase.UnitTests.Search
         }
 
         [Fact]
+        public async Task SearchAsync_With_Capability_From_Newer_Bucket_Config_Sends_The_Request()
+        {
+            var searchResult = new Mock<ISearchResult>();
+            searchResult.SetupGet(m => m.RetryReason).Returns(RetryReason.NoRetry);
+            var searchClient = new Mock<ISearchClient>();
+            searchClient
+                .Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<FtsSearchRequest>(),
+                    It.IsAny<VectorSearch>(), It.IsAny<IScope>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(searchResult.Object);
+            using var cluster = CreateCluster(searchClient.Object, "vectorSearch");
+            var bucketConfig = CreateConfig(1, "vectorSearch", "udfQuery");
+            bucketConfig.Name = "default";
+
+            await cluster.Context.ConfigUpdatedAsync(bucketConfig);
+            var result = await cluster.SearchAsync("index", SearchRequest.Create(Score()));
+
+            Assert.Same(searchResult.Object, result);
+            Assert.False(cluster.Context.GlobalConfig.HasClusterCap(ClusterCapabilities.SEARCH_UDF_QUERY));
+        }
+
+        [Fact]
         public async Task SearchQueryAsync_Without_Capability_Throws()
         {
             using var cluster = CreateCluster(new Mock<ISearchClient>().Object, "vectorSearch");
@@ -120,14 +141,24 @@ namespace Couchbase.UnitTests.Search
             {
                 LazySearchClient = LazyServiceShimFactory.Create(searchClient)
             };
-            cluster.Context.GlobalConfig = new BucketConfig
+            // Bootstrap sets both.
+            cluster.Context.GlobalConfig = CreateConfig(0, searchCapabilities);
+            cluster.Context.UpdateClusterCapsConfig(cluster.Context.GlobalConfig);
+            return cluster;
+        }
+
+        private static BucketConfig CreateConfig(ulong rev, params string[] searchCapabilities)
+        {
+            var config = new BucketConfig
             {
+                Rev = rev,
                 ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
                 {
                     ["search"] = searchCapabilities
                 }
             };
-            return cluster;
+            config.OnDeserialized();
+            return config;
         }
     }
 }

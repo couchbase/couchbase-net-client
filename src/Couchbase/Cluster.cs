@@ -50,9 +50,10 @@ namespace Couchbase
         private readonly ILogger<Cluster> _logger;
         private readonly IRetryOrchestrator _retryOrchestrator;
         private readonly object _syncObject = new object();
+        private readonly object _clusterCapsLock = new();
         private bool _disposed;
         private readonly ClusterContext _context;
-        // Test seam: lets unit tests supply the GlobalConfig that capability checks read.
+        // Test seam: lets unit tests supply the config that capability checks read.
         internal ClusterContext Context => _context;
         private bool _hasBootStrapped = false;
 
@@ -114,6 +115,7 @@ namespace Couchbase
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
             LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionsConfig));
+            _context.ClusterCapsChanged += () => UpdateClusterCapabilities(createQueryClient: false);
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -588,25 +590,25 @@ namespace Couchbase
             // The RFC asks to wait until the GlobalConfig is ready.  That should be handled by ThrowIfNotBootstrapped.
             if (searchRequest.Scope is not null)
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX,
+                _context.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX,
                     "This API is for use with scoped indexes, which require Couchbase Server 7.6.0 or above, with at least one search node");
             }
 
             if (searchRequest.VectorSearch is not null)
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
+                _context.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
                     "Vector queries are available from Couchbase Server 7.6.0 and above, with at least one search node");
             }
 
             if (options.ScoringValue?.RequiresScoreFusionCapability == true)
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCORE_FUSION,
+                _context.AssertClusterCap(ClusterCapabilities.SCORE_FUSION,
                     "Score fusion is not available on this version of Couchbase Server");
             }
 
             if (searchRequest.ContainsCustomScriptQuery())
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SEARCH_UDF_QUERY,
+                _context.AssertClusterCap(ClusterCapabilities.SEARCH_UDF_QUERY,
                     "Custom score or filter queries are not available on this version of Couchbase Server");
             }
 
@@ -659,12 +661,21 @@ namespace Couchbase
 
         #region Misc
 
-        internal void UpdateClusterCapabilities()
+        internal void UpdateClusterCapabilities() => UpdateClusterCapabilities(createQueryClient: true);
+
+        private void UpdateClusterCapabilities(bool createQueryClient)
         {
-            if (_context.GlobalConfig is not null)
+            // One update at a time, so the last one reads the newest config.
+            lock (_clusterCapsLock)
             {
+                // Bootstrap creates the client, so every later change reaches it.
                 // Client may be null if the service was not registered
-                LazyQueryClient.Value?.UpdateClusterCapabilities(_context.GlobalConfig.GetClusterCapabilities());
+                var queryClient = createQueryClient || LazyQueryClient.IsValueCreated ? LazyQueryClient.Value : null;
+                var config = _context.ClusterCapsConfig;
+                if (queryClient is not null && config is not null)
+                {
+                    queryClient.UpdateClusterCapabilities(config.GetClusterCapabilities());
+                }
             }
         }
 

@@ -59,7 +59,7 @@ namespace Couchbase.Management.Search
             var path = "api/index";
             if (scope is not null)
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX);
+                _context.AssertClusterCap(ClusterCapabilities.SCOPED_SEARCH_INDEX);
                 path = $"api/bucket/{scope.Bucket.Name}/scope/{scope.Name}/index";
             }
 
@@ -616,7 +616,7 @@ namespace Couchbase.Management.Search
         {
             if (ContainsVectorMappings(index))
             {
-                _context.GlobalConfig?.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
+                _context.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH,
                     "Indexes containing vector mappings are only available from Couchbase Server 7.6.0 and above, with at least one search node.");
             }
         }
