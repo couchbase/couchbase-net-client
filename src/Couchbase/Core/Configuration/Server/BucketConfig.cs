@@ -507,6 +507,9 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
+        internal bool HasSameClusterCaps(BucketConfig other) =>
+            _clusterCapsSet is not null && other._clusterCapsSet is not null && _clusterCapsSet.SetEquals(other._clusterCapsSet);
+
         public bool Equals(BucketConfig other)
         {
             if (other == null) return false;

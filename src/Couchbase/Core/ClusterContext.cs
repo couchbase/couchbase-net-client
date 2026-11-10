@@ -49,6 +49,7 @@ namespace Couchbase.Core
         private int _disposed;
         private readonly object _dnsSrvRebootstrapLock = new();
         private long? _lastDnsSrvRebootstrap;
+        private BucketConfig _clusterCapsConfig;
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -110,6 +111,17 @@ namespace Couchbase.Core
         public BucketConfig GlobalConfig { get; set; }
 
         /// <summary>
+        /// The newest config from any source that carries cluster capabilities. Once buckets own every KV node, no
+        /// cluster config arrives, so <see cref="GlobalConfig"/> alone would miss new capabilities after an upgrade.
+        /// </summary>
+        internal BucketConfig ClusterCapsConfig => Volatile.Read(ref _clusterCapsConfig);
+
+        /// <summary>
+        /// Raised when <see cref="ClusterCapsConfig"/> changes the set of cluster capabilities.
+        /// </summary>
+        internal event Action ClusterCapsChanged;
+
+        /// <summary>
         /// Keeps <see cref="GlobalConfig"/> up to date over KV.
         /// </summary>
         internal GlobalConfigRefresher GlobalConfigRefresher { get; }
@@ -125,6 +137,39 @@ namespace Couchbase.Core
         public bool SupportsBinaryXattr { get; internal set; }
 
         public CancellationToken CancellationToken => _tokenSource.Token;
+
+        internal bool HasClusterCap(string clusterCap) => ClusterCapsConfig?.HasClusterCap(clusterCap) == true;
+
+        /// <summary>
+        /// Throws if the cluster does not have the capability. Does nothing while no capabilities are known.
+        /// </summary>
+        internal void AssertClusterCap(string clusterCap, string message = null) =>
+            ClusterCapsConfig?.AssertClusterCap(clusterCap, message);
+
+        /// <summary>
+        /// Stores the config as <see cref="ClusterCapsConfig"/> if it carries cluster capabilities and is newer,
+        /// or always when <paramref name="replace"/> is set.
+        /// </summary>
+        internal void UpdateClusterCapsConfig(BucketConfig config, bool replace = false)
+        {
+            // A config with no capabilities must not erase the known ones.
+            if (config.ClusterCapabilities is not { Count: > 0 }) return;
+
+            BucketConfig current;
+            do
+            {
+                current = Volatile.Read(ref _clusterCapsConfig);
+
+                // Bucket and cluster configs share one revision space, and lagging nodes send older configs late.
+                if (!replace && current is not null && config.ConfigVersion <= current.ConfigVersion) return;
+            }
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref _clusterCapsConfig, config, current), current));
+
+            if (current is null || !config.HasSameClusterCaps(current))
+            {
+                ClusterCapsChanged?.Invoke();
+            }
+        }
 
         public void Start()
         {
@@ -512,6 +557,8 @@ namespace Couchbase.Core
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
+                        // Bootstrap replaces it, so a DNS SRV move to a cluster with lower revisions takes effect.
+                        UpdateClusterCapsConfig(GlobalConfig, replace: true);
                         UpdateAppTelemetryConfig(GlobalConfig);
 
                         //If we are using alt addresses, we likely bootstrapped with a
@@ -1121,6 +1168,9 @@ namespace Couchbase.Core
                 _logger.LogDebug("Bucket {name} nodes: {nodes}", bucket.Key, bucket.Value.ClusterNodes.Count());
             }
 #endif
+
+            // Every config reaches here, bucket configs included.
+            UpdateClusterCapsConfig(globalConfig);
 
             // Merge ClusterLabels: prefer incoming values (latest from server), carry forward current values as fallback.
             // Both configs are updated so labels survive even if GlobalConfig is replaced.
