@@ -306,7 +306,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     public Transactions Transactions =>
         throw ThrowHelper.ThrowFeatureNotAvailableException("Transactions", "Protostellar");
 
-    public IConversationalQuery ConversationalQuery => StellarConversationalQuery.Instance;
+    public IConversationalQuery ConversationalQuery =>
+        throw ThrowHelper.ThrowFeatureNotAvailableException("Conversational Query", "Protostellar");
 
     public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = null)
     {

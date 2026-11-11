@@ -142,14 +142,19 @@ namespace Couchbase.UnitTests.Query.Conversational
             Assert.Single(context.Requests);
         }
 
-        [Theory]
-        [InlineData("natural")]
-        [InlineData("natural_cred")]
-        [InlineData("NATURAL_config")]
-        public void Raw_ReservedName_Throws(string name)
+        [Fact]
+        public async Task Raw_NaturalParameter_IsSent()
         {
-            Assert.Throws<InvalidArgumentException>(() => new ConversationalQueryOptions().Raw(name, "x"));
-            Assert.Throws<InvalidArgumentException>(() => new AskOptions().Raw(name, "x"));
+            var context = WithNodes("uuid-a");
+
+            (await new ConversationalQuery(context).QueryAsync<dynamic>("count hotels", Hotels,
+                new ConversationalQueryOptions().Raw("natural_new_option", "x"))).Dispose();
+            (await new Chat(context, ChatId, "uuid-a", ModelParameters.Create(null, null)).AskAsync<dynamic>("hello",
+                new AskOptions().Raw("natural_new_option", "x"))).Dispose();
+
+            Assert.Equal(2, context.Requests.Count);
+            Assert.All(context.Requests,
+                r => Assert.Equal("x", r.Body.GetProperty("natural_new_option").GetString()));
         }
 
         [Fact]

@@ -12,9 +12,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Protostellar.Query.V1;
-using Couchbase.KeyValue;
 using Couchbase.Query;
-using Couchbase.Query.Conversational;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Stellar;
 using Couchbase.Stellar.Core;
@@ -82,14 +80,7 @@ public class ClusterTests
       public async Task Throw_FeatureNotAvailableException_ConversationalQuery()
       {
           await using var cluster = await CreateCluster();
-          var keyspaces = Array.Empty<ICouchbaseCollection>();
-
-          await Assert.ThrowsAsync<FeatureNotAvailableException>(() =>
-              cluster.ConversationalQuery.QueryAsync<dynamic>("count hotels", keyspaces));
-          await Assert.ThrowsAsync<FeatureNotAvailableException>(() =>
-              cluster.ConversationalQuery.BeginChatAsync(keyspaces));
-          Assert.Throws<FeatureNotAvailableException>(() =>
-              cluster.ConversationalQuery.AttachChat(ChatHandle.FromJson("""{"chatId":"chat-1","owner":null}""")));
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.ConversationalQuery);
       }
 
       [Fact]

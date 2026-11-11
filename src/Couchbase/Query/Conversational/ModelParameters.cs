@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json.Nodes;
 using Couchbase.Utils;
 
@@ -82,16 +81,6 @@ namespace Couchbase.Query.Conversational
             }
 
             return new ModelParameters(credential?.Kind, provider, name, config: config.Count == 0 ? null : config);
-        }
-
-        // The SDK sets the natural* request parameters itself.
-        public static void ThrowIfReservedParameter(string name)
-        {
-            if (name is not null && name.StartsWith("natural", StringComparison.OrdinalIgnoreCase))
-            {
-                ThrowHelper.ThrowInvalidArgumentException(
-                    $"The query parameter {name} is reserved for conversational queries.");
-            }
         }
 
         public override string ToString() =>

@@ -258,25 +258,6 @@ namespace Couchbase.UnitTests.Query.Conversational
             Assert.Equal("ModelOptions { Provider = openai, Name = gpt-4o }", model.ToString());
         }
 
-        [Theory]
-        [InlineData("natural")]
-        [InlineData("natural_cred")]
-        [InlineData("NATURAL_CHATID")]
-        [InlineData("Natural_Config")]
-        public void ThrowIfReservedParameter_NaturalPrefix_Throws(string name)
-        {
-            Assert.Throws<InvalidArgumentException>(() => ModelParameters.ThrowIfReservedParameter(name));
-        }
-
-        [Theory]
-        [InlineData("timeout")]
-        [InlineData("query_context")]
-        [InlineData("my_natural")]
-        public void ThrowIfReservedParameter_OtherName_DoesNotThrow(string name)
-        {
-            ModelParameters.ThrowIfReservedParameter(name);
-        }
-
         private static void AssertConfig(string expectedJson, ModelParameters parameters)
         {
             Assert.NotNull(parameters.Config);

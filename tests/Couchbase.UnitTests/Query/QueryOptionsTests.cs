@@ -601,6 +601,22 @@ namespace Couchbase.UnitTests.Query
                 result);
         }
 
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_Omits_Raw_Model_Credentials(ITypeSerializer serializer)
+        {
+            var options = new QueryOptions("USING AI hello")
+                .Raw("natural_cred", "user@example.com:test-password")
+                .Raw("NATURAL_CONFIG", new Dictionary<string, object> { ["api_key"] = "test-api-key" })
+                .Raw("natural_orgid", "org-1");
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{},\"Raw\":{\"natural_orgid\":\"org-1\"},\"Positional\":[]}",
+                result);
+        }
+
         [Fact]
         public async Task GetRequestBody_Without_ChatId_Sends_No_NaturalChatId()
         {

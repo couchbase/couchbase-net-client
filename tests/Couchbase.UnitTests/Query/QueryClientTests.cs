@@ -624,13 +624,14 @@ namespace Couchbase.UnitTests.Query
             """{"requestID":"r-1","errors":[{"code":5010,"msg":"Try again","retry":true}],"status":"fatal"}""";
 
         [Theory]
-        [InlineData(nameof(ConversationalOperation.Query))]
-        [InlineData(nameof(ConversationalOperation.Ask))]
-        public async Task QueryAsync_ConversationalRetryableServerError_IsNotRetried(string operation)
+        [InlineData(nameof(ConversationalOperation.Query), "http://b:8093/query/service")]
+        [InlineData(nameof(ConversationalOperation.Ask), "http://a:8093/query/service")]
+        public async Task QueryAsync_ConversationalRetryableServerError_IsRetried(string operation, string expectedUri)
         {
-            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var target = QueryNode("uuid-a", "http://a:8093/query/service");
+            var random = QueryNode("uuid-b", "http://b:8093/query/service");
             var sent = new List<(Uri Uri, string Body)>();
-            var client = CreateQueryClient(QueryNodeProvider(node, node), sent,
+            var client = CreateQueryClient(QueryNodeProvider(random, target), sent,
                 JsonResponse(RetryableServerError, HttpStatusCode.ServiceUnavailable), SuccessResponse);
 
             var options = new QueryOptions { Conversational = Conversational(operation) };
@@ -641,14 +642,12 @@ namespace Couchbase.UnitTests.Query
                 Timeout = TimeSpan.FromSeconds(30)
             };
 
-            var ex = await Assert.ThrowsAsync<InternalServerFailureException>(() =>
-                CreateRetryOrchestrator().RetryAsync(
-                    () => client.QueryAsync<dynamic>(request.Statement, options, request), request));
+            using var result = await CreateRetryOrchestrator().RetryAsync(
+                () => client.QueryAsync<dynamic>(request.Statement, options, request), request);
 
-            Assert.Single(sent);
-            Assert.Equal(0u, request.Attempts);
-            var context = Assert.IsType<QueryErrorContext>(ex.Context);
-            Assert.True(Assert.Single(context.Errors).Retry);
+            var uri = new Uri(expectedUri);
+            Assert.Equal(new[] { uri, uri }, sent.Select(x => x.Uri));
+            Assert.Equal(1u, request.Attempts);
         }
 
         [Fact]
@@ -674,16 +673,18 @@ namespace Couchbase.UnitTests.Query
         }
 
         [Theory]
-        [InlineData(nameof(ConversationalOperation.Query), false)]
-        [InlineData(nameof(ConversationalOperation.Query), true)]
-        [InlineData(nameof(ConversationalOperation.Ask), true)]
-        public async Task QueryAsync_ConversationalAmbiguousTransportError_IsNotRetried(string operation, bool readOnly)
+        [InlineData(nameof(ConversationalOperation.BeginChat))]
+        [InlineData(nameof(ConversationalOperation.Ask))]
+        [InlineData(nameof(ConversationalOperation.Pause))]
+        [InlineData(nameof(ConversationalOperation.Resume))]
+        [InlineData(nameof(ConversationalOperation.End))]
+        public async Task QueryAsync_ChatAmbiguousTransportError_IsNotRetried(string operation)
         {
             var node = QueryNode("uuid-a", "http://a:8093/query/service");
             var sent = new List<(Uri Uri, string Body)>();
             var client = CreateQueryClient(QueryNodeProvider(node, node), sent, ConnectionReset, SuccessResponse);
 
-            var options = new QueryOptions { Conversational = Conversational(operation) }.Readonly(readOnly);
+            var options = new QueryOptions { Conversational = Conversational(operation) };
             var request = new QueryRequest
             {
                 Options = options,
@@ -700,8 +701,10 @@ namespace Couchbase.UnitTests.Query
             Assert.Null(request.ExcludedNodes);
         }
 
-        [Fact]
-        public async Task QueryAsync_OneShotConversationalPreConnectFailure_RetriesOnAnotherNode()
+        [Theory]
+        [InlineData(nameof(ConnectionRefused))]
+        [InlineData(nameof(ConnectionReset))]
+        public async Task QueryAsync_OneShotConversationalTransportError_RetriesOnAnotherNode(string failure)
         {
             var a = QueryNode("uuid-a", "http://a:8093/query/service");
             var b = QueryNode("uuid-b", "http://b:8093/query/service");
@@ -710,7 +713,8 @@ namespace Couchbase.UnitTests.Query
                 .Setup(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()))
                 .Returns<IList<Uri>>(excluded => excluded?.Contains(a.Object.QueryUri) == true ? b.Object : a.Object);
             var sent = new List<(Uri Uri, string Body)>();
-            var client = CreateQueryClient(provider, sent, ConnectionRefused, SuccessResponse);
+            Func<HttpResponseMessage> transportError = failure == nameof(ConnectionRefused) ? ConnectionRefused : ConnectionReset;
+            var client = CreateQueryClient(provider, sent, transportError, SuccessResponse);
 
             var options = new QueryOptions { Conversational = Conversational(nameof(ConversationalOperation.Query)) };
             var request = new QueryRequest
@@ -725,6 +729,39 @@ namespace Couchbase.UnitTests.Query
 
             Assert.Equal(new[] { a.Object.QueryUri, b.Object.QueryUri }, sent.Select(x => x.Uri));
             Assert.Equal(1u, request.Attempts);
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query), true)]
+        [InlineData(nameof(ConversationalOperation.Ask), false)]
+        [InlineData(nameof(ConversationalOperation.End), false)]
+        public async Task RetryAsync_ReasonWithoutNonIdempotentRetries_RetriesOnlyTheOneShotQuery(string operation, bool retried)
+        {
+            var request = new QueryRequest
+            {
+                Options = new QueryOptions { Conversational = Conversational(operation) },
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+            var noRetry = new RequestCanceledException("The socket closed while the request was in flight.");
+
+            var calls = 0;
+            Task<IQueryResult<dynamic>> Send()
+            {
+                calls++;
+                var result = new BlockQueryResult<dynamic>(Stream.Null, DefaultSerializer.Instance);
+                if (calls == 1)
+                {
+                    result.RetryReason = RetryReason.SocketClosedWhileInFlight;
+                    result.NoRetryException = noRetry;
+                }
+
+                return Task.FromResult<IQueryResult<dynamic>>(result);
+            }
+
+            var outcome = await Record.ExceptionAsync(() => CreateRetryOrchestrator().RetryAsync(Send, request));
+
+            Assert.Same(retried ? null : noRetry, outcome);
+            Assert.Equal(retried ? 2 : 1, calls);
         }
 
         [Theory]
@@ -921,6 +958,44 @@ namespace Couchbase.UnitTests.Query
                 Assert.DoesNotContain(TestApiKey, text);
                 Assert.DoesNotContain(TestConfigValue, text);
                 Assert.DoesNotContain("natural_", text);
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task QueryAsync_RawModelCredentials_NeverReachTheErrorContext(bool serverError)
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(QueryNodeProvider(node, node), sent, serverError
+                ? JsonResponse("""{"requestID":"r-1","errors":[{"code":19241,"msg":"model auth failed"}],"status":"fatal"}""")
+                : ConnectionReset);
+
+            var options = new QueryOptions()
+                .Raw("natural_cred", "user@example.com:" + TestPassword)
+                .Raw("Natural_Config", new Dictionary<string, object> { ["api_key"] = TestApiKey });
+            options.Conversational = Conversational(nameof(ConversationalOperation.Ask));
+
+            var ex = await Assert.ThrowsAnyAsync<CouchbaseException>(() =>
+                client.QueryAsync<dynamic>("USING AI hello", options));
+
+            Assert.IsType(serverError ? typeof(AuthenticationFailureException) : typeof(RequestCanceledException), ex);
+            var body = Assert.Single(sent).Body;
+            Assert.Contains(TestPassword, body);
+            Assert.Contains(TestApiKey, body);
+
+            var context = Assert.IsType<QueryErrorContext>(ex.Context);
+            foreach (var text in new[]
+                     {
+                         context.Parameters, context.ToString(), ex.ToString(),
+                         JsonSerializer.Serialize(context, QuerySerializerContext.Default.QueryErrorContext)
+                     })
+            {
+                Assert.DoesNotContain(TestPassword, text);
+                Assert.DoesNotContain(TestApiKey, text);
+                Assert.DoesNotContain("natural_cred", text, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("natural_config", text, StringComparison.OrdinalIgnoreCase);
             }
         }
 
