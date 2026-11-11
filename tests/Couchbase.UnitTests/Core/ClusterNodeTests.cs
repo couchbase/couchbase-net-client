@@ -19,6 +19,7 @@ using Couchbase.UnitTests.Helpers;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -27,6 +28,9 @@ namespace Couchbase.UnitTests.Core
 {
     public class ClusterNodeTests
     {
+        // Bounds each wait, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
         private readonly ITestOutputHelper outputHelper;
 
         public ClusterNodeTests(ITestOutputHelper outputHelper)
@@ -209,8 +213,7 @@ namespace Couchbase.UnitTests.Core
             clusterNode.HandleClusterMapChangeNotification(
                 new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(new Memory<byte>(briefPush))));
 
-            // No timeout. A push that reaches no refresher hangs the test, which is easy to diagnose.
-            await fetched.Task;
+            await fetched.Task.WaitAsync(Deadline);
         }
 
         [Fact]
@@ -276,9 +279,8 @@ namespace Couchbase.UnitTests.Core
             using var context = new ClusterContext(null, options);
             using var clusterNode = CreateClusterNode(context, pool.Object);
 
-            // No deadline. A fetch that waits for KvTimeout hangs the test, which is easy to diagnose.
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(() =>
-                clusterNode.GetClusterMap(timeout: TimeSpan.FromMilliseconds(50)));
+                clusterNode.GetClusterMap(timeout: TimeSpan.FromMilliseconds(50)).WaitAsync(Deadline));
         }
 
         private static ClusterContext CreateContextWithoutPolling()
@@ -312,7 +314,7 @@ namespace Couchbase.UnitTests.Core
                 connectionPoolFactory: connectionPoolFactory.Object,
                 logger: new Logger<ClusterNode>(new TestOutputLoggerFactory(outputHelper)),
                 operationBuilderPool: new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
-                circuitBreaker: new CircuitBreaker(TimeProvider.System, new CircuitBreakerConfiguration { Enabled = false }),
+                circuitBreaker: new CircuitBreaker(new FakeTimeProvider(), new CircuitBreakerConfiguration { Enabled = false }),
                 saslMechanismFactory: new Mock<ISaslMechanismFactory>().Object,
                 redactor: new Redactor(RedactionLevel.None),
                 endPoint: new HostEndpointWithPort("localhost", 11210),

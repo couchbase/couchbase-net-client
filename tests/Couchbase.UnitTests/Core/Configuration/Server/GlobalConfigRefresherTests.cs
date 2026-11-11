@@ -18,6 +18,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server;
 
 public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
 {
+    // Bounds each wait on the refresher loop, so a regression fails instead of hanging.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
     [Fact]
     public async Task Poll_Waits_On_The_Injected_Clock()
     {
@@ -36,14 +39,14 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
 
-        await clock.WaitForSleepAsync(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         Assert.Equal(0, polls.Count);
 
         clock.Advance(pollInterval);
-        await polls.WaitForAsync(1);
+        await polls.WaitForAsync(1).WaitAsync(Deadline);
 
         // Reaching the next sleep means the pass ran to completion.
-        await clock.WaitForSleepAsync(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         Assert.Equal(1, polls.Count);
     }
 
@@ -67,11 +70,11 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         refresher.Start();
         for (var pass = 0; pass < 3; pass++)
         {
-            await clock.WaitForSleepAsync(pollInterval);
+            await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
             clock.Advance(pollInterval);
         }
 
-        await clock.WaitForSleepAsync(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         globalNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
         bucketNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
@@ -94,7 +97,7 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         refresher.Start();
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
-        Assert.Null(await streaming.Task);
+        Assert.Null(await streaming.Task.WaitAsync(Deadline));
     }
 
     [Fact]
@@ -119,9 +122,10 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
 
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         clock.Advance(pollInterval);
-        await clock.WaitForSleepAsync(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(0, dnsLookups.Count);
     }

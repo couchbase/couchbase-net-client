@@ -219,8 +219,17 @@ namespace Couchbase
             var configNode = Nodes.RandomOrDefault(static x => x.HasKv);
             if (configNode is not null)
             {
-                var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
-                Context.PublishConfig(config);
+                try
+                {
+                    var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
+                    Context.PublishConfig(config);
+                }
+                catch (Exception ex)
+                {
+                    // Best effort. The operation that asked for it goes on to its retry.
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, ex, "Forcing a config update of {name} failed.",
+                        Redactor.UserData(Name));
+                }
             }
         }
 

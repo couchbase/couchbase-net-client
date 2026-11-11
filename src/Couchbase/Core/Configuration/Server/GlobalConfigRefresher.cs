@@ -33,6 +33,9 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
         base.Publish(config);
     }
 
+    // A node that does not serve the cluster config means a cluster of mixed versions.
+    protected override bool AnyKeyNotFoundSwitchesToHttpStreaming => true;
+
     // With no config over KV, the cluster and every bucket switch to HTTP streaming.
     protected override void StartHttpStreaming() => ConfigHandler.StartHttpStreaming();
 }

@@ -100,6 +100,12 @@ internal abstract partial class ConfigRefresher : IDisposable
     protected abstract void StartHttpStreaming();
 
     /// <summary>
+    /// Whether one node that answers KeyNotFound is enough to switch to HTTP streaming. When false, the switch needs
+    /// every node asked in a pass to answer KeyNotFound, and a node that answers KeyNotFound counts as a failed node.
+    /// </summary>
+    protected virtual bool AnyKeyNotFoundSwitchesToHttpStreaming => false;
+
+    /// <summary>
     /// The timeout of a config fetch. It is the poll interval, kept between 1 and 5 seconds like the Java SDK.
     /// </summary>
     internal static TimeSpan GetFetchTimeout(TimeSpan pollInterval) =>
@@ -205,7 +211,7 @@ internal abstract partial class ConfigRefresher : IDisposable
                 }
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        catch (Exception) when (token.IsCancellationRequested)
         {
         }
         catch (DocumentNotFoundException)
@@ -262,7 +268,7 @@ internal abstract partial class ConfigRefresher : IDisposable
             // Every node is dead, which counts as every fetch failing.
             LogNoLiveKvNodes(Redactor.SystemData(Name));
             _failedFetches = 0;
-            await SignalAllNodesFailedAsync(token).ConfigureAwait(false);
+            Context.SignalConfigRefreshFailed();
         }
 
         var (answered, config) = await FetchAsync(nodes, currentVersion, pendingVersion, token).ConfigureAwait(false);
@@ -304,6 +310,7 @@ internal abstract partial class ConfigRefresher : IDisposable
         BucketConfig? newest = null;
         var behind = 0;
         var failed = 0;
+        var keyNotFound = 0;
         foreach (var node in nodes)
         {
             try
@@ -323,18 +330,27 @@ internal abstract partial class ConfigRefresher : IDisposable
 
                 behind++;
             }
-            catch (Exception ex) when (ex is not DocumentNotFoundException && !token.IsCancellationRequested)
+            catch (Exception ex) when (!token.IsCancellationRequested)
             {
+                if (ex is DocumentNotFoundException)
+                {
+                    keyNotFound++;
+                    if (AnyKeyNotFoundSwitchesToHttpStreaming || keyNotFound == nodes.Count)
+                    {
+                        // KV does not serve the config, so the loop ends and switches to HTTP streaming.
+                        throw;
+                    }
+                }
+
                 // A failed node does not end the pass, so the next node can still answer.
                 failed++;
-                LogConfigFetchFailed(Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint),
-                    ex.GetType().Name, ex.Message);
+                LogConfigFetchFailed(ex, Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint));
 
                 if (++_failedFetches >= nodes.Count)
                 {
                     _failedFetches = 0;
                     LogAllNodesFailed(Redactor.SystemData(Name));
-                    await SignalAllNodesFailedAsync(token).ConfigureAwait(false);
+                    Context.SignalConfigRefreshFailed();
                 }
             }
         }
@@ -408,18 +424,6 @@ internal abstract partial class ConfigRefresher : IDisposable
         Context.ClusterOptions.Experiments.EnablePollingWithPushConfig
         || liveNodes.Count == 0
         || liveNodes.Any(node => node.ServerFeatures?.ClustermapChangeNotificationBrief != true);
-
-    private async Task SignalAllNodesFailedAsync(CancellationToken token)
-    {
-        try
-        {
-            await Context.SignalConfigRefreshFailedAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex) when (!token.IsCancellationRequested)
-        {
-            LogRebootstrapFailed(ex, Redactor.SystemData(Name));
-        }
-    }
 
     private ConfigVersion? GetLatestPushedVersion()
     {
@@ -528,14 +532,11 @@ internal abstract partial class ConfigRefresher : IDisposable
     [LoggerMessage(11, LogLevel.Warning, "No node returned pushed version {pushedVersion} of {name} after {retries} retries. Waiting for the next push or poll.")]
     private partial void LogGaveUpOnPushedVersion(Redacted<string> name, ConfigVersion pushedVersion, int retries);
 
-    [LoggerMessage(12, LogLevel.Warning, "Fetching the config of {name} from {endpoint} failed with {exceptionType}, {exceptionMessage}")]
-    private partial void LogConfigFetchFailed(Redacted<string> name, Redacted<HostEndpointWithPort> endpoint, string exceptionType, string exceptionMessage);
+    [LoggerMessage(12, LogLevel.Warning, "Fetching the config of {name} from {endpoint} failed")]
+    private partial void LogConfigFetchFailed(Exception exception, Redacted<string> name, Redacted<HostEndpointWithPort> endpoint);
 
     [LoggerMessage(13, LogLevel.Warning, "Every node failed to return the config of {name}")]
     private partial void LogAllNodesFailed(Redacted<string> name);
-
-    [LoggerMessage(14, LogLevel.Warning, "Rebootstrapping after every node failed to return the config of {name} failed")]
-    private partial void LogRebootstrapFailed(Exception exception, Redacted<string> name);
 
     [LoggerMessage(15, LogLevel.Warning, "Refreshing the config of {name} failed")]
     private partial void LogRefreshFailed(Exception exception, Redacted<string> name);
