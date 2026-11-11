@@ -195,12 +195,22 @@ namespace Couchbase.Core.IO.Connections
 
             // _writeMutex is used to prevent interleaved writes from different threads. This primarily
             // occurs when running Diagnostics pings or when using IConnectionPool.TrySendImmediatelyAsync.
+            var lockTaken = false;
             try
             {
                 await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+                lockTaken = true;
+
+                // The lock can be granted after the token fires. The write would then fail and close the connection.
+                cancellationToken.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException)
             {
+                if (lockTaken)
+                {
+                    _writeMutex.Release();
+                }
+
                 // Nothing was written, so no reply frees the slot.
                 if (_statesInFlight.TryRemove(state.Opaque, out var removed))
                 {
@@ -212,7 +222,7 @@ namespace Couchbase.Core.IO.Connections
 
             try
             {
-                // A write cut by the token leaves part of a frame on the stream, so the catch below closes the connection.
+                // A write cut by the token can leave part of a frame on the stream, so the catch below closes the connection.
 #if SPAN_SUPPORT
                 await _stream.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 #else

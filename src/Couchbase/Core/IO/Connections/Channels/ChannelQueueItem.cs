@@ -18,15 +18,11 @@ namespace Couchbase.Core.IO.Connections.Channels
         // traces when not all traces are sampled.
         public ExecutionContext? CapturedContext { get; }
 
-        public ChannelQueueItem(IOperation operation, CancellationToken cancellationToken, bool captureContext = true)
+        public ChannelQueueItem(IOperation operation, CancellationToken cancellationToken)
         {
             Operation = operation;
             CancellationToken = cancellationToken;
-
-            if (captureContext)
-            {
-                CapturedContext = ExecutionContext.Capture();
-            }
+            CapturedContext = ExecutionContext.Capture();
         }
 
         public Task SendAsync(IConnection connection)
