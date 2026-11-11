@@ -13,6 +13,8 @@ namespace Couchbase.Query.Conversational;
 /// <remarks>
 /// The chat keeps the node that owns it. Ask, pause and end fail with <see cref="ChatCurrentlyUnavailableException"/>
 /// when no owner is known. After <see cref="EndAsync"/> succeeds, every method throws <see cref="InvalidArgumentException"/>.
+/// Ask, pause, resume and end throw <see cref="FeatureNotAvailableException"/> when the cluster does not support chats,
+/// or when Query nodes share one address, for example with Capella Private Link.
 /// </remarks>
 [InterfaceStability(Level.Volatile)]
 public interface IChat
@@ -24,6 +26,7 @@ public interface IChat
     /// <param name="prompt">The natural language prompt.</param>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The generated statement and the rows, if the statement ran.</returns>
+    /// <exception cref="InvalidArgumentException">The prompt is empty.</exception>
     Task<IConversationalQueryResult<T>> AskAsync<T>(string prompt, AskOptions? options = null);
 
     /// <summary>
@@ -42,6 +45,7 @@ public interface IChat
 
     /// <summary>
     /// Ends the chat. After it succeeds, this instance cannot be used.
+    /// It does not remove a paused chat, so call <see cref="ResumeAsync"/> first.
     /// </summary>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The metadata of the response.</returns>

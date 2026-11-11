@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text;
 using System.Text.Json;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
@@ -13,11 +11,14 @@ namespace Couchbase.Query.Conversational;
 /// It never contains credentials or model settings.
 /// </summary>
 /// <remarks>
-/// Apps may read <see cref="ChatId"/>. <see cref="Owner"/> is for SDK routing only.
+/// Apps may read <see cref="ChatId"/>. The handle also keeps the owner node, which the SDK uses for routing.
 /// </remarks>
 [InterfaceStability(Level.Volatile)]
 public sealed record ChatHandle
 {
+    private const string InvalidHandleMessage =
+        "The chat handle must be a JSON object with a string chatId and a string or null owner.";
+
     internal ChatHandle(string chatId, string? owner)
     {
         ChatId = chatId;
@@ -32,25 +33,15 @@ public sealed record ChatHandle
     /// <summary>
     /// The node UUID of the Query node that owns the chat, or null when no owner is known.
     /// </summary>
-    public string? Owner { get; }
+    internal string? Owner { get; }
 
     /// <summary>
     /// Writes the handle as <c>{"chatId":"...","owner":"..."}</c>. The owner is <c>null</c> when it is unknown.
     /// </summary>
     /// <returns>The JSON text.</returns>
-    public string ToJson()
-    {
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream))
-        {
-            writer.WriteStartObject();
-            writer.WriteString("chatId", ChatId);
-            writer.WriteString("owner", Owner);
-            writer.WriteEndObject();
-        }
-
-        return Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
-    }
+    public string ToJson() =>
+        JsonSerializer.Serialize(new ChatHandleDto { ChatId = ChatId, Owner = Owner },
+            QuerySerializerContext.Default.ChatHandleDto);
 
     /// <summary>
     /// Reads a handle written by <see cref="ToJson"/>. Unknown fields are ignored.
@@ -64,65 +55,31 @@ public sealed record ChatHandle
     {
         if (json is null)
         {
-            throw Invalid("The chat handle cannot be null.");
+            throw new InvalidArgumentException("The chat handle cannot be null.");
         }
 
-        string? chatId = null;
-        string? owner = null;
-        var hasOwner = false;
+        ChatHandleDto? dto;
         try
         {
-            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
-            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
-            {
-                throw Invalid("The chat handle must be a JSON object.");
-            }
-
-            while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
-            {
-                if (reader.ValueTextEquals("chatId"u8))
-                {
-                    reader.Read();
-                    chatId = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
-                    if (string.IsNullOrEmpty(chatId))
-                    {
-                        throw Invalid("The chat handle field chatId must be a non-empty string.");
-                    }
-                }
-                else if (reader.ValueTextEquals("owner"u8))
-                {
-                    reader.Read();
-                    if (reader.TokenType is not (JsonTokenType.String or JsonTokenType.Null))
-                    {
-                        throw Invalid("The chat handle field owner must be a string or null.");
-                    }
-
-                    owner = reader.GetString();
-                    hasOwner = true;
-                }
-                else
-                {
-                    reader.Skip();
-                }
-            }
-
-            // Fails on content after the object.
-            reader.Read();
+            dto = JsonSerializer.Deserialize(json, QuerySerializerContext.Default.ChatHandleDto);
         }
         catch (JsonException e)
         {
-            throw new InvalidArgumentException("The chat handle is not valid JSON.", e);
+            throw new InvalidArgumentException(InvalidHandleMessage, e);
         }
 
-        if (chatId is null || !hasOwner)
+        if (dto is null)
         {
-            throw Invalid("The chat handle must have the fields chatId and owner.");
+            throw new InvalidArgumentException(InvalidHandleMessage);
         }
 
-        return new ChatHandle(chatId, owner);
-    }
+        if (dto.ChatId is not { Length: > 0 } chatId)
+        {
+            throw new InvalidArgumentException("The chat handle field chatId must be a non-empty string.");
+        }
 
-    private static InvalidArgumentException Invalid(string message) => new(message);
+        return new ChatHandle(chatId, dto.Owner);
+    }
 }
 
 

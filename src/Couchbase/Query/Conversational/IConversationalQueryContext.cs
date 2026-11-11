@@ -6,7 +6,6 @@ using Couchbase.Core;
 
 namespace Couchbase.Query.Conversational;
 
-// The cluster services that conversational queries and chats use.
 internal interface IConversationalQueryContext
 {
     // Applies the default query timeout and runs the request through the retry orchestrator.

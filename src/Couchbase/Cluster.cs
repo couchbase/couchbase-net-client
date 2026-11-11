@@ -536,7 +536,7 @@ namespace Couchbase
         bool IConversationalQueryContext.EnableTls => _context.ClusterOptions.EffectiveEnableTls;
 
         bool? IConversationalQueryContext.HasConversationalQueryCapability =>
-            _context.ClusterCapsConfig?.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY);
+            _context.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY);
 
         void IConversationalQueryContext.ThrowIfNotBootstrapped() => ThrowIfNotBootstrapped();
 

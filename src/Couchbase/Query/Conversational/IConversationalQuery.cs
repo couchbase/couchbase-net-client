@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 
 #nullable enable
@@ -21,6 +22,7 @@ public interface IConversationalQuery
     /// <param name="keyspaces">The collections the prompt is about. At least one is required.</param>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The generated statement and the rows, if the statement ran.</returns>
+    /// <exception cref="InvalidArgumentException">The prompt or the keyspace list is empty.</exception>
     Task<IConversationalQueryResult<T>> QueryAsync<T>(string prompt, IEnumerable<ICouchbaseCollection> keyspaces,
         ConversationalQueryOptions? options = null);
 
@@ -30,6 +32,10 @@ public interface IConversationalQuery
     /// <param name="keyspaces">The collections the chat is about. At least one is required.</param>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The new chat.</returns>
+    /// <exception cref="InvalidArgumentException">The keyspace list is empty.</exception>
+    /// <exception cref="FeatureNotAvailableException">
+    /// The cluster does not support chats, or Query nodes share one address, for example with Capella Private Link.
+    /// </exception>
     Task<IChat> BeginChatAsync(IEnumerable<ICouchbaseCollection> keyspaces, BeginChatOptions? options = null);
 
     /// <summary>

@@ -89,9 +89,9 @@ public class ChatHandleTests
     }
 
     [Fact]
-    public void ToString_ShowsTheFields()
+    public void ToString_ShowsOnlyTheChatId()
     {
-        Assert.Equal("ChatHandle { ChatId = chat-1, Owner = uuid-a }", new ChatHandle("chat-1", "uuid-a").ToString());
+        Assert.Equal("ChatHandle { ChatId = chat-1 }", new ChatHandle("chat-1", "uuid-a").ToString());
     }
 }
 

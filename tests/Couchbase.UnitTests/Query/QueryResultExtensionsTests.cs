@@ -339,7 +339,7 @@ public class QueryResultExtensionsTests
     [InlineData(19241, 0)]
     [InlineData(19243, 19240)]
     [InlineData(19255, 0)]
-    public void Ordinary_Query_Keeps_Todays_Mapping_For_Conversational_Codes(int code, int reasonCode)
+    public void Ordinary_Query_Uses_Ordinary_Mapping_For_Conversational_Codes(int code, int reasonCode)
     {
         var errors = new List<Error> { new() { Code = code, Reason = new Reason { Code = reasonCode } } };
 

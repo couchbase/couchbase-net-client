@@ -2,10 +2,12 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Query;
 using Couchbase.Query.Conversational;
+using Moq;
 using Xunit;
 using static Couchbase.UnitTests.Query.Conversational.FakeConversationalQueryContext;
 
@@ -122,6 +124,37 @@ public class ChatTests
         using var result = await new Chat(context, ChatId, "uuid-a", Model).AskAsync<dynamic>("hello");
 
         Assert.Single(context.Requests);
+    }
+
+    [Fact]
+    public async Task ChatOperations_ForwardTheRequestSpan()
+    {
+        var context = WithNodes("uuid-a");
+        var chat = new Chat(context, ChatId, "uuid-a", Model);
+        var span = Mock.Of<IRequestSpan>();
+
+        (await chat.AskAsync<dynamic>("hello", new AskOptions().RequestSpan(span))).Dispose();
+        await chat.PauseAsync(new PauseOptions().RequestSpan(span));
+        await chat.ResumeAsync(new ResumeOptions().RequestSpan(span));
+        await chat.EndAsync(new EndOptions().RequestSpan(span));
+
+        Assert.Equal(4, context.Requests.Count);
+        Assert.All(context.Requests, r => Assert.Same(span, r.Options.RequestSpanValue));
+    }
+
+    [Theory]
+    [InlineData("uuid-a", "The owner node is uuid-a.")]
+    [InlineData(null, "No owner node is known.")]
+    public void ChatCurrentlyUnavailableException_PublicConstructor_SetsTheFieldsAndNamesTheOwner(string? owner,
+        string ownerText)
+    {
+        var ex = new ChatCurrentlyUnavailableException(ChatId, owner, "ask");
+
+        Assert.Equal(ChatId, ex.ChatId);
+        Assert.Equal(owner, ex.OwnerNodeUuid);
+        Assert.Equal("ask", ex.Operation);
+        Assert.Null(ex.Context);
+        Assert.Contains(ownerText, ex.Message);
     }
 
     #endregion

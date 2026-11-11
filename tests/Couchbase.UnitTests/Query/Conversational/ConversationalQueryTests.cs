@@ -3,10 +3,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Couchbase.Query.Conversational;
+using Moq;
 using Xunit;
 using static Couchbase.UnitTests.Query.Conversational.FakeConversationalQueryContext;
 
@@ -66,6 +68,7 @@ public class ConversationalQueryTests
     {
         var context = WithNodes("uuid-a");
         using var cts = new CancellationTokenSource();
+        var span = Mock.Of<IRequestSpan>();
 
         using var result = await new ConversationalQuery(context).QueryAsync<dynamic>("count hotels", Hotels,
             new ConversationalQueryOptions()
@@ -77,6 +80,7 @@ public class ConversationalQueryTests
                 .Profile(QueryProfile.Timings)
                 .Timeout(TimeSpan.FromSeconds(30))
                 .Raw("max_parallelism", 3)
+                .RequestSpan(span)
                 .CancellationToken(cts.Token));
 
         var request = Assert.Single(context.Requests);
@@ -90,6 +94,7 @@ public class ConversationalQueryTests
         Assert.Equal("30000ms", body.GetProperty("timeout").GetString());
         Assert.Equal(3, body.GetProperty("max_parallelism").GetInt32());
         Assert.Equal(cts.Token, request.Options.Token);
+        Assert.Same(span, request.Options.RequestSpanValue);
         Assert.True(request.Options.IsAdHoc);
         Assert.False(body.TryGetProperty("readonly", out _));
     }
@@ -264,19 +269,75 @@ public class ConversationalQueryTests
 
     #endregion
 
+    #region MetaData
+
+    [Fact]
+    public void MetaData_NewInstance_IsEmpty()
+    {
+        var metaData = new ConversationalQueryMetaData();
+
+        Assert.Equal(string.Empty, metaData.RequestId);
+        Assert.Equal(string.Empty, metaData.ClientContextId);
+        Assert.Equal(default(QueryStatus), metaData.Status);
+        Assert.Empty(metaData.Warnings);
+        Assert.Null(metaData.Metrics);
+        Assert.Null(metaData.Profile);
+        Assert.Null(metaData.RequestTokens);
+        Assert.Null(metaData.ChatTokens);
+        Assert.Null(metaData.NaturalLanguageProcessingTime);
+        Assert.Null(metaData.GeneratedStatementExecuted);
+    }
+
+    [Fact]
+    public void MetaData_ObjectInitializer_SetsEveryValue()
+    {
+        var metrics = new QueryMetrics { ResultCount = 1 };
+        var requestTokens = new TokenUsage { TotalTokens = 843 };
+        var chatTokens = new TokenUsage { TotalTokens = 1630 };
+
+        var metaData = new ConversationalQueryMetaData
+        {
+            RequestId = "r-1",
+            ClientContextId = "ctx-1",
+            Status = QueryStatus.Success,
+            Warnings = new[] { new QueryWarning { Code = 1 } },
+            Metrics = metrics,
+            Profile = "timings",
+            RequestTokens = requestTokens,
+            ChatTokens = chatTokens,
+            NaturalLanguageProcessingTime = TimeSpan.FromSeconds(1.5),
+            GeneratedStatementExecuted = true
+        };
+
+        Assert.Equal("r-1", metaData.RequestId);
+        Assert.Equal("ctx-1", metaData.ClientContextId);
+        Assert.Equal(QueryStatus.Success, metaData.Status);
+        Assert.Equal(1, Assert.Single(metaData.Warnings).Code);
+        Assert.Same(metrics, metaData.Metrics);
+        Assert.Equal("timings", (string)metaData.Profile!);
+        Assert.Same(requestTokens, metaData.RequestTokens);
+        Assert.Same(chatTokens, metaData.ChatTokens);
+        Assert.Equal(TimeSpan.FromSeconds(1.5), metaData.NaturalLanguageProcessingTime);
+        Assert.True(metaData.GeneratedStatementExecuted);
+    }
+
+    #endregion
+
     #region BeginChatAsync
 
     [Fact]
     public async Task BeginChatAsync_PinsToTheSelectedNodeAndReadsChatId()
     {
         var context = WithNodes("uuid-a").Respond(BeginChatSuccess);
+        var span = Mock.Of<IRequestSpan>();
 
         var chat = await new ConversationalQuery(context).BeginChatAsync(Hotels, new BeginChatOptions()
             .Model(new ModelOptions().Provider("openai"))
             .Credential(ModelCredential.ApiKey("sk-test"))
             .InactivityTimeout(TimeSpan.FromMinutes(5))
             .UseKnowledge(true)
-            .Timeout(TimeSpan.FromSeconds(10)));
+            .Timeout(TimeSpan.FromSeconds(10))
+            .RequestSpan(span));
 
         var request = Assert.Single(context.Requests);
         Assert.Equal("""BEGIN CHAT WITH {"keyspaces":["`travel-sample`.`inventory`.`hotel`"],"knowledge":true,"timeout":300}""",
@@ -286,6 +347,7 @@ public class ConversationalQueryTests
         Assert.Null(request.Conversational.ChatId);
         Assert.Null(request.Conversational.Model);
         Assert.Equal(TimeSpan.FromSeconds(10), request.Options.TimeoutValue);
+        Assert.Same(span, request.Options.RequestSpanValue);
         Assert.True(request.ResultDisposed);
         Assert.Equal(new ChatHandle(ChatId, "uuid-a"), chat.GetHandle());
     }

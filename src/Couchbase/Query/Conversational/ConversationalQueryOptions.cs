@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Diagnostics.Tracing;
 
 #nullable enable
 
@@ -12,7 +13,6 @@ namespace Couchbase.Query.Conversational;
 [InterfaceStability(Level.Volatile)]
 public sealed class ConversationalQueryOptions
 {
-    // Each request sends a copy.
     internal QueryOptions QueryOptions { get; } = new();
 
     internal ModelOptions? ModelValue { get; private set; }
@@ -83,7 +83,7 @@ public sealed class ConversationalQueryOptions
     }
 
     /// <summary>
-    /// Sets whether Query uses its Knowledge entries for this prompt.
+    /// Sets whether Query uses its Knowledge entries for this prompt. It is off by default.
     /// </summary>
     /// <param name="useKnowledge">True to use Knowledge.</param>
     /// <returns>A <see cref="ConversationalQueryOptions"/> instance for chaining.</returns>
@@ -190,6 +190,17 @@ public sealed class ConversationalQueryOptions
     public ConversationalQueryOptions Raw(string name, object value)
     {
         QueryOptions.Raw(name, value);
+        return this;
+    }
+
+    /// <summary>
+    /// A parent or external span for tracing.
+    /// </summary>
+    /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+    /// <returns>A <see cref="ConversationalQueryOptions"/> instance for chaining.</returns>
+    public ConversationalQueryOptions RequestSpan(IRequestSpan span)
+    {
+        QueryOptions.RequestSpan(span);
         return this;
     }
 

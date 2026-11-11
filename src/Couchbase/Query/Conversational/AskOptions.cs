@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Diagnostics.Tracing;
 
 #nullable enable
 
@@ -12,7 +13,6 @@ namespace Couchbase.Query.Conversational;
 [InterfaceStability(Level.Volatile)]
 public sealed class AskOptions
 {
-    // Each request sends a copy.
     internal QueryOptions QueryOptions { get; } = new();
 
     internal string? HintValue { get; private set; }
@@ -151,6 +151,17 @@ public sealed class AskOptions
     public AskOptions Raw(string name, object value)
     {
         QueryOptions.Raw(name, value);
+        return this;
+    }
+
+    /// <summary>
+    /// A parent or external span for tracing.
+    /// </summary>
+    /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+    /// <returns>An <see cref="AskOptions"/> instance for chaining.</returns>
+    public AskOptions RequestSpan(IRequestSpan span)
+    {
+        QueryOptions.RequestSpan(span);
         return this;
     }
 

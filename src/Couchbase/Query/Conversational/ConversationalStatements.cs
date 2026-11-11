@@ -19,7 +19,7 @@ internal static class ConversationalStatements
 
     public const string EndChat = "END CHAT";
 
-    // The default encoder writes backticks as `, which makes keyspace paths hard to read.
+    // The default encoder writes backticks as \u0060, which makes keyspace paths hard to read.
     private static readonly JsonWriterOptions WriterOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
