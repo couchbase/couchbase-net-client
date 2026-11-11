@@ -186,7 +186,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting.WaitAsync(TimeSpan.FromSeconds(10)));
             Assert.Equal(1, InFlightCount(conn));
             Assert.False(conn.IsDead);
         }
@@ -201,7 +201,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var first = Enumerable.Repeat((byte) 1, 24).ToArray();
 
             var writing = conn.SendAsync(first, Mock.Of<IOperation>(op => op.Opaque == 1)).AsTask();
-            await stream.WriteStarted;
+            await stream.WriteStarted.WaitAsync(TimeSpan.FromSeconds(10));
             using var cts = new CancellationTokenSource();
             var waiting = conn.SendAsync(Enumerable.Repeat((byte) 2, 24).ToArray(),
                 Mock.Of<IOperation>(op => op.Opaque == 2), cts.Token).AsTask();
@@ -214,13 +214,46 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting.WaitAsync(TimeSpan.FromSeconds(10)));
             Assert.Equal(1, InFlightCount(conn));
 
             stream.ReleaseWrites();
-            await writing;
+            await writing.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(first, stream.Written);
             Assert.False(conn.IsDead);
+        }
+
+        [Fact]
+        public async Task SendAsync_WriteLockGrantedAfterTheTokenFires_ThrowsAndKeepsTheConnection()
+        {
+            // Arrange
+
+            using var stream = new GatedWriteStream();
+            var conn = CreateConnection(stream);
+            var writeMutex = (SemaphoreSlim) typeof(MultiplexingConnection)
+                .GetField("_writeMutex", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(conn)!;
+
+            // Another write holds the lock.
+            writeMutex.Wait();
+            using var cts = new CancellationTokenSource();
+            var waiting = conn.SendAsync(new byte[24], Mock.Of<IOperation>(op => op.Opaque == 1), cts.Token).AsTask();
+            Assert.False(waiting.IsCompleted);
+
+            // Token callbacks run newest first, so the lock goes to the send before its wait sees the token.
+            cts.Token.Register(() => writeMutex.Release());
+
+            // Act
+
+            cts.Cancel();
+
+            // Assert
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.False(conn.IsDead);
+            Assert.Empty(stream.Written);
+            Assert.Equal(0, InFlightCount(conn));
+            Assert.Equal(1, writeMutex.CurrentCount);
         }
 
         // A cut write leaves part of a frame on the stream, so the connection must close before the node reads past it.
@@ -234,7 +267,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             using var cts = new CancellationTokenSource();
             var sending = conn.SendAsync(new byte[24], Mock.Of<IOperation>(op => op.Opaque == 1), cts.Token).AsTask();
-            await stream.WriteStarted;
+            await stream.WriteStarted.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.False(sending.IsCompleted);
 
             // Act
@@ -243,7 +276,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sending);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sending.WaitAsync(TimeSpan.FromSeconds(10)));
             Assert.True(conn.IsDead);
         }
 
