@@ -50,7 +50,6 @@ namespace Couchbase
         private readonly ILogger<Cluster> _logger;
         private readonly IRetryOrchestrator _retryOrchestrator;
         private readonly object _syncObject = new object();
-        private readonly object _clusterCapsLock = new();
         private bool _disposed;
         private readonly ClusterContext _context;
         // Test seam: lets unit tests supply the config that capability checks read.
@@ -115,7 +114,7 @@ namespace Couchbase
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
             LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionsConfig));
-            _context.ClusterCapsChanged += () => UpdateClusterCapabilities(createQueryClient: false);
+            _context.ClusterCapsChanged += OnClusterCapsChanged;
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -661,22 +660,21 @@ namespace Couchbase
 
         #region Misc
 
-        internal void UpdateClusterCapabilities() => UpdateClusterCapabilities(createQueryClient: true);
-
-        private void UpdateClusterCapabilities(bool createQueryClient)
+        internal void UpdateClusterCapabilities()
         {
-            // One update at a time, so the last one reads the newest config.
-            lock (_clusterCapsLock)
+            // Client may be null if the service was not registered
+            var queryClient = LazyQueryClient.Value;
+            var config = _context.ClusterCapsConfig;
+            if (queryClient is not null && config is not null)
             {
-                // Bootstrap creates the client, so every later change reaches it.
-                // Client may be null if the service was not registered
-                var queryClient = createQueryClient || LazyQueryClient.IsValueCreated ? LazyQueryClient.Value : null;
-                var config = _context.ClusterCapsConfig;
-                if (queryClient is not null && config is not null)
-                {
-                    queryClient.UpdateClusterCapabilities(config.GetClusterCapabilities());
-                }
+                queryClient.UpdateClusterCapabilities(config.GetClusterCapabilities());
             }
+        }
+
+        // Bootstrap creates the client even before caps are known, so a change only needs to reach a created client.
+        private void OnClusterCapsChanged()
+        {
+            if (LazyQueryClient.IsValueCreated) UpdateClusterCapabilities();
         }
 
         #endregion
