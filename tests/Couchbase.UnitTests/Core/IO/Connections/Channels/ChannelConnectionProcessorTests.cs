@@ -1,16 +1,21 @@
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase;
 using Couchbase.Core.Diagnostics.Metrics;
+using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Channels;
@@ -158,16 +163,16 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 .Verify(e => e.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()), times: Times.Once);
         }
 
-        // A connection in a graceful close is dead before its ClosedToken fires, so only the wake makes the processor exit.
+        // A graceful close marks the connection dead at once, but drains the operations in flight for up to a minute.
+        // The processor must leave when the close starts, so the pool replaces the connection during the drain.
         [Fact]
-        public async Task WakeIfConnectionDead_DeadConnection_ProcessorExitsAndThePoolReplacesIt()
+        public async Task GracefulClose_WithAnOperationInFlight_ReplacesTheConnectionWhileItDrains()
         {
             // Arrange
 
-            var connectionMock = new Mock<IConnection>();
-            connectionMock
-                .SetupGet(e => e.IsDead)
-                .Returns(true);
+            using var stream = new FeedStream();
+            var connection = new MultiplexingConnection(stream, 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                NullLogger<MultiplexingConnection>.Instance);
 
             var replacement = new Mock<IConnection>().Object;
             var connectionFactoryMock = new Mock<IConnectionFactory>();
@@ -183,65 +188,40 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
             pool.MinimumSize = 1;
 
-            var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
+            var processor = new ChannelConnectionProcessor(connection, pool, sendQueue, new Logger(_testOutput));
             var process = processor.Process();
 
+            var operation = new Noop();
+            await connection.SendAsync(new byte[HeaderOffsets.HeaderLength], operation);
+            var completed = operation.Completed.AsTask();
+
             // Act
 
-            processor.WakeIfConnectionDead();
+            var close = connection.CloseAsync(TimeSpan.FromMinutes(1)).AsTask();
 
             // Assert
 
-            Assert.Same(process, await Task.WhenAny(process, Task.Delay(TimeSpan.FromSeconds(5))));
-            Assert.True(processor.IsComplete);
-            connectionMock
-                .Verify(e => e.CloseAsync(It.IsAny<TimeSpan>()), times: Times.Once);
-
-            // The pool replaces a connection only when its processor removes itself.
+            await process.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(new[] { replacement }, pool.GetConnections());
 
-            // A late wake, as from a pool that copied its list before the removal, is harmless.
-            processor.WakeIfConnectionDead();
+            // The processor also calls CloseAsync on its way out. That does not cut the drain.
+            Assert.False(close.IsCompleted);
+            Assert.False(stream.Disposed.IsCompleted);
+
+            stream.Feed(Response(operation.Opaque));
+            Assert.Equal(ResponseStatus.Success, await completed.WaitAsync(TimeSpan.FromSeconds(10)));
+            await close.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.True(stream.Disposed.IsCompleted);
         }
 
-        [Fact]
-        public async Task WakeIfConnectionDead_LiveConnection_ProcessorKeepsSending()
+        private static byte[] Response(uint opaque)
         {
-            // Arrange
-
-            var sent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var connectionMock = new Mock<IConnection>();
-            connectionMock
-                .Setup(e => e.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
-                .Callback(() => sent.TrySetResult(true))
-                .Returns(default(ValueTask));
-
-            var connectionFactoryMock = new Mock<IConnectionFactory>();
-
-            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(3)
-            {
-                AllowSynchronousContinuations = true
-            });
-
-            var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
-
-            var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
-            _ = processor.Process();
-
-            // Act
-
-            processor.WakeIfConnectionDead();
-
-            // Assert
-
-            // Only a running processor reads the queue.
-            await pool.SendAsync(new ChannelProcessorFakeOperation());
-            Assert.Same(sent.Task, await Task.WhenAny(sent.Task, Task.Delay(TimeSpan.FromSeconds(5))));
-            Assert.False(processor.IsComplete);
-            connectionFactoryMock
-                .Verify(e => e.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()), times: Times.Never);
-
-            await processor.CompleteAsync();
+            var packet = new byte[HeaderOffsets.HeaderLength];
+            packet[HeaderOffsets.Magic] = (byte) Magic.ClientResponse;
+            packet[HeaderOffsets.Opcode] = (byte) OpCode.NoOp;
+            // The SDK writes the opaque little-endian and the server echoes it unchanged.
+            BinaryPrimitives.WriteUInt32LittleEndian(packet.AsSpan(HeaderOffsets.Opaque), opaque);
+            return packet;
         }
     }
 }

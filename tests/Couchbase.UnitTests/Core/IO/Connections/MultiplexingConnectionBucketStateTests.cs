@@ -2,13 +2,12 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Net;
-using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.UnitTests.Helpers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -163,79 +162,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             packet[HeaderOffsets.Magic] = (byte) Magic.ServerRequest;
             packet[HeaderOffsets.Opcode] = 0x01;
             return packet;
-        }
-
-        /// <summary>
-        /// A stream whose reads return the packets the test feeds, and which signals when it is disposed.
-        /// </summary>
-        private sealed class FeedStream : Stream
-        {
-            private readonly Channel<byte[]> _packets = Channel.CreateUnbounded<byte[]>();
-            private readonly TaskCompletionSource<bool> _disposed =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            public Task Disposed => _disposed.Task;
-
-            public void Feed(byte[] packet) => _packets.Writer.TryWrite(packet);
-
-            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
-                CancellationToken cancellationToken)
-            {
-                byte[] packet;
-                try
-                {
-                    packet = await _packets.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (ChannelClosedException)
-                {
-                    return 0;
-                }
-
-                // Every packet here is a bare header, far smaller than any read buffer the connection uses.
-                Buffer.BlockCopy(packet, 0, buffer, offset, packet.Length);
-                return packet.Length;
-            }
-
-#if !NETFRAMEWORK
-            public override async ValueTask<int> ReadAsync(Memory<byte> buffer,
-                CancellationToken cancellationToken = default)
-            {
-                byte[] packet;
-                try
-                {
-                    packet = await _packets.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (ChannelClosedException)
-                {
-                    return 0;
-                }
-
-                packet.CopyTo(buffer);
-                return packet.Length;
-            }
-#endif
-
-            protected override void Dispose(bool disposing)
-            {
-                if (disposing)
-                {
-                    _packets.Writer.TryComplete();
-                    _disposed.TrySetResult(true);
-                }
-
-                base.Dispose(disposing);
-            }
-
-            public override bool CanRead => true;
-            public override bool CanSeek => false;
-            public override bool CanWrite => true;
-            public override long Length => 0;
-            public override long Position { get => 0; set { } }
-            public override void Flush() { }
-            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-            public override void SetLength(long value) { }
-            public override void Write(byte[] buffer, int offset, int count) { }
         }
 
         #endregion
