@@ -144,8 +144,8 @@ internal partial class ConfigPushHandler : IDisposable
                     {
                         // The server does not push the same version again, so a failed node must not end the pass.
                         failedCount++;
-                        LogConfigFetchFailed(pushedVersion, _redactor.SystemData(_bucket.Name),
-                            _redactor.SystemData(node.EndPoint), ex.GetType().Name, ex.Message);
+                        LogConfigFetchFailed(ex, pushedVersion, _redactor.SystemData(_bucket.Name),
+                            _redactor.SystemData(node.EndPoint));
                         await Task.Yield();
                     }
                 }
@@ -363,8 +363,8 @@ internal partial class ConfigPushHandler : IDisposable
     [LoggerMessage(12, LogLevel.Warning, "No node returned pushed version {pushedVersion} after {retries} retries, {nullCount} had nothing newer and {failedCount} failed. Waiting for the next push.")]
     private partial void LogGaveUpAfterNullConfig(ConfigVersion pushedVersion, int retries, int nullCount, int failedCount);
 
-    [LoggerMessage(13, LogLevel.Warning, "Fetching pushed version {pushedVersion} of {bucket} from {endpoint} failed with {exceptionType}, {exceptionMessage}")]
-    private partial void LogConfigFetchFailed(ConfigVersion pushedVersion, Redacted<string> bucket, Redacted<HostEndpointWithPort> endpoint, string exceptionType, string exceptionMessage);
+    [LoggerMessage(13, LogLevel.Warning, "Fetching pushed version {pushedVersion} of {bucket} from {endpoint} failed")]
+    private partial void LogConfigFetchFailed(Exception ex, ConfigVersion pushedVersion, Redacted<string> bucket, Redacted<HostEndpointWithPort> endpoint);
 }
 
 /* ************************************************************

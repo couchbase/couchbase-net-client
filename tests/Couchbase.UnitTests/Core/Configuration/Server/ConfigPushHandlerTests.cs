@@ -24,6 +24,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server;
 
 public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
 {
+    // Bounds each wait on the handler loop, so a regression fails instead of hanging.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
     [Fact]
     public async Task ConfigPushHandler_ServerVersionRegressed()
     {
@@ -124,7 +127,7 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
     public async Task ConfigPushHandler_FetchThrowsOnOneNode_PublishesFromAnotherNode()
     {
         // The server pushes (1,3). One node times out on every fetch. The other has nothing newer at first,
-        // so the first pass asks both nodes in either shuffle order, and the config comes on a later pass.
+        // so the first pass asks both nodes in either shuffle order, and the config comes on the second pass.
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
         initialBucketConfig.OnDeserialized();
         var publishes = new AsyncCounter();
@@ -164,12 +167,14 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_FetchThrowsOnOneNode_PublishesFromAnotherNode));
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
 
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigPushHandler.InitialNullConfigRetryDelay);
 
-        // No timeout. A handler that stops on the failed node hangs the test, which is easy to diagnose.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
@@ -208,12 +213,14 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         mockContext.Start();
         var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_FetchThrowsThenReturnsConfig_AsksAgainAndPublishes));
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
 
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigPushHandler.InitialNullConfigRetryDelay);
 
-        // No timeout. A handler that gives up after a failed fetch hangs the test, which is easy to diagnose.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
@@ -222,9 +229,10 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task ConfigPushHandler_HandlerCancelled_StopsFetching()
+    public async Task ConfigPushHandler_DisposedDuringFetch_LeavesLoopWithoutAskingNextNode()
     {
-        // The handler is disposed while a fetch waits on its token. It must not go on to the next node.
+        // The handler is disposed while a fetch waits on its token. It must not go on to the next node,
+        // and shutdown is not a warning.
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
         initialBucketConfig.OnDeserialized();
         var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig);
@@ -252,19 +260,18 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
 
         mockContext.RegisterBucket(mockBucket);
         mockContext.Start();
-        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_HandlerCancelled_StopsFetching));
+        var logger = new LoopExitLogger();
         var redactor = new Redactor(RedactionLevel.None);
-        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, TimeProvider.System);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, new SteppableClock());
 
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
-        await fetches.WaitForAsync(1);
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
 
         configPushHandler.Dispose();
 
-        // Give a handler which goes on to the next node time to do so.
-        await Task.Delay(100);
-
+        await logger.Exited.WaitAsync(Deadline);
         Assert.Equal(1, fetches.Count);
+        Assert.Empty(logger.Warnings);
     }
 
     [Fact]
@@ -293,12 +300,11 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
 
         configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
-        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay);
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
 
         configPushHandler.Dispose();
 
-        // No timeout. A loop that stays parked on the clock hangs the test, which is easy to diagnose.
-        await logger.Exited;
+        await logger.Exited.WaitAsync(Deadline);
         Assert.Empty(logger.Warnings);
     }
 
