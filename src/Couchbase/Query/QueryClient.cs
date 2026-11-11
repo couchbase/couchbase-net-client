@@ -323,8 +323,7 @@ namespace Couchbase.Query
                         _logger.LogDebug("Request {currentContextId} has failed because {status}.",
                             currentContextId, queryResult.MetaData?.Status);
 
-                        // A conversational request reached Query, so it is never retried.
-                        if (options.Conversational is null && queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
+                        if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                         {
                             queryResult.NoRetryException = queryResult.CreateExceptionForError(ErrorContextFactory(queryResult, response.StatusCode));
                             if (queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
@@ -445,14 +444,11 @@ namespace Couchbase.Query
                     QueryStatus = QueryStatus.Fatal
                 };
 
-                // A conversational request may have reached Query, so only a pre-connect failure is retried.
-                var retryAmbiguousError = options.IsReadOnly && options.Conversational is null;
-
                 // Retriable transport error → exclude this node and let the orchestrator re-dispatch
                 // A request with a target node keeps that node, so the retry goes to the same node.
                 if (targetNodeUuid is null
-                        ? e.TryExcludeFailedNode(retryAmbiguousError, requestBase, queryUri)
-                        : e.IsRetriableTransportError(retryAmbiguousError))
+                        ? e.TryExcludeFailedNode(options.IsIdempotent, requestBase, queryUri)
+                        : e.IsRetriableTransportError(options.IsIdempotent))
                 {
                     _logger.LogDebug(LoggingEvents.QueryEvent,
                         "Request {currentContextId} hit a retriable transport error on node {endpoint}, will retry.",

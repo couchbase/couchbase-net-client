@@ -300,6 +300,12 @@ namespace Couchbase.Query
             return System.Text.Encoding.UTF8.GetString(stream.ToArray());
         }
 
+        // Query reads model credentials from these raw parameters, so error contexts leave them out.
+        private IEnumerable<KeyValuePair<string, object>> RawParametersWithoutModelCredentials =>
+            _rawParameters.Where(static p =>
+                !string.Equals(p.Key, "natural_cred", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(p.Key, "natural_config", StringComparison.OrdinalIgnoreCase));
+
         private void WriteAllParametersAsSystemTextJson(Utf8JsonWriter writer, SystemTextJsonSerializer serializer)
         {
             writer.WriteStartObject();
@@ -313,7 +319,7 @@ namespace Couchbase.Query
             writer.WriteEndObject();
 
             writer.WriteStartObject("Raw");
-            foreach (var parameter in _rawParameters)
+            foreach (var parameter in RawParametersWithoutModelCredentials)
             {
                 writer.WritePropertyName(parameter.Key);
                 WriteParameterAsSystemTextJson(writer, serializer, parameter.Value);
@@ -343,7 +349,7 @@ namespace Couchbase.Query
             writer.WriteEndObject();
 
             writer.WriteStartObject("Raw");
-            foreach (var parameter in _rawParameters)
+            foreach (var parameter in RawParametersWithoutModelCredentials)
             {
                 writer.WritePropertyName(parameter.Key);
                 WriteParameterAsGenericJson(writer, serializer, parameter.Value);

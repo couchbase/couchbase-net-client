@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions;
 
 #nullable enable
 
@@ -14,6 +15,9 @@ namespace Couchbase.Query.Conversational
         /// <summary>
         /// Runs one-shot conversational queries and chats.
         /// </summary>
+        /// <exception cref="FeatureNotAvailableException">
+        /// The cluster is connected with a <c>couchbase2://</c> connection string.
+        /// </exception>
         IConversationalQuery ConversationalQuery
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
             => throw new NotImplementedException(nameof(ConversationalQuery));

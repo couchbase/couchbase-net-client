@@ -143,14 +143,13 @@ namespace Couchbase.Query.Conversational
         }
 
         /// <summary>
-        /// Adds a Query request parameter that has no typed option. Names that start with <c>natural</c> are reserved.
+        /// Adds a Query request parameter that has no typed option.
         /// </summary>
         /// <param name="name">The parameter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>An <see cref="AskOptions"/> instance for chaining.</returns>
         public AskOptions Raw(string name, object value)
         {
-            ModelParameters.ThrowIfReservedParameter(name);
             QueryOptions.Raw(name, value);
             return this;
         }
