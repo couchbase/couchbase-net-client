@@ -16,6 +16,7 @@ namespace Couchbase.Query
     [JsonSerializable(typeof(QueryWarning), TypeInfoPropertyName = "QueryWarning")]
     [JsonSerializable(typeof(MetricsData), TypeInfoPropertyName = "QueryMetricsData")]
     [JsonSerializable(typeof(TokenUsage))]
+    [JsonSerializable(typeof(ChatHandleDto))]
     [JsonSerializable(typeof(QueryPlan))]
     [JsonSerializable(typeof(Core.Exceptions.Query.QueryErrorContext))]
     internal partial class QuerySerializerContext : JsonSerializerContext

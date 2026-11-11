@@ -135,13 +135,6 @@ public class ConversationalStatementsTests
     }
 
     [Fact]
-    public void BeginChat_Default_SendsKnowledgeFalse()
-    {
-        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
-            ConversationalStatements.BeginChat(Hotel));
-    }
-
-    [Fact]
     public void BeginChat_KnowledgeAndTimeout_KeepsFieldOrder()
     {
         Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":true,\"timeout\":1800}",

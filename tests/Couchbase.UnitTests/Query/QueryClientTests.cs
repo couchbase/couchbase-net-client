@@ -27,6 +27,7 @@ using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -479,6 +480,7 @@ namespace Couchbase.UnitTests.Query
                 Assert.Equal("uuid-gone", chat.OwnerNodeUuid);
                 Assert.Equal(operation.ToLowerInvariant(), chat.Operation);
                 Assert.Null(chat.Context);
+                Assert.Contains("uuid-gone", chat.Message);
                 Assert.Contains("ResumeAsync", chat.Message);
             }
 
@@ -517,6 +519,42 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(1u, request.Attempts);
             Assert.Null(request.ExcludedNodes);
             Assert.Equal(lastDispatchedNode, options.LastDispatchedNode);
+            provider.Verify(m => m.GetQueryNode("uuid-a"), Times.Exactly(2));
+            provider.Verify(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task QueryAsync_TargetNodeLeavesAfterPreConnectFailure_ThrowsChatCurrentlyUnavailable()
+        {
+            var target = QueryNode("uuid-a", "http://a:8093/query/service");
+            var provider = QueryNodeProvider(QueryNode("uuid-b", "http://b:8093/query/service"));
+            provider.SetupSequence(m => m.GetQueryNode("uuid-a"))
+                .Returns(target.Object)
+                .Returns((IClusterNode)null);
+            var sent = new List<(Uri Uri, string Body)>();
+            var client = CreateQueryClient(provider, sent, ConnectionRefused);
+
+            var options = new QueryOptions
+            {
+                Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a")
+            };
+            var request = new QueryRequest
+            {
+                Options = options,
+                Statement = "USING AI hello",
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            var ex = await Assert.ThrowsAsync<ChatCurrentlyUnavailableException>(() =>
+                CreateRetryOrchestrator().RetryAsync(
+                    () => client.QueryAsync<dynamic>(request.Statement, options, request), request));
+
+            Assert.Equal("chat-1", ex.ChatId);
+            Assert.Equal("uuid-a", ex.OwnerNodeUuid);
+            Assert.Equal("ask", ex.Operation);
+            Assert.Null(ex.Context);
+            Assert.Equal(new Uri("http://a:8093/query/service"), Assert.Single(sent).Uri);
+            Assert.Equal(1u, request.Attempts);
             provider.Verify(m => m.GetQueryNode("uuid-a"), Times.Exactly(2));
             provider.Verify(m => m.GetRandomQueryNode(It.IsAny<IList<Uri>>()), Times.Never);
         }
@@ -598,7 +636,7 @@ namespace Couchbase.UnitTests.Query
         }
 
         private static RetryOrchestrator CreateRetryOrchestrator() =>
-            new(TimeProvider.System, new Mock<ILogger<RetryOrchestrator>>().Object, TestRedactor.None)
+            new(new FakeTimeProvider(), new Mock<ILogger<RetryOrchestrator>>().Object, TestRedactor.None)
             {
                 Delay = (_, _) => Task.CompletedTask
             };
@@ -884,7 +922,7 @@ namespace Couchbase.UnitTests.Query
         }
 
         [Fact]
-        public async Task QueryAsync_ChatNotFoundOnOrdinaryQuery_KeepsTodaysMapping()
+        public async Task QueryAsync_ChatNotFoundOnOrdinaryQuery_UsesOrdinaryMapping()
         {
             var client = CreateQueryClient(QueryNodeProvider(QueryNode("uuid-a", "http://a:8093/query/service")),
                 new List<(Uri Uri, string Body)>(),

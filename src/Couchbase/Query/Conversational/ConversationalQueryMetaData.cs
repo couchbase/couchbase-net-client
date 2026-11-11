@@ -9,73 +9,116 @@ namespace Couchbase.Query.Conversational;
 /// <summary>
 /// The metadata of a conversational query or chat response.
 /// </summary>
-/// <remarks>
-/// Query returns metrics, and so <see cref="NaturalLanguageProcessingTime"/> and <see cref="GeneratedStatementExecuted"/>,
-/// only when metrics are turned on in the options.
-/// </remarks>
 [InterfaceStability(Level.Volatile)]
 public sealed class ConversationalQueryMetaData
 {
     // Reads through, so streamed metrics show up once the rows are read.
-    private readonly QueryMetaData? _metaData;
-    private readonly NaturalLanguageResponse? _naturalLanguage;
+    private readonly QueryMetaData _metaData;
+    private readonly NaturalLanguageResponse _naturalLanguage;
+
+    /// <summary>
+    /// Creates empty metadata, for example to return from a fake <see cref="IChat"/> in tests.
+    /// </summary>
+    public ConversationalQueryMetaData()
+        : this(null, null)
+    {
+    }
 
     internal ConversationalQueryMetaData(QueryMetaData? metaData, NaturalLanguageResponse? naturalLanguage)
     {
-        _metaData = metaData;
-        _naturalLanguage = naturalLanguage;
+        _metaData = metaData ?? new QueryMetaData { Metrics = null };
+        _naturalLanguage = naturalLanguage ?? new NaturalLanguageResponse();
     }
 
     /// <summary>
-    /// The unique ID of the response.
+    /// The ID that Query assigned to the request.
     /// </summary>
-    public string RequestId => _metaData?.RequestId ?? string.Empty;
+    public string RequestId
+    {
+        get => _metaData.RequestId ?? string.Empty;
+        init => _metaData.RequestId = value;
+    }
 
     /// <summary>
     /// The client context ID of the request.
     /// </summary>
-    public string ClientContextId => _metaData?.ClientContextId ?? string.Empty;
+    public string ClientContextId
+    {
+        get => _metaData.ClientContextId ?? string.Empty;
+        init => _metaData.ClientContextId = value;
+    }
 
     /// <summary>
     /// The status of the request.
     /// </summary>
-    public QueryStatus Status => _metaData?.Status ?? default;
+    public QueryStatus Status
+    {
+        get => _metaData.Status;
+        init => _metaData.Status = value;
+    }
 
     /// <summary>
     /// The warnings Query returned.
     /// </summary>
-    public IReadOnlyList<QueryWarning> Warnings =>
-        (IReadOnlyList<QueryWarning>?)_metaData?.Warnings ?? Array.Empty<QueryWarning>();
+    public IReadOnlyList<QueryWarning> Warnings
+    {
+        get => (IReadOnlyList<QueryWarning>?)_metaData.Warnings ?? Array.Empty<QueryWarning>();
+        init => _metaData.Warnings = new List<QueryWarning>(value);
+    }
 
     /// <summary>
     /// The metrics of the request, if Query returned them.
     /// </summary>
-    public QueryMetrics? Metrics => _metaData?.Metrics;
+    public QueryMetrics? Metrics
+    {
+        get => _metaData.Metrics;
+        init => _metaData.Metrics = value;
+    }
 
     /// <summary>
     /// The profile of the request, if one was requested.
     /// </summary>
-    public dynamic? Profile => _metaData?.Profile;
+    public dynamic? Profile
+    {
+        get => _metaData.Profile;
+        init => _metaData.Profile = value;
+    }
 
     /// <summary>
     /// The model tokens this request used.
     /// </summary>
-    public TokenUsage? RequestTokens => _naturalLanguage?.RequestTokens;
+    public TokenUsage? RequestTokens
+    {
+        get => _naturalLanguage.RequestTokens;
+        init => _naturalLanguage.RequestTokens = value;
+    }
 
     /// <summary>
     /// The model tokens the chat used so far.
     /// </summary>
-    public TokenUsage? ChatTokens => _naturalLanguage?.ChatTokens;
+    public TokenUsage? ChatTokens
+    {
+        get => _naturalLanguage.ChatTokens;
+        init => _naturalLanguage.ChatTokens = value;
+    }
 
     /// <summary>
     /// The time Query spent on the model. Returned only with metrics.
     /// </summary>
-    public TimeSpan? NaturalLanguageProcessingTime => _naturalLanguage?.NaturalLanguageProcessingTime;
+    public TimeSpan? NaturalLanguageProcessingTime
+    {
+        get => _naturalLanguage.NaturalLanguageProcessingTime;
+        init => _naturalLanguage.NaturalLanguageProcessingTime = value;
+    }
 
     /// <summary>
     /// True if Query ran the generated statement. Returned only with metrics.
     /// </summary>
-    public bool? GeneratedStatementExecuted => _naturalLanguage?.GeneratedStatementExecuted;
+    public bool? GeneratedStatementExecuted
+    {
+        get => _naturalLanguage.GeneratedStatementExecuted;
+        init => _naturalLanguage.GeneratedStatementExecuted = value;
+    }
 }
 
 

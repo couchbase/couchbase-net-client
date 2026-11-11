@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Diagnostics.Tracing;
 
 #nullable enable
 
@@ -12,7 +13,6 @@ namespace Couchbase.Query.Conversational;
 [InterfaceStability(Level.Volatile)]
 public sealed class EndOptions
 {
-    // Each request sends a copy.
     internal QueryOptions QueryOptions { get; } = new();
 
     /// <summary>
@@ -23,6 +23,17 @@ public sealed class EndOptions
     public EndOptions Timeout(TimeSpan timeout)
     {
         QueryOptions.Timeout(timeout);
+        return this;
+    }
+
+    /// <summary>
+    /// A parent or external span for tracing.
+    /// </summary>
+    /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+    /// <returns>An <see cref="EndOptions"/> instance for chaining.</returns>
+    public EndOptions RequestSpan(IRequestSpan span)
+    {
+        QueryOptions.RequestSpan(span);
         return this;
     }
 

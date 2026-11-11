@@ -460,7 +460,7 @@ namespace Couchbase.Query
                         options.LastDispatchedNode = null;
                     }
 
-                    // Synthetic result flagged for retry so the orchestrator re-dispatches the request;
+                    // Synthetic result flagged for retry, so the orchestrator re-dispatches the request.
                     // NoRetryException is surfaced only if the retry strategy decides not to retry.
                     var failResult = new BlockQueryResult<T>(Stream.Null, serializer);
                     failResult.RetryReason = RetryReason.ServiceNotAvailable;
@@ -505,7 +505,7 @@ namespace Couchbase.Query
 
         }
 
-        // Ask, Pause and End need the node that owns the chat. Other operations report the Query service as unreachable.
+        // BEGIN, RESUME and one-shot queries report the Query service as unreachable.
         private static CouchbaseException CreateTargetNodeUnavailableException(ConversationalRequest conversational) =>
             ChatCurrentlyUnavailableException.AppliesTo(conversational.Operation)
                 ? new ChatCurrentlyUnavailableException(conversational, context: null)

@@ -21,9 +21,21 @@ public class ChatCurrentlyUnavailableException : CouchbaseException
     {
     }
 
+    /// <summary>
+    /// Creates a new <see cref="ChatCurrentlyUnavailableException"/>.
+    /// </summary>
+    /// <param name="chatId">The ID of the chat.</param>
+    /// <param name="ownerNodeUuid">The node UUID of the Query node that owns the chat, if known.</param>
+    /// <param name="operation">The chat operation that failed, for example <c>ask</c>.</param>
+    public ChatCurrentlyUnavailableException(string chatId, string? ownerNodeUuid, string operation)
+        : this(chatId, ownerNodeUuid, operation, context: null)
+    {
+    }
+
     private ChatCurrentlyUnavailableException(string chatId, string? ownerNodeUuid, string operation,
         QueryErrorContext? context)
         : base($"Chat {chatId} is currently unavailable for {operation}. " +
+               (ownerNodeUuid is null ? "No owner node is known. " : $"The owner node is {ownerNodeUuid}. ") +
                "The chat may still exist, for example paused or on another Query node. ResumeAsync may recover it.")
     {
         ChatId = chatId;
