@@ -27,6 +27,7 @@ using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -198,9 +199,13 @@ namespace Couchbase.UnitTests.Core
 
         #region Config refresh failure
 
+        // Bounds each wait on a background rebootstrap, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
         [Fact]
         public async Task SignalConfigRefreshFailed_WhileARebootstrapRuns_DoesNothing()
         {
+            var clock = new FakeTimeProvider();
             var lookups = new AsyncCounter();
             var records = new TaskCompletionSource<IEnumerable<HostEndpoint>>(TaskCreationOptions.RunContinuationsAsynchronously);
             var dnsResolver = new Mock<IDnsResolver>();
@@ -213,20 +218,27 @@ namespace Couchbase.UnitTests.Core
             var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             options.AddClusterService(dnsResolver.Object);
             options.AddClusterService(nodeFactory.Object);
+            options.AddClusterService<TimeProvider>(clock);
             options.ConnectionStringValue = new ConnectionString(ConnectionString.Parse("couchbase://example.com"),
                 [new HostEndpoint("node-0", 11210)], isDnsSrv: true, new Uri("couchbase://example.com"));
             using var context = new ClusterContext(new CancellationTokenSource(), options);
 
-            var first = context.SignalConfigRefreshFailedAsync();
-            await lookups.WaitForAsync(1);
-            Assert.True(context.SignalConfigRefreshFailedAsync().IsCompleted);
+            context.SignalConfigRefreshFailed();
+            var first = context.DnsSrvRebootstrap;
+            await lookups.WaitForAsync(1).WaitAsync(Deadline);
+
+            // Enough time passed, so only the rebootstrap that runs stops a new one.
+            clock.Advance(ClusterContext.MinTimeBetweenDnsSrvRebootstraps);
+            context.SignalConfigRefreshFailed();
+            Assert.Same(first, context.DnsSrvRebootstrap);
 
             records.SetResult([]);
-            await Assert.ThrowsAnyAsync<Exception>(() => first);
+            await first.WaitAsync(Deadline);
             Assert.Equal(1, lookups.Count);
 
             // Once the rebootstrap ends, the next signal runs a new one.
-            await Assert.ThrowsAnyAsync<Exception>(() => context.SignalConfigRefreshFailedAsync());
+            context.SignalConfigRefreshFailed();
+            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
             Assert.Equal(2, lookups.Count);
         }
 

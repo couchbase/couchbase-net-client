@@ -31,9 +31,10 @@ namespace Couchbase
         [InterfaceStability(Level.Volatile)] public bool EnablePushConfig { get; set; } = true;
 
         /// <summary>
-        /// With push config on, the SDK still polls the cluster and each bucket every
-        /// <see cref="ClusterOptions.ConfigPollInterval"/>, like the Java SDK, so it finds a config change the server
-        /// did not push. It has no effect when push config is off, because the SDK then always polls.
+        /// When true (default), the SDK polls for config changes every <see cref="ClusterOptions.ConfigPollInterval"/>
+        /// even when the server pushes them, so it finds a change it missed. When false, it polls only when a node does
+        /// not push. No effect when <see cref="EnablePushConfig"/> or <see cref="ClusterOptions.EnableConfigPolling"/>
+        /// is false.
         /// </summary>
         [InterfaceStability(Level.Volatile)] public bool EnablePollingWithPushConfig { get; set; } = true;
 

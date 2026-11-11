@@ -28,6 +28,9 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
+    // Bounds each wait on the refresher loop, so a regression fails instead of hanging.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
     [Fact]
     public async Task Push_ServerVersionRegressed()
     {
@@ -38,7 +41,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Only recorded here, never asserted here: this runs on the refresher's own loop, which swallows
-        // exceptions, so a failed assertion would be lost and the test would hang.
+        // exceptions, so a failed assertion would be lost.
         var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc =>
         {
             publishes.Increment();
@@ -49,32 +52,30 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         BucketConfig getClusterMapResult = new BucketConfig() { RevEpoch = 1, Rev = 1 };
         getClusterMapResult.OnDeserialized();
         IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
-        var fetches = new AsyncCounter();
         mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .Returns(() => Task.FromResult(getClusterMapResult))
-            .Callback(() => fetches.Increment());
+            .Returns(() => Task.FromResult(getClusterMapResult));
         mockNode.SetupGet(x => x.IsDead).Returns(false);
         mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockBucket.Nodes.Add(mockNode.Object);
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
         refresher.Start();
         var pushedVersion = new ConfigVersion(1, 3);
         refresher.RequestRefresh(pushedVersion);
 
         // While the server returns an older version than was pushed, the refresher must not publish it.
-        // It asks again with a backoff in that case, so a second fetch means the first pass ran
-        // to completion. There is nothing to wait and see, and no deadline to lose on a busy runner.
-        await fetches.WaitForAsync(2);
+        // It asks again with a backoff in that case, so reaching the backoff means the first pass ran
+        // to completion.
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
         Assert.Equal(0, publishes.Count);
 
         // Update the version of the config that is returned. This should result in a publish.
         getClusterMapResult.Rev = 3;
         getClusterMapResult.OnDeserialized();
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
 
-        // No timeout: a refresher which never publishes hangs the test, which is diagnosable, rather
-        // than failing an assertion that says nothing about why.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(pushedVersion, publishedConfig!.ConfigVersion);
@@ -102,13 +103,14 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockBucket.Nodes.Add(mockNode.Object);
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await StepThroughRetriesAsync(clock, 3);
 
-        // No timeout: a refresher which gives up after a null answer hangs the test, which is diagnosable.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
@@ -155,13 +157,15 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             mockBucket.Nodes.Add(mockNode.Object);
         }
 
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
 
-        // No timeout. A refresher that stops on the failed node hangs the test, which is easy to diagnose.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
@@ -195,13 +199,15 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockBucket.Nodes.Add(mockNode.Object);
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
 
-        // No timeout. A refresher that gives up after a failed fetch hangs the test, which is easy to diagnose.
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
@@ -212,13 +218,12 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task Dispose_DuringFetch_StopsFetching()
     {
-        // The refresher is disposed while a fetch waits on its token. It must not go on to the next node.
+        // The refresher is disposed while a fetch waits on its token. The fetch then fails like a node whose
+        // connections closed. The loop must leave without asking the next node, and shutdown is not a warning.
         var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
         initialBucketConfig.OnDeserialized();
         var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig);
         using ClusterContext mockContext = mockBucket.Context;
-        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
-        newConfig.OnDeserialized();
         IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
         var fetches = new AsyncCounter();
         for (var i = 0; i < 2; i++)
@@ -227,8 +232,15 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
                 .Returns(async (ConfigVersion? _, TimeSpan? _, CancellationToken token) =>
                 {
-                    await Task.Delay(Timeout.Infinite, token);
-                    return newConfig;
+                    try
+                    {
+                        await Task.Delay(Timeout.Infinite, token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+
+                    throw new SocketNotAvailableException("The connection closed.");
                 })
                 .Callback(() => fetches.Increment());
             mockNode.SetupGet(x => x.IsDead).Returns(false);
@@ -237,18 +249,18 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             mockBucket.Nodes.Add(mockNode.Object);
         }
 
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        var logger = new LoopExitLogger();
+        using var refresher = CreateRefresher(mockBucket, new SteppableClock(), logger);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
-        await fetches.WaitForAsync(1);
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
 
         refresher.Dispose();
 
-        // Give a refresher which goes on to the next node time to do so.
-        await Task.Delay(100);
-
+        await logger.Exited.WaitAsync(Deadline);
         Assert.Equal(1, fetches.Count);
+        Assert.Empty(logger.Warnings);
     }
 
     [Fact]
@@ -274,12 +286,11 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
-        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay);
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
 
         refresher.Dispose();
 
-        // No timeout. A loop that stays parked on the clock hangs the test, which is easy to diagnose.
-        await logger.Exited;
+        await logger.Exited.WaitAsync(Deadline);
         Assert.Empty(logger.Warnings);
     }
 
@@ -374,16 +385,16 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .ReturnsAsync(Version(3));
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         refresher.Reschedule();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Never);
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
-        var publishedConfig = await publishTcs.Task;
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
         Assert.Equal(new ConfigVersion(1, 3), publishedConfig!.ConfigVersion);
     }
 
@@ -411,14 +422,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         mockNode.SetupGet(x => x.HasKv).Returns(true);
         mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
         mockBucket.Nodes.Add(mockNode.Object);
-        using var refresher = CreateRefresher(mockBucket, TimeProvider.System);
+        using var refresher = CreateRefresher(mockBucket, new SteppableClock());
         refresher.Start();
         refresher.RequestRefresh(new ConfigVersion(1, 2));
 
-        // Awaited with no timeout, and asserted out here rather than inside the publish callback: the
-        // callback runs on the refresher's loop, which swallows exceptions, so an assertion made there
-        // would be lost.
-        var publishedConfig = await publishTcs.Task;
+        // Asserted out here rather than inside the publish callback: the callback runs on the refresher's
+        // loop, which swallows exceptions, so an assertion made there would be lost.
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
 
         Assert.NotNull(publishedConfig);
         Assert.Equal(expected: getClusterMapResult.ConfigVersion,
@@ -443,7 +453,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 4));
-        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay);
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
 
         foreach (var node in nodes)
         {
@@ -468,13 +478,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         // The loop sleeps one full interval before the first poll.
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         Assert.Equal(0, fetches.Count);
 
         clock.Advance(PollInterval);
 
         // Reaching the next sleep means the pass ran to completion.
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         Assert.Equal(1, fetches.Count);
         node.Verify(x => x.GetClusterMap(Version(2).ConfigVersion, It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()));
     }
@@ -490,13 +500,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .ReturnsAsync(Version(3));
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(TimeSpan.FromSeconds(4));
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
         // A full interval from the push, not the 6 s that were left.
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
     }
 
     [Fact]
@@ -512,13 +522,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .ReturnsAsync((BucketConfig)null!);
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(TimeSpan.FromSeconds(4));
         refresher.RequestRefresh(new ConfigVersion(1, 3));
         await StepThroughRetriesAsync(clock, ConfigRefresher.MaxNullConfigRetries);
 
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
     }
 
     [Fact]
@@ -534,14 +544,14 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .ThrowsAsync(new UnambiguousTimeoutException("The request has timed out."));
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(TimeSpan.FromSeconds(4));
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
         // The retries until 9.63 s, then the poll at 10 s comes before the next retry.
         await StepThroughRetriesAsync(clock, 16);
-        await clock.WaitForSleepAsync(start + PollInterval - clock.GetUtcNow());
+        await clock.WaitForSleepAsync(start + PollInterval - clock.GetUtcNow()).WaitAsync(Deadline);
     }
 
     [Fact]
@@ -559,10 +569,10 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(PollInterval);
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         // In either order, one pass asks both nodes.
         foreach (var node in nodes)
@@ -573,11 +583,16 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task Poll_WhenEveryNodeFails_RebootstrapsFromDnsSrvOnce()
+    public async Task Poll_WhenEveryNodeKeepsFailing_RebootstrapsFromDnsSrvAtMostEveryTenSeconds()
     {
+        var pollInterval = TimeSpan.FromSeconds(1);
         var clock = new SteppableClock();
         var dnsLookups = new AsyncCounter();
-        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options => UseDnsSrv(options, dnsLookups));
+        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options =>
+        {
+            UseDnsSrv(options, dnsLookups, clock);
+            options.ConfigPollInterval = pollInterval;
+        });
         using var context = bucket.Context;
         foreach (var node in new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) })
         {
@@ -587,15 +602,28 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
 
-        clock.Advance(PollInterval);
-        await clock.WaitForSleepAsync(PollInterval);
+        // Failed passes at 1 s to 10 s. The first one rebootstraps, and the next ones are within 10 s of it.
+        for (var pass = 1; pass <= 10; pass++)
+        {
+            await RunFailedPassAsync();
+        }
+
         Assert.Equal(1, dnsLookups.Count);
 
-        clock.Advance(PollInterval);
-        await clock.WaitForSleepAsync(PollInterval);
+        // The pass at 11 s is 10 s after the first rebootstrap.
+        await RunFailedPassAsync();
         Assert.Equal(2, dnsLookups.Count);
+
+        async Task RunFailedPassAsync()
+        {
+            clock.Advance(pollInterval);
+            await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+
+            // Each rebootstrap ends before the next pass, so only the time since the last one can skip a pass.
+            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        }
     }
 
     [Fact]
@@ -603,7 +631,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     {
         var clock = new SteppableClock();
         var dnsLookups = new AsyncCounter();
-        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options => UseDnsSrv(options, dnsLookups));
+        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options => UseDnsSrv(options, dnsLookups, clock));
         using var context = bucket.Context;
         foreach (var node in new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) })
         {
@@ -612,10 +640,11 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(PollInterval);
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(1, dnsLookups.Count);
     }
@@ -633,11 +662,11 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         for (var i = 0; i < 3; i++)
         {
-            await clock.WaitForSleepAsync(PollInterval);
+            await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
             clock.Advance(PollInterval);
         }
 
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -660,10 +689,10 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(PollInterval);
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         Assert.Equal(1, fetches.Count);
     }
@@ -684,10 +713,10 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         using var refresher = CreateRefresher(bucket, clock);
 
         refresher.Start();
-        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval);
+        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval).WaitAsync(Deadline);
 
         clock.Advance(BucketConfigRefresher.RebalancePollInterval);
-        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval);
+        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval).WaitAsync(Deadline);
         Assert.Equal(1, fetches.Count);
     }
 
@@ -715,14 +744,14 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .Callback(() => fetches.Increment())
             .ReturnsAsync((BucketConfig)null!);
         bucket.ConfigRefresher.Start();
-        await clock.WaitForSleepAsync(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
         clock.Advance(TimeSpan.FromSeconds(3));
         await bucket.ConfigUpdatedAsync(ServerMap(3, forward: true));
 
         // More than a second passed since the last poll, so the poll runs at once.
-        await fetches.WaitForAsync(1);
-        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval);
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
+        await clock.WaitForSleepAsync(BucketConfigRefresher.RebalancePollInterval).WaitAsync(Deadline);
     }
 
     [Theory]
@@ -744,7 +773,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
-        Assert.Equal(TimeSpan.FromMilliseconds(timeoutMs), await timeout.Task);
+        Assert.Equal(TimeSpan.FromMilliseconds(timeoutMs), await timeout.Task.WaitAsync(Deadline));
     }
 
     [Fact]
@@ -754,17 +783,57 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         var bucket = CreateBucketMock(initialConfig: Version(2),
             onStartHttpStreaming: name => streaming.TrySetResult(name));
         using var context = bucket.Context;
-        var node = AddNode(bucket, "node-0", push: true);
-        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new DocumentNotFoundException());
+        var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
+        foreach (var node in nodes)
+        {
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException());
+        }
+
         var logger = new LoopExitLogger();
         using var refresher = CreateRefresher(bucket, new SteppableClock(), logger);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
-        Assert.Equal("default", await streaming.Task);
-        await logger.Exited;
+        Assert.Equal("default", await streaming.Task.WaitAsync(Deadline));
+        await logger.Exited.WaitAsync(Deadline);
+
+        // The switch comes after every node answered KeyNotFound.
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_WhenOneNodeAnswersKeyNotFound_PublishesFromAnotherNodeAndGoesOn()
+    {
+        // The other node is behind the pushed version, so the pass asks both nodes in either order.
+        var clock = new SteppableClock();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var streaming = new AsyncCounter();
+        var bucket = CreateBucketMock(initialConfig: Version(2), onPublish: bc => publishTcs.TrySetResult(bc),
+            onStartHttpStreaming: _ => streaming.Increment());
+        using var context = bucket.Context;
+        AddNode(bucket, "node-0", push: true)
+            .Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DocumentNotFoundException());
+        AddNode(bucket, "node-1", push: true)
+            .Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Version(3));
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+
+        refresher.RequestRefresh(new ConfigVersion(1, 4));
+
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
+        Assert.Equal(new ConfigVersion(1, 3), publishedConfig!.ConfigVersion);
+
+        // The loop goes on and asks again for the pushed version.
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        Assert.Equal(0, streaming.Count);
     }
 
     /// <summary>
@@ -775,7 +844,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         for (var retry = 0; retry < retries; retry++)
         {
             var delay = ConfigRefresher.GetNullConfigRetryDelay(retry);
-            await clock.WaitForSleepAsync(delay);
+            await clock.WaitForSleepAsync(delay).WaitAsync(Deadline);
             clock.Advance(delay);
         }
     }
@@ -783,8 +852,10 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     /// <summary>
     /// A DNS SRV connection string. Each rebootstrap counts one lookup, finds no record and reaches no node.
     /// </summary>
-    private static void UseDnsSrv(ClusterOptions options, AsyncCounter dnsLookups)
+    private static void UseDnsSrv(ClusterOptions options, AsyncCounter dnsLookups, TimeProvider clock)
     {
+        options.AddClusterService(clock);
+
         var dnsResolver = new Mock<IDnsResolver>();
         dnsResolver.Setup(x => x.GetDnsSrvEntriesAsync(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
             .Callback(() => dnsLookups.Increment())
