@@ -5,41 +5,40 @@ using Couchbase.KeyValue;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Turns natural language prompts into SQL++, as one-shot queries or as chats that keep history.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public interface IConversationalQuery
 {
     /// <summary>
-    /// Turns natural language prompts into SQL++, as one-shot queries or as chats that keep history.
+    /// Sends one prompt. Query generates a statement and runs it if it is eligible.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public interface IConversationalQuery
-    {
-        /// <summary>
-        /// Sends one prompt. Query generates a statement and runs it if it is eligible.
-        /// </summary>
-        /// <typeparam name="T">The type of each row.</typeparam>
-        /// <param name="prompt">The natural language prompt.</param>
-        /// <param name="keyspaces">The collections the prompt is about. At least one is required.</param>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The generated statement and the rows, if the statement ran.</returns>
-        Task<IConversationalQueryResult<T>> QueryAsync<T>(string prompt, IEnumerable<ICouchbaseCollection> keyspaces,
-            ConversationalQueryOptions? options = null);
+    /// <typeparam name="T">The type of each row.</typeparam>
+    /// <param name="prompt">The natural language prompt.</param>
+    /// <param name="keyspaces">The collections the prompt is about. At least one is required.</param>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The generated statement and the rows, if the statement ran.</returns>
+    Task<IConversationalQueryResult<T>> QueryAsync<T>(string prompt, IEnumerable<ICouchbaseCollection> keyspaces,
+        ConversationalQueryOptions? options = null);
 
-        /// <summary>
-        /// Starts a chat on one Query node. The returned <see cref="IChat"/> keeps the model and credential from the options.
-        /// </summary>
-        /// <param name="keyspaces">The collections the chat is about. At least one is required.</param>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The new chat.</returns>
-        Task<IChat> BeginChatAsync(IEnumerable<ICouchbaseCollection> keyspaces, BeginChatOptions? options = null);
+    /// <summary>
+    /// Starts a chat on one Query node. The returned <see cref="IChat"/> keeps the model and credential from the options.
+    /// </summary>
+    /// <param name="keyspaces">The collections the chat is about. At least one is required.</param>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The new chat.</returns>
+    Task<IChat> BeginChatAsync(IEnumerable<ICouchbaseCollection> keyspaces, BeginChatOptions? options = null);
 
-        /// <summary>
-        /// Creates an <see cref="IChat"/> for an existing chat. It does no network I/O.
-        /// </summary>
-        /// <param name="handle">The handle of the chat, from <see cref="IChat.GetHandle"/>.</param>
-        /// <param name="options">The model and credential for the new instance.</param>
-        /// <returns>A chat that uses the routing state of the handle.</returns>
-        IChat AttachChat(ChatHandle handle, AttachChatOptions? options = null);
-    }
+    /// <summary>
+    /// Creates an <see cref="IChat"/> for an existing chat. It does no network I/O.
+    /// </summary>
+    /// <param name="handle">The handle of the chat, from <see cref="IChat.GetHandle"/>.</param>
+    /// <param name="options">The model and credential for the new instance.</param>
+    /// <returns>A chat that uses the routing state of the handle.</returns>
+    IChat AttachChat(ChatHandle handle, AttachChatOptions? options = null);
 }
 
 

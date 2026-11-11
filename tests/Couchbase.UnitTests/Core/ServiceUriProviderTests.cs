@@ -5,55 +5,54 @@ using Xunit;
 
 #nullable enable
 
-namespace Couchbase.UnitTests.Core
+namespace Couchbase.UnitTests.Core;
+
+public class ServiceUriProviderTests
 {
-    public class ServiceUriProviderTests
+    [Fact]
+    public void GetQueryNode_KnownUuid_ReturnsThatNode()
     {
-        [Fact]
-        public void GetQueryNode_KnownUuid_ReturnsThatNode()
+        var context = CreateContext();
+        AddNode(context, "uuid-a", "http://a:8093/query/service");
+        var nodeB = AddNode(context, "uuid-b", "http://b:8093/query/service");
+
+        var provider = new ServiceUriProvider(context);
+
+        for (var i = 0; i < 20; i++)
         {
-            var context = CreateContext();
-            AddNode(context, "uuid-a", "http://a:8093/query/service");
-            var nodeB = AddNode(context, "uuid-b", "http://b:8093/query/service");
-
-            var provider = new ServiceUriProvider(context);
-
-            for (var i = 0; i < 20; i++)
-            {
-                Assert.Same(nodeB, provider.GetQueryNode("uuid-b"));
-            }
+            Assert.Same(nodeB, provider.GetQueryNode("uuid-b"));
         }
+    }
 
-        [Fact]
-        public void GetQueryNode_UnknownUuid_ReturnsNull()
-        {
-            var context = CreateContext();
-            AddNode(context, "uuid-a", "http://a:8093/query/service");
+    [Fact]
+    public void GetQueryNode_UnknownUuid_ReturnsNull()
+    {
+        var context = CreateContext();
+        AddNode(context, "uuid-a", "http://a:8093/query/service");
 
-            Assert.Null(new ServiceUriProvider(context).GetQueryNode("uuid-gone"));
-        }
+        Assert.Null(new ServiceUriProvider(context).GetQueryNode("uuid-gone"));
+    }
 
-        [Fact]
-        public void GetQueryNode_NodeWithoutQuery_ReturnsNull()
-        {
-            var context = CreateContext();
-            AddNode(context, "uuid-a", "http://a:8091/", hasQuery: false);
+    [Fact]
+    public void GetQueryNode_NodeWithoutQuery_ReturnsNull()
+    {
+        var context = CreateContext();
+        AddNode(context, "uuid-a", "http://a:8091/", hasQuery: false);
 
-            Assert.Null(new ServiceUriProvider(context).GetQueryNode("uuid-a"));
-        }
+        Assert.Null(new ServiceUriProvider(context).GetQueryNode("uuid-a"));
+    }
 
-        private static ClusterContext CreateContext() =>
-            new(null, new ClusterOptions().WithPasswordAuthentication("u", "p"));
+    private static ClusterContext CreateContext() =>
+        new(null, new ClusterOptions().WithPasswordAuthentication("u", "p"));
 
-        private static IClusterNode AddNode(ClusterContext context, string nodeUuid, string queryUri, bool hasQuery = true)
-        {
-            var node = new Mock<IClusterNode>();
-            node.SetupGet(x => x.NodeUuid).Returns(nodeUuid);
-            node.SetupGet(x => x.HasQuery).Returns(hasQuery);
-            node.SetupGet(x => x.QueryUri).Returns(new Uri(queryUri));
-            context.AddNode(node.Object);
-            return node.Object;
-        }
+    private static IClusterNode AddNode(ClusterContext context, string nodeUuid, string queryUri, bool hasQuery = true)
+    {
+        var node = new Mock<IClusterNode>();
+        node.SetupGet(x => x.NodeUuid).Returns(nodeUuid);
+        node.SetupGet(x => x.HasQuery).Returns(hasQuery);
+        node.SetupGet(x => x.QueryUri).Returns(new Uri(queryUri));
+        context.AddNode(node.Object);
+        return node.Object;
     }
 }
 

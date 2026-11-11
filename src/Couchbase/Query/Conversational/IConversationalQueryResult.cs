@@ -4,31 +4,30 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// The result of a conversational query or of a chat prompt.
+/// </summary>
+/// <typeparam name="T">The type of each row.</typeparam>
+[InterfaceStability(Level.Volatile)]
+public interface IConversationalQueryResult<out T> : IDisposable, IAsyncEnumerable<T>
 {
     /// <summary>
-    /// The result of a conversational query or of a chat prompt.
+    /// The rows of the generated statement. It is empty when the statement did not run.
     /// </summary>
-    /// <typeparam name="T">The type of each row.</typeparam>
-    [InterfaceStability(Level.Volatile)]
-    public interface IConversationalQueryResult<out T> : IDisposable, IAsyncEnumerable<T>
-    {
-        /// <summary>
-        /// The rows of the generated statement. It is empty when the statement did not run.
-        /// </summary>
-        /// <remarks>The rows can be read only once.</remarks>
-        IAsyncEnumerable<T> Rows { get; }
+    /// <remarks>The rows can be read only once.</remarks>
+    IAsyncEnumerable<T> Rows { get; }
 
-        /// <summary>
-        /// The statement the model generated, if any. It is available before the rows are read.
-        /// </summary>
-        string? GeneratedStatement { get; }
+    /// <summary>
+    /// The statement the model generated, if any. It is available before the rows are read.
+    /// </summary>
+    string? GeneratedStatement { get; }
 
-        /// <summary>
-        /// The metadata of the response. The metrics are complete only after the rows are read.
-        /// </summary>
-        ConversationalQueryMetaData MetaData { get; }
-    }
+    /// <summary>
+    /// The metadata of the response. The metrics are complete only after the rows are read.
+    /// </summary>
+    ConversationalQueryMetaData MetaData { get; }
 }
 
 

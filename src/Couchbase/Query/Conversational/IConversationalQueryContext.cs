@@ -4,23 +4,22 @@ using Couchbase.Core;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+// The cluster services that conversational queries and chats use.
+internal interface IConversationalQueryContext
 {
-    // The cluster services that conversational queries and chats use.
-    internal interface IConversationalQueryContext
-    {
-        // Applies the default query timeout and runs the request through the retry orchestrator.
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
+    // Applies the default query timeout and runs the request through the retry orchestrator.
+    Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
 
-        IEnumerable<IClusterNode> Nodes { get; }
+    IEnumerable<IClusterNode> Nodes { get; }
 
-        bool EnableTls { get; }
+    bool EnableTls { get; }
 
-        // Null until the cluster config is known.
-        bool? HasConversationalQueryCapability { get; }
+    // Null until the cluster config is known.
+    bool? HasConversationalQueryCapability { get; }
 
-        void ThrowIfNotBootstrapped();
-    }
+    void ThrowIfNotBootstrapped();
 }
 
 

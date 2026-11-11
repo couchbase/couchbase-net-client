@@ -6,55 +6,54 @@ using Xunit;
 
 #nullable enable
 
-namespace Couchbase.UnitTests.Query.Conversational
+namespace Couchbase.UnitTests.Query.Conversational;
+
+public class ConversationalQueryCapabilityTests
 {
-    public class ConversationalQueryCapabilityTests
+    [Fact]
+    public void HasClusterCap_ConversationalQueryAdvertised_ReturnsTrue()
     {
-        [Fact]
-        public void HasClusterCap_ConversationalQueryAdvertised_ReturnsTrue()
+        var config = new BucketConfig
         {
-            var config = new BucketConfig
+            ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
             {
-                ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
-                {
-                    ["n1ql"] = new[] { "enhancedPreparedStatements", "readFromReplica", "conversationalQuery" }
-                }
-            };
+                ["n1ql"] = new[] { "enhancedPreparedStatements", "readFromReplica", "conversationalQuery" }
+            }
+        };
 
-            Assert.True(config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
-        }
+        Assert.True(config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
+    }
 
-        [Fact]
-        public void HasClusterCap_ConversationalQueryInOtherSection_ReturnsFalse()
+    [Fact]
+    public void HasClusterCap_ConversationalQueryInOtherSection_ReturnsFalse()
+    {
+        var config = new BucketConfig
         {
-            var config = new BucketConfig
+            ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
             {
-                ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
-                {
-                    ["n1ql"] = new[] { "enhancedPreparedStatements", "readFromReplica" },
-                    ["search"] = new[] { "conversationalQuery" }
-                }
-            };
+                ["n1ql"] = new[] { "enhancedPreparedStatements", "readFromReplica" },
+                ["search"] = new[] { "conversationalQuery" }
+            }
+        };
 
-            Assert.False(config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
-        }
+        Assert.False(config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
+    }
 
-        [Fact]
-        public void HasClusterCap_NoCapabilities_ReturnsFalse()
-        {
-            Assert.False(new BucketConfig().HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
-        }
+    [Fact]
+    public void HasClusterCap_NoCapabilities_ReturnsFalse()
+    {
+        Assert.False(new BucketConfig().HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
+    }
 
-        [Theory]
-        [InlineData("""{"clusterCapabilities":{"n1ql":["enhancedPreparedStatements","conversationalQuery"]}}""", true)]
-        [InlineData("""{"clusterCapabilities":{"n1ql":["enhancedPreparedStatements"]}}""", false)]
-        [InlineData("""{"clusterCapabilitiesVer":[1,0]}""", false)]
-        public void HasClusterCap_FromConfigJson(string json, bool expected)
-        {
-            var config = JsonSerializer.Deserialize(json, InternalSerializationContext.Default.BucketConfig)!;
+    [Theory]
+    [InlineData("""{"clusterCapabilities":{"n1ql":["enhancedPreparedStatements","conversationalQuery"]}}""", true)]
+    [InlineData("""{"clusterCapabilities":{"n1ql":["enhancedPreparedStatements"]}}""", false)]
+    [InlineData("""{"clusterCapabilitiesVer":[1,0]}""", false)]
+    public void HasClusterCap_FromConfigJson(string json, bool expected)
+    {
+        var config = JsonSerializer.Deserialize(json, InternalSerializationContext.Default.BucketConfig)!;
 
-            Assert.Equal(expected, config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
-        }
+        Assert.Equal(expected, config.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY));
     }
 }
 

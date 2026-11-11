@@ -5,54 +5,53 @@ using Couchbase.Core.Exceptions.Query;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// A chat that lives on one Query node. Each prompt uses the history of the earlier prompts.
+/// </summary>
+/// <remarks>
+/// The chat keeps the node that owns it. Ask, pause and end fail with <see cref="ChatCurrentlyUnavailableException"/>
+/// when no owner is known. After <see cref="EndAsync"/> succeeds, every method throws <see cref="InvalidArgumentException"/>.
+/// </remarks>
+[InterfaceStability(Level.Volatile)]
+public interface IChat
 {
     /// <summary>
-    /// A chat that lives on one Query node. Each prompt uses the history of the earlier prompts.
+    /// Sends a prompt to the chat.
     /// </summary>
-    /// <remarks>
-    /// The chat keeps the node that owns it. Ask, pause and end fail with <see cref="ChatCurrentlyUnavailableException"/>
-    /// when no owner is known. After <see cref="EndAsync"/> succeeds, every method throws <see cref="InvalidArgumentException"/>.
-    /// </remarks>
-    [InterfaceStability(Level.Volatile)]
-    public interface IChat
-    {
-        /// <summary>
-        /// Sends a prompt to the chat.
-        /// </summary>
-        /// <typeparam name="T">The type of each row.</typeparam>
-        /// <param name="prompt">The natural language prompt.</param>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The generated statement and the rows, if the statement ran.</returns>
-        Task<IConversationalQueryResult<T>> AskAsync<T>(string prompt, AskOptions? options = null);
+    /// <typeparam name="T">The type of each row.</typeparam>
+    /// <param name="prompt">The natural language prompt.</param>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The generated statement and the rows, if the statement ran.</returns>
+    Task<IConversationalQueryResult<T>> AskAsync<T>(string prompt, AskOptions? options = null);
 
-        /// <summary>
-        /// Saves the chat and removes it from its Query node. <see cref="ResumeAsync"/> can restore it on any Query node.
-        /// </summary>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The metadata of the response.</returns>
-        Task<ConversationalQueryMetaData> PauseAsync(PauseOptions? options = null);
+    /// <summary>
+    /// Saves the chat and removes it from its Query node. <see cref="ResumeAsync"/> can restore it on any Query node.
+    /// </summary>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The metadata of the response.</returns>
+    Task<ConversationalQueryMetaData> PauseAsync(PauseOptions? options = null);
 
-        /// <summary>
-        /// Restores a paused chat. It goes to the known owner if it is in the cluster map, otherwise to a random Query node.
-        /// </summary>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The metadata of the response.</returns>
-        Task<ConversationalQueryMetaData> ResumeAsync(ResumeOptions? options = null);
+    /// <summary>
+    /// Restores a paused chat. It goes to the known owner if it is in the cluster map, otherwise to a random Query node.
+    /// </summary>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The metadata of the response.</returns>
+    Task<ConversationalQueryMetaData> ResumeAsync(ResumeOptions? options = null);
 
-        /// <summary>
-        /// Ends the chat. After it succeeds, this instance cannot be used.
-        /// </summary>
-        /// <param name="options">Optional arguments.</param>
-        /// <returns>The metadata of the response.</returns>
-        Task<ConversationalQueryMetaData> EndAsync(EndOptions? options = null);
+    /// <summary>
+    /// Ends the chat. After it succeeds, this instance cannot be used.
+    /// </summary>
+    /// <param name="options">Optional arguments.</param>
+    /// <returns>The metadata of the response.</returns>
+    Task<ConversationalQueryMetaData> EndAsync(EndOptions? options = null);
 
-        /// <summary>
-        /// Returns a snapshot of the chat ID and the owner node, to continue the chat with <see cref="IConversationalQuery.AttachChat"/>.
-        /// </summary>
-        /// <returns>A new <see cref="ChatHandle"/>.</returns>
-        ChatHandle GetHandle();
-    }
+    /// <summary>
+    /// Returns a snapshot of the chat ID and the owner node, to continue the chat with <see cref="IConversationalQuery.AttachChat"/>.
+    /// </summary>
+    /// <returns>A new <see cref="ChatHandle"/>.</returns>
+    ChatHandle GetHandle();
 }
 
 

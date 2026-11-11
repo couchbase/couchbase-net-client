@@ -4,38 +4,37 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Optional arguments for <see cref="IChat.ResumeAsync"/>.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public sealed class ResumeOptions
 {
+    // Each request sends a copy.
+    internal QueryOptions QueryOptions { get; } = new();
+
     /// <summary>
-    /// Optional arguments for <see cref="IChat.ResumeAsync"/>.
+    /// Sets the timeout of the request. The cluster query timeout applies by default.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public sealed class ResumeOptions
+    /// <param name="timeout">The timeout.</param>
+    /// <returns>A <see cref="ResumeOptions"/> instance for chaining.</returns>
+    public ResumeOptions Timeout(TimeSpan timeout)
     {
-        // Each request sends a copy.
-        internal QueryOptions QueryOptions { get; } = new();
+        QueryOptions.Timeout(timeout);
+        return this;
+    }
 
-        /// <summary>
-        /// Sets the timeout of the request. The cluster query timeout applies by default.
-        /// </summary>
-        /// <param name="timeout">The timeout.</param>
-        /// <returns>A <see cref="ResumeOptions"/> instance for chaining.</returns>
-        public ResumeOptions Timeout(TimeSpan timeout)
-        {
-            QueryOptions.Timeout(timeout);
-            return this;
-        }
-
-        /// <summary>
-        /// Sets a token that cancels the request.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A <see cref="ResumeOptions"/> instance for chaining.</returns>
-        public ResumeOptions CancellationToken(CancellationToken cancellationToken)
-        {
-            QueryOptions.CancellationToken(cancellationToken);
-            return this;
-        }
+    /// <summary>
+    /// Sets a token that cancels the request.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A <see cref="ResumeOptions"/> instance for chaining.</returns>
+    public ResumeOptions CancellationToken(CancellationToken cancellationToken)
+    {
+        QueryOptions.CancellationToken(cancellationToken);
+        return this;
     }
 }
 

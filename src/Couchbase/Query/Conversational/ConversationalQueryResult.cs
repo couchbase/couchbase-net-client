@@ -3,33 +3,32 @@ using System.Threading;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+internal sealed class ConversationalQueryResult<T> : IConversationalQueryResult<T>
 {
-    internal sealed class ConversationalQueryResult<T> : IConversationalQueryResult<T>
+    private readonly IQueryResult<T> _result;
+    private readonly NaturalLanguageResponse? _naturalLanguage;
+
+    public ConversationalQueryResult(IQueryResult<T> result)
     {
-        private readonly IQueryResult<T> _result;
-        private readonly NaturalLanguageResponse? _naturalLanguage;
-
-        public ConversationalQueryResult(IQueryResult<T> result)
-        {
-            _result = result;
-            _naturalLanguage = (result as QueryResultBase<T>)?.NaturalLanguage;
-            MetaData = new ConversationalQueryMetaData(result.MetaData, _naturalLanguage);
-        }
-
-        internal string? ChatId => _naturalLanguage?.ChatId;
-
-        public IAsyncEnumerable<T> Rows => _result.Rows;
-
-        public string? GeneratedStatement => _naturalLanguage?.GeneratedStatement;
-
-        public ConversationalQueryMetaData MetaData { get; }
-
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
-            _result.GetAsyncEnumerator(cancellationToken);
-
-        public void Dispose() => _result.Dispose();
+        _result = result;
+        _naturalLanguage = (result as QueryResultBase<T>)?.NaturalLanguage;
+        MetaData = new ConversationalQueryMetaData(result.MetaData, _naturalLanguage);
     }
+
+    internal string? ChatId => _naturalLanguage?.ChatId;
+
+    public IAsyncEnumerable<T> Rows => _result.Rows;
+
+    public string? GeneratedStatement => _naturalLanguage?.GeneratedStatement;
+
+    public ConversationalQueryMetaData MetaData { get; }
+
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
+        _result.GetAsyncEnumerator(cancellationToken);
+
+    public void Dispose() => _result.Dispose();
 }
 
 
