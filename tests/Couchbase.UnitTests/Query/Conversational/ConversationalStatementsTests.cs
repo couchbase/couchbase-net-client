@@ -5,194 +5,193 @@ using Xunit;
 
 #nullable enable
 
-namespace Couchbase.UnitTests.Query.Conversational
+namespace Couchbase.UnitTests.Query.Conversational;
+
+public class ConversationalStatementsTests
 {
-    public class ConversationalStatementsTests
+    private static readonly (string, string, string)[] Hotel = { ("travel-sample", "inventory", "hotel") };
+
+    private const string HotelJson = "\"keyspaces\":[\"`travel-sample`.`inventory`.`hotel`\"]";
+
+    [Fact]
+    public void UsingAi_KeyspacesOnly_OmitsUnsetFields()
     {
-        private static readonly (string, string, string)[] Hotel = { ("travel-sample", "inventory", "hotel") };
+        Assert.Equal("USING AI WITH {" + HotelJson + "} list hotels in Paris",
+            ConversationalStatements.UsingAi("list hotels in Paris", Hotel));
+    }
 
-        private const string HotelJson = "\"keyspaces\":[\"`travel-sample`.`inventory`.`hotel`\"]";
+    [Fact]
+    public void UsingAi_AllFields_KeepsFieldOrder()
+    {
+        var statement = ConversationalStatements.UsingAi("list hotels", Hotel, knowledge: true,
+            hint: "use the city field", execute: false, output: ConversationalQueryOutput.FtsSqlpp);
 
-        [Fact]
-        public void UsingAi_KeyspacesOnly_OmitsUnsetFields()
+        Assert.Equal(
+            "USING AI WITH {" + HotelJson +
+            ",\"knowledge\":true,\"hint\":\"use the city field\",\"execute\":false,\"output\":\"FTSSQL\"} list hotels",
+            statement);
+    }
+
+    [Fact]
+    public void UsingAi_KnowledgeFalse_IsSent()
+    {
+        Assert.Equal("USING AI WITH {" + HotelJson + ",\"knowledge\":false} list hotels",
+            ConversationalStatements.UsingAi("list hotels", Hotel, knowledge: false));
+    }
+
+    [Fact]
+    public void UsingAi_EscapesKeyspacePaths()
+    {
+        var keyspaces = new[]
         {
-            Assert.Equal("USING AI WITH {" + HotelJson + "} list hotels in Paris",
-                ConversationalStatements.UsingAi("list hotels in Paris", Hotel));
-        }
+            ("travel-sample", "inventory", "hotel"),
+            ("my`bucket", "_default", "`_default`")
+        };
 
-        [Fact]
-        public void UsingAi_AllFields_KeepsFieldOrder()
-        {
-            var statement = ConversationalStatements.UsingAi("list hotels", Hotel, knowledge: true,
-                hint: "use the city field", execute: false, output: ConversationalQueryOutput.FtsSqlpp);
+        Assert.Equal(
+            "USING AI WITH {\"keyspaces\":[\"`travel-sample`.`inventory`.`hotel`\",\"`my``bucket`.`_default`.`_default`\"]} count docs",
+            ConversationalStatements.UsingAi("count docs", keyspaces));
+    }
 
-            Assert.Equal(
-                "USING AI WITH {" + HotelJson +
-                ",\"knowledge\":true,\"hint\":\"use the city field\",\"execute\":false,\"output\":\"FTSSQL\"} list hotels",
-                statement);
-        }
+    [Fact]
+    public void UsingAi_PromptIsPlainText()
+    {
+        Assert.Equal("USING AI WITH {" + HotelJson + "} find \"luxury\" hotels\nin Nice",
+            ConversationalStatements.UsingAi("find \"luxury\" hotels\nin Nice", Hotel));
+    }
 
-        [Fact]
-        public void UsingAi_KnowledgeFalse_IsSent()
-        {
-            Assert.Equal("USING AI WITH {" + HotelJson + ",\"knowledge\":false} list hotels",
-                ConversationalStatements.UsingAi("list hotels", Hotel, knowledge: false));
-        }
+    [Fact]
+    public void UsingAi_HintIsJsonEncoded()
+    {
+        Assert.Equal("USING AI WITH {" + HotelJson + ",\"hint\":\"say \\\"hi\\\"\"} list hotels",
+            ConversationalStatements.UsingAi("list hotels", Hotel, hint: "say \"hi\""));
+    }
 
-        [Fact]
-        public void UsingAi_EscapesKeyspacePaths()
-        {
-            var keyspaces = new[]
-            {
-                ("travel-sample", "inventory", "hotel"),
-                ("my`bucket", "_default", "`_default`")
-            };
+    [Theory]
+    [InlineData(ConversationalQueryOutput.Sqlpp, "SQL")]
+    [InlineData(ConversationalQueryOutput.FtsSqlpp, "FTSSQL")]
+    [InlineData(ConversationalQueryOutput.JsUdf, "JSUDF")]
+    public void UsingAi_MapsOutput(ConversationalQueryOutput output, string expected)
+    {
+        Assert.Equal("USING AI WITH {" + HotelJson + ",\"output\":\"" + expected + "\"} list hotels",
+            ConversationalStatements.UsingAi("list hotels", Hotel, output: output));
+    }
 
-            Assert.Equal(
-                "USING AI WITH {\"keyspaces\":[\"`travel-sample`.`inventory`.`hotel`\",\"`my``bucket`.`_default`.`_default`\"]} count docs",
-                ConversationalStatements.UsingAi("count docs", keyspaces));
-        }
+    [Fact]
+    public void UsingAi_UnknownOutput_Throws()
+    {
+        Assert.Throws<InvalidArgumentException>(() =>
+            ConversationalStatements.UsingAi("list hotels", Hotel, output: (ConversationalQueryOutput)42));
+    }
 
-        [Fact]
-        public void UsingAi_PromptIsPlainText()
-        {
-            Assert.Equal("USING AI WITH {" + HotelJson + "} find \"luxury\" hotels\nin Nice",
-                ConversationalStatements.UsingAi("find \"luxury\" hotels\nin Nice", Hotel));
-        }
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void Prompt_NullOrEmpty_Throws(string? prompt)
+    {
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi(prompt!, Hotel));
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.ChatTurn(prompt!));
+    }
 
-        [Fact]
-        public void UsingAi_HintIsJsonEncoded()
-        {
-            Assert.Equal("USING AI WITH {" + HotelJson + ",\"hint\":\"say \\\"hi\\\"\"} list hotels",
-                ConversationalStatements.UsingAi("list hotels", Hotel, hint: "say \"hi\""));
-        }
+    [Fact]
+    public void Keyspaces_Empty_Throws()
+    {
+        var none = Array.Empty<(string, string, string)>();
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi("list hotels", none));
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.BeginChat(none));
+    }
 
-        [Theory]
-        [InlineData(ConversationalQueryOutput.Sqlpp, "SQL")]
-        [InlineData(ConversationalQueryOutput.FtsSqlpp, "FTSSQL")]
-        [InlineData(ConversationalQueryOutput.JsUdf, "JSUDF")]
-        public void UsingAi_MapsOutput(ConversationalQueryOutput output, string expected)
-        {
-            Assert.Equal("USING AI WITH {" + HotelJson + ",\"output\":\"" + expected + "\"} list hotels",
-                ConversationalStatements.UsingAi("list hotels", Hotel, output: output));
-        }
+    [Theory]
+    [InlineData("", "inventory", "hotel")]
+    [InlineData("travel-sample", null, "hotel")]
+    [InlineData("travel-sample", "inventory", "")]
+    public void Keyspaces_EmptyName_Throws(string bucket, string? scope, string collection)
+    {
+        var keyspaces = new[] { (bucket, scope!, collection) };
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi("list hotels", keyspaces));
+        Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.BeginChat(keyspaces));
+    }
 
-        [Fact]
-        public void UsingAi_UnknownOutput_Throws()
-        {
-            Assert.Throws<InvalidArgumentException>(() =>
-                ConversationalStatements.UsingAi("list hotels", Hotel, output: (ConversationalQueryOutput)42));
-        }
+    [Fact]
+    public void ChatTurn_NoOptions_SendsEmptyWith()
+    {
+        Assert.Equal("USING AI WITH {} and in Lyon?", ConversationalStatements.ChatTurn("and in Lyon?"));
+    }
 
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData("  ")]
-        public void Prompt_NullOrEmpty_Throws(string? prompt)
-        {
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi(prompt!, Hotel));
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.ChatTurn(prompt!));
-        }
+    [Fact]
+    public void ChatTurn_EmptyHint_IsOmitted()
+    {
+        Assert.Equal("USING AI WITH {} and in Lyon?", ConversationalStatements.ChatTurn("and in Lyon?", hint: ""));
+    }
 
-        [Fact]
-        public void Keyspaces_Empty_Throws()
-        {
-            var none = Array.Empty<(string, string, string)>();
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi("list hotels", none));
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.BeginChat(none));
-        }
+    [Fact]
+    public void ChatTurn_AllFields_KeepsFieldOrder()
+    {
+        Assert.Equal(
+            "USING AI WITH {\"hint\":\"cheap ones\",\"execute\":true,\"output\":\"JSUDF\"} and in Lyon?",
+            ConversationalStatements.ChatTurn("and in Lyon?", hint: "cheap ones", execute: true,
+                output: ConversationalQueryOutput.JsUdf));
+    }
 
-        [Theory]
-        [InlineData("", "inventory", "hotel")]
-        [InlineData("travel-sample", null, "hotel")]
-        [InlineData("travel-sample", "inventory", "")]
-        public void Keyspaces_EmptyName_Throws(string bucket, string? scope, string collection)
-        {
-            var keyspaces = new[] { (bucket, scope!, collection) };
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.UsingAi("list hotels", keyspaces));
-            Assert.Throws<InvalidArgumentException>(() => ConversationalStatements.BeginChat(keyspaces));
-        }
+    [Fact]
+    public void BeginChat_Default_SendsKnowledgeFalse()
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
+            ConversationalStatements.BeginChat(Hotel));
+    }
 
-        [Fact]
-        public void ChatTurn_NoOptions_SendsEmptyWith()
-        {
-            Assert.Equal("USING AI WITH {} and in Lyon?", ConversationalStatements.ChatTurn("and in Lyon?"));
-        }
+    [Fact]
+    public void BeginChat_KnowledgeAndTimeout_KeepsFieldOrder()
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":true,\"timeout\":1800}",
+            ConversationalStatements.BeginChat(Hotel, knowledge: true, timeout: TimeSpan.FromMinutes(30)));
+    }
 
-        [Fact]
-        public void ChatTurn_EmptyHint_IsOmitted()
-        {
-            Assert.Equal("USING AI WITH {} and in Lyon?", ConversationalStatements.ChatTurn("and in Lyon?", hint: ""));
-        }
+    [Theory]
+    [InlineData(1L, 1L)]
+    [InlineData(12_000_000L, 2L)]
+    [InlineData(50_000_000L, 5L)]
+    [InlineData(50_000_001L, 6L)]
+    public void BeginChat_Timeout_RoundsUpToSeconds(long ticks, long expectedSeconds)
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false,\"timeout\":" + expectedSeconds + "}",
+            ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.FromTicks(ticks)));
+    }
 
-        [Fact]
-        public void ChatTurn_AllFields_KeepsFieldOrder()
-        {
-            Assert.Equal(
-                "USING AI WITH {\"hint\":\"cheap ones\",\"execute\":true,\"output\":\"JSUDF\"} and in Lyon?",
-                ConversationalStatements.ChatTurn("and in Lyon?", hint: "cheap ones", execute: true,
-                    output: ConversationalQueryOutput.JsUdf));
-        }
+    [Fact]
+    public void BeginChat_ZeroTimeout_IsOmitted()
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
+            ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.Zero));
+    }
 
-        [Fact]
-        public void BeginChat_Default_SendsKnowledgeFalse()
-        {
-            Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
-                ConversationalStatements.BeginChat(Hotel));
-        }
+    [Fact]
+    public void BeginChat_NegativeTimeout_Throws()
+    {
+        Assert.Throws<InvalidArgumentException>(() =>
+            ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.FromSeconds(-1)));
+    }
 
-        [Fact]
-        public void BeginChat_KnowledgeAndTimeout_KeepsFieldOrder()
-        {
-            Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":true,\"timeout\":1800}",
-                ConversationalStatements.BeginChat(Hotel, knowledge: true, timeout: TimeSpan.FromMinutes(30)));
-        }
+    [Fact]
+    public void PauseChat_NoSummarize_HasNoWith()
+    {
+        Assert.Equal("PAUSE CHAT", ConversationalStatements.PauseChat());
+    }
 
-        [Theory]
-        [InlineData(1L, 1L)]
-        [InlineData(12_000_000L, 2L)]
-        [InlineData(50_000_000L, 5L)]
-        [InlineData(50_000_001L, 6L)]
-        public void BeginChat_Timeout_RoundsUpToSeconds(long ticks, long expectedSeconds)
-        {
-            Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false,\"timeout\":" + expectedSeconds + "}",
-                ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.FromTicks(ticks)));
-        }
+    [Theory]
+    [InlineData(true, "PAUSE CHAT WITH {\"summarize\":true}")]
+    [InlineData(false, "PAUSE CHAT WITH {\"summarize\":false}")]
+    public void PauseChat_Summarize_IsSent(bool summarize, string expected)
+    {
+        Assert.Equal(expected, ConversationalStatements.PauseChat(summarize));
+    }
 
-        [Fact]
-        public void BeginChat_ZeroTimeout_IsOmitted()
-        {
-            Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
-                ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.Zero));
-        }
-
-        [Fact]
-        public void BeginChat_NegativeTimeout_Throws()
-        {
-            Assert.Throws<InvalidArgumentException>(() =>
-                ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.FromSeconds(-1)));
-        }
-
-        [Fact]
-        public void PauseChat_NoSummarize_HasNoWith()
-        {
-            Assert.Equal("PAUSE CHAT", ConversationalStatements.PauseChat());
-        }
-
-        [Theory]
-        [InlineData(true, "PAUSE CHAT WITH {\"summarize\":true}")]
-        [InlineData(false, "PAUSE CHAT WITH {\"summarize\":false}")]
-        public void PauseChat_Summarize_IsSent(bool summarize, string expected)
-        {
-            Assert.Equal(expected, ConversationalStatements.PauseChat(summarize));
-        }
-
-        [Fact]
-        public void ResumeAndEnd_HaveNoWith()
-        {
-            Assert.Equal("RESUME CHAT", ConversationalStatements.ResumeChat);
-            Assert.Equal("END CHAT", ConversationalStatements.EndChat);
-        }
+    [Fact]
+    public void ResumeAndEnd_HaveNoWith()
+    {
+        Assert.Equal("RESUME CHAT", ConversationalStatements.ResumeChat);
+        Assert.Equal("END CHAT", ConversationalStatements.EndChat);
     }
 }
 

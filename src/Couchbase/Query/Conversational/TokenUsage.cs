@@ -2,29 +2,28 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// The number of model tokens a request or a chat used, as reported by Query.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public sealed class TokenUsage
 {
     /// <summary>
-    /// The number of model tokens a request or a chat used, as reported by Query.
+    /// The number of tokens in the prompts sent to the model.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public sealed class TokenUsage
-    {
-        /// <summary>
-        /// The number of tokens in the prompts sent to the model.
-        /// </summary>
-        public int? PromptTokens { get; init; }
+    public int? PromptTokens { get; init; }
 
-        /// <summary>
-        /// The number of tokens the model generated.
-        /// </summary>
-        public int? CompletionTokens { get; init; }
+    /// <summary>
+    /// The number of tokens the model generated.
+    /// </summary>
+    public int? CompletionTokens { get; init; }
 
-        /// <summary>
-        /// The total number of tokens.
-        /// </summary>
-        public int? TotalTokens { get; init; }
-    }
+    /// <summary>
+    /// The total number of tokens.
+    /// </summary>
+    public int? TotalTokens { get; init; }
 }
 
 

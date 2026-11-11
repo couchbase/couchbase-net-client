@@ -2,30 +2,29 @@ using System;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+internal sealed class NaturalLanguageResponse
 {
-    internal sealed class NaturalLanguageResponse
+    public string? GeneratedStatement { get; set; }
+
+    public TokenUsage? RequestTokens { get; set; }
+
+    public TokenUsage? ChatTokens { get; set; }
+
+    public string? ChatId { get; set; }
+
+    public TimeSpan? NaturalLanguageProcessingTime { get; set; }
+
+    public bool? GeneratedStatementExecuted { get; set; }
+
+    internal void ReadMetrics(MetricsData metrics)
     {
-        public string? GeneratedStatement { get; set; }
-
-        public TokenUsage? RequestTokens { get; set; }
-
-        public TokenUsage? ChatTokens { get; set; }
-
-        public string? ChatId { get; set; }
-
-        public TimeSpan? NaturalLanguageProcessingTime { get; set; }
-
-        public bool? GeneratedStatementExecuted { get; set; }
-
-        internal void ReadMetrics(MetricsData metrics)
-        {
-            // A duration that does not parse leaves the time unset and does not fail the query.
-            NaturalLanguageProcessingTime = GoDuration.TryParse(metrics.NaturalLanguageProcessingTime, out var time)
-                ? time
-                : null;
-            GeneratedStatementExecuted = metrics.GeneratedStatementExecuted;
-        }
+        // A duration that does not parse leaves the time unset and does not fail the query.
+        NaturalLanguageProcessingTime = GoDuration.TryParse(metrics.NaturalLanguageProcessingTime, out var time)
+            ? time
+            : null;
+        GeneratedStatementExecuted = metrics.GeneratedStatementExecuted;
     }
 }
 

@@ -2,39 +2,38 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Optional arguments for <see cref="IConversationalQuery.AttachChat"/>.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public sealed class AttachChatOptions
 {
+    internal ModelOptions? ModelValue { get; private set; }
+
+    internal ModelCredential? CredentialValue { get; private set; }
+
     /// <summary>
-    /// Optional arguments for <see cref="IConversationalQuery.AttachChat"/>.
+    /// Sets the model Query calls. The chat keeps it and sends it with each prompt.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public sealed class AttachChatOptions
+    /// <param name="model">The model options.</param>
+    /// <returns>An <see cref="AttachChatOptions"/> instance for chaining.</returns>
+    public AttachChatOptions Model(ModelOptions model)
     {
-        internal ModelOptions? ModelValue { get; private set; }
+        ModelValue = model;
+        return this;
+    }
 
-        internal ModelCredential? CredentialValue { get; private set; }
-
-        /// <summary>
-        /// Sets the model Query calls. The chat keeps it and sends it with each prompt.
-        /// </summary>
-        /// <param name="model">The model options.</param>
-        /// <returns>An <see cref="AttachChatOptions"/> instance for chaining.</returns>
-        public AttachChatOptions Model(ModelOptions model)
-        {
-            ModelValue = model;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the credential Query uses to call the model. The chat keeps it and sends it with each prompt.
-        /// </summary>
-        /// <param name="credential">The model credential.</param>
-        /// <returns>An <see cref="AttachChatOptions"/> instance for chaining.</returns>
-        public AttachChatOptions Credential(ModelCredential credential)
-        {
-            CredentialValue = credential;
-            return this;
-        }
+    /// <summary>
+    /// Sets the credential Query uses to call the model. The chat keeps it and sends it with each prompt.
+    /// </summary>
+    /// <param name="credential">The model credential.</param>
+    /// <returns>An <see cref="AttachChatOptions"/> instance for chaining.</returns>
+    public AttachChatOptions Credential(ModelCredential credential)
+    {
+        CredentialValue = credential;
+        return this;
     }
 }
 

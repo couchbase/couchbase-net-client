@@ -1,16 +1,15 @@
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+internal enum ConversationalOperation
 {
-    internal enum ConversationalOperation
-    {
-        Query,
-        BeginChat,
-        Ask,
-        Pause,
-        Resume,
-        End
-    }
+    Query,
+    BeginChat,
+    Ask,
+    Pause,
+    Resume,
+    End
 }
 
 

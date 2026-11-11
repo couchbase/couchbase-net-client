@@ -1,14 +1,13 @@
 #nullable enable
 
-namespace Couchbase.Query.Conversational
-{
-    // TargetNodeUuid sends every attempt to that Query node and never to another one.
-    internal sealed record ConversationalRequest(
-        ConversationalOperation Operation,
-        string? ChatId,
-        string? TargetNodeUuid,
-        ModelParameters? Model = null);
-}
+namespace Couchbase.Query.Conversational;
+
+// TargetNodeUuid sends every attempt to that Query node and never to another one.
+internal sealed record ConversationalRequest(
+    ConversationalOperation Operation,
+    string? ChatId,
+    string? TargetNodeUuid,
+    ModelParameters? Model = null);
 
 
 /* ************************************************************

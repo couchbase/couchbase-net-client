@@ -2,29 +2,28 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// The kind of statement the model generates from a prompt.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public enum ConversationalQueryOutput
 {
     /// <summary>
-    /// The kind of statement the model generates from a prompt.
+    /// A SQL++ statement.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public enum ConversationalQueryOutput
-    {
-        /// <summary>
-        /// A SQL++ statement.
-        /// </summary>
-        Sqlpp,
+    Sqlpp,
 
-        /// <summary>
-        /// A SQL++ statement that uses Full Text Search.
-        /// </summary>
-        FtsSqlpp,
+    /// <summary>
+    /// A SQL++ statement that uses Full Text Search.
+    /// </summary>
+    FtsSqlpp,
 
-        /// <summary>
-        /// A JavaScript user defined function.
-        /// </summary>
-        JsUdf
-    }
+    /// <summary>
+    /// A JavaScript user defined function.
+    /// </summary>
+    JsUdf
 }
 
 

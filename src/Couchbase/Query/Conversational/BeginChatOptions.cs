@@ -4,90 +4,89 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Optional arguments for <see cref="IConversationalQuery.BeginChatAsync"/>.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public sealed class BeginChatOptions
 {
+    // Each request sends a copy.
+    internal QueryOptions QueryOptions { get; } = new();
+
+    internal ModelOptions? ModelValue { get; private set; }
+
+    internal ModelCredential? CredentialValue { get; private set; }
+
+    internal TimeSpan? InactivityTimeoutValue { get; private set; }
+
+    internal bool UseKnowledgeValue { get; private set; }
+
     /// <summary>
-    /// Optional arguments for <see cref="IConversationalQuery.BeginChatAsync"/>.
+    /// Sets the model Query calls. The chat keeps it and sends it with each prompt.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public sealed class BeginChatOptions
+    /// <param name="model">The model options.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions Model(ModelOptions model)
     {
-        // Each request sends a copy.
-        internal QueryOptions QueryOptions { get; } = new();
+        ModelValue = model;
+        return this;
+    }
 
-        internal ModelOptions? ModelValue { get; private set; }
+    /// <summary>
+    /// Sets the credential Query uses to call the model. The chat keeps it and sends it with each prompt.
+    /// </summary>
+    /// <param name="credential">The model credential.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions Credential(ModelCredential credential)
+    {
+        CredentialValue = credential;
+        return this;
+    }
 
-        internal ModelCredential? CredentialValue { get; private set; }
+    /// <summary>
+    /// Sets how long the chat can stay idle before Query ends it. It is sent in whole seconds, rounded up.
+    /// </summary>
+    /// <param name="inactivityTimeout">The idle time. Zero leaves the Query default.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions InactivityTimeout(TimeSpan inactivityTimeout)
+    {
+        InactivityTimeoutValue = inactivityTimeout;
+        return this;
+    }
 
-        internal TimeSpan? InactivityTimeoutValue { get; private set; }
+    /// <summary>
+    /// Sets whether the chat uses the Knowledge entries of Query. It is off by default.
+    /// </summary>
+    /// <param name="useKnowledge">True to use Knowledge.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions UseKnowledge(bool useKnowledge)
+    {
+        UseKnowledgeValue = useKnowledge;
+        return this;
+    }
 
-        internal bool UseKnowledgeValue { get; private set; }
+    /// <summary>
+    /// Sets the timeout of the request. The cluster query timeout applies by default.
+    /// </summary>
+    /// <param name="timeout">The timeout.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions Timeout(TimeSpan timeout)
+    {
+        QueryOptions.Timeout(timeout);
+        return this;
+    }
 
-        /// <summary>
-        /// Sets the model Query calls. The chat keeps it and sends it with each prompt.
-        /// </summary>
-        /// <param name="model">The model options.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions Model(ModelOptions model)
-        {
-            ModelValue = model;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the credential Query uses to call the model. The chat keeps it and sends it with each prompt.
-        /// </summary>
-        /// <param name="credential">The model credential.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions Credential(ModelCredential credential)
-        {
-            CredentialValue = credential;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets how long the chat can stay idle before Query ends it. It is sent in whole seconds, rounded up.
-        /// </summary>
-        /// <param name="inactivityTimeout">The idle time. Zero leaves the Query default.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions InactivityTimeout(TimeSpan inactivityTimeout)
-        {
-            InactivityTimeoutValue = inactivityTimeout;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets whether the chat uses the Knowledge entries of Query. It is off by default.
-        /// </summary>
-        /// <param name="useKnowledge">True to use Knowledge.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions UseKnowledge(bool useKnowledge)
-        {
-            UseKnowledgeValue = useKnowledge;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the timeout of the request. The cluster query timeout applies by default.
-        /// </summary>
-        /// <param name="timeout">The timeout.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions Timeout(TimeSpan timeout)
-        {
-            QueryOptions.Timeout(timeout);
-            return this;
-        }
-
-        /// <summary>
-        /// Sets a token that cancels the request.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
-        public BeginChatOptions CancellationToken(CancellationToken cancellationToken)
-        {
-            QueryOptions.CancellationToken(cancellationToken);
-            return this;
-        }
+    /// <summary>
+    /// Sets a token that cancels the request.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
+    public BeginChatOptions CancellationToken(CancellationToken cancellationToken)
+    {
+        QueryOptions.CancellationToken(cancellationToken);
+        return this;
     }
 }
 

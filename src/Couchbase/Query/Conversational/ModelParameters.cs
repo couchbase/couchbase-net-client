@@ -3,95 +3,94 @@ using Couchbase.Utils;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+// A frozen copy of the model and credential, mapped to the natural_* request parameters.
+internal sealed class ModelParameters
 {
-    // A frozen copy of the model and credential, mapped to the natural_* request parameters.
-    internal sealed class ModelParameters
+    private readonly ModelCredential.CredentialKind? _credentialKind;
+    private readonly string? _provider;
+    private readonly string? _name;
+
+    private ModelParameters(ModelCredential.CredentialKind? credentialKind, string? provider, string? name,
+        string? cred = null, string? orgId = null, string? vendor = null, string? model = null,
+        JsonObject? config = null)
     {
-        private readonly ModelCredential.CredentialKind? _credentialKind;
-        private readonly string? _provider;
-        private readonly string? _name;
+        _credentialKind = credentialKind;
+        _provider = provider;
+        _name = name;
+        Cred = cred;
+        OrgId = orgId;
+        Vendor = vendor;
+        Model = model;
+        Config = config;
+    }
 
-        private ModelParameters(ModelCredential.CredentialKind? credentialKind, string? provider, string? name,
-            string? cred = null, string? orgId = null, string? vendor = null, string? model = null,
-            JsonObject? config = null)
+    public string? Cred { get; }
+
+    public string? OrgId { get; }
+
+    public string? Vendor { get; }
+
+    public string? Model { get; }
+
+    public JsonObject? Config { get; }
+
+    public static ModelParameters Create(ModelOptions? model, ModelCredential? credential)
+    {
+        var provider = model?.ProviderValue;
+        var name = model?.NameValue;
+
+        if (credential?.Kind == ModelCredential.CredentialKind.Capella)
         {
-            _credentialKind = credentialKind;
-            _provider = provider;
-            _name = name;
-            Cred = cred;
-            OrgId = orgId;
-            Vendor = vendor;
-            Model = model;
-            Config = config;
+            if (model is not null && (model.EndpointValue is not null || model.OutputTokenLimitValue is not null ||
+                                      model.ModerationValue is not null || model.RawValues.Count > 0))
+            {
+                ThrowHelper.ThrowInvalidArgumentException(
+                    "A Capella model credential supports only the model provider and name. Endpoint, OutputTokenLimit, Moderation and Raw are not supported.");
+            }
+
+            return new ModelParameters(credential.Kind, provider, name,
+                cred: credential.Secret, orgId: credential.OrganizationId, vendor: provider, model: name);
         }
 
-        public string? Cred { get; }
-
-        public string? OrgId { get; }
-
-        public string? Vendor { get; }
-
-        public string? Model { get; }
-
-        public JsonObject? Config { get; }
-
-        public static ModelParameters Create(ModelOptions? model, ModelCredential? credential)
+        var config = new JsonObject();
+        if (model is not null)
         {
-            var provider = model?.ProviderValue;
-            var name = model?.NameValue;
-
-            if (credential?.Kind == ModelCredential.CredentialKind.Capella)
+            foreach (var pair in model.RawValues)
             {
-                if (model is not null && (model.EndpointValue is not null || model.OutputTokenLimitValue is not null ||
-                                          model.ModerationValue is not null || model.RawValues.Count > 0))
-                {
-                    ThrowHelper.ThrowInvalidArgumentException(
-                        "A Capella model credential supports only the model provider and name. Endpoint, OutputTokenLimit, Moderation and Raw are not supported.");
-                }
-
-                return new ModelParameters(credential.Kind, provider, name,
-                    cred: credential.Secret, orgId: credential.OrganizationId, vendor: provider, model: name);
+                config[pair.Key] = pair.Value?.DeepClone();
             }
 
-            var config = new JsonObject();
-            if (model is not null)
-            {
-                foreach (var pair in model.RawValues)
-                {
-                    config[pair.Key] = pair.Value?.DeepClone();
-                }
-
-                // Typed options overwrite raw entries with the same key, unset ones leave them in place.
-                SetIfNotNull(config, "provider", provider);
-                SetIfNotNull(config, "model", name);
-                SetIfNotNull(config, "endpoint", model.EndpointValue);
-                SetIfNotNull(config, "output_token_limit", model.OutputTokenLimitValue);
-                SetIfNotNull(config, "moderation", model.ModerationValue);
-            }
-
-            switch (credential?.Kind)
-            {
-                case ModelCredential.CredentialKind.CredentialStore:
-                    config["cred_id"] = credential.Secret;
-                    break;
-                case ModelCredential.CredentialKind.ApiKey:
-                    config["api_key"] = credential.Secret;
-                    break;
-            }
-
-            return new ModelParameters(credential?.Kind, provider, name, config: config.Count == 0 ? null : config);
+            // Typed options overwrite raw entries with the same key, unset ones leave them in place.
+            SetIfNotNull(config, "provider", provider);
+            SetIfNotNull(config, "model", name);
+            SetIfNotNull(config, "endpoint", model.EndpointValue);
+            SetIfNotNull(config, "output_token_limit", model.OutputTokenLimitValue);
+            SetIfNotNull(config, "moderation", model.ModerationValue);
         }
 
-        public override string ToString() =>
-            $"ModelParameters {{ Credential = {_credentialKind?.ToString() ?? "None"}, Provider = {_provider}, Name = {_name} }}";
-
-        private static void SetIfNotNull(JsonObject config, string key, JsonNode? value)
+        switch (credential?.Kind)
         {
-            if (value is not null)
-            {
-                config[key] = value;
-            }
+            case ModelCredential.CredentialKind.CredentialStore:
+                config["cred_id"] = credential.Secret;
+                break;
+            case ModelCredential.CredentialKind.ApiKey:
+                config["api_key"] = credential.Secret;
+                break;
+        }
+
+        return new ModelParameters(credential?.Kind, provider, name, config: config.Count == 0 ? null : config);
+    }
+
+    public override string ToString() =>
+        $"ModelParameters {{ Credential = {_credentialKind?.ToString() ?? "None"}, Provider = {_provider}, Name = {_name} }}";
+
+    private static void SetIfNotNull(JsonObject config, string key, JsonNode? value)
+    {
+        if (value is not null)
+        {
+            config[key] = value;
         }
     }
 }

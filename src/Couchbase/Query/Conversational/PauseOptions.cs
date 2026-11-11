@@ -4,51 +4,50 @@ using Couchbase.Core.Compatibility;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Optional arguments for <see cref="IChat.PauseAsync"/>.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public sealed class PauseOptions
 {
+    // Each request sends a copy.
+    internal QueryOptions QueryOptions { get; } = new();
+
+    internal bool? SummarizeValue { get; private set; }
+
     /// <summary>
-    /// Optional arguments for <see cref="IChat.PauseAsync"/>.
+    /// Sets whether Query may summarize the chat with the model before it saves it. False does not send the model.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public sealed class PauseOptions
+    /// <param name="summarize">False to save the chat without calling the model.</param>
+    /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
+    public PauseOptions Summarize(bool summarize)
     {
-        // Each request sends a copy.
-        internal QueryOptions QueryOptions { get; } = new();
+        SummarizeValue = summarize;
+        return this;
+    }
 
-        internal bool? SummarizeValue { get; private set; }
+    /// <summary>
+    /// Sets the timeout of the request. The cluster query timeout applies by default.
+    /// </summary>
+    /// <param name="timeout">The timeout.</param>
+    /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
+    public PauseOptions Timeout(TimeSpan timeout)
+    {
+        QueryOptions.Timeout(timeout);
+        return this;
+    }
 
-        /// <summary>
-        /// Sets whether Query may summarize the chat with the model before it saves it. False does not send the model.
-        /// </summary>
-        /// <param name="summarize">False to save the chat without calling the model.</param>
-        /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
-        public PauseOptions Summarize(bool summarize)
-        {
-            SummarizeValue = summarize;
-            return this;
-        }
-
-        /// <summary>
-        /// Sets the timeout of the request. The cluster query timeout applies by default.
-        /// </summary>
-        /// <param name="timeout">The timeout.</param>
-        /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
-        public PauseOptions Timeout(TimeSpan timeout)
-        {
-            QueryOptions.Timeout(timeout);
-            return this;
-        }
-
-        /// <summary>
-        /// Sets a token that cancels the request.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
-        public PauseOptions CancellationToken(CancellationToken cancellationToken)
-        {
-            QueryOptions.CancellationToken(cancellationToken);
-            return this;
-        }
+    /// <summary>
+    /// Sets a token that cancels the request.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A <see cref="PauseOptions"/> instance for chaining.</returns>
+    public PauseOptions CancellationToken(CancellationToken cancellationToken)
+    {
+        QueryOptions.CancellationToken(cancellationToken);
+        return this;
     }
 }
 

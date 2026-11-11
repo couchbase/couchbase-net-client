@@ -6,77 +6,76 @@ using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core;
 using Couchbase.Utils;
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+internal static class QueryNodes
 {
-    internal static class QueryNodes
+    public static bool TryResolve(IEnumerable<IClusterNode> nodes, string? nodeUuid,
+        [NotNullWhen(true)] out IClusterNode? queryNode)
     {
-        public static bool TryResolve(IEnumerable<IClusterNode> nodes, string? nodeUuid,
-            [NotNullWhen(true)] out IClusterNode? queryNode)
+        if (!string.IsNullOrEmpty(nodeUuid))
         {
-            if (!string.IsNullOrEmpty(nodeUuid))
-            {
-                foreach (var node in nodes)
-                {
-                    if (node.HasQuery && string.Equals(node.NodeUuid, nodeUuid, StringComparison.Ordinal)
-                        && node.QueryUri is not null)
-                    {
-                        queryNode = node;
-                        return true;
-                    }
-                }
-            }
-
-            queryNode = null;
-            return false;
-        }
-
-        public static bool TrySelectRandom(IEnumerable<IClusterNode> nodes,
-            [NotNullWhen(true)] out string? nodeUuid, [NotNullWhen(true)] out Uri? queryUri)
-        {
-            // Reading QueryUri marks the node active for diagnostics, so only read it on the chosen node.
-            var node = nodes.RandomOrDefault(static x => x.HasQuery && !string.IsNullOrEmpty(x.NodeUuid));
-            var uri = node?.QueryUri;
-            if (node is null || uri is null)
-            {
-                nodeUuid = null;
-                queryUri = null;
-                return false;
-            }
-
-            nodeUuid = node.NodeUuid;
-            queryUri = uri;
-            return true;
-        }
-
-        // Query nodes behind one load balancer share a host and port, so a chat cannot target its owner.
-        public static bool HasSharedQueryEndpoint(IEnumerable<IClusterNode> nodes, bool enableTls)
-        {
-            var uuidByEndpoint = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var node in nodes)
             {
-                var uuid = node.NodeUuid;
-                var adapter = node.NodesAdapter;
-                if (!node.HasQuery || string.IsNullOrEmpty(uuid) || adapter is null)
+                if (node.HasQuery && string.Equals(node.NodeUuid, nodeUuid, StringComparison.Ordinal)
+                    && node.QueryUri is not null)
                 {
-                    continue;
-                }
-
-                var endpoint = $"{adapter.Hostname}:{(enableTls ? adapter.N1QlSsl : adapter.N1Ql)}";
-                if (uuidByEndpoint.TryGetValue(endpoint, out var owner))
-                {
-                    if (!string.Equals(owner, uuid, StringComparison.Ordinal))
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    uuidByEndpoint.Add(endpoint, uuid);
+                    queryNode = node;
+                    return true;
                 }
             }
+        }
 
+        queryNode = null;
+        return false;
+    }
+
+    public static bool TrySelectRandom(IEnumerable<IClusterNode> nodes,
+        [NotNullWhen(true)] out string? nodeUuid, [NotNullWhen(true)] out Uri? queryUri)
+    {
+        // Reading QueryUri marks the node active for diagnostics, so only read it on the chosen node.
+        var node = nodes.RandomOrDefault(static x => x.HasQuery && !string.IsNullOrEmpty(x.NodeUuid));
+        var uri = node?.QueryUri;
+        if (node is null || uri is null)
+        {
+            nodeUuid = null;
+            queryUri = null;
             return false;
         }
+
+        nodeUuid = node.NodeUuid;
+        queryUri = uri;
+        return true;
+    }
+
+    // Query nodes behind one load balancer share a host and port, so a chat cannot target its owner.
+    public static bool HasSharedQueryEndpoint(IEnumerable<IClusterNode> nodes, bool enableTls)
+    {
+        var uuidByEndpoint = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var node in nodes)
+        {
+            var uuid = node.NodeUuid;
+            var adapter = node.NodesAdapter;
+            if (!node.HasQuery || string.IsNullOrEmpty(uuid) || adapter is null)
+            {
+                continue;
+            }
+
+            var endpoint = $"{adapter.Hostname}:{(enableTls ? adapter.N1QlSsl : adapter.N1Ql)}";
+            if (uuidByEndpoint.TryGetValue(endpoint, out var owner))
+            {
+                if (!string.Equals(owner, uuid, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                uuidByEndpoint.Add(endpoint, uuid);
+            }
+        }
+
+        return false;
     }
 }
 

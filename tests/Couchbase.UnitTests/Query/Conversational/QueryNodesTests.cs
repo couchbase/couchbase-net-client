@@ -7,245 +7,244 @@ using Xunit;
 
 #nullable enable
 
-namespace Couchbase.UnitTests.Query.Conversational
+namespace Couchbase.UnitTests.Query.Conversational;
+
+public class QueryNodesTests
 {
-    public class QueryNodesTests
+    [Fact]
+    public void TryResolve_KnownUuid_ReturnsNode()
     {
-        [Fact]
-        public void TryResolve_KnownUuid_ReturnsNode()
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-b", "http://b:8093/query/service")
-            };
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-b", "http://b:8093/query/service")
+        };
 
-            Assert.True(QueryNodes.TryResolve(nodes, "uuid-b", out var queryNode));
-            Assert.Same(nodes[1], queryNode);
-        }
+        Assert.True(QueryNodes.TryResolve(nodes, "uuid-b", out var queryNode));
+        Assert.Same(nodes[1], queryNode);
+    }
 
-        [Theory]
-        [InlineData("uuid-c")]
-        [InlineData("UUID-A")]
-        public void TryResolve_UnknownUuid_ReturnsFalse(string nodeUuid)
+    [Theory]
+    [InlineData("uuid-c")]
+    [InlineData("UUID-A")]
+    public void TryResolve_UnknownUuid_ReturnsFalse(string nodeUuid)
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-b", "http://b:8093/query/service")
-            };
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-b", "http://b:8093/query/service")
+        };
 
-            Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out var queryNode));
-            Assert.Null(queryNode);
-        }
+        Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out var queryNode));
+        Assert.Null(queryNode);
+    }
 
-        [Fact]
-        public void TryResolve_NodeWithoutQuery_ReturnsFalse()
+    [Fact]
+    public void TryResolve_NodeWithoutQuery_ReturnsFalse()
+    {
+        var nodes = new[] { Node("uuid-a", "http://a/", hasQuery: false) };
+
+        Assert.False(QueryNodes.TryResolve(nodes, "uuid-a", out _));
+    }
+
+    [Fact]
+    public void TryResolve_QueryNodeWithoutUri_ReturnsFalse()
+    {
+        var nodes = new[] { Node("uuid-a", null) };
+
+        Assert.False(QueryNodes.TryResolve(nodes, "uuid-a", out _));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void TryResolve_EmptyUuid_ReturnsFalse(string? nodeUuid)
+    {
+        var nodes = new[] { Node("", "http://a:8093/query/service") };
+
+        Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out _));
+    }
+
+    [Fact]
+    public void TryResolve_SeveralNodeObjectsForOneUuid_ReturnsNodeWithQueryUri()
+    {
+        // The node list holds a global node plus one node per open bucket.
+        var nodes = new[]
         {
-            var nodes = new[] { Node("uuid-a", "http://a/", hasQuery: false) };
+            Node("uuid-a", null),
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-a", "http://a:8093/query/service")
+        };
 
-            Assert.False(QueryNodes.TryResolve(nodes, "uuid-a", out _));
-        }
+        Assert.True(QueryNodes.TryResolve(nodes, "uuid-a", out var queryNode));
+        Assert.Equal(new Uri("http://a:8093/query/service"), queryNode.QueryUri);
+    }
 
-        [Fact]
-        public void TryResolve_QueryNodeWithoutUri_ReturnsFalse()
+    [Fact]
+    public void TrySelectRandom_SkipsIneligibleNodes()
+    {
+        var nodes = new[]
         {
-            var nodes = new[] { Node("uuid-a", null) };
+            Node("uuid-kv", "http://kv/", hasQuery: false),
+            Node("", "http://no-uuid:8093/query/service"),
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-a", "http://a:8093/query/service")
+        };
 
-            Assert.False(QueryNodes.TryResolve(nodes, "uuid-a", out _));
-        }
-
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        public void TryResolve_EmptyUuid_ReturnsFalse(string? nodeUuid)
+        for (var i = 0; i < 20; i++)
         {
-            var nodes = new[] { Node("", "http://a:8093/query/service") };
-
-            Assert.False(QueryNodes.TryResolve(nodes, nodeUuid, out _));
+            Assert.True(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
+            Assert.Equal("uuid-a", nodeUuid);
+            Assert.Equal(new Uri("http://a:8093/query/service"), queryUri);
         }
+    }
 
-        [Fact]
-        public void TryResolve_SeveralNodeObjectsForOneUuid_ReturnsNodeWithQueryUri()
+    [Fact]
+    public void TrySelectRandom_ReturnsUuidAndUriOfOneNode()
+    {
+        var nodes = new[]
         {
-            // The node list holds a global node plus one node per open bucket.
-            var nodes = new[]
-            {
-                Node("uuid-a", null),
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-a", "http://a:8093/query/service")
-            };
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-b", "http://b:8093/query/service")
+        };
 
-            Assert.True(QueryNodes.TryResolve(nodes, "uuid-a", out var queryNode));
-            Assert.Equal(new Uri("http://a:8093/query/service"), queryNode.QueryUri);
-        }
-
-        [Fact]
-        public void TrySelectRandom_SkipsIneligibleNodes()
+        for (var i = 0; i < 20; i++)
         {
-            var nodes = new[]
-            {
-                Node("uuid-kv", "http://kv/", hasQuery: false),
-                Node("", "http://no-uuid:8093/query/service"),
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-a", "http://a:8093/query/service")
-            };
-
-            for (var i = 0; i < 20; i++)
-            {
-                Assert.True(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
-                Assert.Equal("uuid-a", nodeUuid);
-                Assert.Equal(new Uri("http://a:8093/query/service"), queryUri);
-            }
+            Assert.True(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
+            var expected = nodeUuid == "uuid-a" ? "http://a:8093/query/service" : "http://b:8093/query/service";
+            Assert.Contains(nodeUuid, new[] { "uuid-a", "uuid-b" });
+            Assert.Equal(new Uri(expected), queryUri);
         }
+    }
 
-        [Fact]
-        public void TrySelectRandom_ReturnsUuidAndUriOfOneNode()
+    [Fact]
+    public void TrySelectRandom_NoEligibleNode_ReturnsFalse()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-b", "http://b:8093/query/service")
-            };
+            Node("uuid-kv", "http://kv/", hasQuery: false),
+            Node("", "http://no-uuid:8093/query/service"),
+            Node("uuid-no-uri", null)
+        };
 
-            for (var i = 0; i < 20; i++)
-            {
-                Assert.True(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
-                var expected = nodeUuid == "uuid-a" ? "http://a:8093/query/service" : "http://b:8093/query/service";
-                Assert.Contains(nodeUuid, new[] { "uuid-a", "uuid-b" });
-                Assert.Equal(new Uri(expected), queryUri);
-            }
-        }
+        Assert.False(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
+        Assert.Null(nodeUuid);
+        Assert.Null(queryUri);
+    }
 
-        [Fact]
-        public void TrySelectRandom_NoEligibleNode_ReturnsFalse()
+    [Fact]
+    public void TrySelectRandom_NoNodes_ReturnsFalse()
+    {
+        Assert.False(QueryNodes.TrySelectRandom(Array.Empty<IClusterNode>(), out _, out _));
+    }
+
+    [Fact]
+    public void HasSharedQueryEndpoint_TwoUuidsOnOneHostAndPort_ReturnsTrue()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-kv", "http://kv/", hasQuery: false),
-                Node("", "http://no-uuid:8093/query/service"),
-                Node("uuid-no-uri", null)
-            };
+            Node("uuid-a", "https://lb.example.com:18093/query/service"),
+            Node("uuid-b", "https://lb.example.com:18093/query/service")
+        };
 
-            Assert.False(QueryNodes.TrySelectRandom(nodes, out var nodeUuid, out var queryUri));
-            Assert.Null(nodeUuid);
-            Assert.Null(queryUri);
-        }
+        Assert.True(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
 
-        [Fact]
-        public void TrySelectRandom_NoNodes_ReturnsFalse()
+    [Fact]
+    public void HasSharedQueryEndpoint_HostDiffersOnlyInCase_ReturnsTrue()
+    {
+        var nodes = new[]
         {
-            Assert.False(QueryNodes.TrySelectRandom(Array.Empty<IClusterNode>(), out _, out _));
-        }
+            Node("uuid-a", "https://LB.example.com:18093/query/service"),
+            Node("uuid-b", "https://lb.EXAMPLE.com:18093/query/service")
+        };
 
-        [Fact]
-        public void HasSharedQueryEndpoint_TwoUuidsOnOneHostAndPort_ReturnsTrue()
+        Assert.True(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
+
+    [Fact]
+    public void HasSharedQueryEndpoint_DistinctPorts_ReturnsFalse()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "https://lb.example.com:18093/query/service"),
-                Node("uuid-b", "https://lb.example.com:18093/query/service")
-            };
+            Node("uuid-a", "http://127.0.0.1:9499/query/service"),
+            Node("uuid-b", "http://127.0.0.1:9500/query/service")
+        };
 
-            Assert.True(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
+        Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
 
-        [Fact]
-        public void HasSharedQueryEndpoint_HostDiffersOnlyInCase_ReturnsTrue()
+    [Fact]
+    public void HasSharedQueryEndpoint_DistinctHosts_ReturnsFalse()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "https://LB.example.com:18093/query/service"),
-                Node("uuid-b", "https://lb.EXAMPLE.com:18093/query/service")
-            };
+            Node("uuid-a", "http://a:8093/query/service"),
+            Node("uuid-b", "http://b:8093/query/service")
+        };
 
-            Assert.True(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
+        Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
 
-        [Fact]
-        public void HasSharedQueryEndpoint_DistinctPorts_ReturnsFalse()
+    [Fact]
+    public void HasSharedQueryEndpoint_OneUuidListedTwice_ReturnsFalse()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "http://127.0.0.1:9499/query/service"),
-                Node("uuid-b", "http://127.0.0.1:9500/query/service")
-            };
+            Node("uuid-a", "https://lb.example.com:18093/query/service"),
+            Node("uuid-a", "https://lb.example.com:18093/query/service")
+        };
 
-            Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
+        Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
 
-        [Fact]
-        public void HasSharedQueryEndpoint_DistinctHosts_ReturnsFalse()
+    [Fact]
+    public void HasSharedQueryEndpoint_SingleNode_ReturnsFalse()
+    {
+        var nodes = new[] { Node("uuid-a", "https://lb.example.com:18093/query/service") };
+
+        Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
+
+    [Fact]
+    public void HasSharedQueryEndpoint_IgnoresNodesWithoutQueryOrUuid()
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "http://a:8093/query/service"),
-                Node("uuid-b", "http://b:8093/query/service")
-            };
+            Node("uuid-a", "https://lb.example.com:18093/query/service"),
+            Node("uuid-kv1", "https://lb.example.com/", hasQuery: false),
+            Node("uuid-kv2", "https://lb.example.com/", hasQuery: false),
+            Node("", "https://lb.example.com:18093/query/service")
+        };
 
-            Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
+        Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
+    }
 
-        [Fact]
-        public void HasSharedQueryEndpoint_OneUuidListedTwice_ReturnsFalse()
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void HasSharedQueryEndpoint_ComparesThePortForTheTlsSetting(bool enableTls, bool expected)
+    {
+        var nodes = new[]
         {
-            var nodes = new[]
-            {
-                Node("uuid-a", "https://lb.example.com:18093/query/service"),
-                Node("uuid-a", "https://lb.example.com:18093/query/service")
-            };
+            Node("uuid-a", "https://lb.example.com:18093/query/service", n1QlPort: 8093),
+            Node("uuid-b", "https://lb.example.com:18093/query/service", n1QlPort: 8094)
+        };
 
-            Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
+        Assert.Equal(expected, QueryNodes.HasSharedQueryEndpoint(nodes, enableTls));
+    }
 
-        [Fact]
-        public void HasSharedQueryEndpoint_SingleNode_ReturnsFalse()
-        {
-            var nodes = new[] { Node("uuid-a", "https://lb.example.com:18093/query/service") };
-
-            Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
-
-        [Fact]
-        public void HasSharedQueryEndpoint_IgnoresNodesWithoutQueryOrUuid()
-        {
-            var nodes = new[]
-            {
-                Node("uuid-a", "https://lb.example.com:18093/query/service"),
-                Node("uuid-kv1", "https://lb.example.com/", hasQuery: false),
-                Node("uuid-kv2", "https://lb.example.com/", hasQuery: false),
-                Node("", "https://lb.example.com:18093/query/service")
-            };
-
-            Assert.False(QueryNodes.HasSharedQueryEndpoint(nodes, enableTls: false));
-        }
-
-        [Theory]
-        [InlineData(true, true)]
-        [InlineData(false, false)]
-        public void HasSharedQueryEndpoint_ComparesThePortForTheTlsSetting(bool enableTls, bool expected)
-        {
-            var nodes = new[]
-            {
-                Node("uuid-a", "https://lb.example.com:18093/query/service", n1QlPort: 8093),
-                Node("uuid-b", "https://lb.example.com:18093/query/service", n1QlPort: 8094)
-            };
-
-            Assert.Equal(expected, QueryNodes.HasSharedQueryEndpoint(nodes, enableTls));
-        }
-
-        private static IClusterNode Node(string nodeUuid, string? queryUri, bool hasQuery = true, int? n1QlPort = null)
-        {
-            var uri = queryUri is null ? null : new Uri(queryUri);
-            var node = new Mock<IClusterNode>();
-            node.SetupGet(x => x.NodeUuid).Returns(nodeUuid);
-            node.SetupGet(x => x.HasQuery).Returns(hasQuery);
-            node.SetupGet(x => x.QueryUri).Returns(uri!);
-            node.SetupGet(x => x.NodesAdapter).Returns(uri is null
-                ? null!
-                : new NodeAdapter { Hostname = uri.Host, N1Ql = n1QlPort ?? uri.Port, N1QlSsl = uri.Port });
-            return node.Object;
-        }
+    private static IClusterNode Node(string nodeUuid, string? queryUri, bool hasQuery = true, int? n1QlPort = null)
+    {
+        var uri = queryUri is null ? null : new Uri(queryUri);
+        var node = new Mock<IClusterNode>();
+        node.SetupGet(x => x.NodeUuid).Returns(nodeUuid);
+        node.SetupGet(x => x.HasQuery).Returns(hasQuery);
+        node.SetupGet(x => x.QueryUri).Returns(uri!);
+        node.SetupGet(x => x.NodesAdapter).Returns(uri is null
+            ? null!
+            : new NodeAdapter { Hostname = uri.Host, N1Ql = n1QlPort ?? uri.Port, N1QlSsl = uri.Port });
+        return node.Object;
     }
 }
 

@@ -4,28 +4,27 @@ using Couchbase.Core.Exceptions;
 
 #nullable enable
 
-namespace Couchbase.Query.Conversational
+namespace Couchbase.Query.Conversational;
+
+/// <summary>
+/// Gives access to conversational queries, which turn natural language prompts into SQL++.
+/// </summary>
+[InterfaceStability(Level.Volatile)]
+public interface IConversationalQueryRequester
 {
     /// <summary>
-    /// Gives access to conversational queries, which turn natural language prompts into SQL++.
+    /// Runs one-shot conversational queries and chats.
     /// </summary>
-    [InterfaceStability(Level.Volatile)]
-    public interface IConversationalQueryRequester
-    {
-        /// <summary>
-        /// Runs one-shot conversational queries and chats.
-        /// </summary>
-        /// <exception cref="FeatureNotAvailableException">
-        /// The cluster is connected with a <c>couchbase2://</c> connection string.
-        /// </exception>
-        IConversationalQuery ConversationalQuery
+    /// <exception cref="FeatureNotAvailableException">
+    /// The cluster is connected with a <c>couchbase2://</c> connection string.
+    /// </exception>
+    IConversationalQuery ConversationalQuery
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
-            => throw new NotImplementedException(nameof(ConversationalQuery));
+        => throw new NotImplementedException(nameof(ConversationalQuery));
 #else
-        // legacy platforms don't support default interface implementations
-        { get; }
+    // legacy platforms don't support default interface implementations
+    { get; }
 #endif
-    }
 }
 
 
