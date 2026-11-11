@@ -786,16 +786,18 @@ namespace Couchbase.UnitTests.Core
             Assert.True(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
         }
 
-        [Fact]
-        public async Task ConfigUpdatedAsync_OlderConfig_KeepsGlobalConfig()
+        [Theory]
+        [InlineData(3UL, 5UL, true)]
+        [InlineData(1UL, 50UL, false)]
+        public async Task ConfigUpdatedAsync_ComparesRevEpochBeforeRev(ulong revEpoch, ulong rev, bool replaces)
         {
-            var current = CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2);
+            var current = CreateGlobalConfig(revEpoch: 2, rev: 10, vectorSearch: false, GlobalHost1, GlobalHost2);
             using var context = CreateContextWithGlobalConfig(current);
+            var incoming = CreateGlobalConfig(revEpoch, rev, vectorSearch: false, GlobalHost1, GlobalHost2);
 
-            await context.ConfigUpdatedAsync(CreateGlobalConfig(9, vectorSearch: true, GlobalHost1, GlobalHost2));
+            await context.ConfigUpdatedAsync(incoming);
 
-            Assert.Same(current, context.GlobalConfig);
-            Assert.False(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            Assert.Same(replaces ? incoming : current, context.GlobalConfig);
         }
 
         [Fact]
@@ -856,11 +858,15 @@ namespace Couchbase.UnitTests.Core
                 };
         }
 
-        private static BucketConfig CreateGlobalConfig(ulong rev, bool vectorSearch, params string[] hosts)
+        private static BucketConfig CreateGlobalConfig(ulong rev, bool vectorSearch, params string[] hosts) =>
+            CreateGlobalConfig(revEpoch: 0, rev, vectorSearch, hosts);
+
+        private static BucketConfig CreateGlobalConfig(ulong revEpoch, ulong rev, bool vectorSearch, params string[] hosts)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\cluster-level-config-rev69.json",
                 InternalSerializationContext.Default.BucketConfig);
 
+            config.RevEpoch = revEpoch;
             config.Rev = rev;
             config.Name = BucketConfig.GlobalBucketName;
             // Real global configs omit the vBucket map. The fixture sets it to null, which breaks SetEffectiveNetworkResolution.
@@ -876,6 +882,7 @@ namespace Couchbase.UnitTests.Core
                 caps["search"] = new[] { "vectorSearch", "scopedSearchIndex" };
             }
             config.ClusterCapabilities = caps;
+            config.OnDeserialized();
 
             return config;
         }
