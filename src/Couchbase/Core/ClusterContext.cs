@@ -138,7 +138,10 @@ namespace Couchbase.Core
 
         public CancellationToken CancellationToken => _tokenSource.Token;
 
-        internal bool HasClusterCap(string clusterCap) => ClusterCapsConfig?.HasClusterCap(clusterCap) == true;
+        /// <summary>
+        /// Whether the cluster has the capability, or null while no capabilities are known.
+        /// </summary>
+        internal bool? HasClusterCap(string clusterCap) => ClusterCapsConfig?.HasClusterCap(clusterCap);
 
         /// <summary>
         /// Throws if the cluster does not have the capability. Does nothing while no capabilities are known.

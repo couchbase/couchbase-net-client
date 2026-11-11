@@ -998,7 +998,7 @@ namespace Couchbase.UnitTests.Core
 
             context.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH);
 
-            Assert.False(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            Assert.Null(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
         }
 
         [Fact]
