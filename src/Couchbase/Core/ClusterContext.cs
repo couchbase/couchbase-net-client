@@ -1167,8 +1167,6 @@ namespace Couchbase.Core
                     PruneGlobalNodes(globalConfig);
 
                     // Set last, so a failed node connect keeps the old config and the next poll retries.
-                    // The network mode is decided once at bootstrap and must not change here.
-                    globalConfig.NetworkResolution = ClusterOptions.EffectiveNetworkResolution;
                     GlobalConfig = globalConfig;
                 }
                 finally
