@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Metrics.AppTelemetry;
 using Couchbase.UnitTests.Helpers;
 using Xunit;
@@ -99,6 +100,8 @@ public class AppTelemetryThreadSafetyTests
     {
         using var collector = new AppTelemetryCollector();
         collector.Enable();
+        // Enable registers the collector for every test, so operations from tests that run in parallel would add counts.
+        MetricTracker.AppTelemetry.Unregister();
 
         const int writerCount = 4;
         const int incrementsPerWriter = 100_000;
@@ -174,6 +177,8 @@ public class AppTelemetryThreadSafetyTests
     {
         using var collector = new AppTelemetryCollector();
         collector.Enable();
+        // Enable registers the collector for every test, so operations from tests that run in parallel would add counts.
+        MetricTracker.AppTelemetry.Unregister();
 
         const int nodeCount = 50;
         const int incrementsPerNode = 20_000;
@@ -285,6 +290,8 @@ public class AppTelemetryThreadSafetyTests
     {
         using var collector = new AppTelemetryCollector();
         collector.Enable();
+        // Enable registers the collector for every test, so operations from tests that run in parallel would add counts.
+        MetricTracker.AppTelemetry.Unregister();
 
         const int totalIncrements = 10_000;
 
