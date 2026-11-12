@@ -49,7 +49,7 @@ namespace Couchbase.Core.IO.Connections
         /// Send an operation via a connection in the pool.
         /// </summary>
         /// <param name="op"><see cref="IOperation"/> to send.</param>
-        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
+        /// <param name="cancellationToken">Cancellation token which cancels the send. A write it cancels also closes the connection, which fails the operations in flight on it.</param>
         /// <returns>Task to observe for completion.</returns>
         /// <remarks>
         /// Completion of the returned task indicates that the operation has been either sent or queued to be sent.
@@ -62,7 +62,7 @@ namespace Couchbase.Core.IO.Connections
         /// When the operation is not queued the task will block waiting for the send to complete.
         /// </summary>
         /// <param name="op"><see cref="IOperation"/> to send.</param>
-        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
+        /// <param name="cancellationToken">Cancellation token which cancels the send. A write it cancels also closes the connection, which fails the operations in flight on it.</param>
         /// <returns>True if sent immediately, or false if queued.</returns>
         /// <remarks>
         /// <para>
