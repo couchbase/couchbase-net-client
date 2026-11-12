@@ -221,7 +221,159 @@ namespace Couchbase.UnitTests.KeyValue
             await bucket.WhenClosed(first);
         }
 
-        private static (CouchbaseCollection Collection, PendingScanBucket Bucket) CreateCollection()
+        // RFC 73 (KV Range Scan), Tracing Spans: range_scan > range_scan_partition > range_scan_create and
+        // range_scan_continue.
+        [Fact]
+        public async Task Range_Scan_Creates_The_Rfc73_Span_Tree()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            var parent = tracer.RequestSpan("outer");
+            var scanType = new RangeScan(ScanTerm.Inclusive("a"), ScanTerm.Exclusive("z"));
+
+            await using (var stream = collection.ScanAsync(scanType, new ScanOptions().ParentSpan(parent)).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
+                Assert.True(await moved);
+
+                moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Same(parent, scan.Parent);
+            Assert.Equal((uint)2, scan.Attributes["num_partitions"]);
+            Assert.Equal("range", scan.Attributes["scan_type"]);
+            Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("a")), scan.Attributes["from_term"]);
+            Assert.Equal(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("z")), scan.Attributes["to_term"]);
+            Assert.Equal(false, scan.Attributes["without_content"]);
+            Assert.Equal("kv", scan.Attributes["db.couchbase.service"]);
+            Assert.Equal("range_scan", scan.Attributes["db.operation"]);
+
+            var partitions = tracer.Named("range_scan_partition");
+            Assert.Equal(2, partitions.Count);
+            Assert.All(partitions, p => Assert.Same(scan, p.Parent));
+            Assert.Equal(new uint[] { 0, 1 }, partitions.Select(p => (uint)p.Attributes["partition_id"]).OrderBy(id => id));
+
+            foreach (var partition in partitions)
+            {
+                var create = Assert.Single(tracer.ChildrenOf(partition, "range_scan_create"));
+                Assert.Equal("range", create.Attributes["scan_type"]);
+                Assert.Equal("a", create.Attributes["from_term"]);
+                Assert.Equal("z", create.Attributes["to_term"]);
+                Assert.Equal(false, create.Attributes["from_exclusive"]);
+                Assert.Equal(true, create.Attributes["to_exclusive"]);
+
+                var scanContinue = Assert.Single(tracer.ChildrenOf(partition, "range_scan_continue"));
+                var endOrder = tracer.EndOrder.ToList();
+                Assert.True(endOrder.IndexOf(create) < endOrder.IndexOf(partition), "create must end before its partition");
+                Assert.True(endOrder.IndexOf(scanContinue) < endOrder.IndexOf(partition), "continue must end before its partition");
+                Assert.StartsWith("0x", (string)scanContinue.Attributes["range_scan_id"]);
+                Assert.Contains("item_limit", scanContinue.Attributes.Keys);
+                Assert.Contains("byte_limit", scanContinue.Attributes.Keys);
+                Assert.Contains("time_limit", scanContinue.Attributes.Keys);
+            }
+
+            Assert.Empty(tracer.Named("range_scan_cancel"));
+            Assert.All(tracer.Spans.Where(x => x != parent), x => Assert.True(x.Ended, x.Name));
+            Assert.Same(scan, tracer.EndOrder.Last());
+        }
+
+        // A partition with nothing in range answers the create with KeyNotFound. Its create span must still end
+        // inside its partition span.
+        [Fact]
+        public async Task Empty_Partition_Create_Span_Ends_Inside_The_Partition_Span()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            bucket.EmptyPartitions.Add(0);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                Assert.Equal(1, await bucket.NextContinue());
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            var partition = tracer.Named("range_scan_partition").Single(p => (uint)p.Attributes["partition_id"] == 0);
+            var create = Assert.Single(tracer.ChildrenOf(partition, "range_scan_create"));
+            Assert.Empty(tracer.ChildrenOf(partition, "range_scan_continue"));
+            var endOrder = tracer.EndOrder.ToList();
+            Assert.True(endOrder.IndexOf(create) < endOrder.IndexOf(partition), "create must end before its partition");
+        }
+
+        [Fact]
+        public async Task Sampling_Scan_Span_Has_Limit_And_Seed()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+
+            await using (var stream = collection.ScanAsync(new SamplingScan(limit: 1, seed: 7)).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a", "b");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Equal("sampling", scan.Attributes["scan_type"]);
+            Assert.Equal((uint)1, scan.Attributes["limit"]);
+            Assert.Equal((uint)7, scan.Attributes["seed"]);
+            Assert.DoesNotContain("from_term", scan.Attributes.Keys);
+
+            var create = tracer.Named("range_scan_create").First();
+            Assert.Equal("sampling", create.Attributes["scan_type"]);
+            Assert.Equal((uint)1, create.Attributes["limit"]);
+            Assert.Equal((uint)7, create.Attributes["seed"]);
+        }
+
+        // A scan closed early sends range_scan_cancel requests. The range_scan span ends only after
+        // they finish, so it contains them.
+        [Fact]
+        public async Task Closing_Early_Adds_Cancel_Spans_Inside_The_Scan_Span()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            bucket.HoldCloses = true;
+
+            var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator();
+            var moved = stream.MoveNextAsync().AsTask();
+            var first = await bucket.NextContinue();
+            bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
+            Assert.True(await moved);
+
+            await stream.DisposeAsync();
+            await bucket.WhenClosed(first);
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.False(scan.Ended);
+
+            bucket.ReleaseCloses();
+            await collection.ScanCleanup;
+
+            var cancel = Assert.Single(tracer.Named("range_scan_cancel"));
+            var partition = Assert.IsType<RecordingSpan>(cancel.Parent);
+            Assert.Equal("range_scan_partition", partition.Name);
+            Assert.Equal((uint)first, partition.Attributes["partition_id"]);
+            Assert.StartsWith("0x", (string)cancel.Attributes["range_scan_id"]);
+            Assert.True(cancel.Ended);
+            Assert.True(scan.Ended);
+            Assert.Same(scan, tracer.EndOrder.Last());
+        }
+
+        private static (CouchbaseCollection Collection, PendingScanBucket Bucket) CreateCollection(IRequestTracer tracer = null)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -243,7 +395,7 @@ namespace Couchbase.UnitTests.KeyValue
                 new Redactor(RedactionLevel.None),
                 CouchbaseCollection.DefaultCollectionName,
                 Mock.Of<IScope>(scope => scope.IsDefaultScope == true && scope.Name == Scope.DefaultScopeName),
-                new NoopRequestTracer(),
+                tracer ?? new NoopRequestTracer(),
                 NullFallbackTypeSerializerProvider.Instance,
                 Mock.Of<IServiceProvider>());
 
@@ -280,6 +432,11 @@ namespace Couchbase.UnitTests.KeyValue
             public void ReleaseCloses() => _closesReleased.TrySetResult(true);
 
             /// <summary>
+            /// Partitions whose RangeScanCreate returns KeyNotFound, as for a partition with no documents in range.
+            /// </summary>
+            public HashSet<short> EmptyPartitions { get; } = new();
+
+            /// <summary>
             /// The partitions that a RangeScanCreate was sent for, in the order they were sent.
             /// </summary>
             public ConcurrentQueue<short> Created { get; } = new();
@@ -295,6 +452,10 @@ namespace Couchbase.UnitTests.KeyValue
                 {
                     case RangeScanCreate create:
                         Created.Enqueue((short) create.VBucketId!);
+                        if (EmptyPartitions.Contains((short) create.VBucketId!))
+                        {
+                            return Task.FromResult(ResponseStatus.KeyNotFound);
+                        }
                         // The scan's 16-byte UUID, which RangeScanContinue and RangeScanCancel send back.
                         create.Read(new SlicedMemoryOwner<byte>(new TestMemoryOwner(new byte[OperationHeader.Length + 16], 16)));
                         return Task.FromResult(ResponseStatus.Success);
@@ -354,6 +515,89 @@ namespace Couchbase.UnitTests.KeyValue
 
             private static TaskCompletionSource<bool> NewSignal(short _) =>
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        /// <summary>
+        /// Records every span, its parent, its attributes and the order in which spans end.
+        /// </summary>
+        private sealed class RecordingTracer : IRequestTracer
+        {
+            private readonly object _lock = new();
+            private readonly List<RecordingSpan> _spans = new();
+            private readonly List<RecordingSpan> _endOrder = new();
+
+            public IReadOnlyList<RecordingSpan> Spans { get { lock (_lock) { return _spans.ToList(); } } }
+
+            public IReadOnlyList<RecordingSpan> EndOrder { get { lock (_lock) { return _endOrder.ToList(); } } }
+
+            public List<RecordingSpan> Named(string name) => Spans.Where(s => s.Name == name).ToList();
+
+            public List<RecordingSpan> ChildrenOf(RecordingSpan parent, string name) =>
+                Spans.Where(s => s.Parent == parent && s.Name == name).ToList();
+
+            public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+            {
+                var span = new RecordingSpan(this, name, parentSpan);
+                lock (_lock)
+                {
+                    _spans.Add(span);
+                }
+                return span;
+            }
+
+            internal void Ended(RecordingSpan span)
+            {
+                lock (_lock)
+                {
+                    _endOrder.Add(span);
+                }
+            }
+
+            public IRequestTracer Start(TraceListener listener) => this;
+
+            public void Dispose()
+            {
+            }
+        }
+
+        private sealed class RecordingSpan(RecordingTracer tracer, string name, IRequestSpan parent) : IRequestSpan
+        {
+            public string Name { get; } = name;
+
+            public ConcurrentDictionary<string, object> Attributes { get; } = new();
+
+            public bool Ended { get; private set; }
+
+            public IRequestSpan Parent { get; set; } = parent;
+
+            public bool CanWrite => true;
+
+            public string Id { get; } = Guid.NewGuid().ToString();
+
+            public uint? Duration => null;
+
+            public IRequestSpan SetAttribute(string key, bool value) { Attributes[key] = value; return this; }
+
+            public IRequestSpan SetAttribute(string key, string value) { Attributes[key] = value; return this; }
+
+            public IRequestSpan SetAttribute(string key, uint value) { Attributes[key] = value; return this; }
+
+            public IRequestSpan AddEvent(string eventName, DateTimeOffset? timestamp = null) => this;
+
+            public IRequestSpan SetStatus(RequestSpanStatusCode code) => this;
+
+            public IRequestSpan ChildSpan(string childName) => tracer.RequestSpan(childName, this);
+
+            public void End() => Dispose();
+
+            public void Dispose()
+            {
+                if (!Ended)
+                {
+                    Ended = true;
+                    tracer.Ended(this);
+                }
+            }
         }
 
         /// <summary>

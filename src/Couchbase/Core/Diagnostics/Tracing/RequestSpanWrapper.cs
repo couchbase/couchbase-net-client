@@ -26,6 +26,17 @@ internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels c
         return this;
     }
 
+    /// <summary>
+    /// Sets <paramref name="key"/> under its legacy name only. In Modern mode, nothing is set.
+    /// </summary>
+    internal void SetLegacyAttribute(string key, string value)
+    {
+        if (ObservabilitySemanticConvention != ObservabilitySemanticConvention.Modern)
+        {
+            innerSpan.SetAttribute(key, value);
+        }
+    }
+
     public IRequestSpan SetAttribute(string key, uint value)
     {
         SemanticConventionEmitter.EmitAttribute(ObservabilitySemanticConvention, key, value, innerSpan,

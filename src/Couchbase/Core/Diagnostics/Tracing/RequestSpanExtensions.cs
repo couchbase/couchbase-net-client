@@ -217,6 +217,22 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return span;
         }
 
+        /// <summary>
+        /// Adds the address and port that an HTTP request was sent to (RFC 67: network.peer.address
+        /// and network.peer.port). This is the host of the request URI. When the URI holds a hostname,
+        /// HttpClient resolves it, and the SDK does not see the IP address that it connects to.
+        /// </summary>
+        internal static IRequestSpan WithPeerAddress(this IRequestSpan span, Uri remoteUri)
+        {
+            if (span.CanWrite)
+            {
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerAddress, remoteUri.Host);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerPort, remoteUri.Port.ToStringInvariant());
+            }
+
+            return span;
+        }
+
         internal static IRequestSpan WithLocalId(this IRequestSpan span, string? localId)
         {
             if (span.CanWrite)
@@ -252,6 +268,45 @@ namespace Couchbase.Core.Diagnostics.Tracing
             if (span.CanWrite)
             {
                 span.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            }
+
+            return span;
+        }
+
+        /// <summary>
+        /// Adds a N1QL statement to the span. RFC 67: the stable <c>db.query.text</c> is set only when
+        /// <paramref name="hasParameters"/> is true, because without parameters the statement can contain
+        /// sensitive data. The legacy <c>db.statement</c> is always set, so existing users keep it.
+        /// </summary>
+        internal static IRequestSpan WithStatement(this IRequestSpan span, string statement, bool hasParameters)
+        {
+            if (!span.CanWrite)
+            {
+                return span;
+            }
+
+            if (hasParameters)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            }
+            else if (span is RequestSpanWrapper wrapper)
+            {
+                wrapper.SetLegacyAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            }
+            else
+            {
+                // Not wrapped, so there is no semantic convention mapping: only the legacy name is ever set.
+                span.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            }
+
+            return span;
+        }
+
+        internal static IRequestSpan WithService(this IRequestSpan span, string service)
+        {
+            if (span.CanWrite)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, service);
             }
 
             return span;

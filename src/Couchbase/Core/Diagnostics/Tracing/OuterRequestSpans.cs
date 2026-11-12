@@ -51,6 +51,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
             /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on N1QL and analytics operations.
+            ///     Per RFC 67, its stable name (db.query.text) is set only when positional or named parameters
+            ///     are in use, because the statement can contain sensitive data. See WithStatement.
             /// </summary>
             public const string Statement = "db.statement";
 
@@ -117,6 +119,14 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string GetAllReplicas = "get_all_replicas";
                 public const string GetAnyReplica = "get_any_replica";
                 public const string Ping = "ping";
+
+                // KV range scan (RFC 73): one range_scan span per scan, one range_scan_partition span per
+                // partition, and one span per create, continue and cancel request in that partition.
+                public const string RangeScan = "range_scan";
+                public const string RangeScanPartition = "range_scan_partition";
+                public const string RangeScanCreate = "range_scan_create";
+                public const string RangeScanContinue = "range_scan_continue";
+                public const string RangeScanCancel = "range_scan_cancel";
             }
 
             internal static class Internal

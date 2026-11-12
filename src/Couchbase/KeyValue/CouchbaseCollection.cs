@@ -140,15 +140,26 @@ namespace Couchbase.KeyValue
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenValue, cancellationToken);
             List<PartitionScan>? partitionScans = null;
             var endedByScan = false;
+
+            // RFC 73: one range_scan span per scan. It ends after the scans left open are closed, so that
+            // it contains the spans of those close requests.
+            var scanSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScan, options.ParentSpanValue);
+            RangeScanSpans.SetScanTypeAttributes(scanSpan, scanType, options.IdsOnlyValue, isCreateSpan: false);
             try
             {
                 var scanOptions = options.WithToken(linkedSource.Token);
 
                 var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
+                if (scanSpan.CanWrite)
+                {
+                    scanSpan.SetAttribute(RangeScanSpans.NumPartitions, (uint)partitionCount);
+                }
+
                 partitionScans = new List<PartitionScan>(partitionCount);
                 for (short partitionId = 0; partitionId < partitionCount; partitionId++)
                 {
-                    var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType,partitionId);
+                    var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType, partitionId,
+                        RootSpan, scanSpan);
 
                     if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
                     {
@@ -217,9 +228,13 @@ namespace Couchbase.KeyValue
                 // threw. Stop the partition read in progress, if any, then close the scans that are
                 // still open on the server.
                 linkedSource.CancelAndDispose();
-                if (partitionScans is not null)
+                if (partitionScans is null)
                 {
-                    ScanCleanup = CloseOpenScansAsync(partitionScans);
+                    scanSpan.Dispose();
+                }
+                else
+                {
+                    ScanCleanup = CloseOpenScansAndEndSpansAsync(partitionScans, scanSpan);
 
                     // When the scan ends the stream itself, at the sampling limit, the caller did not
                     // ask to stop, so the stream ends only after the closes, as before NCBC-4365. When
@@ -238,6 +253,27 @@ namespace Couchbase.KeyValue
         /// concurrent scans on one collection, it holds the cleanup of the scan that ended last.
         /// </summary>
         internal Task ScanCleanup { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// Closes the partition scans that are still open, then ends the partition spans and the
+        /// range_scan span. Never throws.
+        /// </summary>
+        private async Task CloseOpenScansAndEndSpansAsync(List<PartitionScan> partitionScans, IRequestSpan scanSpan)
+        {
+            try
+            {
+                await CloseOpenScansAsync(partitionScans).ConfigureAwait(false);
+            }
+            finally
+            {
+                foreach (var partitionScan in partitionScans)
+                {
+                    partitionScan.EndSpan();
+                }
+
+                scanSpan.Dispose();
+            }
+        }
 
         /// <summary>
         /// Closes each partition scan that is still open on the server. A close is best-effort:

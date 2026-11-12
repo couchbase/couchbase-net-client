@@ -293,11 +293,12 @@ public static class OptionsUtil
         return ret;
     }
 
-    public static Management.Query.CreateQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.CreateQueryIndexOptions? protoOptions)
+    public static Management.Query.CreateQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.CreateQueryIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.CreateQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasIgnoreIfExists) options.IgnoreIfExists(protoOptions.IgnoreIfExists);
             if (protoOptions.HasDeferred) options.Deferred(protoOptions.Deferred);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
@@ -309,11 +310,12 @@ public static class OptionsUtil
         return Couchbase.Management.Query.CreateQueryIndexOptions.Default;
     }
 
-    public static Management.Query.DropQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.DropIndexOptions? protoOptions)
+    public static Management.Query.DropQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.DropIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.DropQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasIgnoreIfNotExists) options.IgnoreIfExists(!protoOptions.IgnoreIfNotExists);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
             if (protoOptions.HasCollectionName) options.CollectionName(protoOptions.CollectionName);
@@ -324,11 +326,12 @@ public static class OptionsUtil
         return Couchbase.Management.Query.DropQueryIndexOptions.Default;
     }
 
-    public static Management.Query.WatchQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.WatchIndexesOptions? protoOptions)
+    public static Management.Query.WatchQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.WatchIndexesOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.WatchQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasWatchPrimary) options.WatchPrimary(protoOptions.WatchPrimary);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
             if (protoOptions.HasCollectionName) options.CollectionName(protoOptions.CollectionName);
@@ -339,11 +342,12 @@ public static class OptionsUtil
         return Couchbase.Management.Query.WatchQueryIndexOptions.Default;
     }
 
-    public static Management.Query.BuildDeferredQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.BuildDeferredIndexesOptions? protoOptions)
+    public static Management.Query.BuildDeferredQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.BuildDeferredIndexesOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.BuildDeferredQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
             if (protoOptions.HasCollectionName) options.CollectionName(protoOptions.CollectionName);
             options.CancellationToken(new CancellationToken());
@@ -353,11 +357,12 @@ public static class OptionsUtil
         return Couchbase.Management.Query.BuildDeferredQueryIndexOptions.Default;
     }
 
-    public static Management.Query.CreatePrimaryQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.CreatePrimaryQueryIndexOptions? protoOptions)
+    public static Management.Query.CreatePrimaryQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.CreatePrimaryQueryIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.CreatePrimaryQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasIndexName) options.IndexName(protoOptions.IndexName);
             if (protoOptions.HasIgnoreIfExists) options.IgnoreIfExists(protoOptions.IgnoreIfExists);
             if (protoOptions.HasDeferred) options.Deferred(protoOptions.Deferred);
@@ -369,11 +374,12 @@ public static class OptionsUtil
         }
         return Couchbase.Management.Query.CreatePrimaryQueryIndexOptions.Default;
     }
-    public static Management.Query.DropPrimaryQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.DropPrimaryIndexOptions? protoOptions)
+    public static Management.Query.DropPrimaryQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.DropPrimaryIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.DropPrimaryQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasIgnoreIfNotExists) options.IgnoreIfExists(!protoOptions.IgnoreIfNotExists);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
             if (protoOptions.HasCollectionName) options.CollectionName(protoOptions.CollectionName);
@@ -383,11 +389,12 @@ public static class OptionsUtil
         }
         return Couchbase.Management.Query.DropPrimaryQueryIndexOptions.Default;
     }
-    public static Management.Query.GetAllQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.GetAllQueryIndexOptions? protoOptions)
+    public static Management.Query.GetAllQueryIndexOptions? ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Query.IndexManager.GetAllQueryIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         if (protoOptions != null)
         {
             var options = new Management.Query.GetAllQueryIndexOptions();
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasScopeName) options.ScopeName(protoOptions.ScopeName);
             if (protoOptions.HasCollectionName) options.CollectionName(protoOptions.CollectionName);
             options.CancellationToken(new CancellationToken());
@@ -478,143 +485,143 @@ public static class OptionsUtil
 
     #region SearchIndexManagement
     //Note: Lengthy and repetitive... but the generated classes don't share any inheritance.
-    public static AllowQueryingSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.AllowQueryingSearchIndexOptions? protoOptions)
+    public static AllowQueryingSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.AllowQueryingSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new AllowQueryingSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static DisallowQueryingSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.DisallowQueryingSearchIndexOptions? protoOptions)
+    public static DisallowQueryingSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.DisallowQueryingSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new DisallowQueryingSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static DropSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.DropSearchIndexOptions? protoOptions)
+    public static DropSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.DropSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new DropSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static FreezePlanSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.FreezePlanSearchIndexOptions? protoOptions)
+    public static FreezePlanSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.FreezePlanSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new FreezePlanSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static UnfreezePlanSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.UnfreezePlanSearchIndexOptions? protoOptions)
+    public static UnfreezePlanSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.UnfreezePlanSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new UnfreezePlanSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static GetSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetSearchIndexOptions? protoOptions)
+    public static GetSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new GetSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static PauseIngestSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.PauseIngestSearchIndexOptions? protoOptions)
+    public static PauseIngestSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.PauseIngestSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new PauseIngestSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static ResumeIngestSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.ResumeIngestSearchIndexOptions? protoOptions)
+    public static ResumeIngestSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.ResumeIngestSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new ResumeIngestSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static UpsertSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.UpsertSearchIndexOptions? protoOptions)
+    public static UpsertSearchIndexOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.UpsertSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new UpsertSearchIndexOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static GetAllSearchIndexesOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetAllSearchIndexesOptions? protoOptions)
+    public static GetAllSearchIndexesOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetAllSearchIndexesOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new GetAllSearchIndexesOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
         return options;
     }
 
-    public static GetSearchIndexDocumentCountOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetIndexedSearchIndexOptions? protoOptions)
+    public static GetSearchIndexDocumentCountOptions ConvertSearchIndexManagementOptions(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.GetIndexedSearchIndexOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
     {
         var options = new GetSearchIndexDocumentCountOptions();
 
         if (protoOptions != null)
         {
-            // if (protoOptions.HasParentSpanId) : No Span support in SDK
+            if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
             if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
         }
 
@@ -946,7 +953,7 @@ public static class OptionsUtil
             throw new UnsupportedException("Unknown range specified.");
         }
 
-        public static Couchbase.KeyValue.RangeScan.ScanOptions? CreateOptions(Couchbase.Grpc.Protocol.Sdk.Kv.RangeScan.Scan request)
+        public static Couchbase.KeyValue.RangeScan.ScanOptions? CreateOptions(Couchbase.Grpc.Protocol.Sdk.Kv.RangeScan.Scan request, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             if (request.Options != null)
             {
@@ -960,7 +967,7 @@ public static class OptionsUtil
                 if (opts.HasBatchByteLimit) ret.ByteLimit((uint)opts.BatchByteLimit);
                 if (opts.HasBatchItemLimit) ret.ByteLimit((uint)opts.BatchItemLimit);
                 if (opts.HasBatchTimeLimit) ret.TimeLimit((uint)opts.BatchTimeLimit);
-                //ParentSpan?
+                if (opts.HasParentSpanId) ret.ParentSpan(spans[opts.ParentSpanId]);
 
                 return ret;
             }
@@ -1193,68 +1200,68 @@ public static class OptionsUtil
             };
         }
 
-        public static Management.Buckets.GetBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.GetBucketOptions? protoOptions)
+        public static Management.Buckets.GetBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.GetBucketOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.GetBucketOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
 
-        public static Management.Buckets.GetAllBucketsOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.GetAllBucketsOptions? protoOptions)
+        public static Management.Buckets.GetAllBucketsOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.GetAllBucketsOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.GetAllBucketsOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
 
-        public static Management.Buckets.CreateBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.CreateBucketOptions? protoOptions)
+        public static Management.Buckets.CreateBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.CreateBucketOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.CreateBucketOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
 
-        public static Management.Buckets.DropBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.DropBucketOptions? protoOptions)
+        public static Management.Buckets.DropBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.DropBucketOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.DropBucketOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
 
-        public static Management.Buckets.FlushBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.FlushBucketOptions? protoOptions)
+        public static Management.Buckets.FlushBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.FlushBucketOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.FlushBucketOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
 
-        public static Management.Buckets.UpdateBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.UpdateBucketOptions? protoOptions)
+        public static Management.Buckets.UpdateBucketOptions ConvertOptions(Couchbase.Grpc.Protocol.Sdk.Cluster.BucketManager.UpdateBucketOptions? protoOptions, ConcurrentDictionary<string, IRequestSpan> spans)
         {
             var options = new Management.Buckets.UpdateBucketOptions();
             if (protoOptions != null)
             {
+                if (protoOptions.HasParentSpanId) options.RequestSpan(spans[protoOptions.ParentSpanId]);
                 if (protoOptions.HasTimeoutMsecs) options.Timeout(TimeSpan.FromMilliseconds(protoOptions.TimeoutMsecs));
-                // Note: Parent span not supported in SDK options
             }
             return options;
         }
