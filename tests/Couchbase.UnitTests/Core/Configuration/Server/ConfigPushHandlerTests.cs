@@ -9,11 +9,13 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Helpers;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,6 +24,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server;
 
 public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
 {
+    // Bounds each wait on the handler loop, so a regression fails instead of hanging.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
     [Fact]
     public async Task ConfigPushHandler_ServerVersionRegressed()
     {
@@ -116,6 +121,237 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
         // Three nulls, then the config.
         Assert.Equal(4, fetches.Count);
+    }
+
+    [Fact]
+    public async Task ConfigPushHandler_FetchThrowsOnOneNode_PublishesFromAnotherNode()
+    {
+        // The server pushes (1,3). One node times out on every fetch. The other has nothing newer at first,
+        // so the first pass asks both nodes in either shuffle order, and the config comes on the second pass.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishes = new AsyncCounter();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc =>
+        {
+            publishes.Increment();
+            publishTcs.TrySetResult(bc);
+        });
+        using ClusterContext mockContext = mockBucket.Context;
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+
+        var failingNode = new Mock<IClusterNode>();
+        var failingFetches = new AsyncCounter();
+        failingNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromException<BucketConfig>(new UnambiguousTimeoutException("The request has timed out.")))
+            .Callback(() => failingFetches.Increment());
+
+        var workingNode = new Mock<IClusterNode>();
+        var workingFetches = new AsyncCounter();
+        workingNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(workingFetches.Count < 1 ? null! : newConfig))
+            .Callback(() => workingFetches.Increment());
+
+        foreach (var mockNode in new[] { failingNode, workingNode })
+        {
+            mockNode.SetupGet(x => x.IsDead).Returns(false);
+            mockNode.SetupGet(x => x.HasKv).Returns(true);
+            mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+            mockContext.Nodes.Add(mockNode.Object);
+            mockBucket.Nodes.Add(mockNode.Object);
+        }
+
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_FetchThrowsOnOneNode_PublishesFromAnotherNode));
+        var redactor = new Redactor(RedactionLevel.None);
+        var clock = new SteppableClock();
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigPushHandler.InitialNullConfigRetryDelay);
+
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
+
+        Assert.NotNull(publishedConfig);
+        Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
+        Assert.Equal(1, publishes.Count);
+        Assert.Equal(2, workingFetches.Count);
+        // Two when the second pass also asks the failing node first.
+        Assert.InRange(failingFetches.Count, 1, 2);
+    }
+
+    [Fact]
+    public async Task ConfigPushHandler_FetchThrowsThenReturnsConfig_AsksAgainAndPublishes()
+    {
+        // The server pushes (1,3), but the first fetch times out. The same version is not pushed again,
+        // so the handler must ask again by itself.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
+        using ClusterContext mockContext = mockBucket.Context;
+        var mockNode = new Mock<IClusterNode>();
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+        var fetches = new AsyncCounter();
+        mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => fetches.Count < 1
+                ? Task.FromException<BucketConfig>(new UnambiguousTimeoutException("The request has timed out."))
+                : Task.FromResult(newConfig))
+            .Callback(() => fetches.Increment());
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
+        mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+        mockContext.Nodes.Add(mockNode.Object);
+        mockBucket.Nodes.Add(mockNode.Object);
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var logger = new TestOutputLogger(outputHelper, nameof(ConfigPushHandler_FetchThrowsThenReturnsConfig_AsksAgainAndPublishes));
+        var redactor = new Redactor(RedactionLevel.None);
+        var clock = new SteppableClock();
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigPushHandler.InitialNullConfigRetryDelay);
+
+        var publishedConfig = await publishTcs.Task.WaitAsync(Deadline);
+
+        Assert.NotNull(publishedConfig);
+        Assert.Equal(newConfig.ConfigVersion, publishedConfig!.ConfigVersion);
+        // One failure, then the config.
+        Assert.Equal(2, fetches.Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConfigPushHandler_DisposedDuringFetch_LeavesLoopWithoutAskingNextNode(bool fetchThrowsObjectDisposed)
+    {
+        // The handler is disposed while a fetch waits on its token. It must not go on to the next node,
+        // and shutdown is not a warning.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig);
+        using ClusterContext mockContext = mockBucket.Context;
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+        var fetches = new AsyncCounter();
+        for (var i = 0; i < 2; i++)
+        {
+            var mockNode = new Mock<IClusterNode>();
+            mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+                .Returns(async (ConfigVersion? _, CancellationToken token) =>
+                {
+                    try
+                    {
+                        await Task.Delay(Timeout.Infinite, token);
+                    }
+                    catch (OperationCanceledException) when (fetchThrowsObjectDisposed)
+                    {
+                        // A fetch on a closing connection can fail with another exception.
+                        throw new ObjectDisposedException("connection");
+                    }
+
+                    return newConfig;
+                })
+                .Callback(() => fetches.Increment());
+            mockNode.SetupGet(x => x.IsDead).Returns(false);
+            mockNode.SetupGet(x => x.HasKv).Returns(true);
+            mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+            mockContext.Nodes.Add(mockNode.Object);
+            mockBucket.Nodes.Add(mockNode.Object);
+        }
+
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var logger = new LoopExitLogger();
+        var redactor = new Redactor(RedactionLevel.None);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, new SteppableClock());
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
+
+        configPushHandler.Dispose();
+
+        await logger.Exited.WaitAsync(Deadline);
+        Assert.Equal(1, fetches.Count);
+        Assert.Empty(logger.Warnings);
+    }
+
+    [Fact]
+    public async Task ConfigPushHandler_DisposedDuringRetryDelay_LeavesLoopWithoutWarning()
+    {
+        // The node has nothing newer, so the handler waits for a retry on a clock that never moves.
+        // Dispose must still end the loop, and shutdown is not a warning.
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig);
+        using ClusterContext mockContext = mockBucket.Context;
+        IReadOnlyCollection<HostEndpointWithPort> endpoints = new List<HostEndpointWithPort>();
+        var mockNode = new Mock<IClusterNode>();
+        mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
+        mockNode.SetupGet(x => x.IsDead).Returns(false);
+        mockNode.SetupGet(x => x.HasKv).Returns(true);
+        mockNode.SetupGet(x => x.KeyEndPoints).Returns(endpoints);
+        mockContext.Nodes.Add(mockNode.Object);
+        mockBucket.Nodes.Add(mockNode.Object);
+        mockContext.RegisterBucket(mockBucket);
+        mockContext.Start();
+        var clock = new SteppableClock();
+        var logger = new LoopExitLogger();
+        var redactor = new Redactor(RedactionLevel.None);
+        using var configPushHandler = new ConfigPushHandler(mockBucket, mockContext, logger, redactor, clock);
+
+        configPushHandler.ProcessConfigPush(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigPushHandler.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+
+        configPushHandler.Dispose();
+
+        await logger.Exited.WaitAsync(Deadline);
+        Assert.Empty(logger.Warnings);
+    }
+
+    /// <summary>
+    /// Records warnings and completes <see cref="Exited"/> when the push handler loop ends.
+    /// </summary>
+    private sealed class LoopExitLogger : ILogger
+    {
+        private readonly TaskCompletionSource<bool> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly List<string> _warnings = new();
+
+        public Task Exited => _exited.Task;
+
+        public IReadOnlyList<string> Warnings
+        {
+            get { lock (_warnings) return _warnings.ToArray(); }
+        }
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null!;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var message = formatter(state, exception);
+            if (logLevel >= LogLevel.Warning)
+            {
+                lock (_warnings) _warnings.Add(message);
+            }
+
+            if (message == "Exited consumer loop")
+            {
+                _exited.TrySetResult(true);
+            }
+        }
     }
 
     [Fact]
