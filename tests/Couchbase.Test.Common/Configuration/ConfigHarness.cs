@@ -826,6 +826,8 @@ namespace Couchbase.Test.Common.Configuration
             public ISaslMechanism CreatePasswordMechanism(IConnection connection, string username, string password) => this;
 
             public ISaslMechanism CreateOAuthBearerMechanism(string token) => this;
+
+            public ISaslMechanism CreateLdapCompatibleMechanism(IConnection connection, string username, string password) => this;
         }
 
         private sealed class NoDnsRecords : IDnsResolver
