@@ -7,6 +7,11 @@ internal sealed class RequestSpanWrapper(IRequestSpan innerSpan, ClusterLabels c
     internal ClusterLabels ClusterLabels => clusterLabels;
     internal ObservabilitySemanticConvention ObservabilitySemanticConvention => convention;
 
+    /// <summary>
+    /// The span that this wrapper sets attributes on, after it maps their names.
+    /// </summary>
+    internal IRequestSpan InnerSpan => innerSpan;
+
     public void Dispose()
     {
         innerSpan.Dispose();

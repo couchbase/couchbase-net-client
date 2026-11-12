@@ -163,13 +163,30 @@ namespace Couchbase.Core.Diagnostics.Tracing
             //For reference a similar code path in ClusterNode produces child activities with parent activities,
             //so something isn't right here, but for the threshold logging this will suffice with a few assumptions
             //i.e. dispatch and encoding spans do not have children.
-            var parentSpan = _parentSpan;
-            if (parentSpan is NoopRequestSpan noopSpan)
+            if (!CopiesTagsToParent(_activity.OperationName))
             {
-                // If the parent is a NoopRequestSpan we must pass to its parent. This may happen if one of the inner
-                // spans is not sampled but a deeper span is sampled.
-                // Since we must check the type anyway, use the strongly-typed variable to get the parent so that it may be inlined.
-                parentSpan = noopSpan.Parent;
+                return;
+            }
+
+            var parentSpan = _parentSpan;
+            while (true)
+            {
+                if (parentSpan is RequestSpanWrapper wrapper)
+                {
+                    // The tags already have their final names. Through the wrapper, the semantic convention would map
+                    // them again: for example db.statement would become db.query.text too.
+                    parentSpan = wrapper.InnerSpan;
+                }
+                else if (parentSpan is NoopRequestSpan noopSpan)
+                {
+                    // If the parent is a NoopRequestSpan we must pass to its parent. This may happen if one of the inner
+                    // spans is not sampled but a deeper span is sampled.
+                    parentSpan = noopSpan.Parent;
+                }
+                else
+                {
+                    break;
+                }
             }
             if (parentSpan != null)
             {
@@ -179,6 +196,16 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 }
             }
         }
+
+        /// <summary>
+        /// False for the spans below range_scan. A scan sends one request for each batch, and the tags of each
+        /// request would be added to the partition and range_scan spans, which stay open until the scan ends.
+        /// </summary>
+        private static bool CopiesTagsToParent(string operationName) =>
+            operationName is not (OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition
+                or OuterRequestSpans.ServiceSpan.Kv.RangeScanCreate
+                or OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue
+                or OuterRequestSpans.ServiceSpan.Kv.RangeScanCancel);
 
         /// <inheritdoc />
         public void Dispose()

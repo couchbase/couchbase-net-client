@@ -99,7 +99,11 @@ internal sealed class PartitionScan
             switch (scanCreateStatus)
             {
                 case ResponseStatus.RangeScanComplete:
+                    // The scan has no batch to read. Status must be terminal, or the scan loop sends the create
+                    // again, and Results must not be null, because the loop reads it for this status.
                     CanBeCanceled = false;
+                    Status = scanCreateStatus;
+                    Results = new Dictionary<string, IScanResult>();
                     return true;
                 case ResponseStatus.KeyNotFound:
                     Status = scanCreateStatus;
@@ -107,6 +111,8 @@ internal sealed class PartitionScan
                 case ResponseStatus.RangeScanMore:
                 case ResponseStatus.Success:
                 {
+                    // The create is done. End its span now, so that it does not include the first continue.
+                    createSpan.Dispose();
                     _uuid = scanCreateOp.ExtractBody();
                     _rangeScanId = "0x" + BitConverter.ToString(_uuid.Value.Memory.ToArray()).Replace("-", "").ToLowerInvariant();
                     var scanContinueOp = new RangeScanContinue

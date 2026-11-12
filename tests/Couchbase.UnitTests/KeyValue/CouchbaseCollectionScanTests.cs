@@ -311,6 +311,102 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.True(endOrder.IndexOf(create) < endOrder.IndexOf(partition), "create must end before its partition");
         }
 
+        // Before the fix, the scan loop skipped only RangeScanComplete partitions. An empty partition was created
+        // again on each round, with a new partition span each time, while another partition read its batches.
+        [Fact]
+        public async Task Empty_Partition_Is_Created_Once_While_Another_Partition_Reads_Batches()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            bucket.EmptyPartitions.Add(0);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                Assert.Equal(1, await bucket.NextContinue());
+                bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
+                Assert.True(await moved);
+
+                moved = stream.MoveNextAsync().AsTask();
+                Assert.Equal(1, await bucket.NextContinue());
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            Assert.Single(bucket.Created, partitionId => partitionId == 0);
+            var partition = Assert.Single(tracer.Named("range_scan_partition"), p => (uint)p.Attributes["partition_id"] == 0);
+            Assert.Single(tracer.ChildrenOf(partition, "range_scan_create"));
+        }
+
+        // Before the fix, a create that returned RangeScanComplete left Status unset and Results null, so the
+        // scan loop read a null Results.
+        [Fact]
+        public async Task Partition_Completed_By_The_Create_Is_Done()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            bucket.CompletedPartitions.Add(0);
+
+            var ids = new List<string>();
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                Assert.Equal(1, await NextContinueOrFailure(bucket, moved));
+                bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
+                Assert.True(await moved);
+                ids.Add(stream.Current.Id);
+
+                moved = stream.MoveNextAsync().AsTask();
+                Assert.Equal(1, await NextContinueOrFailure(bucket, moved));
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
+                Assert.True(await moved);
+                ids.Add(stream.Current.Id);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            Assert.Equal(new[] { "a", "b" }, ids);
+            Assert.Single(bucket.Created, partitionId => partitionId == 0);
+            Assert.DoesNotContain((short)0, bucket.Closed);
+            Assert.Single(tracer.Named("range_scan_partition"), p => (uint)p.Attributes["partition_id"] == 0);
+        }
+
+        // The create and the first continue are separate requests: the create span must end before the
+        // continue span starts.
+        [Fact]
+        public async Task Create_Span_Ends_Before_The_First_Continue_Starts()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
+                Assert.True(await moved);
+
+                moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            var partitions = tracer.Named("range_scan_partition");
+            Assert.Equal(2, partitions.Count);
+            foreach (var partition in partitions)
+            {
+                var create = Assert.Single(tracer.ChildrenOf(partition, "range_scan_create"));
+                var scanContinue = Assert.Single(tracer.ChildrenOf(partition, "range_scan_continue"));
+                Assert.True(tracer.EndIndex(create) < tracer.StartIndex(scanContinue),
+                    "create must end before the continue starts");
+            }
+        }
+
         [Fact]
         public async Task Sampling_Scan_Span_Has_Limit_And_Seed()
         {
@@ -371,6 +467,22 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.True(cancel.Ended);
             Assert.True(scan.Ended);
             Assert.Same(scan, tracer.EndOrder.Last());
+        }
+
+        /// <summary>
+        /// Waits for the next RangeScanContinue. If the stream fails first, no continue is sent: rethrows the
+        /// stream's error instead of waiting for ever.
+        /// </summary>
+        private static async Task<short> NextContinueOrFailure(PendingScanBucket bucket, Task<bool> moved)
+        {
+            var next = bucket.NextContinue();
+            if (await Task.WhenAny(moved, next) == moved)
+            {
+                await moved;
+                Assert.Fail("The stream moved without sending a RangeScanContinue.");
+            }
+
+            return await next;
         }
 
         private static (CouchbaseCollection Collection, PendingScanBucket Bucket) CreateCollection(IRequestTracer tracer = null)
@@ -437,6 +549,11 @@ namespace Couchbase.UnitTests.KeyValue
             public HashSet<short> EmptyPartitions { get; } = new();
 
             /// <summary>
+            /// Partitions whose RangeScanCreate returns RangeScanComplete, with no scan to read or close.
+            /// </summary>
+            public HashSet<short> CompletedPartitions { get; } = new();
+
+            /// <summary>
             /// The partitions that a RangeScanCreate was sent for, in the order they were sent.
             /// </summary>
             public ConcurrentQueue<short> Created { get; } = new();
@@ -455,6 +572,10 @@ namespace Couchbase.UnitTests.KeyValue
                         if (EmptyPartitions.Contains((short) create.VBucketId!))
                         {
                             return Task.FromResult(ResponseStatus.KeyNotFound);
+                        }
+                        if (CompletedPartitions.Contains((short) create.VBucketId!))
+                        {
+                            return Task.FromResult(ResponseStatus.RangeScanComplete);
                         }
                         // The scan's 16-byte UUID, which RangeScanContinue and RangeScanCancel send back.
                         create.Read(new SlicedMemoryOwner<byte>(new TestMemoryOwner(new byte[OperationHeader.Length + 16], 16)));
@@ -525,10 +646,21 @@ namespace Couchbase.UnitTests.KeyValue
             private readonly object _lock = new();
             private readonly List<RecordingSpan> _spans = new();
             private readonly List<RecordingSpan> _endOrder = new();
+            private readonly List<(bool Start, RecordingSpan Span)> _log = new();
 
             public IReadOnlyList<RecordingSpan> Spans { get { lock (_lock) { return _spans.ToList(); } } }
 
             public IReadOnlyList<RecordingSpan> EndOrder { get { lock (_lock) { return _endOrder.ToList(); } } }
+
+            /// <summary>
+            /// The position of the span's start among all span starts and ends.
+            /// </summary>
+            public int StartIndex(RecordingSpan span) { lock (_lock) { return _log.IndexOf((true, span)); } }
+
+            /// <summary>
+            /// The position of the span's end among all span starts and ends.
+            /// </summary>
+            public int EndIndex(RecordingSpan span) { lock (_lock) { return _log.IndexOf((false, span)); } }
 
             public List<RecordingSpan> Named(string name) => Spans.Where(s => s.Name == name).ToList();
 
@@ -541,6 +673,7 @@ namespace Couchbase.UnitTests.KeyValue
                 lock (_lock)
                 {
                     _spans.Add(span);
+                    _log.Add((true, span));
                 }
                 return span;
             }
@@ -550,6 +683,7 @@ namespace Couchbase.UnitTests.KeyValue
                 lock (_lock)
                 {
                     _endOrder.Add(span);
+                    _log.Add((false, span));
                 }
             }
 

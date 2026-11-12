@@ -185,7 +185,9 @@ namespace Couchbase.KeyValue
                 var count = 0ul;
                 while (emptyPartitions < partitionCount)
                 {
-                    foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
+                    // A partition with no documents in range answers the create with KeyNotFound. It is done too.
+                    foreach (var partitionScan in partitionScans.Where(x =>
+                                 x.Status is not (ResponseStatus.RangeScanComplete or ResponseStatus.KeyNotFound)))
                     {
                         options.TokenValue.ThrowIfEitherCancellationRequested(cancellationToken);
 
