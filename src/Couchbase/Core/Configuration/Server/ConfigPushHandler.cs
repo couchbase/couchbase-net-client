@@ -209,7 +209,7 @@ internal partial class ConfigPushHandler : IDisposable
                     }
                 }
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
             {
                 // The handler was disposed during a fetch or a delay. Leave without a warning.
                 break;

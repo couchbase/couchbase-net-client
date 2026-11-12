@@ -228,8 +228,10 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, fetches.Count);
     }
 
-    [Fact]
-    public async Task ConfigPushHandler_DisposedDuringFetch_LeavesLoopWithoutAskingNextNode()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConfigPushHandler_DisposedDuringFetch_LeavesLoopWithoutAskingNextNode(bool fetchThrowsObjectDisposed)
     {
         // The handler is disposed while a fetch waits on its token. It must not go on to the next node,
         // and shutdown is not a warning.
@@ -247,7 +249,16 @@ public class ConfigPushHandlerTests(ITestOutputHelper outputHelper)
             mockNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<CancellationToken>()))
                 .Returns(async (ConfigVersion? _, CancellationToken token) =>
                 {
-                    await Task.Delay(Timeout.Infinite, token);
+                    try
+                    {
+                        await Task.Delay(Timeout.Infinite, token);
+                    }
+                    catch (OperationCanceledException) when (fetchThrowsObjectDisposed)
+                    {
+                        // A fetch on a closing connection can fail with another exception.
+                        throw new ObjectDisposedException("connection");
+                    }
+
                     return newConfig;
                 })
                 .Callback(() => fetches.Increment());
