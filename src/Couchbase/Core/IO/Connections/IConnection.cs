@@ -71,8 +71,9 @@ namespace Couchbase.Core.IO.Connections
         bool IsDead { get; }
 
         /// <summary>
-        /// Cancelled once the connection has closed, for whatever reason. Lets an idle
-        /// owner notice a dead connection without sending anything on it.
+        /// Cancelled once the connection is dead, for whatever reason. A graceful close cancels it when
+        /// the close starts, while the operations in flight still drain. Lets an idle owner notice a dead
+        /// connection without sending anything on it.
         /// </summary>
         CancellationToken ClosedToken { get; }
 

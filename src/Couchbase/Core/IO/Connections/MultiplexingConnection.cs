@@ -561,6 +561,8 @@ namespace Couchbase.Core.IO.Connections
 
             if (Interlocked.Exchange(ref _closing, 1) == 0)
             {
+                // The connection is dead from here, so its owner can replace it while the operations in flight drain.
+                _closedCts.Cancel();
 
                 _logger.LogInformation(
                     "Closing connection {cid}, waiting {timeout} for {count} in-flight operations to complete.",
