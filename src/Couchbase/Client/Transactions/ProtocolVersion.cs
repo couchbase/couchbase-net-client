@@ -40,9 +40,10 @@ namespace Couchbase.Client.Transactions
             yield return new ExtensionName("ExtTtl", "EXT_TTL", "TTL");
         }
 
-        internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);
+        private static readonly HashSet<string> SupportedShortCodes =
+            new(ExtensionsSupported().Select(ext => ext.ShortCode), StringComparer.Ordinal);
 
-        private static Lazy<HashSet<string>> SupportedShortCodes => new Lazy<HashSet<string>>(() => new HashSet<string>(ExtensionsSupported().Select(ext => ext.ShortCode).ToList()));
+        internal static bool Supported(string shortCode) => SupportedShortCodes.Contains(shortCode);
 
         internal record ExtensionName(string PascalCase, string ConstantStyle, string ShortCode);
     }
