@@ -46,8 +46,9 @@ namespace Couchbase.Query
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
         private readonly Redactor _redactor;
-        internal bool EnhancedPreparedStatementsEnabled;
-        internal bool UseReplicaEnabled;
+        // Set from the config thread and read by queries on any thread.
+        internal volatile bool EnhancedPreparedStatementsEnabled;
+        internal volatile bool UseReplicaEnabled;
 
         public QueryClient(
             ICouchbaseHttpClientFactory clientFactory,

@@ -18,6 +18,7 @@ using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
+using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
@@ -365,6 +366,41 @@ namespace Couchbase.UnitTests.Query
 
             client.UpdateClusterCapabilities(clusterCapabilities);
             Assert.True(client.UseReplicaEnabled);
+        }
+
+        [Fact]
+        public async Task UseReplicaEnabled_is_set_when_a_newer_config_adds_readFromReplica()
+        {
+            var httpClientFactory = new MockHttpClientFactory(new HttpClient(new HttpClientHandler()));
+            var client = new QueryClient(httpClientFactory, new Mock<IServiceUriProvider>().Object, new DefaultSerializer(),
+                NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
+            using var cluster = new Cluster(new ClusterOptions()
+                .WithConnectionString("couchbase://localhost")
+                .WithPasswordAuthentication("username", "password"));
+            cluster.LazyQueryClient = LazyServiceShimFactory.Create<IQueryClient>(client);
+
+            cluster.Context.UpdateClusterCapsConfig(CreateConfig(1, "enhancedPreparedStatements"));
+            // A change before bootstrap does not create the client.
+            Assert.False(cluster.LazyQueryClient.IsValueCreated);
+
+            cluster.UpdateClusterCapabilities();
+            Assert.True(client.EnhancedPreparedStatementsEnabled);
+            Assert.False(client.UseReplicaEnabled);
+
+            await cluster.Context.ConfigUpdatedAsync(CreateConfig(2, "enhancedPreparedStatements", "readFromReplica"));
+            Assert.True(client.UseReplicaEnabled);
+
+            static BucketConfig CreateConfig(ulong rev, params string[] queryCaps)
+            {
+                var config = new BucketConfig
+                {
+                    Name = "default",
+                    Rev = rev,
+                    ClusterCapabilities = new Dictionary<string, IEnumerable<string>> { ["n1ql"] = queryCaps }
+                };
+                config.OnDeserialized();
+                return config;
+            }
         }
     }
 }

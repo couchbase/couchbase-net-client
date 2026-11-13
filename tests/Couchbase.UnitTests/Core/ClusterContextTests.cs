@@ -898,6 +898,7 @@ namespace Couchbase.UnitTests.Core
 
             globalConfig.SetEffectiveNetworkResolution(options);
             context.GlobalConfig = globalConfig;
+            context.UpdateClusterCapsConfig(globalConfig);
             foreach (var nodeExt in globalConfig.NodesExt)
             {
                 context.AddNode(CreateGlobalNode(nodeExt.Hostname));
@@ -915,6 +916,168 @@ namespace Couchbase.UnitTests.Core
             node.Setup(n => n.Owner).Returns((IBucket)null);
             node.SetupProperty(n => n.NodesAdapter);
             return node.Object;
+        }
+
+        #endregion
+
+        #region Cluster capabilities
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_NewerBucketConfigWithNewCap_HasClusterCap()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 11, "vectorSearch"));
+
+            Assert.True(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            Assert.False(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_OlderBucketConfigWithFewerCaps_KeepsCap()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: true, GlobalHost1, GlobalHost2));
+
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 9));
+
+            Assert.True(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            context.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH);
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_HigherRevEpoch_WinsOverHigherRev()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+
+            await context.ConfigUpdatedAsync(CreateBucketConfig(1, 5, "vectorSearch"));
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 100));
+
+            Assert.True(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            Assert.Equal(new ConfigVersion(1, 5), context.ClusterCapsConfig.ConfigVersion);
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_NewerConfigWithoutCaps_KeepsCaps()
+        {
+            var current = CreateGlobalConfig(10, vectorSearch: true, GlobalHost1, GlobalHost2);
+            using var context = CreateContextWithGlobalConfig(current);
+            var incoming = CreateBucketConfig(0, 11);
+            incoming.ClusterCapabilities = null;
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(current, context.ClusterCapsConfig);
+            Assert.True(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Fact]
+        public async Task UpdateClusterCapsConfig_Replace_StoresOlderVersion()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: true, GlobalHost1, GlobalHost2));
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 20, "vectorSearch"));
+            var notifications = 0;
+            context.ClusterCapsChanged += () => notifications++;
+
+            var bootstrap = CreateGlobalConfig(5, vectorSearch: false, GlobalHost1, GlobalHost2);
+            context.UpdateClusterCapsConfig(bootstrap, replace: true);
+
+            Assert.Same(bootstrap, context.ClusterCapsConfig);
+            Assert.False(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+            Assert.Equal(1, notifications);
+        }
+
+        [Fact]
+        public void AssertClusterCap_NoCapsKnown_DoesNotThrow()
+        {
+            using var context = new ClusterContext(new CancellationTokenSource(),
+                new ClusterOptions().WithPasswordAuthentication("username", "password"));
+
+            context.AssertClusterCap(ClusterCapabilities.VECTOR_SEARCH);
+
+            Assert.Null(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_CapsChange_NotifiesOnce()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+            var notifications = 0;
+            context.ClusterCapsChanged += () => notifications++;
+
+            // An empty search section flattens to the same set as no search section.
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 11));
+            Assert.Equal(0, notifications);
+
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 12, "vectorSearch"));
+            Assert.Equal(1, notifications);
+
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 13, "vectorSearch"));
+            await context.ConfigUpdatedAsync(CreateBucketConfig(0, 12, "scoreFusion"));
+            Assert.Equal(1, notifications);
+        }
+
+        [Fact]
+        public async Task UpdateClusterCapsConfig_ConcurrentReadersAndWriters_EndsAtNewestCaps()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+            const ulong lastRev = 20_000;
+            // Two writers apply interleaved rising versions. Only the newest config has scoreFusion.
+            var configs = Enumerable.Range(11, (int)lastRev - 10)
+                .Select(rev => CreateBucketConfig(0, (ulong)rev,
+                    rev == (int)lastRev ? "scoreFusion" : rev % 2 == 0 ? "vectorSearch" : "scopedSearchIndex"))
+                .ToArray();
+            var done = 0;
+
+            var readers = Enumerable.Range(0, 4).Select(_ => Task.Factory.StartNew(() =>
+            {
+                var last = new ConfigVersion(0, 0);
+                do
+                {
+                    context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH);
+                    var version = context.ClusterCapsConfig.ConfigVersion;
+                    Assert.True(version >= last, $"Version went back from {last} to {version}.");
+                    last = version;
+                } while (Volatile.Read(ref done) == 0);
+            }, TaskCreationOptions.LongRunning)).ToArray();
+
+            var writers = Enumerable.Range(0, 2).Select(writer => Task.Factory.StartNew(() =>
+            {
+                for (var i = writer; i < configs.Length; i += 2)
+                {
+                    context.UpdateClusterCapsConfig(configs[i]);
+                }
+            }, TaskCreationOptions.LongRunning)).ToArray();
+
+            await Task.WhenAll(writers);
+            Volatile.Write(ref done, 1);
+            await Task.WhenAll(readers);
+
+            Assert.Equal(new ConfigVersion(0, lastRev), context.ClusterCapsConfig.ConfigVersion);
+            Assert.True(context.HasClusterCap(ClusterCapabilities.SCORE_FUSION));
+            Assert.False(context.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        private static BucketConfig CreateBucketConfig(ulong revEpoch, ulong rev, params string[] searchCaps)
+        {
+            var config = new BucketConfig
+            {
+                Name = "default",
+                RevEpoch = revEpoch,
+                Rev = rev,
+                ClusterCapabilities = new Dictionary<string, IEnumerable<string>>
+                {
+                    ["n1ql"] = new[] { "enhancedPreparedStatements" },
+                    ["search"] = searchCaps
+                }
+            };
+            config.OnDeserialized();
+            return config;
         }
 
         #endregion
