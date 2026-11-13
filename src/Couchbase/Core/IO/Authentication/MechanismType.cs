@@ -24,10 +24,9 @@ namespace Couchbase.Core.IO.Authentication
         /// The username and password will be sent encrypted using salted Sha1 and will not be human-readable on the wire.
         /// </summary>
         /// <remarks>
-        /// SHA-1 is disallowed for new HMAC and PBKDF2 use by NIST SP 800-131A Rev 2 (November 2020).
         /// Use <see cref="ScramSha256"/> or <see cref="ScramSha512"/> instead.
         /// </remarks>
-        [Obsolete("SCRAM-SHA1 is deprecated. NIST SP 800-131A Rev 2 disallows SHA-1 for HMAC and PBKDF2. " +
+        [Obsolete("SCRAM-SHA1 is deprecated. " +
                   "Use MechanismType.ScramSha256 or MechanismType.ScramSha512 instead. " +
                   "On netstandard2.x targets ScramSha1 remains the only supported non-TLS mechanism " +
                   "because Rfc2898DeriveBytes does not support SHA-256/512 PBKDF2 prior to .NET 8.")]

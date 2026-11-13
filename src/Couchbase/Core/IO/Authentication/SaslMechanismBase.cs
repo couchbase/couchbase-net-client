@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -91,7 +92,7 @@ namespace Couchbase.Core.IO.Authentication
             if (status != ResponseStatus.Success && status != ResponseStatus.AuthenticationContinue)
             {
                 throw new AuthenticationFailureException(
-                    $"Cannot authenticate the user. Reason: {status}, Context: {op.GetValue()}");
+                    $"Cannot authenticate the user. Reason: {status}, Context: {SafeServerReply(op.GetValue()?.ToString())}");
             }
 
             if (status == ResponseStatus.Success)
@@ -100,6 +101,33 @@ namespace Couchbase.Core.IO.Authentication
             }
 
             return op.GetValue()!;
+        }
+
+        // A failed SASL reply comes from a server that has not proved who it is, and the exception that
+        // carries it is logged. Keep printable ASCII only, so the reply cannot forge log lines, and cap
+        // its length. A real server's error (JSON with a context and a ref) passes through unchanged.
+        internal static string SafeServerReply(string? reply)
+        {
+            const int maxLength = 512;
+            if (string.IsNullOrEmpty(reply))
+            {
+                return string.Empty;
+            }
+
+            var length = Math.Min(reply!.Length, maxLength);
+            var builder = new StringBuilder(length + 16);
+            for (var i = 0; i < length; ++i)
+            {
+                var c = reply[i];
+                builder.Append(c is >= ' ' and <= '~' ? c : '?');
+            }
+
+            if (reply.Length > maxLength)
+            {
+                builder.Append("...(truncated)");
+            }
+
+            return builder.ToString();
         }
 
         /// <summary>
