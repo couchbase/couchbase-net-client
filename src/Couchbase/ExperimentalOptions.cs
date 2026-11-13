@@ -34,7 +34,8 @@ namespace Couchbase
         /// When true (default), the SDK polls for config changes every <see cref="ClusterOptions.ConfigPollInterval"/>
         /// even when the server pushes them, so it finds a change it missed. When false, it polls only when a node does
         /// not push. No effect when <see cref="EnablePushConfig"/> or <see cref="ClusterOptions.EnableConfigPolling"/>
-        /// is false.
+        /// is false. A <see cref="ClusterOptions.ConfigPollInterval"/> of zero or less, including
+        /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, turns polling off, so only pushes update the config.
         /// </summary>
         [InterfaceStability(Level.Volatile)] public bool EnablePollingWithPushConfig { get; set; } = true;
 

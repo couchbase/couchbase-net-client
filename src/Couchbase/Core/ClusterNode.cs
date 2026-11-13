@@ -722,16 +722,11 @@ namespace Couchbase.Core
 
                 if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                 {
+                    // With no config body, like the Java SDK, the op retries and the config comes from a push or a poll.
                     var config = op.ReadConfig(_context.GlobalTranscoder);
                     if (config is not null)
                     {
                         _context.PublishConfig(config);
-                    }
-                    else
-                    {
-                        // Like the Java SDK, the op retries and the config comes from a push or a poll.
-                        _logger.LogDebug("No config body after NMVB for {opaque}/{key}, mapped with config {ConfigVersion}.",
-                            op.Opaque, _redactor.OperationKey(op), op.ConfigVersion);
                     }
                 }
 
