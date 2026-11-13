@@ -27,6 +27,7 @@ using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -196,6 +197,53 @@ namespace Couchbase.UnitTests.Core
 
         #endregion
 
+        #region Config refresh failure
+
+        // Bounds each wait on a background rebootstrap, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
+        [Fact]
+        public async Task SignalConfigRefreshFailed_WhileARebootstrapRuns_DoesNothing()
+        {
+            var clock = new FakeTimeProvider();
+            var lookups = new AsyncCounter();
+            var records = new TaskCompletionSource<IEnumerable<HostEndpoint>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var dnsResolver = new Mock<IDnsResolver>();
+            dnsResolver.Setup(x => x.GetDnsSrvEntriesAsync(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
+                .Callback(() => lookups.Increment())
+                .Returns(() => records.Task);
+            var nodeFactory = new Mock<IClusterNodeFactory>();
+            nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("No node in this test."));
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService(dnsResolver.Object);
+            options.AddClusterService(nodeFactory.Object);
+            options.AddClusterService<TimeProvider>(clock);
+            options.ConnectionStringValue = new ConnectionString(ConnectionString.Parse("couchbase://example.com"),
+                [new HostEndpoint("node-0", 11210)], isDnsSrv: true, new Uri("couchbase://example.com"));
+            using var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            context.SignalConfigRefreshFailed();
+            var first = context.DnsSrvRebootstrap;
+            await lookups.WaitForAsync(1).WaitAsync(Deadline);
+
+            // Enough time passed, so only the rebootstrap that runs stops a new one.
+            clock.Advance(ClusterContext.MinTimeBetweenDnsSrvRebootstraps);
+            context.SignalConfigRefreshFailed();
+            Assert.Same(first, context.DnsSrvRebootstrap);
+
+            records.SetResult([]);
+            await first.WaitAsync(Deadline);
+            Assert.Equal(1, lookups.Count);
+
+            // Once the rebootstrap ends, the next signal runs a new one.
+            context.SignalConfigRefreshFailed();
+            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+            Assert.Equal(2, lookups.Count);
+        }
+
+        #endregion
+
         #region Dispose vs. in-flight bucket open
 
         /// <summary>
@@ -285,7 +333,7 @@ namespace Couchbase.UnitTests.Core
             mockNode.SetupGet(n => n.IsAssigned).Returns(false);
             mockNode.Setup(n => n.SelectBucketAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
-            mockNode.Setup(n => n.GetClusterMap(null, It.IsAny<CancellationToken>()))
+            mockNode.Setup(n => n.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(config));
 
             var mockConfigHandler = new Mock<IConfigHandler>();
@@ -359,7 +407,7 @@ namespace Couchbase.UnitTests.Core
             mockNode1.SetupGet(n => n.IsAssigned).Returns(false);
             mockNode1.Setup(n => n.SelectBucketAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
-            mockNode1.Setup(n => n.GetClusterMap(null, It.IsAny<CancellationToken>()))
+            mockNode1.Setup(n => n.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(config));
 
             // The gate lets BootstrapAsync's completion land after Dispose() has already run, without
@@ -786,7 +834,7 @@ namespace Couchbase.UnitTests.Core
             config.VBucketServerMap = new Couchbase.Core.Sharding.VBucketServerMapDto();
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(cn => cn.GetClusterMap(null, It.IsAny<CancellationToken>())).Returns(Task.FromResult(config));
+            mockClusterNode.Setup(cn => cn.GetClusterMap(null, null, It.IsAny<CancellationToken>())).Returns(Task.FromResult(config));
 
             mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(new HostEndpointWithPort("localhost2", 11210), It.IsAny<CancellationToken>()))
                .Returns(Task.FromResult(mockClusterNode.Object));

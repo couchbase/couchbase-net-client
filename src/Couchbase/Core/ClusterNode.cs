@@ -150,6 +150,17 @@ namespace Couchbase.Core
 
         public string BucketName => _bucketName;
 
+        /// <summary>
+        /// Keeps the config this node serves up to date. It is the refresher of the bucket, or of the cluster when no
+        /// bucket owns the node. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// </summary>
+        private ConfigRefresher ConfigRefresher => Owner switch
+        {
+            CouchbaseBucket bucket => bucket.ConfigRefresher,
+            null => _context.GlobalConfigRefresher,
+            _ => null
+        };
+
         public NodeAdapter NodesAdapter
         {
             get => _nodesAdapter;
@@ -278,6 +289,7 @@ namespace Couchbase.Core
             return await ExecuteInternalOperationAsync(connection, errorMapOp,
                 ExecuteOp,
                 static (_, op, _) => new ErrorMap(op.GetValue()),
+                _context.ClusterOptions.KvTimeout,
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -298,6 +310,7 @@ namespace Couchbase.Core
             return await ExecuteInternalOperationAsync(connection, saslListOp,
                 ExecuteOp,
                 static (_, op, _) => op.GetValue(),
+                _context.ClusterOptions.KvTimeout,
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -382,6 +395,7 @@ namespace Couchbase.Core
 
                     return op.GetValue();
                 },
+                _context.ClusterOptions.KvTimeout,
                 cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -400,6 +414,7 @@ namespace Couchbase.Core
             await ExecuteInternalOperationAsync(ConnectionPool, manifestOp,
                 ExecuteOp,
                 static (_, op, _) => op.GetValue(),
+                _context.ClusterOptions.KvTimeout,
                 default(CancellationToken))
                 .ConfigureAwait(false);
 
@@ -411,7 +426,8 @@ namespace Couchbase.Core
             await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient, CancellationToken cancellationToken = default)
+        public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, TimeSpan? timeout = default,
+            CancellationToken cancellationToken = default)
         {
             // TODO: we should address implicit usage of default cancellation token.
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
@@ -421,7 +437,7 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
                 Span = rootSpan,
-                Timeout = _context.ClusterOptions.KvTimeout
+                Timeout = timeout ?? _context.ClusterOptions.KvTimeout
             };
 
             //This is necessary for compression
@@ -442,9 +458,11 @@ namespace Couchbase.Core
                 ExecuteOpImmediatelyAsync,
                 static (status, op, redactor) =>
                 {
-                    if (status == ResponseStatus.KeyNotFound)
+                    //A null config means the server has nothing newer, so a failure must not look like one.
+                    //KeyNotFound becomes a DocumentNotFoundException, which switches config updates to HTTP
+                    //streaming because CCCP is not supported.
+                    if (status != ResponseStatus.Success)
                     {
-                        //Throw here as this will trigger bootstrapping via HTTP because CCCP not supported
                         throw status.CreateException(op, string.Empty, redactor);
                     }
 
@@ -456,6 +474,7 @@ namespace Couchbase.Core
 
                     return config;
                 },
+                configOp.Timeout,
                 cancellationToken)
                 .ConfigureAwait(false);
 
@@ -580,6 +599,7 @@ namespace Couchbase.Core
         /// parameter, like the executor's state, so the callback can stay static and keep its
         /// compiler-cached delegate rather than allocating a closure per call.
         /// </param>
+        /// <param name="timeout">Timeout of the operation.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The result returned by the <paramref name="projector" />.</returns>
         private async Task<TResult> ExecuteInternalOperationAsync<TConnection, TOperation, TResult>(
@@ -587,13 +607,13 @@ namespace Couchbase.Core
             TOperation operation,
             Func<TConnection, TOperation, CancellationTokenPair, Task<ResponseStatus>> executor,
             Func<ResponseStatus, TOperation, Redactor, TResult> projector,
+            TimeSpan timeout,
             CancellationToken cancellationToken)
             where TOperation : class, IOperation
         {
             Type outcomeErrorType = null;
 
-            using var ctp = CancellationTokenPairSourcePool.Shared.Rent(
-                _context.ClusterOptions.KvTimeout, cancellationToken);
+            using var ctp = CancellationTokenPairSourcePool.Shared.Rent(timeout, cancellationToken);
             try
             {
                 var status = await executor(connection, operation, ctp.TokenPair)
@@ -702,49 +722,11 @@ namespace Couchbase.Core
 
                 if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                 {
+                    // With no config body, like the Java SDK, the op retries and the config comes from a push or a poll.
                     var config = op.ReadConfig(_context.GlobalTranscoder);
                     if (config is not null)
                     {
                         _context.PublishConfig(config);
-                    }
-                    else
-                    {
-                        if ((ServerFeatures.ClustermapChangeNotificationBrief ||
-                            ServerFeatures.ClustermapChangeNotification) && op.ConfigVersion.HasValue)
-                        {
-                            if (ServerFeatures.DedupeNotMyVbucketClustermap && Owner is CouchbaseBucket bucket)
-                            {
-                                // the server believes we already have the newer clustermap, so returned no body
-                                // notify the config push handler just in case we somehow missed applying this version,
-                                // but this is most likely going to be skipped.
-                                _logger.LogDebug(
-                                    "no config body after NMVB with FF enabled ({ConfigVersion}) for {opaque}/{key}.",
-                                    op.ConfigVersion.Value,
-                                    op.Opaque,
-                                    _redactor.OperationKey(op));
-                                bucket.ProcessConfigPush(op.ConfigVersion.Value);
-                            }
-                            else
-                            {
-                                // this should not be possible
-                                throw new InvalidOperationException(
-                                    "No config body after NotMyVBucket, even though DedupeNotMyVBucket was not enabled.");
-                            }
-                        }
-                        else
-                        {
-                            //This is the path without Faster Failover when doing ConfigPolling
-                            config = await GetClusterMap(NodesAdapter.ConfigVersion).ConfigureAwait(false);
-                            if (config != null)
-                            {
-                                //If null we don't have a later config epoch/revision available
-                                _context.PublishConfig(config);
-                            }
-                            else
-                            {
-                                _logger.LogDebug("We do not have a later config than configVersion: {configVersion}", NodesAdapter!.ConfigVersion);
-                            }
-                        }
                     }
                 }
 
@@ -934,42 +916,44 @@ namespace Couchbase.Core
 
                 //Callback for the case where the server sends a CMCN to the client; this is raised in the
                 //MultiplexingConnection when it detects that the request has come from the server.
-                connection.OnClusterMapChangeNotification += operationResponse =>
-                {
-                    BucketConfig bucketConfig = null;
-                    using (operationResponse)
-                    {
-                        var clusterMapChangeNotificationOp = new ClusterMapChangeNotification
-                        {
-                            Transcoder = _context.GlobalTranscoder
-                        };
-                        clusterMapChangeNotificationOp.HandleOperationCompleted(operationResponse);
-                        MetricTracker.KeyValue.TrackOperation(clusterMapChangeNotificationOp, TimeSpan.Zero, errorType: null);
-
-                        if (clusterMapChangeNotificationOp.HasExtras)
-                        {
-                            // dump the configVersion into a background, single-threaded LIFO queue
-                            // to limit the performance impact of a swarm of push notifications.
-                            var configVersion = clusterMapChangeNotificationOp.GetConfigVersion;
-                            (Owner as CouchbaseBucket)?.ProcessConfigPush(configVersion);
-                        }
-                        else
-                        {
-                            //assume the config is on the body
-                            bucketConfig = clusterMapChangeNotificationOp.GetValue();
-                        }
-                    }
-
-                    if (bucketConfig is not null)
-                    {
-                        bucketConfig.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
-                        bucketConfig.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
-
-                        _context.PublishConfig(bucketConfig);
-                    }
-                };
+                connection.OnClusterMapChangeNotification += HandleClusterMapChangeNotification;
 
                 rootSpan.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Handles a clustermap change notification the server sent on a connection of this node.
+        /// </summary>
+        internal void HandleClusterMapChangeNotification(SlicedMemoryOwner<byte> operationResponse)
+        {
+            BucketConfig bucketConfig = null;
+            using (operationResponse)
+            {
+                var clusterMapChangeNotificationOp = new ClusterMapChangeNotification
+                {
+                    Transcoder = _context.GlobalTranscoder
+                };
+                clusterMapChangeNotificationOp.HandleOperationCompleted(operationResponse);
+                MetricTracker.KeyValue.TrackOperation(clusterMapChangeNotificationOp, TimeSpan.Zero, errorType: null);
+
+                if (clusterMapChangeNotificationOp.HasExtras)
+                {
+                    ConfigRefresher?.RequestRefresh(clusterMapChangeNotificationOp.GetConfigVersion);
+                }
+                else
+                {
+                    //assume the config is on the body
+                    bucketConfig = clusterMapChangeNotificationOp.GetValue();
+                }
+            }
+
+            if (bucketConfig is not null)
+            {
+                bucketConfig.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
+                bucketConfig.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
+
+                _context.PublishConfig(bucketConfig);
             }
         }
 
@@ -997,6 +981,7 @@ namespace Couchbase.Core
 
                         return (object) null; // We don't need the return value
                     },
+                    _context.ClusterOptions.KvTimeout,
                     cancellationToken)
                     .ConfigureAwait(false);
             }

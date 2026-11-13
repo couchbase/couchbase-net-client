@@ -9,8 +9,13 @@ namespace Couchbase.Core.Configuration.Server
         /// <summary>
         /// Starts the config handler
         /// </summary>
-        /// <param name="withPolling">Enable polling via CCCP.</param>
-        void Start(bool withPolling = false);
+        void Start();
+
+        /// <summary>
+        /// Starts the HTTP streaming listener of a subscriber, for a cluster where KV does not serve configs.
+        /// </summary>
+        /// <param name="name">The name of the subscriber, or null to start the listener of every subscriber.</param>
+        void StartHttpStreaming(string? name = null);
 
         /// <summary>
         /// Publishes a config to the handler and any subscribers

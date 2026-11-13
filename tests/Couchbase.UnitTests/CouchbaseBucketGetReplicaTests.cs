@@ -146,8 +146,9 @@ namespace Couchbase.UnitTests
                         new VBucketServerMap(config.VBucketServerMap),
                         new VBucketFactory(new Mock<ILogger<VBucket>>().Object)));
 
+                var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
                 _bucket = new CouchbaseBucket("default",
-                    new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")),
+                    context,
                     new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object,
                     keyMapperFactory.Object,
@@ -158,7 +159,7 @@ namespace Couchbase.UnitTests
                     new Mock<IOperationConfigurator>().Object,
                     new BestEffortRetryStrategy(),
                     LoadConfig([0, 0, 0, 0], 3, _rev),
-                    new Mock<IConfigPushHandlerFactory>().Object);
+                    context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
             }
 
             public IReadOnlyList<int> ServersThatReceivedOps => _serversThatReceivedOps;

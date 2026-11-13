@@ -50,13 +50,12 @@ namespace Couchbase
 #pragma warning restore CS0618 // Type or member is obsolete
         private ICouchbaseCollectionManager? _collectionManager;
 
-        private readonly ConfigPushHandler _configPushHandler;
         private volatile int _disposed;
         private readonly object _currentConfigLock = new();
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, Redactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config, IConfigPushHandlerFactory configPushHandlerFactory)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config, IConfigRefresherFactory configRefresherFactory)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
@@ -69,8 +68,13 @@ namespace Couchbase
 #pragma warning restore CS0618 // Type or member is obsolete
             _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
             _timeProvider = context.ServiceProvider.GetRequiredService<TimeProvider>();
-            _configPushHandler = configPushHandlerFactory.Create(this, Context);
+            ConfigRefresher = configRefresherFactory.CreateBucketRefresher(this);
         }
+
+        /// <summary>
+        /// Keeps <see cref="BucketBase.CurrentConfig"/> up to date over KV.
+        /// </summary>
+        internal BucketConfigRefresher ConfigRefresher { get; }
 
         [Obsolete("The View service has been deprecated use the Query service instead.")]
         public override IViewIndexManager ViewIndexes =>
@@ -187,6 +191,9 @@ namespace Couchbase
                                     "Current revision for {bucketName} is rev#{revision}", Name,
                                     CurrentConfig?.ConfigVersion);
                             }
+
+                            // The new config can have a forward vbucket map, which shortens the poll interval.
+                            ConfigRefresher.Reschedule();
                         }
                         else
                         {
@@ -212,8 +219,17 @@ namespace Couchbase
             var configNode = Nodes.RandomOrDefault(static x => x.HasKv);
             if (configNode is not null)
             {
-                var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
-                Context.PublishConfig(config);
+                try
+                {
+                    var config = await configNode.GetClusterMap(CurrentConfig?.ConfigVersion).ConfigureAwait(false);
+                    Context.PublishConfig(config);
+                }
+                catch (Exception ex)
+                {
+                    // Best effort. The operation that asked for it goes on to its retry.
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, ex, "Forcing a config update of {name} failed.",
+                        Redactor.UserData(Name));
+                }
             }
         }
 
@@ -477,11 +493,7 @@ namespace Couchbase
 
             //this needs to be started after bootstrapping has been attempted
             Bootstrapper.Start(this);
-        }
-
-        public void ProcessConfigPush(ConfigVersion configVersion)
-        {
-            _configPushHandler.ProcessConfigPush(configVersion);
+            ConfigRefresher.Start();
         }
 
         private void ClearErrors()
@@ -494,7 +506,7 @@ namespace Couchbase
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
                 base.Dispose();
-                _configPushHandler.Dispose();
+                ConfigRefresher.Dispose();
             }
         }
 
