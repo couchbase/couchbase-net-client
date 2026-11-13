@@ -445,7 +445,7 @@ namespace Couchbase.FitPerformer
                     {
                         case Grpc.Protocol.Sdk.Scope.Search.IndexManager.Command.CommandOneofCase.Shared:
                         {
-                            await SearchIndexManagementHelper.RunSharedSearchIndexManagementCommand(opSearchIndex.Shared, indexManager, result, scope);
+                            await SearchIndexManagementHelper.RunSharedSearchIndexManagementCommand(opSearchIndex.Shared, indexManager, result, _spans, scope);
                             break;
                         }
                         case Grpc.Protocol.Sdk.Scope.Search.IndexManager.Command.CommandOneofCase.None:
@@ -667,7 +667,7 @@ namespace Couchbase.FitPerformer
                             var request = bucketCmd.CreateBucket;
                             var settings = OptionsUtil.ConvertSettings(request.Settings.Settings);
                             if (request.Settings.HasConflictResolutionType) settings.ConflictResolutionType = OptionsUtil.ConvertConflictResolutionType(request.Settings.ConflictResolutionType);
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             await bucketManager.CreateBucketAsync(settings, options).ConfigureAwait(false);
@@ -679,7 +679,7 @@ namespace Couchbase.FitPerformer
                         case Grpc.Protocol.Sdk.Cluster.BucketManager.Command.CommandOneofCase.DropBucket:
                         {
                             var request = bucketCmd.DropBucket;
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             await bucketManager.DropBucketAsync(request.BucketName, options).ConfigureAwait(false);
@@ -692,7 +692,7 @@ namespace Couchbase.FitPerformer
                         {
                             var request = bucketCmd.UpdateBucket;
                             var settings = OptionsUtil.ConvertSettings(request.Settings);
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             await bucketManager.UpdateBucketAsync(settings, options).ConfigureAwait(false);
@@ -704,7 +704,7 @@ namespace Couchbase.FitPerformer
                         case Grpc.Protocol.Sdk.Cluster.BucketManager.Command.CommandOneofCase.GetAllBuckets:
                         {
                             var request = bucketCmd.GetAllBuckets;
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             var response = await bucketManager.GetAllBucketsAsync(options).ConfigureAwait(false);
@@ -716,7 +716,7 @@ namespace Couchbase.FitPerformer
                         case Grpc.Protocol.Sdk.Cluster.BucketManager.Command.CommandOneofCase.GetBucket:
                         {
                             var request = bucketCmd.GetBucket;
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             var response = await bucketManager.GetBucketAsync(request.BucketName, options).ConfigureAwait(false);
@@ -728,7 +728,7 @@ namespace Couchbase.FitPerformer
                         case Grpc.Protocol.Sdk.Cluster.BucketManager.Command.CommandOneofCase.FlushBucket:
                         {
                             var request = bucketCmd.FlushBucket;
-                            var options = OptionsUtil.ConvertOptions(request.Options);
+                            var options = OptionsUtil.ConvertOptions(request.Options, _spans);
                             result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                             var sw = Stopwatch.StartNew();
                             await bucketManager.FlushBucketAsync(request.BucketName, options).ConfigureAwait(false);
@@ -753,7 +753,7 @@ namespace Couchbase.FitPerformer
                     {
                         case Grpc.Protocol.Sdk.Cluster.Search.IndexManager.Command.CommandOneofCase.Shared:
                         {
-                            await SearchIndexManagementHelper.RunSharedSearchIndexManagementCommand(opSearchIndex.Shared, indexManager, result);
+                            await SearchIndexManagementHelper.RunSharedSearchIndexManagementCommand(opSearchIndex.Shared, indexManager, result, _spans);
                         }
                             break;
                             default:
@@ -776,7 +776,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.CreateIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.CreateIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     var fields = new List<string>(protoRequest.Fields);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
@@ -789,7 +789,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.DropIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.DropIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await connection.Cluster.QueryIndexes.DropIndexAsync(op.QueryIndexManager.BucketName, protoRequest.IndexName, opts).ConfigureAwait(false);
@@ -801,7 +801,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.WatchIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.WatchIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     var indexNames = new List<string>(protoRequest.IndexNames);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
@@ -814,7 +814,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.BuildDeferredIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.BuildDeferredIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await connection.Cluster.QueryIndexes.BuildDeferredIndexesAsync(op.QueryIndexManager.BucketName, opts).ConfigureAwait(false);
@@ -826,7 +826,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.CreatePrimaryIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.CreatePrimaryIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await connection.Cluster.QueryIndexes.CreatePrimaryIndexAsync(op.QueryIndexManager.BucketName, opts).ConfigureAwait(false);
@@ -838,7 +838,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.DropPrimaryIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.DropPrimaryIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await connection.Cluster.QueryIndexes.DropPrimaryIndexAsync(op.QueryIndexManager.BucketName, opts).ConfigureAwait(false);
@@ -850,7 +850,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.GetAllIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.GetAllIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     var response = await connection.Cluster.QueryIndexes.GetAllIndexesAsync(op.QueryIndexManager.BucketName, opts).ConfigureAwait(false);
@@ -872,7 +872,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.CreateIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.CreateIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     var fields = new List<string>(protoRequest.Fields);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
@@ -885,7 +885,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.DropIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.DropIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await collection.QueryIndexes.DropIndexAsync(protoRequest.IndexName, opts).ConfigureAwait(false);
@@ -897,7 +897,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.WatchIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.WatchIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     var indexNames = new List<string>(protoRequest.IndexNames);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
@@ -910,7 +910,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.BuildDeferredIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.BuildDeferredIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await collection.QueryIndexes.BuildDeferredIndexesAsync(opts).ConfigureAwait(false);
@@ -922,7 +922,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.CreatePrimaryIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.CreatePrimaryIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await collection.QueryIndexes.CreatePrimaryIndexAsync(opts).ConfigureAwait(false);
@@ -934,7 +934,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.DropPrimaryIndex:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.DropPrimaryIndex;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     await collection.QueryIndexes.DropPrimaryIndexAsync(opts).ConfigureAwait(false);
@@ -946,7 +946,7 @@ namespace Couchbase.FitPerformer
                 case Command.CommandOneofCase.GetAllIndexes:
                 {
                     var protoRequest = op.QueryIndexManager.Shared.GetAllIndexes;
-                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options);
+                    var opts = OptionsUtil.ConvertOptions(protoRequest.Options, _spans);
                     result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                     var sw = Stopwatch.StartNew();
                     var response = await collection.QueryIndexes.GetAllIndexesAsync(opts).ConfigureAwait(false);

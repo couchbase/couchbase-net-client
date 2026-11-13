@@ -128,10 +128,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //PartitionScan builds its own operations and reads Cid directly, so it cannot go
-            //through PrepareAsync: resolve the collection ID before handing it this collection.
-            await EnsureCollectionIdAsync().ConfigureAwait(false);
-
             var mutationTokens = options.ConsistencyTokens;
 
             // Either the options token or the token passed to the enumerator, such as by
@@ -140,15 +136,34 @@ namespace Couchbase.KeyValue
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenValue, cancellationToken);
             List<PartitionScan>? partitionScans = null;
             var endedByScan = false;
+            var completed = false;
+            // True while the caller holds a result. If the finally block runs then, the caller stopped early.
+            var atYield = false;
+
+            // RFC 73: one range_scan span per scan. It ends after the scans left open are closed, so that
+            // it contains the spans of those close requests.
+            var scanSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScan, options.ParentSpanValue);
+            RangeScanSpans.SetScanTypeAttributes(scanSpan, scanType, options.IdsOnlyValue, isCreateSpan: false);
             try
             {
+                //PartitionScan builds its own operations and reads Cid directly, so it cannot go
+                //through PrepareAsync: resolve the collection ID before handing it this collection.
+                //The lookup is part of the scan, so its span goes under range_scan.
+                await EnsureCollectionIdAsync(scanSpan).ConfigureAwait(false);
+
                 var scanOptions = options.WithToken(linkedSource.Token);
 
                 var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
+                if (scanSpan.CanWrite)
+                {
+                    scanSpan.SetAttribute(RangeScanSpans.NumPartitions, (uint)partitionCount);
+                }
+
                 partitionScans = new List<PartitionScan>(partitionCount);
                 for (short partitionId = 0; partitionId < partitionCount; partitionId++)
                 {
-                    var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType,partitionId);
+                    var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType, partitionId,
+                        scanSpan);
 
                     if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
                     {
@@ -174,7 +189,9 @@ namespace Couchbase.KeyValue
                 var count = 0ul;
                 while (emptyPartitions < partitionCount)
                 {
-                    foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
+                    // A partition with no documents in range answers the create with KeyNotFound. It is done too.
+                    foreach (var partitionScan in partitionScans.Where(x =>
+                                 x.Status is not (ResponseStatus.RangeScanComplete or ResponseStatus.KeyNotFound)))
                     {
                         options.TokenValue.ThrowIfEitherCancellationRequested(cancellationToken);
 
@@ -199,9 +216,12 @@ namespace Couchbase.KeyValue
                                 {
                                     // The finally block closes the scans that are still open.
                                     endedByScan = true;
+                                    completed = true;
                                     yield break;
                                 }
+                                atYield = true;
                                 yield return scanResult;
+                                atYield = false;
                                 count++;
                             }
                         }
@@ -210,16 +230,34 @@ namespace Couchbase.KeyValue
                         x.Status == ResponseStatus.RangeScanComplete ||
                         x.Status == ResponseStatus.KeyNotFound);
                 }
+
+                completed = true;
             }
             finally
             {
+                // RFC 67: Ok when the scan completes, Error when it fails. A stop that the caller asked for,
+                // early or by a cancel, is neither, so the status stays Unset.
+                if (completed)
+                {
+                    scanSpan.SetStatus(RequestSpanStatusCode.Ok);
+                }
+                else if (!atYield && !options.TokenValue.IsCancellationRequested &&
+                         !cancellationToken.IsCancellationRequested)
+                {
+                    scanSpan.SetStatus(RequestSpanStatusCode.Error);
+                }
+
                 // The scan completed, reached its sampling limit, the caller stopped early, or it
                 // threw. Stop the partition read in progress, if any, then close the scans that are
                 // still open on the server.
                 linkedSource.CancelAndDispose();
-                if (partitionScans is not null)
+                if (partitionScans is null)
                 {
-                    ScanCleanup = CloseOpenScansAsync(partitionScans);
+                    scanSpan.Dispose();
+                }
+                else
+                {
+                    ScanCleanup = CloseOpenScansAndEndSpansAsync(partitionScans, scanSpan);
 
                     // When the scan ends the stream itself, at the sampling limit, the caller did not
                     // ask to stop, so the stream ends only after the closes, as before NCBC-4365. When
@@ -238,6 +276,27 @@ namespace Couchbase.KeyValue
         /// concurrent scans on one collection, it holds the cleanup of the scan that ended last.
         /// </summary>
         internal Task ScanCleanup { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// Closes the partition scans that are still open, then ends the partition spans and the
+        /// range_scan span. Never throws.
+        /// </summary>
+        private async Task CloseOpenScansAndEndSpansAsync(List<PartitionScan> partitionScans, IRequestSpan scanSpan)
+        {
+            try
+            {
+                await CloseOpenScansAsync(partitionScans).ConfigureAwait(false);
+            }
+            finally
+            {
+                foreach (var partitionScan in partitionScans)
+                {
+                    partitionScan.EndSpan();
+                }
+
+                scanSpan.Dispose();
+            }
+        }
 
         /// <summary>
         /// Closes each partition scan that is still open on the server. A close is best-effort:
@@ -1405,7 +1464,7 @@ namespace Couchbase.KeyValue
         private async Task<CancellationTokenPairSourceWrapper> PrepareAsync(OperationBase op,
             ITimeoutOptions options)
         {
-            await EnsureCollectionIdAsync().ConfigureAwait(false);
+            await EnsureCollectionIdAsync(op.Span).ConfigureAwait(false);
 
             op.BucketName = _bucket.Name;
             op.SName = ScopeName;
@@ -1427,7 +1486,8 @@ namespace Couchbase.KeyValue
         /// operations and reads <see cref="Cid"/> directly, so the ID has to be resolved before it
         /// is handed this collection.
         /// </remarks>
-        private async ValueTask EnsureCollectionIdAsync()
+        /// <param name="parentSpan">The span of the operation that needs the ID. The get_collection_id span goes under it.</param>
+        private async ValueTask EnsureCollectionIdAsync(IRequestSpan parentSpan)
         {
             if (!_bucket.SupportsCollections)
             {
@@ -1465,7 +1525,7 @@ namespace Couchbase.KeyValue
             if (RequiresCid())
             {
                 //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
+                await PopulateCidAsync(parentSpan: parentSpan).ConfigureAwait(false);
             }
         }
 
@@ -1485,7 +1545,9 @@ namespace Couchbase.KeyValue
             return !Cid.HasValue && _bucket.SupportsCollections;
         }
 
-        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
+        /// <inheritdoc />
+        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false,
+            IRequestSpan? parentSpan = null)
         {
             // Short-circuit if we have the CID already
             if (!forceUpdate && Cid.HasValue)
@@ -1501,7 +1563,7 @@ namespace Couchbase.KeyValue
 
             if (forceUpdate)
             {
-                Cid = await GetCidWithFallbackAsync(retryIfFailure).ConfigureAwait(false);
+                Cid = await GetCidWithFallbackAsync(retryIfFailure, parentSpan).ConfigureAwait(false);
                 lock (_cidLock)
                 {
                     GetCidLazyRetry = null;
@@ -1512,21 +1574,24 @@ namespace Couchbase.KeyValue
             }
             else
             {
+                //Concurrent callers share one lookup. Its get_collection_id span goes under the span of the
+                //caller that started it, so only create the lazy this caller uses: a lazy created
+                //here but started later by another caller would put the span under this one.
+                Lazy<Task<uint?>> lookup;
                 lock (_cidLock)
                 {
-                    GetCidLazyRetry ??= new Lazy<Task<uint?>>(
-                        () => GetCidWithFallbackAsync(retryIfFailure: true),
-                        LazyThreadSafetyMode.ExecutionAndPublication);
-                    GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
-                        () => GetCidWithFallbackAsync(retryIfFailure: false),
-                        LazyThreadSafetyMode.ExecutionAndPublication);
+                    lookup = retryIfFailure
+                        ? GetCidLazyRetry ??= new Lazy<Task<uint?>>(
+                            () => GetCidWithFallbackAsync(retryIfFailure: true, parentSpan),
+                            LazyThreadSafetyMode.ExecutionAndPublication)
+                        : GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
+                            () => GetCidWithFallbackAsync(retryIfFailure: false, parentSpan),
+                            LazyThreadSafetyMode.ExecutionAndPublication);
                 }
 
                 try
                 {
-                    Cid = retryIfFailure
-                        ? await GetCidLazyRetry.Value.ConfigureAwait(false)
-                        : await GetCidLazyNoRetry.Value.ConfigureAwait(false);
+                    Cid = await lookup.Value.ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
@@ -1549,10 +1614,12 @@ namespace Couchbase.KeyValue
         /// <param name="fullyQualifiedName">The fully qualified scope.collection name.</param>
         /// <param name="sendAsBody">true to send as the body; false in the key for dev-preview (pre-7.0 servers). </param>
         /// <param name="retryIfFailure">true to retry the CID operation if it fails.</param>
+        /// <param name="parentSpan">The span of the operation that needs the ID.</param>
         /// <returns></returns>
-        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody, bool retryIfFailure)
+        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody, bool retryIfFailure,
+            IRequestSpan? parentSpan)
         {
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCollectionId, parentSpan);
             using var getCid = new GetCid
             {
                 Opaque = SequenceGenerator.GetNext(),
@@ -1593,12 +1660,12 @@ namespace Couchbase.KeyValue
             return resultWithValue;
         }
 
-        private async Task<uint?> GetCidWithFallbackAsync(bool retryIfFailure)
+        private async Task<uint?> GetCidWithFallbackAsync(bool retryIfFailure, IRequestSpan? parentSpan)
         {
             var fullyQualifiedName = $"{ScopeName}.{Name}";
             try
             {
-                return await GetCidAsync(fullyQualifiedName, true, retryIfFailure).ConfigureAwait(false);
+                return await GetCidAsync(fullyQualifiedName, true, retryIfFailure, parentSpan).ConfigureAwait(false);
             }
             catch (Core.Exceptions.TimeoutException)
             {
@@ -1611,7 +1678,7 @@ namespace Couchbase.KeyValue
                     try
                     {
                         //if this is encountered were on a older server pre-cheshire cat changes
-                        return await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
+                        return await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure, parentSpan).ConfigureAwait(false);
                     }
                     catch (UnsupportedException)
                     {
@@ -1631,7 +1698,7 @@ namespace Couchbase.KeyValue
 
 
 
-        private IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
+        internal IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
         {
             var span = _tracer.RequestSpan(operation, parentSpan);
             if (span.CanWrite)

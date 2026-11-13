@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.FitPerformer.Utils.Options;
 using Couchbase.FitPerformer.Utils.Results;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.KeyValue;
 using Couchbase.Management.Search;
 using Couchbase.FitPerformer.Utils;
@@ -16,14 +18,14 @@ namespace Couchbase.FitPerformer.Workload;
 
 public static class SearchIndexManagementHelper
 {
-    public static async Task RunSharedSearchIndexManagementCommand(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.Command opSearchIndex, ISearchIndexManager indexManager, Couchbase.Grpc.Protocol.Run.Result result, IScope? scope = null)
+    public static async Task RunSharedSearchIndexManagementCommand(Couchbase.Grpc.Protocol.Sdk.Search.IndexManager.Command opSearchIndex, ISearchIndexManager indexManager, Couchbase.Grpc.Protocol.Run.Result result, ConcurrentDictionary<string, IRequestSpan> spans, IScope? scope = null)
     {
         switch (opSearchIndex.CommandCase)
         {
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.AllowQuerying:
             {
                 var request = opSearchIndex.AllowQuerying;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.AllowQueryingAsync(request.IndexName, options).ConfigureAwait(false);
@@ -41,7 +43,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.DisallowQuerying:
             {
                 var request = opSearchIndex.DisallowQuerying;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.DisallowQueryingAsync(request.IndexName, options).ConfigureAwait(false);
@@ -54,7 +56,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.DropIndex:
             {
                 var request = opSearchIndex.DropIndex;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.DropIndexAsync(request.IndexName, options).ConfigureAwait(false);
@@ -67,7 +69,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.FreezePlan:
             {
                 var request = opSearchIndex.FreezePlan;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.FreezePlanAsync(request.IndexName, options).ConfigureAwait(false);
@@ -80,7 +82,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.UnfreezePlan:
             {
                 var request = opSearchIndex.UnfreezePlan;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.UnfreezePlanAsync(request.IndexName, options).ConfigureAwait(false);
@@ -93,7 +95,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.GetIndex:
             {
                 var request = opSearchIndex.GetIndex;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 SearchIndex response = null;
@@ -108,7 +110,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.PauseIngest:
             {
                 var request = opSearchIndex.PauseIngest;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.PauseIngestAsync(request.IndexName, options).ConfigureAwait(false);
@@ -121,7 +123,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.ResumeIngest:
             {
                 var request = opSearchIndex.ResumeIngest;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 if (scope is null) await indexManager.ResumeIngestAsync(request.IndexName, options).ConfigureAwait(false);
@@ -134,7 +136,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.UpsertIndex:
             {
                 var request = opSearchIndex.UpsertIndex;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 var searchIndex =
                     JsonConvert.DeserializeObject<SearchIndex>(
                         Encoding.UTF8.GetString(request.IndexDefinition.ToByteArray()));
@@ -150,7 +152,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.GetAllIndexes:
             {
                 var request = opSearchIndex.GetAllIndexes;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 IEnumerable<SearchIndex> response = null;
@@ -164,7 +166,7 @@ public static class SearchIndexManagementHelper
             case Grpc.Protocol.Sdk.Search.IndexManager.Command.CommandOneofCase.GetIndexedDocumentsCount:
             {
                 var request = opSearchIndex.GetIndexedDocumentsCount;
-                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options);
+                var options = OptionsUtil.ConvertSearchIndexManagementOptions(request.Options, spans);
                 result.Initiated = Timestamp.FromDateTime(DateTime.UtcNow);
                 var sw = Stopwatch.StartNew();
                 int response = 0;

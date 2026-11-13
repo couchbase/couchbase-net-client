@@ -1,4 +1,7 @@
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
+
+#nullable enable
 
 namespace Couchbase.KeyValue
 {
@@ -12,7 +15,13 @@ namespace Couchbase.KeyValue
         /// </summary>
         uint? Cid { get; set; }
 
-        ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false);
+        /// <summary>
+        /// Fetches the collection ID from the server, unless it is cached and <paramref name="forceUpdate"/> is false.
+        /// </summary>
+        /// <param name="retryIfFailure">true to send the lookup through the retry orchestrator.</param>
+        /// <param name="forceUpdate">true to fetch the ID even if it is cached.</param>
+        /// <param name="parentSpan">The span of the operation that needs the ID. The get_collection_id span goes under it.</param>
+        ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false, IRequestSpan? parentSpan = null);
     }
 }
 

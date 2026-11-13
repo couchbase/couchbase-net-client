@@ -1,6 +1,8 @@
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -144,6 +146,62 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.All(keyedOps, op =>
                 Assert.True(op.Cid == FakeCid,
                     $"{label} dispatched {op.OpType} for key '{op.Key}' with Cid {(op.Cid?.ToString() ?? "null")}."));
+        }
+
+        /// <summary>
+        /// The collection ID lookup is part of the operation that needed it, so its get_collection_id span goes under
+        /// that operation's span, as in Go. It used to be given no parent, so it went under whatever
+        /// Activity.Current was. For ScanAsync that was the caller's span, because the lookup ran before
+        /// the range_scan span existed.
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(OperationLabels))]
+        public async Task The_get_collection_id_span_is_under_the_operation_span(string label)
+        {
+            using var callerSource = new ActivitySource("caller-" + Guid.NewGuid());
+            var stopped = new ConcurrentQueue<Activity>();
+
+            // Disposed, and limited to these two sources: a registered listener is process-wide.
+            using var listener = new ActivityListener
+            {
+                ShouldListenTo = source => source.Name == RequestTracer.ActivitySourceName || source == callerSource,
+                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+                ActivityStopped = activity => stopped.Enqueue(activity)
+            };
+            ActivitySource.AddActivityListener(listener);
+
+            using var tracer = new RequestTracer();
+            var (collection, _) = CreateCollection(tracer: tracer);
+
+            // The caller's activity is current, as in application code, so a get_collection_id span with no
+            // parent would go under it.
+            ActivitySpanId callerSpanId;
+            ActivityTraceId traceId;
+            // A W3C parent context gives the caller, and every span under it, W3C IDs. Without it, .NET
+            // Framework uses hierarchical IDs, whose TraceId and SpanId are all zero, so the checks below
+            // could not tell the spans apart.
+            var w3cParent = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(),
+                ActivityTraceFlags.Recorded);
+            using (var caller = callerSource.StartActivity("caller", ActivityKind.Internal, w3cParent)!)
+            {
+                callerSpanId = caller.SpanId;
+                traceId = caller.TraceId;
+                await Invoke(() => Operations[label](collection));
+            }
+
+            // The range_scan span ends after the cleanup that closes the open scans.
+            await collection.ScanCleanup;
+
+            var trace = stopped.Where(a => a.TraceId == traceId).ToList();
+            var getCid = Assert.Single(trace, a => a.OperationName == OuterRequestSpans.ServiceSpan.Internal.GetCollectionId);
+            Assert.True(getCid.ParentSpanId != callerSpanId,
+                $"{label}: the get_collection_id span is under the caller's span, not under the operation span.");
+
+            var parent = Assert.Single(trace, a => a.SpanId == getCid.ParentSpanId);
+            if (label == ScanLabel)
+            {
+                Assert.Equal(OuterRequestSpans.ServiceSpan.Kv.RangeScan, parent.OperationName);
+            }
         }
 
         /// <summary>
@@ -315,7 +373,7 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         private static (CouchbaseCollection Collection, CidFakeBucket Bucket) CreateCollection(
-            bool supportsCollections = true, bool defaultCollection = false)
+            bool supportsCollections = true, bool defaultCollection = false, IRequestTracer tracer = null)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -352,7 +410,7 @@ namespace Couchbase.UnitTests.KeyValue
                     ? Mock.Of<IScope>(scope => scope.IsDefaultScope == true &&
                                                scope.Name == Scope.DefaultScopeName)
                     : Mock.Of<IScope>(scope => scope.IsDefaultScope == false && scope.Name == "s"),
-                new NoopRequestTracer(),
+                tracer ?? new NoopRequestTracer(),
                 NullFallbackTypeSerializerProvider.Instance,
                 Mock.Of<IServiceProvider>());
 

@@ -50,7 +50,8 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
                 // It is faster to construct directly from the parent ActivityContext than from the parent ID
                 ? ActivitySource.StartActivity(name, ActivityKind.Client, openTelemetrySpan.ActivityContext)
                 : parentSpan?.Id == null ?
-                    ActivitySource.StartActivity(name) :
+                    // RFC 67: every span is CLIENT. Without a parent, StartActivity defaults to INTERNAL.
+                    ActivitySource.StartActivity(name, ActivityKind.Client) :
                     ActivitySource.StartActivity(name, ActivityKind.Client, parentSpan.Id);
 
             if (activity == null)

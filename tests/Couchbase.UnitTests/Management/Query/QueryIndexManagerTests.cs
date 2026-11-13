@@ -52,6 +52,26 @@ namespace Couchbase.UnitTests.Management.Query
             var buffer = new byte[response.Length];
             await response.ReadExactlyAsync(buffer, 0, buffer.Length);
 
+            var client = CreateQueryClient(buffer);
+
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(RedactionLevel.None));
+
+            var result =  await manager.GetAllIndexesAsync("default");
+
+            var queryIndices = result as QueryIndex[] ?? result.ToArray();
+            var rowWithPartition = queryIndices.FirstOrDefault(x => x.Partition == "HASH(`_type`)");
+            Assert.NotNull(rowWithPartition);
+
+            var rowWithCondition = queryIndices.FirstOrDefault(x => x.Condition == "(`_type` = \"User\")");
+            Assert.NotNull(rowWithCondition);
+
+            var rowWithIndexKey = queryIndices.FirstOrDefault(x=>x.IndexKey.Contains("`airportname`"));
+            Assert.Equal("`airportname`", rowWithIndexKey.IndexKey.First());
+        }
+
+        private static QueryClient CreateQueryClient(byte[] buffer)
+        {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
@@ -91,20 +111,27 @@ namespace Couchbase.UnitTests.Management.Query
             var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 NullFallbackTypeSerializerProvider.Instance, new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, TestRedactor.None);
 
-            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(RedactionLevel.None));
+            return client;
+        }
 
-            var result =  await manager.GetAllIndexesAsync("default");
+        // RFC 67: query index manager spans carry the query service.
+        [Fact]
+        public async Task GetAllIndexesAsync_Span_Has_Query_Service()
+        {
+            var span = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+            span.Setup(x => x.CanWrite).Returns(true);
+            span.Setup(x => x.SetAttribute(It.IsAny<string>(), It.IsAny<string>())).Returns(span.Object);
+            span.Setup(x => x.SetAttribute(It.IsAny<string>(), It.IsAny<bool>())).Returns(span.Object);
+            span.Setup(x => x.SetAttribute(It.IsAny<string>(), It.IsAny<uint>())).Returns(span.Object);
+            var tracer = new Mock<IRequestTracer>();
+            tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(span.Object);
 
-            var queryIndices = result as QueryIndex[] ?? result.ToArray();
-            var rowWithPartition = queryIndices.FirstOrDefault(x => x.Partition == "HASH(`_type`)");
-            Assert.NotNull(rowWithPartition);
+            var manager = new QueryIndexManager(CreateQueryClient(System.Text.Encoding.UTF8.GetBytes("{\"results\":[]}")),
+                new Mock<ILogger<QueryIndexManager>>().Object, new Redactor(RedactionLevel.None), tracer.Object);
 
-            var rowWithCondition = queryIndices.FirstOrDefault(x => x.Condition == "(`_type` = \"User\")");
-            Assert.NotNull(rowWithCondition);
+            await manager.GetAllIndexesAsync("default");
 
-            var rowWithIndexKey = queryIndices.FirstOrDefault(x=>x.IndexKey.Contains("`airportname`"));
-            Assert.Equal("`airportname`", rowWithIndexKey.IndexKey.First());
+            span.Verify(x => x.SetAttribute(OuterRequestSpans.Attributes.Service, "query"), Times.Once());
         }
 
         [Fact]

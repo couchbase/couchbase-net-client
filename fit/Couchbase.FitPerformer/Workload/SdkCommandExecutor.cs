@@ -222,7 +222,7 @@ namespace Couchbase.FitPerformer
                     var request = op.RangeScan;
                     var bucket = await connection.GetBucketAsync(request.Collection.BucketName).ConfigureAwait(false);
                     var collection = await bucket.CollectionAsync(request.Collection.CollectionName).ConfigureAwait(false);
-                    var options = OptionsUtil.CreateOptions(request);
+                    var options = OptionsUtil.CreateOptions(request, _spans);
                     var scanType = OptionsUtil.ConvertScanType(request);
                     result.Initiated = GetTimeNow();
                     var sw = Stopwatch.StartNew();

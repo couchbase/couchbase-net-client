@@ -121,7 +121,7 @@ namespace Couchbase.Query
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, options)
                 .WithOperationId(options)
-                .WithStatement(statement)
+                .WithStatement(statement, options.HasParameters)
                 .WithLocalAddress();
 
             bool success = false;
@@ -257,6 +257,7 @@ namespace Couchbase.Query
                 using var dispatchSpan = span.DispatchSpan(options)
                     .WithLocalAddress()
                     .WithRemoteAddress(queryUri)
+                    .WithPeerAddress(queryUri)
                     .WithLocalId(options.CurrentContextId)
                     .WithLocalPort((uint)queryUri.Port);
 
