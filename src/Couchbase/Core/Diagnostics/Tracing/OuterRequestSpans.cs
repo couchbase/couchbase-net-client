@@ -134,7 +134,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string Hello = "hello";
                 public const string GetManifest = "get_manifest";
                 public const string GetClusterMap = "get_cluster_map";
-                public const string GetCid = "get_cid";
+                public const string GetCollectionId = "get_collection_id";
                 public const string GetErrorMap = "get_error_map";
                 public const string SelectBucket = "select_bucket";
                 public const string Prepare = "prepare";

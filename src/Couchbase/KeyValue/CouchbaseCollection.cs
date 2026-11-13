@@ -128,10 +128,6 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //PartitionScan builds its own operations and reads Cid directly, so it cannot go
-            //through PrepareAsync: resolve the collection ID before handing it this collection.
-            await EnsureCollectionIdAsync().ConfigureAwait(false);
-
             var mutationTokens = options.ConsistencyTokens;
 
             // Either the options token or the token passed to the enumerator, such as by
@@ -150,6 +146,11 @@ namespace Couchbase.KeyValue
             RangeScanSpans.SetScanTypeAttributes(scanSpan, scanType, options.IdsOnlyValue, isCreateSpan: false);
             try
             {
+                //PartitionScan builds its own operations and reads Cid directly, so it cannot go
+                //through PrepareAsync: resolve the collection ID before handing it this collection.
+                //The lookup is part of the scan, so its span goes under range_scan.
+                await EnsureCollectionIdAsync(scanSpan).ConfigureAwait(false);
+
                 var scanOptions = options.WithToken(linkedSource.Token);
 
                 var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
@@ -1463,7 +1464,7 @@ namespace Couchbase.KeyValue
         private async Task<CancellationTokenPairSourceWrapper> PrepareAsync(OperationBase op,
             ITimeoutOptions options)
         {
-            await EnsureCollectionIdAsync().ConfigureAwait(false);
+            await EnsureCollectionIdAsync(op.Span).ConfigureAwait(false);
 
             op.BucketName = _bucket.Name;
             op.SName = ScopeName;
@@ -1485,7 +1486,8 @@ namespace Couchbase.KeyValue
         /// operations and reads <see cref="Cid"/> directly, so the ID has to be resolved before it
         /// is handed this collection.
         /// </remarks>
-        private async ValueTask EnsureCollectionIdAsync()
+        /// <param name="parentSpan">The span of the operation that needs the ID. The get_collection_id span goes under it.</param>
+        private async ValueTask EnsureCollectionIdAsync(IRequestSpan parentSpan)
         {
             if (!_bucket.SupportsCollections)
             {
@@ -1523,7 +1525,7 @@ namespace Couchbase.KeyValue
             if (RequiresCid())
             {
                 //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
+                await PopulateCidAsync(parentSpan: parentSpan).ConfigureAwait(false);
             }
         }
 
@@ -1543,7 +1545,9 @@ namespace Couchbase.KeyValue
             return !Cid.HasValue && _bucket.SupportsCollections;
         }
 
-        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
+        /// <inheritdoc />
+        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false,
+            IRequestSpan? parentSpan = null)
         {
             // Short-circuit if we have the CID already
             if (!forceUpdate && Cid.HasValue)
@@ -1559,7 +1563,7 @@ namespace Couchbase.KeyValue
 
             if (forceUpdate)
             {
-                Cid = await GetCidWithFallbackAsync(retryIfFailure).ConfigureAwait(false);
+                Cid = await GetCidWithFallbackAsync(retryIfFailure, parentSpan).ConfigureAwait(false);
                 lock (_cidLock)
                 {
                     GetCidLazyRetry = null;
@@ -1570,21 +1574,24 @@ namespace Couchbase.KeyValue
             }
             else
             {
+                //Concurrent callers share one lookup. Its get_collection_id span goes under the span of the
+                //caller that started it, so only create the lazy this caller uses: a lazy created
+                //here but started later by another caller would put the span under this one.
+                Lazy<Task<uint?>> lookup;
                 lock (_cidLock)
                 {
-                    GetCidLazyRetry ??= new Lazy<Task<uint?>>(
-                        () => GetCidWithFallbackAsync(retryIfFailure: true),
-                        LazyThreadSafetyMode.ExecutionAndPublication);
-                    GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
-                        () => GetCidWithFallbackAsync(retryIfFailure: false),
-                        LazyThreadSafetyMode.ExecutionAndPublication);
+                    lookup = retryIfFailure
+                        ? GetCidLazyRetry ??= new Lazy<Task<uint?>>(
+                            () => GetCidWithFallbackAsync(retryIfFailure: true, parentSpan),
+                            LazyThreadSafetyMode.ExecutionAndPublication)
+                        : GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
+                            () => GetCidWithFallbackAsync(retryIfFailure: false, parentSpan),
+                            LazyThreadSafetyMode.ExecutionAndPublication);
                 }
 
                 try
                 {
-                    Cid = retryIfFailure
-                        ? await GetCidLazyRetry.Value.ConfigureAwait(false)
-                        : await GetCidLazyNoRetry.Value.ConfigureAwait(false);
+                    Cid = await lookup.Value.ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
@@ -1607,10 +1614,12 @@ namespace Couchbase.KeyValue
         /// <param name="fullyQualifiedName">The fully qualified scope.collection name.</param>
         /// <param name="sendAsBody">true to send as the body; false in the key for dev-preview (pre-7.0 servers). </param>
         /// <param name="retryIfFailure">true to retry the CID operation if it fails.</param>
+        /// <param name="parentSpan">The span of the operation that needs the ID.</param>
         /// <returns></returns>
-        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody, bool retryIfFailure)
+        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody, bool retryIfFailure,
+            IRequestSpan? parentSpan)
         {
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCollectionId, parentSpan);
             using var getCid = new GetCid
             {
                 Opaque = SequenceGenerator.GetNext(),
@@ -1651,12 +1660,12 @@ namespace Couchbase.KeyValue
             return resultWithValue;
         }
 
-        private async Task<uint?> GetCidWithFallbackAsync(bool retryIfFailure)
+        private async Task<uint?> GetCidWithFallbackAsync(bool retryIfFailure, IRequestSpan? parentSpan)
         {
             var fullyQualifiedName = $"{ScopeName}.{Name}";
             try
             {
-                return await GetCidAsync(fullyQualifiedName, true, retryIfFailure).ConfigureAwait(false);
+                return await GetCidAsync(fullyQualifiedName, true, retryIfFailure, parentSpan).ConfigureAwait(false);
             }
             catch (Core.Exceptions.TimeoutException)
             {
@@ -1669,7 +1678,7 @@ namespace Couchbase.KeyValue
                     try
                     {
                         //if this is encountered were on a older server pre-cheshire cat changes
-                        return await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
+                        return await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure, parentSpan).ConfigureAwait(false);
                     }
                     catch (UnsupportedException)
                     {
