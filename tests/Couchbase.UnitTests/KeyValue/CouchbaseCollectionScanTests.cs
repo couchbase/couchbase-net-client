@@ -407,6 +407,89 @@ namespace Couchbase.UnitTests.KeyValue
             }
         }
 
+        // RFC 67: the outer span is Ok when the request completes and Error when it fails.
+        [Fact]
+        public async Task Range_Scan_Span_Is_Ok_When_The_Scan_Completes()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            bucket.EmptyPartitions.Add(0);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
+                Assert.True(await moved);
+                Assert.False(await stream.MoveNextAsync());
+            }
+            await collection.ScanCleanup;
+
+            Assert.Equal(RequestSpanStatusCode.Ok, Assert.Single(tracer.Named("range_scan")).Status);
+        }
+
+        [Fact]
+        public async Task Range_Scan_Span_Is_Error_When_The_Scan_Fails()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.FailContinue(new UnambiguousTimeoutException("The fake bucket failed this continue."));
+                await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () => await moved);
+            }
+            await collection.ScanCleanup;
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Equal(RequestSpanStatusCode.Error, scan.Status);
+            Assert.True(scan.Ended);
+        }
+
+        // A stop that the caller asks for is not a failure, and the scan did not complete.
+        [Fact]
+        public async Task Range_Scan_Span_Status_Is_Unset_When_The_Caller_Stops_Early()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync().AsTask();
+                await bucket.NextContinue();
+                bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
+                Assert.True(await moved);
+            }
+            await collection.ScanCleanup;
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Equal(RequestSpanStatusCode.Unset, scan.Status);
+            Assert.True(scan.Ended);
+        }
+
+        [Fact]
+        public async Task Range_Scan_Span_Status_Is_Unset_When_The_Caller_Cancels()
+        {
+            var tracer = new RecordingTracer();
+            var (collection, bucket) = CreateCollection(tracer);
+            using var cts = new CancellationTokenSource();
+
+            await using (var stream = collection.ScanAsync(new RangeScan()).WithCancellation(cts.Token).GetAsyncEnumerator())
+            {
+                var moved = stream.MoveNextAsync();
+                await bucket.NextContinue();
+                cts.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            }
+            await collection.ScanCleanup;
+
+            var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Equal(RequestSpanStatusCode.Unset, scan.Status);
+            Assert.True(scan.Ended);
+        }
+
         [Fact]
         public async Task Sampling_Scan_Span_Has_Limit_And_Seed()
         {
@@ -424,6 +507,7 @@ namespace Couchbase.UnitTests.KeyValue
             await collection.ScanCleanup;
 
             var scan = Assert.Single(tracer.Named("range_scan"));
+            Assert.Equal(RequestSpanStatusCode.Ok, scan.Status);
             Assert.Equal("sampling", scan.Attributes["scan_type"]);
             Assert.Equal((uint)1, scan.Attributes["limit"]);
             Assert.Equal((uint)7, scan.Attributes["seed"]);
@@ -632,6 +716,11 @@ namespace Couchbase.UnitTests.KeyValue
                 _current.Read.SetResult(status);
             }
 
+            /// <summary>
+            /// Fails the RangeScanContinue that <see cref="NextContinue"/> returned.
+            /// </summary>
+            public void FailContinue(Exception exception) => _current.Read.SetException(exception);
+
             public Task WhenClosed(short partitionId) => _closed.GetOrAdd(partitionId, NewSignal).Task;
 
             private static TaskCompletionSource<bool> NewSignal(short _) =>
@@ -718,7 +807,9 @@ namespace Couchbase.UnitTests.KeyValue
 
             public IRequestSpan AddEvent(string eventName, DateTimeOffset? timestamp = null) => this;
 
-            public IRequestSpan SetStatus(RequestSpanStatusCode code) => this;
+            public RequestSpanStatusCode Status { get; private set; }
+
+            public IRequestSpan SetStatus(RequestSpanStatusCode code) { Status = code; return this; }
 
             public IRequestSpan ChildSpan(string childName) => tracer.RequestSpan(childName, this);
 

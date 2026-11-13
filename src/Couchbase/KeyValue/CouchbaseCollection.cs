@@ -140,6 +140,9 @@ namespace Couchbase.KeyValue
             var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(options.TokenValue, cancellationToken);
             List<PartitionScan>? partitionScans = null;
             var endedByScan = false;
+            var completed = false;
+            // True while the caller holds a result. If the finally block runs then, the caller stopped early.
+            var atYield = false;
 
             // RFC 73: one range_scan span per scan. It ends after the scans left open are closed, so that
             // it contains the spans of those close requests.
@@ -212,9 +215,12 @@ namespace Couchbase.KeyValue
                                 {
                                     // The finally block closes the scans that are still open.
                                     endedByScan = true;
+                                    completed = true;
                                     yield break;
                                 }
+                                atYield = true;
                                 yield return scanResult;
+                                atYield = false;
                                 count++;
                             }
                         }
@@ -223,9 +229,23 @@ namespace Couchbase.KeyValue
                         x.Status == ResponseStatus.RangeScanComplete ||
                         x.Status == ResponseStatus.KeyNotFound);
                 }
+
+                completed = true;
             }
             finally
             {
+                // RFC 67: Ok when the scan completes, Error when it fails. A stop that the caller asked for,
+                // early or by a cancel, is neither, so the status stays Unset.
+                if (completed)
+                {
+                    scanSpan.SetStatus(RequestSpanStatusCode.Ok);
+                }
+                else if (!atYield && !options.TokenValue.IsCancellationRequested &&
+                         !cancellationToken.IsCancellationRequested)
+                {
+                    scanSpan.SetStatus(RequestSpanStatusCode.Error);
+                }
+
                 // The scan completed, reached its sampling limit, the caller stopped early, or it
                 // threw. Stop the partition read in progress, if any, then close the scans that are
                 // still open on the server.
