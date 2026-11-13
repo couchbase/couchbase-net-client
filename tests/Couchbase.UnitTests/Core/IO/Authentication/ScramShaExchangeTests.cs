@@ -151,6 +151,52 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
         }
 
         [Fact]
+        public async Task Authentication_Error_Reply_From_A_Real_Server_Is_Reported_Unchanged()
+        {
+            const string reply = "{\"error\":{\"context\":\"Authentication failed.\"," +
+                                 "\"ref\":\"0b2f1e4c-3d9a-4f7e-9c1b-8a6d5e2f4a10\"}}";
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, reply, ResponseStatus.AuthenticationError);
+
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                Mechanism(Rfc5802Sha1).AuthenticateAsync(server.Connection, CancellationToken.None));
+
+            Assert.Contains(reply, ex.Message);
+        }
+
+        [Fact]
+        public async Task Authentication_Error_Reply_Cannot_Forge_Log_Lines()
+        {
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, "denied\r\n[INFO] forged\u2028line",
+                ResponseStatus.AuthenticationError);
+
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                Mechanism(Rfc5802Sha1).AuthenticateAsync(server.Connection, CancellationToken.None));
+
+            Assert.Contains("denied??[INFO] forged?line", ex.Message);
+            Assert.DoesNotContain("\n", ex.Message);
+            Assert.DoesNotContain("\u2028", ex.Message);
+        }
+
+        [Fact]
+        public async Task Authentication_Error_Reply_Is_Truncated()
+        {
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, new string('x', 10_000),
+                ResponseStatus.AuthenticationError);
+
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() =>
+                Mechanism(Rfc5802Sha1).AuthenticateAsync(server.Connection, CancellationToken.None));
+
+            Assert.Contains(new string('x', 512) + "...(truncated)", ex.Message);
+            Assert.DoesNotContain(new string('x', 513), ex.Message);
+        }
+
+        [Fact]
+        public void Null_Server_First_Is_Rejected()
+        {
+            Assert.Throws<AuthenticationFailureException>(() => Mechanism(Rfc5802Sha1).ParseServerFirst(null));
+        }
+
+        [Fact]
         public async Task Server_Final_With_A_Non_Letter_Attribute_Is_Rejected()
         {
             var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, "v=" + Rfc5802Sha1.ServerSignature + ",1=x");
@@ -247,11 +293,12 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
 
         /// <summary>
         /// Completes each SASL operation inside SendAsync: SASL_START gets the server-first-message with
-        /// AuthenticationContinue, SASL_STEP gets the server-final-message with Success.
+        /// AuthenticationContinue, SASL_STEP gets the server-final-message with <paramref name="finalStatus"/>.
         /// </summary>
         private sealed class ScriptedServer
         {
-            public ScriptedServer(string serverFirst, string serverFinal)
+            public ScriptedServer(string serverFirst, string serverFinal,
+                ResponseStatus finalStatus = ResponseStatus.Success)
             {
                 var connection = new Mock<IConnection>();
                 connection.SetupGet(c => c.ServerFeatures).Returns(ServerFeatureSet.Empty);
@@ -264,7 +311,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
                         if (op is SaslStep step)
                         {
                             ClientFinal = step.Content;
-                            op.HandleOperationCompleted(Response(OpCode.SaslStep, ResponseStatus.Success, serverFinal));
+                            op.HandleOperationCompleted(Response(OpCode.SaslStep, finalStatus, serverFinal));
                         }
                         else
                         {

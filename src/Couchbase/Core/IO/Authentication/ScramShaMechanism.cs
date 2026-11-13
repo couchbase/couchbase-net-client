@@ -209,10 +209,11 @@ namespace Couchbase.Core.IO.Authentication
         /// <param name="message">The message.</param>
         /// <returns></returns>
         /// <exception cref="AuthenticationFailureException">An attribute is malformed or repeated.</exception>
-        internal IDictionary<string, string> DecodeResponse(string message)
+        internal IDictionary<string, string> DecodeResponse(string? message)
         {
             var attributes = new Dictionary<string, string>();
-            foreach (var att in message.Split(','))
+            // A SASL reply can be null (no body, or a failed decode); it then fails as an invalid attribute.
+            foreach (var att in (message ?? string.Empty).Split(','))
             {
                 // RFC 5802: attr-val = ALPHA "=" value
                 if (att.Length < 2 || att[1] != '=' || !IsAsciiLetter(att[0]))
@@ -240,7 +241,7 @@ namespace Couchbase.Core.IO.Authentication
         /// <returns>The combined nonce, the salt and the iteration count.</returns>
         /// <exception cref="AuthenticationFailureException">The message is malformed, carries a mandatory
         /// extension, or its nonce does not extend <see cref="ClientNonce"/>.</exception>
-        internal (string Nonce, byte[] Salt, int IterationCount) ParseServerFirst(string serverFirstMessage)
+        internal (string Nonce, byte[] Salt, int IterationCount) ParseServerFirst(string? serverFirstMessage)
         {
             var attributes = DecodeResponse(serverFirstMessage);
 
@@ -265,15 +266,7 @@ namespace Couchbase.Core.IO.Authentication
                     "SCRAM server nonce does not extend the client nonce.");
             }
 
-            byte[] salt;
-            try
-            {
-                salt = Convert.FromBase64String(encodedSalt);
-            }
-            catch (FormatException)
-            {
-                throw new AuthenticationFailureException("Malformed SCRAM server-first-message: invalid salt.");
-            }
+            var salt = DecodeBase64(encodedSalt, "Malformed SCRAM server-first-message: invalid salt.");
 
             if (salt.Length < MinSaltLength)
             {
@@ -299,9 +292,9 @@ namespace Couchbase.Core.IO.Authentication
         /// <param name="serverFinalMessage">The raw server-final-message.</param>
         /// <exception cref="AuthenticationFailureException">The server reported an error, sent no verifier,
         /// or sent a verifier that does not match.</exception>
-        internal void VerifyServerFinal(byte[] saltedPassword, string authMessage, string serverFinalMessage)
+        internal void VerifyServerFinal(byte[] saltedPassword, string authMessage, string? serverFinalMessage)
         {
-            var attributes = DecodeResponse(serverFinalMessage ?? string.Empty);
+            var attributes = DecodeResponse(serverFinalMessage);
 
             if (attributes.TryGetValue("e", out var error))
             {
@@ -315,22 +308,26 @@ namespace Couchbase.Core.IO.Authentication
                     "Malformed SCRAM server-final-message: missing server signature.");
             }
 
-            byte[] verifier;
-            try
-            {
-                verifier = Convert.FromBase64String(encodedVerifier);
-            }
-            catch (FormatException)
-            {
-                throw new AuthenticationFailureException(
-                    "Malformed SCRAM server-final-message: invalid server signature.");
-            }
+            var verifier = DecodeBase64(encodedVerifier,
+                "Malformed SCRAM server-final-message: invalid server signature.");
 
             var serverSignature = ComputeHash(ComputeHash(saltedPassword, ServerKey), authMessage);
             if (!FixedTimeEquals(serverSignature, verifier))
             {
                 throw new AuthenticationFailureException(
                     "SCRAM server signature is invalid; the server could not prove it knows the password.");
+            }
+        }
+
+        private static byte[] DecodeBase64(string value, string errorMessage)
+        {
+            try
+            {
+                return Convert.FromBase64String(value);
+            }
+            catch (FormatException)
+            {
+                throw new AuthenticationFailureException(errorMessage);
             }
         }
 
@@ -359,7 +356,7 @@ namespace Couchbase.Core.IO.Authentication
 
         private static bool FixedTimeEquals(byte[] left, byte[] right)
         {
-#if NET8_0_OR_GREATER || NETSTANDARD2_1
+#if SPAN_SUPPORT
             return CryptographicOperations.FixedTimeEquals(left, right);
 #else
             if (left.Length != right.Length)
