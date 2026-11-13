@@ -210,7 +210,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         {
             if (span.CanWrite)
             {
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, remoteUri.Host);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, remoteUri.DnsSafeHost);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, $"{remoteUri.Port}");
             }
 
@@ -219,14 +219,15 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         /// <summary>
         /// Adds the address and port that an HTTP request was sent to (RFC 67: network.peer.address
-        /// and network.peer.port). This is the host of the request URI. When the URI holds a hostname,
+        /// and network.peer.port). This is the host of the request URI, without the brackets of an IPv6
+        /// address. When the URI holds a hostname,
         /// HttpClient resolves it, and the SDK does not see the IP address that it connects to.
         /// </summary>
         internal static IRequestSpan WithPeerAddress(this IRequestSpan span, Uri remoteUri)
         {
             if (span.CanWrite)
             {
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerAddress, remoteUri.Host);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerAddress, remoteUri.DnsSafeHost);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.NetworkPeerPort, remoteUri.Port.ToStringInvariant());
             }
 
@@ -285,17 +286,13 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 return span;
             }
 
-            if (hasParameters)
-            {
-                span.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
-            }
-            else if (span is RequestSpanWrapper wrapper)
+            // A span that is not wrapped has no semantic convention mapping, so it only ever sets the legacy name.
+            if (!hasParameters && span is RequestSpanWrapper wrapper)
             {
                 wrapper.SetLegacyAttribute(OuterRequestSpans.Attributes.Statement, statement);
             }
             else
             {
-                // Not wrapped, so there is no semantic convention mapping: only the legacy name is ever set.
                 span.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
             }
 

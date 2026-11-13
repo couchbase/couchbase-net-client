@@ -162,7 +162,7 @@ namespace Couchbase.KeyValue
                 for (short partitionId = 0; partitionId < partitionCount; partitionId++)
                 {
                     var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, scanOptions, scanType, partitionId,
-                        RootSpan, scanSpan);
+                        scanSpan);
 
                     if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
                     {
@@ -1689,7 +1689,7 @@ namespace Couchbase.KeyValue
 
 
 
-        private IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
+        internal IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
         {
             var span = _tracer.RequestSpan(operation, parentSpan);
             if (span.CanWrite)

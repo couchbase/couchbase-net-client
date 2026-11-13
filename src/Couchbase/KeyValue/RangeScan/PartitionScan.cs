@@ -17,10 +17,9 @@ internal sealed class PartitionScan
     /// <c>createSpan</c> creates a span with the given name and parent, with the attributes of a request on
     /// this collection. <c>scanSpan</c> is the range_scan span of the scan that this partition belongs to.
     /// </remarks>
-    public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, ICouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId,
-        Func<string, IRequestSpan, IRequestSpan> createSpan, IRequestSpan scanSpan)
+    public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, CouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId,
+        IRequestSpan scanSpan)
     {
-        _createSpan = createSpan;
         _scanSpan = scanSpan;
         _operationConfigurator = operationConfigurator;
         _bucket = bucket;
@@ -33,13 +32,12 @@ internal sealed class PartitionScan
 
     private readonly IOperationConfigurator _operationConfigurator;
     private readonly BucketBase _bucket;
-    private readonly ICouchbaseCollection _collection;
+    private readonly CouchbaseCollection _collection;
     private readonly ILogger<GetResult> _getLogger;
     private readonly ScanOptions _options;
     private readonly IScanType _scanType;
     private readonly short _partitionId;
     private SlicedMemoryOwner<byte>? _uuid;
-    private readonly Func<string, IRequestSpan, IRequestSpan> _createSpan;
     private readonly IRequestSpan _scanSpan;
     private IRequestSpan _partitionSpan;
     private string _rangeScanId;
@@ -88,7 +86,7 @@ internal sealed class PartitionScan
                 MutationToken = MutationToken
             };
 
-            using var createSpan = _createSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCreate, PartitionSpan);
+            using var createSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCreate, PartitionSpan);
             RangeScanSpans.SetScanTypeAttributes(createSpan, _scanType, _options.IdsOnlyValue, isCreateSpan: true);
             scanCreateOp.Span = createSpan;
 
@@ -114,7 +112,6 @@ internal sealed class PartitionScan
                     // The create is done. End its span now, so that it does not include the first continue.
                     createSpan.Dispose();
                     _uuid = scanCreateOp.ExtractBody();
-                    _rangeScanId = "0x" + BitConverter.ToString(_uuid.Value.Memory.ToArray()).Replace("-", "").ToLowerInvariant();
                     var scanContinueOp = new RangeScanContinue
                     {
                         Cid = _collection.Cid,
@@ -178,7 +175,7 @@ internal sealed class PartitionScan
         {
             if (_partitionSpan is null)
             {
-                _partitionSpan = _createSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition, _scanSpan);
+                _partitionSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition, _scanSpan);
                 if (_partitionSpan.CanWrite)
                 {
                     _partitionSpan.SetAttribute(RangeScanSpans.PartitionId, (uint)_partitionId);
@@ -189,12 +186,32 @@ internal sealed class PartitionScan
         }
     }
 
+    /// <summary>
+    /// The scan UUID as hex, for the range_scan_id attribute. Built on first use, so only when a span can write.
+    /// </summary>
+    private string RangeScanId
+    {
+        get
+        {
+            if (_rangeScanId == null && _uuid.HasValue)
+            {
+#if NET9_0_OR_GREATER
+                _rangeScanId = "0x" + Convert.ToHexStringLower(_uuid.Value.Memory.Span);
+#else
+                _rangeScanId = "0x" + BitConverter.ToString(_uuid.Value.Memory.ToArray()).Replace("-", "").ToLowerInvariant();
+#endif
+            }
+
+            return _rangeScanId ?? string.Empty;
+        }
+    }
+
     private IRequestSpan ContinueSpan(RangeScanContinue scanContinueOp)
     {
-        var span = _createSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue, PartitionSpan);
+        var span = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue, PartitionSpan);
         if (span.CanWrite)
         {
-            span.SetAttribute(RangeScanSpans.RangeScanId, _rangeScanId ?? string.Empty);
+            span.SetAttribute(RangeScanSpans.RangeScanId, RangeScanId);
             span.SetAttribute(RangeScanSpans.ItemLimit, scanContinueOp.ItemLimit);
             span.SetAttribute(RangeScanSpans.ByteLimit, scanContinueOp.ByteLimit);
             span.SetAttribute(RangeScanSpans.TimeLimit, scanContinueOp.TimeLimit);
@@ -230,10 +247,10 @@ internal sealed class PartitionScan
                 VBucketId = _partitionId
             };
 
-            using var cancelSpan = _createSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCancel, PartitionSpan);
+            using var cancelSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCancel, PartitionSpan);
             if (cancelSpan.CanWrite)
             {
-                cancelSpan.SetAttribute(RangeScanSpans.RangeScanId, _rangeScanId ?? string.Empty);
+                cancelSpan.SetAttribute(RangeScanSpans.RangeScanId, RangeScanId);
             }
             scanCancelOp.Span = cancelSpan;
 

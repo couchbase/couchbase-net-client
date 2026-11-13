@@ -403,7 +403,7 @@ namespace Couchbase.Query
         /// the statement may go on a tracing span: with parameters, sensitive values are most
         /// likely in the parameters and not in the statement text.
         /// </summary>
-        internal bool HasParameters => _arguments is { Count: > 0 } || _parameters is { Count: > 0 };
+        internal bool HasParameters => _arguments.Count > 0 || _parameters.Count > 0;
 
         /// <summary>
         ///     Gets the context identifier for the N1QL query request/response. Useful for debugging.

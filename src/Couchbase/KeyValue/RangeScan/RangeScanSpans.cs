@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Utils;
 
 namespace Couchbase.KeyValue.RangeScan;
 
@@ -38,8 +39,10 @@ internal static class RangeScanSpans
         {
             case SamplingScan sampling:
                 span.SetAttribute(ScanType, "sampling");
-                SetNumber(span, Limit, sampling.Limit);
-                SetNumber(span, Seed, sampling.Seed);
+                // RFC 73 gives these as numbers, but IRequestSpan takes only 32-bit numbers, and the default
+                // seed is a random 64-bit value. They are always strings, so each key always has one type.
+                span.SetAttribute(Limit, sampling.Limit.ToStringInvariant());
+                span.SetAttribute(Seed, sampling.Seed.ToStringInvariant());
                 break;
             case RangeScan range:
                 span.SetAttribute(ScanType, "range");
@@ -59,20 +62,5 @@ internal static class RangeScanSpans
         }
 
         span.SetAttribute(WithoutContent, idsOnly);
-    }
-
-    /// <summary>
-    /// RFC 73 gives these as numbers. IRequestSpan takes only 32-bit numbers, so a larger value is set as a string.
-    /// </summary>
-    internal static void SetNumber(IRequestSpan span, string key, ulong value)
-    {
-        if (value <= uint.MaxValue)
-        {
-            span.SetAttribute(key, (uint)value);
-        }
-        else
-        {
-            span.SetAttribute(key, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        }
     }
 }

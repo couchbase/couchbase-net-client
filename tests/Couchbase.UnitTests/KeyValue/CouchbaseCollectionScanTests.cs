@@ -35,6 +35,9 @@ namespace Couchbase.UnitTests.KeyValue
     /// </summary>
     public class CouchbaseCollectionScanTests
     {
+        // The hex form of the UUID that the fake bucket returns for every range scan create.
+        private const string FakeRangeScanId = "0xa0a1a2a3a4a5a6a7a8a9aaabacadaeaf";
+
         [Fact]
         public async Task WithCancellation_Cancels_The_Read_And_Closes_The_Open_Scans()
         {
@@ -274,7 +277,7 @@ namespace Couchbase.UnitTests.KeyValue
                 var endOrder = tracer.EndOrder.ToList();
                 Assert.True(endOrder.IndexOf(create) < endOrder.IndexOf(partition), "create must end before its partition");
                 Assert.True(endOrder.IndexOf(scanContinue) < endOrder.IndexOf(partition), "continue must end before its partition");
-                Assert.StartsWith("0x", (string)scanContinue.Attributes["range_scan_id"]);
+                Assert.Equal(FakeRangeScanId, scanContinue.Attributes["range_scan_id"]);
                 Assert.Contains("item_limit", scanContinue.Attributes.Keys);
                 Assert.Contains("byte_limit", scanContinue.Attributes.Keys);
                 Assert.Contains("time_limit", scanContinue.Attributes.Keys);
@@ -509,14 +512,14 @@ namespace Couchbase.UnitTests.KeyValue
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Equal(RequestSpanStatusCode.Ok, scan.Status);
             Assert.Equal("sampling", scan.Attributes["scan_type"]);
-            Assert.Equal((uint)1, scan.Attributes["limit"]);
-            Assert.Equal((uint)7, scan.Attributes["seed"]);
+            Assert.Equal("1", scan.Attributes["limit"]);
+            Assert.Equal("7", scan.Attributes["seed"]);
             Assert.DoesNotContain("from_term", scan.Attributes.Keys);
 
             var create = tracer.Named("range_scan_create").First();
             Assert.Equal("sampling", create.Attributes["scan_type"]);
-            Assert.Equal((uint)1, create.Attributes["limit"]);
-            Assert.Equal((uint)7, create.Attributes["seed"]);
+            Assert.Equal("1", create.Attributes["limit"]);
+            Assert.Equal("7", create.Attributes["seed"]);
         }
 
         // A scan closed early sends range_scan_cancel requests. The range_scan span ends only after
@@ -547,7 +550,7 @@ namespace Couchbase.UnitTests.KeyValue
             var partition = Assert.IsType<RecordingSpan>(cancel.Parent);
             Assert.Equal("range_scan_partition", partition.Name);
             Assert.Equal((uint)first, partition.Attributes["partition_id"]);
-            Assert.StartsWith("0x", (string)cancel.Attributes["range_scan_id"]);
+            Assert.Equal(FakeRangeScanId, cancel.Attributes["range_scan_id"]);
             Assert.True(cancel.Ended);
             Assert.True(scan.Ended);
             Assert.Same(scan, tracer.EndOrder.Last());
@@ -662,7 +665,12 @@ namespace Couchbase.UnitTests.KeyValue
                             return Task.FromResult(ResponseStatus.RangeScanComplete);
                         }
                         // The scan's 16-byte UUID, which RangeScanContinue and RangeScanCancel send back.
-                        create.Read(new SlicedMemoryOwner<byte>(new TestMemoryOwner(new byte[OperationHeader.Length + 16], 16)));
+                        var body = new byte[OperationHeader.Length + 16];
+                        for (var i = 0; i < 16; i++)
+                        {
+                            body[OperationHeader.Length + i] = (byte) (0xA0 + i);
+                        }
+                        create.Read(new SlicedMemoryOwner<byte>(new TestMemoryOwner(body, 16)));
                         return Task.FromResult(ResponseStatus.Success);
 
                     case RangeScanContinue scanContinue:
