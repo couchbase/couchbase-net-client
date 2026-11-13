@@ -17,6 +17,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
+using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -749,6 +750,172 @@ namespace Couchbase.UnitTests.Core
             Mock.Of<IClusterNode>(node =>
                 node.ServerFeatures == new ServerFeatureSet(features) &&
                 node.EndPoint == new HostEndpointWithPort(host, 11210));
+
+        #endregion
+
+        #region GlobalConfig updates
+
+        private const string GlobalHost1 = "10.112.192.101";
+        private const string GlobalHost2 = "10.112.192.102";
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_NewerConfigWithSameNodes_ReplacesGlobalConfig()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+            var incoming = CreateGlobalConfig(11, vectorSearch: true, GlobalHost1, GlobalHost2);
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(incoming, context.GlobalConfig);
+            Assert.True(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_NewerConfigWithRemovedNode_ReplacesGlobalConfig()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+            var incoming = CreateGlobalConfig(11, vectorSearch: true, GlobalHost1);
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Contains(context.Nodes, node => node.EndPoint.Host == GlobalHost1);
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == GlobalHost2);
+            Assert.Same(incoming, context.GlobalConfig);
+            Assert.True(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Theory]
+        [InlineData(3UL, 5UL, true)]
+        [InlineData(1UL, 50UL, false)]
+        public async Task ConfigUpdatedAsync_ComparesRevEpochBeforeRev(ulong revEpoch, ulong rev, bool replaces)
+        {
+            var current = CreateGlobalConfig(revEpoch: 2, rev: 10, vectorSearch: false, GlobalHost1, GlobalHost2);
+            using var context = CreateContextWithGlobalConfig(current);
+            var incoming = CreateGlobalConfig(revEpoch, rev, vectorSearch: false, GlobalHost1, GlobalHost2);
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(replaces ? incoming : current, context.GlobalConfig);
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_ConfigOlderThanLatest_IsIgnored()
+        {
+            using var context = CreateContextWithGlobalConfig(
+                CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2));
+            var latest = CreateGlobalConfig(12, vectorSearch: true, GlobalHost1, GlobalHost2);
+
+            await context.ConfigUpdatedAsync(latest);
+            await context.ConfigUpdatedAsync(CreateGlobalConfig(11, vectorSearch: false, GlobalHost1, GlobalHost2));
+
+            Assert.Same(latest, context.GlobalConfig);
+            Assert.True(context.GlobalConfig.HasClusterCap(ClusterCapabilities.VECTOR_SEARCH));
+        }
+
+        [Fact]
+        public async Task ConfigUpdatedAsync_IncomingConfigWithoutClusterName_KeepsCurrentName()
+        {
+            var current = CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2);
+            current.ClusterName = "cluster-a";
+            using var context = CreateContextWithGlobalConfig(current);
+            var incoming = CreateGlobalConfig(11, vectorSearch: false, GlobalHost1, GlobalHost2);
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(incoming, context.GlobalConfig);
+            Assert.Equal("cluster-a", context.GlobalConfig.ClusterName);
+        }
+
+        [Theory]
+        [InlineData(NetworkResolution.Auto)]
+        [InlineData(NetworkResolution.External)]
+        public async Task ConfigUpdatedAsync_FirstNodeWithoutAlternateAddress_KeepsExternalNetwork(string networkResolution)
+        {
+            var current = CreateGlobalConfig(10, vectorSearch: false, GlobalHost1, GlobalHost2);
+            AddExternalAddress(current, GlobalHost1);
+            using var context = CreateContextWithGlobalConfig(current, networkResolution);
+            Assert.Equal(NetworkResolution.External, context.ClusterOptions.EffectiveNetworkResolution);
+
+            var incoming = CreateGlobalConfig(11, vectorSearch: false, GlobalHost1, GlobalHost2);
+            AddExternalAddress(incoming, GlobalHost1);
+            incoming.NodesExt.Reverse();
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(incoming, context.GlobalConfig);
+            Assert.Equal(NetworkResolution.External, context.ClusterOptions.EffectiveNetworkResolution);
+        }
+
+        private static void AddExternalAddress(BucketConfig config, string host)
+        {
+            // Same host as the internal address, so the existing node is still found by host name.
+            config.NodesExt.Single(nodeExt => nodeExt.Hostname == host).AlternateAddresses =
+                new Dictionary<string, ExternalAddressesConfig>
+                {
+                    [NetworkResolution.External] = new() { Hostname = host, Ports = new Services { Kv = 11210 } }
+                };
+        }
+
+        private static BucketConfig CreateGlobalConfig(ulong rev, bool vectorSearch, params string[] hosts) =>
+            CreateGlobalConfig(revEpoch: 0, rev, vectorSearch, hosts);
+
+        private static BucketConfig CreateGlobalConfig(ulong revEpoch, ulong rev, bool vectorSearch, params string[] hosts)
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\cluster-level-config-rev69.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            config.RevEpoch = revEpoch;
+            config.Rev = rev;
+            config.Name = BucketConfig.GlobalBucketName;
+            // Real global configs omit the vBucket map. The fixture sets it to null, which breaks SetEffectiveNetworkResolution.
+            config.VBucketServerMap = new VBucketServerMapDto();
+            config.NodesExt = config.NodesExt.Where(nodeExt => hosts.Contains(nodeExt.Hostname)).ToList();
+
+            var caps = new Dictionary<string, IEnumerable<string>>
+            {
+                ["n1ql"] = new[] { "enhancedPreparedStatements" }
+            };
+            if (vectorSearch)
+            {
+                caps["search"] = new[] { "vectorSearch", "scopedSearchIndex" };
+            }
+            config.ClusterCapabilities = caps;
+            config.OnDeserialized();
+
+            return config;
+        }
+
+        private static ClusterContext CreateContextWithGlobalConfig(BucketConfig globalConfig,
+            string networkResolution = NetworkResolution.Auto)
+        {
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.NetworkResolution = networkResolution;
+            // Strict, so a test that reaches the new node path fails instead of trying to connect.
+            options.AddClusterService<IClusterNodeFactory>(new Mock<IClusterNodeFactory>(MockBehavior.Strict).Object);
+            var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            globalConfig.SetEffectiveNetworkResolution(options);
+            context.GlobalConfig = globalConfig;
+            foreach (var nodeExt in globalConfig.NodesExt)
+            {
+                context.AddNode(CreateGlobalNode(nodeExt.Hostname));
+            }
+
+            return context;
+        }
+
+        private static IClusterNode CreateGlobalNode(string host)
+        {
+            var endPoint = new HostEndpointWithPort(host, 11210);
+            var node = new Mock<IClusterNode>();
+            node.Setup(n => n.EndPoint).Returns(endPoint);
+            node.Setup(n => n.KeyEndPoints).Returns(new[] { endPoint });
+            node.Setup(n => n.Owner).Returns((IBucket)null);
+            node.SetupProperty(n => n.NodesAdapter);
+            return node.Object;
+        }
 
         #endregion
 

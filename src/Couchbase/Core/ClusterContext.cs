@@ -1157,10 +1157,6 @@ namespace Couchbase.Core
                             }
 
                             AddNode(newNode);
-
-                            //if the global config is updated replace it
-                            globalConfig.SetEffectiveNetworkResolution(ClusterOptions);
-                            GlobalConfig = globalConfig;
                         }
                         else
                         {
@@ -1169,6 +1165,9 @@ namespace Couchbase.Core
                     }
 
                     PruneGlobalNodes(globalConfig);
+
+                    // Set last, so a failed node connect keeps the old config and the next poll retries.
+                    GlobalConfig = globalConfig;
                 }
                 finally
                 {
