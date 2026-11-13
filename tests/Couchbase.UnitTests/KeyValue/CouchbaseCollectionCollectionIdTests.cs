@@ -177,7 +177,12 @@ namespace Couchbase.UnitTests.KeyValue
             // parent would go under it.
             ActivitySpanId callerSpanId;
             ActivityTraceId traceId;
-            using (var caller = callerSource.StartActivity("caller")!)
+            // A W3C parent context gives the caller, and every span under it, W3C IDs. Without it, .NET
+            // Framework uses hierarchical IDs, whose TraceId and SpanId are all zero, so the checks below
+            // could not tell the spans apart.
+            var w3cParent = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(),
+                ActivityTraceFlags.Recorded);
+            using (var caller = callerSource.StartActivity("caller", ActivityKind.Internal, w3cParent)!)
             {
                 callerSpanId = caller.SpanId;
                 traceId = caller.TraceId;
