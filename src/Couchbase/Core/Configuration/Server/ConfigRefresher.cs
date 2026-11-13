@@ -28,8 +28,11 @@ internal abstract partial class ConfigRefresher : IDisposable
     internal static readonly TimeSpan MinFetchTimeout = TimeSpan.FromSeconds(1);
     internal static readonly TimeSpan MaxFetchTimeout = TimeSpan.FromSeconds(5);
 
-    // Stands for no due time. A sleep for it has no timeout.
+    // Stands for no due time.
     private static readonly TimeSpan Never = TimeSpan.MaxValue;
+
+    // Delay rejects a longer sleep on .NET Framework. A loop with nothing due wakes up and sleeps again.
+    internal static readonly TimeSpan MaxSleep = TimeSpan.FromMilliseconds(int.MaxValue);
 
     private readonly ILogger _logger;
     private readonly TimeProvider _timeProvider;
@@ -233,8 +236,10 @@ internal abstract partial class ConfigRefresher : IDisposable
         var currentVersion = CurrentVersion;
         var pendingVersion = GetPendingVersion(latestPushedVersion, currentVersion);
 
-        var untilPoll = Context.ClusterOptions.EnableConfigPolling
-            ? PollInterval - _timeProvider.GetElapsedTime(_lastPoll)
+        // Polling is off for an interval of zero or less, InfiniteTimeSpan included, since a poll would be due every turn.
+        var pollInterval = PollInterval;
+        var untilPoll = Context.ClusterOptions.EnableConfigPolling && pollInterval > TimeSpan.Zero
+            ? pollInterval - _timeProvider.GetElapsedTime(_lastPoll)
             : Never;
         var untilRetry = GetTimeUntilRetry(pendingVersion);
         var pollDue = untilPoll <= TimeSpan.Zero;
@@ -315,8 +320,9 @@ internal abstract partial class ConfigRefresher : IDisposable
         {
             try
             {
-                LogFetching(Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint), currentVersion);
-                var config = await node.GetClusterMap(currentVersion, timeout, token).ConfigureAwait(false);
+                var knownVersion = newest?.ConfigVersion ?? currentVersion;
+                LogFetching(Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint), knownVersion);
+                var config = await node.GetClusterMap(knownVersion, timeout, token).ConfigureAwait(false);
                 _failedFetches = 0;
                 if (config is not null && (newest is null || config.ConfigVersion > newest.ConfigVersion))
                 {
@@ -436,7 +442,7 @@ internal abstract partial class ConfigRefresher : IDisposable
     private async Task SleepAsync(Task wakeUp, TimeSpan duration, CancellationToken token)
     {
         using var sleepSource = CancellationTokenSource.CreateLinkedTokenSource(token);
-        var sleep = _timeProvider.Delay(duration == Never ? Timeout.InfiniteTimeSpan : duration, sleepSource.Token);
+        var sleep = _timeProvider.Delay(duration < MaxSleep ? duration : MaxSleep, sleepSource.Token);
         await Task.WhenAny(wakeUp, sleep).ConfigureAwait(false);
 
         // Drops the timer when a request ended the sleep.
@@ -505,8 +511,8 @@ internal abstract partial class ConfigRefresher : IDisposable
     [LoggerMessage(2, LogLevel.Trace, "The server pushed version {pushedVersion} of {name}")]
     private partial void LogServerPushedVersion(Redacted<string> name, ConfigVersion pushedVersion);
 
-    [LoggerMessage(3, LogLevel.Trace, "Fetching the config of {name} from {endpoint}, the client has {currentVersion}")]
-    private partial void LogFetching(Redacted<string> name, Redacted<HostEndpointWithPort> endpoint, ConfigVersion? currentVersion);
+    [LoggerMessage(3, LogLevel.Trace, "Fetching the config of {name} from {endpoint}, newer than {knownVersion}")]
+    private partial void LogFetching(Redacted<string> name, Redacted<HostEndpointWithPort> endpoint, ConfigVersion? knownVersion);
 
     [LoggerMessage(4, LogLevel.Trace, "Skipping the poll of {name}, every node pushes config changes")]
     private partial void LogPollSkipped(Redacted<string> name);

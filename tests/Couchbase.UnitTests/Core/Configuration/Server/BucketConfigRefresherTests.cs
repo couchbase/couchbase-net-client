@@ -463,6 +463,39 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task Push_WhenNodesReturnAnOlderVersion_DownloadsThatVersionOnce()
+    {
+        // Both nodes hold version 2 of a pushed version 3. Like the server, a node answers only an older known version.
+        var clock = new SteppableClock();
+        var bucket = CreateBucketMock(initialConfig: Version(1));
+        using var context = bucket.Context;
+        var held = Version(2);
+        var downloads = new AsyncCounter();
+        foreach (var node in new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) })
+        {
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .Returns((ConfigVersion? known, TimeSpan? _, CancellationToken _) =>
+                {
+                    if (known is { } version && version >= held.ConfigVersion)
+                    {
+                        return Task.FromResult<BucketConfig>(null!);
+                    }
+
+                    downloads.Increment();
+                    return Task.FromResult(held);
+                });
+        }
+
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+
+        refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+
+        Assert.Equal(1, downloads.Count);
+    }
+
+    [Fact]
     public async Task Poll_WithPushNegotiated_RunsWhenDueAndNotBefore()
     {
         // Every node negotiated brief push, and the bucket still polls them.
@@ -669,6 +702,32 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)] // Timeout.InfiniteTimeSpan
+    [InlineData(100L * 24 * 60 * 60 * 1000)] // Over the Delay limit
+    public async Task Poll_WithIntervalZeroInfiniteOrTooLong_SleepsAndStillTakesPushes(long pollIntervalMs)
+    {
+        var clock = new SteppableClock();
+        var published = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var bucket = CreateBucketMock(initialConfig: Version(2), onPublish: config => published.TrySetResult(config),
+            configure: options => options.ConfigPollInterval = TimeSpan.FromMilliseconds(pollIntervalMs));
+        using var context = bucket.Context;
+        var node = AddNode(bucket, "node-0", push: true);
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Version(3));
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        refresher.RequestRefresh(Version(3).ConfigVersion);
+        var config = await published.Task.WaitAsync(Deadline);
+        Assert.Equal(Version(3).ConfigVersion, config!.ConfigVersion);
     }
 
     [Fact]

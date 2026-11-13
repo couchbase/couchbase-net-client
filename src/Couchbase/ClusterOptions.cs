@@ -934,7 +934,8 @@ namespace Couchbase
         /// <summary>
         /// The time between querying the server for new cluster map revisions.
         /// </summary>
-        /// <remarks>The default is 2.5s.</remarks>
+        /// <remarks>The default is 2.5s. Set it to at most <see cref="int.MaxValue"/> milliseconds. Zero or less,
+        /// including <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, turns polling off.</remarks>
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
 
         /// <summary>
