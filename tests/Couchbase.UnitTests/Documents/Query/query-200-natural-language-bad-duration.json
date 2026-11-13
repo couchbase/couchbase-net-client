@@ -1,0 +1,13 @@
+{
+  "requestID": "8c1b2a3d-4e5f-4a6b-9c7d-0e1f2a3b4c5d",
+  "status": "success",
+  "generated_statement": "SELECT 1",
+  "metrics": {
+    "elapsedTime": "1.2s",
+    "executionTime": "0s",
+    "resultCount": 0,
+    "resultSize": 0,
+    "naturalLanguageProcessingTime": "soon",
+    "generatedStatementExecuted": false
+  }
+}

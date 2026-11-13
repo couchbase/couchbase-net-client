@@ -1,0 +1,12 @@
+{
+  "requestID": "d4c7cdd0-8f6b-4a0e-9b1d-3f2a6c5e7b90",
+  "status": "success",
+  "chatId": "23a2c880-4566-4f78-9e81-86ea755b2a7f",
+  "metrics": {
+    "elapsedTime": "85.322µs",
+    "executionTime": "0s",
+    "resultCount": 0,
+    "resultSize": 0,
+    "serviceLoad": 0
+  }
+}

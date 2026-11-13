@@ -12,6 +12,7 @@ using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -503,6 +504,137 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(typeof(string), values["max_parallelism"].GetType());
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetRequestBody_ChatId_Sends_NaturalChatId(bool systemTextJson)
+        {
+            var options = new QueryOptions("USING AI hello")
+            {
+                Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a")
+            };
+
+            using var content = options.GetRequestBody(GetSerializer(systemTextJson), NullFallbackTypeSerializerProvider.Instance);
+
+            var values = await ExtractValuesAsync(content);
+            Assert.Equal("chat-1", values["natural_chatid"]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetRequestBody_Model_Sends_Natural_Fields(bool systemTextJson)
+        {
+            var capella = ModelParameters.Create(new ModelOptions().Provider("openai").Name("gpt-4o"),
+                ModelCredential.Capella("user@example.com", "test-password", "org-1"));
+            var apiKey = ModelParameters.Create(new ModelOptions().Provider("openai").Raw("temperature", 0.5),
+                ModelCredential.ApiKey("test-api-key"));
+
+            using var capellaBody = await GetBodyAsync(capella);
+            var root = capellaBody.RootElement;
+            Assert.Equal("user@example.com:test-password", root.GetProperty("natural_cred").GetString());
+            Assert.Equal("org-1", root.GetProperty("natural_orgid").GetString());
+            Assert.Equal("openai", root.GetProperty("natural_vendor").GetString());
+            Assert.Equal("gpt-4o", root.GetProperty("natural_model").GetString());
+            Assert.False(root.TryGetProperty("natural_config", out _));
+
+            using var apiKeyBody = await GetBodyAsync(apiKey);
+            root = apiKeyBody.RootElement;
+            var config = root.GetProperty("natural_config");
+            Assert.Equal(JsonValueKind.Object, config.ValueKind);
+            Assert.Equal(0.5, config.GetProperty("temperature").GetDouble());
+            Assert.Equal("openai", config.GetProperty("provider").GetString());
+            Assert.Equal("test-api-key", config.GetProperty("api_key").GetString());
+            Assert.Equal(new[] { "natural_chatid", "natural_config" },
+                root.EnumerateObject().Select(x => x.Name).Where(x => x.StartsWith("natural")));
+
+            async Task<JsonDocument> GetBodyAsync(ModelParameters model)
+            {
+                var options = new QueryOptions("USING AI hello")
+                {
+                    Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a", model)
+                };
+                using var content = options.GetRequestBody(GetSerializer(systemTextJson), NullFallbackTypeSerializerProvider.Instance);
+                return JsonDocument.Parse(await content.ReadAsStringAsync());
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetRequestBody_Without_Model_Sends_No_Natural_Fields(bool systemTextJson)
+        {
+            var plain = new QueryOptions("SELECT 1;");
+            var withoutModel = new QueryOptions("USING AI hello")
+            {
+                Conversational = new ConversationalRequest(ConversationalOperation.Query, null, null)
+            };
+            var emptyModel = new QueryOptions("USING AI hello")
+            {
+                Conversational = new ConversationalRequest(ConversationalOperation.Query, null, null,
+                    ModelParameters.Create(null, null))
+            };
+
+            foreach (var options in new[] { plain, withoutModel, emptyModel })
+            {
+                using var content = options.GetRequestBody(GetSerializer(systemTextJson), NullFallbackTypeSerializerProvider.Instance);
+
+                var values = await ExtractValuesAsync(content);
+                Assert.DoesNotContain(values.Keys, x => x.StartsWith("natural"));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_Never_Includes_The_Model(ITypeSerializer serializer)
+        {
+            var model = ModelParameters.Create(new ModelOptions().Raw("temperature", 0.5),
+                ModelCredential.ApiKey("test-api-key"));
+            var options = new QueryOptions("USING AI hello").Parameter("name", "bill")
+                .Raw("scan_cap", 1);
+            options.Conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a", model);
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{\"name\":\"bill\"},\"Raw\":{\"scan_cap\":1},\"Positional\":[]}",
+                result);
+        }
+
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_Omits_Raw_Model_Credentials(ITypeSerializer serializer)
+        {
+            var options = new QueryOptions("USING AI hello")
+                .Raw("natural_cred", "user@example.com:test-password")
+                .Raw("NATURAL_CONFIG", new Dictionary<string, object> { ["api_key"] = "test-api-key" })
+                .Raw("natural_orgid", "org-1");
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{},\"Raw\":{\"natural_orgid\":\"org-1\"},\"Positional\":[]}",
+                result);
+        }
+
+        [Fact]
+        public async Task GetRequestBody_Without_ChatId_Sends_No_NaturalChatId()
+        {
+            var plain = new QueryOptions("SELECT 1;");
+            var beginChat = new QueryOptions("BEGIN CHAT")
+            {
+                Conversational = new ConversationalRequest(ConversationalOperation.BeginChat, null, "uuid-a")
+            };
+
+            foreach (var options in new[] { plain, beginChat })
+            {
+                using var content = options.GetRequestBody(GetSerializer(), NullFallbackTypeSerializerProvider.Instance);
+
+                var values = await ExtractValuesAsync(content);
+                Assert.False(values.ContainsKey("natural_chatid"));
+            }
+        }
+
 
             #endregion
 
@@ -626,6 +758,19 @@ namespace Couchbase.UnitTests.Query
 
             Assert.NotSame(options, clone);
             Assert.Equal(node, clone.LastDispatchedNode);
+        }
+
+        [Fact]
+        public void Test_CloneIfUsedAlready_Preserves_Conversational()
+        {
+            var conversational = new ConversationalRequest(ConversationalOperation.Ask, "chat-1", "uuid-a");
+            var options = new QueryOptions("SELECT 1;") { Conversational = conversational };
+            options.CloneIfUsedAlready();
+
+            var clone = options.CloneIfUsedAlready();
+
+            Assert.NotSame(options, clone);
+            Assert.Equal(conversational, clone.Conversational);
         }
 
         [Fact]

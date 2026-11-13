@@ -77,6 +77,13 @@ public class ClusterTests
       }
 
       [Fact]
+      public async Task Throw_FeatureNotAvailableException_ConversationalQuery()
+      {
+          await using var cluster = await CreateCluster();
+          Assert.Throws<FeatureNotAvailableException>(() => cluster.ConversationalQuery);
+      }
+
+      [Fact]
       public async Task ClusterServices_Returns_Valid_ServiceProvider()
       {
           await using var cluster = await CreateCluster();
