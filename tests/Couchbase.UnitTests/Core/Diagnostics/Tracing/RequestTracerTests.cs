@@ -112,12 +112,16 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         }
 
         // Disposed, and limited to the SDK's source: a registered listener is process-wide.
+        // SampleUsingParentId is needed for a span whose parent is a RequestSpanWrapper: the tracer passes the parent's
+        // ID as a string. On .NET Framework that ID is hierarchical, and only this callback is asked about it, so
+        // without it the span is not sampled unless another test left a listener that samples it.
         private static ActivityListener Listen(ConcurrentQueue<Activity> stopped)
         {
             var listener = new ActivityListener
             {
                 ShouldListenTo = source => source.Name == RequestTracer.ActivitySourceName,
                 Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+                SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllData,
                 ActivityStopped = activity => stopped.Enqueue(activity)
             };
             ActivitySource.AddActivityListener(listener);
