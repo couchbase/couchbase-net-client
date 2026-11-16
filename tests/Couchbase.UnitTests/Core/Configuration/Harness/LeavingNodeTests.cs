@@ -67,9 +67,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
-        /// Node 0 serves the bucket and the Private Link seed. It ends both kinds of connection. The bucket pool gets
-        /// HELLO on each new connection and the select bucket failure, and the seed pool reconnects to node 1.
-        /// Once node 0 serves a bucket map with itself in it again, a new bucket connection selects the bucket.
+        /// Node 0 serves the bucket and ends its connections. The bucket pool gets HELLO on each new connection and the
+        /// select bucket failure. Once node 0 serves a bucket map with itself in it again, a new bucket connection
+        /// selects the bucket.
         /// </summary>
         [Fact]
         public async Task Leave_InRealMode_EndsEveryConnectionAndSdkReconnects()
@@ -79,20 +79,17 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var bucket = scenario.Model.Profile.BucketName;
             await scenario.Harness.SettleAsync();
             var before = server.ConnectionsOn(Node0);
-            Assert.Contains(before, c => c.IsSeed);
             Assert.Contains(before, c => c.Bucket == bucket);
             var received = server.Received.Count;
 
             server.Leave(Node0, ResponseStatus.KeyNotFound);
             Assert.All(before, c => Assert.True(c.IsClosed));
-            await scenario.Harness.WaitUntilAsync(
-                () => server.Counters(Node0).SelectBucketsFailed > 0 && server.ConnectionsOn(Node1).Any(c => c.IsSeed),
-                Timeout, "The SDK reconnecting to node 0 and through the seed");
+            await scenario.Harness.WaitUntilAsync(() => server.Counters(Node0).SelectBucketsFailed > 0,
+                Timeout, "The SDK reconnecting to node 0");
             await scenario.Harness.SettleAsync();
 
             AssertHelloOnEachConnection(server, NewRequests(server, Node0, before, received));
             Assert.All(server.ConnectionsOn(Node0), c => Assert.Null(c.Bucket));
-            Assert.DoesNotContain(server.ConnectionsOn(Node0), c => c.IsSeed);
 
             server.Serve(Node0, scenario.Model.Render(scenario.Model.Bucket(bucket), Node0));
             var node = (ClusterNode)scenario.Bucket().Nodes.Single(n => server.NodeAt(n.EndPoint) == Node0);
@@ -202,28 +199,32 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
-        /// On Private Link the SDK never drops its seed node, so node 0 still has the seed connections after its failover.
-        /// It ends them at the next rebalance, which forgets it, and the seed pool reconnects to node 1.
+        /// On Private Link the bucket owns every node, so the SDK has no connection that gets the cluster map. A hard
+        /// failover takes node 0 out of the bucket map. The SDK then drops its node for node 0 and closes the connections
+        /// to it, while node 0 still runs. The rebalance that forgets node 0 has no SDK connection to end. The SDK used
+        /// the seed endpoint only to fetch the first map, so no step connects through it.
         /// </summary>
         [Fact]
-        public async Task HardFailover_FailedNodeKeepsItsConnectionsUntilTheRebalanceThatForgetsIt()
+        public async Task HardFailover_SdkClosesItsConnectionsToTheFailedNode()
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPrivateLink).RealConnections().StartAsync();
             var server = scenario.Harness.Server;
-            var seeds = server.ConnectionsOn(Node0).Where(c => c.IsSeed).ToList();
-            Assert.NotEmpty(seeds);
+            var seedRequests = server.Received.Count(r => r.Seed);
+            Assert.NotEmpty(server.ConnectionsOn(Node0));
+            Assert.DoesNotContain(server.ConnectionsOn(Node0), c => c.IsSeed);
 
             await scenario.FailOver("node-0", Failover.Hard).RunAsync();
+            await scenario.Harness.WaitUntilAsync(() => server.ConnectionsOn(Node0).Count == 0, Timeout,
+                "The SDK closing its connections to node 0");
 
             Assert.False(server.HasLeft(Node0));
-            Assert.All(seeds, c => Assert.False(c.IsClosed));
+            Assert.DoesNotContain(scenario.Harness.Context.Nodes, n => server.NodeAt(n.EndPoint) == Node0);
 
             await scenario.ScaleOut(1).RunAsync();
 
             Assert.True(server.HasLeft(Node0));
-            Assert.All(seeds, c => Assert.True(c.IsClosed));
-            Assert.DoesNotContain(server.ConnectionsOn(Node0), c => c.IsSeed);
-            Assert.Contains(server.ConnectionsOn(Node1), c => c.IsSeed);
+            Assert.Empty(server.ConnectionsOn(Node0));
+            Assert.Equal(seedRequests, server.Received.Count(r => r.Seed));
             Assert.Equal([Node1, Node2, Node3], scenario.View().Nodes);
         }
 
