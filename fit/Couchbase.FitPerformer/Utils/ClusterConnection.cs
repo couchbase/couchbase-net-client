@@ -4,6 +4,7 @@ using Couchbase.Grpc.Protocol.Shared;
 using Couchbase.Grpc.Protocol.Transactions;
 using Couchbase.KeyValue;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
@@ -31,6 +32,7 @@ using Couchbase.Client.Transactions;
 using Couchbase.Client.Transactions.Config;
 using Couchbase.Core.Diagnostics;
 using Couchbase.FitPerformer.Utils.Options;
+using Couchbase.Query.Conversational;
 using TransactionsConfig = Couchbase.Client.Transactions.Config.TransactionsConfig;
 
 namespace Couchbase.FitPerformer.Utils
@@ -41,6 +43,9 @@ namespace Couchbase.FitPerformer.Utils
 
         public string Hostname { get; init; }
         public string Username { get; init; }
+
+        // Chats from beginChat and attachChat, by the driver's chat_ref.
+        public ConcurrentDictionary<string, IChat> Chats { get; } = new();
 
         private static TracerProvider? _tracerProvider;
         private static MeterProvider? _meterProvider;
