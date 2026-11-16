@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -138,15 +139,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
-        /// The node that leaves is the one behind the seed endpoint.
+        /// The node that leaves is node 0, the one behind the seed endpoint.
         /// </summary>
         [Theory]
         [InlineData(ConnectionMode.Fake)]
         [InlineData(ConnectionMode.Real)]
-        public async Task ScaleInOfSeedNode_FollowsEveryVersion(ConnectionMode mode)
+        public async Task ScaleInOfNodeBehindSeedEndpoint_FollowsEveryVersion(ConnectionMode mode)
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPrivateLink, nodes: 4).Connections(mode).StartAsync();
-            Assert.Contains(scenario.Harness.Server.ConnectionsOn(Node0), s => s.IsSeed);
 
             await scenario.ScaleIn("node-0").RunAsync();
 
@@ -154,23 +154,28 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
-        /// The seed endpoint routes to node 0. Node 0 ends the seed connections when it leaves, and the seed pool
-        /// reconnects to another node. The scale in and the wait are unchecked, as in <see cref="LeavingNodeTests"/>.
+        /// The seed endpoint routes to node 0. The SDK fetches the first map through it, then gives each map node its own
+        /// node and closes the seed connections. So node 0 ends only connections to its own port when it leaves, and the
+        /// SDK does not connect through the seed endpoint again. The scale in and the wait are unchecked, as in
+        /// <see cref="LeavingNodeTests"/>.
         /// </summary>
         [Fact]
-        public async Task ScaleInOfSeedNode_EndsSeedConnections_AndSeedReconnectsToAnotherNode()
+        public async Task ScaleInOfNodeBehindSeedEndpoint_SdkDoesNotConnectThroughSeedEndpoint()
         {
             await using var scenario = await Scenario.On(ClusterProfile.CapellaPrivateLink, nodes: 4).RealConnections().StartAsync();
             var server = scenario.Harness.Server;
-            var seeds = server.ConnectionsOn(Node0).Where(s => s.IsSeed).ToList();
-            Assert.NotEmpty(seeds);
+            var before = server.ConnectionsOn(Node0);
+            var seedRequests = server.Received.Count(r => r.Seed);
+            Assert.Equal((Node0, true), (server.Fetches[0].Host, server.Fetches[0].Seed));
+            Assert.Empty(OpenSeedConnections(server));
+            Assert.NotEmpty(before);
 
             await scenario.Unchecked(s => s.ScaleIn("node-0").Wait(TimeSpan.FromSeconds(1))).RunAsync();
 
             Assert.True(server.HasLeft(Node0));
-            Assert.All(seeds, s => Assert.True(s.IsClosed));
-            Assert.DoesNotContain(server.ConnectionsOn(Node0), s => s.IsSeed);
-            Assert.Contains(server.ConnectionsOn(Node1), s => s.IsSeed);
+            Assert.All(before, s => Assert.True(s.IsClosed));
+            Assert.Empty(OpenSeedConnections(server));
+            Assert.Equal(seedRequests, server.Received.Count(r => r.Seed));
         }
 
         [Theory]
@@ -213,6 +218,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
         private static IClusterNode SdkNode(ConfigHarness harness, string name) =>
             harness.Context.Nodes.Single(n => harness.Server.NodeAt(n.EndPoint) == name);
+
+        private static List<FakeClusterServer.Session> OpenSeedConnections(FakeClusterServer server) =>
+            new[] { Node0, Node1, Node2, Node3, Node4 }.SelectMany(server.ConnectionsOn).Where(s => s.IsSeed).ToList();
     }
 }
 
