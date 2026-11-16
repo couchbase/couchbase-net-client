@@ -996,6 +996,30 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             }
         }
 
+        // The config fetch sends here. Its token must reach the connection, so a busy connection cannot hold it past
+        // its timeout.
+        [Fact]
+        public async Task TrySendImmediatelyAsync_PassesItsTokenToTheSend()
+        {
+            // Arrange
+
+            var pool = CreatePool();
+            await pool.InitializeAsync();
+
+            using var cts = new CancellationTokenSource();
+            var operation = new FakeOperation();
+
+            // Act
+
+            var sentImmediately = await pool.TrySendImmediatelyAsync(operation, cts.Token);
+
+            // Assert
+
+            Assert.True(sentImmediately);
+            cts.Cancel();
+            Assert.True(operation.SendToken.IsCancellationRequested, "The send did not get the caller's token.");
+        }
+
         [Fact]
         public async Task SelectBucketAsync_NoLiveConnections_NamesTheRequestedBucket()
         {
@@ -1197,10 +1221,13 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public Action<IConnection> SendComplete { get; set; }
 
+            public CancellationToken SendToken { get; private set; }
+
             public override OpCode OpCode => OpCode.NoOp;
 
             public override async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
+                SendToken = cancellationToken;
                 SendStarted?.Invoke(connection);
 
                 if (Delay > TimeSpan.Zero)
