@@ -474,10 +474,10 @@ namespace Couchbase.Core
             RecomputeClusterFeatureSupport();
         }
 
-        public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint)
+        public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint, NodeAdapter nodeAdapter = null)
         {
             return Nodes.FirstOrDefault(
-                x => !x.IsAssigned && x.EndPoint.Equals(endpoint));
+                x => !x.IsAssigned && ClusterNodeList.IsNodeOf(x, endpoint, nodeAdapter));
         }
 
         public async Task BootstrapGlobalAsync(CancellationToken cancellationToken = default)
@@ -612,6 +612,7 @@ namespace Couchbase.Core
                     {
                         //Server is 6.5 and greater and supports GC3P so loop through the global config and
                         //create the nodes that are not associated with any buckets via Select Bucket.
+                        var seedMatched = false;
                         foreach (var nodeAdapter in
                                  GlobalConfig.GetNodes()) //Initialize cluster nodes for global services
                         {
@@ -619,8 +620,9 @@ namespace Couchbase.Core
                             _logger.LogInformation(nodeAdapter.ToString());
 
                             var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                            if (server.Host.Equals(hostEndpoint.Host) && node != null) //this is the bootstrap node so update
+                            if (!seedMatched && node != null && ClusterNodeList.IsNodeOf(node, hostEndpoint, nodeAdapter)) //this is the bootstrap node so update
                             {
+                                seedMatched = true;
                                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
                                     _redactor.SystemData(hostEndpoint.ToString()));
 
@@ -647,6 +649,14 @@ namespace Couchbase.Core
 
                                 AddNode(newNode);
                             }
+                        }
+
+                        if (!seedMatched && node != null)
+                        {
+                            //No map node has the seed address, as with a Private Link endpoint or an IP seed.
+                            _logger.LogInformation("Bootstrapping: removing seed node [{node}], as no map node has its address.",
+                                _redactor.SystemData(server.ToString()));
+                            RemoveNode(node);
                         }
 
                         return;
@@ -1035,7 +1045,7 @@ namespace Couchbase.Core
                     _logger.LogInformation(nodeAdapter.ToString());
 
                     var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                    if (Nodes.TryGet(endPoint, config.Name, out clusterNode))
+                    if (Nodes.TryGet(endPoint, nodeAdapter, config.Name, out clusterNode))
                     {
                         clusterNode.NodesAdapter = nodeAdapter;
                         if (clusterNode.Owner == null && bucket.BucketType != BucketType.Memcached)
@@ -1053,7 +1063,7 @@ namespace Couchbase.Core
                             continue;
                         }
 
-                        clusterNode = GetUnassignedNode(endPoint);
+                        clusterNode = GetUnassignedNode(endPoint, nodeAdapter);
                         if (clusterNode != null)
                         {
                             clusterNode.NodesAdapter = nodeAdapter;
@@ -1068,7 +1078,7 @@ namespace Couchbase.Core
                     }
 
                     //If the node already exists for the endpoint, ignore it.
-                    if (Nodes.TryGet(endPoint, config.Name, out clusterNode))
+                    if (Nodes.TryGet(endPoint, nodeAdapter, config.Name, out clusterNode))
                     {
                         _logger.LogDebug(
                             "The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.",
@@ -1077,7 +1087,7 @@ namespace Couchbase.Core
                         continue;
                     }
 
-                    clusterNode = GetUnassignedNode(endPoint);
+                    clusterNode = GetUnassignedNode(endPoint, nodeAdapter);
                     if (clusterNode != null)
                     {
                         clusterNode.NodesAdapter = nodeAdapter;
@@ -1123,14 +1133,15 @@ namespace Couchbase.Core
 
         public void PruneNodes(BucketConfig config)
         {
-            var existingEndpoints = config.GetNodes()
+            var mapNodes = config.GetNodes();
+            var existingEndpoints = mapNodes
                 .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
                 .ToList();
 
             _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision} from {bucket}.", existingEndpoints, config.Rev, config.Name);
 
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y)))
+                !IsInMap(x, mapNodes, existingEndpoints)
                 && x.Owner != null && x.Owner.Name == config.Name);
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
@@ -1143,7 +1154,8 @@ namespace Couchbase.Core
 
         private void PruneGlobalNodes(BucketConfig config)
         {
-            var existingEndpoints = config.GetNodes()
+            var mapNodes = config.GetNodes();
+            var existingEndpoints = mapNodes
                 .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
                 .ToList();
 
@@ -1151,7 +1163,7 @@ namespace Couchbase.Core
 
             //The global nodes have no IBucket owner and are named "CLUSTER"
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Host.Equals(y.Host)))
+                !IsInMap(x, mapNodes, existingEndpoints)
                 && x.Owner == null && config.Name == Name);
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
@@ -1160,6 +1172,19 @@ namespace Couchbase.Core
             {
                 RemoveNode(node);
             }
+        }
+
+        private static bool IsInMap(IClusterNode node, List<NodeAdapter> mapNodes, List<HostEndpointWithPort> endPoints)
+        {
+            for (var i = 0; i < mapNodes.Count; i++)
+            {
+                if (ClusterNodeList.IsNodeOf(node, endPoints[i], mapNodes[i]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public async Task ConfigUpdatedAsync(BucketConfig globalConfig)
@@ -1199,7 +1224,7 @@ namespace Couchbase.Core
                     foreach (var nodeAdapter in globalConfig.GetNodes())
                     {
                         var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                        if (!Nodes.TryGetByHostname(endPoint.Host, out IClusterNode existingNode))
+                        if (!Nodes.TryGet(endPoint, nodeAdapter, out IClusterNode existingNode))
                         {
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(endPoint, nodeAdapter,
