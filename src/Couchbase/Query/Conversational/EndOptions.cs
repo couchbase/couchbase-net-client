@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -23,6 +24,17 @@ public sealed class EndOptions
     public EndOptions Timeout(TimeSpan timeout)
     {
         QueryOptions.Timeout(timeout);
+        return this;
+    }
+
+    /// <summary>
+    /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for this request.
+    /// </summary>
+    /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for this request.</param>
+    /// <returns>An <see cref="EndOptions"/> instance for chaining.</returns>
+    public EndOptions RetryStrategy(IRetryStrategy retryStrategy)
+    {
+        QueryOptions.RetryStrategy(retryStrategy);
         return this;
     }
 

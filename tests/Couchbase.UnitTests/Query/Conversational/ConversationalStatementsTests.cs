@@ -135,6 +135,19 @@ public class ConversationalStatementsTests
     }
 
     [Fact]
+    public void BeginChat_KeyspacesOnly_OmitsUnsetFields()
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + "}", ConversationalStatements.BeginChat(Hotel));
+    }
+
+    [Fact]
+    public void BeginChat_KnowledgeFalse_IsSent()
+    {
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
+            ConversationalStatements.BeginChat(Hotel, knowledge: false));
+    }
+
+    [Fact]
     public void BeginChat_KnowledgeAndTimeout_KeepsFieldOrder()
     {
         Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":true,\"timeout\":1800}",
@@ -148,14 +161,14 @@ public class ConversationalStatementsTests
     [InlineData(50_000_001L, 6L)]
     public void BeginChat_Timeout_RoundsUpToSeconds(long ticks, long expectedSeconds)
     {
-        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false,\"timeout\":" + expectedSeconds + "}",
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"timeout\":" + expectedSeconds + "}",
             ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.FromTicks(ticks)));
     }
 
     [Fact]
     public void BeginChat_ZeroTimeout_IsOmitted()
     {
-        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + ",\"knowledge\":false}",
+        Assert.Equal("BEGIN CHAT WITH {" + HotelJson + "}",
             ConversationalStatements.BeginChat(Hotel, timeout: TimeSpan.Zero));
     }
 

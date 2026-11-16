@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
+using Couchbase.Core.RateLimiting;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Query.Conversational;
 using Moq;
@@ -142,6 +144,22 @@ public class ChatTests
         Assert.All(context.Requests, r => Assert.Same(span, r.Options.RequestSpanValue));
     }
 
+    [Fact]
+    public async Task ChatOperations_ForwardTheRetryStrategy()
+    {
+        var context = WithNodes("uuid-a");
+        var chat = new Chat(context, ChatId, "uuid-a", Model);
+        var retryStrategy = Mock.Of<IRetryStrategy>();
+
+        (await chat.AskAsync<dynamic>("hello", new AskOptions().RetryStrategy(retryStrategy))).Dispose();
+        await chat.PauseAsync(new PauseOptions().RetryStrategy(retryStrategy));
+        await chat.ResumeAsync(new ResumeOptions().RetryStrategy(retryStrategy));
+        await chat.EndAsync(new EndOptions().RetryStrategy(retryStrategy));
+
+        Assert.Equal(4, context.Requests.Count);
+        Assert.All(context.Requests, r => Assert.Same(retryStrategy, r.Options.RetryStrategyValue));
+    }
+
     [Theory]
     [InlineData("uuid-a", "The owner node is uuid-a.")]
     [InlineData(null, "No owner node is known.")]
@@ -274,10 +292,11 @@ public class ChatTests
     [Fact]
     public async Task ResumeAsync_ResumeFailedOnRandomNode_KeepsOwner()
     {
-        var context = WithNodes("uuid-a").Throw(new TemporaryFailureException(ErrorContext(19243)));
+        var context = WithNodes("uuid-a").Throw(
+            new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, ErrorContext(19243)));
         var chat = new Chat(context, ChatId, "uuid-gone", Model);
 
-        await Assert.ThrowsAsync<TemporaryFailureException>(() => chat.ResumeAsync());
+        await Assert.ThrowsAsync<RateLimitedException>(() => chat.ResumeAsync());
 
         Assert.Equal("uuid-a", Assert.Single(context.Requests).Conversational.TargetNodeUuid);
         Assert.Equal("uuid-gone", chat.GetHandle().Owner);

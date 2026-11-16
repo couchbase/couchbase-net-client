@@ -41,7 +41,7 @@ internal static class ConversationalStatements
     }
 
     public static string BeginChat(IEnumerable<(string Bucket, string Scope, string Collection)> keyspaces,
-        bool knowledge = false, TimeSpan? timeout = null)
+        bool? knowledge = null, TimeSpan? timeout = null)
     {
         long? timeoutSeconds = null;
         if (timeout is { } value)

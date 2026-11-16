@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -178,6 +179,17 @@ public sealed class ConversationalQueryOptions
     public ConversationalQueryOptions Timeout(TimeSpan timeout)
     {
         QueryOptions.Timeout(timeout);
+        return this;
+    }
+
+    /// <summary>
+    /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for this request.
+    /// </summary>
+    /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for this request.</param>
+    /// <returns>A <see cref="ConversationalQueryOptions"/> instance for chaining.</returns>
+    public ConversationalQueryOptions RetryStrategy(IRetryStrategy retryStrategy)
+    {
+        QueryOptions.RetryStrategy(retryStrategy);
         return this;
     }
 

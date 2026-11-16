@@ -1068,14 +1068,54 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(expected, Assert.Single(tracer.Names));
         }
 
+        [Fact]
+        public async Task QueryAsync_OrdinaryQuery_SetsTheStatementOnTheRootSpan()
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var tracer = new RecordingTracer();
+            var client = CreateQueryClient(QueryNodeProvider(node, node), new List<(Uri Uri, string Body)>(),
+                new Mock<ILogger<QueryClient>>().Object, tracer, SuccessResponse);
+
+            using var result = await client.QueryAsync<dynamic>("SELECT 1", new QueryOptions());
+
+            Assert.Single(tracer.Spans)
+                .Verify(s => s.SetAttribute(OuterRequestSpans.Attributes.Statement, "SELECT 1"), Times.Once());
+        }
+
+        [Theory]
+        [InlineData(nameof(ConversationalOperation.Query))]
+        [InlineData(nameof(ConversationalOperation.BeginChat))]
+        [InlineData(nameof(ConversationalOperation.Ask))]
+        [InlineData(nameof(ConversationalOperation.Pause))]
+        [InlineData(nameof(ConversationalOperation.Resume))]
+        [InlineData(nameof(ConversationalOperation.End))]
+        public async Task QueryAsync_Conversational_DoesNotSetTheStatementOnTheRootSpan(string operation)
+        {
+            var node = QueryNode("uuid-a", "http://a:8093/query/service");
+            var tracer = new RecordingTracer();
+            var client = CreateQueryClient(QueryNodeProvider(node, node), new List<(Uri Uri, string Body)>(),
+                new Mock<ILogger<QueryClient>>().Object, tracer, SuccessResponse);
+
+            using var result = await client.QueryAsync<dynamic>("USING AI WITH {} my secret prompt",
+                new QueryOptions { Conversational = Conversational(operation) });
+
+            Assert.Single(tracer.Spans)
+                .Verify(s => s.SetAttribute(OuterRequestSpans.Attributes.Statement, It.IsAny<string>()), Times.Never());
+        }
+
         private sealed class RecordingTracer : IRequestTracer
         {
             public List<string> Names { get; } = new();
 
+            public List<Mock<IRequestSpan>> Spans { get; } = new();
+
             public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
             {
                 Names.Add(name);
-                return NoopRequestSpan.Instance;
+                var span = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+                span.SetupGet(s => s.CanWrite).Returns(true);
+                Spans.Add(span);
+                return span.Object;
             }
 
             public IRequestTracer Start(TraceListener listener) => this;

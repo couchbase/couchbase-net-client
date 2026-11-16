@@ -274,7 +274,7 @@ public class QueryResultExtensionsTests
     [InlineData(19236, nameof(ConversationalOperation.BeginChat), typeof(CouchbaseException))]
     [InlineData(19236, nameof(ConversationalOperation.Resume), typeof(CouchbaseException))]
     [InlineData(19236, nameof(ConversationalOperation.Query), typeof(CouchbaseException))]
-    [InlineData(19240, nameof(ConversationalOperation.Ask), typeof(TemporaryFailureException))]
+    [InlineData(19240, nameof(ConversationalOperation.Ask), typeof(RateLimitedException))]
     [InlineData(19241, nameof(ConversationalOperation.Query), typeof(AuthenticationFailureException))]
     [InlineData(19243, nameof(ConversationalOperation.Ask), typeof(CouchbaseException))]
     [InlineData(19255, nameof(ConversationalOperation.Ask), typeof(CouchbaseException))]
@@ -304,19 +304,20 @@ public class QueryResultExtensionsTests
     }
 
     [Fact]
-    public void Conversational_Error_19243_With_Nested_19240_Is_TemporaryFailure()
+    public void Conversational_Error_19243_With_Nested_19240_Is_RateLimited()
     {
         var errors = new List<Error> { new() { Code = 19243, Reason = new Reason { Code = 19240, Message = "busy" } } };
         var context = ConversationalContext(errors, nameof(ConversationalOperation.Ask));
 
         var ex = CreateException(errors, context);
 
-        Assert.IsType<TemporaryFailureException>(ex);
+        var rateLimited = Assert.IsType<RateLimitedException>(ex);
+        Assert.Equal(RateLimitedReason.ConcurrentRequestLimitReached, rateLimited.Reason);
         Assert.Same(context, ex.Context);
     }
 
     [Theory]
-    [InlineData(19240, 3000, typeof(TemporaryFailureException))]
+    [InlineData(19240, 3000, typeof(RateLimitedException))]
     [InlineData(3000, 19240, typeof(ParsingFailureException))]
     [InlineData(19243, 3000, typeof(CouchbaseException))]
     [InlineData(19255, 19241, typeof(CouchbaseException))]

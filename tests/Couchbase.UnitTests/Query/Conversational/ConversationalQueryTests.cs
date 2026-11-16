@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Couchbase.Query.Conversational;
@@ -69,6 +70,7 @@ public class ConversationalQueryTests
         var context = WithNodes("uuid-a");
         using var cts = new CancellationTokenSource();
         var span = Mock.Of<IRequestSpan>();
+        var retryStrategy = Mock.Of<IRetryStrategy>();
 
         using var result = await new ConversationalQuery(context).QueryAsync<dynamic>("count hotels", Hotels,
             new ConversationalQueryOptions()
@@ -80,6 +82,7 @@ public class ConversationalQueryTests
                 .Profile(QueryProfile.Timings)
                 .Timeout(TimeSpan.FromSeconds(30))
                 .Raw("max_parallelism", 3)
+                .RetryStrategy(retryStrategy)
                 .RequestSpan(span)
                 .CancellationToken(cts.Token));
 
@@ -95,6 +98,7 @@ public class ConversationalQueryTests
         Assert.Equal(3, body.GetProperty("max_parallelism").GetInt32());
         Assert.Equal(cts.Token, request.Options.Token);
         Assert.Same(span, request.Options.RequestSpanValue);
+        Assert.Same(retryStrategy, request.Options.RetryStrategyValue);
         Assert.True(request.Options.IsAdHoc);
         Assert.False(body.TryGetProperty("readonly", out _));
     }
@@ -330,6 +334,7 @@ public class ConversationalQueryTests
     {
         var context = WithNodes("uuid-a").Respond(BeginChatSuccess);
         var span = Mock.Of<IRequestSpan>();
+        var retryStrategy = Mock.Of<IRetryStrategy>();
 
         var chat = await new ConversationalQuery(context).BeginChatAsync(Hotels, new BeginChatOptions()
             .Model(new ModelOptions().Provider("openai"))
@@ -337,6 +342,7 @@ public class ConversationalQueryTests
             .InactivityTimeout(TimeSpan.FromMinutes(5))
             .UseKnowledge(true)
             .Timeout(TimeSpan.FromSeconds(10))
+            .RetryStrategy(retryStrategy)
             .RequestSpan(span));
 
         var request = Assert.Single(context.Requests);
@@ -348,6 +354,7 @@ public class ConversationalQueryTests
         Assert.Null(request.Conversational.Model);
         Assert.Equal(TimeSpan.FromSeconds(10), request.Options.TimeoutValue);
         Assert.Same(span, request.Options.RequestSpanValue);
+        Assert.Same(retryStrategy, request.Options.RetryStrategyValue);
         Assert.True(request.ResultDisposed);
         Assert.Equal(new ChatHandle(ChatId, "uuid-a"), chat.GetHandle());
     }
@@ -369,11 +376,22 @@ public class ConversationalQueryTests
     }
 
     [Fact]
-    public async Task BeginChatAsync_DefaultOptions_SendsKnowledgeFalse()
+    public async Task BeginChatAsync_DefaultOptions_OmitsKnowledge()
     {
         var context = WithNodes("uuid-a").Respond(BeginChatSuccess);
 
         await new ConversationalQuery(context).BeginChatAsync(Hotels);
+
+        Assert.Equal("""BEGIN CHAT WITH {"keyspaces":["`travel-sample`.`inventory`.`hotel`"]}""",
+            Assert.Single(context.Requests).Statement);
+    }
+
+    [Fact]
+    public async Task BeginChatAsync_UseKnowledgeFalse_SendsKnowledgeFalse()
+    {
+        var context = WithNodes("uuid-a").Respond(BeginChatSuccess);
+
+        await new ConversationalQuery(context).BeginChatAsync(Hotels, new BeginChatOptions().UseKnowledge(false));
 
         Assert.Equal("""BEGIN CHAT WITH {"keyspaces":["`travel-sample`.`inventory`.`hotel`"],"knowledge":false}""",
             Assert.Single(context.Requests).Statement);

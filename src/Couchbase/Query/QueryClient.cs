@@ -123,8 +123,13 @@ namespace Couchbase.Query
 
             using var rootSpan = RootSpan(RootSpanName(options.Conversational), options)
                 .WithOperationId(options)
-                .WithStatement(statement)
                 .WithLocalAddress();
+
+            // A conversational statement can contain the prompt, so it stays off the span.
+            if (options.Conversational is null)
+            {
+                rootSpan.WithStatement(statement);
+            }
 
             bool success = false;
             try

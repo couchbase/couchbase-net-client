@@ -159,14 +159,13 @@ namespace Couchbase.Query
             {
                 case 19220:
                 case 19221:
+                case 19240:
+                case 19243 when error.Reason?.Code == 19240:
                     return new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
                 case 19222:
                     return new FeatureNotAvailableException(context.Message ?? "Feature Not Available") { Context = context };
                 case 19236 when ChatCurrentlyUnavailableException.AppliesTo(context.Conversational.Operation):
                     return new ChatCurrentlyUnavailableException(context.Conversational, context);
-                case 19240:
-                case 19243 when error.Reason?.Code == 19240:
-                    return new TemporaryFailureException(context);
                 case 19241:
                     return new AuthenticationFailureException(context);
                 case 19243:
