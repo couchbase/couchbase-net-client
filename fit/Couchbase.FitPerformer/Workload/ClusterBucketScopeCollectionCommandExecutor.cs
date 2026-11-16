@@ -653,6 +653,10 @@ namespace Couchbase.FitPerformer
                     await SearchHelper.ExecuteSearchQuery(op.ClusterCommand.Search, _spans, result, connection.Cluster).ConfigureAwait(false);
                     break;
                 }
+                case ClusterLevelCommand.CommandOneofCase.ConversationalQuery:
+                    await ConversationalQueryHelper.RunCommand(op.ClusterCommand.ConversationalQuery, connection, _spans,
+                        result, op.ReturnResult).ConfigureAwait(false);
+                    break;
                 case ClusterLevelCommand.CommandOneofCase.SearchV2:
                     await SearchHelper.ExecuteSearchV2Query(op.ClusterCommand.SearchV2, _spans, result,
                         connection.Cluster);

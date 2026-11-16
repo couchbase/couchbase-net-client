@@ -191,6 +191,7 @@ namespace Couchbase.FitPerformer
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkQuery2120);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkSearchScoreFusion);
                 response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkHttp400InvalidArgument);
+                response.SdkImplementationCaps.Add(Grpc.Protocol.Sdk.Caps.SdkConversationalQuery);
 
                 response.SupportedApis.Add(API.Default);
                 response.TransactionsProtocolVersion = ProtocolVersion.SupportedVersion.ToString();
