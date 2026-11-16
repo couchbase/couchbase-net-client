@@ -7,7 +7,7 @@
     <!-- The performer is built against the SDK in this same repository.
          Match the SDK's modern target frameworks. The Dockerfile selects a
          single framework at publish time via -f net<DOTNET_VERSION>. -->
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

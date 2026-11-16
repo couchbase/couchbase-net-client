@@ -68,6 +68,12 @@
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
+  <!-- Warn .NETCoreApp consumers below net10.0 that they get the netstandard2.1 build (NCBC-4359) -->
+  <ItemGroup>
+    <None Include="buildTransitive\netcoreapp2.0\CouchbaseNetClient.targets" Pack="true" PackagePath="buildTransitive\netcoreapp2.0\" Visible="false" />
+    <None Include="buildTransitive\_._" Pack="true" PackagePath="buildTransitive\net10.0\" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
   </ItemGroup>

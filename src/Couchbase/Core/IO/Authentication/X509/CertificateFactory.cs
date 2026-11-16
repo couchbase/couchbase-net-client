@@ -85,7 +85,7 @@ namespace Couchbase.Core.IO.Authentication.X509
         /// This in-memory certificate does not work on .NET Framework (legacy) clients.
         /// </remarks>
         [InterfaceStability(Level.Volatile)]
-        #if NETSTANDARD2_0 || NETSTANDARD2_1 || NET8_0
+        #if NETSTANDARD2_0 || NETSTANDARD2_1
          internal static readonly X509Certificate2 CapellaCaCert = new X509Certificate2(
               rawData: CapellaCaCertPem.ToArray(),
               password: (string?)null);

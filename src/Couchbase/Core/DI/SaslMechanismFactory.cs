@@ -103,7 +103,7 @@ namespace Couchbase.Core.DI
                     "SCRAM-SHA-1 is disabled on .NET 8+ (NIST SP 800-131A Rev 2); enable SCRAM-SHA-256 or " +
                     "SCRAM-SHA-512 on Couchbase Server.");
 #else
-                    "Ensure SCRAM-SHA-1 is enabled on Couchbase Server, or run on .NET 8+ for SCRAM-SHA-256/512.");
+                    "Ensure SCRAM-SHA-1 is enabled on Couchbase Server, or run on .NET 10 or later for SCRAM-SHA-256/512.");
 #endif
             }
 

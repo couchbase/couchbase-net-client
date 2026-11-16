@@ -41,7 +41,7 @@ jobs:
           - windows-2022
           - macos-latest    # arm64
           - macos-15-intel  # x64
-        tfm: [net8.0, net10.0]
+        tfm: [net10.0]
         # net48 is Windows-only: Directory.Build.props adds it to SdkTestTargets only on Windows.
         include:
           - os: windows-2025
@@ -59,7 +59,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
             10.0.x
           cache: false
 

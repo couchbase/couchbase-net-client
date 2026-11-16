@@ -187,7 +187,7 @@ namespace Couchbase.Core.IO.Authentication
             if (MechanismType != MechanismType.ScramSha1)
 #pragma warning restore CS0618
                 throw new NotSupportedException(
-                    $"{MechanismType} requires .NET 8 or later. Use ScramSha256 or ScramSha512 on .NET 8+.");
+                    $"{MechanismType} requires the net10.0 build of the SDK. This is a netstandard build, which is what .NET Framework and .NET versions earlier than 10 load.");
             using var bytes = new Rfc2898DeriveBytes(password, salt, iterationCount);
             return bytes.GetBytes(ShaByteLength);
 #endif

@@ -28,8 +28,8 @@
     <!-- EXEs must target at least one specific framework -->
     <NetStandardTargets>netstandard2.0;netstandard2.1</NetStandardTargets>
 
-    <!-- If you need to build with Visual Studio < 2022, remove net6.0 -->
-    <NetModernTargets>net8.0;net10.0</NetModernTargets>
+    <!-- net8.0 was dropped in 3.11.0 after its 2026-11-10 end of support (NCBC-4359) -->
+    <NetModernTargets>net10.0</NetModernTargets>
     <NetSpecificTargets>$(NetModernTargets)</NetSpecificTargets>
 
     <!-- For the main SDK, we should run tests on .NET 4.8 when possible -->

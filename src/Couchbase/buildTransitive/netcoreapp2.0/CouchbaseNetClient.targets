@@ -1,0 +1,13 @@
+<Project InitialTargets="CouchbaseNetClient_WarnUnsupportedTargetFramework">
+  <!--
+    NuGet selects this file only for .NETCoreApp targets earlier than net10.0. Those apps load the
+    netstandard2.1 build of the SDK, which does not have the features that need the net10.0 build
+    (for example, SCRAM-SHA-256/512 over non-TLS connections). net10.0 and later select the empty
+    buildTransitive/net10.0 folder instead, so they see no warning. This follows the pattern in the
+    Microsoft.Extensions.* packages, including the SuppressTfmSupportBuildWarnings opt-out.
+  -->
+  <Target Name="CouchbaseNetClient_WarnUnsupportedTargetFramework"
+          Condition="'$(SuppressTfmSupportBuildWarnings)' == ''">
+    <Warning Text="CouchbaseNetClient does not support $(TargetFramework). It uses the netstandard2.1 build, which does not have all features (for example, SCRAM-SHA-256/512 over non-TLS connections). Change your TargetFramework to net10.0 or later. To ignore this warning and use this unsupported configuration at your own risk, set &lt;SuppressTfmSupportBuildWarnings&gt;true&lt;/SuppressTfmSupportBuildWarnings&gt; in the project file." />
+  </Target>
+</Project>

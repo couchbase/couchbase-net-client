@@ -47,13 +47,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="Serilog.Extensions.Logging.File" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))" />
     <PackageReference Include="xunit" />
     <PackageReference Include="Xunit.Repeat" />
     <PackageReference Include="xunit.runner.visualstudio">

@@ -242,7 +242,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
             10.0.x
           cache: false
 
@@ -251,9 +250,6 @@ jobs:
 
       - name: Build (Release)
         run: dotnet build couchbase-net-client.sln --configuration Release /p:Version=${{ needs.validate-inputs.outputs.version }}
-
-      - name: Test - Couchbase.UnitTests (net8.0)
-        run: dotnet test tests/Couchbase.UnitTests/Couchbase.UnitTests.csproj --configuration Release --framework net8.0 --no-build --logger "trx;LogFileName=unit-tests-net8.0.trx" --results-directory "TestResults"
 
       - name: Test - Couchbase.UnitTests (net10.0)
         if: ${{ !cancelled() }}
@@ -308,7 +304,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
             10.0.x
           cache: false
 
