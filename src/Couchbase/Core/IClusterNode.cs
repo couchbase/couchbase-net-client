@@ -66,7 +66,15 @@ namespace Couchbase.Core
         /// <param name="cancellationToken">The cancellation token.</param>
         Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default);
 
-        Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Fetches the config of the selected bucket, or the cluster config when no bucket is selected.
+        /// </summary>
+        /// <param name="latestVersionOnClient">The version the client has. A server that supports it then returns a config only when it has a newer one.</param>
+        /// <param name="timeout">The timeout of the fetch. It is <see cref="ClusterOptions.KvTimeout"/> when null.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The config, or null when the server has nothing newer than <paramref name="latestVersionOnClient"/>.</returns>
+        Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, TimeSpan? timeout = default,
+            CancellationToken cancellationToken = default);
 
         Task<ResponseStatus> ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default);
 

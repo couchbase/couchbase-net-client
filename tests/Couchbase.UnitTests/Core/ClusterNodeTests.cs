@@ -1,15 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Test.Common.Utils;
+using Couchbase.UnitTests.Helpers;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,6 +28,9 @@ namespace Couchbase.UnitTests.Core
 {
     public class ClusterNodeTests
     {
+        // Bounds each wait, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
         private readonly ITestOutputHelper outputHelper;
 
         public ClusterNodeTests(ITestOutputHelper outputHelper)
@@ -179,6 +192,135 @@ namespace Couchbase.UnitTests.Core
                 l => l.Log(LogLevel.Warning, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task ClusterMapChangeNotification_OnANodeNoBucketOwns_RefreshesTheClusterConfig()
+        {
+            // A brief push of version 1/1102.
+            byte[] briefPush =
+            {
+                130, 1, 0, 0, 16, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 4, 78
+            };
+            using var context = CreateContextWithoutPolling();
+            var fetched = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var globalNode = MockKvNode(owner: null, onFetch: () => fetched.TrySetResult(true));
+            context.AddNode(globalNode.Object);
+            context.GlobalConfigRefresher.Start();
+            using var clusterNode = CreateClusterNode(context, new Mock<IConnectionPool>().Object);
+
+            clusterNode.HandleClusterMapChangeNotification(
+                new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(new Memory<byte>(briefPush))));
+
+            await fetched.Task.WaitAsync(Deadline);
+        }
+
+        [Fact]
+        public async Task NotMyVBucket_WithNoConfig_FetchesNothing()
+        {
+            // Like the Java SDK, the op retries and the config comes from a push or a poll.
+            using var context = CreateContextWithoutPolling();
+            using var bucket = new CouchbaseBucket("default", context, new Mock<IScopeFactory>().Object,
+                new Mock<IRetryOrchestrator>().Object, new Mock<IVBucketKeyMapperFactory>().Object,
+                new Mock<ILogger<CouchbaseBucket>>().Object, new Redactor(RedactionLevel.None),
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object, new BestEffortRetryStrategy(), new BucketConfig(),
+                context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
+            var bucketNode = MockKvNode(owner: bucket, onFetch: () => { });
+            bucket.Nodes.Add(bucketNode.Object);
+            bucket.ConfigRefresher.Start();
+
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(p => p.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((IOperation op, CancellationToken _) =>
+                {
+                    op.HandleOperationCompleted(
+                        AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.VBucketBelongsToAnotherServer));
+                    return Task.CompletedTask;
+                });
+            using var clusterNode = CreateClusterNode(context, pool.Object);
+            clusterNode.Owner = bucket;
+
+            using var op = new Get<object> { Key = "key" };
+            Assert.Equal(ResponseStatus.VBucketBelongsToAnotherServer, await clusterNode.SendAsync(op));
+
+            pool.Verify(p => p.TrySendImmediatelyAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()), Times.Never);
+            bucketNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task GetClusterMap_WithAFailedStatus_Throws()
+        {
+            // A null config means the server has nothing newer, so a failure must not return one.
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(p => p.TrySendImmediatelyAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((IOperation op, CancellationToken _) =>
+                {
+                    op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
+                    return Task.FromResult(true);
+                });
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            using var clusterNode = CreateClusterNode(context, pool.Object);
+
+            await Assert.ThrowsAsync<TemporaryFailureException>(() => clusterNode.GetClusterMap());
+        }
+
+        [Fact]
+        public async Task GetClusterMap_WithATimeout_TimesOutAfterItAndNotAfterKvTimeout()
+        {
+            // The node never replies.
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(p => p.TrySendImmediatelyAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.KvTimeout = TimeSpan.FromHours(1);
+            using var context = new ClusterContext(null, options);
+            using var clusterNode = CreateClusterNode(context, pool.Object);
+
+            await Assert.ThrowsAsync<UnambiguousTimeoutException>(() =>
+                clusterNode.GetClusterMap(timeout: TimeSpan.FromMilliseconds(50)).WaitAsync(Deadline));
+        }
+
+        private static ClusterContext CreateContextWithoutPolling()
+        {
+            // With no polling, only the event under test makes a refresher fetch.
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.EnableConfigPolling = false;
+            return new ClusterContext(null, options);
+        }
+
+        private static Mock<IClusterNode> MockKvNode(IBucket owner, Action onFetch)
+        {
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+            node.SetupGet(x => x.HasKv).Returns(true);
+            node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+            node.SetupProperty(x => x.Owner, owner);
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .Callback(onFetch)
+                .ReturnsAsync((BucketConfig)null);
+            return node;
+        }
+
+        private ClusterNode CreateClusterNode(ClusterContext context, IConnectionPool connectionPool)
+        {
+            var connectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            connectionPoolFactory.Setup(m => m.Create(It.IsAny<ClusterNode>())).Returns(connectionPool);
+
+            return new ClusterNode(
+                context: context,
+                connectionPoolFactory: connectionPoolFactory.Object,
+                logger: new Logger<ClusterNode>(new TestOutputLoggerFactory(outputHelper)),
+                operationBuilderPool: new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                circuitBreaker: new CircuitBreaker(new FakeTimeProvider(), new CircuitBreakerConfiguration { Enabled = false }),
+                saslMechanismFactory: new Mock<ISaslMechanismFactory>().Object,
+                redactor: new Redactor(RedactionLevel.None),
+                endPoint: new HostEndpointWithPort("localhost", 11210),
+                nodeAdapter: new NodeAdapter { Hostname = "localhost" },
+                tracer: NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object);
         }
 
         private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost",

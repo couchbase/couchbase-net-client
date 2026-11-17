@@ -1,8 +1,10 @@
 namespace Couchbase.Core.Configuration.Server;
 
-internal interface IConfigPushHandlerFactory
+internal interface IConfigRefresherFactory
 {
-    ConfigPushHandler Create(CouchbaseBucket bucket, ClusterContext clusterContext);
+    BucketConfigRefresher CreateBucketRefresher(BucketBase bucket);
+
+    GlobalConfigRefresher CreateGlobalRefresher(ClusterContext context);
 }
 
 /* ************************************************************

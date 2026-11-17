@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Diagnostics;
@@ -35,7 +37,7 @@ namespace Couchbase.UnitTests
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 new BucketConfig(),
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
 
             bucket.Scope("doesnotexist");
             await bucket.ScopeAsync("doesnotexist");
@@ -70,6 +72,23 @@ namespace Couchbase.UnitTests
                 bucket.WaitUntilReadyAsync(TimeSpan.FromMilliseconds(100)));
         }
 
+        [Fact]
+        public async Task ForceConfigUpdateAsync_WhenTheFetchFails_DoesNotThrow()
+        {
+            // Best effort, so the operation that asked for it goes on to its retry.
+            var bucket = CreateBucket();
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(x => x.HasKv).Returns(true);
+            node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new TemporaryFailureException());
+            bucket.Nodes.Add(node.Object);
+
+            await bucket.ForceConfigUpdateAsync();
+
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()));
+        }
+
         private static CouchbaseBucket CreateBucket() => CreateBucket(new BucketConfig());
 
         private static CouchbaseBucket CreateBucket(BucketConfig config) =>
@@ -85,6 +104,6 @@ namespace Couchbase.UnitTests
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy(),
                 config,
-                new Mock<IConfigPushHandlerFactory>().Object);
+                new Mock<IConfigRefresherFactory>().Object);
     }
 }
