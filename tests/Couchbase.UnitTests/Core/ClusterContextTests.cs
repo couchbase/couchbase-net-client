@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -757,6 +758,7 @@ namespace Couchbase.UnitTests.Core
 
         private const string GlobalHost1 = "10.112.192.101";
         private const string GlobalHost2 = "10.112.192.102";
+        private const string GlobalHost3 = "10.112.192.103";
 
         [Fact]
         public async Task ConfigUpdatedAsync_NewerConfigWithSameNodes_ReplacesGlobalConfig()
@@ -848,6 +850,42 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(NetworkResolution.External, context.ClusterOptions.EffectiveNetworkResolution);
         }
 
+        [Fact]
+        public async Task ConfigUpdatedAsync_NewNodeFailsToConnect_KeepsOldConfigUntilRetrySucceeds()
+        {
+            var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            var current = CreateGlobalConfig(10, vectorSearch: false, GlobalHost1);
+            using var context = CreateContextWithGlobalConfig(current, nodeFactory: nodeFactory.Object);
+
+            // Nodes connect in NodesExt order, so node A is added before node B fails.
+            var incoming = CreateGlobalConfig(11, vectorSearch: false, GlobalHost1, GlobalHost2);
+            // Node B has its own host, so it never matches an existing node.
+            incoming.NodesExt.Add(new NodesExt { Hostname = GlobalHost3, Services = new Services { Kv = 11210 } });
+
+            var endPointA = new HostEndpointWithPort(GlobalHost2, 11210);
+            var endPointB = new HostEndpointWithPort(GlobalHost3, 11210);
+            nodeFactory.Setup(f => f.CreateAndConnectAsync(endPointA, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateGlobalNode(GlobalHost2));
+            nodeFactory.Setup(f => f.CreateAndConnectAsync(endPointB, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new SocketException((int)SocketError.ConnectionRefused));
+
+            await Assert.ThrowsAsync<SocketException>(() => context.ConfigUpdatedAsync(incoming));
+
+            Assert.Same(current, context.GlobalConfig);
+            Assert.Contains(context.Nodes, node => node.EndPoint.Host == GlobalHost2);
+
+            nodeFactory.Setup(f => f.CreateAndConnectAsync(endPointB, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateGlobalNode(GlobalHost3));
+
+            await context.ConfigUpdatedAsync(incoming);
+
+            Assert.Same(incoming, context.GlobalConfig);
+            Assert.Equal(new[] { GlobalHost1, GlobalHost2, GlobalHost3 },
+                context.Nodes.Select(node => node.EndPoint.Host).OrderBy(host => host));
+            nodeFactory.Verify(f => f.CreateAndConnectAsync(endPointA, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
         private static void AddExternalAddress(BucketConfig config, string host)
         {
             // Same host as the internal address, so the existing node is still found by host name.
@@ -888,12 +926,12 @@ namespace Couchbase.UnitTests.Core
         }
 
         private static ClusterContext CreateContextWithGlobalConfig(BucketConfig globalConfig,
-            string networkResolution = NetworkResolution.Auto)
+            string networkResolution = NetworkResolution.Auto, IClusterNodeFactory nodeFactory = null)
         {
             var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             options.NetworkResolution = networkResolution;
-            // Strict, so a test that reaches the new node path fails instead of trying to connect.
-            options.AddClusterService<IClusterNodeFactory>(new Mock<IClusterNodeFactory>(MockBehavior.Strict).Object);
+            // Strict by default, so a test that reaches the new node path fails instead of trying to connect.
+            options.AddClusterService<IClusterNodeFactory>(nodeFactory ?? new Mock<IClusterNodeFactory>(MockBehavior.Strict).Object);
             var context = new ClusterContext(new CancellationTokenSource(), options);
 
             globalConfig.SetEffectiveNetworkResolution(options);
