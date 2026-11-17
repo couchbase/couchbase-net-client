@@ -173,13 +173,11 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Skip dead connections: sending on one fails without waking its processor, so it is never replaced.
             IConnection? connection = GetConnectionsCore().RandomOrDefault(static c => !c.IsDead);
             if (connection is null)
             {
-                // Fallback to sending via the queue if no connections are available
-                await SendAsync(op, cancellationToken).ConfigureAwait(false);
-                return false;
+                // A queued send can wait in a queue that no processor reads, so fail at once and let the caller retry.
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(ChannelConnectionPool));
             }
 
             // Unlike the queue, pass the token, so the send stops waiting for a busy connection when it fires.

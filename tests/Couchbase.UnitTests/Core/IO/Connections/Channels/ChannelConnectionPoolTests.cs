@@ -940,13 +940,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             }
         }
 
-        // NCBC-4372: TrySendImmediatelyAsync (used for config fetches) sent on a dead connection. That failed
-        // without queuing anything, so the dead connection's processor never woke and it was never replaced.
+        // TrySendImmediatelyAsync (used for config fetches) never sends on a dead connection. With no live connection it
+        // fails at once. The pool replaces the dead connections without any traffic.
         [Fact]
-        public async Task TrySendImmediatelyAsync_AllConnectionsDead_FallsBackToTheQueue()
+        public async Task TrySendImmediatelyAsync_AllConnectionsDead_ThrowsAndReplacesThem()
         {
             // Arrange
 
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var connections = new List<ControllableConnection>();
             var replacementsCreated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var connectionFactory = new Mock<IConnectionFactory>();
@@ -972,28 +973,94 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             pool.MaximumSize = 2;
             await pool.InitializeAsync();
 
-            // Dead, but their close was never signalled, so their processors are still waiting.
             var dead = connections.ToList();
-            dead.ForEach(c => c.MarkDeadSilently());
-
             var sentOn = new ConcurrentBag<IConnection>();
             var operation = new FakeOperation { SendStarted = sentOn.Add };
 
             // Act
 
-            var sentImmediately = await pool.TrySendImmediatelyAsync(operation);
+            // The frozen pool cannot replace the connections yet, so the send finds only dead ones.
+            Task<bool> send;
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                dead.ForEach(c => c.CloseFromServer());
+                send = pool.TrySendImmediatelyAsync(operation);
+            }
 
             // Assert
 
-            Assert.False(sentImmediately);
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => send.WaitAsync(deadline.Token));
+            Assert.Equal(0, pool.PendingSends);
             Assert.DoesNotContain(sentOn, c => dead.Any(d => d.Object == c));
 
-            // The queued operation wakes both processors, which replace their dead connections.
-            await replacementsCreated.Task;
-            await using (await pool.FreezePoolAsync())
+            // Both processors leave once their connections die, and the pool replaces the connections.
+            await replacementsCreated.Task.WaitAsync(deadline.Token);
+            await using (await pool.FreezePoolAsync(deadline.Token))
             {
                 Assert.All(pool.GetConnections(), c => Assert.DoesNotContain(dead, d => d.Object == c));
             }
+        }
+
+        // A node that left the cluster closes its connections and every reconnect fails, so the pool has no processor
+        // to read its queue. A config fetch must fail at once, so its caller can try another node.
+        [Fact]
+        public async Task TrySendImmediatelyAsync_NoProcessorLeft_ThrowsAtOnceWithoutQueueing()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var connections = new List<ControllableConnection>();
+            var reconnects = 0;
+            var reconnectsFailed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    lock (connections)
+                    {
+                        if (connections.Count < 2)
+                        {
+                            var connection = new ControllableConnection();
+                            connections.Add(connection);
+                            return Task.FromResult(connection.Object);
+                        }
+                    }
+
+                    // The first removal tries one replacement and the second tries two.
+                    if (Interlocked.Increment(ref reconnects) == 3)
+                    {
+                        reconnectsFailed.TrySetResult(true);
+                    }
+
+                    return Task.FromException<IConnection>(new SocketException((int) SocketError.ConnectionRefused));
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync();
+
+            connections.ForEach(c => c.CloseFromServer());
+            await reconnectsFailed.Task.WaitAsync(deadline.Token);
+
+            var operation = new FakeOperation();
+
+            // Act
+
+            // Reconnects hold the pool lock while they connect, so the send must not wait for it.
+            Task<bool> send;
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(0, pool.Size);
+                send = pool.TrySendImmediatelyAsync(operation);
+            }
+
+            // Assert
+
+            Assert.True(send.IsCompleted, "The send waited instead of failing at once.");
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => send);
+            Assert.Equal(0, pool.PendingSends);
         }
 
         // The config fetch sends here. Its token must reach the connection, so a busy connection cannot hold it past
@@ -1152,8 +1219,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         }
 
         /// <summary>
-        /// A connection whose death the test controls: either signalled, as when the server closes the socket,
-        /// or silent, as for a connection that died before <see cref="IConnection.ClosedToken"/> fired.
+        /// A connection whose death the test controls: either signalled through <see cref="IConnection.ClosedToken"/>,
+        /// as a real connection does, or silent, so its processor keeps waiting and the pool keeps it.
         /// </summary>
         private sealed class ControllableConnection
         {
