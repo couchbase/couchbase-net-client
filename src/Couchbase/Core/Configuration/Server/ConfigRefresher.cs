@@ -34,6 +34,9 @@ internal abstract partial class ConfigRefresher : IDisposable
     // Delay rejects a longer sleep on .NET Framework. A loop with nothing due wakes up and sleeps again.
     internal static readonly TimeSpan MaxSleep = TimeSpan.FromMilliseconds(int.MaxValue);
 
+    // The wait after an unexpected error when the poll interval is zero or less. It is the default poll interval.
+    internal static readonly TimeSpan DefaultErrorDelay = TimeSpan.FromSeconds(2.5);
+
     private readonly ILogger _logger;
     private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _disposeSource = new();
@@ -203,14 +206,18 @@ internal abstract partial class ConfigRefresher : IDisposable
             while (true)
             {
                 token.ThrowIfCancellationRequested();
+                var wakeUp = RenewWakeUp();
                 try
                 {
-                    await RunOnceAsync(token).ConfigureAwait(false);
+                    await RunOnceAsync(wakeUp, token).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ex is not DocumentNotFoundException && !token.IsCancellationRequested)
                 {
-                    // The loop must go on, or the config stops updating.
+                    // The loop must go on. The wait stops a repeated error from spinning it.
                     LogRefreshFailed(ex, Redactor.SystemData(Name));
+                    var pollInterval = Context.ClusterOptions.ConfigPollInterval;
+                    var delay = pollInterval > TimeSpan.Zero ? pollInterval : DefaultErrorDelay;
+                    await SleepAsync(wakeUp, delay, token).ConfigureAwait(false);
                 }
             }
         }
@@ -229,9 +236,8 @@ internal abstract partial class ConfigRefresher : IDisposable
     /// <summary>
     /// Sleeps until the next fetch is due or a request comes, or runs one fetch pass.
     /// </summary>
-    private async Task RunOnceAsync(CancellationToken token)
+    private async Task RunOnceAsync(Task wakeUp, CancellationToken token)
     {
-        var wakeUp = RenewWakeUp();
         var latestPushedVersion = GetLatestPushedVersion();
         var currentVersion = CurrentVersion;
         var pendingVersion = GetPendingVersion(latestPushedVersion, currentVersion);

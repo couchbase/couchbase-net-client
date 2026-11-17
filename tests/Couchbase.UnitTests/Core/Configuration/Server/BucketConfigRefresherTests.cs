@@ -895,6 +895,35 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, streaming.Count);
     }
 
+    [Theory]
+    [InlineData(10000, 10000)]
+    [InlineData(0, 2500)] // Polling off, so the default poll interval
+    public async Task Loop_WhenAPassKeepsThrowing_WaitsBeforeTheNextPass(int pollIntervalMs, int delayMs)
+    {
+        // Each pass throws before it sets a retry delay, so the push stays due.
+        var clock = new SteppableClock();
+        var delay = TimeSpan.FromMilliseconds(delayMs);
+        var bucket = CreateBucketMock(initialConfig: Version(2),
+            configure: options => options.ConfigPollInterval = TimeSpan.FromMilliseconds(pollIntervalMs));
+        using var context = bucket.Context;
+        var passes = new AsyncCounter();
+        AddNode(bucket, "node-0", push: true).SetupGet(x => x.HasKv)
+            .Callback(() => passes.Increment())
+            .Throws(new InvalidOperationException("boom"));
+        using var refresher = CreateRefresher(bucket, clock);
+
+        // Before the start, so the push cannot end the first wait.
+        refresher.RequestRefresh(Version(3).ConfigVersion);
+        refresher.Start();
+
+        await clock.WaitForSleepAsync(delay).WaitAsync(Deadline);
+        Assert.Equal(1, passes.Count);
+
+        clock.Advance(delay);
+        await clock.WaitForSleepAsync(delay).WaitAsync(Deadline);
+        Assert.Equal(2, passes.Count);
+    }
+
     /// <summary>
     /// Steps the clock through the first <paramref name="retries"/> retries of a pushed version.
     /// </summary>
