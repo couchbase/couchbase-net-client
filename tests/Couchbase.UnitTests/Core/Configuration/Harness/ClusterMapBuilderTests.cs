@@ -207,7 +207,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.All(after.VBucketServerMap.VBucketMap, entry => Assert.Equal(1, entry[0] + entry[1]));
             Assert.Equal([512, 512], ActiveCopiesPerServer(after));
             Assert.True(after.HasClusterNodesChanged(before));
-            Assert.True(after.HasVBucketMapChanged(before, out _));
+            Assert.True(after.HasVBucketMapChanged(before));
             Assert.Throws<ArgumentException>(() => builder.RemoveNode("missing.example.com"));
         }
 

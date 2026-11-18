@@ -52,7 +52,7 @@ namespace Couchbase.LoadTests.Core.Configuration
         public bool HasClusterNodesChanged() => _incoming.HasClusterNodesChanged(_current);
 
         [Benchmark]
-        public bool HasVBucketMapChanged() => _incoming.HasVBucketMapChanged(_current, out _);
+        public bool HasVBucketMapChanged() => _incoming.HasVBucketMapChanged(_current);
     }
 
     /// <summary>
