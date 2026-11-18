@@ -484,6 +484,43 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
                 "The bucket taking rev 11");
         }
 
+        // NCBC-4417
+        // Before 7.6.2 the server sends the map of a new bucket before it places the vbuckets, so for about a second
+        // vBucketMap is empty (MB-60405). A DNS SRV rebootstrap forces the map on the bucket with IgnoreRev.
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task BucketMap_WithEmptyVBucketMap_IsDroppedUntilAMapArrives(bool ignoreRev)
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            var bucket = await harness.OpenBucketAsync(BucketMap());
+            var keyMapper = bucket.KeyMapper;
+
+            var empty = BucketMap(11).Node("node-3.example.com").VBuckets(0).Build();
+            if (ignoreRev)
+            {
+                empty.IgnoreRev = true;
+                await harness.ApplyBucketAsync(BucketName, empty).WaitAsync(Timeout);
+            }
+            else
+            {
+                harness.Publish(empty);
+                await harness.DrainAsync().WaitAsync(Timeout);
+            }
+
+            Assert.Equal(Rev(10), harness.Bucket(BucketName).Version);
+            Assert.Same(keyMapper, bucket.KeyMapper);
+            Assert.Equal(0, harness.NodeCreationAttempts("node-3.example.com"));
+            Assert.Equal(3, harness.NodesCreated);
+
+            harness.Publish(BucketMap(12).Node("node-3.example.com"));
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            var view = harness.Bucket(BucketName);
+            Assert.Equal(Rev(12), view.Version);
+            Assert.Contains("node-3.example.com", view.Nodes);
+        }
+
         private static ClusterProfile PrivateLink => ClusterProfile.Load(ClusterProfile.CapellaPrivateLink);
 
         private static void ConnectThroughPrivateEndpoint(ClusterOptions options)
