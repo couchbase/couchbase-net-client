@@ -279,8 +279,23 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             Assert.Equal(8, salt.Length);
         }
 
-        private static ScramShaMechanism Mechanism(Vector vector) =>
-            new(vector.Mechanism, "pencil", "user",
+        [Theory]
+        [InlineData("user", "user")]
+        [InlineData("a,b=c", "a=2Cb=3Dc")]
+        [InlineData("=2C", "=3D2C")]
+        public async Task Username_Is_Sent_As_A_SaslName(string username, string expected)
+        {
+            var server = new ScriptedServer(Rfc5802Sha1.ServerFirst, "v=" + Rfc5802Sha1.ServerSignature);
+
+            // Only the client-first-message matters here; any other username fails the signature check.
+            await Record.ExceptionAsync(() =>
+                Mechanism(Rfc5802Sha1, username).AuthenticateAsync(server.Connection, CancellationToken.None));
+
+            Assert.Equal($"n,,n={expected},r={Rfc5802Sha1.ClientNonce}", server.ClientFirst);
+        }
+
+        private static ScramShaMechanism Mechanism(Vector vector, string username = "user") =>
+            new(vector.Mechanism, "pencil", username,
                 new Mock<ILogger<ScramShaMechanism>>().Object,
                 NoopRequestTracer.Instance,
                 new OperationConfigurator(new LegacyTranscoder(),
@@ -315,6 +330,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
                         }
                         else
                         {
+                            ClientFirst = ((SaslStart) op).Content;
                             op.HandleOperationCompleted(Response(OpCode.SaslStart,
                                 ResponseStatus.AuthenticationContinue, serverFirst));
                         }
@@ -325,6 +341,11 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             }
 
             public IConnection Connection { get; }
+
+            /// <summary>
+            /// The client-first-message, or null if the client never sent one.
+            /// </summary>
+            public string ClientFirst { get; private set; }
 
             /// <summary>
             /// The client-final-message, or null if the client never sent one.

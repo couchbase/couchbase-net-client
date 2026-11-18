@@ -106,7 +106,7 @@ namespace Couchbase.Core.IO.Authentication
                 // MechanismType is resolved authoritatively by SaslMechanismFactory before construction, using the
                 // server's SASL_LIST_MECHS list cached on the connection (see ClientSupportedMechanisms /
                 // TrySelectMechanism). The handshake below simply executes with the negotiated algorithm.
-                var clientFirstMessage = "n,,n=" + _username + ",r=" + ClientNonce;
+                var clientFirstMessage = "n,,n=" + EncodeSaslName(_username) + ",r=" + ClientNonce;
                 var clientFirstMessageBare = clientFirstMessage.Substring(3);
 
                 var serverFirstResult = await SaslStart(connection, clientFirstMessage, rootSpan, cancellationToken)
@@ -133,10 +133,17 @@ namespace Couchbase.Core.IO.Authentication
             }
             catch (AuthenticationFailureException e)
             {
-                Logger!.LogError(LoggingEvents.AuthenticationEvent, e, "Authentication failed.");
+                // The caller logs the failure it catches, so log at Debug here to avoid a second Error line.
+                Logger!.LogDebug(LoggingEvents.AuthenticationEvent, e, "Authentication failed.");
                 throw;
             }
         }
+
+        /// <summary>
+        /// Encodes a username as an RFC 5802 saslname: "=" becomes "=3D" and "," becomes "=2C".
+        /// </summary>
+        internal static string EncodeSaslName(string username) =>
+            username.Replace("=", "=3D").Replace(",", "=2C");
 
         /// <summary>
         /// Selects the strongest client-supported mechanism (<see cref="ClientSupportedMechanisms"/>, in
