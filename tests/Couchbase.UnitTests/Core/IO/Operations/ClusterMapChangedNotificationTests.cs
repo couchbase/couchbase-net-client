@@ -80,10 +80,9 @@ public class ClusterMapChangedNotificationTests
         var preChange = JsonConvert.DeserializeObject<BucketConfig>(preChangeJson);
         var postChange = JsonConvert.DeserializeObject<BucketConfig>(postChangeJson);
 
-        var selfCompare = postChange.HasVBucketMapChanged(postChange, out var emptyVBucketMap);
+        var selfCompare = postChange.HasVBucketMapChanged(postChange);
         Assert.False(selfCompare);
-        Assert.False(emptyVBucketMap);
 
-        Assert.True(preChange.HasVBucketMapChanged(postChange, out _));
+        Assert.True(preChange.HasVBucketMapChanged(postChange));
     }
 }

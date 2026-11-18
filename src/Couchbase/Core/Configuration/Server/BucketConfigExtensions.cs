@@ -10,18 +10,11 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal static class BucketConfigExtensions
     {
-        public static bool HasVBucketMapChanged(this BucketConfig config, BucketConfig? other, out bool emptyVBucketMap)
+        public static bool HasVBucketMapChanged(this BucketConfig config, BucketConfig? other)
         {
-            emptyVBucketMap = false;
             if (other == null)
             {
                 return true;
-            }
-
-            if (config.VBucketServerMap?.VBucketMap is null or { Length: 0})
-            {
-                emptyVBucketMap = true;
-                return false;
             }
 
             return !Equals(config.VBucketServerMap, other.VBucketServerMap);

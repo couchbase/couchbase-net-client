@@ -24,7 +24,7 @@ public class BucketConfigExtensionTests
     public void Test_HasVBucketChanged_OldConfig_IsNull()
     {
         var newConfig = new BucketConfig();
-        Assert.True(newConfig.HasVBucketMapChanged(null, out _));
+        Assert.True(newConfig.HasVBucketMapChanged(null));
     }
 
     [Fact]
@@ -49,51 +49,7 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.True(newConfig.HasVBucketMapChanged(oldConfig, out _));
-    }
-
-    [Fact]
-    public void Test_HasVBucketChanged_VBucketEmpty()
-    {
-        // MB-60405
-        var oldConfig = new BucketConfig
-        {
-            VBucketServerMap = new VBucketServerMapDto
-            {
-                VBucketMap = new[] { new short[]{1,0}, new short[]{0,1}},
-                VBucketMapForward = new[] { new short[]{1,0}, new short[]{0,1}},
-                ServerList = new []{"localhost1", "localhost2"}
-            }
-        };
-
-        {
-            var newConfig = new BucketConfig
-            {
-                VBucketServerMap = new VBucketServerMapDto
-                {
-                    VBucketMap = new short[][] { }, //changed, but empty.
-                    VBucketMapForward = new[] { new short[] { 1, 0 }, new short[] { 0, 1 } },
-                    ServerList = new[] { "localhost1", "localhost2" }
-                }
-            };
-            Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
-            Assert.True(emptyVBucketMap);
-        }
-
-        {
-            var newConfig = new BucketConfig
-            {
-                VBucketServerMap = new VBucketServerMapDto
-                {
-                    // ReSharper disable once AssignNullToNotNullAttribute
-                    VBucketMap = null, //changed, but missing.
-                    VBucketMapForward = new[] { new short[] { 1, 0 }, new short[] { 0, 1 } },
-                    ServerList = new[] { "localhost1", "localhost2" }
-                }
-            };
-            Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
-            Assert.True(emptyVBucketMap);
-        }
+        Assert.True(newConfig.HasVBucketMapChanged(oldConfig));
     }
 
     [Fact]
@@ -118,8 +74,7 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.False(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
-        Assert.False(emptyVBucketMap);
+        Assert.False(newConfig.HasVBucketMapChanged(oldConfig));
     }
 
     [Fact]
@@ -144,8 +99,7 @@ public class BucketConfigExtensionTests
                 ServerList = new []{"localhost1", "localhost2"}
             }
         };
-        Assert.True(newConfig.HasVBucketMapChanged(oldConfig, out var emptyVBucketMap));
-        Assert.False(emptyVBucketMap);
+        Assert.True(newConfig.HasVBucketMapChanged(oldConfig));
     }
 
     [Fact]
@@ -629,18 +583,18 @@ public class BucketConfigExtensionTests
 
         var bucket = CreateBucket(configA);
         Assert.Equal(configA, bucket.CurrentConfig);
-        Assert.True(configA.HasVBucketMapChanged(null, out _));
+        Assert.True(configA.HasVBucketMapChanged(null));
         Assert.True(configA.HasClusterNodesChanged(null));
 
         await bucket.ConfigUpdatedAsync(configB);
         Assert.Equal(configB, bucket.CurrentConfig);
-        Assert.True(configB.HasVBucketMapChanged(configA, out _));
+        Assert.True(configB.HasVBucketMapChanged(configA));
         Assert.True(configB.HasClusterNodesChanged(configA));
 
         await bucket.ConfigUpdatedAsync(configC);
         Assert.Equal(configC, bucket.CurrentConfig);
-        Assert.True(configC.HasVBucketMapChanged(configB, out _));
-        Assert.True(configC.HasVBucketMapChanged(configB, out _));
+        Assert.True(configC.HasVBucketMapChanged(configB));
+        Assert.True(configC.HasVBucketMapChanged(configB));
 
         // should skip a config belonging to the wrong bucket
         await bucket.ConfigUpdatedAsync(configD);
@@ -742,6 +696,31 @@ public class BucketConfigExtensionTests
         keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Theory]
+    [InlineData(3UL, false, false)]
+    [InlineData(2UL, true, false)]
+    [InlineData(3UL, false, true)]
+    public async Task ConfigUpdatedAsync_EmptyMapWithNewNode_IsDropped(ulong rev, bool ignoreRev, bool nullMap)
+    {
+        var keyMapper = new Mock<IKeyMapper>().Object;
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        keyMapperFactory.Setup(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
+            .Returns(keyMapper);
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object);
+        var current = CreateConfig(rev: 2, activeNode: 1);
+        await bucket.ConfigUpdatedAsync(current).WaitAsync(Deadline);
+        Assert.Same(keyMapper, bucket.KeyMapper);
+        keyMapperFactory.Invocations.Clear();
+
+        var incoming = CreateConfigWithEmptyMap(rev, nullMap);
+        incoming.IgnoreRev = ignoreRev;
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(current, bucket.CurrentConfig);
+        Assert.Same(keyMapper, bucket.KeyMapper);
+        keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
     /// </summary>
@@ -776,6 +755,19 @@ public class BucketConfigExtensionTests
             }
         };
         config.OnDeserialized();
+        return config;
+    }
+
+    /// <summary>
+    /// Three data nodes and no vbucket map, like the config of a new bucket on a server before 7.6.2 (MB-60405).
+    /// </summary>
+    private static BucketConfig CreateConfigWithEmptyMap(ulong rev, bool nullMap = false)
+    {
+        var config = CreateConfig(rev, activeNode: 0);
+        config.Nodes.Add(new Node { Hostname = "nodeC:8091", Ports = new Ports { Direct = 11210 } });
+        config.NodesExt.Add(new NodesExt { Hostname = "nodeC", Services = new Services { Kv = 11210 } });
+        config.VBucketServerMap.ServerList = ["nodeA:11210", "nodeB:11210", "nodeC:11210"];
+        config.VBucketServerMap.VBucketMap = nullMap ? null : [];
         return config;
     }
 
