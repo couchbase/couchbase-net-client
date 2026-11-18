@@ -104,10 +104,6 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         }
 
         /// <summary>
-        /// Immediately generates and logs any pending threshold report.
-        /// Exposed for unit testing to avoid Timer/ThreadPool scheduling dependencies.
-        /// </summary>
-        /// <summary>
         /// The range_scan and range_scan_partition spans are open for the whole scan, or the whole scan of a
         /// partition, so they would nearly always be over the KV threshold and push the slow KV operations out of the
         /// log. RFC 73 removed threshold logging for range scans. The requests of a scan (range_scan_create,
@@ -117,6 +113,10 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             operationName is OuterRequestSpans.ServiceSpan.Kv.RangeScan
                 or OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition;
 
+        /// <summary>
+        /// Immediately generates and logs any pending threshold report.
+        /// Exposed for unit testing to avoid Timer/ThreadPool scheduling dependencies.
+        /// </summary>
         internal void ForceFlush() => GenerateAndLogReport(this);
 
         public override void Dispose()
