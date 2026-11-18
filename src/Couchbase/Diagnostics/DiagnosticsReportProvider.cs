@@ -143,7 +143,7 @@ namespace Couchbase.Diagnostics
                 }
             }
 
-            foreach (var host in NewestPerEndpoint(clusterNodes))
+            foreach (var host in NewestPerNode(clusterNodes))
             {
                 if (serviceTypes.Contains(ServiceType.Query) && host.Node.HasQuery)
                 {
@@ -174,19 +174,23 @@ namespace Couchbase.Diagnostics
         }
 
         /// <summary>
-        /// One entry per host. Each open bucket owns its own copy of a node, and the copies are refreshed by
-        /// separate config streams, so the copy with the newest config decides which HTTP services the host has.
+        /// One entry per node. Each open bucket owns its own copy of a node, and the copies are refreshed by
+        /// separate config streams, so the copy with the newest config decides which HTTP services the node has.
         /// Requests stamp activity on whichever copy served them, so the latest activity across all copies is kept.
         /// </summary>
-        internal static IEnumerable<HostServices> NewestPerEndpoint(IEnumerable<IClusterNode> clusterNodes)
+        /// <remarks>
+        /// Nodes with no K/V service can share an endpoint when they share a host, so the node id tells them apart.
+        /// </remarks>
+        internal static IEnumerable<HostServices> NewestPerNode(IEnumerable<IClusterNode> clusterNodes)
         {
-            var hosts = new Dictionary<HostEndpointWithPort, HostServices>();
+            var hosts = new Dictionary<(HostEndpointWithPort EndPoint, HostEndpointWithPort? NodeId), HostServices>();
             foreach (var clusterNode in clusterNodes)
             {
-                if (!hosts.TryGetValue(clusterNode.EndPoint, out var host))
+                var key = (clusterNode.EndPoint, clusterNode.NodesAdapter?.NodeId);
+                if (!hosts.TryGetValue(key, out var host))
                 {
                     host = new HostServices(clusterNode);
-                    hosts[clusterNode.EndPoint] = host;
+                    hosts[key] = host;
                 }
 
                 host.Merge(clusterNode);

@@ -212,7 +212,7 @@ namespace Couchbase.UnitTests.Diagnostics
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void NewestPerEndpoint_Keeps_The_Copy_With_The_Newest_Config(bool staleFirst)
+        public void NewestPerNode_Keeps_The_Copy_With_The_Newest_Config(bool staleFirst)
         {
             //arrange
 
@@ -223,7 +223,7 @@ namespace Couchbase.UnitTests.Diagnostics
 
             //act
 
-            var kept = DiagnosticsReportProvider.NewestPerEndpoint(nodes).Select(x => x.Node).ToList();
+            var kept = DiagnosticsReportProvider.NewestPerNode(nodes).Select(x => x.Node).ToList();
 
             //assert
 
@@ -233,7 +233,7 @@ namespace Couchbase.UnitTests.Diagnostics
         }
 
         [Fact]
-        public void NewestPerEndpoint_Keeps_The_Latest_Activity_Across_Copies()
+        public void NewestPerNode_Keeps_The_Latest_Activity_Across_Copies()
         {
             //arrange
 
@@ -243,7 +243,7 @@ namespace Couchbase.UnitTests.Diagnostics
 
             //act
 
-            var host = Assert.Single(DiagnosticsReportProvider.NewestPerEndpoint(new[] { fresh, stale }));
+            var host = Assert.Single(DiagnosticsReportProvider.NewestPerNode(new[] { fresh, stale }));
 
             //assert
 
@@ -252,12 +252,33 @@ namespace Couchbase.UnitTests.Diagnostics
             Assert.Null(host.LastSearchActivity);
         }
 
-        private static IClusterNode CreateNode(string host, bool hasQuery, ulong revision, DateTime? lastQueryActivity = null)
+        [Fact]
+        public void NewestPerNode_Keeps_Nodes_With_No_KV_That_Share_A_Host()
+        {
+            //arrange
+
+            // On a local Docker cluster every node has the external host localhost, so nodes with no K/V share localhost:0.
+            var query = CreateNode("localhost", hasQuery: true, revision: 1, port: 0, nodeId: new HostEndpointWithPort("172.18.0.4", 8091));
+            var search = CreateNode("localhost", hasQuery: false, revision: 1, port: 0, nodeId: new HostEndpointWithPort("172.18.0.5", 8091));
+
+            //act
+
+            var kept = DiagnosticsReportProvider.NewestPerNode(new[] { query, search }).Select(x => x.Node).ToList();
+
+            //assert
+
+            Assert.Equal(2, kept.Count);
+            Assert.Contains(query, kept);
+            Assert.Contains(search, kept);
+        }
+
+        private static IClusterNode CreateNode(string host, bool hasQuery, ulong revision, DateTime? lastQueryActivity = null,
+            int port = 11210, HostEndpointWithPort? nodeId = null)
         {
             var node = new Mock<IClusterNode>();
             node.SetupGet(x => x.HasQuery).Returns(hasQuery);
-            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
-            node.SetupGet(x => x.NodesAdapter).Returns(new NodeAdapter { ConfigVersion = new ConfigVersion(0, revision) });
+            node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, port));
+            node.SetupGet(x => x.NodesAdapter).Returns(new NodeAdapter { ConfigVersion = new ConfigVersion(0, revision), NodeId = nodeId });
             node.SetupGet(x => x.LastQueryActivity).Returns(lastQueryActivity);
             return node.Object;
         }
