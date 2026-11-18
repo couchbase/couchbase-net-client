@@ -47,16 +47,16 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync();
+            var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
 
-            moved = stream.MoveNextAsync();
+            moved = stream.MoveNextAsync().AsTask();
             var second = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -74,14 +74,14 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync();
+            var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
 
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(stream.MoveNextAsync().AsTask()));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -98,11 +98,11 @@ namespace Couchbase.UnitTests.KeyValue
 
             // Awaited as a ValueTask, as in the other tests: on .NET Framework, ValueTask.AsTask() completes the
             // task as cancelled without the exception's token, so the token could not be checked.
-            var moved = stream.MoveNextAsync();
+            var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -123,19 +123,19 @@ namespace Couchbase.UnitTests.KeyValue
             var moved = stream.MoveNextAsync().AsTask();
             await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
 
             moved = stream.MoveNextAsync().AsTask();
             var second = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "b");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
 
-            await stream.DisposeAsync();
+            await Within(stream.DisposeAsync().AsTask());
             await bucket.WhenClosed(second);
             bucket.ReleaseCloses();
 
             // Wait for the whole cleanup, so a close of the completed scan cannot arrive after the assert.
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
             Assert.Equal([second], bucket.Closed);
         }
 
@@ -149,10 +149,10 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await stream.MoveNextAsync());
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(stream.MoveNextAsync().AsTask()));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
             Assert.Empty(bucket.Created);
             Assert.Empty(bucket.Closed);
         }
@@ -168,11 +168,11 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan(), options)
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync();
+            var moved = stream.MoveNextAsync().AsTask();
             await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             Assert.Equal(optionsCts.Token, options.TokenValue);
@@ -192,7 +192,7 @@ namespace Couchbase.UnitTests.KeyValue
             var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a", "b");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
             Assert.Equal("a", stream.Current.Id);
 
             var ended = stream.MoveNextAsync().AsTask();
@@ -200,7 +200,7 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.False(ended.IsCompleted);
 
             bucket.ReleaseCloses();
-            Assert.False(await ended);
+            Assert.False(await Within(ended));
             Assert.Equal([first], bucket.Closed);
         }
 
@@ -214,11 +214,11 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync();
+            var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -239,15 +239,15 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
 
                 moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Same(parent, scan.Parent);
@@ -302,10 +302,10 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 Assert.Equal(1, await bucket.NextContinue());
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var partition = tracer.Named("range_scan_partition").Single(p => (uint)p.Attributes["partition_id"] == 0);
             var create = Assert.Single(tracer.ChildrenOf(partition, "range_scan_create"));
@@ -328,15 +328,15 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 Assert.Equal(1, await bucket.NextContinue());
                 bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
 
                 moved = stream.MoveNextAsync().AsTask();
                 Assert.Equal(1, await bucket.NextContinue());
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             Assert.Single(bucket.Created, partitionId => partitionId == 0);
             var partition = Assert.Single(tracer.Named("range_scan_partition"), p => (uint)p.Attributes["partition_id"] == 0);
@@ -358,17 +358,17 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 Assert.Equal(1, await NextContinueOrFailure(bucket, moved));
                 bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
                 ids.Add(stream.Current.Id);
 
                 moved = stream.MoveNextAsync().AsTask();
                 Assert.Equal(1, await NextContinueOrFailure(bucket, moved));
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
                 ids.Add(stream.Current.Id);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             Assert.Equal(new[] { "a", "b" }, ids);
             Assert.Single(bucket.Created, partitionId => partitionId == 0);
@@ -389,15 +389,15 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
 
                 moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "b");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var partitions = tracer.Named("range_scan_partition");
             Assert.Equal(2, partitions.Count);
@@ -423,10 +423,10 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanComplete, "a");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             Assert.Equal(RequestSpanStatusCode.Ok, Assert.Single(tracer.Named("range_scan")).Status);
         }
@@ -442,9 +442,9 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.FailContinue(new UnambiguousTimeoutException("The fake bucket failed this continue."));
-                await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () => await moved);
+                await Assert.ThrowsAsync<UnambiguousTimeoutException>(async () => await Within(moved));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Equal(RequestSpanStatusCode.Error, scan.Status);
@@ -463,9 +463,9 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-                Assert.True(await moved);
+                Assert.True(await Within(moved));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Equal(RequestSpanStatusCode.Unset, scan.Status);
@@ -481,12 +481,12 @@ namespace Couchbase.UnitTests.KeyValue
 
             await using (var stream = collection.ScanAsync(new RangeScan()).WithCancellation(cts.Token).GetAsyncEnumerator())
             {
-                var moved = stream.MoveNextAsync();
+                var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 cts.Cancel();
-                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moved);
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Equal(RequestSpanStatusCode.Unset, scan.Status);
@@ -504,10 +504,10 @@ namespace Couchbase.UnitTests.KeyValue
                 var moved = stream.MoveNextAsync().AsTask();
                 await bucket.NextContinue();
                 bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a", "b");
-                Assert.True(await moved);
-                Assert.False(await stream.MoveNextAsync());
+                Assert.True(await Within(moved));
+                Assert.False(await Within(stream.MoveNextAsync().AsTask()));
             }
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.Equal(RequestSpanStatusCode.Ok, scan.Status);
@@ -535,16 +535,16 @@ namespace Couchbase.UnitTests.KeyValue
             var moved = stream.MoveNextAsync().AsTask();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-            Assert.True(await moved);
+            Assert.True(await Within(moved));
 
-            await stream.DisposeAsync();
+            await Within(stream.DisposeAsync().AsTask());
             await bucket.WhenClosed(first);
 
             var scan = Assert.Single(tracer.Named("range_scan"));
             Assert.False(scan.Ended);
 
             bucket.ReleaseCloses();
-            await collection.ScanCleanup;
+            await Within(collection.ScanCleanup);
 
             var cancel = Assert.Single(tracer.Named("range_scan_cancel"));
             var partition = Assert.IsType<RecordingSpan>(cancel.Parent);
@@ -557,6 +557,35 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         /// <summary>
+        /// How long a test waits for the scan before it fails. A defect in the scan loop must fail the test, not
+        /// hang the test run. The limit is large, so a slow CI host does not fail a correct test.
+        /// </summary>
+        private static readonly TimeSpan HangTimeout = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// Waits for <paramref name="task"/>, and fails if it does not complete within <see cref="HangTimeout"/>.
+        /// Task.WaitAsync is not available on .NET Framework.
+        /// </summary>
+        private static async Task<T> Within<T>(Task<T> task)
+        {
+            await Within((Task) task).ConfigureAwait(false);
+            return await task.ConfigureAwait(false);
+        }
+
+        /// <inheritdoc cref="Within{T}"/>
+        private static async Task Within(Task task)
+        {
+            using var cts = new CancellationTokenSource();
+            if (await Task.WhenAny(task, Task.Delay(HangTimeout, cts.Token)).ConfigureAwait(false) != task)
+            {
+                throw new System.TimeoutException($"The scan did not complete this step within {HangTimeout.TotalSeconds} s.");
+            }
+
+            cts.Cancel();
+            await task.ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Waits for the next RangeScanContinue. If the stream fails first, no continue is sent: rethrows the
         /// stream's error instead of waiting for ever.
         /// </summary>
@@ -565,7 +594,7 @@ namespace Couchbase.UnitTests.KeyValue
             var next = bucket.NextContinue();
             if (await Task.WhenAny(moved, next) == moved)
             {
-                await moved;
+                await Within(moved);
                 Assert.Fail("The stream moved without sending a RangeScanContinue.");
             }
 
@@ -707,7 +736,8 @@ namespace Couchbase.UnitTests.KeyValue
             /// </summary>
             public async Task<short> NextContinue()
             {
-                await _continueSent.WaitAsync().ConfigureAwait(false);
+                Assert.True(await _continueSent.WaitAsync(HangTimeout).ConfigureAwait(false),
+                    $"No RangeScanContinue was sent within {HangTimeout.TotalSeconds} s.");
                 Assert.True(_continues.TryDequeue(out _current));
                 return (short) _current.Operation.VBucketId!;
             }
@@ -729,7 +759,7 @@ namespace Couchbase.UnitTests.KeyValue
             /// </summary>
             public void FailContinue(Exception exception) => _current.Read.SetException(exception);
 
-            public Task WhenClosed(short partitionId) => _closed.GetOrAdd(partitionId, NewSignal).Task;
+            public Task WhenClosed(short partitionId) => Within(_closed.GetOrAdd(partitionId, NewSignal).Task);
 
             private static TaskCompletionSource<bool> NewSignal(short _) =>
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -851,5 +881,15 @@ namespace Couchbase.UnitTests.KeyValue
                 return bytes;
             }
         }
+    }
+
+    internal static class ConfiguredValueTaskAwaitableExtensions
+    {
+        /// <summary>
+        /// A task for the next item of a stream that has <c>WithCancellation</c>, so that the tests can pass it to
+        /// <c>Within</c>.
+        /// </summary>
+        public static async Task<bool> AsTask(this System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<bool> awaitable) =>
+            await awaitable;
     }
 }

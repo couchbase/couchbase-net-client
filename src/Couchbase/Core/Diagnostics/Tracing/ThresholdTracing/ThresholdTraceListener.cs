@@ -76,6 +76,11 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         {
             Listener.ActivityStopped = activity =>
             {
+                if (IsWholeRangeScan(activity.OperationName))
+                {
+                    return;
+                }
+
                 var serviceAttribute = activity.Tags.FirstOrDefault(tag => tag.Key == OuterRequestSpans.Attributes.Service);
                 if (serviceAttribute.Value == null) return;
 
@@ -102,6 +107,16 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         /// Immediately generates and logs any pending threshold report.
         /// Exposed for unit testing to avoid Timer/ThreadPool scheduling dependencies.
         /// </summary>
+        /// <summary>
+        /// The range_scan and range_scan_partition spans are open for the whole scan, or the whole scan of a
+        /// partition, so they would nearly always be over the KV threshold and push the slow KV operations out of the
+        /// log. RFC 73 removed threshold logging for range scans. The requests of a scan (range_scan_create,
+        /// range_scan_continue and range_scan_cancel) are single KV requests, and are logged as usual.
+        /// </summary>
+        private static bool IsWholeRangeScan(string operationName) =>
+            operationName is OuterRequestSpans.ServiceSpan.Kv.RangeScan
+                or OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition;
+
         internal void ForceFlush() => GenerateAndLogReport(this);
 
         public override void Dispose()

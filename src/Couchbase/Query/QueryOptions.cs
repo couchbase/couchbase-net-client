@@ -1281,7 +1281,11 @@ namespace Couchbase.Query
             string? CurrentContextId,
             ITypeSerializer? Serializer,
             string? QueryContext,
-            bool? UseReplica);
+            bool? UseReplica)
+        {
+            /// <inheritdoc cref="QueryOptions.HasParameters"/>
+            internal bool HasParameters => Arguments.Count > 0 || Parameters.Count > 0;
+        }
 
         private static QueryScanConsistency ConvertScanConsistency(QueryScanConsistencyInternal? scanConsistency)
         {

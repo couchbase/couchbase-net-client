@@ -34,8 +34,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             Assert.Equal(ActivityKind.Client, activity.Kind);
         }
 
-        // A child copies its tags to its parent when it ends. Through the parent's wrapper, db.statement was mapped
-        // again, so the parent got db.query.text for a statement without parameters (RFC 67).
+        // A query span used to copy all its tags to its parent when it ended. Through the parent's wrapper,
+        // db.statement was mapped again, so the parent got db.query.text for a statement without parameters (RFC 67).
+        // Now only encoding and dispatch spans copy tags, so the statement does not reach the parent at all.
         [Fact]
         public void Statement_Without_Parameters_Does_Not_Reach_Parent_As_Query_Text()
         {
@@ -52,7 +53,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             parent.Dispose();
 
             var tags = Assert.Single(stopped, a => a.OperationName == name).TagObjects.Select(t => t.Key).ToList();
-            Assert.Contains(OuterRequestSpans.Attributes.Statement, tags);
+            Assert.DoesNotContain(OuterRequestSpans.Attributes.Statement, tags);
             Assert.DoesNotContain("db.query.text", tags);
         }
 
@@ -92,23 +93,59 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             Assert.All(continueTags, a => Assert.Contains(a.TagObjects, t => t.Key == ThresholdTags.DispatchDurationTag));
         }
 
-        // Other spans still copy their tags up, for the threshold log.
+        // The threshold log reads the dispatch details from the request span, so a dispatch span copies them to its
+        // parent. It copies only those tags.
         [Fact]
-        public void Other_Spans_Copy_Their_Tags_To_Their_Parents()
+        public void Dispatch_Span_Copies_Only_The_Threshold_Tags_To_Its_Request_Span()
         {
-            var name = "parent-" + Guid.NewGuid();
+            var name = "get-" + Guid.NewGuid();
             var stopped = new ConcurrentQueue<Activity>();
             using var listener = Listen(stopped);
             using var tracer = new RequestTracer();
 
-            var parent = tracer.RequestSpan(name);
-            var get = tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.Get, parent);
-            tracer.RequestSpan(InnerRequestSpans.DispatchSpan.Name, get).Dispose();
+            var get = tracer.RequestSpan(name);
+            var dispatch = tracer.RequestSpan(InnerRequestSpans.DispatchSpan.Name, get);
+            dispatch.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, "0x2a");
+            dispatch.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, "10.0.0.1");
+            dispatch.SetAttribute("other", "value");
+            dispatch.Dispose();
             get.Dispose();
-            parent.Dispose();
 
-            Assert.Contains(Assert.Single(stopped, a => a.OperationName == name).TagObjects,
-                t => t.Key == ThresholdTags.DispatchDurationTag);
+            var tags = Assert.Single(stopped, a => a.OperationName == name).TagObjects.Select(t => t.Key).ToList();
+            Assert.Contains(ThresholdTags.DispatchDurationTag, tags);
+            Assert.Contains(InnerRequestSpans.DispatchSpan.Attributes.OperationId, tags);
+            Assert.Contains(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, tags);
+            Assert.DoesNotContain("other", tags);
+        }
+
+        // An operation span does not copy its tags to its parent. get_collection_id runs under the operation that
+        // needs the collection ID. If it copied its tags, the threshold log would name that operation
+        // get_collection_id, and would add the lookup's dispatch to the operation's dispatches.
+        [Fact]
+        public void Collection_Id_Lookup_Does_Not_Change_The_Threshold_Entry_Of_Its_Operation()
+        {
+            var name = "get-" + Guid.NewGuid();
+            var stopped = new ConcurrentQueue<Activity>();
+            using var listener = Listen(stopped);
+            using var tracer = new RequestTracer();
+
+            var get = tracer.RequestSpan(name);
+            get.SetAttribute(OuterRequestSpans.Attributes.Operation, OuterRequestSpans.ServiceSpan.Kv.Get);
+            var lookup = tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Internal.GetCollectionId, get);
+            lookup.SetAttribute(OuterRequestSpans.Attributes.Operation, OuterRequestSpans.ServiceSpan.Internal.GetCollectionId);
+            var lookupDispatch = tracer.RequestSpan(InnerRequestSpans.DispatchSpan.Name, lookup);
+            lookupDispatch.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, "0x01");
+            lookupDispatch.Dispose();
+            lookup.Dispose();
+            var getDispatch = tracer.RequestSpan(InnerRequestSpans.DispatchSpan.Name, get);
+            getDispatch.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, "0x02");
+            getDispatch.Dispose();
+            get.Dispose();
+
+            var summary = ThresholdSummary.FromActivity(Assert.Single(stopped, a => a.OperationName == name));
+            Assert.Equal(OuterRequestSpans.ServiceSpan.Kv.Get, summary.operation_name);
+            Assert.Equal("0x02", summary.operation_id);
+            Assert.Equal(summary.last_dispatch_duration_us, summary.total_dispatch_duration_us);
         }
 
         // Disposed, and limited to the SDK's source: a registered listener is process-wide.

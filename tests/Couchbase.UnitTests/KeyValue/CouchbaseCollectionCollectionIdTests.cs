@@ -205,6 +205,25 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         /// <summary>
+        /// The shared lookup holds the span of the caller that started it. If the collection kept the lookup after
+        /// it completed, the collection would keep that span, and its Activity, alive for as long as the collection lives.
+        /// </summary>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task The_collection_drops_the_lookup_when_the_collection_id_is_found(bool retryIfFailure)
+        {
+            using var tracer = new RequestTracer();
+            var (collection, _) = CreateCollection(tracer: tracer);
+            using var callerSpan = tracer.RequestSpan("caller");
+
+            await collection.PopulateCidAsync(retryIfFailure, parentSpan: callerSpan);
+
+            Assert.Equal(FakeCid, collection.Cid);
+            Assert.False(collection.HoldsCidLookup);
+        }
+
+        /// <summary>
         /// The table above is only as good as its coverage, and a new operation added without an
         /// entry is exactly how NCBC-4285 happened. This fails when the public surface outgrows it.
         /// </summary>

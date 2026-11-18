@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
@@ -45,7 +46,7 @@ internal class StellarQueryClient : IQueryClient
             childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Key, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Value);
             childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Service, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery);
             childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Operation, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery);
-            childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.Statement, statement);
+            childSpan.WithStatement(statement, opts.HasParameters);
             if (opts.BucketName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.BucketName, opts.BucketName);
             if (opts.ScopeName != null) childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
         }

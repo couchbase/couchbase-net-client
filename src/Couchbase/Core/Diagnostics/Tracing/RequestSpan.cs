@@ -159,11 +159,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 _disposed = true;
             }
 
-            //This needs to be improved as the parent activity is null for some reason along this code path.
-            //For reference a similar code path in ClusterNode produces child activities with parent activities,
-            //so something isn't right here, but for the threshold logging this will suffice with a few assumptions
-            //i.e. dispatch and encoding spans do not have children.
-            if (!CopiesTagsToParent(_activity.OperationName))
+            // The threshold and orphan logs read the encode and dispatch details from the request span, so an
+            // encoding or dispatch span copies those tags to its parent. No other span copies tags: a span that
+            // copied all its tags would put its own operation name, service and statement on its parent. For
+            // example, get_collection_id would rename the operation it runs under in the threshold log.
+            if (_activity.OperationName is not (InnerRequestSpans.EncodingSpan.Name or InnerRequestSpans.DispatchSpan.Name))
             {
                 return;
             }
@@ -174,7 +174,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 if (parentSpan is RequestSpanWrapper wrapper)
                 {
                     // The tags already have their final names. Through the wrapper, the semantic convention would map
-                    // them again: for example db.statement would become db.query.text too.
+                    // them again.
                     parentSpan = wrapper.InnerSpan;
                 }
                 else if (parentSpan is NoopRequestSpan noopSpan)
@@ -192,20 +192,29 @@ namespace Couchbase.Core.Diagnostics.Tracing
             {
                 foreach (var activityTag in _activity.Tags)
                 {
-                    parentSpan.SetAttribute(activityTag.Key, activityTag.Value!);
+                    if (IsCopiedToParent(activityTag.Key))
+                    {
+                        parentSpan.SetAttribute(activityTag.Key, activityTag.Value!);
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// False for the spans below range_scan. A scan sends one request for each batch, and the tags of each
-        /// request would be added to the partition and range_scan spans, which stay open until the scan ends.
+        /// The encoding and dispatch tags that <see cref="ThresholdSummary"/> and
+        /// <see cref="OrphanResponseReporting.OrphanSummary"/> read from the request span.
         /// </summary>
-        private static bool CopiesTagsToParent(string operationName) =>
-            operationName is not (OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition
-                or OuterRequestSpans.ServiceSpan.Kv.RangeScanCreate
-                or OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue
-                or OuterRequestSpans.ServiceSpan.Kv.RangeScanCancel);
+        private static bool IsCopiedToParent(string key) =>
+            key is ThresholdTags.EncodeDurationTag
+                or ThresholdTags.DispatchDurationTag
+                or InnerRequestSpans.DispatchSpan.Attributes.ServerDuration
+                or InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds
+                or InnerRequestSpans.DispatchSpan.Attributes.OperationId
+                or InnerRequestSpans.DispatchSpan.Attributes.LocalId
+                or InnerRequestSpans.DispatchSpan.Attributes.LocalHostname
+                or InnerRequestSpans.DispatchSpan.Attributes.LocalPort
+                or InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname
+                or InnerRequestSpans.DispatchSpan.Attributes.RemotePort;
 
         /// <inheritdoc />
         public void Dispose()

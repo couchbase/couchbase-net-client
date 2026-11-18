@@ -339,8 +339,10 @@ namespace Couchbase.UnitTests.Query
                 expectStable ? Times.Once() : Times.Never());
         }
 
+        // The node is "localhost", a hostname, so the SDK does not know the IP address of the socket and sets only
+        // the port (RFC 67, NCBC-4419).
         [Fact]
-        public async Task QueryAsync_DispatchSpan_HasPeerAddressAndPort()
+        public async Task QueryAsync_DispatchSpan_HasPeerPort_And_No_Hostname_As_Peer_Address()
         {
             var rootSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
             rootSpan.Setup(s => s.CanWrite).Returns(true);
@@ -363,7 +365,7 @@ namespace Couchbase.UnitTests.Query
             rootSpan.Verify(s => s.ChildSpan(InnerRequestSpans.DispatchSpan.Name), Times.Once());
             var dispatch = childSpans.Single(c => c.Invocations.Any(i =>
                 i.Arguments.Count == 2 && Equals(i.Arguments[0], InnerRequestSpans.DispatchSpan.Attributes.OperationId)));
-            dispatch.Verify(s => s.SetAttribute("network.peer.address", "localhost"), Times.Once());
+            dispatch.Verify(s => s.SetAttribute("network.peer.address", It.IsAny<string>()), Times.Never());
             dispatch.Verify(s => s.SetAttribute("network.peer.port", "8093"), Times.Once());
             rootSpan.Verify(s => s.SetAttribute("network.peer.address", It.IsAny<string>()), Times.Never());
         }

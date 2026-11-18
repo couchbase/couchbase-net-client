@@ -52,6 +52,21 @@ namespace Couchbase.KeyValue
 
         private readonly object _cidLock = new();
 
+        /// <summary>
+        /// True while the collection holds a shared collection ID lookup. Each lookup holds the span of the caller
+        /// that started it, so the collection must not keep a lookup after it completes. For tests.
+        /// </summary>
+        internal bool HoldsCidLookup
+        {
+            get
+            {
+                lock (_cidLock)
+                {
+                    return GetCidLazyRetry is not null || GetCidLazyNoRetry is not null;
+                }
+            }
+        }
+
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, Redactor redactor,
@@ -1592,6 +1607,22 @@ namespace Couchbase.KeyValue
                 try
                 {
                     Cid = await lookup.Value.ConfigureAwait(false);
+
+                    // The lazy holds the span of the caller that started it. Drop the lazy when it is done,
+                    // so that the collection does not keep that span alive. Only drop it if it is still the
+                    // current one: after a forced refresh, the field can hold a newer lookup.
+                    lock (_cidLock)
+                    {
+                        if (ReferenceEquals(GetCidLazyRetry, lookup))
+                        {
+                            GetCidLazyRetry = null;
+                        }
+
+                        if (ReferenceEquals(GetCidLazyNoRetry, lookup))
+                        {
+                            GetCidLazyNoRetry = null;
+                        }
+                    }
                 }
                 catch (Exception)
                 {

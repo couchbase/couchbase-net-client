@@ -1,5 +1,7 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
@@ -33,6 +35,40 @@ public class StellarQueryClientTests
         var result = await queryClient.QueryAsync<dynamic>("SELECT 1;", new QueryOptions());
 
         await result.GetAsyncEnumerator().MoveNextAsync();
+    }
+
+    /// <summary>
+    /// RFC 67: the stable db.query.text is set only when positional or named parameters are in use, because
+    /// without parameters the statement can contain sensitive values. The legacy db.statement is always set.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task QueryAsync_StatementAttribute_StableNameOnlyWithParameters(bool hasParameters)
+    {
+        const string statement = "SELECT * FROM `default` WHERE secret = 'value'";
+
+        var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+        innerSpan.Setup(s => s.CanWrite).Returns(true);
+        var span = new RequestSpanWrapper(innerSpan.Object, null, ObservabilitySemanticConvention.Both);
+        var tracer = new Mock<IRequestTracer>();
+        tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(span);
+
+        var cluster = StellarMocks.CreateClusterFromMocks(tracer: tracer.Object);
+        var queryServiceClient = new Mock<QueryService.QueryServiceClient>();
+        var asyncStreamReader = new Mock<IAsyncStreamReader<QueryResponse>>();
+        asyncStreamReader.Setup(x => x.Current).Returns(new QueryResponse());
+        queryServiceClient.Setup(x => x.Query(It.IsAny<QueryRequest>(), It.IsAny<CallOptions>()))
+            .Returns(new AsyncServerStreamingCall<QueryResponse>(asyncStreamReader.Object, null, null, null, null, null));
+        var queryClient = new StellarQueryClient(cluster, queryServiceClient.Object,
+            SystemTextJsonSerializer.Create(), new StellarRetryHandler());
+
+        var options = hasParameters ? new QueryOptions().Parameter("name", "a") : new QueryOptions();
+        await queryClient.QueryAsync<dynamic>(statement, options);
+
+        innerSpan.Verify(s => s.SetAttribute("db.statement", statement), Times.Once());
+        innerSpan.Verify(s => s.SetAttribute("db.query.text", statement),
+            hasParameters ? Times.Once() : Times.Never());
     }
 
     // CNG-2 regression: query idempotency (and thus timeout ambiguity) must track the ReadOnly option.
