@@ -42,8 +42,8 @@ namespace Couchbase.Core.DI
                 MechanismType.ScramSha256 => new ScramShaMechanism(mechanismType, password,
                     username, _scramLogger, _tracer, _operationConfigurator),
 #if NET8_0_OR_GREATER
-                // ScramSha1 is explicitly rejected on .NET 8+: NIST SP 800-131A Rev 2 disallows SHA-1
-                // for new HMAC/PBKDF2 use, and Rfc2898DeriveBytes.Pbkdf2 supports SHA-256/512.
+                // ScramSha1 is explicitly rejected on .NET 8+, where Rfc2898DeriveBytes.Pbkdf2 supports
+                // the stronger SHA-256/512 variants.
 #pragma warning disable CS0618
                 MechanismType.ScramSha1 => throw new NotSupportedException(
                     "ScramSha1 is not supported on .NET 8 or later. Use ScramSha256 or ScramSha512."),
@@ -86,7 +86,7 @@ namespace Couchbase.Core.DI
                     $"No common SASL mechanism. Server advertises [{serverMechanisms}]; this client supports " +
                     $"[{string.Join(", ", ScramShaMechanism.ClientSupportedMechanisms.Select(m => m.GetDescription()))}]. " +
 #if NET8_0_OR_GREATER
-                    "SCRAM-SHA-1 is disabled on .NET 8+ (NIST SP 800-131A Rev 2); enable SCRAM-SHA-256 or " +
+                    "SCRAM-SHA-1 is not supported on .NET 8+; enable SCRAM-SHA-256 or " +
                     "SCRAM-SHA-512 on Couchbase Server.");
 #else
                     "Ensure SCRAM-SHA-1 is enabled on Couchbase Server, or run on .NET 8+ for SCRAM-SHA-256/512.");

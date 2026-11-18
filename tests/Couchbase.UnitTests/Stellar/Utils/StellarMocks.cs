@@ -22,7 +22,8 @@ namespace Couchbase.UnitTests.Stellar.Utils;
 
 internal static class StellarMocks
 {
-    public static StellarCluster CreateClusterFromMocks(IOperationCompressor? compressor = null)
+    public static StellarCluster CreateClusterFromMocks(IOperationCompressor? compressor = null,
+        IRequestTracer? tracer = null)
     {
         var channel = GrpcChannel.ForAddress(new Uri("https://xxx"));
         var bucketManager = new Mock<IBucketManager>();
@@ -58,7 +59,7 @@ internal static class StellarMocks
 
         return new StellarCluster(bucketManager.Object, searchIndexManager.Object, queryIndexManager.Object,
             queryServiceClient.Object, analyticsClient.Object, searchClient.Object, metaData,
-            requestTracer.Object, channel, typeSerializer.Object, requestOrchestrator.Object, clusterOptions, effectiveCompressor, algorithm);
+            tracer ?? requestTracer.Object, channel, typeSerializer.Object, requestOrchestrator.Object, clusterOptions, effectiveCompressor, algorithm);
     }
 
     public static StellarCluster CreateClusterFromMocksWithOptions(

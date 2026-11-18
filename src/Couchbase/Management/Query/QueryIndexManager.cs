@@ -35,8 +35,7 @@ namespace Couchbase.Management.Query
         {
             options ??= BuildDeferredQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.BuildDeferredQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.BuildDeferredQueryIndex, options.RequestSpanValue);
             _logger.LogInformation("Attempting to build deferred query indexes on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
@@ -88,8 +87,7 @@ namespace Couchbase.Management.Query
         {
             options ??= CreateQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.CreateQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.CreateQueryIndex, options.RequestSpanValue);
             _logger.LogInformation("Attempting to create query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
@@ -158,8 +156,7 @@ namespace Couchbase.Management.Query
         {
             options ??= CreatePrimaryQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.CreatePrimaryQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.CreatePrimaryQueryIndex, options.RequestSpanValue);
             _logger.LogInformation("Attempting to create primary query index on bucket {bucketName}", _redactor.MetaData(bucketName));
 
             Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
@@ -210,8 +207,7 @@ namespace Couchbase.Management.Query
         {
             options ??= DropQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.DropQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.DropQueryIndex, options.RequestSpanValue);
             _logger.LogInformation("Attempting to drop query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
@@ -270,8 +266,7 @@ namespace Couchbase.Management.Query
         {
             options ??= DropPrimaryQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.DropPrimaryQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.DropPrimaryQueryIndex, options.RequestSpanValue);
             _logger.LogInformation("Attempting to drop primary query index on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
@@ -325,8 +320,7 @@ namespace Couchbase.Management.Query
         {
             options ??= GetAllQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.GetAllQueryIndexes, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.GetAllQueryIndexes, options.RequestSpanValue);
             _logger.LogInformation("Attempting to get query indexes for bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
@@ -381,8 +375,7 @@ namespace Couchbase.Management.Query
         {
             options ??= WatchQueryIndexOptions.Default;
 
-            using var rootSpan = _tracer.RequestSpan(OuterRequestSpans.ManagerSpan.Query.WatchQueryIndex, options.RequestSpanValue)
-                .WithCommonTags();
+            using var rootSpan = RootSpan(OuterRequestSpans.ManagerSpan.Query.WatchQueryIndex, options.RequestSpanValue);
             var indexesToWatch = string.Join(", ", indexNames.ToList());
             _logger.LogInformation("Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}",
                 _redactor.MetaData(indexesToWatch), _redactor.MetaData(bucketName));
@@ -466,6 +459,11 @@ namespace Couchbase.Management.Query
                 throw new ArgumentNullException(nameof(collection));
             }
         }
+
+        private IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan) =>
+            _tracer.RequestSpan(operation, parentSpan)
+                .WithCommonTags()
+                .WithService(OuterRequestSpans.ServiceSpan.N1QLQuery);
     }
 }
 

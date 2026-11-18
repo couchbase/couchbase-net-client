@@ -39,6 +39,7 @@ namespace Couchbase.Extensions.Tracing.Otel.UnitTests
             Assert.NotNull(exportedSpan);
             Assert.Null(exportedSpan.Parent);
             Assert.Null(exportedSpan.ParentId);
+            Assert.Equal(ActivityKind.Client, exportedSpan.Kind);
         }
 
         [Fact]
@@ -70,6 +71,7 @@ namespace Couchbase.Extensions.Tracing.Otel.UnitTests
             Assert.NotNull(exportedSpan);
             Assert.Null(exportedSpan.Parent);
             Assert.Null(exportedSpan.ParentId);
+            Assert.Equal(ActivityKind.Client, exportedSpan.Kind);
         }
 
         [Fact]

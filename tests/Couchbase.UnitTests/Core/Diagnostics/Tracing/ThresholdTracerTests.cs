@@ -154,6 +154,49 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             _testOutputHelper.WriteLine(report);
         }
 
+        // RFC 73 removed threshold logging for range scans. The range_scan and range_scan_partition spans are open for
+        // the whole scan, so they would push the slow KV operations out of the log. The requests of a scan are logged.
+        [Fact]
+        public void Whole_Range_Scan_Spans_Are_Not_In_The_Threshold_Log()
+        {
+            var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
+            using var tracer = new RequestTracer();
+            using var listener = new ThresholdTraceListener(loggerFactory, new ThresholdOptions
+            {
+                EmitInterval = TimeSpan.FromHours(1), // disabled; we flush manually
+                KvThreshold = TimeSpan.Zero
+            });
+            tracer.Start(listener);
+
+            foreach (var name in new[]
+                     {
+                         OuterRequestSpans.ServiceSpan.Kv.RangeScan,
+                         OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition,
+                         OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue,
+                         OuterRequestSpans.ServiceSpan.Kv.Get
+                     })
+            {
+                using var span = tracer.RequestSpan(name);
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, name);
+            }
+
+            listener.ForceFlush();
+
+            Assert.True(loggerFactory.LoggedData.TryTake(out var report), "Did not find a log entry for threshold data.");
+            using var json = System.Text.Json.JsonDocument.Parse(report);
+            var kv = json.RootElement.GetProperty(OuterRequestSpans.ServiceSpan.Kv.Name);
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var entry in kv.GetProperty("top_requests").EnumerateArray())
+            {
+                names.Add(entry.GetProperty("operation_name").GetString());
+            }
+
+            names.Sort(StringComparer.Ordinal);
+            Assert.Equal(new[] { OuterRequestSpans.ServiceSpan.Kv.Get, OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue }, names);
+            Assert.Equal(2, kv.GetProperty("total_count").GetInt32());
+        }
+
         public interface ITraceable
         {
             IRequestSpan Span { get; set; }

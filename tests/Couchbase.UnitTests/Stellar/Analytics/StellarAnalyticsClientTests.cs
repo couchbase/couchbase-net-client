@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Protostellar.Analytics.V1;
 using Couchbase.Stellar.Analytics;
@@ -66,6 +68,43 @@ public class StellarAnalyticsClientTests
         serviceClient.Verify(
             x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()),
             Times.Exactly(2)); // proves the first-response error was retried, not surfaced as terminal
+    }
+
+    /// <summary>
+    /// RFC 67: the stable db.query.text is set only when positional or named parameters are in use, because
+    /// without parameters the statement can contain sensitive values. The legacy db.statement is always set.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task QueryAsync_StatementAttribute_StableNameOnlyWithParameters(bool named, bool positional)
+    {
+        const string statement = "SELECT * FROM `default` WHERE secret = 'value'";
+
+        var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+        innerSpan.Setup(s => s.CanWrite).Returns(true);
+        var span = new RequestSpanWrapper(innerSpan.Object, null, ObservabilitySemanticConvention.Both);
+        var tracer = new Mock<IRequestTracer>();
+        tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(span);
+
+        var cluster = StellarMocks.CreateClusterFromMocks(tracer: tracer.Object);
+        var serviceClient = new Mock<AnalyticsService.AnalyticsServiceClient>();
+        var stream = new Mock<IAsyncStreamReader<AnalyticsQueryResponse>>();
+        stream.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        serviceClient
+            .Setup(x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()))
+            .Returns(Call(stream.Object));
+        var client = new StellarAnalyticsClient(cluster, serviceClient.Object, new StellarRetryHandler());
+
+        var options = new AnalyticsOptions();
+        if (named) options.Parameter("name", "a");
+        if (positional) options.Parameter("a");
+        await client.QueryAsync<dynamic>(statement, options);
+
+        innerSpan.Verify(s => s.SetAttribute("db.statement", statement), Times.Once());
+        innerSpan.Verify(s => s.SetAttribute("db.query.text", statement),
+            named || positional ? Times.Once() : Times.Never());
     }
 
     // The other half: an error that occurs AFTER the first response (genuinely mid-stream) still maps
