@@ -2525,8 +2525,8 @@ namespace Couchbase.Client.Transactions
             )
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            traceSpan.Item?.SetAttribute("db.statement", statement)
-                          ?.SetAttribute("db.couchbase.transactions.tximplicit", txImplicit);
+            traceSpan.Item?.WithStatement(statement, options.HasParameters)
+                          .SetAttribute("db.couchbase.transactions.tximplicit", txImplicit);
 
             Logger.LogDebug("[{attemptId}] Executing Query: {hookPoint}: {txdata}", AttemptId, hookPoint, Redactor.UserData(txdata?.ToString()));
 
