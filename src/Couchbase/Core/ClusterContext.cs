@@ -612,17 +612,27 @@ namespace Couchbase.Core
                     {
                         //Server is 6.5 and greater and supports GC3P so loop through the global config and
                         //create the nodes that are not associated with any buckets via Select Bucket.
-                        var seedMatched = false;
-                        foreach (var nodeAdapter in
-                                 GlobalConfig.GetNodes()) //Initialize cluster nodes for global services
+                        var mapNodes = GlobalConfig.GetNodes();
+
+                        //Match the seed before other nodes connect, so a failed connect cannot leave it behind.
+                        var seedAdapter = node == null ? null : mapNodes.FirstOrDefault(nodeAdapter =>
+                            ClusterNodeList.IsNodeOf(node, HostEndpointWithPort.Create(nodeAdapter, ClusterOptions), nodeAdapter));
+                        if (node != null && seedAdapter == null)
+                        {
+                            //No map node has the seed address, as with a Private Link endpoint or an IP seed.
+                            _logger.LogInformation("Bootstrapping: removing seed node [{node}], as no map node has its address.",
+                                _redactor.SystemData(server.ToString()));
+                            RemoveNode(node);
+                        }
+
+                        foreach (var nodeAdapter in mapNodes) //Initialize cluster nodes for global services
                         {
                             //log any alternate address mapping
                             _logger.LogInformation(nodeAdapter.ToString());
 
                             var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                            if (!seedMatched && node != null && ClusterNodeList.IsNodeOf(node, hostEndpoint, nodeAdapter)) //this is the bootstrap node so update
+                            if (ReferenceEquals(nodeAdapter, seedAdapter)) //this is the bootstrap node so update
                             {
-                                seedMatched = true;
                                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
                                     _redactor.SystemData(hostEndpoint.ToString()));
 
@@ -649,14 +659,6 @@ namespace Couchbase.Core
 
                                 AddNode(newNode);
                             }
-                        }
-
-                        if (!seedMatched && node != null)
-                        {
-                            //No map node has the seed address, as with a Private Link endpoint or an IP seed.
-                            _logger.LogInformation("Bootstrapping: removing seed node [{node}], as no map node has its address.",
-                                _redactor.SystemData(server.ToString()));
-                            RemoveNode(node);
                         }
 
                         return;

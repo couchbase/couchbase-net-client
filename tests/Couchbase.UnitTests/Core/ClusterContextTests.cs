@@ -19,6 +19,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -1164,6 +1165,40 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public async Task BootstrapGlobal_Node_Connect_Fails_Removes_Unmatched_Seed()
+        {
+            const string privateEndpoint = "private-endpoint.ui0cn1dkh45zmrb.cloud.couchbase.com";
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\private-link.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var seed = SeedNode(new HostEndpointWithPort(privateEndpoint, 11207), config);
+            var options = new ClusterOptions().WithConnectionString($"couchbases://{privateEndpoint}")
+                .WithPasswordAuthentication("username", "password");
+            options.EnableDnsSrvResolution = false;
+            options.AddClusterService(NodeFactory([], seed.Object, failingHost: config.NodesExt[1].Hostname));
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, seed.Object));
+            seed.Verify(node => node.Dispose(), Times.Once);
+        }
+
+        // The seed is the second map node, so the first map node fails before the loop reaches the seed.
+        [Fact]
+        public async Task BootstrapGlobal_Node_Connect_Fails_Keeps_Seed_Of_A_Later_Map_Node()
+        {
+            var config = DockerConfig(1, DockerNode(1, kv: true), DockerNode(0, kv: true));
+            var seed = SeedNode(new HostEndpointWithPort("localhost", DockerKvPort(0)), config);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory([], seed.Object, failingHost: DockerHost(1))));
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, seed.Object));
+            seed.Verify(node => node.Dispose(), Times.Never);
+        }
+
+        [Fact]
         public async Task ConfigUpdated_Shared_Host_Creates_A_Node_For_A_New_Map_Node()
         {
             var created = new List<IClusterNode>();
@@ -1256,6 +1291,36 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(hosts, nodes.Select(node => node.NodesAdapter.CanonicalHostname));
         }
 
+        // On cluster_run every node has the host 127.0.0.1 and no alternate address.
+        // Only the management port tells apart the nodes with no K/V service.
+        [Fact]
+        public async Task ProcessClusterMap_Shared_Default_Host_Nodes_Keep_Their_Own_Adapters()
+        {
+            var created = new List<IClusterNode>();
+            var options = new ClusterOptions().WithConnectionString("couchbase://127.0.0.1:12000")
+                .WithPasswordAuthentication("username", "password");
+            options.AddClusterService(NodeFactory(created));
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            var nodes = AddGlobalNodes(context, ClusterRunConfig(1, BucketConfig.GlobalBucketName));
+            Assert.Equal(new[] { 12000, 12002, 0, 0 }, nodes.Select(node => node.EndPoint.Port));
+            var query = nodes[2];
+            var search = nodes[3];
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            for (ulong rev = 1; rev <= 2; rev++)
+            {
+                await AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunConfig(rev, "default")));
+            }
+
+            Assert.Empty(created);
+            Assert.Equal(4, context.Nodes.Count);
+            Assert.Equal((9002, true, false), (query.NodesAdapter.MgmtApi, query.HasQuery, query.HasSearch));
+            Assert.Equal((9003, false, true), (search.NodesAdapter.MgmtApi, search.HasQuery, search.HasSearch));
+            var kept = DiagnosticsReportProvider.NewestPerNode(context.Nodes).Select(host => host.Node).ToList();
+            Assert.Contains(kept, node => ReferenceEquals(node, query));
+            Assert.Contains(kept, node => ReferenceEquals(node, search));
+        }
+
         private static string DockerHost(int index) => $"172.18.0.{index + 2}";
 
         private static int DockerKvPort(int index) => 32010 + 100 * index;
@@ -1294,6 +1359,39 @@ namespace Couchbase.UnitTests.Core
             return config;
         }
 
+        /// <summary>
+        /// Two K/V nodes, a query node and a search node, all on 127.0.0.1 with their own ports.
+        /// </summary>
+        private static BucketConfig ClusterRunConfig(ulong rev, string name)
+        {
+            NodesExt[] nodes =
+            [
+                ClusterRunNode(0, kv: true), ClusterRunNode(1, kv: true),
+                ClusterRunNode(2, query: true), ClusterRunNode(3, search: true)
+            ];
+            var config = DockerConfig(rev, nodes);
+            config.Name = name;
+
+            // With no alternate address, a bucket map node keeps its K/V port only if nodes lists it.
+            config.Nodes = nodes.Where(node => node.Services.Kv > 0)
+                .Select(node => new Node { Hostname = $"{node.Hostname}:{node.Services.Mgmt}" })
+                .ToList();
+            return config;
+        }
+
+        private static NodesExt ClusterRunNode(int index, bool kv = false, bool query = false, bool search = false) =>
+            new()
+            {
+                Hostname = "127.0.0.1",
+                Services = new Services
+                {
+                    Mgmt = 9000 + index,
+                    Kv = kv ? 12000 + 2 * index : 0,
+                    N1Ql = query ? 9499 - index : 0,
+                    Fts = search ? 9200 + index : 0
+                }
+            };
+
         private static ClusterOptions DockerOptions(IClusterNodeFactory nodeFactory)
         {
             var options = new ClusterOptions().WithConnectionString($"couchbase://localhost:{DockerKvPort(0)}")
@@ -1313,7 +1411,8 @@ namespace Couchbase.UnitTests.Core
             return seed;
         }
 
-        private static IClusterNodeFactory NodeFactory(List<IClusterNode> created, IClusterNode seed = null)
+        private static IClusterNodeFactory NodeFactory(List<IClusterNode> created, IClusterNode seed = null,
+            string failingHost = null)
         {
             var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
             if (seed != null)
@@ -1326,6 +1425,11 @@ namespace Couchbase.UnitTests.Core
                     It.IsAny<CancellationToken>()))
                 .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, CancellationToken _) =>
                 {
+                    if (failingHost != null && nodeAdapter.CanonicalHostname == failingHost)
+                    {
+                        return Task.FromException<IClusterNode>(new SocketException((int)SocketError.ConnectionRefused));
+                    }
+
                     var node = CreateGlobalNode(endPoint, nodeAdapter);
                     created.Add(node);
                     return Task.FromResult(node);
