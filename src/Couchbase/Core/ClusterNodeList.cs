@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
+using Couchbase.Core.Configuration.Server;
 
 #nullable enable
 
@@ -65,9 +66,8 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     {
         lock (_syncObj)
         {
-            var removeCount = _nodes.RemoveWhere(x =>
-                x.EndPoint == nodeToRemove.EndPoint
-                && x.BucketName == nodeToRemove.BucketName);
+            // By reference, as nodes with no K/V service can share an endpoint and owner.
+            var removeCount = _nodes.RemoveWhere(x => ReferenceEquals(x, nodeToRemove));
             return removeCount > 0;
         }
     }
@@ -106,9 +106,10 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     }
 
     /// <summary>
-    /// Gets a node from the collection by <see cref="HostEndpointWithPort"/>, if present.
+    /// Gets the node of a cluster map entry owned by a bucket, if present.
     /// </summary>
-    /// <param name="endPoint"><see cref="HostEndpointWithPort"/> to find.</param>
+    /// <param name="endPoint">The K/V endpoint of the map entry.</param>
+    /// <param name="nodeAdapter">The map entry.</param>
     /// <param name="bucketName">The bucketName that may be the owner.</param>
     /// <param name="node">Node found, if any.</param>
     /// <returns>True if the node was found.</returns>
@@ -116,29 +117,47 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     /// Optimized to be low-lock.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGet(HostEndpointWithPort endPoint, string bucketName, [NotNullWhen(true)] out IClusterNode? node)
+    public bool TryGet(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string bucketName, [NotNullWhen(true)] out IClusterNode? node)
     {
         // ReSharper disable once InconsistentlySynchronizedField
-       node = _nodes.FirstOrDefault(x => x.EndPoint == endPoint && x.BucketName == bucketName);
+       node = _nodes.FirstOrDefault(x => x.BucketName == bucketName && IsNodeOf(x, endPoint, nodeAdapter));
        return node != null;
     }
 
     /// <summary>
-    /// Gets a node from the collection by hostname, if present.
+    /// Gets the node of a cluster map entry, whatever its owner, if present.
     /// </summary>
-    /// <param name="hostName"><see cref="string"/> to find.</param>
+    /// <param name="endPoint">The K/V endpoint of the map entry.</param>
+    /// <param name="nodeAdapter">The map entry.</param>
     /// <param name="node">Node found, if any.</param>
     /// <returns>True if the node was found.</returns>
     /// <remarks>
     /// Optimized to be low-lock.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetByHostname(string hostName, [NotNullWhen(true)] out IClusterNode? node)
+    public bool TryGet(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, [NotNullWhen(true)] out IClusterNode? node)
     {
         // ReSharper disable once InconsistentlySynchronizedField
-        node = _nodes.FirstOrDefault(x => x.EndPoint.Host == hostName);
+        node = _nodes.FirstOrDefault(x => IsNodeOf(x, endPoint, nodeAdapter));
         return node != null;
     }
+
+    /// <summary>
+    /// Returns true when <paramref name="node"/> is the node of a cluster map entry.
+    /// </summary>
+    /// <param name="node">The node to check.</param>
+    /// <param name="endPoint">The K/V endpoint of the map entry.</param>
+    /// <param name="nodeAdapter">The map entry, if known.</param>
+    /// <remarks>
+    /// The endpoint must match, as a node keeps its endpoint and connections for life.
+    /// Nodes on an alternate network can share a host, and nodes with no K/V service then share the endpoint.
+    /// So the <see cref="NodeAdapter.NodeId"/> must also match when both sides have one.
+    /// </remarks>
+    public static bool IsNodeOf(IClusterNode node, HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter) =>
+        node.EndPoint.Equals(endPoint)
+        && (node.NodesAdapter?.NodeId is not { } nodeId
+            || nodeAdapter?.NodeId is not { } mapNodeId
+            || nodeId.Equals(mapNodeId));
 
     /// <inheritdoc />
     /// <remarks>
