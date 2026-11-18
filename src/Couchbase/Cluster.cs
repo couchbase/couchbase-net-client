@@ -25,6 +25,7 @@ using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Script;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,7 @@ using Couchbase.Core.IO.Operations;
 
 namespace Couchbase
 {
-    public partial class Cluster : ICluster, IBootstrappable
+    public partial class Cluster : ICluster, IBootstrappable, IConversationalQueryContext
     {
         internal const string RequiresUnreferencedCodeMessage =
             "The Couchbase SDK might require types that cannot be statically analyzed. Make sure all required types are preserved.";
@@ -85,6 +86,7 @@ namespace Couchbase
 
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
         internal Lazy<Transactions> LazyTransactions;
+        private readonly Lazy<IConversationalQuery> _lazyConversationalQuery;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -114,6 +116,7 @@ namespace Couchbase
             LazyEventingFunctionManagerFactory = new LazyService<IEventingFunctionManagerFactory>(_context.ServiceProvider);
             LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => LazyEventingFunctionManagerFactory.GetValueOrThrow().CreateClusterLevel());
             LazyTransactions = new(() => Client.Transactions.Transactions.Create(this, clusterOptions.TransactionsConfig));
+            _lazyConversationalQuery = new(() => new ConversationalQuery(this));
             _context.ClusterCapsChanged += OnClusterCapsChanged;
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
@@ -524,6 +527,18 @@ namespace Couchbase
 
             return await _retryOrchestrator.RetryAsync(Func, request).ConfigureAwait(false);
         }
+
+        /// <inheritdoc />
+        public IConversationalQuery ConversationalQuery => _lazyConversationalQuery.Value;
+
+        IEnumerable<IClusterNode> IConversationalQueryContext.Nodes => _context.Nodes;
+
+        bool IConversationalQueryContext.EnableTls => _context.ClusterOptions.EffectiveEnableTls;
+
+        bool? IConversationalQueryContext.HasConversationalQueryCapability =>
+            _context.HasClusterCap(ClusterCapabilities.CONVERSATIONAL_QUERY);
+
+        void IConversationalQueryContext.ThrowIfNotBootstrapped() => ThrowIfNotBootstrapped();
 
         #endregion
 

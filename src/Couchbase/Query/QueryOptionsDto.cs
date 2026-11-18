@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 
@@ -65,6 +66,31 @@ namespace Couchbase.Query
         [JsonPropertyName("max_parallelism")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? MaxServerParallelism { get; set; }
+
+        [JsonPropertyName("natural_chatid")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? NaturalChatId { get; set; }
+
+        // The model and credential are typed fields, not raw parameters, so error contexts never include them.
+        [JsonPropertyName("natural_config")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public JsonObject? NaturalConfig { get; set; }
+
+        [JsonPropertyName("natural_cred")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? NaturalCred { get; set; }
+
+        [JsonPropertyName("natural_model")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? NaturalModel { get; set; }
+
+        [JsonPropertyName("natural_orgid")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? NaturalOrgId { get; set; }
+
+        [JsonPropertyName("natural_vendor")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? NaturalVendor { get; set; }
 
         [JsonPropertyName("preserve_expiry")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

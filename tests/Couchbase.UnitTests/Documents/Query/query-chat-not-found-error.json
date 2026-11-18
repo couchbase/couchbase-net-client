@@ -1,0 +1,18 @@
+{
+  "requestID": "5e0f3c2a-7d41-4b6e-a8c9-1f2d3e4b5a60",
+  "errors": [
+    {
+      "code": 19236,
+      "msg": "no chat found with chatid: 23a2c880-4566-4f78-9e81-86ea755b2a7f"
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "212.4µs",
+    "executionTime": "198.7µs",
+    "resultCount": 0,
+    "resultSize": 0,
+    "serviceLoad": 0,
+    "errorCount": 1
+  }
+}

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Couchbase.Query.Conversational;
 
 #nullable enable
 
@@ -14,6 +15,8 @@ namespace Couchbase.Query
     [JsonSerializable(typeof(ErrorData), TypeInfoPropertyName = "QueryErrorData")]
     [JsonSerializable(typeof(QueryWarning), TypeInfoPropertyName = "QueryWarning")]
     [JsonSerializable(typeof(MetricsData), TypeInfoPropertyName = "QueryMetricsData")]
+    [JsonSerializable(typeof(TokenUsage))]
+    [JsonSerializable(typeof(ChatHandleDto))]
     [JsonSerializable(typeof(QueryPlan))]
     [JsonSerializable(typeof(Core.Exceptions.Query.QueryErrorContext))]
     internal partial class QuerySerializerContext : JsonSerializerContext

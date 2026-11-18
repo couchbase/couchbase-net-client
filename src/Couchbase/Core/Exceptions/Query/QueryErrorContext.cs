@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
+using Couchbase.Query.Conversational;
 
 #nullable enable
 
@@ -53,6 +54,11 @@ namespace Couchbase.Core.Exceptions.Query
         }
 
         public List<RetryReason>? RetryReasons { get; internal set; }
+
+        // Holds the model credential, so it is never serialized.
+        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        internal ConversationalRequest? Conversational { get; init; }
 
         #region IKeyValueErrorContext
 

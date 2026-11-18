@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Query.Conversational;
 
 #nullable enable
 
@@ -80,6 +81,10 @@ namespace Couchbase.Core
             _clusterContext.GetRandomNodeForService(ServiceType.Eventing);
 
         #endregion
+
+        /// <inheritdoc />
+        public IClusterNode? GetQueryNode(string nodeUuid) =>
+            QueryNodes.TryResolve(_clusterContext.Nodes, nodeUuid, out var node) ? node : null;
     }
 }
 

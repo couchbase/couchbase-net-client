@@ -603,6 +603,7 @@ namespace Couchbase.Core.Configuration.Server
         public const string VECTOR_SEARCH = "search.vectorSearch";
         public const string SCORE_FUSION = "search.scoreFusion";
         public const string SEARCH_UDF_QUERY = "search.udfQuery";
+        public const string CONVERSATIONAL_QUERY = "n1ql.conversationalQuery";
 
         [JsonPropertyName("clusterCapabilitiesVer")] public IEnumerable<int> Version { get; set; }
         [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> Capabilities { get; set; }

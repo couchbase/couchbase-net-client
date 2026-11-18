@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Query.Conversational;
 using Couchbase.Utils;
 
 #nullable enable
@@ -199,9 +200,23 @@ namespace Couchbase.Query
                             .ToDynamic();
                         break;
                     case "metrics":
-                        MetaData.Metrics =
-                            (await _reader.ReadObjectAsync<MetricsData>(cancellationToken).ConfigureAwait(false))
-                            .ToMetrics();
+                        var metrics = await _reader.ReadObjectAsync<MetricsData>(cancellationToken).ConfigureAwait(false);
+                        MetaData.Metrics = metrics.ToMetrics();
+                        NaturalLanguage.ReadMetrics(metrics);
+                        break;
+                    case "generated_statement" when _reader.ValueType == typeof(string):
+                        NaturalLanguage.GeneratedStatement = _reader.Value?.ToString();
+                        break;
+                    case "requestTokens":
+                        NaturalLanguage.RequestTokens =
+                            await _reader.ReadObjectAsync<TokenUsage>(cancellationToken).ConfigureAwait(false);
+                        break;
+                    case "chatTokens":
+                        NaturalLanguage.ChatTokens =
+                            await _reader.ReadObjectAsync<TokenUsage>(cancellationToken).ConfigureAwait(false);
+                        break;
+                    case "chatId" when _reader.ValueType == typeof(string):
+                        NaturalLanguage.ChatId = _reader.Value?.ToString();
                         break;
                     case "results":
                         if (this.Success)
