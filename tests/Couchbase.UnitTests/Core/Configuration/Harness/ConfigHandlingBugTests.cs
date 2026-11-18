@@ -167,6 +167,32 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.Contains("node-3.example.com", harness.Bucket(BucketName).Nodes);
         }
 
+        // Bug 5
+        [Fact]
+        public async Task BucketMap_WithNodeThatStaysUnreachable_AppliesTheNextMapWithoutIt()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            var bucket = await harness.OpenBucketAsync(BucketMap());
+            harness.FailNodeCreation("node-3.example.com");
+
+            for (var i = 0; i < 3; i++)
+            {
+                harness.Publish(BucketMap(11).Node("node-3.example.com"));
+                await harness.DrainAsync();
+                Assert.Equal(Rev(10), harness.Bucket(BucketName).Version);
+                Assert.Equal(i + 1, harness.NodeCreationAttempts("node-3.example.com"));
+            }
+
+            harness.Publish(BucketMap(12).VBuckets(1024, replicas: 2));
+            await harness.DrainAsync();
+
+            var view = harness.Bucket(BucketName);
+            Assert.Equal(Rev(12), view.Version);
+            Assert.Equal(["node-0.example.com", "node-1.example.com"], view.Nodes);
+            Assert.Equal(2, bucket.CurrentConfig!.VBucketServerMap.NumReplicas);
+            Assert.Equal(3, harness.NodesCreated);
+        }
+
         // Bug 6
         [Fact]
         public async Task BucketMap_WithOnlyNewRev_BecomesCurrentConfig()

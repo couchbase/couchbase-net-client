@@ -487,6 +487,11 @@ namespace Couchbase.Test.Common.Configuration
 
         public void AllowNodeCreation(string host) => _nodeFactory.SetFailing(host, failing: false);
 
+        /// <summary>
+        /// Node creation attempts for the endpoints of this node, failed ones included. Goes by host like <see cref="FailNodeCreation"/>.
+        /// </summary>
+        public int NodeCreationAttempts(string host) => _nodeFactory.Attempts(host);
+
         private SteppableClock SteppableClockFor(string caller) =>
             Clock as SteppableClock ?? throw new InvalidOperationException(
                 $"{caller} needs a harness on a {nameof(SteppableClock)}, but this one runs on {Clock.GetType().Name}.");
@@ -668,10 +673,13 @@ namespace Couchbase.Test.Common.Configuration
         private sealed class NodeFactory(FakeClusterServer server, ConnectionMode mode) : IClusterNodeFactory
         {
             private readonly ConcurrentDictionary<string, bool> _failingHosts = new(StringComparer.Ordinal);
+            private readonly ConcurrentDictionary<string, int> _attempts = new(StringComparer.Ordinal);
             private ClusterNodeFactory? _inner;
             private int _created;
 
             public int Created => Volatile.Read(ref _created);
+
+            public int Attempts(string host) => _attempts.TryGetValue(host, out var count) ? count : 0;
 
             public void Attach(ClusterContext context)
             {
@@ -706,6 +714,7 @@ namespace Couchbase.Test.Common.Configuration
                 CancellationToken cancellationToken = default)
             {
                 var host = server.NodeAt(endPoint) ?? endPoint.Host;
+                _attempts.AddOrUpdate(host, 1, static (_, count) => count + 1);
                 if (_failingHosts.ContainsKey(host))
                 {
                     throw new InvalidOperationException($"The harness fails node creation for {host}.");
