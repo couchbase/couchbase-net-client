@@ -64,8 +64,7 @@ namespace Couchbase.LoadTests.Core.Configuration
             for (var i = 0; i < _maps.Length; i++)
             {
                 _rev++;
-                // Bug 6 keeps the bucket on its config for a rev only change, so each version also flips the replica count.
-                _maps[i] = FakeClusterServer.Prepare(_map.Rev(_rev).VBuckets(1024, replicas: _rev % 2 == 0 ? 2 : 1));
+                _maps[i] = FakeClusterServer.Prepare(_map.Rev(_rev));
             }
             _next = 0;
         }

@@ -14,7 +14,6 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
     /// <remarks>
     /// After each model event every node that does not lag gets the latest maps. A check follows each model event,
     /// each <see cref="WaitStep"/> and each <see cref="CatchUpStep"/>, except inside <see cref="UncheckedStep"/>.
-    /// The check after an event that only changes the rev or the epoch waits for the SDK and compares nothing (bug 6).
     /// A node that leaves the cluster ends its connections before its delivery, as <see cref="ModelServer.Leave"/> says.
     /// In real mode on the virtual clock the runner then settles before the delivery, so the SDK has time to reconnect and
     /// get the select bucket failure before the map without the node. On real time the two race, as in the captures.
@@ -61,14 +60,14 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                     _lagging.Remove(catchUp.Host);
                     await LeaveAsync(step.ToString()).ConfigureAwait(false);
                     context.Server.Deliver(catchUp.Host, _push);
-                    if (checking) await CheckAsync(step.ToString(), compare: true).ConfigureAwait(false);
+                    if (checking) await CheckAsync(step.ToString()).ConfigureAwait(false);
                     break;
                 case PushStep push:
                     _push = push.Notify;
                     break;
                 case WaitStep wait:
                     await check.WaitAsync(wait.Duration, step.ToString(), _differences).ConfigureAwait(false);
-                    if (checking) await CheckAsync(step.ToString(), compare: true).ConfigureAwait(false);
+                    if (checking) await CheckAsync(step.ToString()).ConfigureAwait(false);
                     break;
                 case DoStep action:
                     await action.Action(context).ConfigureAwait(false);
@@ -97,13 +96,12 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
 
                 var changed = model.Apply(e);
                 Write(depth + 1, $"{model.Applied[model.Applied.Count - 1].Rev} {e} -> {string.Join(", ", changed.Select(m => m.Bucket ?? "cluster"))}");
-                check.Applied(e, changed);
                 await LeaveAsync($"{e} in {step}").ConfigureAwait(false);
                 context.Server.DeliverAll(_push, _lagging);
                 if (checking)
                 {
                     var after = step.Name == e.ToString() ? step.Name : $"{e} in {step}";
-                    await CheckAsync(after, compare: !ScenarioCheck.IsRevOnly(e)).ConfigureAwait(false);
+                    await CheckAsync(after).ConfigureAwait(false);
                 }
 
                 if (points is null) continue;
@@ -149,9 +147,9 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
             }
         }
 
-        private async Task CheckAsync(string after, bool compare)
+        private async Task CheckAsync(string after)
         {
-            _differences.AddRange(await check.CheckAsync(after, _push, compare).ConfigureAwait(false));
+            _differences.AddRange(await check.CheckAsync(after, _push).ConfigureAwait(false));
         }
 
         private void Write(int depth, string line) => _log.Add(new string(' ', depth * 2) + line);

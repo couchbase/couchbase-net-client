@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Test.Common.Configuration.Model;
 using Couchbase.Test.Common.Utils;
 
@@ -18,8 +17,6 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
     /// The wait ends once the handler dispatched the latest version of every bucket, or the bucket has it. Settling
     /// alone can return while a fetched map is still on its way to the bucket, because the fetch counts as activity
     /// when it is sent.
-    /// The SDK does not take a version that only changes the rev or the epoch (bug 6). So a bucket whose latest
-    /// versions are of that kind can also be on the version before them.
     /// A bucket that misses the deadline gets no new wait until the SDK has its latest version again. So a stuck SDK
     /// costs one deadline, not one per step.
     /// </remarks>
@@ -27,35 +24,16 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
     {
         private static readonly TimeSpan PollStep = TimeSpan.FromMilliseconds(5);
 
-        private readonly HashSet<(string Bucket, ConfigVersion Version)> _revOnly = [];
         private readonly HashSet<string> _stuck = new(StringComparer.Ordinal);
 
         public TimeSpan Deadline { get; } = deadline;
-
-        /// <summary>
-        /// True for the events that give versions the SDK does not take.
-        /// </summary>
-        public static bool IsRevOnly(ModelEvent e) => e is BumpRev or BumpAll or BumpEpoch;
-
-        /// <summary>
-        /// Notes the maps of an event the model applied.
-        /// </summary>
-        public void Applied(ModelEvent e, IReadOnlyList<ModelMap> changed)
-        {
-            if (!IsRevOnly(e)) return;
-            foreach (var map in changed.Where(m => m.Bucket is not null))
-            {
-                _revOnly.Add((map.Bucket!, map.Version));
-            }
-        }
 
         /// <summary>
         /// Waits for the SDK and lists the differences.
         /// </summary>
         /// <param name="after">What the step log calls the last change, for the messages.</param>
         /// <param name="push">False when the last deliveries did not notify, so the SDK only finds them by polling.</param>
-        /// <param name="compare">False to only wait.</param>
-        public async Task<List<string>> CheckAsync(string after, bool push, bool compare)
+        public async Task<List<string>> CheckAsync(string after, bool push)
         {
             var differences = new List<string>();
             _stuck.IntersectWith(Late());
@@ -70,7 +48,6 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
             _stuck.UnionWith(late);
 
             await QuietAsync(after, differences).ConfigureAwait(false);
-            if (!compare) return differences;
 
             foreach (var bucket in context.Model.Buckets.Where(b => !late.Contains(b)))
             {
@@ -170,7 +147,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         {
             var latest = context.Model.Bucket(bucket);
             var view = context.View(bucket);
-            if (view.Version is not { } version || !Accepted(bucket).Contains(version))
+            if (view.Version != latest.Version)
             {
                 differences.Add($"After {after}, the SDK has {bucket} {view.Version} and the model has {latest.Version}.");
             }
@@ -187,19 +164,6 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                 differences.Add($"After {after}, the SDK maps {wrong.Count} vbuckets of {bucket} to another active node, " +
                                 $"the first is vbucket {wrong[0]}.");
             }
-        }
-
-        // The latest version, and when it only changes the rev or the epoch, each version back to the last real change.
-        private List<ConfigVersion> Accepted(string bucket)
-        {
-            var accepted = new List<ConfigVersion>();
-            var history = context.Model.History(bucket);
-            for (var i = history.Count - 1; i >= 0; i--)
-            {
-                accepted.Add(history[i].Version);
-                if (!_revOnly.Contains((bucket, history[i].Version))) break;
-            }
-            return accepted;
         }
     }
 }
