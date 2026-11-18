@@ -76,6 +76,7 @@ namespace Couchbase.FitPerformer.Utils
             if (err is PlanningFailureException) return CouchbaseExceptionType.SdkPlanningFailureException;
             if (err is IndexFailureException) return CouchbaseExceptionType.SdkIndexFailureException;
             if (err is PreparedStatementException) return CouchbaseExceptionType.SdkPreparedStatementFailureException;
+            if (err is ChatCurrentlyUnavailableException) return CouchbaseExceptionType.SdkChatCurrentlyUnavailableException;
 
             if (err is CompilationFailureException) return CouchbaseExceptionType.SdkCompilationFailureException;
             if (err is JobQueueFullException) return CouchbaseExceptionType.SdkJobQueueFullException;

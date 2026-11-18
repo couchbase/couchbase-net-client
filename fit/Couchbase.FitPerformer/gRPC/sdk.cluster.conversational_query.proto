@@ -1,0 +1,234 @@
+syntax = "proto3";
+
+package protocol.sdk.cluster.conversational_query;
+option csharp_namespace = "Couchbase.Grpc.Protocol.Sdk.Cluster.ConversationalQuery";
+option java_package = "com.couchbase.client.protocol.sdk.cluster.conversationalquery";
+option go_package = "github.com/couchbaselabs/transactions-fit-performer/protocol/sdk/cluster/conversationalquery";
+option ruby_package = "FIT::Protocol::SDK::Cluster::ConversationalQuery";
+option java_multiple_files = true;
+
+import "google/protobuf/duration.proto";
+import "sdk.query.proto";
+import "shared.basic.proto";
+import "shared.collection.proto";
+import "shared.content.proto";
+
+// cluster.conversationalQuery() (SDK-RFC 86).
+message Command {
+  oneof command {
+    // conversationalQuery().query(prompt, keyspaces, options)
+    Query query = 1;
+
+    // conversationalQuery().beginChat(keyspaces, options)
+    BeginChat begin_chat = 2;
+
+    // conversationalQuery().attachChat(ChatHandle.fromJson(handle_json), options)
+    AttachChat attach_chat = 3;
+
+    // chat.ask(prompt, options), chat.pause(options), chat.resume(options), chat.end(options) and chat.handle()
+    ChatCommand chat = 4;
+  }
+}
+
+message ModelOptions {
+  optional string provider = 1;
+  optional string name = 2;
+  optional string endpoint = 3;
+  optional int64 output_token_limit = 4;
+  optional bool moderation = 5;
+  // Each value is JSON.
+  map<string, string> raw = 6;
+}
+
+message ModelCredential {
+  oneof credential {
+    // ModelCredential.capella(email, password, organizationId)
+    CapellaCredential capella = 1;
+    // ModelCredential.credentialStore(credentialName)
+    string credential_store = 2;
+    // ModelCredential.apiKey(key)
+    string api_key = 3;
+  }
+}
+
+message CapellaCredential {
+  string email = 1;
+  string password = 2;
+  string organization_id = 3;
+}
+
+enum ConversationalQueryOutput {
+  SQLPP = 0;
+  FTS_SQLPP = 1;
+  JS_UDF = 2;
+}
+
+message ConversationalQueryOptions {
+  optional ModelOptions model = 1;
+  optional ModelCredential credential = 2;
+  optional string hint = 3;
+  optional bool execute = 4;
+  optional ConversationalQueryOutput output = 5;
+  optional bool use_knowledge = 6;
+  optional shared.ScanConsistency scan_consistency = 7;
+  optional shared.MutationState consistent_with = 8;
+  optional int32 scan_wait_millis = 9;
+  optional bool use_replica = 10;
+  optional string client_context_id = 11;
+  optional bool metrics = 12;
+  // "off", "phases", or "timings"
+  optional string profile = 13;
+  optional int64 timeout_millis = 14;
+  // Each value is JSON.
+  map<string, string> raw_parameters = 15;
+  optional string parent_span_id = 16;
+}
+
+// Returns Result.query_result
+message Query {
+  string prompt = 1;
+  repeated shared.Collection keyspaces = 2;
+  optional ConversationalQueryOptions options = 3;
+  shared.ContentAs content_as = 4;
+}
+
+message BeginChatOptions {
+  optional ModelOptions model = 1;
+  optional ModelCredential credential = 2;
+  optional int64 inactivity_timeout_millis = 3;
+  optional bool use_knowledge = 4;
+  optional int64 timeout_millis = 5;
+  optional string parent_span_id = 6;
+}
+
+// Returns Result.handle_json, from the new Chat's handle().toJson()
+message BeginChat {
+  // This is used to reference the Chat later.
+  string chat_ref = 1;
+  repeated shared.Collection keyspaces = 2;
+  optional BeginChatOptions options = 3;
+}
+
+message AttachChatOptions {
+  optional ModelOptions model = 1;
+  optional ModelCredential credential = 2;
+}
+
+// Returns Result.handle_json, from the new Chat's handle().toJson()
+message AttachChat {
+  // This is used to reference the Chat later.
+  string chat_ref = 1;
+  string handle_json = 2;
+  optional AttachChatOptions options = 3;
+}
+
+message ChatCommand {
+  // References a Chat stored by begin_chat or attach_chat.
+  // The performer can assume it's a driver bug if this references a non-existent Chat.
+  string chat_ref = 1;
+
+  oneof command {
+    Ask ask = 2;
+    Pause pause = 3;
+    Resume resume = 4;
+    End end = 5;
+    Handle handle = 6;
+  }
+}
+
+message AskOptions {
+  optional string hint = 1;
+  optional bool execute = 2;
+  optional ConversationalQueryOutput output = 3;
+  optional shared.ScanConsistency scan_consistency = 4;
+  optional shared.MutationState consistent_with = 5;
+  optional int32 scan_wait_millis = 6;
+  optional bool use_replica = 7;
+  optional string client_context_id = 8;
+  optional bool metrics = 9;
+  // "off", "phases", or "timings"
+  optional string profile = 10;
+  optional int64 timeout_millis = 11;
+  // Each value is JSON.
+  map<string, string> raw_parameters = 12;
+  optional string parent_span_id = 13;
+}
+
+// Returns Result.query_result
+message Ask {
+  string prompt = 1;
+  optional AskOptions options = 2;
+  shared.ContentAs content_as = 3;
+}
+
+message PauseOptions {
+  optional bool summarize = 1;
+  optional int64 timeout_millis = 2;
+  optional string parent_span_id = 3;
+}
+
+// Returns Result.meta_data
+message Pause {
+  optional PauseOptions options = 1;
+}
+
+message ResumeOptions {
+  optional int64 timeout_millis = 1;
+  optional string parent_span_id = 2;
+}
+
+// Returns Result.meta_data
+message Resume {
+  optional ResumeOptions options = 1;
+}
+
+message EndOptions {
+  optional int64 timeout_millis = 1;
+  optional string parent_span_id = 2;
+}
+
+// Returns Result.meta_data
+message End {
+  optional EndOptions options = 1;
+}
+
+// chat.handle().toJson()
+// Returns Result.handle_json
+message Handle {
+}
+
+message TokenUsage {
+  optional int64 prompt_tokens = 1;
+  optional int64 completion_tokens = 2;
+  optional int64 total_tokens = 3;
+}
+
+message ConversationalQueryMetaData {
+  string request_id = 1;
+  string client_context_id = 2;
+  sdk.query.QueryStatus status = 3;
+  repeated sdk.query.QueryWarning warnings = 4;
+  optional sdk.query.QueryMetrics metrics = 5;
+  optional bytes profile = 6;
+  optional TokenUsage request_tokens = 7;
+  optional TokenUsage chat_tokens = 8;
+  optional google.protobuf.Duration natural_language_processing_time = 9;
+  optional bool generated_statement_executed = 10;
+}
+
+message ConversationalQueryResult {
+  repeated shared.ContentTypes content = 1;
+  // The performer should read generatedStatement() before iterating the rows.
+  optional string generated_statement = 2;
+  ConversationalQueryMetaData meta_data = 3;
+}
+
+message Result {
+  oneof result {
+    ConversationalQueryResult query_result = 1;
+
+    string handle_json = 2;
+
+    ConversationalQueryMetaData meta_data = 3;
+  }
+}

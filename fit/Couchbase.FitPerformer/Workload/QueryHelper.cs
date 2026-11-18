@@ -2,7 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.FitPerformer.Utils.Options;
@@ -223,14 +225,14 @@ public static class QueryHelper
             }
         }
 
-        private static RepeatedField<Couchbase.Grpc.Protocol.Sdk.Query.QueryWarning> ConvertQueryWarnings(List<Couchbase.Query.QueryWarning> warnings)
+        internal static RepeatedField<Couchbase.Grpc.Protocol.Sdk.Query.QueryWarning> ConvertQueryWarnings(IEnumerable<Couchbase.Query.QueryWarning> warnings)
         {
             var protoWarnings = new RepeatedField<Couchbase.Grpc.Protocol.Sdk.Query.QueryWarning>();
             protoWarnings.AddRange(warnings.Select(w => new Grpc.Protocol.Sdk.Query.QueryWarning { Code = w.Code, Message = w.Message }));
             return protoWarnings;
         }
 
-        private static Couchbase.Grpc.Protocol.Sdk.Query.QueryStatus ConvertQueryStatus(QueryStatus status)
+        internal static Couchbase.Grpc.Protocol.Sdk.Query.QueryStatus ConvertQueryStatus(QueryStatus status)
         {
             switch (status)
             {
@@ -255,7 +257,7 @@ public static class QueryHelper
             }
         }
 
-        private static Couchbase.Grpc.Protocol.Sdk.Query.QueryMetrics ConvertQueryMetrics(Couchbase.Query.QueryMetrics metrics)
+        internal static Couchbase.Grpc.Protocol.Sdk.Query.QueryMetrics ConvertQueryMetrics(Couchbase.Query.QueryMetrics metrics)
         {
             var protoMetrics = new Couchbase.Grpc.Protocol.Sdk.Query.QueryMetrics
             {
@@ -267,17 +269,35 @@ public static class QueryHelper
                 WarningCount = metrics.WarningCount
             };
 
-            if (metrics.ElapsedTime != null)
-            {
-                var elapsed = TimeSpan.FromMilliseconds(double.Parse(metrics.ElapsedTime.Substring(0, metrics.ElapsedTime.Length - 2)));
-                protoMetrics.ElapsedTime = Duration.FromTimeSpan(elapsed);
-            }
-            if (metrics.ExecutionTime != null)
-            {
-                var execution = TimeSpan.FromMilliseconds(double.Parse(metrics.ExecutionTime.Substring(0, metrics.ExecutionTime.Length - 2)));
-                protoMetrics.ExecutionTime = Duration.FromTimeSpan(execution);
-            }
+            if (metrics.ElapsedTime != null) protoMetrics.ElapsedTime = ConvertGoDuration(metrics.ElapsedTime);
+            if (metrics.ExecutionTime != null) protoMetrics.ExecutionTime = ConvertGoDuration(metrics.ExecutionTime);
 
             return protoMetrics;
+        }
+
+        // Query writes Go durations, for example "0s", "85.3µs" or "1m2.5s".
+        private static readonly Regex GoDuration = new(@"^(?:(\d*\.?\d+)(ns|us|µs|μs|ms|s|m|h))+$", RegexOptions.Compiled);
+
+        private static Duration ConvertGoDuration(string value)
+        {
+            var match = GoDuration.Match(value);
+            if (!match.Success) throw new FormatException("Not a Go duration: " + value);
+
+            var nanos = 0m;
+            for (var i = 0; i < match.Groups[1].Captures.Count; i++)
+            {
+                var nanosPerUnit = match.Groups[2].Captures[i].Value switch
+                {
+                    "ns" => 1m,
+                    "ms" => 1_000_000m,
+                    "s" => 1_000_000_000m,
+                    "m" => 60_000_000_000m,
+                    "h" => 3_600_000_000_000m,
+                    _ => 1_000m,
+                };
+                nanos += decimal.Parse(match.Groups[1].Captures[i].Value, CultureInfo.InvariantCulture) * nanosPerUnit;
+            }
+
+            return new Duration { Seconds = (long)(nanos / 1_000_000_000m), Nanos = (int)(nanos % 1_000_000_000m) };
         }
 }
