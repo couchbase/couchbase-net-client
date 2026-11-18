@@ -53,7 +53,7 @@ namespace Couchbase.Core.Configuration.Server
         public static bool HasConfigChanges(this BucketConfig newConfig, BucketConfig? oldConfig, string bucketName)
         {
             //Wrong bucket name - configs are broadcast so keep on going
-            if (!newConfig.Name.Equals(bucketName))
+            if (!string.Equals(newConfig.Name, bucketName))
             {
                 return false;
             }
@@ -64,13 +64,8 @@ namespace Couchbase.Core.Configuration.Server
                 return true;
             }
 
-            //There has been a config change and the newConfig may need to be loaded
-            if (!newConfig.Equals(oldConfig))
-            {
-                return newConfig.IsNewerThan(oldConfig);
-            }
-
-            return false;
+            // Compare versions first, so a duplicate skips the deep compare of the vbucket map.
+            return newConfig.IsNewerThan(oldConfig) && !newConfig.Equals(oldConfig);
         }
         public static bool IsNewerThan(this BucketConfig newConfig, BucketConfig? oldConfig)
         {
