@@ -47,16 +47,16 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync().AsTask();
+            var moved = stream.MoveNextAsync();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-            Assert.True(await Within(moved));
+            Assert.True(await Within(moved.AsTask()));
 
-            moved = stream.MoveNextAsync().AsTask();
+            moved = stream.MoveNextAsync();
             var second = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(moved)));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -74,14 +74,14 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync().AsTask();
+            var moved = stream.MoveNextAsync();
             var first = await bucket.NextContinue();
             bucket.CompleteContinue(ResponseStatus.RangeScanMore, "a");
-            Assert.True(await Within(moved));
+            Assert.True(await Within(moved.AsTask()));
 
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(stream.MoveNextAsync().AsTask()));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(stream.MoveNextAsync())));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -98,11 +98,11 @@ namespace Couchbase.UnitTests.KeyValue
 
             // Awaited as a ValueTask, as in the other tests: on .NET Framework, ValueTask.AsTask() completes the
             // task as cancelled without the exception's token, so the token could not be checked.
-            var moved = stream.MoveNextAsync().AsTask();
+            var moved = stream.MoveNextAsync();
             var first = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(moved)));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(stream.MoveNextAsync().AsTask()));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(stream.MoveNextAsync())));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await Within(collection.ScanCleanup);
@@ -168,11 +168,11 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan(), options)
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync().AsTask();
+            var moved = stream.MoveNextAsync();
             await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(moved)));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             Assert.Equal(optionsCts.Token, options.TokenValue);
@@ -214,11 +214,11 @@ namespace Couchbase.UnitTests.KeyValue
             await using var stream = collection.ScanAsync(new RangeScan())
                 .WithCancellation(cts.Token).GetAsyncEnumerator();
 
-            var moved = stream.MoveNextAsync().AsTask();
+            var moved = stream.MoveNextAsync();
             var first = await bucket.NextContinue();
             cts.Cancel();
 
-            var canceled = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Within(moved));
+            var canceled = Assert.IsAssignableFrom<OperationCanceledException>(await Within(Failure(moved)));
 
             Assert.Equal(cts.Token, canceled.CancellationToken);
             await bucket.WhenClosed(first);
@@ -570,6 +570,38 @@ namespace Couchbase.UnitTests.KeyValue
         {
             await Within((Task) task).ConfigureAwait(false);
             return await task.ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Waits for a step of the stream and returns the exception that it threw, or null. The step is awaited as
+        /// it is, so the exception is the one that the scan threw: on .NET Framework, ValueTask.AsTask() and an async
+        /// method that rethrows complete the task as cancelled without the token of the exception.
+        /// </summary>
+        private static async Task<Exception> Failure(ValueTask<bool> step)
+        {
+            try
+            {
+                await step;
+                return null;
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        /// <inheritdoc cref="Failure(ValueTask{bool})"/>
+        private static async Task<Exception> Failure(System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable<bool> step)
+        {
+            try
+            {
+                await step;
+                return null;
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
         }
 
         /// <inheritdoc cref="Within{T}"/>
