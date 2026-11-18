@@ -724,6 +724,59 @@ public class BucketConfigExtensionTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task ConfigUpdatedAsync_OnlyNewerRev_IsStoredWithSameKeyMapper()
+    {
+        var keyMapper = new Mock<IKeyMapper>().Object;
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        keyMapperFactory.Setup(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
+            .Returns(keyMapper);
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object);
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+        Assert.Same(keyMapper, bucket.KeyMapper);
+        keyMapperFactory.Invocations.Clear();
+
+        var incoming = CreateConfig(rev: 3, activeNode: 1);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.Same(keyMapper, bucket.KeyMapper);
+        keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_OnlyNewBucketCapability_IsStored()
+    {
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0));
+        Assert.False(bucket.HasCap(BucketCapabilities.RANGE_SCAN));
+
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        incoming.BucketCapabilities = [BucketCapabilities.RANGE_SCAN];
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.True(bucket.HasCap(BucketCapabilities.RANGE_SCAN));
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_OnlyServerGroupChange_IsStored()
+    {
+        var current = CreateConfig(rev: 1, activeNode: 0);
+        current.NodesExt[0].ServerGroup = "group-1";
+        current.NodesExt[1].ServerGroup = "group-2";
+        var bucket = CreateBucket(current);
+
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        incoming.NodesExt[0].ServerGroup = "group-1";
+        incoming.NodesExt[1].ServerGroup = "group-1";
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        var groups = bucket.CurrentConfig!.ServerGroupNodeIndexes;
+        Assert.Equal(new[] { 0, 1 }, groups["group-1"]);
+        Assert.False(groups.ContainsKey("group-2"));
+    }
+
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
     /// </summary>
