@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -272,6 +273,7 @@ public class BucketConfigExtensionTests
         };
 
         Assert.False(newConfig.HasConfigChanges(oldConfig, "default"));
+        Assert.False(new BucketConfig { Name = null }.HasConfigChanges(oldConfig, "default"));
     }
 
     [Fact]
@@ -322,6 +324,31 @@ public class BucketConfigExtensionTests
         };
 
         Assert.False(newConfig.HasConfigChanges(oldConfig, "default"));
+    }
+
+    [Theory]
+    [InlineData(806UL, false, false, false)]
+    [InlineData(806UL, true, false, true)]
+    [InlineData(806UL, true, true, false)]
+    [InlineData(804UL, true, false, true)]
+    public void Test_HasConfigChanges_When_Revision_Is_Same_Or_Older(ulong newRev, bool ignoreRev, bool sameMap, bool expected)
+    {
+        var oldConfig = new BucketConfig
+        {
+            Name = "default",
+            Rev = 806,
+            VBucketServerMap = new VBucketServerMapDto { ServerList = ["nodeA:11210"], VBucketMap = [[0]] }
+        };
+
+        var newConfig = new BucketConfig
+        {
+            Name = "default",
+            Rev = newRev,
+            IgnoreRev = ignoreRev,
+            VBucketServerMap = new VBucketServerMapDto { ServerList = ["nodeA:11210"], VBucketMap = [[sameMap ? (short)0 : (short)-1]] }
+        };
+
+        Assert.Equal(expected, newConfig.HasConfigChanges(oldConfig, "default"));
     }
 
     [Theory]
@@ -620,7 +647,106 @@ public class BucketConfigExtensionTests
         Assert.Equal(configC, bucket.CurrentConfig);
     }
 
-    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig)
+    // Bounds each config update, so a regression fails instead of hanging.
+    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_AfterApplyFailedOnce_AppliesSameRevWhenPublishedAgain()
+    {
+        var keyMapper = new Mock<IKeyMapper>().Object;
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        keyMapperFactory.SetupSequence(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
+            .Throws(new InvalidOperationException())
+            .Returns(keyMapper);
+        var current = CreateConfig(rev: 1, activeNode: 0);
+        var bucket = CreateBucket(current, keyMapperFactory.Object);
+
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+        Assert.Same(current, bucket.CurrentConfig);
+
+        var again = CreateConfig(rev: 2, activeNode: 1);
+        await bucket.ConfigUpdatedAsync(again).WaitAsync(Deadline);
+
+        Assert.Same(again, bucket.CurrentConfig);
+        Assert.Same(keyMapper, bucket.KeyMapper);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_IgnoreRevWithSameRevAndNewMap_IsApplied()
+    {
+        var bucket = CreateBucket(CreateConfig(rev: 5, activeNode: 0));
+        var incoming = CreateConfig(rev: 5, activeNode: 1);
+        incoming.IgnoreRev = true;
+
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_IgnoreRevWithOlderRev_IsApplied()
+    {
+        // A DNS SRV rebootstrap can move the bucket to a cluster with lower revisions.
+        var bucket = CreateBucket(CreateConfig(rev: 5, activeNode: 0));
+        var incoming = CreateConfig(rev: 3, activeNode: 1);
+        incoming.IgnoreRev = true;
+
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_SameRevWithoutIgnoreRev_IsDropped()
+    {
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        var current = CreateConfig(rev: 5, activeNode: 0);
+        var bucket = CreateBucket(current, keyMapperFactory.Object);
+
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 5, activeNode: 1)).WaitAsync(Deadline);
+
+        Assert.Same(current, bucket.CurrentConfig);
+        keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>
+    /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
+    /// </summary>
+    private static BucketConfig CreateConfig(ulong rev, short activeNode)
+    {
+        var config = new BucketConfig
+        {
+            Rev = rev,
+            Name = "default",
+            Nodes = new List<Node>
+            {
+                new() { Hostname = "nodeA:8091", Ports = new Ports { Direct = 11210 } },
+                new() { Hostname = "nodeB:8091", Ports = new Ports { Direct = 11210 } }
+            },
+            NodesExt = new List<NodesExt>
+            {
+                new() { Hostname = "nodeA", Services = new Services { Kv = 11210 } },
+                new() { Hostname = "nodeB", Services = new Services { Kv = 11210 } }
+            },
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                NumReplicas = 1,
+                ServerList = new[] { "nodeA:11210", "nodeB:11210" },
+                VBucketMap = new[]
+                {
+                    new[] { activeNode, (short)(1 - activeNode) },
+                    new[] { activeNode, (short)(1 - activeNode) },
+                    new[] { activeNode, (short)(1 - activeNode) },
+                    new[] { activeNode, (short)(1 - activeNode) }
+                }
+            }
+        };
+        config.OnDeserialized();
+        return config;
+    }
+
+    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null)
     {
         var clusterNodeFactory = new Mock<IClusterNodeFactory>();
         var node = new Mock<IClusterNode>();
@@ -639,7 +765,7 @@ public class BucketConfigExtensionTests
             clusterCtx,
             new Mock<IScopeFactory>().Object,
             new Mock<IRetryOrchestrator>().Object,
-            new Mock<IVBucketKeyMapperFactory>().Object,
+            keyMapperFactory ?? new Mock<IVBucketKeyMapperFactory>().Object,
             new Mock<ILogger<CouchbaseBucket>>().Object,
             new Redactor(RedactionLevel.None),
             new Mock<IBootstrapperFactory>().Object,
