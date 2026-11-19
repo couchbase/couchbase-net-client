@@ -1052,25 +1052,7 @@ namespace Couchbase.Core
                         //The bucket must be selected so that a bucket specific config is returned
                         await node.SelectBucketAsync(name).ConfigureAwait(false);
 
-                        BucketConfig config;
-                        try
-                        {
-                            _logger.LogInformation("Bootstrapping: fetching the config using CCCP for bucket {name}.",
-                                _redactor.MetaData(name));
-
-                            //First try CCCP to fetch the config
-                            config = await node.GetClusterMap().ConfigureAwait(false);
-                        }
-                        catch (DocumentNotFoundException)
-                        {
-                            _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
-                                _redactor.MetaData(name));
-
-                            //In this case CCCP has failed for whatever reason
-                            //We need to now try HTTP Streaming for config fetching
-                            config = await _httpClusterMap.GetClusterMapAsync(
-                                name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
-                        }
+                        var config = await FetchBucketConfigAsync(node, name, CancellationToken).ConfigureAwait(false);
 
                         //make sure the bucket has the latest config as the current config
                         config.IgnoreRev = true;
