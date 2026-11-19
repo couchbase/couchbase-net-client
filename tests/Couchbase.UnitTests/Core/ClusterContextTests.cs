@@ -661,7 +661,7 @@ namespace Couchbase.UnitTests.Core
 
             await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
             Assert.Equal(2, fetches);
-            AssertDisposed(Assert.IsType<CouchbaseBucket>(node.Object.Owner));
+            await AssertDisposedAsync(fixture, Assert.IsType<CouchbaseBucket>(node.Object.Owner));
             Assert.Empty(fixture.Context.Nodes);
             node.Verify(x => x.Dispose(), Times.Once);
             fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Never);
@@ -699,7 +699,7 @@ namespace Couchbase.UnitTests.Core
 
             var failed = Assert.IsType<CouchbaseBucket>(node1.Object.Owner);
             Assert.NotSame(failed, bucket);
-            AssertDisposed(failed);
+            await AssertDisposedAsync(fixture, failed);
             node1.Verify(x => x.Dispose(), Times.Once);
             Assert.Same(node2.Object, Assert.Single(fixture.Context.Nodes));
             Assert.NotNull(bucket.KeyMapper);
@@ -712,7 +712,7 @@ namespace Couchbase.UnitTests.Core
         {
             var clock = new SteppableClock();
             using var fixture = new BucketOpenFixture(clock, "node1", "node2");
-            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
             var node2Fetches = 0;
             var node2 = fixture.SetupNewNode("node2", () =>
             {
@@ -726,7 +726,8 @@ namespace Couchbase.UnitTests.Core
 
             await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
             Assert.Equal(1, node2Fetches);
-            AssertDisposed(Assert.IsType<CouchbaseBucket>(node2.Object.Owner));
+            await AssertDisposedAsync(fixture, Assert.IsType<CouchbaseBucket>(node1.Object.Owner),
+                Assert.IsType<CouchbaseBucket>(node2.Object.Owner));
             Assert.Empty(fixture.Context.Nodes);
         }
 
@@ -787,14 +788,18 @@ namespace Couchbase.UnitTests.Core
             return config;
         }
 
-        private static void AssertDisposed(CouchbaseBucket bucket)
+        /// <summary>
+        /// Checks that the failed buckets stopped their bootstrapper and their config refresher. Only a failed bucket
+        /// stops its refresher before the fixture is disposed.
+        /// </summary>
+        private static async Task AssertDisposedAsync(BucketOpenFixture fixture, params CouchbaseBucket[] failed)
         {
-            Mock.Get(bucket.Bootstrapper).Verify(x => x.Dispose(), Times.Once);
+            foreach (var bucket in failed)
+            {
+                Mock.Get(bucket.Bootstrapper).Verify(x => x.Dispose(), Times.Once);
+            }
 
-            // The refresher does not expose its state.
-            var refresherDisposed = typeof(ConfigRefresher).GetField("_disposed",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-            Assert.True((bool)refresherDisposed.GetValue(bucket.ConfigRefresher)!);
+            await fixture.RefresherStops.WaitForAsync(failed.Length).WaitAsync(Deadline);
         }
 
         /// <summary>
@@ -812,6 +817,12 @@ namespace Couchbase.UnitTests.Core
                     .Returns(() => new Mock<IBootstrapper>().Object);
                 var httpClusterMapFactory = new Mock<IHttpClusterMapFactory>();
                 httpClusterMapFactory.Setup(x => x.Create(It.IsAny<ClusterContext>())).Returns(_httpClusterMap.Object);
+                var refresherLogger = new Mock<ILogger<BucketConfigRefresher>>();
+                refresherLogger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+                refresherLogger.Setup(x => x.Log(LogLevel.Debug, It.IsAny<EventId>(),
+                        It.Is<It.IsAnyType>((state, _) => state.ToString() == "The config refresher of default stopped"),
+                        null, It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                    .Callback(RefresherStops.Increment);
 
                 var options = new ClusterOptions()
                     .WithConnectionString($"couchbase://{string.Join(",", hosts)}?random_seed_nodes=false")
@@ -825,12 +836,18 @@ namespace Couchbase.UnitTests.Core
                 options.AddClusterService(bootstrapperFactory.Object);
                 options.AddClusterService(httpClusterMapFactory.Object);
                 options.AddClusterService(Logger.Object);
+                options.AddClusterService(refresherLogger.Object);
                 Context = new ClusterContext(new CancellationTokenSource(), options);
             }
 
             public ClusterContext Context { get; }
 
             public Mock<ILogger<ClusterContext>> Logger { get; } = new();
+
+            /// <summary>
+            /// Counts the bucket config refreshers whose loop stopped.
+            /// </summary>
+            public AsyncCounter RefresherStops { get; } = new();
 
             public Mock<IConfigHandler> ConfigHandler { get; } = new();
 
