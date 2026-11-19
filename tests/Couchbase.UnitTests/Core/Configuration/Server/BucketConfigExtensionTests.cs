@@ -709,6 +709,39 @@ public class BucketConfigExtensionTests
         keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData(3ul)]
+    [InlineData(2ul)]
+    public async Task ConfigUpdatedAsync_WaitingConfigNoLongerNewer_IsDropped(ulong waitingRev)
+    {
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        keyMapperFactory.Setup(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                // Holds the first apply inside the config lock.
+                entered.TrySetResult(true);
+                release.Wait(Deadline);
+                return new Mock<IKeyMapper>().Object;
+            });
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object);
+        var applied = CreateConfig(rev: 3, activeNode: 1);
+
+        var first = Task.Run(() => bucket.ConfigUpdatedAsync(applied));
+        await entered.Task.WaitAsync(Deadline);
+
+        // Newer than rev 1, so it passes the check before the lock and waits for the lock.
+        var waiting = bucket.ConfigUpdatedAsync(CreateConfig(waitingRev, activeNode: 0));
+        Assert.False(waiting.IsCompleted);
+
+        release.Set();
+        await Task.WhenAll(first, waiting).WaitAsync(Deadline);
+
+        Assert.Same(applied, bucket.CurrentConfig);
+        keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
     /// </summary>
