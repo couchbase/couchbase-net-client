@@ -15,6 +15,7 @@ namespace Couchbase.Core.Configuration.Server
         public NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
         {
             ConfigVersion = bucketConfig.ConfigVersion;
+            IgnoreRev = bucketConfig.IgnoreRev;
 
             var node1 = node;
 
@@ -71,6 +72,12 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         public ConfigVersion ConfigVersion { get; internal set; }
+
+        /// <summary>
+        /// The <see cref="BucketConfig.IgnoreRev"/> of the config of this adapter. When true, a node takes this
+        /// adapter even if its current adapter comes from a newer config.
+        /// </summary>
+        public bool IgnoreRev { get; }
 
         private bool UseAlternateAddress { get; set; }
 
