@@ -691,6 +691,44 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public async Task GetOrCreateBucketAsync_NoNodeHasAMap_WaitsOncePerOpen()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+            var node2Fetches = 0;
+            var node2 = fixture.SetupNewNode("node2", () =>
+            {
+                node2Fetches++;
+                return OneNodeBucketConfig("node2", map: false);
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(1, node2Fetches);
+            AssertDisposed(Assert.IsType<CouchbaseBucket>(node2.Object.Owner));
+            Assert.Empty(fixture.Context.Nodes);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_DisposedWhileWaitingForAMap_StopsWaiting()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            fixture.Context.Dispose();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => open.WaitAsync(Deadline));
+            Assert.Null(node.Object.Owner);
+        }
+
+        [Fact]
         public async Task GetOrCreateBucketAsync_MemcachedBucket_DoesNotWaitForAMap()
         {
             var clock = new SteppableClock();
