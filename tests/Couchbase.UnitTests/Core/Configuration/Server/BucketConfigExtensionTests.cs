@@ -706,7 +706,8 @@ public class BucketConfigExtensionTests
         var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
         keyMapperFactory.Setup(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
             .Returns(keyMapper);
-        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object);
+        var nodeFactory = new Mock<IClusterNodeFactory>();
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object, nodeFactory);
         var current = CreateConfig(rev: 2, activeNode: 1);
         await bucket.ConfigUpdatedAsync(current).WaitAsync(Deadline);
         Assert.Same(keyMapper, bucket.KeyMapper);
@@ -719,6 +720,8 @@ public class BucketConfigExtensionTests
         Assert.Same(current, bucket.CurrentConfig);
         Assert.Same(keyMapper, bucket.KeyMapper);
         keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
+        nodeFactory.Verify(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     /// <summary>
@@ -771,9 +774,10 @@ public class BucketConfigExtensionTests
         return config;
     }
 
-    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null)
+    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null,
+        Mock<IClusterNodeFactory> clusterNodeFactory = null)
     {
-        var clusterNodeFactory = new Mock<IClusterNodeFactory>();
+        clusterNodeFactory ??= new Mock<IClusterNodeFactory>();
         var node = new Mock<IClusterNode>();
         node.Setup(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>
             { new("127.0.0.1", 11210) });
