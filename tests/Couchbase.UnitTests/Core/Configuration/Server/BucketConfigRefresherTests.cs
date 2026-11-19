@@ -924,6 +924,102 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         Assert.Equal(2, passes.Count);
     }
 
+    [Fact]
+    public async Task Push_AfterRebootstrapToLowerRevisions_IsFetched()
+    {
+        // A cluster recreated behind the same DNS name starts again at low revisions. Polling is off, so only the
+        // push can bring the next config.
+        var clock = new SteppableClock();
+        var published = new List<ConfigVersion>();
+        var publishes = new AsyncCounter();
+        var bucket = CreateCouchbaseBucket(NodeMap(99), clock, config =>
+        {
+            published.Add(config.ConfigVersion);
+            publishes.Increment();
+        }, out var node);
+        using var context = bucket.Context;
+        var served = Version(100);
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(served));
+        bucket.ConfigRefresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        // The old cluster pushes version 100, and the refresher fetches it.
+        bucket.ConfigRefresher.RequestRefresh(served.ConfigVersion);
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        served = NodeMap(5);
+        await context.RebootStrapAsync(bucket.Name).WaitAsync(Deadline);
+        Assert.Equal(served.ConfigVersion, bucket.CurrentConfig!.ConfigVersion);
+
+        served = Version(6);
+        bucket.ConfigRefresher.RequestRefresh(served.ConfigVersion);
+        await publishes.WaitForAsync(2).WaitAsync(Deadline);
+
+        Assert.Equal([new ConfigVersion(1, 100), new ConfigVersion(1, 6)], published);
+    }
+
+    [Theory]
+    [InlineData(5ul)]
+    [InlineData(4ul)]
+    public async Task Push_AtOrBelowCurrentAfterRebootstrapToSameCluster_IsNotFetched(ulong pushedRev)
+    {
+        var clock = new SteppableClock();
+        var bucket = CreateCouchbaseBucket(NodeMap(5), clock, _ => { }, out var node);
+        using var context = bucket.Context;
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(NodeMap(5)));
+        bucket.ConfigRefresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        await context.RebootStrapAsync(bucket.Name).WaitAsync(Deadline);
+        bucket.ConfigRefresher.RequestRefresh(new ConfigVersion(1, pushedRev));
+
+        // Reaching the next sleep means a pass ran after the push.
+        bucket.ConfigRefresher.Reschedule();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        // Only the rebootstrap fetched.
+        node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Push_AfterResetDuringFetchOfOldPush_IsFetched()
+    {
+        // The pass for the old push ends after the reset, and its mark must not hide the next push. The bucket stays
+        // at version 2, below the old push, as after a rebootstrap to lower revisions.
+        var clock = new SteppableClock();
+        var published = new List<ConfigVersion>();
+        var publishes = new AsyncCounter();
+        var bucket = CreateBucketMock(initialConfig: Version(2), onPublish: config =>
+        {
+            published.Add(config!.ConfigVersion);
+            publishes.Increment();
+        }, configure: options => options.EnableConfigPolling = false);
+        using var context = bucket.Context;
+        var node = AddNode(bucket, "node-0", push: true);
+        var oldFetch = new TaskCompletionSource<BucketConfig>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fetches = new AsyncCounter();
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => fetches.Count == 0 ? oldFetch.Task : Task.FromResult(Version(5)))
+            .Callback(() => fetches.Increment());
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        refresher.RequestRefresh(new ConfigVersion(1, 10));
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
+        refresher.ForgetPushedVersions();
+        oldFetch.SetResult(Version(10));
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        refresher.RequestRefresh(new ConfigVersion(1, 5));
+        await publishes.WaitForAsync(2).WaitAsync(Deadline);
+
+        Assert.Equal([new ConfigVersion(1, 10), new ConfigVersion(1, 5)], published);
+    }
+
     /// <summary>
     /// Steps the clock through the first <paramref name="retries"/> retries of a pushed version.
     /// </summary>
@@ -980,6 +1076,55 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         var config = new BucketConfig { Name = "default", RevEpoch = 1, Rev = rev };
         config.OnDeserialized();
         return config;
+    }
+
+    /// <summary>
+    /// A bucket config whose node map is node-0, so a rebootstrap can apply it.
+    /// </summary>
+    private static BucketConfig NodeMap(ulong rev)
+    {
+        var config = Version(rev);
+        config.Nodes = [new Node { Hostname = "node-0:8091", Ports = new Ports { Direct = 11210 } }];
+        config.NodesExt = [new NodesExt { Hostname = "node-0", Services = new Services { Kv = 11210 } }];
+        config.VBucketServerMap = new VBucketServerMapDto { ServerList = ["node-0:11210"], VBucketMap = [[0]] };
+        return config;
+    }
+
+    /// <summary>
+    /// A registered Couchbase bucket with its own refresher, on the one node of <see cref="NodeMap"/>. Polling is off.
+    /// </summary>
+    private CouchbaseBucket CreateCouchbaseBucket(BucketConfig initialConfig, TimeProvider clock,
+        Action<BucketConfig> onPublish, out Mock<IClusterNode> node)
+    {
+        var configHandler = new Mock<IConfigHandler>();
+        configHandler.Setup(x => x.Publish(It.IsAny<BucketConfig>())).Callback(onPublish);
+        var options = new ClusterOptions().WithConnectionString("couchbase://node-0:11210")
+            .WithPasswordAuthentication("username", "password")
+            .WithLogging(new TestOutputLoggerFactory(outputHelper));
+        options.EnableConfigPolling = false;
+        options.AddClusterService(clock);
+        options.AddClusterService(configHandler.Object);
+        var context = new ClusterContext(new CancellationTokenSource(), options);
+
+        var bucket = new CouchbaseBucket("default", context,
+            new Mock<IScopeFactory>().Object,
+            new Mock<IRetryOrchestrator>().Object,
+            new Mock<IVBucketKeyMapperFactory>().Object,
+            context.ServiceProvider.GetRequiredService<ILogger<CouchbaseBucket>>(),
+            new Redactor(RedactionLevel.None),
+            new Mock<IBootstrapperFactory>().Object,
+            NoopRequestTracer.Instance,
+            new Mock<IOperationConfigurator>().Object,
+            new BestEffortRetryStrategy(),
+            initialConfig,
+            context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
+        context.RegisterBucket(bucket);
+
+        // A rebootstrap reuses the node, and the config map makes the bucket its owner.
+        node = AddNode(bucket, "node-0", push: true);
+        node.SetupProperty(x => x.Owner);
+        context.AddNode(node.Object);
+        return bucket;
     }
 
     private static Mock<IClusterNode> AddNode(BucketBase bucket, string host, bool push)

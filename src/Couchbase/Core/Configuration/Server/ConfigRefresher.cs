@@ -47,6 +47,7 @@ internal abstract partial class ConfigRefresher : IDisposable
 
     // Guarded by _lock.
     private ConfigVersion? _latestPushedVersion;
+    private bool _pushedVersionsForgotten;
     private bool _started;
     private bool _disposed;
 
@@ -183,6 +184,20 @@ internal abstract partial class ConfigRefresher : IDisposable
         }
 
         WakeUp();
+    }
+
+    /// <summary>
+    /// Forgets the pushed versions after a rebootstrap. The rebootstrap can move to a cluster with lower
+    /// revisions, and a push from that cluster must not be skipped as already requested. A push at or below
+    /// the current version is still skipped.
+    /// </summary>
+    internal void ForgetPushedVersions()
+    {
+        lock (_lock)
+        {
+            _latestPushedVersion = null;
+            _pushedVersionsForgotten = true;
+        }
     }
 
     public void Dispose()
@@ -437,10 +452,20 @@ internal abstract partial class ConfigRefresher : IDisposable
         || liveNodes.Count == 0
         || liveNodes.Any(node => node.ServerFeatures?.ClustermapChangeNotificationBrief != true);
 
+    /// <summary>
+    /// After <see cref="ForgetPushedVersions"/>, also drops the marks the loop keeps for pushed versions.
+    /// </summary>
     private ConfigVersion? GetLatestPushedVersion()
     {
         lock (_lock)
         {
+            // The loop drops them itself. A pass that runs during the reset marks its old version when it ends.
+            if (_pushedVersionsForgotten)
+            {
+                _pushedVersionsForgotten = false;
+                MarkPushedVersionHandled(default);
+            }
+
             return _latestPushedVersion;
         }
     }
