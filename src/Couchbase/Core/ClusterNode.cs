@@ -162,14 +162,34 @@ namespace Couchbase.Core
             _ => null
         };
 
+        /// <summary>
+        /// The view of this node in a cluster or bucket config.
+        /// </summary>
+        /// <remarks>
+        /// Cluster and bucket configs share one revision space, so the newest config has the newest view.
+        /// The node keeps its adapter when the new adapter comes from an older config, unless that config has
+        /// <see cref="BucketConfig.IgnoreRev"/> set, as on a rebootstrap. An adapter from an equal or newer config
+        /// replaces it.
+        /// </remarks>
         public NodeAdapter NodesAdapter
         {
             get => _nodesAdapter;
             set
             {
-                // Bucket and global config updates can set the adapter at the same time.
+                // A bucket open or a rebootstrap can set the adapter while a published config sets it, so the check is in the lock.
                 lock (_nodesAdapterLock)
                 {
+                    if (value is { IgnoreRev: false } && _nodesAdapter is { } current
+                        && value.ConfigVersion < current.ConfigVersion)
+                    {
+                        if (_logger is not null)
+                        {
+                            LogNodesAdapterKept(_redactor.SystemData(EndPoint), current.ConfigVersion, value.ConfigVersion);
+                        }
+
+                        return;
+                    }
+
                     _nodesAdapter = value;
                     BuildServiceUris();
                     UpdateKeyEndPoints();
@@ -1255,6 +1275,9 @@ namespace Couchbase.Core
 
         [LoggerMessage(3, LogLevel.Debug, "Cannot fetch hostname.")]
         private partial void LogCannotFetchHostName(Exception exception);
+
+        [LoggerMessage(4, LogLevel.Debug, "Node {endpoint} keeps its view from configVersion {keptVersion} and rejects the view from older configVersion {rejectedVersion}.")]
+        private partial void LogNodesAdapterKept(Redacted<HostEndpointWithPort> endpoint, ConfigVersion keptVersion, ConfigVersion rejectedVersion);
 
         [LoggerMessage(LoggingEvents.BootstrapEvent, LogLevel.Error, "The Bucket [{bucketName}] could not be selected. Either it does not exist, " +
                                                                      "is unavailable or the node itself does not have the Data service enabled.")]

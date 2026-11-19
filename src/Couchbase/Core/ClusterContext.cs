@@ -1234,7 +1234,7 @@ namespace Couchbase.Core
                             nodeAdapter,
                             CancellationToken).ConfigureAwait(false);
 
-                        await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
+                        await ClaimIfKvAsync(clusterNode, nodeAdapter, bucket).ConfigureAwait(false);
                         AddNode(clusterNode);
                         continue;
                     }
@@ -1246,13 +1246,13 @@ namespace Couchbase.Core
                             "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
                             _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                        await ClaimIfKvAsync(match.Node, bucket).ConfigureAwait(false);
+                        await ClaimIfKvAsync(match.Node, nodeAdapter, bucket).ConfigureAwait(false);
                     }
 
                     if (match.UnassignedNode != null)
                     {
                         match.UnassignedNode.NodesAdapter = nodeAdapter;
-                        await ClaimIfKvAsync(match.UnassignedNode, bucket).ConfigureAwait(false);
+                        await ClaimIfKvAsync(match.UnassignedNode, nodeAdapter, bucket).ConfigureAwait(false);
                     }
                 }
 
@@ -1269,9 +1269,10 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ClaimIfKvAsync(IClusterNode node, BucketBase bucket)
+        // The map entry decides, as the node can keep the view of a newer config.
+        private async Task ClaimIfKvAsync(IClusterNode node, NodeAdapter nodeAdapter, BucketBase bucket)
         {
-            if (!node.HasKv)
+            if (!nodeAdapter.IsKvNode)
             {
                 return;
             }
@@ -1341,16 +1342,16 @@ namespace Couchbase.Core
             public IClusterNode Node { get; } = node;
 
             /// <summary>
-            /// True when the bucket claims <see cref="Node"/> if it has K/V once it has the adapter.
+            /// True when the bucket claims <see cref="Node"/> if the entry has K/V.
             /// </summary>
             public bool Claims { get; } = claims;
 
             /// <summary>
-            /// An unassigned node at the entry of a bucket node. It also gets the adapter, and the bucket claims it if it has K/V.
+            /// An unassigned node at the entry of a bucket node. It also gets the adapter, and the bucket claims it if the entry has K/V.
             /// </summary>
             public IClusterNode UnassignedNode { get; } = unassignedNode;
 
-            // HasKv reads the adapter, so the adapter tells if the bucket will claim the node.
+            // The bucket claims a node only when the entry has K/V.
             public bool IsAdapterOnly(NodeAdapter nodeAdapter) =>
                 Node != null && UnassignedNode == null && !(Claims && nodeAdapter.IsKvNode);
         }
