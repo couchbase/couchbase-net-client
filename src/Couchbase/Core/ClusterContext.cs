@@ -1138,7 +1138,8 @@ namespace Couchbase.Core
         /// </summary>
         /// <remarks>
         /// When every map entry has its node and no bucket node left the map, only the adapters change and the
-        /// config lock is not taken. A global map that waits on a new node then does not hold up the bucket.
+        /// config lock is not taken. The update then does not wait while a bucket open or a DNS SRV rebootstrap holds
+        /// that lock to connect nodes.
         /// </remarks>
         public Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
