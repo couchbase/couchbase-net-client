@@ -558,6 +558,8 @@ namespace Couchbase.Core
                             .ConfigureAwait(false);
 
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
+                        // Pushes seen before can come from an older cluster behind the same DNS name.
+                        GlobalConfigRefresher.ForgetPushedVersions();
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
                         // Bootstrap replaces it, so a DNS SRV move to a cluster with lower revisions takes effect.
@@ -1014,6 +1016,8 @@ namespace Couchbase.Core
                         //make sure the bucket has the latest config as the current config
                         config.IgnoreRev = true;
                         await bucket.ConfigUpdatedAsync(config).ConfigureAwait(false);
+                        // Pushes seen before can come from an older cluster behind the same DNS name.
+                        (bucket as CouchbaseBucket)?.ConfigRefresher.ForgetPushedVersions();
                         UpdateAppTelemetryConfig(config);
 
                         return;
