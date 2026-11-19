@@ -147,6 +147,7 @@ namespace Couchbase.UnitTests
                         new VBucketFactory(new Mock<ILogger<VBucket>>().Object)));
 
                 var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+                var config = LoadConfig([0, 0, 0, 0], 3, _rev);
                 _bucket = new CouchbaseBucket("default",
                     context,
                     new Mock<IScopeFactory>().Object,
@@ -158,8 +159,18 @@ namespace Couchbase.UnitTests
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
                     new BestEffortRetryStrategy(),
-                    LoadConfig([0, 0, 0, 0], 3, _rev),
+                    config,
                     context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
+
+                // Like a bootstrapped bucket, the context has a node of the bucket for each server.
+                // Every config has the same servers, so a config update keeps these nodes.
+                var endPoints = new VBucketServerMap(config.VBucketServerMap).EndPoints;
+                for (var i = 0; i < endPoints.Count; i++)
+                {
+                    var node = CreateNode(endPoints[i], i);
+                    context.AddNode(node);
+                    _bucket.Nodes.Add(node);
+                }
             }
 
             public IReadOnlyList<int> ServersThatReceivedOps => _serversThatReceivedOps;
@@ -170,13 +181,6 @@ namespace Couchbase.UnitTests
                 var config = LoadConfig(vBucketMapRow, numReplicas, ++_rev);
                 await _bucket.ConfigUpdatedAsync(config);
                 Assert.NotNull(_bucket.KeyMapper);
-
-                _bucket.Nodes.Clear();
-                var endPoints = new VBucketServerMap(config.VBucketServerMap).EndPoints;
-                for (var i = 0; i < endPoints.Count; i++)
-                {
-                    _bucket.Nodes.Add(CreateNode(endPoints[i], i));
-                }
             }
 
             public Task<ResponseStatus> SendAsync(string key, GetReplicaStrategy strategy)
@@ -194,6 +198,10 @@ namespace Couchbase.UnitTests
                 node.SetupGet(x => x.EndPoint).Returns(endPoint);
                 node.SetupGet(x => x.KeyEndPoints).Returns(new[] { endPoint });
                 node.SetupGet(x => x.HasKv).Returns(true);
+                node.SetupGet(x => x.Owner).Returns(_bucket);
+                node.SetupGet(x => x.BucketName).Returns(_bucket.Name);
+                node.SetupGet(x => x.IsAssigned).Returns(true);
+                node.SetupProperty(x => x.NodesAdapter);
                 node.Setup(x => x.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationTokenPair>()))
                     .Returns(() =>
                     {
