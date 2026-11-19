@@ -20,8 +20,13 @@ namespace Couchbase.Core.Configuration.Server
     internal class ConfigHandler : IConfigHandler
     {
         private readonly ILogger<ConfigHandler> _logger;
-        private BufferBlock<BucketConfig>? _configQueue;
-        private ActionBlock<BucketConfig>? _configHandler;
+
+        // Holds the names of pending configs in arrival order and processes them one at a time.
+        private ActionBlock<string>? _configQueue;
+
+        // One config per name until the worker takes it. A newer config replaces it and keeps its place.
+        private readonly Dictionary<string, BucketConfig> _pendingConfigs = new();
+
         private readonly CancellationTokenSource _tokenSource = new();
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
@@ -48,24 +53,12 @@ namespace Couchbase.Core.Configuration.Server
                 throw new InvalidOperationException($"{nameof(ConfigHandler)} has already been started.");
             }
 
-            _configQueue = new BufferBlock<BucketConfig>(new DataflowBlockOptions
-            {
-                EnsureOrdered = true,
-                CancellationToken = _tokenSource.Token
-            });
-
-            _configHandler = new ActionBlock<BucketConfig>(ProcessAsync, new ExecutionDataflowBlockOptions
-            {
-                BoundedCapacity = 1,
-                MaxDegreeOfParallelism = 1,
-                EnsureOrdered = true,
-                SingleProducerConstrained = true
-            });
-
-            _configQueue.LinkTo(_configHandler, new DataflowLinkOptions
-            {
-                PropagateCompletion = true
-            });
+            _configQueue = new ActionBlock<string>(name => ProcessAsync(TakePendingConfig(name)),
+                new ExecutionDataflowBlockOptions
+                {
+                    MaxDegreeOfParallelism = 1,
+                    CancellationToken = _tokenSource.Token
+                });
 
             _running = true;
         }
@@ -85,6 +78,16 @@ namespace Couchbase.Core.Configuration.Server
                     _logger.LogDebug("Starting the HTTP streaming listener of {name}.", listener.Key);
                     listener.Value.StartListening();
                 }
+            }
+        }
+
+        private BucketConfig TakePendingConfig(string name)
+        {
+            lock (_pendingConfigs)
+            {
+                var config = _pendingConfigs[name];
+                _pendingConfigs.Remove(name);
+                return config;
             }
         }
 
@@ -132,14 +135,32 @@ namespace Couchbase.Core.Configuration.Server
                 }
             }
 
-            if (_configQueue?.Completion.IsCompleted ?? true)
+            var configQueue = _configQueue;
+            if (configQueue?.Completion.IsCompleted ?? true)
             {
                 throw new ContextStoppedException("ConfigHandler is in stopped mode.");
             }
 
-            if (!_configQueue.Post(config))
+            // A config with no name is the cluster config.
+            var name = config.Name ?? BucketConfig.GlobalBucketName;
+            lock (_pendingConfigs)
             {
-                _logger.LogWarning(LoggingEvents.ConfigEvent, "Failed to queue new cluster configuration.");
+                if (_pendingConfigs.TryGetValue(name, out var pending))
+                {
+                    if (config.IsNewerThan(pending))
+                    {
+                        _pendingConfigs[name] = config;
+                    }
+
+                    return;
+                }
+
+                _pendingConfigs.Add(name, config);
+                if (!configQueue.Post(name))
+                {
+                    _pendingConfigs.Remove(name);
+                    _logger.LogWarning(LoggingEvents.ConfigEvent, "Failed to queue new cluster configuration.");
+                }
             }
         }
 
