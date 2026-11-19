@@ -7,10 +7,13 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -745,17 +748,21 @@ public class BucketConfigExtensionTests
     }
 
     [Fact]
-    public async Task ConfigUpdatedAsync_OnlyNewBucketCapability_IsStored()
+    public async Task ConfigUpdatedAsync_OnlyNewBucketCapability_IsSeenByNextRequest()
     {
-        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0));
-        Assert.False(bucket.HasCap(BucketCapabilities.RANGE_SCAN));
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), CreateKeyMapperFactory());
+        // Replica reads map the key, so the bucket needs the key mapper that a new map builds.
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+        var collection = CreateCollection(bucket);
+        LookupInSpec[] specs = [LookupInSpec.Get("name")];
+        Assert.Throws<FeatureNotAvailableException>(() => collection.LookupInAllReplicasAsync("key", specs));
 
-        var incoming = CreateConfig(rev: 2, activeNode: 0);
-        incoming.BucketCapabilities = [BucketCapabilities.RANGE_SCAN];
+        var incoming = CreateConfig(rev: 3, activeNode: 1);
+        incoming.BucketCapabilities = [BucketCapabilities.SUBDOC_REPLICA_READ];
         await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
 
         Assert.Same(incoming, bucket.CurrentConfig);
-        Assert.True(bucket.HasCap(BucketCapabilities.RANGE_SCAN));
+        Assert.NotNull(collection.LookupInAllReplicasAsync("key", specs));
     }
 
     [Fact]
@@ -776,6 +783,31 @@ public class BucketConfigExtensionTests
         Assert.Equal(new[] { 0, 1 }, groups["group-1"]);
         Assert.False(groups.ContainsKey("group-2"));
     }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_WakesConfigRefresherOnlyForNewMap()
+    {
+        // The refresher loop is not started, so a wake-up stays pending.
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), CreateKeyMapperFactory());
+
+        var newerRev = CreateConfig(rev: 2, activeNode: 0);
+        await bucket.ConfigUpdatedAsync(newerRev).WaitAsync(Deadline);
+        Assert.Same(newerRev, bucket.CurrentConfig);
+        Assert.False(bucket.ConfigRefresher.HasPendingWakeUp);
+
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 3, activeNode: 1)).WaitAsync(Deadline);
+        Assert.True(bucket.ConfigRefresher.HasPendingWakeUp);
+    }
+
+    private static IVBucketKeyMapperFactory CreateKeyMapperFactory() =>
+        new VBucketKeyMapperFactory(new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+
+    private static CouchbaseCollection CreateCollection(BucketBase bucket) =>
+        new(bucket, new Mock<IOperationConfigurator>().Object, new Mock<ILogger<CouchbaseCollection>>().Object,
+            new Mock<ILogger<GetResult>>().Object, new Redactor(RedactionLevel.None),
+            CouchbaseCollection.DefaultCollectionName,
+            Mock.Of<IScope>(scope => scope.IsDefaultScope && scope.Name == Scope.DefaultScopeName),
+            NoopRequestTracer.Instance, NullFallbackTypeSerializerProvider.Instance, Mock.Of<IServiceProvider>());
 
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
