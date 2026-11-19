@@ -20,6 +20,13 @@ namespace Couchbase.Core.Configuration.Server
             return !Equals(config.VBucketServerMap, other.VBucketServerMap);
         }
 
+        /// <summary>
+        /// Whether the config has a vBucket map. Before 7.6.2 the server can send the config of a new
+        /// Couchbase bucket before it has built the map (MB-60405).
+        /// </summary>
+        public static bool HasVBucketMap(this BucketConfig config) =>
+            config.VBucketServerMap?.VBucketMap is { Length: > 0 };
+
         public static bool HasClusterNodesChanged(this BucketConfig config, BucketConfig? other)
         {
             if (other == null)
