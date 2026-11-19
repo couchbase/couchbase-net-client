@@ -668,6 +668,23 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public async Task GetOrCreateBucketAsync_NoMapUntilTheDeadline_LogsAWarning()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            fixture.Logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("has no vBucket map after the KvTimeout")),
+                null, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+        }
+
+        [Fact]
         public async Task GetOrCreateBucketAsync_FirstNodeHasNoMapUntilTheDeadline_OpensOnTheNextNode()
         {
             var clock = new SteppableClock();
@@ -807,10 +824,13 @@ namespace Couchbase.UnitTests.Core
                 options.AddClusterService(ConfigHandler.Object);
                 options.AddClusterService(bootstrapperFactory.Object);
                 options.AddClusterService(httpClusterMapFactory.Object);
+                options.AddClusterService(Logger.Object);
                 Context = new ClusterContext(new CancellationTokenSource(), options);
             }
 
             public ClusterContext Context { get; }
+
+            public Mock<ILogger<ClusterContext>> Logger { get; } = new();
 
             public Mock<IConfigHandler> ConfigHandler { get; } = new();
 

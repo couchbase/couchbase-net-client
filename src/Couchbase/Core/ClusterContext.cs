@@ -957,6 +957,13 @@ namespace Couchbase.Core
             }
             while (!config.HasVBucketMap() && _timeProvider.GetElapsedTime(openStarted) < ClusterOptions.KvTimeout);
 
+            if (!config.HasVBucketMap())
+            {
+                _logger.LogWarning("Bootstrapping: the config of bucket {name} has no vBucket map after the " +
+                    "KvTimeout of {kvTimeout}. The bootstrap from this node fails.",
+                    _redactor.MetaData(name), ClusterOptions.KvTimeout);
+            }
+
             return config;
         }
 
