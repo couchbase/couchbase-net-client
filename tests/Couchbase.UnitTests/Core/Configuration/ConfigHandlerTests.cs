@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
@@ -75,7 +77,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             Assert.Equal(config2.Rev, bucket.LatestConfig.Rev);
         }
 
-        private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(BucketBase bucket, out ClusterContext context)
+        private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(IConfigUpdateEventSink bucket, out ClusterContext context)
         {
             var clusterOptions = new ClusterOptions().WithPasswordAuthentication("username", "password");
             context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
@@ -237,6 +239,135 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act/assert
             Assert.Throws<NotImplementedException>(() => handler.Get("default"));
+        }
+
+        // Bounds each wait, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
+        [Fact]
+        public async Task Publish_SeveralVersionsWhileApplyHeld_OnlyNewestIsProcessed()
+        {
+            var sink = new HeldSink();
+            using var handler = CreateStartedHandler(sink);
+            var held = Config("a", 10);
+            handler.Publish(held);
+            Assert.Same(held, await sink.NextAsync());
+
+            handler.Publish(Config("a", 11));
+            handler.Publish(Config("a", 12));
+            var newest = Config("a", 13);
+            handler.Publish(newest);
+            handler.Publish(Config("barrier", 1));
+            sink.Release();
+
+            Assert.Same(newest, await sink.NextAsync());
+            Assert.Equal("barrier", (await sink.NextAsync()).Name);
+        }
+
+        [Fact]
+        public async Task Publish_SameConfigRepeatedDuringSlowApply_OtherBucketIsNotStarved()
+        {
+            var sink = new HeldSink();
+            using var handler = CreateStartedHandler(sink);
+            var held = Config("a", 2);
+            handler.Publish(held);
+            Assert.Same(held, await sink.NextAsync());
+
+            // The refresher publishes the same version on every poll while the apply fails.
+            for (var i = 0; i < 10; i++) handler.Publish(Config("a", 2));
+            var other = Config("b", 1);
+            handler.Publish(other);
+            for (var i = 0; i < 10; i++) handler.Publish(Config("a", 2));
+            sink.Release();
+
+            Assert.Equal("a", (await sink.NextAsync()).Name);
+            Assert.Same(other, await sink.NextAsync());
+        }
+
+        [Fact]
+        public async Task Publish_SameVersionAfterWorkerTookIt_IsProcessedAgain()
+        {
+            var sink = new HeldSink();
+            using var handler = CreateStartedHandler(sink);
+            var held = Config("a", 2);
+            handler.Publish(held);
+            Assert.Same(held, await sink.NextAsync());
+
+            var again = Config("a", 2);
+            handler.Publish(again);
+            sink.Release();
+
+            Assert.Same(again, await sink.NextAsync());
+        }
+
+        [Theory]
+        [InlineData(5ul)]
+        [InlineData(3ul)]
+        public async Task Publish_NotNewerThanPending_IsDropped(ulong rev)
+        {
+            var sink = new HeldSink();
+            using var handler = CreateStartedHandler(sink);
+            var held = Config("a", 1);
+            handler.Publish(held);
+            Assert.Same(held, await sink.NextAsync());
+
+            var pending = Config("a", 5);
+            handler.Publish(pending);
+            handler.Publish(Config("a", rev));
+            handler.Publish(Config("barrier", 1));
+            sink.Release();
+
+            Assert.Same(pending, await sink.NextAsync());
+            Assert.Equal("barrier", (await sink.NextAsync()).Name);
+        }
+
+        [Fact]
+        public async Task Publish_ConfigWithNoName_IsProcessed()
+        {
+            var sink = new HeldSink();
+            using var handler = CreateStartedHandler(sink);
+            sink.Release();
+            var config = Config(null, 1);
+
+            handler.Publish(config);
+
+            Assert.Same(config, await sink.NextAsync());
+        }
+
+        private ConfigHandler CreateStartedHandler(IConfigUpdateEventSink sink)
+        {
+            var listenerFactory = CreateHttpStreamingConfigListenerFactoryMock(sink, out var context);
+            var handler = new ConfigHandler(context, listenerFactory.Object, new Mock<ILogger<ConfigHandler>>().Object);
+            handler.Start();
+            handler.Subscribe(sink);
+            return handler;
+        }
+
+        private static BucketConfig Config(string name, ulong rev) => new() { Name = name, Rev = rev };
+
+        /// <summary>
+        /// Records each config it gets, and holds the first apply until <see cref="Release"/>.
+        /// </summary>
+        private sealed class HeldSink : IConfigUpdateEventSink
+        {
+            private readonly Channel<BucketConfig> _received = Channel.CreateUnbounded<BucketConfig>();
+            private readonly TaskCompletionSource<bool> _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            private int _calls;
+
+            public string Name => "sink";
+
+            public IEnumerable<IClusterNode> ClusterNodes => Array.Empty<IClusterNode>();
+
+            public void Release() => _release.TrySetResult(true);
+
+            public async Task<BucketConfig> NextAsync() =>
+                await _received.Reader.ReadAsync().AsTask().WaitAsync(Deadline);
+
+            public Task ConfigUpdatedAsync(BucketConfig newConfig)
+            {
+                _received.Writer.TryWrite(newConfig);
+                return Interlocked.Increment(ref _calls) == 1 ? _release.Task : Task.CompletedTask;
+            }
         }
 
         internal class FakeBucket : BucketBase
