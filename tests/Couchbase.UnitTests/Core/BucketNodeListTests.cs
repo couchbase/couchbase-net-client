@@ -2,7 +2,16 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Couchbase.Core;
+using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -329,6 +338,99 @@ namespace Couchbase.UnitTests.Core
 
         #endregion
 
+        #region ReplaceAll
+
+        [Fact]
+        public void ReplaceAll_SharedNode_StaysReachableWhileNodesChange()
+        {
+            var shared = CreateMockNode("default", CreateEndpoint(1));
+            var leaving = CreateMockNode("default", CreateEndpoint(2));
+            var joining = CreateMockNode("default", CreateEndpoint(3));
+            var nodes = new BucketNodeList { shared.Object, leaving.Object };
+
+            // ReplaceAll reads KeyEndPoints of each node it adds or removes, so each read checks the shared node.
+            var reachable = new List<bool>();
+            IReadOnlyCollection<HostEndpointWithPort> Observe(Mock<IClusterNode> node)
+            {
+                reachable.Add(nodes.TryGet(CreateEndpoint(1), out var found) && ReferenceEquals(found, shared.Object));
+                return new ReadOnlyCollection<HostEndpointWithPort>(new[] { node.Object.EndPoint });
+            }
+            leaving.Setup(p => p.KeyEndPoints).Returns(() => Observe(leaving));
+            joining.Setup(p => p.KeyEndPoints).Returns(() => Observe(joining));
+
+            nodes.ReplaceAll(new[] { shared.Object, joining.Object });
+
+            Assert.Equal(new[] { true, true }, reachable);
+            Assert.True(nodes.TryGet(CreateEndpoint(1), out var sharedNode));
+            Assert.Same(shared.Object, sharedNode);
+            Assert.True(nodes.TryGet(CreateEndpoint(3), out var joinedNode));
+            Assert.Same(joining.Object, joinedNode);
+            Assert.False(nodes.TryGet(CreateEndpoint(2), out _));
+            Assert.Equal(2, nodes.Count);
+            shared.VerifyAdd(m => m.KeyEndPointsChanged += It.IsAny<NotifyCollectionChangedEventHandler>(), Times.Once);
+            shared.VerifyRemove(m => m.KeyEndPointsChanged -= It.IsAny<NotifyCollectionChangedEventHandler>(), Times.Never);
+        }
+
+        // Two nodes of the same bucket at the same endpoint are equal, so the old entry must be found by reference.
+        [Fact]
+        public void ReplaceAll_EndpointMovesToANewNode_EndsOnTheNewNode()
+        {
+            var bucket = new FakeBucket("default", new ClusterOptions());
+            var oldNode = CreateClusterNode(CreateEndpoint(1), bucket);
+            var newNode = CreateClusterNode(CreateEndpoint(1), bucket);
+            Assert.Equal(oldNode, newNode);
+            var nodes = new BucketNodeList { oldNode };
+
+            nodes.ReplaceAll(new IClusterNode[] { newNode });
+
+            Assert.True(nodes.TryGet(CreateEndpoint(1), out var found));
+            Assert.Same(newNode, found);
+            Assert.Same(newNode, Assert.Single(nodes));
+            Assert.Same(newNode, Assert.Single(nodes.LookupDictionary).Value);
+        }
+
+        [Fact]
+        public void ReplaceAll_RemovedNode_IsUnsubscribedAndUnmapped()
+        {
+            var staying = CreateMockNode("default", CreateEndpoint(1));
+            var removed = CreateMockNode("default", CreateEndpoint(2), CreateEndpoint(3));
+            var nodes = new BucketNodeList { staying.Object, removed.Object };
+
+            nodes.ReplaceAll(new[] { staying.Object });
+
+            removed.VerifyRemove(m => m.KeyEndPointsChanged -= It.IsAny<NotifyCollectionChangedEventHandler>(), Times.Once);
+            removed.Verify(m => m.Dispose(), Times.Never);
+            Assert.False(nodes.TryGet(CreateEndpoint(2), out _));
+            Assert.False(nodes.TryGet(CreateEndpoint(3), out _));
+            Assert.Same(staying.Object, Assert.Single(nodes));
+            Assert.Single(nodes.LookupDictionary);
+        }
+
+        [Fact]
+        public void ReplaceAll_EqualSets_ChangesNothing()
+        {
+            var node1 = CreateMockNode("default", CreateEndpoint(1));
+            var node2 = CreateMockNode("default", CreateEndpoint(2));
+            var nodes = new BucketNodeList { node1.Object, node2.Object };
+            var lookup = new Dictionary<HostEndpointWithPort, IClusterNode>(nodes.LookupDictionary);
+
+            nodes.ReplaceAll(new[] { node2.Object, node1.Object });
+
+            Assert.Equal(lookup.Count, nodes.LookupDictionary.Count);
+            foreach (var entry in lookup)
+            {
+                Assert.Same(entry.Value, nodes.LookupDictionary[entry.Key]);
+            }
+            Assert.Equal(2, nodes.Count);
+            foreach (var node in new[] { node1, node2 })
+            {
+                node.VerifyAdd(m => m.KeyEndPointsChanged += It.IsAny<NotifyCollectionChangedEventHandler>(), Times.Once);
+                node.VerifyRemove(m => m.KeyEndPointsChanged -= It.IsAny<NotifyCollectionChangedEventHandler>(), Times.Never);
+            }
+        }
+
+        #endregion
+
         #region GetEnumerator
 
         [Fact]
@@ -442,6 +544,24 @@ namespace Couchbase.UnitTests.Core
         private HostEndpointWithPort CreateEndpoint(byte i)
         {
             return new HostEndpointWithPort($"127.0.0.{i}", 11210);
+        }
+
+        private static ClusterNode CreateClusterNode(HostEndpointWithPort endPoint, IBucket owner)
+        {
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            return new ClusterNode(new ClusterContext(null, options), new Mock<IConnectionPoolFactory>().Object,
+                new Mock<ILogger<ClusterNode>>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object,
+                new Redactor(RedactionLevel.None),
+                endPoint,
+                new NodeAdapter { Hostname = endPoint.Host, KeyValue = endPoint.Port },
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object)
+            {
+                Owner = owner
+            };
         }
 
         private Mock<IClusterNode> CreateMockNode( string bucketName, params HostEndpointWithPort[] endPoints)

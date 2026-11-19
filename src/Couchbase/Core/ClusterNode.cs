@@ -56,6 +56,7 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
+        private readonly object _nodesAdapterLock = new();
         private readonly string _cachedToString;
         private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private volatile bool _disposed;
@@ -166,9 +167,13 @@ namespace Couchbase.Core
             get => _nodesAdapter;
             set
             {
-                _nodesAdapter = value;
-                BuildServiceUris();
-                UpdateKeyEndPoints();
+                // Bucket and global config updates can set the adapter at the same time.
+                lock (_nodesAdapterLock)
+                {
+                    _nodesAdapter = value;
+                    BuildServiceUris();
+                    UpdateKeyEndPoints();
+                }
             }
         }
 

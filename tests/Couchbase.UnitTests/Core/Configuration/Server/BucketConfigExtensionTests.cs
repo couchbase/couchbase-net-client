@@ -4,10 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
@@ -17,6 +19,7 @@ using Couchbase.KeyValue;
 using Couchbase.KeyValue.ZoneAware;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -833,6 +836,28 @@ public class BucketConfigExtensionTests
             Mock.Of<IScope>(scope => scope.IsDefaultScope && scope.Name == Scope.DefaultScopeName),
             NoopRequestTracer.Instance, NullFallbackTypeSerializerProvider.Instance, Mock.Of<IServiceProvider>());
 
+    [Fact]
+    public async Task ConfigUpdatedAsync_OnlyNewSearchPorts_UpdatesTheNodeAndCreatesNone()
+    {
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), nodeFactory: nodeFactory);
+        Assert.True(bucket.Nodes.TryGet(new HostEndpointWithPort("nodeA", 11210), out var nodeA));
+        Assert.False(nodeA.HasSearch);
+
+        // The node compare skips the search ports.
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        incoming.NodesExt[0].Services.Fts = 8094;
+        Assert.False(incoming.HasClusterNodesChanged(bucket.CurrentConfig));
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.True(nodeA.HasSearch);
+        Assert.True(bucket.Nodes.TryGet(new HostEndpointWithPort("nodeA", 11210), out var found));
+        Assert.Same(nodeA, found);
+        Assert.Equal(2, bucket.Nodes.Count);
+        nodeFactory.VerifyNoOtherCalls();
+    }
+
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
     /// </summary>
@@ -884,19 +909,19 @@ public class BucketConfigExtensionTests
     }
 
     CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null,
-        Mock<IClusterNodeFactory> clusterNodeFactory = null, IRetryOrchestrator retryOrchestrator = null)
+        Mock<IClusterNodeFactory> nodeFactory = null, IRetryOrchestrator retryOrchestrator = null)
     {
-        clusterNodeFactory ??= new Mock<IClusterNodeFactory>();
+        nodeFactory ??= new Mock<IClusterNodeFactory>();
         var node = new Mock<IClusterNode>();
         node.Setup(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>
             { new("127.0.0.1", 11210) });
 
-        clusterNodeFactory.Setup(x => x.CreateAndConnectAsync(
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(
                 It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
                 It.IsAny<CancellationToken>())).
             Returns(Task.FromResult(node.Object));
 
-        var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object).WithPasswordAuthentication("username", "password");
+        var options = new ClusterOptions().AddClusterService(nodeFactory.Object).WithPasswordAuthentication("username", "password");
         var clusterCtx = new ClusterContext(new CancellationTokenSource(), options);
 
         var bucket = new CouchbaseBucket("default",
@@ -915,6 +940,25 @@ public class BucketConfigExtensionTests
 
         node.Setup(x => x.Owner).Returns(bucket);
 
+        // Like a bootstrapped bucket, it owns a node for each node of its config.
+        foreach (var nodeAdapter in bootstrapConfig.GetNodes())
+        {
+            var clusterNode = new ClusterNode(clusterCtx, new Mock<IConnectionPoolFactory>().Object,
+                new Mock<ILogger<ClusterNode>>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object,
+                new Redactor(RedactionLevel.None),
+                HostEndpointWithPort.Create(nodeAdapter, options),
+                nodeAdapter,
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object)
+            {
+                Owner = bucket
+            };
+            clusterCtx.AddNode(clusterNode);
+            bucket.Nodes.Add(clusterNode);
+        }
 
         return bucket;
     }
