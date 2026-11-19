@@ -718,28 +718,21 @@ namespace Couchbase.Core
                     return bucket;
                 }
 
+                // One map wait for the whole open, so the open lock is not held once per endpoint.
+                var openStarted = _timeProvider.GetTimestamp();
                 foreach (var server in GetHostEndpointWithPorts(ClusterOptions.EnableTls))
                 {
                     try
                     {
-                        bucket = await CreateAndBootStrapBucketAsync(name, server)
+                        bucket = await CreateAndBootStrapBucketAsync(name, server, openStarted)
                             .ConfigureAwait(false);
 
                         if (_disposed != 0)
                         {
-                            // Cancellation is cooperative and some of the awaits inside
-                            // CreateAndBootStrapBucketAsync don't observe it (e.g. SelectBucketAsync,
-                            // GetClusterMap, BootstrapAsync), so a bootstrap can finish - successfully or
-                            // not - after Dispose() has already drained Buckets. This has to run
-                            // regardless of whether bootstrap succeeded: a bucket that fails to bootstrap
-                            // captures its own exception and returns normally with IsBootstrapped false
-                            // rather than throwing, so checking only inside the IsBootstrapped branch
-                            // below would miss that path, leave the bucket (and its unconditionally
-                            // started Bootstrapper) undisposed, and let the next endpoint's attempt touch
-                            // the already-disposed _tokenSource instead. Let DisposeAsync() remove it
-                            // from Buckets itself (via Context.RemoveBucket) so it also unsubscribes from
-                            // _configHandler; removing it here first would make that removal a no-op and
-                            // leak the subscription.
+                            // Some awaits in CreateAndBootStrapBucketAsync do not observe cancellation, for
+                            // example SelectBucketAsync and BootstrapAsync. So a bucket can bootstrap after
+                            // Dispose() emptied Buckets. DisposeAsync() removes it from Buckets and the config
+                            // handler. The check also stops the next endpoint from running on a disposed context.
                             await bucket.DisposeAsync().ConfigureAwait(false);
                             throw new ObjectDisposedException(nameof(ClusterContext));
                         }
@@ -820,39 +813,46 @@ namespace Couchbase.Core
             return ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(enableTls);
         }
 
-        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint)
+        /// <param name="name">The name of the bucket.</param>
+        /// <param name="endpoint">The node to bootstrap from.</param>
+        /// <param name="openStarted">The timestamp when the open started. A Couchbase bucket whose config has no
+        /// vBucket map waits for one until <see cref="ClusterOptions.KvTimeout"/> after it.</param>
+        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint,
+            long openStarted)
         {
+            // Read once, because the property throws after the context is disposed.
+            var token = CancellationToken;
             bool newNode = false;
-            BucketBase bucket;
             var node = GetUnassignedNode(endpoint);
             if (node == null)
             {
-                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, token).ConfigureAwait(false);
                 newNode = true;
             }
 
             BucketConfig config;
+            BucketType type;
             try
             {
                 //The bucket must be selected so that a bucket specific config is returned
                 await node.SelectBucketAsync(name).ConfigureAwait(false);
 
-                _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
-                    _redactor.MetaData(name));
-
                 _logger.LogDebug("Bootstrapping {bucket}", name);
-                //First try CCCP to fetch the config
-                config = await node.GetClusterMap().ConfigureAwait(false);
-            }
-            catch (DocumentNotFoundException)
-            {
-                _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
-                    _redactor.MetaData(name));
+                config = await FetchBucketConfigAsync(node, name, token).ConfigureAwait(false);
 
-                //In this case CCCP has failed for whatever reason
-                //We need to now try HTTP Streaming for config fetching
-                config = await _httpClusterMap.GetClusterMapAsync(
-                    name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
+                //Determine the bucket type to create based off the bucket capabilities
+                type = config.BucketCapabilities.Contains("cccp") ? BucketType.Couchbase : BucketType.Memcached;
+
+                // A Memcached bucket has no vBucket map.
+                if (type == BucketType.Couchbase && !config.HasVBucketMap())
+                {
+                    config = await WaitForVBucketMapAsync(node, name, config, openStarted, token)
+                        .ConfigureAwait(false);
+                }
+
+                var nodeAdapter = config.GetNodes().Find(x=>HostEndpointWithPort.Create(x, ClusterOptions) == endpoint);
+                node.NodesAdapter = nodeAdapter ??
+                                    throw new NullReferenceException($"Could not find an adapter for {endpoint}.");
             }
             catch
             {
@@ -868,44 +868,96 @@ namespace Couchbase.Core
                 throw;
             }
 
-            //Determine the bucket type to create based off the bucket capabilities
-            var type = config.BucketCapabilities.Contains("cccp") ? BucketType.Couchbase : BucketType.Memcached;
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
-            bucket = bucketFactory.Create(name, type, config);
-            node.Owner = bucket;
-
-            var nodeAdapter = config.GetNodes().Find(x=>HostEndpointWithPort.Create(x, ClusterOptions) == endpoint);
-            node.NodesAdapter = nodeAdapter ??
-                                throw new NullReferenceException($"Could not find an adapter for {endpoint}.");
-
-            if (newNode)
-            {
-                AddNode(node);
-            }
-
-            _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
-                type.GetDescription(), _redactor.MetaData(name));
-
+            var bucket = bucketFactory.Create(name, type, config);
+            var bootstrapped = false;
             try
             {
+                node.Owner = bucket;
+                if (newNode)
+                {
+                    AddNode(node);
+                }
+
+                _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
+                    type.GetDescription(), _redactor.MetaData(name));
+
                 await bucket.BootstrapAsync(node).ConfigureAwait(false);
-                if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                if (bucket is Bootstrapping.IBootstrappable { IsBootstrapped: true })
                 {
                     RegisterBucket(bucket);
                     UpdateAppTelemetryConfig(bucket.CurrentConfig);
+                    bootstrapped = true;
                 }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Bootstrapping: could not bootstrap bucket {name}.",
                     _redactor.MetaData(name));
-
-                RemoveAllNodes(bucket);
-                UnRegisterBucket(bucket);
-                await bucket.DisposeAsync().ConfigureAwait(false);
                 throw;
             }
+            finally
+            {
+                // Dispose removes the bucket and its nodes, and stops its bootstrapper and config refresher.
+                if (!bootstrapped)
+                {
+                    await bucket.DisposeAsync().ConfigureAwait(false);
+                }
+            }
             return bucket;
+        }
+
+        /// <summary>
+        /// Fetches the config of a bucket from a node over KV, or over HTTP when KV does not serve it.
+        /// </summary>
+        private async Task<BucketConfig> FetchBucketConfigAsync(IClusterNode node, string name,
+            CancellationToken token)
+        {
+            try
+            {
+                _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
+                    _redactor.MetaData(name));
+                return await node.GetClusterMap(cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (DocumentNotFoundException)
+            {
+                _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
+                    _redactor.MetaData(name));
+                return await _httpClusterMap.GetClusterMapAsync(name, node.EndPoint, token).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Fetches the config of a new bucket again until it has a vBucket map, or until
+        /// <see cref="ClusterOptions.KvTimeout"/> after the open started. It then returns the last config, and a
+        /// config with no map fails the bootstrap.
+        /// </summary>
+        /// <remarks>
+        /// Before 7.6.2 the server can send the config of a new bucket before it has built the map (MB-60405).
+        /// The caller holds the open lock, so other bucket opens wait too.
+        /// </remarks>
+        private async Task<BucketConfig> WaitForVBucketMapAsync(IClusterNode node, string name, BucketConfig config,
+            long openStarted, CancellationToken token)
+        {
+            if (_timeProvider.GetElapsedTime(openStarted) >= ClusterOptions.KvTimeout)
+            {
+                return config;
+            }
+
+            _logger.LogInformation("Bootstrapping: the config of bucket {name} has no vBucket map yet. Waiting for it.",
+                _redactor.MetaData(name));
+
+            var interval = ClusterOptions.ConfigPollFloorInterval > TimeSpan.Zero
+                ? ClusterOptions.ConfigPollFloorInterval
+                : ClusterOptions.DefaultConfigPollFloorInterval;
+            do
+            {
+                await _timeProvider.Delay(interval, token).ConfigureAwait(false);
+                config = await FetchBucketConfigAsync(node, name, token).ConfigureAwait(false);
+            }
+            while (!config.HasVBucketMap() && _timeProvider.GetElapsedTime(openStarted) < ClusterOptions.KvTimeout);
+
+            return config;
         }
 
         /// <summary>

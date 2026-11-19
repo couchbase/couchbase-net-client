@@ -97,7 +97,7 @@ namespace Couchbase
 
             // Before 7.6.2 the server can send the config of a new bucket before it has a vbucket map (MB-60405).
             // Keep the current config and key mapper. The next config has the map.
-            if (newConfig.VBucketServerMap?.VBucketMap is null or { Length: 0 })
+            if (!newConfig.HasVBucketMap())
             {
                 Logger.LogInformation(LoggingEvents.ConfigEvent,
                     "Encountered bucket config with empty VBucketMap for rev#{revision} on {bucketName}, dropping it",
