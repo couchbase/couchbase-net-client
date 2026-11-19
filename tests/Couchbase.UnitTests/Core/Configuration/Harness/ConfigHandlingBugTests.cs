@@ -521,6 +521,107 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.Contains("node-3.example.com", view.Nodes);
         }
 
+        // NCBC-4424
+        // The bucket updates its nodes only when the nodes or nodesExt compare changes, and that compare skips the
+        // search and analytics ports. The global map is the same, so nothing else updates the node.
+        [Theory]
+        [InlineData(ServiceType.Search)]
+        [InlineData(ServiceType.Analytics)]
+        public async Task BucketMap_WithOnlyANewServiceOnANode_UpdatesTheNode(ServiceType service)
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            await harness.OpenBucketAsync(BucketMap());
+
+            harness.Publish(WithService(BucketMap(11), Node0, service));
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
+            var node = harness.Nodes.Single(n => n.Name == Node0);
+            Assert.NotNull(service == ServiceType.Search ? node.SearchUri : node.AnalyticsUri);
+        }
+
+        // NCBC-4424
+        // On the external network the vbucket server list holds the alternate addresses, so a new alternate host moves
+        // the vbuckets of node-1 to a new endpoint. The nodes compare skips alternate addresses, so the bucket keeps its
+        // node at the old endpoint and an operation on those vbuckets finds no node.
+        // The server routes the old and the new address to node-1, so the asserts check endpoints, not node names.
+        [Fact]
+        public async Task ExternalNetwork_BucketMapWithNewAlternateHost_MovesTheBucketNode()
+        {
+            await using var harness = ConfigHarness.Create(External(ClusterMapBuilder.Global().Rev(10)),
+                options => options.NetworkResolution = NetworkResolution.External);
+            var bucket = await harness.OpenBucketAsync(External(ClusterMapBuilder.Bucket(BucketName).Rev(10)));
+            var oldEndPoint = new HostEndpointWithPort("203.0.113.11", 32210);
+            var newEndPoint = new HostEndpointWithPort("203.0.113.21", 32210);
+            Assert.Contains(oldEndPoint, BucketEndPoints(harness));
+
+            var next = External(ClusterMapBuilder.Bucket(BucketName).Rev(11)).Node(Node1, n => n
+                .AlternateAddress("external", newEndPoint.Host, p => p.Mgmt(32091, 32191).Kv(32210, 32207)));
+            harness.Server.SetMap(next);
+            harness.Publish(next);
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
+            var endPoints = BucketEndPoints(harness);
+            Assert.Contains(newEndPoint, endPoints);
+            Assert.DoesNotContain(oldEndPoint, endPoints);
+            Assert.Equal(endPoints, bucket.Nodes.Select(n => n.EndPoint).OrderBy(e => e.ToString(), StringComparer.Ordinal));
+
+            // Each vbucket's active endpoint must find a node, as an operation looks it up.
+            var keyMapper = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper);
+            var unreachable = Enumerable.Range(0, 1024)
+                .Select(v => keyMapper[(short)v].LocatePrimary())
+                .Where(e => e is null || !bucket.Nodes.TryGet(e.Value, out _))
+                .Distinct()
+                .ToList();
+            Assert.Empty(unreachable);
+        }
+
+        // NCBC-4424
+        // A global map with a new node holds the cluster config lock while the node connects. A bucket map that needs
+        // no new node must not wait for that lock.
+        [Fact]
+        public async Task BucketMap_NeedingNoNewNode_IsAppliedWhileAGlobalMapCreatesANode()
+        {
+            const string node3 = "node-3.example.com";
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            await harness.OpenBucketAsync(BucketMap());
+            harness.HoldNodeCreation(node3);
+            try
+            {
+                var global = harness.ApplyGlobalAsync(GlobalMap(11).Node(node3, n => n.Uuid("node-uuid-3").Kv()).Build());
+                Assert.Equal(1, harness.NodeCreationAttempts(node3));
+                Assert.False(global.IsCompleted);
+
+                harness.Publish(BucketMap(11).VBuckets(1024, replicas: 2));
+                await harness.DrainAsync().WaitAsync(Timeout);
+                Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
+
+                harness.Publish(WithService(BucketMap(12).VBuckets(1024, replicas: 2), Node0, ServiceType.Search));
+                await harness.DrainAsync().WaitAsync(Timeout);
+                Assert.Equal(Rev(12), harness.Bucket(BucketName).Version);
+                Assert.NotNull(harness.Nodes.Single(n => n.Name == Node0).SearchUri);
+                Assert.False(global.IsCompleted);
+
+                harness.ReleaseNodeCreation(node3);
+                await global.WaitAsync(Timeout);
+            }
+            finally
+            {
+                harness.ReleaseNodeCreation(node3);
+            }
+        }
+
+        private static ClusterMapBuilder WithService(ClusterMapBuilder map, string host, ServiceType service) =>
+            service == ServiceType.Search ? map.Node(host, n => n.Search()) : map.Node(host, n => n.Analytics());
+
+        // The endpoints of the context nodes that the bucket owns.
+        private static List<HostEndpointWithPort> BucketEndPoints(ConfigHarness harness) => harness.Nodes
+            .Where(n => n.Owner == BucketName)
+            .Select(n => n.EndPoint)
+            .OrderBy(e => e.ToString(), StringComparer.Ordinal)
+            .ToList();
+
         private static ClusterProfile PrivateLink => ClusterProfile.Load(ClusterProfile.CapellaPrivateLink);
 
         private static void ConnectThroughPrivateEndpoint(ClusterOptions options)

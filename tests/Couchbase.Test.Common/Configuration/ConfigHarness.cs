@@ -493,6 +493,14 @@ namespace Couchbase.Test.Common.Configuration
         public void AllowNodeCreation(string host) => _nodeFactory.SetFailing(host, failing: false);
 
         /// <summary>
+        /// Makes node creation wait for the endpoints of this node until <see cref="ReleaseNodeCreation"/> is called.
+        /// The attempt counts in <see cref="NodeCreationAttempts"/> before it waits. Goes by host like <see cref="FailNodeCreation"/>.
+        /// </summary>
+        public void HoldNodeCreation(string host) => _nodeFactory.Hold(host);
+
+        public void ReleaseNodeCreation(string host) => _nodeFactory.Release(host);
+
+        /// <summary>
         /// Node creation attempts for the endpoints of this node, failed ones included. Goes by host like <see cref="FailNodeCreation"/>.
         /// </summary>
         public int NodeCreationAttempts(string host) => _nodeFactory.Attempts(host);
@@ -582,8 +590,10 @@ namespace Couchbase.Test.Common.Configuration
                 NodeUuid = node.NodeUuid;
                 Owner = node.Owner?.Name;
                 Version = adapter?.ConfigVersion;
-                // Built from the adapter because reading ClusterNode.QueryUri stamps LastQueryActivity.
+                // Built from the adapter because reading a service URI of ClusterNode stamps its last activity.
                 QueryUri = adapter is { IsQueryNode: true } ? adapter.GetQueryUri(options) : null;
+                SearchUri = adapter is { IsSearchNode: true } ? adapter.GetSearchUri(options) : null;
+                AnalyticsUri = adapter is { IsAnalyticsNode: true } ? adapter.GetAnalyticsUri(options) : null;
             }
 
             /// <summary>
@@ -612,6 +622,10 @@ namespace Couchbase.Test.Common.Configuration
             public ConfigVersion? Version { get; }
 
             public Uri? QueryUri { get; }
+
+            public Uri? SearchUri { get; }
+
+            public Uri? AnalyticsUri { get; }
 
             public override string ToString() => $"{Name ?? $"{EndPoint} seed"} owner={Owner ?? "none"} rev={Version} query={QueryUri}";
         }
@@ -679,6 +693,7 @@ namespace Couchbase.Test.Common.Configuration
         {
             private readonly ConcurrentDictionary<string, bool> _failingHosts = new(StringComparer.Ordinal);
             private readonly ConcurrentDictionary<string, int> _attempts = new(StringComparer.Ordinal);
+            private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _heldHosts = new(StringComparer.Ordinal);
             private ClusterNodeFactory? _inner;
             private int _created;
 
@@ -707,6 +722,14 @@ namespace Couchbase.Test.Common.Configuration
                 else _failingHosts.TryRemove(host, out _);
             }
 
+            public void Hold(string host) =>
+                _heldHosts.TryAdd(host, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+
+            public void Release(string host)
+            {
+                if (_heldHosts.TryRemove(host, out var hold)) hold.TrySetResult(true);
+            }
+
             // Only the harness calls it, before a test can hang a host. In fake mode it completes at once, and in real
             // mode once each connection is set up. A setup request times out after KvTimeout of real time.
             public IClusterNode Create(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter) =>
@@ -723,6 +746,10 @@ namespace Couchbase.Test.Common.Configuration
                 if (_failingHosts.ContainsKey(host))
                 {
                     throw new InvalidOperationException($"The harness fails node creation for {host}.");
+                }
+                if (_heldHosts.TryGetValue(host, out var hold))
+                {
+                    await hold.Task.ConfigureAwait(false);
                 }
 
                 var node = await _inner!.CreateAndConnectAsync(endPoint, nodeAdapter, cancellationToken).ConfigureAwait(false);
