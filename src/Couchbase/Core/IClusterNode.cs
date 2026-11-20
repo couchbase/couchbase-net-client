@@ -16,6 +16,14 @@ namespace Couchbase.Core
     {
         IBucket Owner { get; set; }
         NodeAdapter NodesAdapter { get; set; }
+
+        /// <summary>
+        /// Makes the node take the next <see cref="NodesAdapter"/> whatever its config version.
+        /// </summary>
+        /// <remarks>
+        /// A rebootstrap can reach a cluster with its own revision space, where the view of this node is too new.
+        /// </remarks>
+        void ForgetNodesAdapterVersion();
         HostEndpointWithPort EndPoint { get; }
         /// <summary>
         /// The Node's GUID, internal to the SDK.

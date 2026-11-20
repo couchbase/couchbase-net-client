@@ -57,6 +57,7 @@ namespace Couchbase.Core
         private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
         private readonly object _nodesAdapterLock = new();
+        private bool _nodesAdapterVersionForgotten;
         private readonly string _cachedToString;
         private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private volatile bool _disposed;
@@ -169,7 +170,7 @@ namespace Couchbase.Core
         /// Cluster and bucket configs share one revision space, so the newest config has the newest view.
         /// The node keeps its adapter when the new adapter comes from an older config, unless that config has
         /// <see cref="BucketConfig.IgnoreRev"/> set, as on a rebootstrap. An adapter from an equal or newer config
-        /// replaces it.
+        /// replaces it. After <see cref="ForgetNodesAdapterVersion"/>, the next adapter replaces it whatever its version.
         /// </remarks>
         public NodeAdapter NodesAdapter
         {
@@ -179,7 +180,7 @@ namespace Couchbase.Core
                 // A bucket open or a rebootstrap can set the adapter while a published config sets it, so the check is in the lock.
                 lock (_nodesAdapterLock)
                 {
-                    if (value is { IgnoreRev: false } && _nodesAdapter is { } current
+                    if (!_nodesAdapterVersionForgotten && value is { IgnoreRev: false } && _nodesAdapter is { } current
                         && value.ConfigVersion < current.ConfigVersion)
                     {
                         if (_logger is not null)
@@ -191,9 +192,19 @@ namespace Couchbase.Core
                     }
 
                     _nodesAdapter = value;
+                    _nodesAdapterVersionForgotten = false;
                     BuildServiceUris();
                     UpdateKeyEndPoints();
                 }
+            }
+        }
+
+        /// <inheritdoc />
+        public void ForgetNodesAdapterVersion()
+        {
+            lock (_nodesAdapterLock)
+            {
+                _nodesAdapterVersionForgotten = true;
             }
         }
 
