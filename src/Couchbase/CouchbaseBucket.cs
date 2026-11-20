@@ -87,129 +87,108 @@ namespace Couchbase
         public override ICouchbaseCollectionManager Collections =>
             _collectionManager ??= _collectionManagerLazy.GetValueOrThrow().Create(Name, this.CurrentConfig);
 
-        private BucketConfig _tempConfig = new ();
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
-            if (!string.Equals(newConfig.Name, this.Name, StringComparison.InvariantCulture))
+            // Drop configs of other buckets, and versions that are not newer, before waiting on the mutex.
+            if (!newConfig.HasConfigChanges(CurrentConfig, Name))
             {
                 return;
             }
 
-            var shouldPublish = false;
-            lock (_currentConfigLock)
+            using var cts = _timeProvider.CreateCancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
+            await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
+            try
             {
-                if (newConfig.ConfigVersion > _tempConfig.ConfigVersion)
+                // Another call can apply a config while this one waits, so this check decides.
+                if (!newConfig.HasConfigChanges(CurrentConfig, Name))
                 {
-                    Logger.LogDebug("New config {NewConfig} > tempConfig {TempConfig}",
-                        newConfig.ConfigVersion, _tempConfig.ConfigVersion);
-
-                    _tempConfig = newConfig;
-                    shouldPublish = true;
+                    return;
                 }
-            }
 
-            if (shouldPublish)
-            {
-                using var cts = _timeProvider.CreateCancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
-                await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
-                try
+                if (Logger.IsEnabled(LogLevel.Debug))
+                {
+                    Logger.LogDebug(
+                        "Processing cluster map for #rev{revision} on {bucketName} - old rev#{oldRevision}",
+                        newConfig.ConfigVersion, Name, CurrentConfig?.ConfigVersion);
+
+                    Logger.LogDebug(JsonSerializer.Serialize(newConfig,
+                        InternalSerializationContext.Default.BucketConfig!));
+                }
+
+                bool anyChanges = false;
+                IKeyMapper? newKeymapper = null;
+                IEnumerable<IClusterNode>? newNodes = null;
+                if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
+                {
+                    Logger.LogDebug(LoggingEvents.ConfigEvent,
+                        "Updating cluster nodes for rev#{revision} on {bucketName}",
+                        newConfig.ConfigVersion, Name);
+                    await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
+                    newNodes = Context.GetNodes(Name);
+                    newKeymapper =
+                        _vBucketKeyMapperFactory
+                            .Create(newConfig); //force the new revision as were on a new config
+                    anyChanges = true;
+                }
+                else
+                {
+                    if (newConfig.HasVBucketMapChanged(CurrentConfig, out var emptyVBucketMap) || newConfig.IgnoreRev)
+                    {
+                        Logger.LogDebug(LoggingEvents.ConfigEvent,
+                            "Updating VB key mapper for rev#{revision} on {bucketName}",
+                            newConfig.ConfigVersion, Name);
+                        newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
+                        anyChanges = true;
+                    }
+
+                    if (emptyVBucketMap)
+                    {
+                        Logger.LogInformation("Encountered bucket config with empty VBucketMap");
+                    }
+                }
+
+                //only accept the latest version if the processing was successful
+                if (anyChanges)
                 {
                     lock (_currentConfigLock)
                     {
-                        newConfig = _tempConfig;
+                        if (newKeymapper is not null)
+                        {
+                            KeyMapper = newKeymapper;
+                        }
+
+                        if (newNodes is not null)
+                        {
+                            //update the local nodes collection
+                            Nodes.Clear();
+                            foreach (var clusterNode in newNodes)
+                            {
+                                Nodes.Add(clusterNode);
+                            }
+                        }
+
+                        CurrentConfig = newConfig;
+                        Logger.LogDebug(LoggingEvents.ConfigEvent,
+                            "Current revision for {bucketName} is rev#{revision}", Name,
+                            CurrentConfig?.ConfigVersion);
                     }
 
-                    bool anyChanges = false;
-                    if (newConfig.ConfigVersion > CurrentConfig?.ConfigVersion)
-                    {
-                        IKeyMapper? newKeymapper = null;
-                        IEnumerable<IClusterNode>? newNodes = null;
-                        if (newConfig.HasConfigChanges(CurrentConfig, Name))
-                        {
-                            if (Logger.IsEnabled(LogLevel.Debug))
-                            {
-                                Logger.LogDebug(
-                                    "Processing cluster map for #rev{revision} on {bucketName} - old rev#{oldRevision}",
-                                    newConfig.ConfigVersion, Name, CurrentConfig?.ConfigVersion);
-
-                                Logger.LogDebug(JsonSerializer.Serialize(newConfig,
-                                    InternalSerializationContext.Default.BucketConfig!));
-                            }
-
-                            if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
-                            {
-                                Logger.LogDebug(LoggingEvents.ConfigEvent,
-                                    "Updating cluster nodes for rev#{revision} on {bucketName}",
-                                    newConfig.ConfigVersion, Name);
-                                await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
-                                newNodes = Context.GetNodes(Name);
-                                newKeymapper =
-                                    _vBucketKeyMapperFactory
-                                        .Create(newConfig); //force the new revision as were on a new config
-                                anyChanges = true;
-                            }
-                            else
-                            {
-                                if (newConfig.HasVBucketMapChanged(CurrentConfig, out var emptyVBucketMap) || newConfig.IgnoreRev)
-                                {
-                                    Logger.LogDebug(LoggingEvents.ConfigEvent,
-                                        "Updating VB key mapper for rev#{revision} on {bucketName}",
-                                        newConfig.ConfigVersion, Name);
-                                    newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
-                                    anyChanges = true;
-                                }
-
-                                if (emptyVBucketMap)
-                                {
-                                    Logger.LogInformation("Encountered bucket config with empty VBucketMap");
-                                }
-                            }
-                        }
-
-                        //only accept the latest version if the processing was successful
-                        if (anyChanges)
-                        {
-                            lock (_currentConfigLock)
-                            {
-                                if (newKeymapper is not null)
-                                {
-                                    KeyMapper = newKeymapper;
-                                }
-
-                                if (newNodes is not null)
-                                {
-                                    //update the local nodes collection
-                                    Nodes.Clear();
-                                    foreach (var clusterNode in newNodes)
-                                    {
-                                        Nodes.Add(clusterNode);
-                                    }
-                                }
-
-                                CurrentConfig = newConfig;
-                                Logger.LogDebug(LoggingEvents.ConfigEvent,
-                                    "Current revision for {bucketName} is rev#{revision}", Name,
-                                    CurrentConfig?.ConfigVersion);
-                            }
-
-                            // The new config can have a forward vbucket map, which shortens the poll interval.
-                            ConfigRefresher.Reschedule();
-                        }
-                        else
-                        {
-                            Logger.LogDebug(LoggingEvents.ConfigEvent, "BucketConfig processed, but no effective changes applied");
-                        }
-                    }
+                    // The new config can have a forward vbucket map, which shortens the poll interval.
+                    ConfigRefresher.Reschedule();
                 }
-                catch (Exception ex)
+                else
                 {
-                    Logger.LogError(LoggingEvents.ConfigEvent, "Error processing cluster map rev#{config}:{ex}",
-                        newConfig.ConfigVersion, ex);
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "BucketConfig processed, but no effective changes applied");
                 }
-                finally
-                {
-                    _configMutex.Release();
-                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(LoggingEvents.ConfigEvent, "Error processing cluster map rev#{config}:{ex}",
+                    newConfig.ConfigVersion, ex);
+            }
+            finally
+            {
+                _configMutex.Release();
             }
             Logger.LogDebug(LoggingEvents.ConfigEvent,"The last pushed revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.ConfigVersion);
         }
