@@ -177,7 +177,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: TimeSpan.FromSeconds(1));
             var clock = (SteppableClock)harness.Clock;
             var start = clock.GetUtcNow();
-            harness.StartPolling();
+            await harness.StartPollingAsync();
 
             // One jump to 3.5 s would run one pass, and the next pass would be due at 4.5 s.
             await harness.AdvanceAsync(TimeSpan.FromSeconds(3.5));
