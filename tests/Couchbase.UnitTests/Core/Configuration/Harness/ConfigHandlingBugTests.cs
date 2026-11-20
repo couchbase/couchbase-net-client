@@ -21,6 +21,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     /// </summary>
     public class ConfigHandlingBugTests
     {
+        private const string OtherBucket = "inventory";
+
         /// <summary>
         /// The real time a bucket gets to apply a pushed map while one of its nodes hangs. Two passes can each wait out
         /// the shortest config fetch timeout on the hung node.
@@ -482,6 +484,68 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             await harness.WaitUntilAsync(() => harness.Bucket(BucketName).Version == Rev(11), HungNodeDeadline,
                 "The bucket taking rev 11");
+        }
+
+        // NCBC-4390
+        // A bucket keeps its config when an apply fails, so each poll publishes the same version again. When the apply
+        // fails slowly, on a connect timeout to a new node, the copies queue up and a map of another bucket waits for
+        // one retry per copy.
+        [Fact]
+        public async Task BucketMap_BehindASlowFailingApplyOfAnotherBucket_WaitsForOneRetryOnly()
+        {
+            const string node3 = "node-3.example.com";
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            await harness.OpenBucketAsync(BucketMap());
+            await harness.OpenBucketAsync(BucketMap(OtherBucket));
+            var withNode3 = BucketMap(11).Node(node3);
+            harness.HoldNodeCreation(node3);
+            try
+            {
+                harness.Publish(withNode3);
+                await harness.NodeCreationHeldAsync(node3).WaitAsync(Timeout);
+                for (var i = 0; i < 10; i++)
+                {
+                    harness.Publish(withNode3);
+                }
+                harness.Publish(BucketMap(OtherBucket, 11).VBuckets(1024, replicas: 2));
+
+                harness.FailNodeCreation(node3);
+                harness.ReleaseNodeCreation(node3);
+                await harness.DrainAsync().WaitAsync(Timeout);
+            }
+            finally
+            {
+                harness.ReleaseNodeCreation(node3);
+            }
+
+            Assert.Equal(Rev(11), harness.Bucket(OtherBucket).Version);
+            Assert.Equal(Rev(10), harness.Bucket(BucketName).Version);
+            // The held attempt, then one retry for all the copies.
+            Assert.Equal(2, harness.NodeCreationAttempts(node3));
+        }
+
+        // NCBC-4390
+        // A DNS SRV rebootstrap runs this rebootstrap for each bucket. A cluster created again behind the same DNS name
+        // starts at low revisions, and the bucket skipped each push at or below a version the old cluster pushed.
+        [Fact]
+        public async Task BriefPush_AfterARebootstrapToLowerRevisions_IsFetched()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            await harness.OpenBucketAsync(BucketMap());
+            harness.Server.SetMap(BucketMap(100));
+            harness.Server.PushBrief(Node0, 1, 100);
+            await harness.SettleAsync();
+            Assert.Equal(Rev(100), harness.Bucket(BucketName).Version);
+
+            harness.Server.SetMap(BucketMap(5));
+            await harness.Context.RebootStrapAsync(BucketName).WaitAsync(Timeout);
+            Assert.Equal(Rev(5), harness.Bucket(BucketName).Version);
+
+            harness.Server.SetMap(BucketMap(6));
+            harness.Server.PushBrief(Node0, 1, 6);
+            await harness.SettleAsync();
+
+            Assert.Equal(Rev(6), harness.Bucket(BucketName).Version);
         }
 
         // NCBC-4417
