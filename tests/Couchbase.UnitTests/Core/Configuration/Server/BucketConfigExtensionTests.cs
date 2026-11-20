@@ -1003,6 +1003,80 @@ public class BucketConfigExtensionTests
         Assert.Contains(bucket.Nodes, node => ReferenceEquals(node, rebootstrapNode));
     }
 
+    // A recreated cluster behind the same host names starts again at low revisions.
+    [Fact]
+    public async Task ConfigUpdatedAsync_ClusterConfigAfterRebootstrap_ReplacesViewOfOldCluster()
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+
+        await RebootstrapToNewClusterAsync(context, nodeFactory);
+        await context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 6, queryPort: 7093)).WaitAsync(Deadline);
+
+        AssertNodeView(oldNode, rev: 6, queryPort: 7093);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_ClusterConfigOlderThanNodeViewWithoutRebootstrap_KeepsNodeView()
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+        SetupCreateNode(nodeFactory, context, new HostEndpointWithPort("nodeB", 11210));
+
+        await context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 6, queryPort: 7093)).WaitAsync(Deadline);
+
+        AssertNodeView(oldNode, rev: 100, queryPort: 9093);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NodesAdapter_OlderViewAfterRebootstrapAndOneView_KeepsNodeView(bool forced)
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+        await RebootstrapToNewClusterAsync(context, nodeFactory);
+
+        // A forced view, as from a bucket rebootstrap, also ends the reset.
+        var taken = ClusterQueryConfig(rev: 6, queryPort: 7093);
+        taken.IgnoreRev = forced;
+        oldNode.NodesAdapter = taken.GetNodes()[0];
+        oldNode.NodesAdapter = ClusterQueryConfig(rev: 4, queryPort: 6093).GetNodes()[0];
+
+        AssertNodeView(oldNode, rev: 6, queryPort: 7093);
+    }
+
+    /// <summary>
+    /// A context with a nodeA node that no bucket owns and that holds a view of an old cluster at rev 100.
+    /// </summary>
+    private static (ClusterContext Context, ClusterNode OldNode, Mock<IClusterNodeFactory> NodeFactory) CreateContextWithOldClusterNode()
+    {
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var options = new ClusterOptions().WithConnectionString("couchbase://nodeB")
+            .WithPasswordAuthentication("username", "password");
+        options.EnableDnsSrvResolution = false;
+        options.AddClusterService(nodeFactory.Object);
+        var context = new ClusterContext(new CancellationTokenSource(), options);
+
+        var oldNode = CreateNode(context, NodeA, ClusterQueryConfig(rev: 100, queryPort: 9093).GetNodes()[0]);
+        context.AddNode(oldNode);
+        return (context, oldNode, nodeFactory);
+    }
+
+    /// <summary>
+    /// Bootstraps from the seed nodeB of a new cluster at rev 2. The bootstrap adds a new nodeA node after the old one.
+    /// </summary>
+    private static async Task RebootstrapToNewClusterAsync(ClusterContext context, Mock<IClusterNodeFactory> nodeFactory)
+    {
+        var seedEndPoint = new HostEndpointWithPort("nodeB", 11210);
+        var seed = new Mock<IClusterNode>();
+        seed.Setup(x => x.EndPoint).Returns(seedEndPoint);
+        seed.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => ClusterQueryConfig(rev: 2, queryPort: 8093));
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(seedEndPoint, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(seed.Object);
+        SetupCreateNode(nodeFactory, context, NodeA);
+
+        await context.BootstrapGlobalAsync().WaitAsync(Deadline);
+    }
+
     /// <summary>
     /// A config of the bucket where nodeA runs the query service on <paramref name="queryPort"/>.
     /// </summary>
