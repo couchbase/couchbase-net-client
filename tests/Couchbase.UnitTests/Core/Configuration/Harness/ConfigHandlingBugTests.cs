@@ -93,7 +93,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: PollInterval);
             harness.Server.SetMap(GlobalMap(20).Node(Node0, n => n.Query(9093)), Node0, Node1);
-            harness.StartPolling();
+            await harness.StartPollingAsync();
             await harness.AdvanceAsync(PollInterval);
 
             // Node-1 now lags on rev 15 and node-0 fails, so the next poll gets rev 15 from node-1 after rev 20.

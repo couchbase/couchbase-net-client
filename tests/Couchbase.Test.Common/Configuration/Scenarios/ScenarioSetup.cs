@@ -128,7 +128,7 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
                 PollInterval, _clock, _mode, _network, _bootstrap);
             try
             {
-                harness.StartPolling();
+                await harness.StartPollingAsync().ConfigureAwait(false);
                 var buckets = new Dictionary<string, CouchbaseBucket>(StringComparer.Ordinal);
                 foreach (var name in model.Buckets)
                 {

@@ -155,7 +155,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: PollInterval);
             harness.Server.SetMap(GlobalMap(11).Node("node-3.example.com"));
-            harness.StartPolling();
+            await harness.StartPollingAsync();
 
             // Each pass fetches from one random KV node, with the version the SDK has.
             await harness.AdvanceAsync(PollInterval);
@@ -179,7 +179,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         {
             await using var harness = ConfigHarness.Create(GlobalMap(), pollInterval: PollInterval);
             harness.Server.FailFetchesAfter(0, Node0, Node1);
-            harness.StartPolling();
+            await harness.StartPollingAsync();
 
             // A failed fetch moves the pass to the next node, so the pass asks both.
             await harness.AdvanceAsync(PollInterval);

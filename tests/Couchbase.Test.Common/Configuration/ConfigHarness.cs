@@ -153,7 +153,7 @@ namespace Couchbase.Test.Common.Configuration
         /// <paramref name="configure"/> sets one.
         /// </remarks>
         /// <param name="pollInterval">
-        /// Turns config polling on. The handler then starts in <see cref="StartPolling"/>, so the test sets the server state first.
+        /// Turns config polling on. The handler then starts in <see cref="StartPollingAsync"/>, so the test sets the server state first.
         /// </param>
         /// <param name="clock">
         /// The clock of the SDK services. A new <see cref="SteppableClock"/> when null. Pass <see cref="TimeProvider.System"/> for real time.
@@ -247,10 +247,22 @@ namespace Couchbase.Test.Common.Configuration
         /// Starts the config handler and the cluster config refresher, which then polls. Each poll fetches the map from
         /// one random KV node that no bucket owns. Each bucket polls one of its nodes in the same way once it is open.
         /// </summary>
-        public void StartPolling()
+        /// <remarks>
+        /// The refresher loop starts on the thread pool. On a <see cref="SteppableClock"/> the call returns once the loop
+        /// sleeps until its first poll, so the next <see cref="AdvanceAsync"/> cannot move the clock before the poll is due.
+        /// The wait counts the sleeps of one poll interval on the clock. So a bucket refresher that sleeps that long before
+        /// this call also ends the wait.
+        /// </remarks>
+        public async Task StartPollingAsync()
         {
             if (!_polling) throw new InvalidOperationException("Create the harness with a poll interval to poll.");
+            var firstSleep = (Clock as SteppableClock)?.WaitForSleepAsync(Options.ConfigPollInterval);
             StartConfigUpdates();
+            if (firstSleep is not null)
+            {
+                await WaitOrThrowAsync(firstSleep, SettleLimit, "The cluster config refresher did not sleep until its first poll")
+                    .ConfigureAwait(false);
+            }
         }
 
         // Like ClusterContext.Start, without the tracing listeners.
@@ -342,14 +354,23 @@ namespace Couchbase.Test.Common.Configuration
         public async Task WaitForPublishedAsync(string name, ConfigVersion version, TimeSpan timeout)
         {
             var dispatched = _sink.Expect(name, version);
-            using var cts = new CancellationTokenSource();
-            var completed = await Task.WhenAny(dispatched, Task.Delay(timeout, cts.Token)).ConfigureAwait(false);
-            cts.Cancel();
-            if (completed != dispatched)
+            await WaitOrThrowAsync(dispatched, timeout, $"The handler did not dispatch {name} {version}",
+                () => $"Dispatched: {_sink.Dispatched()}.").ConfigureAwait(false);
+        }
+
+        private static async Task WaitOrThrowAsync(Task task, TimeSpan timeout, string what, Func<string>? detail = null)
+        {
+            if (!task.IsCompleted)
             {
-                throw new TimeoutException(
-                    $"The handler did not dispatch {name} {version} in {timeout}. Dispatched: {_sink.Dispatched()}.");
+                using var cts = new CancellationTokenSource();
+                var completed = await Task.WhenAny(task, Task.Delay(timeout, cts.Token)).ConfigureAwait(false);
+                cts.Cancel();
+                if (completed != task)
+                {
+                    throw new TimeoutException($"{what} in {timeout.TotalSeconds} s. {detail?.Invoke()}".TrimEnd());
+                }
             }
+            await task.ConfigureAwait(false);
         }
 
         /// <summary>
@@ -388,7 +409,7 @@ namespace Couchbase.Test.Common.Configuration
             {
                 await YieldToThreadPoolAsync().ConfigureAwait(false);
 
-                // Before StartPolling the handler takes no configs, so there is nothing to drain.
+                // Before StartPollingAsync the handler takes no configs, so there is nothing to drain.
                 if (_handlerStarted)
                 {
                     var drained = DrainAsync();
