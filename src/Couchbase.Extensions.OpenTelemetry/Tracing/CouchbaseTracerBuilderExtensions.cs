@@ -11,6 +11,10 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
         /// <summary>
         /// Add instrumentation for Couchbase to the tracer.
         /// </summary>
+        /// <remarks>
+        /// For couchbase2:// connections, this also records the gRPC client span of each operation
+        /// (source "Grpc.Net.Client"), named after the gRPC method, as a child of the operation span.
+        /// </remarks>
         /// <param name="builder">The <see cref="TracerProviderBuilder" />.</param>
         /// <returns>The <see cref="TracerProviderBuilder" />.</returns>
         public static TracerProviderBuilder AddCouchbaseInstrumentation(this TracerProviderBuilder builder)
@@ -20,11 +24,16 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
             {
                 return deferredTracerProviderBuilder.Configure(static (_, deferredBuilder) =>
                 {
-                    deferredBuilder.AddSource(OpenTelemetryRequestTracer.SourceName);
+                    AddSourcesAndProcessor(deferredBuilder);
                 });
             }
 
-            return builder.AddSource(OpenTelemetryRequestTracer.SourceName);
+            return AddSourcesAndProcessor(builder);
         }
+
+        private static TracerProviderBuilder AddSourcesAndProcessor(TracerProviderBuilder builder) =>
+            builder
+                .AddSource(OpenTelemetryRequestTracer.SourceName, CouchbaseGrpcSpanProcessor.GrpcSourceName)
+                .AddProcessor(new CouchbaseGrpcSpanProcessor());
     }
 }

@@ -32,6 +32,7 @@ using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
+using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Management.Buckets;
 using Couchbase.Stellar.Management.Query;
@@ -140,6 +141,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             PooledConnectionIdleTimeout = Timeout.InfiniteTimeSpan,
             KeepAlivePingDelay = TimeSpan.FromSeconds(20),
             KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+            // RFC 77: CNG's server span must be a child of the gRPC client span, not of an unrecorded
+            // HttpClient activity.
+            ActivityHeadersPropagator = new GrpcTraceContextPropagator(DistributedContextPropagator.Current),
         };
         _socketsHandler = socketsHandler;
         var authenticator = _clusterOptions.GetEffectiveAuthenticator() ?? throw new NullReferenceException($"{nameof(_clusterOptions.Authenticator)} should not be null");
