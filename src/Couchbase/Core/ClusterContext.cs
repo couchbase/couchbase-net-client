@@ -835,10 +835,19 @@ namespace Couchbase.Core
             try
             {
                 //The bucket must be selected so that a bucket specific config is returned
-                await node.SelectBucketAsync(name).ConfigureAwait(false);
+                var selected = true;
+                try
+                {
+                    await node.SelectBucketAsync(name).ConfigureAwait(false);
+                }
+                catch (DocumentNotFoundException)
+                {
+                    // The node has no healthy KV connection, so the config comes over HTTP.
+                    selected = false;
+                }
 
                 _logger.LogDebug("Bootstrapping {bucket}", name);
-                config = await FetchBucketConfigAsync(node, name, token).ConfigureAwait(false);
+                config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
 
                 //Determine the bucket type to create based off the bucket capabilities
                 type = config.BucketCapabilities.Contains("cccp") ? BucketType.Couchbase : BucketType.Memcached;
@@ -846,7 +855,7 @@ namespace Couchbase.Core
                 // A Memcached bucket has no vBucket map.
                 if (type == BucketType.Couchbase && !config.HasVBucketMap())
                 {
-                    config = await WaitForVBucketMapAsync(node, name, config, openStarted, token)
+                    config = await WaitForVBucketMapAsync(node, name, config, selected, openStarted, token)
                         .ConfigureAwait(false);
                 }
 
@@ -856,8 +865,7 @@ namespace Couchbase.Core
             }
             catch
             {
-                // The ClusterNode may be in a bad state, such as all connections being unhealthy, so we'll
-                // never be able to reuse this node for a later SelectBucketAsync call. Clean up so the
+                // The node may be in a bad state that a later open cannot recover from. Clean up so the
                 // next attempt can succeed with a fresh node.
                 if (!newNode)
                 {
@@ -910,21 +918,30 @@ namespace Couchbase.Core
         /// <summary>
         /// Fetches the config of a bucket from a node over KV, or over HTTP when KV does not serve it.
         /// </summary>
-        private async Task<BucketConfig> FetchBucketConfigAsync(IClusterNode node, string name,
+        /// <param name="node">The node to fetch the config from.</param>
+        /// <param name="name">The name of the bucket.</param>
+        /// <param name="selected">False when the node could not select the bucket over KV. The config then
+        /// comes over HTTP only.</param>
+        /// <param name="token">Cancels the fetch.</param>
+        private async Task<BucketConfig> FetchBucketConfigAsync(IClusterNode node, string name, bool selected,
             CancellationToken token)
         {
-            try
+            if (selected)
             {
-                _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
-                    _redactor.MetaData(name));
-                return await node.GetClusterMap(cancellationToken: token).ConfigureAwait(false);
+                try
+                {
+                    _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
+                        _redactor.MetaData(name));
+                    return await node.GetClusterMap(cancellationToken: token).ConfigureAwait(false);
+                }
+                catch (DocumentNotFoundException)
+                {
+                }
             }
-            catch (DocumentNotFoundException)
-            {
-                _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
-                    _redactor.MetaData(name));
-                return await _httpClusterMap.GetClusterMapAsync(name, node.EndPoint, token).ConfigureAwait(false);
-            }
+
+            _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
+                _redactor.MetaData(name));
+            return await _httpClusterMap.GetClusterMapAsync(name, node.EndPoint, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -937,7 +954,7 @@ namespace Couchbase.Core
         /// The caller holds the open lock, so other bucket opens wait too.
         /// </remarks>
         private async Task<BucketConfig> WaitForVBucketMapAsync(IClusterNode node, string name, BucketConfig config,
-            long openStarted, CancellationToken token)
+            bool selected, long openStarted, CancellationToken token)
         {
             if (_timeProvider.GetElapsedTime(openStarted) >= ClusterOptions.KvTimeout)
             {
@@ -953,7 +970,7 @@ namespace Couchbase.Core
             do
             {
                 await _timeProvider.Delay(interval, token).ConfigureAwait(false);
-                config = await FetchBucketConfigAsync(node, name, token).ConfigureAwait(false);
+                config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
             }
             while (!config.HasVBucketMap() && _timeProvider.GetElapsedTime(openStarted) < ClusterOptions.KvTimeout);
 
@@ -1052,7 +1069,8 @@ namespace Couchbase.Core
                         //The bucket must be selected so that a bucket specific config is returned
                         await node.SelectBucketAsync(name).ConfigureAwait(false);
 
-                        var config = await FetchBucketConfigAsync(node, name, CancellationToken).ConfigureAwait(false);
+                        var config = await FetchBucketConfigAsync(node, name, selected: true, CancellationToken)
+                            .ConfigureAwait(false);
 
                         //make sure the bucket has the latest config as the current config
                         config.IgnoreRev = true;
