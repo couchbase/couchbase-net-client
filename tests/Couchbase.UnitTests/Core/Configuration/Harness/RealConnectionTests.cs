@@ -28,11 +28,6 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
     {
         internal static readonly TimeSpan SmallKvTimeout = TimeSpan.FromMilliseconds(200);
 
-        /// <summary>
-        /// How long a test waits to show that something does not happen.
-        /// </summary>
-        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(200);
-
         [Fact]
         public async Task KvOpAndConfigFetch_OverFragmentedStreams_Complete()
         {
@@ -40,7 +35,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var bucket = await harness.OpenBucketAsync(BucketMap());
             var node = harness.Context.Nodes.Single(n => n.Owner == bucket && n.EndPoint.Host == Node0);
 
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0)));
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() =>
+                bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0)).WaitAsync(Timeout));
             var config = await node.GetClusterMap();
 
             Assert.Equal(Rev(10), config.ConfigVersion);
@@ -122,7 +118,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             var gets = keys.Select(k => bucket.DefaultCollection().GetAsync(k)).ToList();
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).BlockedWrites == 1, Timeout, "An SDK write blocking");
-            await Task.Delay(Quiet);
+            await harness.SettleAsync();
 
             Assert.Equal(0, harness.Server.ReceivedCount(Node0, OpCode.Get));
             Assert.Equal(1, harness.Server.Counters(Node0).BlockedWrites);
@@ -131,7 +127,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.Resume(Node0);
             foreach (var get in gets)
             {
-                await Assert.ThrowsAsync<DocumentNotFoundException>(() => get);
+                await Assert.ThrowsAsync<DocumentNotFoundException>(() => get.WaitAsync(Timeout));
             }
 
             Assert.Equal(keys.Count, harness.Server.ReceivedCount(Node0, OpCode.Get));
@@ -180,7 +176,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.Close(Node0);
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).OpenConnections == 2, Timeout,
                 "The pool replacing both connections");
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0)));
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() =>
+                bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0)).WaitAsync(Timeout));
 
             var after = harness.Server.Counters(Node0);
             Assert.Equal(2, closed.Count);
@@ -210,14 +207,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).ConnectionsRefused >= 6, Timeout,
                 "Six refused connects");
             var get = bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node0));
-            await Task.Delay(Quiet);
+            await harness.SettleAsync();
 
             Assert.Equal(0, harness.Server.Counters(Node0).OpenConnections);
             Assert.Equal(opened, harness.Server.Counters(Node0).ConnectionsOpened);
             Assert.False(get.IsCompleted);
 
             harness.Server.Refuse(Node0, false);
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => get);
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() => get.WaitAsync(Timeout));
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).OpenConnections == 2, Timeout,
                 "The scale controller opening both connections");
         }
@@ -234,14 +231,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var first = bucket.DefaultCollection().GetAsync(keys[0]);
             await harness.WaitUntilAsync(() => harness.Server.Counters(Node0).RepliesHeld == 1, Timeout, "The first Get reaching node-0");
             var second = bucket.DefaultCollection().GetAsync(keys[1]);
-            await Task.Delay(Quiet);
+            await harness.SettleAsync();
 
             Assert.Equal(1, harness.Server.ReceivedCount(Node0, OpCode.Get));
             Assert.False(second.IsCompleted);
 
             harness.Server.Resume(Node0);
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => first);
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => second);
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() => first.WaitAsync(Timeout));
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() => second.WaitAsync(Timeout));
             Assert.Equal(2, harness.Server.ReceivedCount(Node0, OpCode.Get));
         }
 
@@ -259,7 +256,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var gets = KeysOn(bucket, Node0).Take(4).Select(k => bucket.DefaultCollection().GetAsync(k)).ToList();
             await harness.WaitUntilAsync(() => harness.Server.ConnectionsOn(Node0) is { Count: 2 } open && open.All(c => c.RepliesHeld == 1), Timeout,
                 "Each node-0 connection holding one Get");
-            await Task.Delay(Quiet);
+            await harness.SettleAsync();
 
             Assert.Equal(2, harness.Server.ReceivedCount(Node0, OpCode.Get));
             Assert.Equal([1, 1], harness.Server.ConnectionsOn(Node0).Select(c => c.RepliesHeld));
@@ -267,7 +264,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.Resume(Node0);
             foreach (var get in gets)
             {
-                await Assert.ThrowsAsync<DocumentNotFoundException>(() => get);
+                await Assert.ThrowsAsync<DocumentNotFoundException>(() => get.WaitAsync(Timeout));
             }
             Assert.Equal(4, harness.Server.ReceivedCount(Node0, OpCode.Get));
         }
