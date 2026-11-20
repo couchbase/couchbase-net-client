@@ -760,6 +760,86 @@ namespace Couchbase.UnitTests.Core
             Assert.IsType<MemcachedBucket>(await open);
         }
 
+        [Fact]
+        public async Task GetOrCreateBucketAsync_SelectFindsNoHealthyConnection_FetchesTheConfigOverHttp()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true));
+            node.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException("Failed to select bucket default."));
+            var httpFetches = 0;
+            fixture.SetupHttpConfig("node1", () =>
+            {
+                httpFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.Equal(1, httpFetches);
+            Assert.Same(bucket, node.Object.Owner);
+            Assert.Same(node.Object, Assert.Single(fixture.Context.Nodes));
+            node.Verify(x => x.Dispose(), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_SelectFailsWithAnotherError_OpensOnTheNextNode()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true));
+            node1.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException());
+            var httpFetches = 0;
+            fixture.SetupHttpConfig("node1", () =>
+            {
+                httpFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true));
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.Equal(0, httpFetches);
+            node1.Verify(x => x.Dispose(), Times.AtLeastOnce);
+            Assert.Same(node2.Object, Assert.Single(fixture.Context.Nodes));
+            Assert.Same(bucket, node2.Object.Owner);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_HttpConfigAfterSelectFailureHasNoMap_WaitsForTheMapOverHttp()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var kvFetches = 0;
+            var node = fixture.AddUnassignedNode("node1", () =>
+            {
+                kvFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+            node.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException("Failed to select bucket default."));
+            var configs = new Queue<BucketConfig>([
+                OneNodeBucketConfig("node1", map: false),
+                OneNodeBucketConfig("node1", map: true)
+            ]);
+            fixture.SetupHttpConfig("node1", configs.Dequeue);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Empty(configs);
+            Assert.Equal(0, kvFetches);
+            Assert.NotNull(bucket.KeyMapper);
+            Assert.Same(bucket, node.Object.Owner);
+        }
+
         /// <summary>
         /// The config of bucket "default" on one node. A Couchbase bucket has four vBuckets, or an empty map like a
         /// new bucket on a server before 7.6.2 (MB-60405). A Memcached bucket has no vBucket map.
@@ -873,6 +953,14 @@ namespace Couchbase.UnitTests.Core
                 return node;
             }
 
+            /// <summary>
+            /// Sets up the HTTP streaming config of bucket "default" on a host.
+            /// </summary>
+            public void SetupHttpConfig(string host, Func<BucketConfig> fetch) =>
+                _httpClusterMap.Setup(x => x.GetClusterMapAsync("default",
+                        It.Is<HostEndpoint>(e => e.Host == host), It.IsAny<CancellationToken>()))
+                    .Returns(() => Task.FromResult(fetch()));
+
             private Mock<IClusterNode> BucketNode(string host, Func<BucketConfig> fetch, bool httpStreaming)
             {
                 var endPoint = new HostEndpointWithPort(host, 11210);
@@ -886,9 +974,7 @@ namespace Couchbase.UnitTests.Core
                 {
                     node.Setup(x => x.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
                         .ThrowsAsync(new DocumentNotFoundException());
-                    _httpClusterMap.Setup(x => x.GetClusterMapAsync("default",
-                            It.Is<HostEndpoint>(e => e.Host == host), It.IsAny<CancellationToken>()))
-                        .Returns(() => Task.FromResult(fetch()));
+                    SetupHttpConfig(host, fetch);
                 }
                 else
                 {
