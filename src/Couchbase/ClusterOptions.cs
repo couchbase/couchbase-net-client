@@ -938,10 +938,14 @@ namespace Couchbase
         /// including <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, turns polling off.</remarks>
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
 
+        internal static readonly TimeSpan DefaultConfigPollFloorInterval = TimeSpan.FromMilliseconds(50);
+
         /// <summary>
-        /// Not currently used.
+        /// The time between two config fetches while a bucket open waits for the vBucket map of a new bucket.
         /// </summary>
-        public TimeSpan ConfigPollFloorInterval { get; set; } = TimeSpan.FromMilliseconds(50);
+        /// <remarks>The default is 50ms. Zero or less, including
+        /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, uses the default.</remarks>
+        public TimeSpan ConfigPollFloorInterval { get; set; } = DefaultConfigPollFloorInterval;
 
         /// <summary>
         /// Not currently used.

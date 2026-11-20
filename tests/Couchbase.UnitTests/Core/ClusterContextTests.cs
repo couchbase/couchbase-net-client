@@ -10,6 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
@@ -605,6 +606,445 @@ namespace Couchbase.UnitTests.Core
                 DisposeCalled = true;
                 base.Dispose();
             }
+        }
+
+        #endregion
+
+        #region Bucket open waits for a vBucket map
+
+        // The clock counts sleeps by duration, so this differs from the 2.5s sleeps of the bucket's config refresher.
+        private static readonly TimeSpan MapFetchInterval = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan MapWaitTimeout = TimeSpan.FromSeconds(1);
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetOrCreateBucketAsync_FirstConfigsHaveNoMap_WaitsForTheMap(bool httpStreaming)
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var configs = new Queue<BucketConfig>([
+                OneNodeBucketConfig("node1", map: false),
+                OneNodeBucketConfig("node1", map: false),
+                OneNodeBucketConfig("node1", map: true)
+            ]);
+            fixture.AddUnassignedNode("node1", configs.Dequeue, httpStreaming);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Empty(configs);
+            Assert.NotNull(bucket.KeyMapper);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(bucket), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_NoMapUntilTheDeadline_FailsAndLeavesNothingBehind()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var fetches = 0;
+            var node = fixture.AddUnassignedNode("node1", () =>
+            {
+                fetches++;
+                return OneNodeBucketConfig("node1", map: false);
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(2, fetches);
+            await AssertDisposedAsync(fixture, Assert.IsType<CouchbaseBucket>(node.Object.Owner));
+            Assert.Empty(fixture.Context.Nodes);
+            node.Verify(x => x.Dispose(), Times.Once);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_NoMapUntilTheDeadline_LogsAWarning()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            fixture.Logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("has no vBucket map after the KvTimeout")),
+                null, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_FirstNodeHasNoMapUntilTheDeadline_OpensOnTheNextNode()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true));
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            var failed = Assert.IsType<CouchbaseBucket>(node1.Object.Owner);
+            Assert.NotSame(failed, bucket);
+            await AssertDisposedAsync(fixture, failed);
+            node1.Verify(x => x.Dispose(), Times.Once);
+            Assert.Same(node2.Object, Assert.Single(fixture.Context.Nodes));
+            Assert.NotNull(bucket.KeyMapper);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Once);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(bucket), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_NoNodeHasAMap_WaitsOncePerOpen()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+            var node2Fetches = 0;
+            var node2 = fixture.SetupNewNode("node2", () =>
+            {
+                node2Fetches++;
+                return OneNodeBucketConfig("node2", map: false);
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(1, node2Fetches);
+            fixture.Logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("has no vBucket map after the KvTimeout")),
+                null, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Exactly(2));
+            await AssertDisposedAsync(fixture, Assert.IsType<CouchbaseBucket>(node1.Object.Owner),
+                Assert.IsType<CouchbaseBucket>(node2.Object.Owner));
+            Assert.Empty(fixture.Context.Nodes);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_FirstHostFailsAfterTheKvTimeout_WaitsForTheMapOnTheNextHost()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            fixture.SetupFailedConnect("node1", () => clock.Advance(TimeSpan.FromTicks(2 * MapWaitTimeout.Ticks)));
+            var configs = new Queue<BucketConfig>([
+                OneNodeBucketConfig("node2", map: false),
+                OneNodeBucketConfig("node2", map: true)
+            ]);
+            var node2 = fixture.SetupNewNode("node2", configs.Dequeue);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await Task.WhenAny(clock.WaitForSleepAsync(MapFetchInterval), open).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Empty(configs);
+            Assert.Same(bucket, node2.Object.Owner);
+            Assert.NotNull(bucket.KeyMapper);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_PollIntervalAboveTheKvTimeout_WaitsOnlyTheKvTimeout()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.Context.ClusterOptions.ConfigPollFloorInterval = TimeSpan.FromTicks(5 * MapWaitTimeout.Ticks);
+            var fetches = 0;
+            fixture.AddUnassignedNode("node1", () =>
+            {
+                fetches++;
+                return OneNodeBucketConfig("node1", map: false);
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapWaitTimeout).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(2, fetches);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_DisposedWhileWaitingForAMap_StopsWaiting()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false));
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            fixture.Context.Dispose();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => open.WaitAsync(Deadline));
+            Assert.Null(node.Object.Owner);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_MemcachedBucket_DoesNotWaitForAMap()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: false, memcached: true),
+                httpStreaming: true);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+
+            await AssertCompleted(open);
+            Assert.IsType<MemcachedBucket>(await open);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_SelectFindsNoHealthyConnection_FetchesTheConfigOverHttp()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true));
+            node.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException("Failed to select bucket default."));
+            var httpFetches = 0;
+            fixture.SetupHttpConfig("node1", () =>
+            {
+                httpFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.Equal(1, httpFetches);
+            Assert.Same(bucket, node.Object.Owner);
+            Assert.Same(node.Object, Assert.Single(fixture.Context.Nodes));
+            node.Verify(x => x.Dispose(), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_SelectFailsWithAnotherError_OpensOnTheNextNode()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true));
+            node1.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException());
+            var httpFetches = 0;
+            fixture.SetupHttpConfig("node1", () =>
+            {
+                httpFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true));
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.Equal(0, httpFetches);
+            node1.Verify(x => x.Dispose(), Times.AtLeastOnce);
+            Assert.Same(node2.Object, Assert.Single(fixture.Context.Nodes));
+            Assert.Same(bucket, node2.Object.Owner);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_HttpConfigAfterSelectFailureHasNoMap_WaitsForTheMapOverHttp()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var kvFetches = 0;
+            var node = fixture.AddUnassignedNode("node1", () =>
+            {
+                kvFetches++;
+                return OneNodeBucketConfig("node1", map: true);
+            });
+            node.Setup(x => x.SelectBucketAsync("default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException("Failed to select bucket default."));
+            var configs = new Queue<BucketConfig>([
+                OneNodeBucketConfig("node1", map: false),
+                OneNodeBucketConfig("node1", map: true)
+            ]);
+            fixture.SetupHttpConfig("node1", configs.Dequeue);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Empty(configs);
+            Assert.Equal(0, kvFetches);
+            Assert.NotNull(bucket.KeyMapper);
+            Assert.Same(bucket, node.Object.Owner);
+        }
+
+        /// <summary>
+        /// The config of bucket "default" on one node. A Couchbase bucket has four vBuckets, or an empty map like a
+        /// new bucket on a server before 7.6.2 (MB-60405). A Memcached bucket has no vBucket map.
+        /// </summary>
+        private static BucketConfig OneNodeBucketConfig(string host, bool map, bool memcached = false)
+        {
+            var config = new BucketConfig
+            {
+                Name = "default",
+                Rev = 1,
+                BucketCapabilities = memcached ? [] : ["cccp"],
+                Nodes = [new Node { Hostname = $"{host}:8091", Ports = new Ports { Direct = 11210 } }],
+                NodesExt = [new NodesExt { Hostname = host, Services = new Services { Kv = 11210 } }]
+            };
+            if (!memcached)
+            {
+                config.VBucketServerMap = new VBucketServerMapDto
+                {
+                    HashAlgorithm = "CRC",
+                    ServerList = [$"{host}:11210"],
+                    VBucketMap = map ? [[0], [0], [0], [0]] : []
+                };
+            }
+
+            config.OnDeserialized();
+            return config;
+        }
+
+        /// <summary>
+        /// Checks that the failed buckets stopped their bootstrapper and their config refresher. Only a failed bucket
+        /// stops its refresher before the fixture is disposed.
+        /// </summary>
+        private static async Task AssertDisposedAsync(BucketOpenFixture fixture, params CouchbaseBucket[] failed)
+        {
+            foreach (var bucket in failed)
+            {
+                Mock.Get(bucket.Bootstrapper).Verify(x => x.Dispose(), Times.Once);
+            }
+
+            await fixture.RefresherStops.WaitForAsync(failed.Length).WaitAsync(Deadline);
+        }
+
+        /// <summary>
+        /// A context that opens real buckets on mock nodes. Each bucket gets a mock bootstrapper.
+        /// </summary>
+        private sealed class BucketOpenFixture : IDisposable
+        {
+            private readonly Mock<IClusterNodeFactory> _nodeFactory = new(MockBehavior.Strict);
+            private readonly Mock<HttpClusterMapBase> _httpClusterMap = new();
+
+            public BucketOpenFixture(TimeProvider clock, params string[] hosts)
+            {
+                var bootstrapperFactory = new Mock<IBootstrapperFactory>();
+                bootstrapperFactory.Setup(x => x.Create(It.IsAny<TimeSpan>()))
+                    .Returns(() => new Mock<IBootstrapper>().Object);
+                var httpClusterMapFactory = new Mock<IHttpClusterMapFactory>();
+                httpClusterMapFactory.Setup(x => x.Create(It.IsAny<ClusterContext>())).Returns(_httpClusterMap.Object);
+                var refresherLogger = new Mock<ILogger<BucketConfigRefresher>>();
+                refresherLogger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+                refresherLogger.Setup(x => x.Log(LogLevel.Debug, It.IsAny<EventId>(),
+                        It.Is<It.IsAnyType>((state, _) => state.ToString() == "The config refresher of default stopped"),
+                        null, It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                    .Callback(RefresherStops.Increment);
+
+                var options = new ClusterOptions()
+                    .WithConnectionString($"couchbase://{string.Join(",", hosts)}?random_seed_nodes=false")
+                    .WithPasswordAuthentication("username", "password");
+                options.EnableDnsSrvResolution = false;
+                options.ConfigPollFloorInterval = MapFetchInterval;
+                options.KvTimeout = MapWaitTimeout;
+                options.AddClusterService<TimeProvider>(clock);
+                options.AddClusterService(_nodeFactory.Object);
+                options.AddClusterService(ConfigHandler.Object);
+                options.AddClusterService(bootstrapperFactory.Object);
+                options.AddClusterService(httpClusterMapFactory.Object);
+                options.AddClusterService(Logger.Object);
+                options.AddClusterService(refresherLogger.Object);
+                Context = new ClusterContext(new CancellationTokenSource(), options);
+            }
+
+            public ClusterContext Context { get; }
+
+            public Mock<ILogger<ClusterContext>> Logger { get; } = new();
+
+            /// <summary>
+            /// Counts the bucket config refreshers whose loop stopped.
+            /// </summary>
+            public AsyncCounter RefresherStops { get; } = new();
+
+            public Mock<IConfigHandler> ConfigHandler { get; } = new();
+
+            /// <summary>
+            /// Adds a node with no owner, as the cluster bootstrap leaves it. Over HTTP streaming, KV does not serve
+            /// the config.
+            /// </summary>
+            public Mock<IClusterNode> AddUnassignedNode(string host, Func<BucketConfig> fetch, bool httpStreaming = false)
+            {
+                var node = BucketNode(host, fetch, httpStreaming);
+                Context.AddNode(node.Object);
+                return node;
+            }
+
+            /// <summary>
+            /// Sets up the node factory to create and connect a node.
+            /// </summary>
+            public Mock<IClusterNode> SetupNewNode(string host, Func<BucketConfig> fetch)
+            {
+                var node = BucketNode(host, fetch, httpStreaming: false);
+                _nodeFactory.Setup(x => x.CreateAndConnectAsync(node.Object.EndPoint, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(node.Object);
+                return node;
+            }
+
+            /// <summary>
+            /// Sets up the node factory to fail to connect a node after <paramref name="connecting"/> runs.
+            /// </summary>
+            public void SetupFailedConnect(string host, Action connecting) =>
+                _nodeFactory.Setup(x => x.CreateAndConnectAsync(new HostEndpointWithPort(host, 11210),
+                        It.IsAny<CancellationToken>()))
+                    .Returns(() =>
+                    {
+                        connecting();
+                        return Task.FromException<IClusterNode>(new TimeoutException());
+                    });
+
+            /// <summary>
+            /// Sets up the HTTP streaming config of bucket "default" on a host.
+            /// </summary>
+            public void SetupHttpConfig(string host, Func<BucketConfig> fetch) =>
+                _httpClusterMap.Setup(x => x.GetClusterMapAsync("default",
+                        It.Is<HostEndpoint>(e => e.Host == host), It.IsAny<CancellationToken>()))
+                    .Returns(() => Task.FromResult(fetch()));
+
+            private Mock<IClusterNode> BucketNode(string host, Func<BucketConfig> fetch, bool httpStreaming)
+            {
+                var endPoint = new HostEndpointWithPort(host, 11210);
+                var node = new Mock<IClusterNode>();
+                node.SetupAllProperties();
+                node.Setup(x => x.EndPoint).Returns(endPoint);
+                node.Setup(x => x.KeyEndPoints).Returns([endPoint]);
+                node.Setup(x => x.IsAssigned).Returns(() => node.Object.Owner is not null);
+                node.Setup(x => x.BucketName).Returns(() => node.Object.Owner?.Name);
+                if (httpStreaming)
+                {
+                    node.Setup(x => x.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
+                        .ThrowsAsync(new DocumentNotFoundException());
+                    SetupHttpConfig(host, fetch);
+                }
+                else
+                {
+                    node.Setup(x => x.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
+                        .Returns(() => Task.FromResult(fetch()));
+                }
+
+                return node;
+            }
+
+            public void Dispose() => Context.Dispose();
         }
 
         #endregion
