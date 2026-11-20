@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Test.Common.Configuration.Model;
@@ -146,11 +145,11 @@ namespace Couchbase.Test.Common.Configuration.Scenarios
         private async Task QuietAsync(string after, List<string> differences)
         {
             var harness = context.Harness;
-            using var cts = new CancellationTokenSource();
-            var drained = harness.DrainAsync();
-            var completed = await Task.WhenAny(drained, Task.Delay(Deadline, cts.Token)).ConfigureAwait(false);
-            cts.Cancel();
-            if (completed != drained)
+            try
+            {
+                await harness.DrainAsync(Deadline).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
             {
                 differences.Add($"After {after}, the config handler did not drain in {Deadline.TotalSeconds} s.");
                 return;

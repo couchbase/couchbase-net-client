@@ -334,12 +334,15 @@ namespace Couchbase.Test.Common.Configuration
         /// subscribers. So a barrier config with a new name, that only the harness accepts, completes after every
         /// earlier config.
         /// </remarks>
-        public Task DrainAsync()
+        /// <param name="timeout">Only guards against a hang. <see cref="SettleLimit"/> when null.</param>
+        /// <exception cref="TimeoutException">The handler did not drain in <paramref name="timeout"/>.</exception>
+        public Task DrainAsync(TimeSpan? timeout = null)
         {
             var name = $"{BarrierName}-{Interlocked.Increment(ref _barrierCount)}";
             var processed = _sink.Expect(name, default);
             Context.PublishConfig(new BucketConfig { Name = name });
-            return processed;
+            return WaitOrThrowAsync(processed, timeout ?? SettleLimit, "The config handler did not drain",
+                () => $"Dispatched: {_sink.Dispatched()}.");
         }
 
         /// <summary>
