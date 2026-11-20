@@ -494,9 +494,17 @@ namespace Couchbase.Test.Common.Configuration
 
         /// <summary>
         /// Makes node creation wait for the endpoints of this node until <see cref="ReleaseNodeCreation"/> is called.
-        /// The attempt counts in <see cref="NodeCreationAttempts"/> before it waits. Goes by host like <see cref="FailNodeCreation"/>.
+        /// The attempt counts in <see cref="NodeCreationAttempts"/> before it waits. Once released, it reads
+        /// <see cref="FailNodeCreation"/>, so a test can end a held attempt with a failure. Goes by host like
+        /// <see cref="FailNodeCreation"/>.
         /// </summary>
         public void HoldNodeCreation(string host) => _nodeFactory.Hold(host);
+
+        /// <summary>
+        /// Completes once a node creation for this node waits on <see cref="HoldNodeCreation"/>.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Node creation for this node is not held.</exception>
+        public Task NodeCreationHeldAsync(string host) => _nodeFactory.Held(host);
 
         public void ReleaseNodeCreation(string host) => _nodeFactory.Release(host);
 
@@ -693,7 +701,7 @@ namespace Couchbase.Test.Common.Configuration
         {
             private readonly ConcurrentDictionary<string, bool> _failingHosts = new(StringComparer.Ordinal);
             private readonly ConcurrentDictionary<string, int> _attempts = new(StringComparer.Ordinal);
-            private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _heldHosts = new(StringComparer.Ordinal);
+            private readonly ConcurrentDictionary<string, HeldCreation> _heldHosts = new(StringComparer.Ordinal);
             private ClusterNodeFactory? _inner;
             private int _created;
 
@@ -722,12 +730,15 @@ namespace Couchbase.Test.Common.Configuration
                 else _failingHosts.TryRemove(host, out _);
             }
 
-            public void Hold(string host) =>
-                _heldHosts.TryAdd(host, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+            public void Hold(string host) => _heldHosts.TryAdd(host, new HeldCreation());
+
+            public Task Held(string host) => _heldHosts.TryGetValue(host, out var hold)
+                ? hold.Reached.Task
+                : throw new InvalidOperationException($"Node creation for {host} is not held.");
 
             public void Release(string host)
             {
-                if (_heldHosts.TryRemove(host, out var hold)) hold.TrySetResult(true);
+                if (_heldHosts.TryRemove(host, out var hold)) hold.Released.TrySetResult(true);
             }
 
             // Only the harness calls it, before a test can hang a host. In fake mode it completes at once, and in real
@@ -743,18 +754,26 @@ namespace Couchbase.Test.Common.Configuration
             {
                 var host = server.NodeAt(endPoint) ?? endPoint.Host;
                 _attempts.AddOrUpdate(host, 1, static (_, count) => count + 1);
+                if (_heldHosts.TryGetValue(host, out var hold))
+                {
+                    hold.Reached.TrySetResult(true);
+                    await hold.Released.Task.ConfigureAwait(false);
+                }
                 if (_failingHosts.ContainsKey(host))
                 {
                     throw new InvalidOperationException($"The harness fails node creation for {host}.");
-                }
-                if (_heldHosts.TryGetValue(host, out var hold))
-                {
-                    await hold.Task.ConfigureAwait(false);
                 }
 
                 var node = await _inner!.CreateAndConnectAsync(endPoint, nodeAdapter, cancellationToken).ConfigureAwait(false);
                 Interlocked.Increment(ref _created);
                 return node;
+            }
+
+            private sealed class HeldCreation
+            {
+                public TaskCompletionSource<bool> Reached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                public TaskCompletionSource<bool> Released { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
         }
 

@@ -19,7 +19,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         /// </summary>
         internal static ClusterMapBuilder GlobalMap(ulong rev = 10) => WithNodes(ClusterMapBuilder.Global(), rev);
 
-        internal static ClusterMapBuilder BucketMap(ulong rev = 10) => WithNodes(ClusterMapBuilder.Bucket(BucketName), rev);
+        internal static ClusterMapBuilder BucketMap(ulong rev = 10) => BucketMap(BucketName, rev);
+
+        internal static ClusterMapBuilder BucketMap(string name, ulong rev = 10) => WithNodes(ClusterMapBuilder.Bucket(name), rev);
 
         internal static ConfigVersion Rev(ulong rev) => new(1, rev);
 
