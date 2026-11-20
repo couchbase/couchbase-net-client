@@ -97,11 +97,11 @@ namespace Couchbase.UnitTests.Transactions
                     new Mock<IOperationConfigurator>().Object,
                     new BestEffortRetryStrategy(), null)
             {
-                CurrentConfig = new BucketConfig
+                ConfigSnapshot = new ConfigSnapshot(new BucketConfig
                 {
                     Name = "default",
                     BucketCapabilities = [BucketCapabilities.COLLECTIONS]
-                };
+                }, null);
             }
 
             internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default) =>
