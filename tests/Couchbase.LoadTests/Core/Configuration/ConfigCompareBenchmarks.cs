@@ -57,7 +57,7 @@ namespace Couchbase.LoadTests.Core.Configuration
 
     /// <summary>
     /// Reads <see cref="BucketConfig.ServerGroupNodeIndexes"/> on a map with 3 server groups, once per call like a zone aware
-    /// replica read. The property is rebuilt on every read. CachedLookup does the same lookup on a dictionary built once.
+    /// replica read. The config builds the table on first read. CachedLookup does the same lookup on a dictionary held by the benchmark.
     /// </summary>
     [MemoryDiagnoser]
     [Config(typeof(InProcessConfig))]
