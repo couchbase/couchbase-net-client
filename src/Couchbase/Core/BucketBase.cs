@@ -37,6 +37,7 @@ namespace Couchbase.Core
         public readonly BucketNodeList Nodes = new();
         private readonly ILogger _logger;
         private volatile int _disposed;
+        private ConfigSnapshot _configSnapshot = ConfigSnapshot.Empty;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
@@ -54,7 +55,7 @@ namespace Couchbase.Core
             IRetryStrategy retryStrategy,
             BucketConfig config)
         {
-            CurrentConfig = config;
+            _configSnapshot = new ConfigSnapshot(config, null);
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
@@ -75,9 +76,19 @@ namespace Couchbase.Core
         public ILogger Logger => _logger;
         public ClusterContext Context { get; }
         public IRetryOrchestrator RetryOrchestrator { get; }
-        public BucketConfig? CurrentConfig { get; protected set; }
+        /// <summary>
+        /// The current config and its key mapper. Read it once when one decision needs both.
+        /// </summary>
+        public ConfigSnapshot ConfigSnapshot
+        {
+            get => _configSnapshot;
+            // The snapshot is immutable, so one reference write publishes it whole to readers that take no lock.
+            protected set => Volatile.Write(ref _configSnapshot, value);
+        }
+
+        public BucketConfig? CurrentConfig => _configSnapshot.Config;
         protected Manifest? Manifest { get; set; }
-        public IKeyMapper? KeyMapper { get; protected set; }
+        public IKeyMapper? KeyMapper => _configSnapshot.KeyMapper;
 
         protected bool Disposed => _disposed > 0;
 

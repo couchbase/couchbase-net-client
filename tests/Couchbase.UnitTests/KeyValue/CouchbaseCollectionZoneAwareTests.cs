@@ -207,6 +207,28 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
         }
 
+        [Fact]
+        public async Task GetAllReplicas_ConfigReplacedWhileKeyIsMapped_UsesOneConfig()
+        {
+            var (collection, bucket) = CreateCollection(PreferredGroup, GroupHoldsCopy);
+
+            // The next config moves every node to group_2. It is stored while the read maps the key.
+            var next = CreateConfig(GroupHoldsCopy, config =>
+            {
+                foreach (var node in config.NodesExt) node.ServerGroup = "group_2";
+            });
+            var nextSnapshot = new ConfigSnapshot(next, ZoneAwareFakeBucket.CreateKeyMapper(next));
+            var first = bucket.ConfigSnapshot;
+            bucket.ReplaceConfigSnapshot(new ConfigSnapshot(first.Config,
+                new ReplaceOnMapKeyMapper(first.KeyMapper, () => bucket.ReplaceConfigSnapshot(nextSnapshot))));
+
+            await ObserveAsync(collection.GetAllReplicasAsync(DocId,
+                new GetAllReplicasOptions().ReadPreference(InternalReadPreference.SelectedServerGroup)));
+
+            // The vBucket and group_1 both come from the first config.
+            Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
+        }
+
         #endregion
 
         #region No read preference
@@ -252,8 +274,7 @@ namespace Couchbase.UnitTests.KeyValue
             }
         }
 
-        internal static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
-            string preferredServerGroup, short[] vBucketMapRow, Action<BucketConfig> configure = null)
+        private static BucketConfig CreateConfig(short[] vBucketMapRow, Action<BucketConfig> configure = null)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -263,8 +284,13 @@ namespace Couchbase.UnitTests.KeyValue
             config.VBucketServerMap.VBucketMap = Enumerable.Repeat(vBucketMapRow, 1024).ToArray();
             config.BucketCapabilities = [BucketCapabilities.SUBDOC_REPLICA_READ];
             configure?.Invoke(config);
+            return config;
+        }
 
-            var bucket = new ZoneAwareFakeBucket(config, preferredServerGroup);
+        internal static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
+            string preferredServerGroup, short[] vBucketMapRow, Action<BucketConfig> configure = null)
+        {
+            var bucket = new ZoneAwareFakeBucket(CreateConfig(vBucketMapRow, configure), preferredServerGroup);
 
             var collection = new CouchbaseCollection(bucket,
                 new OperationConfigurator(new LegacyTranscoder(),
@@ -304,10 +330,14 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<IOperationConfigurator>().Object,
                     new BestEffortRetryStrategy(), null)
             {
-                CurrentConfig = config;
-                KeyMapper = new VBucketKeyMapper(config, new VBucketServerMap(config.VBucketServerMap),
-                    new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+                ConfigSnapshot = new ConfigSnapshot(config, CreateKeyMapper(config));
             }
+
+            public static IKeyMapper CreateKeyMapper(BucketConfig config) =>
+                new VBucketKeyMapper(config, new VBucketServerMap(config.VBucketServerMap),
+                    new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+
+            public void ReplaceConfigSnapshot(ConfigSnapshot snapshot) => ConfigSnapshot = snapshot;
 
             /// <summary>
             /// The node index each read was sent to, in dispatch order. Null is the primary.
@@ -358,6 +388,31 @@ namespace Couchbase.UnitTests.KeyValue
             internal override Task BootstrapAsync(IClusterNode bootstrapNodes) => throw new NotImplementedException();
 
             public override Task ConfigUpdatedAsync(BucketConfig newConfig) => throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Maps keys with the inner key mapper, and runs an action each time it maps a string key.
+        /// </summary>
+        private sealed class ReplaceOnMapKeyMapper(IKeyMapper inner, Action onMap) : IKeyMapper
+        {
+            public IMappedNode MapKey(string key)
+            {
+                var mapped = inner.MapKey(key);
+                onMap();
+                return mapped;
+            }
+
+            public IMappedNode MapKey(string key, bool notMyVBucket) => inner.MapKey(key, notMyVBucket);
+
+            public IMappedNode MapKey(byte[] key) => inner.MapKey(key);
+
+            public IMappedNode MapKey(byte[] key, bool notMyVBucket) => inner.MapKey(key, notMyVBucket);
+
+            public ulong Rev
+            {
+                get => inner.Rev;
+                set => inner.Rev = value;
+            }
         }
     }
 }

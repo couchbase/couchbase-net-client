@@ -110,7 +110,8 @@ namespace Couchbase
             try
             {
                 // Another call can apply a config while this one waits, so this check decides.
-                if (!newConfig.HasConfigChanges(CurrentConfig, Name))
+                var current = ConfigSnapshot;
+                if (!newConfig.HasConfigChanges(current.Config, Name))
                 {
                     return;
                 }
@@ -119,7 +120,7 @@ namespace Couchbase
                 {
                     Logger.LogDebug(
                         "Processing cluster map for #rev{revision} on {bucketName} - old rev#{oldRevision}",
-                        newConfig.ConfigVersion, Name, CurrentConfig?.ConfigVersion);
+                        newConfig.ConfigVersion, Name, current.Config?.ConfigVersion);
 
                     Logger.LogDebug(JsonSerializer.Serialize(newConfig,
                         InternalSerializationContext.Default.BucketConfig!));
@@ -133,7 +134,7 @@ namespace Couchbase
 
                 // The key mapper reads only the config, so a node change alone needs no new one.
                 IKeyMapper? newKeymapper = null;
-                if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
+                if (newConfig.HasVBucketMapChanged(current.Config) || newConfig.IgnoreRev)
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent,
                         "Updating VB key mapper for rev#{revision} on {bucketName}",
@@ -147,15 +148,11 @@ namespace Couchbase
                 {
                     Nodes.ReplaceAll(Context.GetNodes(Name));
 
-                    if (newKeymapper is not null)
-                    {
-                        KeyMapper = newKeymapper;
-                    }
-
-                    CurrentConfig = newConfig;
+                    // The key mapper of an unchanged vBucket server map stays valid for the new config.
+                    ConfigSnapshot = new ConfigSnapshot(newConfig, newKeymapper ?? ConfigSnapshot.KeyMapper);
                     Logger.LogDebug(LoggingEvents.ConfigEvent,
                         "Current revision for {bucketName} is rev#{revision}", Name,
-                        CurrentConfig?.ConfigVersion);
+                        newConfig.ConfigVersion);
                 }
 
                 // Only a new map can change the forward map, which sets the poll interval.
@@ -314,11 +311,14 @@ namespace Couchbase
 
         internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair)
         {
-            if (KeyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
+            // One snapshot, so the config version stamped on the op is the one its key was mapped with.
+            var snapshot = ConfigSnapshot;
+            var keyMapper = snapshot.KeyMapper;
+            if (keyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
 
             if (op.RequiresVBucketId)
             {
-                VBucket vBucket = MapVBucket(op);
+                VBucket vBucket = MapVBucket(keyMapper, op);
 
                 HostEndpointWithPort? endPoint;
                 if (op.ReplicaStrategy is { } strategy)
@@ -333,7 +333,7 @@ namespace Couchbase
                 }
 
                 op.VBucketId = vBucket.Index;
-                op.ConfigVersion = CurrentConfig?.ConfigVersion;
+                op.ConfigVersion = snapshot.Config?.ConfigVersion;
 
                 Logger.LogDebug(
                     "Mapping op {OpCode} to {Endpoint} for key {Key} and opaque {Opaque} using configVersion: {ConfigVersion}",
@@ -354,7 +354,7 @@ namespace Couchbase
             if (op is GetCid getCid)
             {
                 var key = getCid.CoerceKey;
-                var vBucket = (VBucket)KeyMapper.MapKey(key);
+                var vBucket = (VBucket)keyMapper.MapKey(key);
                 var endPoint = vBucket.LocatePrimary();
 
                 if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
@@ -378,18 +378,18 @@ namespace Couchbase
             return await node.SendAsync(op, tokenPair).ConfigureAwait(false);
         }
 
-        private VBucket MapVBucket(IOperation op)
+        private static VBucket MapVBucket(IKeyMapper keyMapper, IOperation op)
         {
             if (!(op is IPreMappedVBucketOperation preMappedOp))
             {
                 // for normal, non-management ops, use the Key to lookup the VBucketId.
-                return (VBucket)KeyMapper!.MapKey(op.EncodedKey, op.WasNmvb());
+                return (VBucket)keyMapper.MapKey(op.EncodedKey, op.WasNmvb());
             }
 
             if (preMappedOp.VBucketId.HasValue)
             {
                 // RangeScan ops do not have the Key set, so look up the vBucket directly from the ID
-                var vkm = (VBucketKeyMapper)KeyMapper!;
+                var vkm = (VBucketKeyMapper)keyMapper;
                 return (VBucket)vkm[preMappedOp.VBucketId.Value];
             }
 
@@ -420,8 +420,9 @@ namespace Couchbase
                     Manifest = await node.GetManifest().ConfigureAwait(false);
                 }
 
-                KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
-                await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
+                var config = CurrentConfig!;
+                ConfigSnapshot = new ConfigSnapshot(config, _vBucketKeyMapperFactory.Create(config));
+                await Context.ProcessClusterMapAsync(this, config).ConfigureAwait(false);
                 var nodes = Context.GetNodes(Name);
 
                 //update the local nodes collection
