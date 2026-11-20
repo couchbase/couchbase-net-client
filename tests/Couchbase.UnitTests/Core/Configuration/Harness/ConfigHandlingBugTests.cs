@@ -686,20 +686,19 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         // NCBC-4424
-        // A global map with a new node holds the cluster config lock while the node connects. A bucket map that needs
-        // no new node must not wait for that lock.
+        // A bucket open holds the cluster config lock while it connects the nodes of its map. A map of another bucket
+        // that needs no new node must not wait for that lock.
         [Fact]
-        public async Task BucketMap_NeedingNoNewNode_IsAppliedWhileAGlobalMapCreatesANode()
+        public async Task BucketMap_NeedingNoNewNode_IsAppliedWhileAnotherBucketOpenConnectsANode()
         {
-            const string node3 = "node-3.example.com";
             await using var harness = ConfigHarness.Create(GlobalMap());
             await harness.OpenBucketAsync(BucketMap());
-            harness.HoldNodeCreation(node3);
+            // The other bucket connects node-0 first, then node-1 under the lock, as this bucket owns both.
+            harness.HoldNodeCreation(Node1);
             try
             {
-                var global = harness.ApplyGlobalAsync(GlobalMap(11).Node(node3, n => n.Uuid("node-uuid-3").Kv()).Build());
-                Assert.Equal(1, harness.NodeCreationAttempts(node3));
-                Assert.False(global.IsCompleted);
+                var open = harness.OpenBucketAsync(BucketMap(OtherBucket));
+                await harness.NodeCreationHeldAsync(Node1).WaitAsync(Timeout);
 
                 harness.Publish(BucketMap(11).VBuckets(1024, replicas: 2));
                 await harness.DrainAsync().WaitAsync(Timeout);
@@ -708,16 +707,36 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
                 harness.Publish(WithService(BucketMap(12).VBuckets(1024, replicas: 2), Node0, ServiceType.Search));
                 await harness.DrainAsync().WaitAsync(Timeout);
                 Assert.Equal(Rev(12), harness.Bucket(BucketName).Version);
-                Assert.NotNull(harness.Nodes.Single(n => n.Name == Node0).SearchUri);
-                Assert.False(global.IsCompleted);
+                Assert.NotNull(harness.Nodes.Single(n => n.Name == Node0 && n.Owner == BucketName).SearchUri);
+                Assert.False(open.IsCompleted);
 
-                harness.ReleaseNodeCreation(node3);
-                await global.WaitAsync(Timeout);
+                harness.ReleaseNodeCreation(Node1);
+                await open.WaitAsync(Timeout);
             }
             finally
             {
-                harness.ReleaseNodeCreation(node3);
+                harness.ReleaseNodeCreation(Node1);
             }
+        }
+
+        // NCBC-4424
+        // Revisions count for the whole cluster, so a bucket map can be older than the cluster map the nodes took and
+        // still newer than the map of the bucket. The bucket takes it, but its nodes must keep the newer ports.
+        [Fact]
+        public async Task OlderBucketMap_AfterANewerGlobalMapMovedPorts_KeepsTheNewerNodeView()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            await harness.OpenBucketAsync(BucketMap());
+            harness.Publish(GlobalMap(20).Node(Node0, n => n.Query(9093)).Node(QueryNode, n => n.Query(9094)));
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            harness.Publish(BucketMap(15));
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            Assert.Equal(Rev(15), harness.Bucket(BucketName).Version);
+            Assert.All(harness.Nodes, n => Assert.Equal(Rev(20), n.Version));
+            Assert.Equal(9093, harness.Nodes.Single(n => n.Name == Node0).QueryUri!.Port);
+            Assert.Equal(9094, harness.Nodes.Single(n => n.Name == QueryNode).QueryUri!.Port);
         }
 
         private static ClusterMapBuilder WithService(ClusterMapBuilder map, string host, ServiceType service) =>
