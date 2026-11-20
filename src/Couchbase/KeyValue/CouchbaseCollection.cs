@@ -1181,8 +1181,8 @@ namespace Couchbase.KeyValue
         /// node/group pairs could be made from the config, or when the group holds no nodes.
         /// </summary>
         /// <remarks>
-        /// <see cref="BucketConfig.ServerGroupNodeIndexes"/> is rebuilt on every access, so callers
-        /// should resolve this once per operation.
+        /// Callers resolve this once per operation, so that every read of one operation uses the
+        /// same config.
         /// </remarks>
         private int[]? GetPreferredServerGroupIndexes()
         {
