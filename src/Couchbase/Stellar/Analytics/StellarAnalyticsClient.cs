@@ -37,7 +37,7 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
             childSpan.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             childSpan.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.AnalyticsQuery);
             childSpan.SetAttribute(OuterRequestSpans.Attributes.Operation, OuterRequestSpans.ServiceSpan.AnalyticsQuery);
-            childSpan.SetAttribute(OuterRequestSpans.Attributes.Statement, statement);
+            childSpan.WithStatement(statement, opts.HasParameters);
             if (opts.BucketName != null) childSpan.SetAttribute(OuterRequestSpans.Attributes.BucketName, opts.BucketName);
             if (opts.ScopeName != null) childSpan.SetAttribute(OuterRequestSpans.Attributes.ScopeName, opts.ScopeName);
         }

@@ -137,17 +137,15 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
 
         // ── RFC 7677 SCRAM-SHA-256 test vectors ──────────────────────────────────────
         //
-        // Nonces, salt, and iteration count from RFC 7677, Section 3.
-        // ClientProof independently verified with a standalone .NET 8 program using
-        // Rfc2898DeriveBytes.Pbkdf2 + HMACSHA256 + SHA256 directly (not ScramShaMechanism).
+        // All values from RFC 7677, Section 3.
         //
         //   User:         "user"
         //   Password:     "pencil"
         //   Client nonce: "rOprNGfwEbeRWgbNEkqO"
         //   Server nonce: "rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0"
-        //   Salt (b64):   "W22ZaJ0SNY7soEsUEjb6tQ=="
+        //   Salt (b64):   "W22ZaJ0SNY7soEsUEjb6gQ=="
         //   Iterations:   4096
-        //   ClientProof:  "EaJgY9x8R5TfCXL1LohVfQFti/xSQIyb0zp/2Io2FbQ="
+        //   ClientProof:  "dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ="
 
         [Fact]
         public void GetClientProof_ScramSha256_MatchesRfc7677Vector()
@@ -156,9 +154,9 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             const string username     = "user";
             const string clientNonce  = "rOprNGfwEbeRWgbNEkqO";
             const string serverNonce  = "rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0";
-            const string saltBase64   = "W22ZaJ0SNY7soEsUEjb6tQ==";
+            const string saltBase64   = "W22ZaJ0SNY7soEsUEjb6gQ==";
             const int    iterations   = 4096;
-            const string expectedClientProofBase64 = "EaJgY9x8R5TfCXL1LohVfQFti/xSQIyb0zp/2Io2FbQ=";
+            const string expectedClientProofBase64 = "dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=";
 
             var mech = CreateMechanism(MechanismType.ScramSha256, password, username);
             mech.ClientNonce = clientNonce;

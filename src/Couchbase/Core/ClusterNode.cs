@@ -309,7 +309,8 @@ namespace Couchbase.Core
 
             return await ExecuteInternalOperationAsync(connection, saslListOp,
                 ExecuteOp,
-                static (_, op, _) => op.GetValue(),
+                // The list comes from a server that has not proved who it is, and error messages quote it.
+                static (_, op, _) => SaslMechanismBase.SafeServerReply(op.GetValue()),
                 _context.ClusterOptions.KvTimeout,
                 cancellationToken)
                 .ConfigureAwait(false);

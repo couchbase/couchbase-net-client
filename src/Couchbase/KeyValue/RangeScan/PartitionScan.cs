@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Utils;
@@ -12,8 +13,14 @@ namespace Couchbase.KeyValue.RangeScan;
 
 internal sealed class PartitionScan
 {
-    public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, ICouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId)
+    /// <remarks>
+    /// <c>createSpan</c> creates a span with the given name and parent, with the attributes of a request on
+    /// this collection. <c>scanSpan</c> is the range_scan span of the scan that this partition belongs to.
+    /// </remarks>
+    public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, CouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId,
+        IRequestSpan scanSpan)
     {
+        _scanSpan = scanSpan;
         _operationConfigurator = operationConfigurator;
         _bucket = bucket;
         _collection = collection;
@@ -25,12 +32,15 @@ internal sealed class PartitionScan
 
     private readonly IOperationConfigurator _operationConfigurator;
     private readonly BucketBase _bucket;
-    private readonly ICouchbaseCollection _collection;
+    private readonly CouchbaseCollection _collection;
     private readonly ILogger<GetResult> _getLogger;
     private readonly ScanOptions _options;
     private readonly IScanType _scanType;
     private readonly short _partitionId;
     private SlicedMemoryOwner<byte>? _uuid;
+    private readonly IRequestSpan _scanSpan;
+    private IRequestSpan _partitionSpan;
+    private string _rangeScanId;
 
     public MutationToken MutationToken { get; set; }
 
@@ -49,6 +59,20 @@ internal sealed class PartitionScan
 
     public async Task<PartitionScan> ScanAsync()
     {
+        // The request spans are disposed when ScanBatchAsync returns, so the partition span ends after them.
+        if (await ScanBatchAsync().ConfigureAwait(false))
+        {
+            EndSpan();
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Sends the next request for this partition. Returns true when the partition is done.
+    /// </summary>
+    private async Task<bool> ScanBatchAsync()
+    {
         if (_uuid == null)
         {
             var scanCreateOp = new RangeScanCreate
@@ -62,6 +86,10 @@ internal sealed class PartitionScan
                 MutationToken = MutationToken
             };
 
+            using var createSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCreate, PartitionSpan);
+            RangeScanSpans.SetScanTypeAttributes(createSpan, _scanType, _options.IdsOnlyValue, isCreateSpan: true);
+            scanCreateOp.Span = createSpan;
+
             _operationConfigurator.Configure(scanCreateOp, _options);
             using var ctp = CreateRetryTimeoutCancellationTokenSource(_options, scanCreateOp);
 
@@ -69,14 +97,20 @@ internal sealed class PartitionScan
             switch (scanCreateStatus)
             {
                 case ResponseStatus.RangeScanComplete:
+                    // The scan has no batch to read. Status must be terminal, or the scan loop sends the create
+                    // again, and Results must not be null, because the loop reads it for this status.
                     CanBeCanceled = false;
-                    return this;
+                    Status = scanCreateStatus;
+                    Results = new Dictionary<string, IScanResult>();
+                    return true;
                 case ResponseStatus.KeyNotFound:
                     Status = scanCreateStatus;
-                    return this;
+                    return true;
                 case ResponseStatus.RangeScanMore:
                 case ResponseStatus.Success:
                 {
+                    // The create is done. End its span now, so that it does not include the first continue.
+                    createSpan.Dispose();
                     _uuid = scanCreateOp.ExtractBody();
                     var scanContinueOp = new RangeScanContinue
                     {
@@ -93,6 +127,7 @@ internal sealed class PartitionScan
                         IsSampling = scanCreateOp.Content?.IsSampling == true,
                     };
                     _operationConfigurator.Configure(scanContinueOp, _options);
+                    using var continueSpan = ContinueSpan(scanContinueOp);
 
                     using var ctp2 = CreateRetryTimeoutCancellationTokenSource(_options, scanContinueOp);
                     Status = await _bucket.RetryAsync(scanContinueOp, ctp2.TokenPair).ConfigureAwait(false);
@@ -121,12 +156,78 @@ internal sealed class PartitionScan
                 ByteLimit = _options.BatchByteLimit
             };
             _operationConfigurator.Configure(scanContinueOp, _options);
+            using var continueSpan = ContinueSpan(scanContinueOp);
 
             using var ctp2 = CreateRetryTimeoutCancellationTokenSource(_options, scanContinueOp);
             Status = await _bucket.RetryAsync(scanContinueOp, ctp2.TokenPair).ConfigureAwait(false);
             Results = scanContinueOp.Content;
         }
-        return this;
+
+        return Status is ResponseStatus.RangeScanComplete or ResponseStatus.KeyNotFound;
+    }
+
+    /// <summary>
+    /// The range_scan_partition span. It is created with the first request for this partition.
+    /// </summary>
+    private IRequestSpan PartitionSpan
+    {
+        get
+        {
+            if (_partitionSpan is null)
+            {
+                _partitionSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanPartition, _scanSpan);
+                if (_partitionSpan.CanWrite)
+                {
+                    _partitionSpan.SetAttribute(RangeScanSpans.PartitionId, (uint)_partitionId);
+                }
+            }
+
+            return _partitionSpan;
+        }
+    }
+
+    /// <summary>
+    /// The scan UUID as hex, for the range_scan_id attribute. Built on first use, so only when a span can write.
+    /// </summary>
+    private string RangeScanId
+    {
+        get
+        {
+            if (_rangeScanId == null && _uuid.HasValue)
+            {
+#if NET9_0_OR_GREATER
+                _rangeScanId = "0x" + Convert.ToHexStringLower(_uuid.Value.Memory.Span);
+#else
+                _rangeScanId = "0x" + BitConverter.ToString(_uuid.Value.Memory.ToArray()).Replace("-", "").ToLowerInvariant();
+#endif
+            }
+
+            return _rangeScanId ?? string.Empty;
+        }
+    }
+
+    private IRequestSpan ContinueSpan(RangeScanContinue scanContinueOp)
+    {
+        var span = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanContinue, PartitionSpan);
+        if (span.CanWrite)
+        {
+            span.SetAttribute(RangeScanSpans.RangeScanId, RangeScanId);
+            span.SetAttribute(RangeScanSpans.ItemLimit, scanContinueOp.ItemLimit);
+            span.SetAttribute(RangeScanSpans.ByteLimit, scanContinueOp.ByteLimit);
+            span.SetAttribute(RangeScanSpans.TimeLimit, scanContinueOp.TimeLimit);
+        }
+
+        scanContinueOp.Span = span;
+        return span;
+    }
+
+    /// <summary>
+    /// Ends the range_scan_partition span, if it was created. Safe to call more than once.
+    /// </summary>
+    public void EndSpan()
+    {
+        _partitionSpan?.Dispose();
+        _partitionSpan = null;
     }
 
     public bool CanBeCanceled
@@ -145,6 +246,13 @@ internal sealed class PartitionScan
                 Content = _uuid.Value,
                 VBucketId = _partitionId
             };
+
+            using var cancelSpan = _collection.RootSpan(OuterRequestSpans.ServiceSpan.Kv.RangeScanCancel, PartitionSpan);
+            if (cancelSpan.CanWrite)
+            {
+                cancelSpan.SetAttribute(RangeScanSpans.RangeScanId, RangeScanId);
+            }
+            scanCancelOp.Span = cancelSpan;
 
             _operationConfigurator.Configure(scanCancelOp, _options);
 

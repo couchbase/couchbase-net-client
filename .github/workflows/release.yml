@@ -116,16 +116,19 @@ jobs:
       # publish-nuget. So it is checked unconditionally, and here rather than at those
       # steps - a misconfiguration costs ten seconds instead of three OS builds and a
       # Windows pack. The message carries the rule the nuget.org docs do not state.
+      # It is a repository variable, not an environment one, so this job can read it
+      # without entering the nuget-release environment.
       - name: Verify NUGET_USER is configured
         shell: bash
         env:
-          NUGET_USER: ${{ secrets.NUGET_USER }}
+          NUGET_USER: ${{ vars.NUGET_USER }}
         run: |
           if [ -z "$NUGET_USER" ]; then
-            echo "::error::NUGET_USER is not set. It must hold the nuget.org username of the" \
-                 "person who CREATED the trusted publishing policy, not the organization that" \
-                 "owns it. Passing the organization name fails the token exchange with" \
-                 "HTTP 401 'No matching trust policy owned by user'." >&2
+            echo "::error::The NUGET_USER repository variable is not set. It must hold" \
+                 "the nuget.org username of the person who CREATED the trusted" \
+                 "publishing policy, not the organization that owns it. Passing the" \
+                 "organization name fails the token exchange with HTTP 401" \
+                 "'No matching trust policy owned by user'." >&2
             exit 1
           fi
           echo "✓ NUGET_USER is set"
@@ -441,7 +444,8 @@ jobs:
   # by the `couchbase` organization because that is the only nuget.org account that
   # owns all three package IDs. A policy covers every package its owner owns.
   #
-  # NUGET_USER is not a credential: it is the nuget.org username of the person who
+  # NUGET_USER is a repository variable, not a secret, because it is not a
+  # credential: it is the nuget.org username of the person who
   # *created* the policy, which is not the same as the organization that owns it.
   # Passing the org name gets HTTP 401 "No matching trust policy owned by user" -
   # verified on run 33427080103. That also means the policy is tied to one person's
@@ -449,9 +453,16 @@ jobs:
   #
   # Nothing else in this repo records that the policy exists, so if publishing starts
   # failing with no code change, check that it is still active in the nuget.org UI.
+  #
+  # Every job that mints a nuget.org key runs in the nuget-release environment
+  # (here and smoke-summary). The environment requires a reviewer to approve the
+  # run and only admits master and version tags, so a writer cannot publish
+  # alone or from a feature branch. When the nuget.org policy names this
+  # environment, a key minted by any other job is refused.
   publish-nuget:
     name: Publish to NuGet
     runs-on: ubuntu-latest
+    environment: nuget-release
     needs: [validate-inputs, pack]
     if: needs.validate-inputs.outputs.publish == 'true'
     permissions:
@@ -476,7 +487,7 @@ jobs:
         id: login
         uses: NuGet/login@v1
         with:
-          user: ${{ secrets.NUGET_USER }}
+          user: ${{ vars.NUGET_USER }}
 
       - name: Publish packages and symbols to NuGet
         shell: bash
@@ -544,6 +555,9 @@ jobs:
   smoke-summary:
     name: Smoke Summary
     runs-on: ubuntu-latest
+    # In the environment so a smoke run proves the same gated path a publish uses.
+    # Consequence: smoke runs need approval and must be dispatched from master.
+    environment: nuget-release
     needs: [validate-inputs, build-and-test, pack]
     if: github.event_name == 'workflow_dispatch' && needs.validate-inputs.outputs.publish != 'true'
     permissions:
@@ -589,7 +603,7 @@ jobs:
         id: nuget_login
         uses: NuGet/login@v1
         with:
-          user: ${{ secrets.NUGET_USER }}
+          user: ${{ vars.NUGET_USER }}
 
       - name: Verify NuGet key was issued
         shell: bash

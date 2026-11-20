@@ -300,7 +300,15 @@ namespace Couchbase.Analytics
             IRequestSpan? RequestSpan,
             string? QueryContext,
             string? BucketName,
-            string? ScopeName);
+            string? ScopeName)
+        {
+            /// <summary>
+            /// True when positional or named parameters are set. RFC 67 uses this to decide whether the
+            /// statement may go on a tracing span: with parameters, sensitive values are most likely in the
+            /// parameters and not in the statement text.
+            /// </summary>
+            internal bool HasParameters => NamedParameters.Count > 0 || PositionalParameters.Count > 0;
+        }
     }
 }
 
