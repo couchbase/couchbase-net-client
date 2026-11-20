@@ -134,11 +134,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         [Fact]
-        public async Task PublishThenDrain_ProcessesConfigsInOrder()
+        public async Task PublishThenDrain_AppliesTheNewestConfig()
         {
             await using var harness = ConfigHarness.Create(GlobalMap());
 
-            // Out of order, rev 13 would run before node-3 exists and leave node-3 in place.
+            // The handler can skip rev 11 and 12, as a newer config replaces one that waits.
             harness.Publish(GlobalMap(11).Node("node-3.example.com"));
             harness.Publish(GlobalMap(12).Node("node-3.example.com").Node("node-4.example.com"));
             harness.Publish(GlobalMap(13).Node("node-4.example.com"));
@@ -146,8 +146,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
 
             Assert.Equal(["node-0.example.com", "node-1.example.com", QueryNode, "node-4.example.com"],
                 harness.Nodes.Select(n => n.Hostname));
-            Assert.Equal(5, harness.NodesCreated);
             Assert.All(harness.Nodes, n => Assert.Equal(Rev(13), n.Version));
+            Assert.Equal(Rev(13), harness.GlobalVersion);
         }
 
         [Fact]
@@ -156,10 +156,13 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await using var harness = ConfigHarness.Create(GlobalMap());
             var bucket = await harness.OpenBucketAsync(BucketMap());
 
+            // The drain lets rev 11 reach the bucket, as the handler drops a config older than the one that waits.
             harness.Publish(BucketMap(12).VBuckets(1024, replicas: 2));
+            await harness.DrainAsync();
             harness.Publish(BucketMap(11).VBuckets(1024, replicas: 0));
             await harness.DrainAsync();
 
+            Assert.True(harness.HasDispatched(BucketName, Rev(11)));
             var view = harness.Bucket(BucketName);
             Assert.Equal(Rev(12), view.Version);
             Assert.Equal(12UL, view.KeyMapperRev);

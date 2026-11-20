@@ -8,8 +8,11 @@ using Couchbase.Test.Common.Configuration;
 namespace Couchbase.LoadTests.Core.Configuration
 {
     /// <summary>
-    /// The cost per config of the config handler queue, which hands each config to every subscriber and waits for all of
-    /// them. The maps go to the open buckets in turn and only raise the rev, so each bucket runs its compare and keeps its map.
+    /// The cost per published config of the config handler queue, when configs come in bursts. The handler keeps one
+    /// waiting config per bucket. A newer config replaces it, and the handler hands the config it takes to every subscriber
+    /// and waits for all of them. So a burst costs one publish per config but fewer dispatches. How many configs a burst
+    /// replaces depends on how fast the handler takes them. The maps go to the open buckets in turn and only raise the
+    /// rev, so each bucket runs its compare and keeps its map.
     /// </summary>
     [MemoryDiagnoser]
     [InvocationCount(InvocationsPerIteration)]
@@ -27,7 +30,7 @@ namespace Couchbase.LoadTests.Core.Configuration
         private ulong _rev = 1;
 
         /// <summary>
-        /// The maps published before each drain. Every call publishes 100 maps.
+        /// The maps published before each drain, which is the size of a burst. Every call publishes 100 maps.
         /// </summary>
         [Params(10, 100)]
         public int Maps { get; set; }

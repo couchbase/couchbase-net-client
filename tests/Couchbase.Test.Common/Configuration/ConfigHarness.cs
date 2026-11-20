@@ -314,36 +314,41 @@ namespace Couchbase.Test.Common.Configuration
         public void Publish(BucketConfig config) => Context.PublishConfig(config);
 
         /// <summary>
-        /// Waits until every config published before this call is processed by every subscriber.
+        /// Waits until the handler is done with every config published before this call. Every subscriber has
+        /// processed it, or the handler dropped it for a newer or equal config of the same name that was waiting.
         /// </summary>
         /// <remarks>
-        /// The handler processes one config at a time and awaits all subscribers, so a barrier config
-        /// that only the harness accepts completes after every earlier config.
+        /// The handler processes one config at a time, in the order the names first arrived, and awaits all
+        /// subscribers. So a barrier config with a new name, that only the harness accepts, completes after every
+        /// earlier config.
         /// </remarks>
         public Task DrainAsync()
         {
             var name = $"{BarrierName}-{Interlocked.Increment(ref _barrierCount)}";
-            var processed = _sink.Expect(name, default, times: 1);
+            var processed = _sink.Expect(name, default);
             Context.PublishConfig(new BucketConfig { Name = name });
             return processed;
         }
 
         /// <summary>
-        /// Waits until the handler has dispatched the config at least <paramref name="times"/> times since the harness
-        /// was created or <see cref="ForgetDispatched"/> was last called. Call <see cref="DrainAsync"/> next to wait until
-        /// every subscriber has processed it.
+        /// Waits until the handler has dispatched the config since the harness was created or
+        /// <see cref="ForgetDispatched"/> was last called. Call <see cref="DrainAsync"/> next to wait until every
+        /// subscriber has processed it.
         /// </summary>
+        /// <remarks>
+        /// A config that a newer one replaces while it waits is never dispatched, so wait for the newest version.
+        /// </remarks>
         /// <param name="timeout">Only guards against a hang.</param>
-        public async Task WaitForPublishedAsync(string name, ConfigVersion version, TimeSpan timeout, int times = 1)
+        public async Task WaitForPublishedAsync(string name, ConfigVersion version, TimeSpan timeout)
         {
-            var dispatched = _sink.Expect(name, version, times);
+            var dispatched = _sink.Expect(name, version);
             using var cts = new CancellationTokenSource();
             var completed = await Task.WhenAny(dispatched, Task.Delay(timeout, cts.Token)).ConfigureAwait(false);
             cts.Cancel();
             if (completed != dispatched)
             {
                 throw new TimeoutException(
-                    $"The handler did not dispatch {name} {version} {times} time(s) in {timeout}. Dispatched: {_sink.Dispatched()}.");
+                    $"The handler did not dispatch {name} {version} in {timeout}. Dispatched: {_sink.Dispatched()}.");
             }
         }
 
@@ -882,14 +887,13 @@ namespace Couchbase.Test.Common.Configuration
 
             public IEnumerable<IClusterNode> ClusterNodes => [];
 
-            public Task Expect(string name, ConfigVersion version, int times)
+            public Task Expect(string name, ConfigVersion version)
             {
                 lock (_lock)
                 {
-                    var remaining = times - _dispatched.Count(d => d.Name == name && d.Version.Equals(version));
-                    if (remaining <= 0) return Task.CompletedTask;
+                    if (_dispatched.Any(d => d.Name == name && d.Version.Equals(version))) return Task.CompletedTask;
 
-                    var waiter = new Waiter(name, version, remaining);
+                    var waiter = new Waiter(name, version);
                     _waiters.Add(waiter);
                     return waiter.Done.Task;
                 }
@@ -926,8 +930,6 @@ namespace Couchbase.Test.Common.Configuration
 
                     foreach (var waiter in _waiters.Where(w => w.Name == newConfig.Name && w.Version.Equals(newConfig.ConfigVersion)).ToList())
                     {
-                        if (--waiter.Remaining > 0) continue;
-
                         _waiters.Remove(waiter);
                         waiter.Done.TrySetResult(true);
                     }
@@ -935,13 +937,11 @@ namespace Couchbase.Test.Common.Configuration
                 return Task.CompletedTask;
             }
 
-            private sealed class Waiter(string name, ConfigVersion version, int remaining)
+            private sealed class Waiter(string name, ConfigVersion version)
             {
                 public string Name { get; } = name;
 
                 public ConfigVersion Version { get; } = version;
-
-                public int Remaining { get; set; } = remaining;
 
                 public TaskCompletionSource<bool> Done { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
