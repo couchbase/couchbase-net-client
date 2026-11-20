@@ -125,7 +125,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _clusterOptions = clusterOptions;
         _redactor = new Redactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
-        RequestTracer = clusterOptions.TracingOptions.RequestTracer;
+        RequestTracer = CreateRequestTracer(clusterOptions);
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
         TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
 
@@ -198,6 +198,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     }
 
     internal IRequestTracer RequestTracer { get; }
+
+    /// <summary>
+    /// Builds the tracer the same way the classic cluster does (see ClusterOptions.BuildServiceProvider),
+    /// so Stellar spans get the attribute names of the configured
+    /// <see cref="ClusterOptions.ObservabilitySemanticConvention"/>.
+    /// </summary>
+    internal static IRequestTracer CreateRequestTracer(ClusterOptions clusterOptions) =>
+        clusterOptions.TracingOptions is { Enabled: true, RequestTracer: not NoopRequestTracer }
+            ? new RequestTracerWrapper(clusterOptions.TracingOptions.RequestTracer,
+                clusterOptions.ObservabilitySemanticConvention)
+            : NoopRequestTracer.Instance;
     internal ITypeTranscoder TypeTranscoder { get; }
     internal IOperationCompressor OperationCompressor { get; }
     internal bool IsCompressionEnabled => _isCompressionEnabled;
