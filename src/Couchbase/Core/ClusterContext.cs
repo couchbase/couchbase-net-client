@@ -719,12 +719,12 @@ namespace Couchbase.Core
                 }
 
                 // One map wait for the whole open, so the open lock is not held once per endpoint.
-                var openStarted = _timeProvider.GetTimestamp();
+                var mapWait = new MapWaitBudget(_timeProvider, ClusterOptions.KvTimeout);
                 foreach (var server in GetHostEndpointWithPorts(ClusterOptions.EnableTls))
                 {
                     try
                     {
-                        bucket = await CreateAndBootStrapBucketAsync(name, server, openStarted)
+                        bucket = await CreateAndBootStrapBucketAsync(name, server, mapWait)
                             .ConfigureAwait(false);
 
                         if (_disposed != 0)
@@ -815,10 +815,10 @@ namespace Couchbase.Core
 
         /// <param name="name">The name of the bucket.</param>
         /// <param name="endpoint">The node to bootstrap from.</param>
-        /// <param name="openStarted">The timestamp when the open started. A Couchbase bucket whose config has no
-        /// vBucket map waits for one until <see cref="ClusterOptions.KvTimeout"/> after it.</param>
+        /// <param name="mapWait">The time the open may still wait for a vBucket map. All endpoints of one open share
+        /// it.</param>
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint,
-            long openStarted)
+            MapWaitBudget mapWait)
         {
             // Read once, because the property throws after the context is disposed.
             var token = CancellationToken;
@@ -855,7 +855,7 @@ namespace Couchbase.Core
                 // A Memcached bucket has no vBucket map.
                 if (type == BucketType.Couchbase && !config.HasVBucketMap())
                 {
-                    config = await WaitForVBucketMapAsync(node, name, config, selected, openStarted, token)
+                    config = await WaitForVBucketMapAsync(node, name, config, selected, mapWait, token)
                         .ConfigureAwait(false);
                 }
 
@@ -916,13 +916,10 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// Fetches the config of a bucket from a node over KV, or over HTTP when KV does not serve it.
+        /// Fetches the config of a bucket from a node over KV, or over HTTP when KV does not serve it. When
+        /// <paramref name="selected"/> is false, the node could not select the bucket over KV, so the config comes
+        /// over HTTP only.
         /// </summary>
-        /// <param name="node">The node to fetch the config from.</param>
-        /// <param name="name">The name of the bucket.</param>
-        /// <param name="selected">False when the node could not select the bucket over KV. The config then
-        /// comes over HTTP only.</param>
-        /// <param name="token">Cancels the fetch.</param>
         private async Task<BucketConfig> FetchBucketConfigAsync(IClusterNode node, string name, bool selected,
             CancellationToken token)
         {
@@ -936,6 +933,7 @@ namespace Couchbase.Core
                 }
                 catch (DocumentNotFoundException)
                 {
+                    // KV does not serve the config, so the fetch goes on over HTTP.
                 }
             }
 
@@ -945,34 +943,36 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// Fetches the config of a new bucket again until it has a vBucket map, or until
-        /// <see cref="ClusterOptions.KvTimeout"/> after the open started. It then returns the last config, and a
-        /// config with no map fails the bootstrap.
+        /// Fetches the config of a new bucket again until it has a vBucket map, or until <paramref name="mapWait"/>
+        /// has no time left. It then returns the last config, and a config with no map fails the bootstrap.
         /// </summary>
         /// <remarks>
         /// Before 7.6.2 the server can send the config of a new bucket before it has built the map (MB-60405).
         /// The caller holds the open lock, so other bucket opens wait too.
+        /// The budget limits the delays between fetches. Each fetch keeps its own timeout, so the last fetch can
+        /// end after the budget.
         /// </remarks>
         private async Task<BucketConfig> WaitForVBucketMapAsync(IClusterNode node, string name, BucketConfig config,
-            bool selected, long openStarted, CancellationToken token)
+            bool selected, MapWaitBudget mapWait, CancellationToken token)
         {
-            if (_timeProvider.GetElapsedTime(openStarted) >= ClusterOptions.KvTimeout)
+            var left = mapWait.Start();
+            if (left > TimeSpan.Zero)
             {
-                return config;
-            }
+                _logger.LogInformation(
+                    "Bootstrapping: the config of bucket {name} has no vBucket map yet. Waiting for it.",
+                    _redactor.MetaData(name));
 
-            _logger.LogInformation("Bootstrapping: the config of bucket {name} has no vBucket map yet. Waiting for it.",
-                _redactor.MetaData(name));
-
-            var interval = ClusterOptions.ConfigPollFloorInterval > TimeSpan.Zero
-                ? ClusterOptions.ConfigPollFloorInterval
-                : ClusterOptions.DefaultConfigPollFloorInterval;
-            do
-            {
-                await _timeProvider.Delay(interval, token).ConfigureAwait(false);
-                config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
+                var interval = ClusterOptions.ConfigPollFloorInterval > TimeSpan.Zero
+                    ? ClusterOptions.ConfigPollFloorInterval
+                    : ClusterOptions.DefaultConfigPollFloorInterval;
+                do
+                {
+                    await _timeProvider.Delay(interval < left ? interval : left, token).ConfigureAwait(false);
+                    config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
+                    left = mapWait.Left;
+                }
+                while (!config.HasVBucketMap() && left > TimeSpan.Zero);
             }
-            while (!config.HasVBucketMap() && _timeProvider.GetElapsedTime(openStarted) < ClusterOptions.KvTimeout);
 
             if (!config.HasVBucketMap())
             {
@@ -982,6 +982,41 @@ namespace Couchbase.Core
             }
 
             return config;
+        }
+
+        /// <summary>
+        /// The time one bucket open may wait for a vBucket map, shared by every endpoint the open tries. It counts
+        /// from the first config of the open that has no map, so a slow failing endpoint before it does not use it.
+        /// </summary>
+        internal sealed class MapWaitBudget(TimeProvider timeProvider, TimeSpan budget)
+        {
+            private long? _started;
+
+            /// <summary>
+            /// The time left. It is the full budget until <see cref="Start"/> runs.
+            /// </summary>
+            public TimeSpan Left
+            {
+                get
+                {
+                    if (_started is not { } started)
+                    {
+                        return budget;
+                    }
+
+                    var left = budget - timeProvider.GetElapsedTime(started);
+                    return left > TimeSpan.Zero ? left : TimeSpan.Zero;
+                }
+            }
+
+            /// <summary>
+            /// Starts the budget on the first call, then returns the time left.
+            /// </summary>
+            public TimeSpan Start()
+            {
+                _started ??= timeProvider.GetTimestamp();
+                return Left;
+            }
         }
 
         /// <summary>

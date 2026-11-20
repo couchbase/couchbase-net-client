@@ -726,9 +726,56 @@ namespace Couchbase.UnitTests.Core
 
             await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
             Assert.Equal(1, node2Fetches);
+            fixture.Logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("has no vBucket map after the KvTimeout")),
+                null, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Exactly(2));
             await AssertDisposedAsync(fixture, Assert.IsType<CouchbaseBucket>(node1.Object.Owner),
                 Assert.IsType<CouchbaseBucket>(node2.Object.Owner));
             Assert.Empty(fixture.Context.Nodes);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_FirstHostFailsAfterTheKvTimeout_WaitsForTheMapOnTheNextHost()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            fixture.SetupFailedConnect("node1", () => clock.Advance(2 * MapWaitTimeout));
+            var configs = new Queue<BucketConfig>([
+                OneNodeBucketConfig("node2", map: false),
+                OneNodeBucketConfig("node2", map: true)
+            ]);
+            var node2 = fixture.SetupNewNode("node2", configs.Dequeue);
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await Task.WhenAny(clock.WaitForSleepAsync(MapFetchInterval), open).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Empty(configs);
+            Assert.Same(bucket, node2.Object.Owner);
+            Assert.NotNull(bucket.KeyMapper);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_PollIntervalAboveTheKvTimeout_WaitsOnlyTheKvTimeout()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.Context.ClusterOptions.ConfigPollFloorInterval = 5 * MapWaitTimeout;
+            var fetches = 0;
+            fixture.AddUnassignedNode("node1", () =>
+            {
+                fetches++;
+                return OneNodeBucketConfig("node1", map: false);
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapWaitTimeout).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(2, fetches);
         }
 
         [Fact]
@@ -952,6 +999,18 @@ namespace Couchbase.UnitTests.Core
                     .ReturnsAsync(node.Object);
                 return node;
             }
+
+            /// <summary>
+            /// Sets up the node factory to fail to connect a node after <paramref name="connecting"/> runs.
+            /// </summary>
+            public void SetupFailedConnect(string host, Action connecting) =>
+                _nodeFactory.Setup(x => x.CreateAndConnectAsync(new HostEndpointWithPort(host, 11210),
+                        It.IsAny<CancellationToken>()))
+                    .Returns(() =>
+                    {
+                        connecting();
+                        return Task.FromException<IClusterNode>(new TimeoutException());
+                    });
 
             /// <summary>
             /// Sets up the HTTP streaming config of bucket "default" on a host.
