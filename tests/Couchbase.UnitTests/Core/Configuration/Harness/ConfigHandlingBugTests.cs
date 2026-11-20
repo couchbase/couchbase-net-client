@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
+using Couchbase.Management.Buckets;
 using Couchbase.Test.Common.Configuration;
 using Couchbase.Test.Common.Configuration.Model;
 using Couchbase.Test.Common.Configuration.Scenarios;
+using Couchbase.Test.Common.Utils;
 using Xunit;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigHarnessTests;
 using static Couchbase.UnitTests.Core.Configuration.Harness.ConfigPushTests;
@@ -583,6 +585,48 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             var view = harness.Bucket(BucketName);
             Assert.Equal(Rev(12), view.Version);
             Assert.Contains("node-3.example.com", view.Nodes);
+        }
+
+        // NCBC-4417
+        // An open right after the bucket was created gets a config with no map from a server before 7.6.2 (MB-60405).
+        // The open fetches the config again until the map arrives.
+        [Fact]
+        public async Task BucketOpen_WhileTheServerHasNoVBucketMap_WaitsForTheMap()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), bootstrap: BootstrapMode.Sdk);
+            var open = harness.OpenBucketAsync(BucketMap().VBuckets(0));
+            await harness.SettleAsync();
+            Assert.False(open.IsCompleted, "The open did not wait for the vbucket map.");
+
+            // The next fetch has no map either, and the one after has it.
+            harness.Server.SetMapAfter(1, BucketMap(11), Node0);
+            await harness.AdvanceAsync(TimeSpan.FromTicks(2 * harness.Options.ConfigPollFloorInterval.Ticks));
+
+            await open.WaitAsync(Timeout);
+            var view = harness.Bucket(BucketName);
+            Assert.Equal(Rev(11), view.Version);
+            Assert.Equal([Node0, Node1], view.Nodes);
+            Assert.Equal(3, harness.Server.Fetches.Count(f => f.Bucket == BucketName));
+        }
+
+        // NCBC-4417
+        // When no map arrives within KvTimeout the open fails. Each failed attempt must leave no node and no running
+        // config refresher behind.
+        [Fact]
+        public async Task BucketOpen_WhenNoVBucketMapArrivesInKvTimeout_FailsAndLeavesNothingRunning()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), bootstrap: BootstrapMode.Sdk);
+            var clock = (SteppableClock)harness.Clock;
+            await harness.SettleAsync();
+            var timers = clock.PendingTimers.Count;
+
+            var open = harness.OpenBucketAsync(BucketMap().VBuckets(0));
+            await harness.AdvanceAsync(harness.Options.KvTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Timeout));
+            Assert.DoesNotContain(harness.Nodes, n => n.Owner == BucketName);
+            // A config refresher that still runs sleeps on the clock.
+            Assert.Equal(timers, clock.PendingTimers.Count);
         }
 
         // NCBC-4424
