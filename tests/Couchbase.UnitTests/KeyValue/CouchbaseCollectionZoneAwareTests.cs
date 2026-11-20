@@ -189,6 +189,24 @@ namespace Couchbase.UnitTests.KeyValue
             Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
         }
 
+        [Fact]
+        public async Task GetAllReplicas_With_Data_Node_Outside_Bucket_Reads_Only_The_Preferred_Group()
+        {
+            // The new node is in the cluster map but not yet in the bucket, as at the start of a rebalance.
+            var (collection, bucket) = CreateCollection(PreferredGroup, GroupHoldsCopy, config => config.NodesExt.Add(
+                new NodesExt
+                {
+                    Hostname = "192.168.56.105",
+                    ServerGroup = PreferredGroup,
+                    Services = new Services { Mgmt = 8091, Kv = 11210, KvSsl = 11207 }
+                }));
+
+            await ObserveAsync(collection.GetAllReplicasAsync(DocId,
+                new GetAllReplicasOptions().ReadPreference(InternalReadPreference.SelectedServerGroup)));
+
+            Assert.Equal([(short) 0, null], bucket.DispatchedReplicaIndexes);
+        }
+
         #endregion
 
         #region No read preference
@@ -235,7 +253,7 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         internal static (CouchbaseCollection Collection, ZoneAwareFakeBucket Bucket) CreateCollection(
-            string preferredServerGroup, short[] vBucketMapRow)
+            string preferredServerGroup, short[] vBucketMapRow, Action<BucketConfig> configure = null)
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -244,6 +262,7 @@ namespace Couchbase.UnitTests.KeyValue
             // collection ID is fetched.
             config.VBucketServerMap.VBucketMap = Enumerable.Repeat(vBucketMapRow, 1024).ToArray();
             config.BucketCapabilities = [BucketCapabilities.SUBDOC_REPLICA_READ];
+            configure?.Invoke(config);
 
             var bucket = new ZoneAwareFakeBucket(config, preferredServerGroup);
 
