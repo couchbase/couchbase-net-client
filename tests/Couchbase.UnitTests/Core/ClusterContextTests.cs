@@ -739,7 +739,7 @@ namespace Couchbase.UnitTests.Core
         {
             var clock = new SteppableClock();
             using var fixture = new BucketOpenFixture(clock, "node1", "node2");
-            fixture.SetupFailedConnect("node1", () => clock.Advance(2 * MapWaitTimeout));
+            fixture.SetupFailedConnect("node1", () => clock.Advance(TimeSpan.FromTicks(2 * MapWaitTimeout.Ticks)));
             var configs = new Queue<BucketConfig>([
                 OneNodeBucketConfig("node2", map: false),
                 OneNodeBucketConfig("node2", map: true)
@@ -762,7 +762,7 @@ namespace Couchbase.UnitTests.Core
         {
             var clock = new SteppableClock();
             using var fixture = new BucketOpenFixture(clock, "node1");
-            fixture.Context.ClusterOptions.ConfigPollFloorInterval = 5 * MapWaitTimeout;
+            fixture.Context.ClusterOptions.ConfigPollFloorInterval = TimeSpan.FromTicks(5 * MapWaitTimeout.Ticks);
             var fetches = 0;
             fixture.AddUnassignedNode("node1", () =>
             {
