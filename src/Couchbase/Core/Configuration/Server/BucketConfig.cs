@@ -452,40 +452,45 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         /// <summary>
-        /// Maps each Hostname to its index in <see cref="VBucketServerMap"/>'s ServerList.
-        /// Example: { "10.0.0.1:kvport": 0, "10.0.0.2:kvport": 1, ... }
-        /// Note that the server map is written like this - we just accept the entire hostname,
-        /// including port.
-        /// </summary>
-        [JsonIgnore]
-        public Dictionary<string, int> HostnamesAndIndex => VBucketServerMap.ServerList
-            .Select((hostname, index) => new { hostname, index })
-            .ToDictionary(item => item.hostname, item => item.index);
-
-        /// <summary>
-        /// Maps each Hostname to which ServerGroup it belongs to.
-        /// Example: { "10.0.0.1:kv_port": "group_1", "10.0.0.2:kv_port": "group_1", ... }
-        /// We use the kv port in services to match with the vBucketServerMap.
-        /// </summary>
-        [JsonIgnore]
-        public Dictionary<string, string> HostnameAndServerGroup => NodesExt
-            .Where(nodeExt => !string.IsNullOrEmpty(nodeExt.ServerGroup) && nodeExt.Services.Kv > 0)
-            .Select(nodeExt => new { nodeExt.Hostname, nodeExt.Services.Kv, nodeExt.ServerGroup })
-            .ToDictionary(item => $"{item.Hostname}:{item.Kv}", item => item.ServerGroup);
-
-        /// <summary>
         /// Maps each unique ServerGroup to the indexes of the nodes it contains, in <see cref="VBucketServerMap"/>'s ServerList.
         /// Example: { "group_1": [0, 1, 2], "group_2": [3, 4, 5], ... }
         /// </summary>
+        /// <remarks>
+        /// ServerList[i] is the node at NodesExt[i], so nodes are matched by position, as the Java SDK does.
+        /// Host names do not match on the external network, and ports are 0 when the server offers only TLS.
+        /// NodesExt entries past the end of ServerList are cluster nodes outside the bucket. RFC 48 bounds NodesExt
+        /// by the nodes list, which has the length of ServerList.
+        /// The table is built on first read. A published config only gets host name rewrites, which keep positions.
+        /// </remarks>
         [JsonIgnore]
-        public Dictionary<string, int[]> ServerGroupNodeIndexes =>
-            HostnameAndServerGroup
-                .GroupBy(x => x.Value)
-                .Where(group => !string.IsNullOrEmpty(group.Key))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(kvp => HostnamesAndIndex[kvp.Key]).ToArray()
-                );
+        public Dictionary<string, int[]> ServerGroupNodeIndexes => _serverGroupNodeIndexes ??= BuildServerGroupNodeIndexes();
+
+        private Dictionary<string, int[]> BuildServerGroupNodeIndexes()
+        {
+            var serverList = VBucketServerMap?.ServerList ?? [];
+            var nodesExt = NodesExt ?? [];
+            var nodeCount = Math.Min(serverList.Length, nodesExt.Count);
+
+            var groups = new Dictionary<string, List<int>>();
+            for (var i = 0; i < nodeCount; i++)
+            {
+                var serverGroup = nodesExt[i].ServerGroup;
+                if (string.IsNullOrEmpty(serverGroup)) continue;
+
+                if (!groups.TryGetValue(serverGroup, out var indexes))
+                {
+                    groups[serverGroup] = indexes = new List<int>();
+                }
+                indexes.Add(i);
+            }
+
+            var result = new Dictionary<string, int[]>(groups.Count);
+            foreach (var group in groups)
+            {
+                result.Add(group.Key, group.Value.ToArray());
+            }
+            return result;
+        }
 
         public bool HasBucketCap(string capability) => _bucketCapsSet?.Contains(capability) == true;
         internal void AssertBucketCap(string bucketCap, string message = null)
@@ -580,6 +585,7 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         private bool? _useAlternateAddresses;
+        private Dictionary<string, int[]> _serverGroupNodeIndexes;
         private HashSet<string> _bucketCapsSet;
         private HashSet<string> _clusterCapsSet;
 

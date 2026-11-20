@@ -652,25 +652,125 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\configWithReplicasAndServerGroups.json", InternalSerializationContext.Default.BucketConfig);
 
-            var hostnamesAndIndex = config.HostnamesAndIndex;
-            var hostnamesAndGroup = config.HostnameAndServerGroup;
             var groupAndIndexes = config.ServerGroupNodeIndexes;
-
-            Assert.Equal(4, hostnamesAndIndex.Count);
-            Assert.Equal(0, hostnamesAndIndex["192.168.56.102:11210"]);
-            Assert.Equal(1, hostnamesAndIndex["192.168.56.101:11210"]);
-            Assert.Equal(2, hostnamesAndIndex["192.168.56.103:11210"]);
-            Assert.Equal(3, hostnamesAndIndex["192.168.56.104:11210"]);
-
-            Assert.Equal(4, hostnamesAndGroup.Count);
-            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.102:11210"]);
-            Assert.Equal("group_1", hostnamesAndGroup["192.168.56.101:11210"]);
-            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.103:11210"]);
-            Assert.Equal("group_2", hostnamesAndGroup["192.168.56.104:11210"]);
 
             Assert.Equal(2, groupAndIndexes.Count);
             Assert.Equal([0, 1], groupAndIndexes["group_1"]);
             Assert.Equal([2, 3], groupAndIndexes["group_2"]);
+        }
+
+        [Fact]
+        public void ServerGroupNodeIndexes_ExternalNetwork_MapsGroupsToAlternateAddresses()
+        {
+            var config = ReadServerGroupConfig(bucketNodes: 3,
+            [
+                NodeExt(0, "group-1", external: true),
+                NodeExt(1, "group-2", external: true),
+                NodeExt(2, "group-1", external: true)
+            ]);
+            config.NetworkResolution = NetworkResolution.External;
+            Assert.Equal(["203.0.113.10:32210", "203.0.113.11:32210", "203.0.113.12:32210"],
+                config.VBucketServerMap.ServerList);
+
+            var groups = config.ServerGroupNodeIndexes;
+
+            Assert.Equal(2, groups.Count);
+            Assert.Equal([0, 2], groups["group-1"]);
+            Assert.Equal([1], groups["group-2"]);
+        }
+
+        [Fact]
+        public void ServerGroupNodeIndexes_DataNodeOutsideBucket_IsNotMapped()
+        {
+            // node-3 joined the cluster but not yet the bucket, as at the start of a rebalance.
+            var config = ReadServerGroupConfig(bucketNodes: 3,
+            [
+                NodeExt(0, "group-1"),
+                NodeExt(1, "group-2"),
+                NodeExt(2, "group-1"),
+                NodeExt(3, "group-2")
+            ]);
+
+            var groups = config.ServerGroupNodeIndexes;
+
+            Assert.Equal(2, groups.Count);
+            Assert.Equal([0, 2], groups["group-1"]);
+            Assert.Equal([1], groups["group-2"]);
+        }
+
+        [Fact]
+        public void ServerGroupNodeIndexes_TlsOnlyCluster_MapsEveryNode()
+        {
+            // A server that offers only TLS sends port 0 in the server list.
+            var config = ReadServerGroupConfig(bucketNodes: 2,
+                [NodeExt(0, "group-1", tlsOnly: true), NodeExt(1, "group-2", tlsOnly: true)], kvPort: 0);
+
+            var groups = config.ServerGroupNodeIndexes;
+
+            Assert.Equal(2, groups.Count);
+            Assert.Equal([0], groups["group-1"]);
+            Assert.Equal([1], groups["group-2"]);
+        }
+
+        [Fact]
+        public void ServerGroupNodeIndexes_NodeWithoutServerGroup_IsSkipped()
+        {
+            var config = ReadServerGroupConfig(bucketNodes: 3,
+                [NodeExt(0, "group-1"), NodeExt(1, serverGroup: null), NodeExt(2, "group-1")]);
+
+            var groups = config.ServerGroupNodeIndexes;
+
+            var group = Assert.Single(groups);
+            Assert.Equal("group-1", group.Key);
+            Assert.Equal([0, 2], group.Value);
+        }
+
+        [Fact]
+        public void ServerGroupNodeIndexes_IsBuiltOncePerConfig()
+        {
+            var config = ReadServerGroupConfig(bucketNodes: 2, [NodeExt(0, "group-1"), NodeExt(1, "group-2")]);
+
+            Assert.Same(config.ServerGroupNodeIndexes, config.ServerGroupNodeIndexes);
+        }
+
+        /// <summary>
+        /// A bucket config as a 7.x server sends it. The first <paramref name="bucketNodes"/> entries of
+        /// <paramref name="nodesExt"/> serve the bucket, the others are cluster nodes outside it.
+        /// </summary>
+        private static BucketConfig ReadServerGroupConfig(int bucketNodes, string[] nodesExt, int kvPort = 11210)
+        {
+            var nodes = Enumerable.Range(0, bucketNodes).Select(i =>
+                $$$"""{"couchApiBase":"http://node-{{{i}}}.example.com:8092/default","hostname":"node-{{{i}}}.example.com:8091","ports":{"direct":{{{kvPort}}}}}""");
+            var serverList = Enumerable.Range(0, bucketNodes).Select(i => $"\"node-{i}.example.com:{kvPort}\"");
+            var vBucketMap = Enumerable.Range(0, 8).Select(vb => $"[{vb % bucketNodes},{(vb + 1) % bucketNodes}]");
+
+            var json = $$"""
+                {
+                  "rev": 1042, "revEpoch": 1, "name": "default", "nodeLocator": "vbucket",
+                  "uuid": "a5b9b3a3e4f1d1c0b6a2f0e2c4d8e7f1", "bucketCapabilitiesVer": "",
+                  "bucketCapabilities": ["collections", "durableWrite", "subdoc.ReplicaRead", "couchapi", "cbhello", "xattr"],
+                  "nodes": [{{string.Join(",", nodes)}}],
+                  "nodesExt": [{{string.Join(",", nodesExt)}}],
+                  "vBucketServerMap": {
+                    "hashAlgorithm": "CRC", "numReplicas": 1,
+                    "serverList": [{{string.Join(",", serverList)}}],
+                    "vBucketMap": [{{string.Join(",", vBucketMap)}}]
+                  }
+                }
+                """;
+            return System.Text.Json.JsonSerializer.Deserialize(json, InternalSerializationContext.Default.BucketConfig);
+        }
+
+        private static string NodeExt(int index, string serverGroup, bool external = false, bool tlsOnly = false)
+        {
+            var services = tlsOnly
+                ? """{"mgmtSSL":18091,"kvSSL":11207,"capiSSL":18092}"""
+                : """{"mgmt":8091,"mgmtSSL":18091,"kv":11210,"kvSSL":11207,"capi":8092,"capiSSL":18092,"projector":9999}""";
+            var group = serverGroup is null ? "" : $$""","serverGroup":"{{serverGroup}}" """;
+            var alternate = external
+                ? $$$""","alternateAddresses":{"external":{"ports":{"mgmt":32091,"kv":32210,"kvSSL":32207},"hostname":"203.0.113.{{{10 + index}}}"}}"""
+                : "";
+            return $$"""{"services":{{services}},"hostname":"node-{{index}}.example.com","nodeUUID":"node-uuid-{{index}}"{{group}}{{alternate}}}""";
         }
 
         [Fact]

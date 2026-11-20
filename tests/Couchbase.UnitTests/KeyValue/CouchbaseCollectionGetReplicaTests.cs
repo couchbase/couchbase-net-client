@@ -161,9 +161,8 @@ namespace Couchbase.UnitTests.KeyValue
                     new BestEffortRetryStrategy(), null)
             {
                 _failWith = failWith ?? new TemporaryFailureException("The fake bucket serves no documents.");
-                CurrentConfig = config;
-                KeyMapper = new VBucketKeyMapper(config, new VBucketServerMap(config.VBucketServerMap),
-                    new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+                ConfigSnapshot = new ConfigSnapshot(config, new VBucketKeyMapper(config,
+                    new VBucketServerMap(config.VBucketServerMap), new VBucketFactory(new Mock<ILogger<VBucket>>().Object)));
             }
 
             public List<IOperation> DispatchedOperations { get; } = new();

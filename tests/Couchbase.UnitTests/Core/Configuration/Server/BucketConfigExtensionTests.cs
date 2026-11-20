@@ -788,6 +788,55 @@ public class BucketConfigExtensionTests
     }
 
     [Fact]
+    public async Task ConfigUpdatedAsync_OnlyServerGroupChange_StoresSnapshotWithSameKeyMapper()
+    {
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), CreateKeyMapperFactory());
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+        var before = bucket.ConfigSnapshot;
+
+        var incoming = CreateConfig(rev: 3, activeNode: 1);
+        incoming.NodesExt[0].ServerGroup = "group-1";
+        incoming.NodesExt[1].ServerGroup = "group-2";
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        var after = bucket.ConfigSnapshot;
+        Assert.NotSame(before, after);
+        Assert.Same(incoming, after.Config);
+        Assert.Same(before.KeyMapper, after.KeyMapper);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_NewMap_StoresSnapshotWithNewKeyMapper()
+    {
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), CreateKeyMapperFactory());
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+        var before = bucket.ConfigSnapshot;
+        Assert.NotNull(before.KeyMapper);
+
+        var incoming = CreateConfig(rev: 3, activeNode: 0);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        var after = bucket.ConfigSnapshot;
+        Assert.Same(incoming, after.Config);
+        Assert.NotNull(after.KeyMapper);
+        Assert.NotSame(before.KeyMapper, after.KeyMapper);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_FailedApply_KeepsSnapshot()
+    {
+        var keyMapperFactory = new Mock<IVBucketKeyMapperFactory>();
+        keyMapperFactory.Setup(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()))
+            .Throws(new InvalidOperationException());
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory.Object);
+        var before = bucket.ConfigSnapshot;
+
+        await bucket.ConfigUpdatedAsync(CreateConfig(rev: 2, activeNode: 1)).WaitAsync(Deadline);
+
+        Assert.Same(before, bucket.ConfigSnapshot);
+    }
+
+    [Fact]
     public async Task ConfigUpdatedAsync_WakesConfigRefresherOnlyForNewMap()
     {
         // The refresher loop is not started, so a wake-up stays pending.

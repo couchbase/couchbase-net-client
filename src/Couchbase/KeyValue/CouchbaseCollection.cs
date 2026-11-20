@@ -684,9 +684,10 @@ namespace Couchbase.KeyValue
             var opts = options?.AsReadOnly() ?? LookupInAnyReplicaOptions.DefaultReadOnly;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupInAnyReplica, opts.RequestSpan);
-            var vBucket = VBucketForReplicas(id);
+            var snapshot = _bucket.ConfigSnapshot;
+            var vBucket = VBucketForReplicas(snapshot, id);
             var enumeratedSpecs = specs.ToList();
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreferenceValue);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(snapshot, id, vBucket, opts.ReadPreferenceValue);
 
             var tasks = indexesInGroup is null
                 ? LookupInTasksForAllReplicas(vBucket, id, enumeratedSpecs, rootSpan, opts)
@@ -719,8 +720,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             var opts = options?.AsReadOnly() ?? LookupInAllReplicasOptions.DefaultReadOnly;
-            var vBucket = VBucketForReplicas(id);
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreferenceValue);
+            var snapshot = _bucket.ConfigSnapshot;
+            var vBucket = VBucketForReplicas(snapshot, id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(snapshot, id, vBucket, opts.ReadPreferenceValue);
 
             return LookupInAllReplicasStreamAsync(id, specs, opts, vBucket, indexesInGroup);
         }
@@ -1088,8 +1090,9 @@ namespace Couchbase.KeyValue
             options ??= GetAnyReplicaOptions.Default;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
-            var vBucket = VBucketForReplicas(id);
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
+            var snapshot = _bucket.ConfigSnapshot;
+            var vBucket = VBucketForReplicas(snapshot, id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(snapshot, id, vBucket, options.ReadPreferenceValue);
 
             var tasks = indexesInGroup is null
                 ? GetTasksForAllReplicas(vBucket, id, rootSpan, options)
@@ -1150,7 +1153,8 @@ namespace Couchbase.KeyValue
         /// The group cannot serve the document and no fallback was asked for, or no group was selected in
         /// the <see cref="ClusterOptions"/> at all, which no read preference can work around.
         /// </exception>
-        private int[]? ResolveZoneAwareGroupIndexes(string id, VBucket vBucket, InternalReadPreference readPreference)
+        private int[]? ResolveZoneAwareGroupIndexes(ConfigSnapshot snapshot, string id, VBucket vBucket,
+            InternalReadPreference readPreference)
         {
             if (readPreference == InternalReadPreference.NoPreference)
             {
@@ -1162,7 +1166,7 @@ namespace Couchbase.KeyValue
                 throw new DocumentUnretrievableException(NoPreferredServerGroupMessage);
             }
 
-            if (GetPreferredServerGroupIndexes() is { } indexesInGroup && GroupHoldsDocument(vBucket, indexesInGroup))
+            if (GetPreferredServerGroupIndexes(snapshot.Config) is { } indexesInGroup && GroupHoldsDocument(vBucket, indexesInGroup))
             {
                 return indexesInGroup;
             }
@@ -1180,14 +1184,10 @@ namespace Couchbase.KeyValue
         /// The node indexes of the preferred server group, or null when the group is unset, when no
         /// node/group pairs could be made from the config, or when the group holds no nodes.
         /// </summary>
-        /// <remarks>
-        /// <see cref="BucketConfig.ServerGroupNodeIndexes"/> is rebuilt on every access, so callers
-        /// should resolve this once per operation.
-        /// </remarks>
-        private int[]? GetPreferredServerGroupIndexes()
+        private int[]? GetPreferredServerGroupIndexes(BucketConfig? config)
         {
             if (_preferredServerGroup is null
-                || _bucket.CurrentConfig?.ServerGroupNodeIndexes is not { } groupNodeIndexes
+                || config?.ServerGroupNodeIndexes is not { } groupNodeIndexes
                 || !groupNodeIndexes.TryGetValue(_preferredServerGroup, out var indexesInGroup)
                 || indexesInGroup is not { Length: > 0 })
             {
@@ -1204,9 +1204,9 @@ namespace Couchbase.KeyValue
             indexesInGroup.Contains(vBucket.Primary)
             || vBucket.Replicas.Any(index => index > -1 && indexesInGroup.Contains(index));
 
-        private VBucket VBucketForReplicas(string id, [CallerMemberName]string caller = "AnyReplica")
+        private VBucket VBucketForReplicas(ConfigSnapshot snapshot, string id, [CallerMemberName]string caller = "AnyReplica")
         {
-            var vBucket = (VBucket)_bucket.KeyMapper!.MapKey(id);
+            var vBucket = (VBucket)snapshot.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
                 Logger.LogWarning("Call to {Caller} for key [{Id}] but none are configured. Only the active document will be retrieved", caller, Redactor.UserData(id));
@@ -1223,8 +1223,9 @@ namespace Couchbase.KeyValue
             options ??= GetAllReplicasOptions.Default;
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, options.RequestSpanValue);
-            var vBucket = VBucketForReplicas(id);
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, options.ReadPreferenceValue);
+            var snapshot = _bucket.ConfigSnapshot;
+            var vBucket = VBucketForReplicas(snapshot, id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(snapshot, id, vBucket, options.ReadPreferenceValue);
 
             return indexesInGroup is null
                 ? GetTasksForAllReplicas(vBucket, id, rootSpan, options)
@@ -1240,8 +1241,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             var opts = options?.AsReadOnly() ?? GetAllReplicasOptions.DefaultReadOnly;
-            var vBucket = VBucketForReplicas(id);
-            var indexesInGroup = ResolveZoneAwareGroupIndexes(id, vBucket, opts.ReadPreference);
+            var snapshot = _bucket.ConfigSnapshot;
+            var vBucket = VBucketForReplicas(snapshot, id);
+            var indexesInGroup = ResolveZoneAwareGroupIndexes(snapshot, id, vBucket, opts.ReadPreference);
 
             return GetAllReplicasInCompletionOrderAsync(id, opts, vBucket, indexesInGroup);
         }
