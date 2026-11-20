@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Search;
@@ -38,8 +39,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.GetIndex, OuterRequestSpans.ServiceSpan.SearchQuery, "GetIndex", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -69,8 +72,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
         var opts = options?.AsReadOnly() ?? GetAllSearchIndexesOptions.DefaultReadOnly;
         var protoRequest = new ListIndexesRequest();
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.GetAllIndexes, OuterRequestSpans.ServiceSpan.SearchQuery, "ListIndexes", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -120,8 +125,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
                 protoRequest.Index.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
+            using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.UpsertIndex, OuterRequestSpans.ServiceSpan.SearchQuery, "UpdateIndex", options?.RequestSpanValue);
             var stellarRequest = new StellarRequest
             {
+                Span = span,
                 Idempotent = false,
                 Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -153,8 +160,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
                 protoRequest.SourceParams.Add(kvp.Key, ByteString.CopyFromUtf8(kvp.Value.ToString()));
             }
 
+            using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.UpsertIndex, OuterRequestSpans.ServiceSpan.SearchQuery, "CreateIndex", options?.RequestSpanValue);
             var stellarRequest = new StellarRequest
             {
+                Span = span,
                 Idempotent = false,
                 Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -176,8 +185,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.DropIndex, OuterRequestSpans.ServiceSpan.SearchQuery, "DeleteIndex", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -198,8 +209,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.GetIndexedDocumentsCount, OuterRequestSpans.ServiceSpan.SearchQuery, "GetIndexedDocumentsCount", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -222,8 +235,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.PauseIngest, OuterRequestSpans.ServiceSpan.SearchQuery, "PauseIndexIngest", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -244,8 +259,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.ResumeIngest, OuterRequestSpans.ServiceSpan.SearchQuery, "ResumeIndexIngest", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -266,8 +283,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.AllowQuerying, OuterRequestSpans.ServiceSpan.SearchQuery, "AllowIndexQuerying", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -288,8 +307,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.DisallowQuerying, OuterRequestSpans.ServiceSpan.SearchQuery, "DisallowIndexQuerying", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -310,8 +331,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.FreezePlan, OuterRequestSpans.ServiceSpan.SearchQuery, "FreezeIndexPlan", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -332,8 +355,10 @@ internal class StellarSearchIndexManager : ISearchIndexManager
             Name = indexName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Search.UnfreezePlan, OuterRequestSpans.ServiceSpan.SearchQuery, "UnfreezeIndexPlan", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout

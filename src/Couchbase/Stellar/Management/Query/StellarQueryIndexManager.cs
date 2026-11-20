@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Admin.Query.V1;
 using Couchbase.Management.Query;
@@ -18,6 +19,11 @@ internal class StellarQueryIndexManager : IQueryIndexManager
     private readonly StellarCluster _stellarCluster;
     private readonly QueryAdminService.QueryAdminServiceClient _stellarQueryAdminClient;
     private readonly IRetryOrchestrator _retryHandler;
+
+    /// <summary>
+    /// RFC 77: the span of each WaitForIndexOnline call inside WatchIndexes.
+    /// </summary>
+    internal const string WaitForIndexOnlineSpanName = "manager_query_wait_for_index_online";
 
     public StellarQueryIndexManager(StellarCluster stellarCluster)
     {
@@ -38,8 +44,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.GetAllIndexes, OuterRequestSpans.ServiceSpan.N1QLQuery, "GetAllIndexes", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -81,8 +89,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         protoRequest.Fields.AddRange(indexKeys);
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.CreateIndex, OuterRequestSpans.ServiceSpan.N1QLQuery, "CreateIndex", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -106,8 +116,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
         if (opts.IndexNameValue != null) protoRequest.Name = opts.IndexNameValue;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.CreatePrimaryIndex, OuterRequestSpans.ServiceSpan.N1QLQuery, "CreatePrimaryIndex", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -129,8 +141,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.DropIndex, OuterRequestSpans.ServiceSpan.N1QLQuery, "DropIndex", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -153,8 +167,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.DropPrimaryIndex, OuterRequestSpans.ServiceSpan.N1QLQuery, "DropPrimaryIndex", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -175,8 +191,10 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         if (opts.ScopeNameValue != null) protoRequest.ScopeName = opts.ScopeNameValue;
         if (opts.CollectionNameValue != null) protoRequest.CollectionName = opts.CollectionNameValue;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.BuildDeferredIndexes, OuterRequestSpans.ServiceSpan.N1QLQuery, "BuildDeferredIndexes", options?.RequestSpanValue);
         var request = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.TokenValue,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -191,7 +209,33 @@ internal class StellarQueryIndexManager : IQueryIndexManager
         WatchQueryIndexOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? WatchQueryIndexOptions.DefaultReadOnly;
-        var tasks = indexNames.Select(name =>
+
+        // RFC 77: WatchIndexes is a composite command. Its span has no db.operation, and it has one
+        // manager_query_wait_for_index_online span (db.operation WaitForIndexOnline) for each index.
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Query.WatchIndexes,
+            OuterRequestSpans.ServiceSpan.N1QLQuery, null, options?.RequestSpanValue);
+        var requests = new List<StellarRequest>();
+        try
+        {
+            await Task.WhenAll(indexNames.Select(WaitForIndexOnlineAsync)).ConfigureAwait(false);
+            span.SetStatus(RequestSpanStatusCode.Ok);
+        }
+        catch
+        {
+            span.SetStatus(RequestSpanStatusCode.Error);
+            throw;
+        }
+        finally
+        {
+            uint retries = 0;
+            lock (requests)
+            {
+                foreach (var request in requests) retries += request.Attempts;
+            }
+            span.SetAttribute(OuterRequestSpans.Attributes.Retries, retries);
+        }
+
+        async Task<WaitForIndexOnlineResponse> WaitForIndexOnlineAsync(string name)
         {
             var protoRequest = new WaitForIndexOnlineRequest
             {
@@ -199,16 +243,28 @@ internal class StellarQueryIndexManager : IQueryIndexManager
                 CollectionName = opts.CollectionNameValue ?? "_default",
                 ScopeName = opts.ScopeNameValue ?? "_default"
             };
-            var request = new StellarRequest { Idempotent = false, Token = opts.TokenValue, Timeout = opts.TimeoutValue };
+            using var indexSpan = _stellarCluster.ManagerSpan(WaitForIndexOnlineSpanName,
+                OuterRequestSpans.ServiceSpan.N1QLQuery, "WaitForIndexOnline", span);
+            var request = new StellarRequest
+            {
+                Span = indexSpan,
+                Idempotent = false,
+                Token = opts.TokenValue,
+                Timeout = opts.TimeoutValue
+            };
+            lock (requests)
+            {
+                requests.Add(request);
+            }
+
             async Task<WaitForIndexOnlineResponse> GrpcCall() =>
                 await _stellarQueryAdminClient.WaitForIndexOnlineAsync(protoRequest,
                         _stellarCluster.GrpcCallOptions(request.RemainingTimeout, opts.TokenValue))
                     .ConfigureAwait(false);
 
-            return _retryHandler.RetryAsync((Func<Task<WaitForIndexOnlineResponse>>?)GrpcCall,
-                request);
-        });
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+            return await _retryHandler.RetryAsync((Func<Task<WaitForIndexOnlineResponse>>?)GrpcCall,
+                request).ConfigureAwait(false);
+        }
     }
 }
 #endif

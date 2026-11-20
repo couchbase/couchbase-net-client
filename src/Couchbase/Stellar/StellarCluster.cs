@@ -505,6 +505,31 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>
         this.RequestTracer.RequestSpan(attr, parentSpan);
 
+    /// <summary>
+    /// Starts the span of a management operation, as RFC 77 requires for couchbase2.
+    /// </summary>
+    /// <param name="spanName">The RFC 67 span name, for example "manager_buckets_create_bucket".</param>
+    /// <param name="service">The RFC 67 service: "query", "search" or "management".</param>
+    /// <param name="protostellarOperation">The Protostellar RPC name, for example "CreateBucket".
+    /// Null for a composite operation (WatchIndexes), which has no db.operation.</param>
+    /// <param name="parentSpan">The parent span from the options, if any.</param>
+    internal IRequestSpan ManagerSpan(string spanName, string service, string? protostellarOperation,
+        IRequestSpan? parentSpan)
+    {
+        var span = RequestTracer.RequestSpan(spanName, parentSpan);
+        if (span.CanWrite)
+        {
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, service);
+            if (protostellarOperation is not null)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, protostellarOperation);
+            }
+        }
+
+        return span;
+    }
+
     #region Bootstrapping/start up error propagation
 
     public Task BootStrapAsync(CancellationToken cancellationToken = default) =>

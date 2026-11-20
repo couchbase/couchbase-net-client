@@ -1,7 +1,9 @@
 #if NETCOREAPP3_1_OR_GREATER
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Couchbase.Protostellar.Admin.Bucket.V1;
@@ -51,8 +53,10 @@ internal class StellarBucketManager : IBucketManager
         if (settings.ConflictResolutionType.HasValue) createBucketRequest.ConflictResolutionType = settings.ConflictResolutionType.Value.ToProto();
         if (settings.IsSet(nameof(BucketSettings.DurabilityMinimumLevel)) && settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) createBucketRequest.MinimumDurabilityLevel = protoDurability;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Bucket.CreateBucket, OuterRequestSpans.ServiceSpan.Management, "CreateBucket", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -82,8 +86,10 @@ internal class StellarBucketManager : IBucketManager
         if (settings.CompressionMode.HasValue) updateBucketRequest.CompressionMode = settings.CompressionMode.Value.ToProto();
         if (settings.IsSet(nameof(BucketSettings.DurabilityMinimumLevel)) && settings.DurabilityMinimumLevel.TryConvertToProto(out var protoDurability)) updateBucketRequest.MinimumDurabilityLevel = protoDurability;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Bucket.UpdateBucket, OuterRequestSpans.ServiceSpan.Management, "UpdateBucket", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -105,8 +111,10 @@ internal class StellarBucketManager : IBucketManager
             BucketName = bucketName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Bucket.DropBucket, OuterRequestSpans.ServiceSpan.Management, "DeleteBucket", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -123,12 +131,36 @@ internal class StellarBucketManager : IBucketManager
     public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? GetAllBucketsOptions.DefaultReadOnly;
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Bucket.GetAllBuckets,
+            OuterRequestSpans.ServiceSpan.Management, "ListBuckets", options?.RequestSpanValue);
+        return await ListBucketsAsync(span, opts.CancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
+    {
+        // RFC 77: GetBucket is a ListBuckets call, so it has one span with db.operation ListBuckets.
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Bucket.GetBucket,
+            OuterRequestSpans.ServiceSpan.Management, "ListBuckets", options?.RequestSpanValue);
+        var allBuckets = await ListBucketsAsync(span, options?.TokenValue ?? default).ConfigureAwait(false);
+        try
+        {
+            return allBuckets[bucketName];
+        }
+        catch (KeyNotFoundException)
+        {
+            throw new BucketNotFoundException($"Bucket '{_stellarCluster.Redactor.MetaDataString(bucketName)}' not found.");
+        }
+    }
+
+    private async Task<Dictionary<string, BucketSettings>> ListBucketsAsync(IRequestSpan span, CancellationToken token)
+    {
         var listBucketsRequest = new ListBucketsRequest();
 
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
-            Token = opts.CancellationToken,
+            Token = token,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
         var response = await _retryHandler.RetryAsync(GrpcCall, stellarRequest).ConfigureAwait(false);
@@ -152,26 +184,7 @@ internal class StellarBucketManager : IBucketManager
 
         async Task<ListBucketsResponse> GrpcCall()
         {
-            return await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.CancellationToken)).ConfigureAwait(false);
-        }
-    }
-
-    public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
-    {
-        var getAllBucketsOptions = new GetAllBucketsOptions();
-        if (options is not null)
-        {
-            getAllBucketsOptions.CancellationToken(options.TokenValue);
-            getAllBucketsOptions.Timeout(options.TimeoutValue);
-        }
-        var allBuckets = await GetAllBucketsAsync(getAllBucketsOptions).ConfigureAwait(false);
-        try
-        {
-            return allBuckets[bucketName];
-        }
-        catch (KeyNotFoundException)
-        {
-            throw new BucketNotFoundException($"Bucket '{_stellarCluster.Redactor.MetaDataString(bucketName)}' not found.");
+            return await _bucketAdminClient.ListBucketsAsync(listBucketsRequest, _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, token)).ConfigureAwait(false);
         }
     }
 
