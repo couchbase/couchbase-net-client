@@ -129,6 +129,73 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// Makes the collection hold the nodes given, and only those.
+        /// </summary>
+        /// <param name="nodes">The new set of nodes.</param>
+        /// <remarks>
+        /// A node in both the old and the new set stays reachable through <see cref="TryGet"/> at every moment.
+        /// It adds the new nodes before it removes the others, and it does not dispose the removed nodes.
+        /// </remarks>
+        public void ReplaceAll(IEnumerable<IClusterNode> nodes)
+        {
+            var next = new HashSet<IClusterNode>(nodes);
+
+            lock (_syncObj)
+            {
+                foreach (var node in next)
+                {
+                    if (!_nodes.Add(node))
+                    {
+                        continue;
+                    }
+
+                    node.KeyEndPointsChanged += OnKeyEndPointsChanged;
+                    foreach (var endPoint in node.KeyEndPoints)
+                    {
+                        // The endpoint can move from a removed node. A node that stays keeps its entry.
+                        if (_lookupDictionary.TryGetValue(endPoint, out var current) && !next.Contains(current))
+                        {
+                            _lookupDictionary[endPoint] = node;
+                        }
+                        else
+                        {
+                            _lookupDictionary.TryAdd(endPoint, node);
+                        }
+                    }
+                }
+
+                List<IClusterNode>? removed = null;
+                foreach (var node in _nodes)
+                {
+                    if (!next.Contains(node))
+                    {
+                        (removed ??= new List<IClusterNode>()).Add(node);
+                    }
+                }
+
+                if (removed is null)
+                {
+                    return;
+                }
+
+                foreach (var node in removed)
+                {
+                    _nodes.Remove(node);
+                    node.KeyEndPointsChanged -= OnKeyEndPointsChanged;
+                    foreach (var endPoint in node.KeyEndPoints)
+                    {
+                        // By reference, as ClusterNode equality matches another node with the same owner and endpoint.
+                        // Every writer holds _syncObj, so the entry cannot change between the read and the remove.
+                        if (_lookupDictionary.TryGetValue(endPoint, out var current) && ReferenceEquals(current, node))
+                        {
+                            _lookupDictionary.TryRemove(endPoint, out _);
+                        }
+                    }
+                }
+            }
+        }
+
         public IList<IClusterNode> Clear(IBucket bucket)
         {
             lock (_syncObj)

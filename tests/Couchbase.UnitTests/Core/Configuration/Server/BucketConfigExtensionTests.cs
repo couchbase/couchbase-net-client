@@ -4,10 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
@@ -16,6 +18,7 @@ using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -809,6 +812,308 @@ public class BucketConfigExtensionTests
             Mock.Of<IScope>(scope => scope.IsDefaultScope && scope.Name == Scope.DefaultScopeName),
             NoopRequestTracer.Instance, NullFallbackTypeSerializerProvider.Instance, Mock.Of<IServiceProvider>());
 
+    [Fact]
+    public async Task ConfigUpdatedAsync_OnlyNewSearchPorts_UpdatesTheNodeAndCreatesNone()
+    {
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), nodeFactory: nodeFactory);
+        Assert.True(bucket.Nodes.TryGet(new HostEndpointWithPort("nodeA", 11210), out var nodeA));
+        Assert.False(nodeA.HasSearch);
+
+        // The node compare skips the search ports.
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        incoming.NodesExt[0].Services.Fts = 8094;
+        Assert.False(incoming.HasClusterNodesChanged(bucket.CurrentConfig));
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.True(nodeA.HasSearch);
+        Assert.True(bucket.Nodes.TryGet(new HostEndpointWithPort("nodeA", 11210), out var found));
+        Assert.Same(nodeA, found);
+        Assert.Equal(2, bucket.Nodes.Count);
+        nodeFactory.VerifyNoOtherCalls();
+    }
+
+    private static readonly HostEndpointWithPort NodeA = new("nodeA", 11210);
+
+    // The cluster config at rev 20 moves the query port of nodeA. The bucket at rev 10 then accepts a config at rev 15.
+    [Fact]
+    public async Task ConfigUpdatedAsync_BucketConfigOlderThanNodeView_KeepsNodeView()
+    {
+        var bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093));
+        var nodeA = GetClusterNode(bucket, NodeA);
+        await bucket.Context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 20, queryPort: 9093)).WaitAsync(Deadline);
+
+        var incoming = QueryConfig(rev: 15, queryPort: 8093);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        AssertNodeView(nodeA, rev: 20, queryPort: 9093);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_ForcedBucketConfigOlderThanNodeView_ReplacesNodeView()
+    {
+        var bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093));
+        var nodeA = GetClusterNode(bucket, NodeA);
+        await bucket.Context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 20, queryPort: 9093)).WaitAsync(Deadline);
+
+        var incoming = QueryConfig(rev: 15, queryPort: 8093);
+        incoming.IgnoreRev = true;
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        AssertNodeView(nodeA, rev: 15, queryPort: 8093);
+    }
+
+    [Theory]
+    [InlineData(20UL)]
+    [InlineData(21UL)]
+    public async Task ConfigUpdatedAsync_BucketConfigEqualOrNewerThanNodeView_ReplacesNodeView(ulong rev)
+    {
+        var bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093));
+        var nodeA = GetClusterNode(bucket, NodeA);
+        await bucket.Context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 20, queryPort: 9093)).WaitAsync(Deadline);
+
+        var incoming = QueryConfig(rev, queryPort: 8093);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        AssertNodeView(nodeA, rev, queryPort: 8093);
+    }
+
+    // The config handler applies one config at a time, so the test calls both updates, as a bucket open does while a
+    // cluster config applies.
+    [Fact]
+    public async Task ConfigUpdatedAsync_OlderBucketConfigWhileClusterConfigApplies_KeepsNewerNodeView()
+    {
+        var nodeC = new HostEndpointWithPort("nodeC", 0);
+        var nodeCConnect = new TaskCompletionSource<IClusterNode>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        nodeFactory.Setup(f => f.CreateAndConnectAsync(nodeC, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
+            .Returns(nodeCConnect.Task);
+        var bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093), nodeFactory: nodeFactory);
+        var nodeA = GetClusterNode(bucket, NodeA);
+
+        // The new query node nodeC comes after nodeA, so the cluster config waits on its connect after it sets nodeA.
+        var clusterConfig = ClusterQueryConfig(rev: 20, queryPort: 9093);
+        clusterConfig.NodesExt.Add(new NodesExt { Hostname = "nodeC", Services = new Services { N1Ql = 8093 } });
+        var clusterUpdate = bucket.Context.ConfigUpdatedAsync(clusterConfig);
+        Assert.False(clusterUpdate.IsCompleted);
+        AssertNodeView(nodeA, rev: 20, queryPort: 9093);
+
+        await bucket.ConfigUpdatedAsync(QueryConfig(rev: 15, queryPort: 8093)).WaitAsync(Deadline);
+        nodeCConnect.SetResult(Mock.Of<IClusterNode>(node => node.EndPoint == nodeC));
+        await clusterUpdate.WaitAsync(Deadline);
+
+        AssertNodeView(nodeA, rev: 20, queryPort: 9093);
+    }
+
+    private static readonly HostEndpointWithPort NodeC = new("nodeC", 11210);
+
+    // The cluster config adds nodeC with no owner before the bucket map has it.
+    [Fact]
+    public async Task ConfigUpdatedAsync_NewNodeFromClusterConfig_IsClaimed()
+    {
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), nodeFactory: nodeFactory);
+        SetupCreateNode(nodeFactory, bucket.Context, NodeC);
+        await bucket.Context.ConfigUpdatedAsync(AsClusterConfig(CreateConfigWithNodeC(rev: 2))).WaitAsync(Deadline);
+        var nodeC = Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(NodeC));
+        Assert.False(nodeC.IsAssigned);
+
+        var incoming = CreateConfigWithNodeC(rev: 3);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.Same(bucket, nodeC.Owner);
+        Assert.True(bucket.Nodes.TryGet(NodeC, out var found));
+        Assert.Same(nodeC, found);
+        nodeFactory.Verify(x => x.CreateAndConnectAsync(NodeC, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_NodeLeftTheMap_IsRemoved()
+    {
+        var bucket = CreateBucket(CreateConfigWithNodeC(rev: 1),
+            nodeFactory: new Mock<IClusterNodeFactory>(MockBehavior.Strict));
+        Assert.True(bucket.Nodes.TryGet(NodeC, out var nodeC));
+
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.DoesNotContain(bucket.Context.Nodes, node => ReferenceEquals(node, nodeC));
+        Assert.DoesNotContain(bucket.Nodes, node => ReferenceEquals(node, nodeC));
+        Assert.False(bucket.Nodes.TryGet(NodeC, out _));
+        Assert.Equal(2, bucket.Nodes.Count);
+    }
+
+    // The node compare skips the alternate addresses, so only the vbucket map shows the new host.
+    [Fact]
+    public async Task ConfigUpdatedAsync_NewExternalHost_MovesTheNodeAndItsVBuckets()
+    {
+        var oldEndPoint = new HostEndpointWithPort("extA", 11210);
+        var newEndPoint = new HostEndpointWithPort("extA2", 11210);
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var keyMapperFactory = new VBucketKeyMapperFactory(new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+        var bucket = CreateBucket(ExternalConfig(rev: 1, nodeAHost: "extA"), keyMapperFactory, nodeFactory);
+        SetupCreateNode(nodeFactory, bucket.Context, newEndPoint);
+        Assert.True(bucket.Nodes.TryGet(oldEndPoint, out var oldNode));
+
+        var incoming = ExternalConfig(rev: 2, nodeAHost: "extA2");
+        Assert.False(incoming.HasClusterNodesChanged(bucket.CurrentConfig));
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        var newNode = Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(newEndPoint));
+        Assert.Same(bucket, newNode.Owner);
+        Assert.True(bucket.Nodes.TryGet(newEndPoint, out var found));
+        Assert.Same(newNode, found);
+        Assert.DoesNotContain(bucket.Context.Nodes, node => ReferenceEquals(node, oldNode));
+        Assert.DoesNotContain(bucket.Nodes, node => ReferenceEquals(node, oldNode));
+
+        // An operation finds the node of its vbucket the same way.
+        var keyMapper = Assert.IsType<VBucketKeyMapper>(bucket.KeyMapper);
+        for (short i = 0; i < incoming.VBucketServerMap.VBucketMap.Length; i++)
+        {
+            var primary = keyMapper[i].LocatePrimary();
+            Assert.NotNull(primary);
+            Assert.True(bucket.Nodes.TryGet(primary.Value, out _), $"No bucket node for vbucket {i} at {primary}.");
+        }
+    }
+
+    // A rebootstrap adds a node with no owner and no view at a bootstrap host, then applies the bucket config.
+    [Fact]
+    public async Task ConfigUpdatedAsync_RebootstrapNodeAtHostOfBucketNode_IsClaimed()
+    {
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0),
+            nodeFactory: new Mock<IClusterNodeFactory>(MockBehavior.Strict));
+        var rebootstrapNode = CreateNode(bucket.Context, NodeA, nodeAdapter: null);
+        bucket.Context.AddNode(rebootstrapNode);
+
+        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        incoming.IgnoreRev = true;
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.Same(bucket, rebootstrapNode.Owner);
+        Assert.True(rebootstrapNode.HasKv);
+        Assert.Contains(bucket.Nodes, node => ReferenceEquals(node, rebootstrapNode));
+    }
+
+    // A recreated cluster behind the same host names starts again at low revisions.
+    [Fact]
+    public async Task ConfigUpdatedAsync_ClusterConfigAfterRebootstrap_ReplacesViewOfOldCluster()
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+
+        await RebootstrapToNewClusterAsync(context, nodeFactory);
+        await context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 6, queryPort: 7093)).WaitAsync(Deadline);
+
+        AssertNodeView(oldNode, rev: 6, queryPort: 7093);
+    }
+
+    [Fact]
+    public async Task ConfigUpdatedAsync_ClusterConfigOlderThanNodeViewWithoutRebootstrap_KeepsNodeView()
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+        SetupCreateNode(nodeFactory, context, new HostEndpointWithPort("nodeB", 11210));
+
+        await context.ConfigUpdatedAsync(ClusterQueryConfig(rev: 6, queryPort: 7093)).WaitAsync(Deadline);
+
+        AssertNodeView(oldNode, rev: 100, queryPort: 9093);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NodesAdapter_OlderViewAfterRebootstrapAndOneView_KeepsNodeView(bool forced)
+    {
+        var (context, oldNode, nodeFactory) = CreateContextWithOldClusterNode();
+        await RebootstrapToNewClusterAsync(context, nodeFactory);
+
+        // A forced view, as from a bucket rebootstrap, also ends the reset.
+        var taken = ClusterQueryConfig(rev: 6, queryPort: 7093);
+        taken.IgnoreRev = forced;
+        oldNode.NodesAdapter = taken.GetNodes()[0];
+        oldNode.NodesAdapter = ClusterQueryConfig(rev: 4, queryPort: 6093).GetNodes()[0];
+
+        AssertNodeView(oldNode, rev: 6, queryPort: 7093);
+    }
+
+    /// <summary>
+    /// A context with a nodeA node that no bucket owns and that holds a view of an old cluster at rev 100.
+    /// </summary>
+    private static (ClusterContext Context, ClusterNode OldNode, Mock<IClusterNodeFactory> NodeFactory) CreateContextWithOldClusterNode()
+    {
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var options = new ClusterOptions().WithConnectionString("couchbase://nodeB")
+            .WithPasswordAuthentication("username", "password");
+        options.EnableDnsSrvResolution = false;
+        options.AddClusterService(nodeFactory.Object);
+        var context = new ClusterContext(new CancellationTokenSource(), options);
+
+        var oldNode = CreateNode(context, NodeA, ClusterQueryConfig(rev: 100, queryPort: 9093).GetNodes()[0]);
+        context.AddNode(oldNode);
+        return (context, oldNode, nodeFactory);
+    }
+
+    /// <summary>
+    /// Bootstraps from the seed nodeB of a new cluster at rev 2. The bootstrap adds a new nodeA node after the old one.
+    /// </summary>
+    private static async Task RebootstrapToNewClusterAsync(ClusterContext context, Mock<IClusterNodeFactory> nodeFactory)
+    {
+        var seedEndPoint = new HostEndpointWithPort("nodeB", 11210);
+        var seed = new Mock<IClusterNode>();
+        seed.Setup(x => x.EndPoint).Returns(seedEndPoint);
+        seed.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => ClusterQueryConfig(rev: 2, queryPort: 8093));
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(seedEndPoint, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(seed.Object);
+        SetupCreateNode(nodeFactory, context, NodeA);
+
+        await context.BootstrapGlobalAsync().WaitAsync(Deadline);
+    }
+
+    /// <summary>
+    /// A config of the bucket where nodeA runs the query service on <paramref name="queryPort"/>.
+    /// </summary>
+    private static BucketConfig QueryConfig(ulong rev, int queryPort)
+    {
+        var config = CreateConfig(rev, activeNode: 0);
+        config.NodesExt[0].Services.N1Ql = queryPort;
+        return config;
+    }
+
+    /// <summary>
+    /// The cluster config that matches <see cref="QueryConfig"/>.
+    /// </summary>
+    private static BucketConfig ClusterQueryConfig(ulong rev, int queryPort) => AsClusterConfig(QueryConfig(rev, queryPort));
+
+    /// <summary>
+    /// Makes a bucket config the cluster config with the same nodes. A cluster config has no vbucket map.
+    /// </summary>
+    private static BucketConfig AsClusterConfig(BucketConfig config)
+    {
+        config.Name = BucketConfig.GlobalBucketName;
+        config.VBucketServerMap = new VBucketServerMapDto();
+        return config;
+    }
+
+    private static ClusterNode GetClusterNode(CouchbaseBucket bucket, HostEndpointWithPort endPoint)
+    {
+        Assert.True(bucket.Nodes.TryGet(endPoint, out var node));
+        return Assert.IsType<ClusterNode>(node);
+    }
+
+    private static void AssertNodeView(ClusterNode node, ulong rev, int queryPort)
+    {
+        Assert.Equal(new ConfigVersion(0, rev), node.ConfigVersion);
+        Assert.Equal(queryPort, node.QueryUri.Port);
+    }
+
     /// <summary>
     /// Two data nodes and four vbuckets, all active on <paramref name="activeNode"/>.
     /// </summary>
@@ -847,32 +1152,65 @@ public class BucketConfigExtensionTests
     }
 
     /// <summary>
-    /// Three data nodes and no vbucket map, like the config of a new bucket on a server before 7.6.2 (MB-60405).
+    /// <see cref="CreateConfig"/> with a third data node, nodeC, that is active for the last vbucket.
     /// </summary>
-    private static BucketConfig CreateConfigWithEmptyMap(ulong rev, bool nullMap = false)
+    private static BucketConfig CreateConfigWithNodeC(ulong rev)
     {
         var config = CreateConfig(rev, activeNode: 0);
         config.Nodes.Add(new Node { Hostname = "nodeC:8091", Ports = new Ports { Direct = 11210 } });
         config.NodesExt.Add(new NodesExt { Hostname = "nodeC", Services = new Services { Kv = 11210 } });
         config.VBucketServerMap.ServerList = ["nodeA:11210", "nodeB:11210", "nodeC:11210"];
+        config.VBucketServerMap.VBucketMap[3] = [2, 0];
+        return config;
+    }
+
+    /// <summary>
+    /// Three data nodes and no vbucket map, like the config of a new bucket on a server before 7.6.2 (MB-60405).
+    /// </summary>
+    private static BucketConfig CreateConfigWithEmptyMap(ulong rev, bool nullMap = false)
+    {
+        var config = CreateConfigWithNodeC(rev);
         config.VBucketServerMap.VBucketMap = nullMap ? null : [];
         return config;
     }
 
-    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null,
-        Mock<IClusterNodeFactory> clusterNodeFactory = null)
+    /// <summary>
+    /// <see cref="CreateConfig"/> on the external network, where nodeA has the external host <paramref name="nodeAHost"/>.
+    /// </summary>
+    private static BucketConfig ExternalConfig(ulong rev, string nodeAHost)
     {
-        clusterNodeFactory ??= new Mock<IClusterNodeFactory>();
+        var config = CreateConfig(rev, activeNode: 0);
+        config.NodesExt[0].AlternateAddresses = ExternalAddress(nodeAHost);
+        config.NodesExt[1].AlternateAddresses = ExternalAddress("extB");
+
+        // Set as ConfigHandler does. It also moves the vbucket servers to the external hosts.
+        config.NetworkResolution = NetworkResolution.External;
+        return config;
+    }
+
+    private static Dictionary<string, ExternalAddressesConfig> ExternalAddress(string hostname) => new()
+    {
+        [NetworkResolution.External] = new ExternalAddressesConfig { Hostname = hostname, Ports = new Services { Kv = 11210 } }
+    };
+
+    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null,
+        Mock<IClusterNodeFactory> nodeFactory = null)
+    {
         var node = new Mock<IClusterNode>();
         node.Setup(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>
             { new("127.0.0.1", 11210) });
 
-        clusterNodeFactory.Setup(x => x.CreateAndConnectAsync(
-                It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                It.IsAny<CancellationToken>())).
-            Returns(Task.FromResult(node.Object));
+        // A factory from the test keeps its own setups.
+        if (nodeFactory is null)
+        {
+            nodeFactory = new Mock<IClusterNodeFactory>();
+            nodeFactory.Setup(x => x.CreateAndConnectAsync(
+                    It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<CancellationToken>())).
+                Returns(Task.FromResult(node.Object));
+        }
 
-        var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object).WithPasswordAuthentication("username", "password");
+        var options = new ClusterOptions().AddClusterService(nodeFactory.Object).WithPasswordAuthentication("username", "password");
         var clusterCtx = new ClusterContext(new CancellationTokenSource(), options);
 
         var bucket = new CouchbaseBucket("default",
@@ -891,9 +1229,46 @@ public class BucketConfigExtensionTests
 
         node.Setup(x => x.Owner).Returns(bucket);
 
+        // Like a bootstrapped bucket, it owns a node for each node of its config.
+        foreach (var nodeAdapter in bootstrapConfig.GetNodes())
+        {
+            var clusterNode = CreateNode(clusterCtx, HostEndpointWithPort.Create(nodeAdapter, options), nodeAdapter);
+            clusterNode.Owner = bucket;
+            clusterCtx.AddNode(clusterNode);
+            bucket.Nodes.Add(clusterNode);
+        }
 
         return bucket;
     }
+
+    /// <summary>
+    /// A node with a mock connection pool, so a bucket can claim it and select itself on it.
+    /// </summary>
+    private static ClusterNode CreateNode(ClusterContext context, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+    {
+        var poolFactory = new Mock<IConnectionPoolFactory>();
+        poolFactory.Setup(x => x.Create(It.IsAny<ClusterNode>())).Returns(new Mock<IConnectionPool>().Object);
+
+        return new ClusterNode(context, poolFactory.Object,
+            new Mock<ILogger<ClusterNode>>().Object,
+            new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+            new Mock<ICircuitBreaker>().Object,
+            new Mock<ISaslMechanismFactory>().Object,
+            new Redactor(RedactionLevel.None),
+            endPoint,
+            nodeAdapter,
+            NoopRequestTracer.Instance,
+            new Mock<IOperationConfigurator>().Object);
+    }
+
+    /// <summary>
+    /// Makes the factory create a node at <paramref name="endPoint"/>, as for a node new to the cluster.
+    /// </summary>
+    private static void SetupCreateNode(Mock<IClusterNodeFactory> nodeFactory, ClusterContext context,
+        HostEndpointWithPort endPoint) =>
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, CancellationToken _) =>
+                Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
 
     #region MergeClusterLabels
 

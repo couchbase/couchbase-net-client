@@ -802,6 +802,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
             .Callback(() => fetches.Increment())
             .ReturnsAsync((BucketConfig)null!);
+
+        // Like a bootstrapped bucket, the context has node-0 for the bucket, so a config update keeps it.
+        node.SetupGet(x => x.Owner).Returns(bucket);
+        node.SetupGet(x => x.BucketName).Returns(bucket.Name);
+        node.SetupGet(x => x.IsAssigned).Returns(true);
+        node.SetupProperty(x => x.NodesAdapter);
+        context.AddNode(node.Object);
         bucket.ConfigRefresher.Start();
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
@@ -1062,6 +1069,8 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     {
         var config = Version(rev);
         short[][] map = [[(short)(rev % 2)]];
+        config.Nodes = [new Node { Hostname = "node-0:8091" }];
+        config.NodesExt = [new NodesExt { Hostname = "node-0", Services = new Services { Kv = 11210 } }];
         config.VBucketServerMap = new VBucketServerMapDto
         {
             ServerList = ["node-0:11210"],

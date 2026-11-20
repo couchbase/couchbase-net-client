@@ -125,20 +125,15 @@ namespace Couchbase
                         InternalSerializationContext.Default.BucketConfig!));
                 }
 
+                // Every accepted config updates the nodes, so no port or address change is missed.
+                Logger.LogDebug(LoggingEvents.ConfigEvent,
+                    "Updating cluster nodes for rev#{revision} on {bucketName}",
+                    newConfig.ConfigVersion, Name);
+                await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
+
+                // The key mapper reads only the config, so a node change alone needs no new one.
                 IKeyMapper? newKeymapper = null;
-                IEnumerable<IClusterNode>? newNodes = null;
-                if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
-                {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent,
-                        "Updating cluster nodes for rev#{revision} on {bucketName}",
-                        newConfig.ConfigVersion, Name);
-                    await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
-                    newNodes = Context.GetNodes(Name);
-                    newKeymapper =
-                        _vBucketKeyMapperFactory
-                            .Create(newConfig); //force the new revision as were on a new config
-                }
-                else if (newConfig.HasVBucketMapChanged(CurrentConfig))
+                if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent,
                         "Updating VB key mapper for rev#{revision} on {bucketName}",
@@ -150,19 +145,11 @@ namespace Couchbase
                 // It is stored last, so a failed apply keeps the old config and the same version is tried again.
                 lock (_currentConfigLock)
                 {
+                    Nodes.ReplaceAll(Context.GetNodes(Name));
+
                     if (newKeymapper is not null)
                     {
                         KeyMapper = newKeymapper;
-                    }
-
-                    if (newNodes is not null)
-                    {
-                        //update the local nodes collection
-                        Nodes.Clear();
-                        foreach (var clusterNode in newNodes)
-                        {
-                            Nodes.Add(clusterNode);
-                        }
                     }
 
                     CurrentConfig = newConfig;
