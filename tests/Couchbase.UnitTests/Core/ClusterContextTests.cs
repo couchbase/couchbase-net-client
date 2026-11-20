@@ -1321,6 +1321,96 @@ namespace Couchbase.UnitTests.Core
             Assert.Contains(kept, node => ReferenceEquals(node, search));
         }
 
+        [Fact]
+        public async Task ProcessClusterMap_New_Node_Select_Bucket_Fails_Disposes_The_Node()
+        {
+            var failedKvPort = 12002;
+            var failingPool = FailingSelectPool();
+            var created = new List<IClusterNode>();
+            var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, CancellationToken _) =>
+                {
+                    var pool = endPoint.Port == failedKvPort && created.Count(n => n.EndPoint.Equals(endPoint)) == 0
+                        ? failingPool.Object
+                        : null;
+                    var node = CreateGlobalNode(endPoint, nodeAdapter, pool);
+                    created.Add(node);
+                    return Task.FromResult(node);
+                });
+            var options = new ClusterOptions().WithConnectionString("couchbase://127.0.0.1:12000")
+                .WithPasswordAuthentication("username", "password");
+            options.AddClusterService(factory.Object);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            await Assert.ThrowsAsync<SocketException>(() =>
+                AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1))));
+
+            var failed = created.Single(node => node.EndPoint.Port == failedKvPort);
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, failed));
+            failingPool.Verify(pool => pool.Dispose(), Times.Once);
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1)));
+
+            Assert.Equal(4, context.Nodes.Count);
+            var fresh = context.Nodes.Single(node => node.EndPoint.Port == failedKvPort);
+            Assert.NotSame(failed, fresh);
+            Assert.Same(bucket, fresh.Owner);
+        }
+
+        [Fact]
+        public async Task ProcessClusterMap_Unassigned_Node_Select_Bucket_Fails_Removes_And_Disposes_The_Node()
+        {
+            var failedKvPort = 12002;
+            var failingPool = FailingSelectPool();
+            var created = new List<IClusterNode>();
+            var options = new ClusterOptions().WithConnectionString("couchbase://127.0.0.1:12000")
+                .WithPasswordAuthentication("username", "password");
+            options.AddClusterService(NodeFactory(created));
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            var nodes = AddGlobalNodes(context, ClusterRunConfig(1, BucketConfig.GlobalBucketName),
+                endPoint => endPoint.Port == failedKvPort ? failingPool.Object : null);
+            var failed = nodes.Single(node => node.EndPoint.Port == failedKvPort);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            await Assert.ThrowsAsync<SocketException>(() =>
+                AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1))));
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, failed));
+            failingPool.Verify(pool => pool.Dispose(), Times.Once);
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1)));
+
+            Assert.Equal(4, context.Nodes.Count);
+            var fresh = Assert.Single(created);
+            Assert.Equal(failedKvPort, fresh.EndPoint.Port);
+            Assert.Same(bucket, fresh.Owner);
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, fresh));
+        }
+
+        private static Mock<IConnectionPool> FailingSelectPool()
+        {
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(p => p.SelectBucketAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new SocketException((int)SocketError.ConnectionReset));
+            return pool;
+        }
+
+        private static BucketConfig ClusterRunBucketConfig(ulong rev)
+        {
+            var config = ClusterRunConfig(rev, "default");
+            config.VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                NumReplicas = 1,
+                ServerList = ["127.0.0.1:12000", "127.0.0.1:12002"],
+                VBucketMap = [[0, 1], [1, 0]]
+            };
+            return config;
+        }
+
         private static string DockerHost(int index) => $"172.18.0.{index + 2}";
 
         private static int DockerKvPort(int index) => 32010 + 100 * index;
@@ -1437,12 +1527,16 @@ namespace Couchbase.UnitTests.Core
             return factory.Object;
         }
 
-        private static List<IClusterNode> AddGlobalNodes(ClusterContext context, BucketConfig config)
+        private static List<IClusterNode> AddGlobalNodes(ClusterContext context, BucketConfig config,
+            Func<HostEndpointWithPort, IConnectionPool> connectionPools = null)
         {
             context.GlobalConfig = config;
             var nodes = config.GetNodes()
-                .Select(nodeAdapter => CreateGlobalNode(
-                    HostEndpointWithPort.Create(nodeAdapter, context.ClusterOptions), nodeAdapter))
+                .Select(nodeAdapter =>
+                {
+                    var endPoint = HostEndpointWithPort.Create(nodeAdapter, context.ClusterOptions);
+                    return CreateGlobalNode(endPoint, nodeAdapter, connectionPools?.Invoke(endPoint));
+                })
                 .ToList();
             nodes.ForEach(context.AddNode);
             return nodes;
@@ -1477,14 +1571,13 @@ namespace Couchbase.UnitTests.Core
 
         #endregion
 
-        private static IClusterNode CreateGlobalNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+        private static IClusterNode CreateGlobalNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter,
+            IConnectionPool connectionPool = null)
         {
-            var mockConnectionPool = new Mock<IConnectionPool>();
-
             var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
             mockConnectionPoolFactory
                 .Setup(m => m.Create(It.IsAny<ClusterNode>()))
-                .Returns(mockConnectionPool.Object);
+                .Returns(connectionPool ?? new Mock<IConnectionPool>().Object);
 
             return new ClusterNode(new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password")), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
