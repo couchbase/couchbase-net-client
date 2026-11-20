@@ -54,6 +54,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             harness.Server.PushBrief(Node0, 1, 10);
             harness.Server.PushBrief(Node1, 1, 9);
             harness.Server.PushBrief(Node0, 0, 50);
+            await harness.SettleAsync();
 
             // The bucket drops these pushes before it wakes its fetch loop.
             Assert.Empty(harness.Server.Fetches);

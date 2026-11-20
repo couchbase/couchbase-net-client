@@ -781,7 +781,10 @@ namespace Couchbase.Test.Common.Configuration
                 if (_heldHosts.TryGetValue(host, out var hold))
                 {
                     hold.Reached.TrySetResult(true);
-                    await hold.Released.Task.ConfigureAwait(false);
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    await Task.WhenAny(hold.Released.Task, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token)).ConfigureAwait(false);
+                    cts.Cancel();
+                    cancellationToken.ThrowIfCancellationRequested();
                 }
                 if (_failingHosts.ContainsKey(host))
                 {
