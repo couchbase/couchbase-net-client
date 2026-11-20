@@ -125,7 +125,6 @@ namespace Couchbase
                         InternalSerializationContext.Default.BucketConfig!));
                 }
 
-                bool anyChanges = false;
                 IKeyMapper? newKeymapper = null;
                 IEnumerable<IClusterNode>? newNodes = null;
                 if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
@@ -138,49 +137,44 @@ namespace Couchbase
                     newKeymapper =
                         _vBucketKeyMapperFactory
                             .Create(newConfig); //force the new revision as were on a new config
-                    anyChanges = true;
                 }
-                else if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
+                else if (newConfig.HasVBucketMapChanged(CurrentConfig))
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent,
                         "Updating VB key mapper for rev#{revision} on {bucketName}",
                         newConfig.ConfigVersion, Name);
                     newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
-                    anyChanges = true;
                 }
 
-                //only accept the latest version if the processing was successful
-                if (anyChanges)
+                // Every accepted config is stored, also with the same nodes and map, for its rev, caps and server groups.
+                // It is stored last, so a failed apply keeps the old config and the same version is tried again.
+                lock (_currentConfigLock)
                 {
-                    lock (_currentConfigLock)
+                    if (newKeymapper is not null)
                     {
-                        if (newKeymapper is not null)
-                        {
-                            KeyMapper = newKeymapper;
-                        }
-
-                        if (newNodes is not null)
-                        {
-                            //update the local nodes collection
-                            Nodes.Clear();
-                            foreach (var clusterNode in newNodes)
-                            {
-                                Nodes.Add(clusterNode);
-                            }
-                        }
-
-                        CurrentConfig = newConfig;
-                        Logger.LogDebug(LoggingEvents.ConfigEvent,
-                            "Current revision for {bucketName} is rev#{revision}", Name,
-                            CurrentConfig?.ConfigVersion);
+                        KeyMapper = newKeymapper;
                     }
 
-                    // The new config can have a forward vbucket map, which shortens the poll interval.
-                    ConfigRefresher.Reschedule();
+                    if (newNodes is not null)
+                    {
+                        //update the local nodes collection
+                        Nodes.Clear();
+                        foreach (var clusterNode in newNodes)
+                        {
+                            Nodes.Add(clusterNode);
+                        }
+                    }
+
+                    CurrentConfig = newConfig;
+                    Logger.LogDebug(LoggingEvents.ConfigEvent,
+                        "Current revision for {bucketName} is rev#{revision}", Name,
+                        CurrentConfig?.ConfigVersion);
                 }
-                else
+
+                // Only a new map can change the forward map, which sets the poll interval.
+                if (newKeymapper is not null)
                 {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "BucketConfig processed, but no effective changes applied");
+                    ConfigRefresher.Reschedule();
                 }
             }
             catch (Exception ex)

@@ -159,6 +159,11 @@ internal abstract partial class ConfigRefresher : IDisposable
     internal void Reschedule() => WakeUp();
 
     /// <summary>
+    /// Whether a wake-up is set that the loop has not taken yet.
+    /// </summary>
+    internal bool HasPendingWakeUp => Volatile.Read(ref _wakeUp).Task.IsCompleted;
+
+    /// <summary>
     /// Fetches the config now because the server has <paramref name="version"/>, for example after a config push.
     /// A version at or below the current one, or at or below a version requested before, is skipped. While no node
     /// returns the version, the loop asks again with a backoff, up to <see cref="MaxNullConfigRetries"/> times.
