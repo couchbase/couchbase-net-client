@@ -553,7 +553,8 @@ namespace Couchbase.UnitTests.Core
 
             public bool DisposeCalled { get; private set; }
 
-            public LateBucket(string name, ClusterContext context, Task bootstrapGate, AsyncCounter reachedBootstrap, bool bootstrapSucceeds = true)
+            public LateBucket(string name, ClusterContext context, Task bootstrapGate, AsyncCounter reachedBootstrap, bool bootstrapSucceeds = true,
+                BucketType bucketType = BucketType.Couchbase)
                 : base(name, context,
                     new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object,
@@ -568,6 +569,7 @@ namespace Couchbase.UnitTests.Core
                 _bootstrapGate = bootstrapGate;
                 _reachedBootstrap = reachedBootstrap;
                 _bootstrapSucceeds = bootstrapSucceeds;
+                BucketType = bucketType;
             }
 
             [Obsolete("The View service has been deprecated; overridden only to satisfy the base type.")]
@@ -1994,7 +1996,7 @@ namespace Couchbase.UnitTests.Core
         }
 
         private static IClusterNodeFactory NodeFactory(List<IClusterNode> created, IClusterNode seed = null,
-            string failingHost = null)
+            string failingHost = null, string gatedHost = null, Task connectGate = null)
         {
             var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
             if (seed != null)
@@ -2012,11 +2014,25 @@ namespace Couchbase.UnitTests.Core
                         return Task.FromException<IClusterNode>(new SocketException((int)SocketError.ConnectionRefused));
                     }
 
+                    if (gatedHost != null && nodeAdapter.CanonicalHostname == gatedHost)
+                    {
+                        return CreateAfterAsync(connectGate, endPoint, nodeAdapter, created);
+                    }
+
                     var node = CreateGlobalNode(endPoint, nodeAdapter);
                     created.Add(node);
                     return Task.FromResult(node);
                 });
             return factory.Object;
+        }
+
+        private static async Task<IClusterNode> CreateAfterAsync(Task gate, HostEndpointWithPort endPoint,
+            NodeAdapter nodeAdapter, List<IClusterNode> created)
+        {
+            await gate.ConfigureAwait(false);
+            var node = CreateGlobalNode(endPoint, nodeAdapter);
+            created.Add(node);
+            return node;
         }
 
         private static List<IClusterNode> AddGlobalNodes(ClusterContext context, BucketConfig config,
@@ -2059,6 +2075,538 @@ namespace Couchbase.UnitTests.Core
         {
             Assert.True(task.IsCompleted, "The call waits on something that no mock completes.");
             return task;
+        }
+
+        #endregion
+
+        #region Nodes with no owner (NCBC-4423)
+
+        // No bucket owns a node with no K/V service. Once buckets own every K/V node no cluster config arrives, so the
+        // bucket configs must remove it.
+        [Fact]
+        public async Task ProcessClusterMap_Node_With_No_Kv_Left_The_Map_Is_Removed()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            var nodes = AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, query: true)));
+            var query = nodes.Single(node => node.HasQuery);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true))));
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, query));
+            Assert.Throws<ServiceNotAvailableException>(() => context.GetRandomNodeForService(ServiceType.Query));
+            Assert.Empty(created);
+        }
+
+        // The second bucket lags, so its older config still lists the query node that a newer config removed.
+        [Fact]
+        public async Task ProcessClusterMap_Lagging_Bucket_Creates_No_Node_With_No_Kv_And_Takes_No_Lock()
+        {
+            var created = new List<IClusterNode>();
+            var connectGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created, gatedHost: DockerHost(3), connectGate: connectGate.Task)));
+            AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, query: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            using var lagging = new LateBucket("lagging", context, Task.CompletedTask, new AsyncCounter());
+            NodesExt[] WithQuery() => [DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true)];
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, BucketDockerConfig(1, WithQuery())));
+            await AssertCompleted(context.ProcessClusterMapAsync(lagging, BucketDockerConfig(1, WithQuery(), "lagging")));
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(3, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+            Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+            var nodeCount = context.Nodes.Count;
+            var createdCount = created.Count;
+
+            // The cluster config holds the config lock while the new search node connects.
+            var clusterUpdate = context.ConfigUpdatedAsync(DockerConfig(4, DockerNode(0, kv: true),
+                DockerNode(1, kv: true), DockerNode(3, search: true)));
+            try
+            {
+                Assert.False(clusterUpdate.IsCompleted);
+
+                await AssertCompleted(context.ProcessClusterMapAsync(lagging, BucketDockerConfig(2, WithQuery(), "lagging")));
+
+                Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+                Assert.Equal(nodeCount, context.Nodes.Count);
+                Assert.Equal(createdCount, created.Count);
+            }
+            finally
+            {
+                connectGate.TrySetResult(true);
+            }
+
+            await clusterUpdate.WaitAsync(Deadline);
+        }
+
+        [Fact]
+        public async Task ProcessClusterMap_Bucket_Config_Older_Than_Cluster_Config_Keeps_Its_New_Node()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(5, DockerNode(0, kv: true),
+                DockerNode(1, kv: true), DockerNode(2, query: true))));
+            var query = Assert.Single(created);
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(4, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, query));
+            Assert.Same(query, context.GetRandomNodeForService(ServiceType.Query));
+        }
+
+        [Fact]
+        public async Task ConfigUpdated_Cluster_Config_Older_Than_A_Bucket_Config_Is_Skipped()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+            Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(4, DockerNode(0, kv: true),
+                DockerNode(1, kv: true), DockerNode(2, query: true))));
+
+            Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+            Assert.Empty(created);
+
+            var equal = DockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true));
+            await AssertCompleted(context.ConfigUpdatedAsync(equal));
+
+            Assert.Same(equal, context.GlobalConfig);
+        }
+
+        // A DNS SRV move can reach a cluster with lower revisions. The bootstrap replaces the cluster view.
+        [Fact]
+        public async Task BootstrapGlobal_To_Lower_Revisions_Lets_Bucket_Configs_Remove_Nodes_Again()
+        {
+            var clusterConfig = DockerConfig(100, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, query: true));
+            var seed = new Mock<IClusterNode>();
+            seed.SetupAllProperties();
+            seed.Setup(node => node.EndPoint).Returns(new HostEndpointWithPort("localhost", DockerKvPort(0)));
+            seed.Setup(node => node.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => clusterConfig);
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created, seed.Object)));
+            await AssertCompleted(context.BootstrapGlobalAsync());
+            context.RemoveAllNodes();
+
+            clusterConfig = DockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true));
+            await AssertCompleted(context.BootstrapGlobalAsync());
+            var query = Assert.Single(context.Nodes, node => node.HasQuery);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(3, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, query));
+        }
+
+        // The config drops the query node and adds a search node that fails to connect.
+        [Fact]
+        public async Task ProcessClusterMap_New_Node_Fails_To_Connect_Still_Removes_The_Node_That_Left()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created, failingHost: DockerHost(3))));
+            var nodes = AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, query: true)));
+            var query = nodes.Single(node => node.HasQuery);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true))));
+
+            await Assert.ThrowsAsync<SocketException>(() => AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(3, search: true)))));
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, query));
+            Assert.Empty(created);
+        }
+
+        // The bucket's nodes list lacks node 2, as for a K/V node that joined and serves no vBucket yet. The bucket map
+        // then leaves it out, but nodesExt still lists it.
+        [Fact]
+        public async Task ProcessClusterMap_Node_Listed_Only_In_NodesExt_Is_Kept()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            var nodes = AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, kv: true), DockerNode(3, query: true), DockerNode(4, search: true)));
+            var joining = nodes[2];
+            var query = nodes[3];
+            var search = nodes[4];
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, ServedByTwoNodes(BucketDockerConfig(1,
+                DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, kv: true), DockerNode(3, query: true),
+                DockerNode(4, search: true)))));
+
+            var incoming = ServedByTwoNodes(BucketDockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, kv: true), DockerNode(3, query: true)));
+            Assert.DoesNotContain(incoming.GetNodes(), nodeAdapter => nodeAdapter.CanonicalHostname == DockerHost(2));
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, incoming));
+
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, joining));
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, query));
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, search));
+            Assert.Empty(created);
+        }
+
+        // A bootstrap adds its seed before any map entry matches it, and then uses it.
+        [Fact]
+        public async Task ProcessClusterMap_Node_With_No_Owner_And_No_Adapter_Is_Kept()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true)));
+            var seed = CreateGlobalNode(new HostEndpointWithPort("10.0.0.9", 11210), nodeAdapter: null);
+            context.AddNode(seed);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, seed));
+            Assert.Empty(created);
+        }
+
+        // The cluster config connects a new query node. A newer bucket config without that node applies meanwhile.
+        [Fact]
+        public async Task ConfigUpdated_New_Node_That_A_Newer_Config_Dropped_During_The_Connect_Is_Removed()
+        {
+            var created = new List<IClusterNode>();
+            var connectGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created, gatedHost: PlainHost(2), connectGate: connectGate.Task)));
+            AddGlobalNodes(context, DockerConfig(10, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(10, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            var clusterUpdate = context.ConfigUpdatedAsync(DockerConfig(12, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true)));
+            try
+            {
+                Assert.False(clusterUpdate.IsCompleted);
+                await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                    PlainBucketConfig(13, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+            }
+            finally
+            {
+                connectGate.TrySetResult(true);
+            }
+
+            await clusterUpdate.WaitAsync(Deadline);
+
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+        }
+
+        // As above, but the newer bucket config lists the node. It waits for the config lock, as the node is missing.
+        [Fact]
+        public async Task ConfigUpdated_New_Node_That_A_Newer_Config_Lists_During_The_Connect_Is_Kept_Once()
+        {
+            var created = new List<IClusterNode>();
+            var connectGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created, gatedHost: PlainHost(2), connectGate: connectGate.Task)));
+            AddGlobalNodes(context, DockerConfig(10, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(10, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            var clusterUpdate = context.ConfigUpdatedAsync(DockerConfig(12, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true)));
+            var bucketUpdate = context.ProcessClusterMapAsync(bucket, PlainBucketConfig(13, "default",
+                PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, query: true)));
+            try
+            {
+                Assert.False(clusterUpdate.IsCompleted);
+                Assert.False(bucketUpdate.IsCompleted);
+            }
+            finally
+            {
+                connectGate.TrySetResult(true);
+            }
+
+            await clusterUpdate.WaitAsync(Deadline);
+            await bucketUpdate.WaitAsync(Deadline);
+
+            Assert.Single(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+            Assert.Single(created, node => node.EndPoint.Host == PlainHost(2));
+        }
+
+        // A bucket config connects a new query node. A newer config of another bucket without that node applies meanwhile.
+        [Fact]
+        public async Task ProcessClusterMap_New_Node_That_A_Newer_Config_Dropped_During_The_Connect_Is_Removed()
+        {
+            var created = new List<IClusterNode>();
+            var connectGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created, gatedHost: PlainHost(2), connectGate: connectGate.Task)));
+            AddGlobalNodes(context, DockerConfig(10, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            using var other = new LateBucket("other", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(10, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+            await AssertCompleted(context.ProcessClusterMapAsync(other,
+                PlainBucketConfig(10, "other", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            var bucketUpdate = context.ProcessClusterMapAsync(bucket, PlainBucketConfig(11, "default",
+                PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, query: true)));
+            try
+            {
+                Assert.False(bucketUpdate.IsCompleted);
+                await AssertCompleted(context.ProcessClusterMapAsync(other,
+                    PlainBucketConfig(12, "other", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+            }
+            finally
+            {
+                connectGate.TrySetResult(true);
+            }
+
+            await bucketUpdate.WaitAsync(Deadline);
+
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+        }
+
+        [Fact]
+        public async Task ProcessClusterMap_Memcached_Config_Neither_Removes_Nor_Moves_The_View()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true),
+                PlainNode(2, query: true)));
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(5, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true))));
+            using var memcached = new LateBucket("cache", context, Task.CompletedTask, new AsyncCounter(),
+                bucketType: BucketType.Memcached);
+
+            await AssertCompleted(context.ProcessClusterMapAsync(memcached,
+                PlainBucketConfig(9, "cache", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            Assert.Contains(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+
+            // The view stayed at rev 5, so a cluster config at rev 7 still applies.
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(7, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true), PlainNode(3, query: true))));
+
+            Assert.Contains(context.Nodes, node => node.EndPoint.Host == PlainHost(3));
+        }
+
+        // The bucket config needs the lock for a new K/V node. A newer cluster config takes the lock first.
+        [Fact]
+        public async Task ProcessClusterMap_Config_That_Became_Older_While_Waiting_Keeps_The_Cluster_Nodes()
+        {
+            var created = new List<IClusterNode>();
+            var connectGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created, gatedHost: PlainHost(2), connectGate: connectGate.Task)));
+            AddGlobalNodes(context, DockerConfig(10, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(10, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            var clusterUpdate = context.ConfigUpdatedAsync(DockerConfig(12, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true)));
+            var bucketUpdate = context.ProcessClusterMapAsync(bucket, PlainBucketConfig(11, "default",
+                PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(3, kv: true)));
+            try
+            {
+                Assert.False(clusterUpdate.IsCompleted);
+                Assert.False(bucketUpdate.IsCompleted);
+            }
+            finally
+            {
+                connectGate.TrySetResult(true);
+            }
+
+            await clusterUpdate.WaitAsync(Deadline);
+            await bucketUpdate.WaitAsync(Deadline);
+
+            Assert.Single(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+            Assert.Single(context.Nodes, node => node.EndPoint.Host == PlainHost(3));
+        }
+
+        [Fact]
+        public async Task ProcessClusterMap_Forced_Config_At_A_Lower_Revision_Removes_And_Becomes_The_View()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true),
+                PlainNode(2, query: true), PlainNode(3, query: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(20, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true), PlainNode(3, query: true))));
+
+            var forced = PlainBucketConfig(5, "default", PlainNode(0, kv: true), PlainNode(1, kv: true),
+                PlainNode(3, query: true));
+            forced.IgnoreRev = true;
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, forced));
+
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+
+            // The view is now rev 5, so a config at rev 6 removes a node it does not list.
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(6, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == PlainHost(3));
+            Assert.Empty(created);
+        }
+
+        [Fact]
+        public async Task ProcessClusterMap_Older_Config_Creates_And_Owns_A_New_Kv_Node()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(20, PlainNode(0, kv: true),
+                PlainNode(1, kv: true))));
+
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, PlainBucketConfig(10, "default",
+                PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, kv: true))));
+
+            var node = Assert.Single(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+            Assert.Same(bucket, node.Owner);
+            Assert.Single(created);
+        }
+
+        // The query node moved to a new external host. The map entry has its node id at the new endpoint.
+        [Fact]
+        public async Task ProcessClusterMap_Node_With_No_Owner_That_Moved_Is_Replaced()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            var nodes = AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true),
+                DockerNode(2, query: true)));
+            var query = nodes.Single(node => node.HasQuery);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                BucketDockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true))));
+
+            var moved = BucketDockerConfig(2, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true));
+            moved.NodesExt[2].AlternateAddresses[NetworkResolution.External].Hostname = "query-2.example.com";
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, moved));
+
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, query));
+            Assert.Single(context.Nodes, node => node.EndPoint.Host == "query-2.example.com");
+        }
+
+        // The bucket map comes from the nodes list when nodesExt is shorter, so its entries have no node id.
+        [Fact]
+        public async Task ProcessClusterMap_Node_Listed_In_A_Shorter_NodesExt_Is_Kept()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true),
+                PlainNode(2, query: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, PlainBucketConfig(1, "default",
+                PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, query: true))));
+
+            var incoming = PlainBucketConfig(2, "default", PlainNode(0, kv: true), PlainNode(1, kv: true),
+                PlainNode(2, query: true));
+            incoming.Nodes.Add(new Node { Hostname = $"{PlainHost(5)}:8091" });
+            incoming.Nodes.Add(new Node { Hostname = $"{PlainHost(6)}:8091" });
+            Assert.True(incoming.NodesExt.Count < incoming.Nodes.Count);
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, incoming));
+
+            Assert.Contains(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+        }
+
+        [Fact]
+        public async Task ConfigUpdated_Cluster_Config_Older_Than_A_Lock_Free_Bucket_Config_Is_Skipped()
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            // Every node of this config has its node already, so it takes the path with no lock.
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(8, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(6, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, query: true))));
+
+            Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Host == PlainHost(2));
+            Assert.Empty(created);
+        }
+
+        private static string PlainHost(int index) => $"10.1.0.{index + 2}";
+
+        /// <summary>
+        /// A node on the default network, with no alternate address.
+        /// </summary>
+        private static NodesExt PlainNode(int index, bool kv = false, bool query = false) =>
+            new()
+            {
+                Hostname = PlainHost(index),
+                Services = new Services { Mgmt = 8091, Kv = kv ? 11210 : 0, N1Ql = query ? 8093 : 0 }
+            };
+
+        /// <summary>
+        /// A bucket config whose nodes list has the K/V nodes, as the server sends it.
+        /// </summary>
+        private static BucketConfig PlainBucketConfig(ulong rev, string name, params NodesExt[] nodes)
+        {
+            var config = BucketDockerConfig(rev, nodes, name);
+            config.Nodes = nodes.Where(node => node.Services.Kv > 0)
+                .Select(node => new Node { Hostname = $"{node.Hostname}:8091" })
+                .ToList();
+            return config;
+        }
+
+        private static ClusterOptions PlainOptions(IClusterNodeFactory nodeFactory)
+        {
+            var options = new ClusterOptions().WithConnectionString($"couchbase://{PlainHost(0)}")
+                .WithPasswordAuthentication("username", "password");
+            options.AddClusterService(nodeFactory);
+            return options;
+        }
+
+        /// <summary>
+        /// Lists only nodes 0 and 1 in the bucket's nodes list.
+        /// </summary>
+        private static BucketConfig ServedByTwoNodes(BucketConfig config)
+        {
+            config.Nodes = [new Node { Hostname = $"{DockerHost(0)}:8091" }, new Node { Hostname = $"{DockerHost(1)}:8091" }];
+            return config;
+        }
+
+        private static BucketConfig BucketDockerConfig(ulong rev, params NodesExt[] nodes) =>
+            BucketDockerConfig(rev, nodes, "default");
+
+        private static BucketConfig BucketDockerConfig(ulong rev, NodesExt[] nodes, string name)
+        {
+            var config = DockerConfig(rev, nodes);
+            config.Name = name;
+            return config;
         }
 
         #endregion
