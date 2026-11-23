@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Query.V1;
@@ -27,6 +28,7 @@ internal class StellarQueryResult<T> : IQueryResult<T>
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private volatile bool _disposed;
+    private IRequestSpan? _span;
 
     public StellarQueryResult(AsyncServerStreamingCall<QueryResponse> streamingQueryResponse, ITypeSerializer serializer, Func<Exception, Exception> mapMidStreamError)
     {
@@ -42,7 +44,24 @@ internal class StellarQueryResult<T> : IQueryResult<T>
             _disposed = true;
             _streamingQueryResponse.Dispose();
         }
+        // After the call is disposed, so that the gRPC span ends first.
+        EndSpan();
     }
+
+    /// <summary>
+    /// Ends <paramref name="span"/> when the response stream closes: when enumeration reads to the
+    /// end of the stream, when the stream fails, or when this result is disposed (RFC 77).
+    /// </summary>
+    internal void EndSpanWhenStreamCloses(IRequestSpan span)
+    {
+        _span = span;
+        if (_disposed)
+        {
+            EndSpan();
+        }
+    }
+
+    private void EndSpan() => Interlocked.Exchange(ref _span, null)?.End();
 
     private bool ProfileIsNull(ByteString profile)
     {
@@ -102,32 +121,54 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         // First response was already read under the retry orchestrator; a failure here is
         // mid-stream. Map it to the exception to throw (see MapMidStreamException). MoveNext sits in
         // the try because a yield can't live inside a catch.
-        while (true)
+        // The span ends here only if the stream closed. If the caller stops early, the stream
+        // stays open and Dispose ends the span.
+        var streamClosed = false;
+        try
         {
-            bool hasNext;
-            try
+            while (true)
             {
-                hasNext = await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
-            {
-                throw _mapMidStreamError(e);
-            }
-
-            if (!hasNext) break;
-
-            foreach (var queryResponse in _streamReader.Current.Rows)
-            {
-                if (queryResponse == null) continue;
-                var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
-                if (deserializedObj == null)
+                bool hasNext;
+                try
                 {
-                    Errors.Add(new Error { Message = "Failed to deserialize item." });
+                    hasNext = await _streamReader.MoveNext(cancellationToken).ConfigureAwait(false);
                 }
-                else
+                catch (Exception e)
                 {
-                    yield return deserializedObj;
+                    streamClosed = true;
+                    if (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+                    {
+                        throw _mapMidStreamError(e);
+                    }
+                    throw;
                 }
+
+                if (!hasNext)
+                {
+                    streamClosed = true;
+                    break;
+                }
+
+                foreach (var queryResponse in _streamReader.Current.Rows)
+                {
+                    if (queryResponse == null) continue;
+                    var deserializedObj = _serializer.Deserialize<T>(queryResponse.Memory);
+                    if (deserializedObj == null)
+                    {
+                        Errors.Add(new Error { Message = "Failed to deserialize item." });
+                    }
+                    else
+                    {
+                        yield return deserializedObj;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (streamClosed)
+            {
+                EndSpan();
             }
         }
     }

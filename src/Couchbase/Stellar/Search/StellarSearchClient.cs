@@ -111,7 +111,8 @@ namespace Couchbase.Stellar.Search
             var grpcCall = async () =>
             {
 
-                var response = _searchClient.SearchQuery(searchQueryRequest,
+                // Disposed before childSpan ends, so the gRPC span does not outlive it (RFC 77).
+                using var response = _searchClient.SearchQuery(searchQueryRequest,
                     _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token));
                 return await _dataMapper.MapAsync(response.ResponseStream, cancellationToken).ConfigureAwait(false);
             };

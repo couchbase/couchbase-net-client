@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Analytics.V1;
@@ -24,6 +25,8 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     private readonly List<T> _tempResults = new();
     private bool _hasReadHeader;
     private bool _firstResponseHadRows;
+    private IRequestSpan? _span;
+    private volatile bool _disposed;
 
     public ProtoAnalyticsResult(AsyncServerStreamingCall<AnalyticsQueryResponse> streamingAnalyticsResponse, ITypeSerializer serializer, Func<Exception, Exception> mapMidStreamError)
     {
@@ -35,8 +38,26 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
 
     public void Dispose()
     {
+        _disposed = true;
         _streamingAnalyticsResponse.Dispose();
+        // After the call is disposed, so that the gRPC span ends first.
+        EndSpan();
     }
+
+    /// <summary>
+    /// Ends <paramref name="span"/> when the response stream closes: when enumeration reads to the
+    /// end of the stream, when the stream fails, or when this result is disposed (RFC 77).
+    /// </summary>
+    internal void EndSpanWhenStreamCloses(IRequestSpan span)
+    {
+        _span = span;
+        if (_disposed)
+        {
+            EndSpan();
+        }
+    }
+
+    private void EndSpan() => Interlocked.Exchange(ref _span, null)?.End();
 
     /// <summary>
     /// Reads the first streamed response. This runs under the retry orchestrator (called from
@@ -88,42 +109,65 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
         // If the first read reported end-of-stream there is nothing more to enumerate.
         if (!_firstResponseHadRows)
         {
+            EndSpan();
             yield break;
         }
 
         // Subsequent responses are genuinely mid-stream: a failure here cannot be retried (rows may
         // already have been delivered), so map it to the exception to throw (see MapMidStreamException).
         // MoveNext sits in the try because a yield can't live inside a catch.
-        while (true)
+        // The span ends here only if the stream closed. If the caller stops early, the stream
+        // stays open and Dispose ends the span.
+        var streamClosed = false;
+        try
         {
-            bool hasNext;
-            try
+            while (true)
             {
-                hasNext = await _responseStream.MoveNext(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
-            {
-                throw _mapMidStreamError(e);
-            }
-
-            if (!hasNext) break;
-
-            SetMetaData(_responseStream.Current);
-
-            foreach (var protoRow in _responseStream.Current.Rows)
-            {
-                if (cancellationToken.IsCancellationRequested || protoRow == null)
+                bool hasNext;
+                try
                 {
+                    hasNext = await _responseStream.MoveNext(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    streamClosed = true;
+                    if (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
+                    {
+                        throw _mapMidStreamError(e);
+                    }
+                    throw;
+                }
+
+                if (!hasNext)
+                {
+                    streamClosed = true;
                     break;
                 }
 
-                if (protoRow.IsEmpty)
-                {
-                    continue;
-                }
-                var analyticsRow = _serializer.Deserialize<T>(protoRow.Memory);
+                SetMetaData(_responseStream.Current);
 
-                yield return analyticsRow!;
+                foreach (var protoRow in _responseStream.Current.Rows)
+                {
+                    if (cancellationToken.IsCancellationRequested || protoRow == null)
+                    {
+                        break;
+                    }
+
+                    if (protoRow.IsEmpty)
+                    {
+                        continue;
+                    }
+                    var analyticsRow = _serializer.Deserialize<T>(protoRow.Memory);
+
+                    yield return analyticsRow!;
+                }
+            }
+        }
+        finally
+        {
+            if (streamClosed)
+            {
+                EndSpan();
             }
         }
     }

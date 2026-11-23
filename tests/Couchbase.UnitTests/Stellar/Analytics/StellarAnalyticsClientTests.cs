@@ -141,5 +141,90 @@ public class StellarAnalyticsClientTests
             x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()),
             Times.Once);
     }
+
+    /// <summary>
+    /// As for query (RFC 77): the analytics span ends only after the response stream closes.
+    /// The span counts End and Dispose calls together as "ended".
+    /// </summary>
+    private static (StellarAnalyticsClient Client, Mock<IAsyncStreamReader<AnalyticsQueryResponse>> Stream, System.Func<int> Ended) SpanLifetimeFixture()
+    {
+        var ended = 0;
+        var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+        innerSpan.Setup(s => s.End()).Callback(() => ended++);
+        innerSpan.Setup(s => s.Dispose()).Callback(() => ended++);
+        var tracer = new Mock<IRequestTracer>();
+        tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(innerSpan.Object);
+
+        var response = ResponseWithMetaData();
+        response.Rows.Add(Google.Protobuf.ByteString.CopyFromUtf8("1"));
+        var stream = new Mock<IAsyncStreamReader<AnalyticsQueryResponse>>();
+        stream.Setup(x => x.Current).Returns(response);
+        stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .ReturnsAsync(true)
+            .ReturnsAsync(false);
+        var service = new Mock<AnalyticsService.AnalyticsServiceClient>();
+        service.Setup(x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()))
+            .Returns(new AsyncServerStreamingCall<AnalyticsQueryResponse>(stream.Object, null!, null!, null!, _ => { }, null!));
+
+        var client = new StellarAnalyticsClient(StellarMocks.CreateClusterFromMocks(tracer: tracer.Object),
+            service.Object, new StellarRetryHandler());
+        return (client, stream, () => ended);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Span_EndsWhenTheStreamIsReadToTheEnd()
+    {
+        var (client, _, ended) = SpanLifetimeFixture();
+
+        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        Assert.Equal(0, ended());
+
+        var rows = 0;
+        await foreach (var _ in result.Rows)
+        {
+            rows++;
+            Assert.Equal(0, ended());
+        }
+
+        Assert.Equal(2, rows);
+        Assert.Equal(1, ended());
+
+        result.Dispose();
+        Assert.Equal(1, ended());
+    }
+
+    [Fact]
+    public async Task QueryAsync_Span_EndsOnDispose_WhenTheCallerStopsReadingEarly()
+    {
+        var (client, _, ended) = SpanLifetimeFixture();
+
+        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        await foreach (var _ in result.Rows)
+        {
+            break;
+        }
+        Assert.Equal(0, ended());
+
+        result.Dispose();
+        Assert.Equal(1, ended());
+    }
+
+    [Fact]
+    public async Task QueryAsync_Span_EndsWhenTheStreamFailsMidStream()
+    {
+        var (client, stream, ended) = SpanLifetimeFixture();
+        stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .ThrowsAsync(new RpcException(new Status(StatusCode.Internal, "mid-stream")));
+
+        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        await Assert.ThrowsAnyAsync<System.Exception>(async () =>
+        {
+            await foreach (var _ in result.Rows) { }
+        });
+
+        Assert.Equal(1, ended());
+    }
 }
 #endif
