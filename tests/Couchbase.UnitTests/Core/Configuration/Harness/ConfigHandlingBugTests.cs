@@ -739,6 +739,110 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             Assert.Equal(9094, harness.Nodes.Single(n => n.Name == QueryNode).QueryUri!.Port);
         }
 
+        // NCBC-4423
+        // A bucket prunes only the nodes it owns, and a node with no KV service has no owner. Once the bucket owns every
+        // KV node no cluster map arrives, so nothing removes the query node.
+        [Fact]
+        public async Task NCBC4423_BucketMapWithoutANodeWithNoKv_RemovesTheNode()
+        {
+            await using var harness = ConfigHarness.Create(WithQueryOnlyNode(ThreeKvNodes(ClusterMapBuilder.Global(), 10)));
+            await harness.OpenBucketAsync(WithQueryOnlyNode(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 10))).WaitAsync(Timeout);
+            Assert.Null(harness.Nodes.Single(n => n.Name == Node3).Owner);
+
+            harness.Server.SetMap(ThreeKvNodes(ClusterMapBuilder.Global(), 11));
+            harness.Server.SetMap(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 11));
+            harness.Publish(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 11));
+            await harness.DrainAsync().WaitAsync(Timeout);
+
+            Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
+            Assert.True(harness.Nodes.All(n => n.Name != Node3),
+                $"{Node3} left the bucket map, but the context has [{string.Join(", ", harness.Nodes)}].");
+            var picked = Enumerable.Range(0, 200)
+                .Select(_ => harness.Server.NodeAt(harness.Context.GetRandomNodeForService(ServiceType.Query).EndPoint))
+                .Distinct()
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToList();
+            Assert.True(!picked.Contains(Node3), $"Query picked [{string.Join(", ", picked)}] after {Node3} left.");
+        }
+
+        // NCBC-4423
+        // The open takes a cluster node for each endpoint it tries. When the select fails, it removes and disposes that node.
+        [Fact]
+        public async Task NCBC4423_BucketOpenRefusedOnEveryHost_KeepsTheClusterNodes()
+        {
+            await using var harness = ConfigHarness.Create(ThreeKvNodes(ClusterMapBuilder.Global(), 10), bootstrap: BootstrapMode.Sdk);
+            AssertClusterNodesKept(harness);
+            harness.Server.RefuseBucket(BucketName, ResponseStatus.Eaccess);
+
+            await Assert.ThrowsAnyAsync<Exception>(() => harness.OpenBucketAsync(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 10)).WaitAsync(Timeout));
+
+            AssertClusterNodesKept(harness);
+        }
+
+        // NCBC-4423
+        [Fact]
+        public async Task NCBC4423_BucketOpenWithNoVBucketMapInKvTimeout_KeepsTheClusterNodes()
+        {
+            await using var harness = ConfigHarness.Create(ThreeKvNodes(ClusterMapBuilder.Global(), 10), bootstrap: BootstrapMode.Sdk);
+            await harness.SettleAsync();
+            AssertClusterNodesKept(harness);
+
+            var open = harness.OpenBucketAsync(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 10).VBuckets(0));
+            await harness.AdvanceAsync(harness.Options.KvTimeout);
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Timeout));
+            AssertClusterNodesKept(harness);
+        }
+
+        // NCBC-4423
+        // The bucket map has a KV node that joined after the cluster bootstrap. Its creation fails, so the bucket does not
+        // bootstrap and its Dispose removes the nodes it claimed.
+        [Fact]
+        public async Task NCBC4423_BucketOpenWhereANewNodeFails_KeepsTheClusterNodes()
+        {
+            await using var harness = ConfigHarness.Create(ThreeKvNodes(ClusterMapBuilder.Global(), 10), bootstrap: BootstrapMode.Sdk);
+            AssertClusterNodesKept(harness);
+            harness.FailNodeCreation(Node3);
+
+            await Assert.ThrowsAnyAsync<Exception>(() =>
+                harness.OpenBucketAsync(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 10).Node(Node3)).WaitAsync(Timeout));
+
+            AssertClusterNodesKept(harness);
+        }
+
+        // NCBC-4423
+        // The bucket takes over the cluster nodes, and its Dispose removes every node it owns.
+        [Fact]
+        public async Task NCBC4423_BucketClosedWhileClusterStaysOpen_KeepsTheClusterNodes()
+        {
+            await using var harness = ConfigHarness.Create(ThreeKvNodes(ClusterMapBuilder.Global(), 10), bootstrap: BootstrapMode.Sdk);
+            var bucket = await harness.OpenBucketAsync(ThreeKvNodes(ClusterMapBuilder.Bucket(BucketName), 10)).WaitAsync(Timeout);
+            Assert.All(harness.Nodes, n => Assert.Equal(BucketName, n.Owner));
+            AssertClusterNodesKept(harness);
+
+            await bucket.DisposeAsync().AsTask().WaitAsync(Timeout);
+
+            AssertClusterNodesKept(harness);
+        }
+
+        private const string Node3 = "node-3.example.com";
+
+        private static readonly string[] ThreeHosts = ["node-0.example.com", "node-1.example.com", "node-2.example.com"];
+
+        private static ClusterMapBuilder ThreeKvNodes(ClusterMapBuilder map, ulong rev) => map.Rev(rev).Nodes(3, n => n.Kv().Query());
+
+        private static ClusterMapBuilder WithQueryOnlyNode(ClusterMapBuilder map) => map.Node(Node3, n => n.Uuid("node-uuid-3").Query());
+
+        private static void AssertClusterNodesKept(ConfigHarness harness)
+        {
+            var nodes = harness.Nodes;
+            var described = string.Join(", ", nodes);
+            Assert.True(ThreeHosts.All(h => nodes.Count(n => n.Name == h) == 1),
+                $"Each of [{string.Join(", ", ThreeHosts)}] needs one node, but the context has [{described}].");
+            var query = Record.Exception(() => harness.Context.GetRandomNodeForService(ServiceType.Query));
+            Assert.True(query is null, $"Query picks no node, it throws {query?.GetType().Name}. The context has [{described}].");
+        }
+
         private static ClusterMapBuilder WithService(ClusterMapBuilder map, string host, ServiceType service) =>
             service == ServiceType.Search ? map.Node(host, n => n.Search()) : map.Node(host, n => n.Analytics());
 

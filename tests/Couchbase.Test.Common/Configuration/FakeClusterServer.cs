@@ -50,6 +50,9 @@ namespace Couchbase.Test.Common.Configuration
         // The nodes that left the cluster, with their reply to SELECT_BUCKET.
         private readonly Dictionary<string, ResponseStatus> _left = new(StringComparer.Ordinal);
 
+        // The buckets that every node refuses to select, with the reply to SELECT_BUCKET.
+        private readonly Dictionary<string, ResponseStatus> _refusedBuckets = new(StringComparer.Ordinal);
+
         // The node name at each alternate address endpoint, from every map set so far. So a node keeps its endpoint
         // after it leaves the maps, and the last map to name an endpoint wins.
         private readonly Dictionary<(string Host, int Port), string> _plainEndpoints = new();
@@ -375,6 +378,20 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
+        /// Every node fails SELECT_BUCKET for this bucket with <paramref name="status"/>, like a bucket that does not
+        /// exist or that the user cannot access. <see cref="HostCounters.SelectBucketsFailed"/> counts these failures.
+        /// </summary>
+        public void RefuseBucket(string bucket, ResponseStatus status)
+        {
+            if (status == ResponseStatus.Success)
+            {
+                throw new ArgumentException("A refused bucket fails SELECT_BUCKET.", nameof(status));
+            }
+
+            lock (_lock) _refusedBuckets[bucket] = status;
+        }
+
+        /// <summary>
         /// True from <see cref="Leave"/> until the node serves a bucket map that lists it as a bucket node.
         /// </summary>
         public bool HasLeft(string host)
@@ -513,12 +530,13 @@ namespace Couchbase.Test.Common.Configuration
                 case OpCode.SaslList:
                     return Response(request, ResponseStatus.Success, DataType.None, SaslMechanisms);
                 case OpCode.SelectBucket:
-                    if (SelectBucketStatus(session.Host) is { } refused)
+                    var bucket = Encoding.UTF8.GetString(request.Key.ToArray());
+                    if (SelectBucketStatus(session.Host, bucket) is { } refused)
                     {
                         Interlocked.Increment(ref HostFor(session.Host).SelectBucketsFailed);
                         return Response(request, refused);
                     }
-                    session.Bucket = Encoding.UTF8.GetString(request.Key.ToArray());
+                    session.Bucket = bucket;
                     return Response(request, ResponseStatus.Success);
                 case OpCode.GetCollectionsManifest:
                     return Response(request, ResponseStatus.Success, DataType.Json, Manifest);
@@ -529,9 +547,13 @@ namespace Couchbase.Test.Common.Configuration
             }
         }
 
-        private ResponseStatus? SelectBucketStatus(string host)
+        private ResponseStatus? SelectBucketStatus(string host, string bucket)
         {
-            lock (_lock) return _left.TryGetValue(host, out var status) ? status : null;
+            lock (_lock)
+            {
+                if (_left.TryGetValue(host, out var status)) return status;
+                return _refusedBuckets.TryGetValue(bucket, out status) ? status : null;
+            }
         }
 
         private static ConfigVersion? KnownVersion(Request request) =>
