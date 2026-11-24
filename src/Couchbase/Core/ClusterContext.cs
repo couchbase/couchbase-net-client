@@ -944,7 +944,8 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Fetches the config of a new bucket again until it has a vBucket map, or until <paramref name="mapWait"/>
-        /// has no time left. It then returns the last config, and a config with no map fails the bootstrap.
+        /// has no time left. It then returns the last config, and a config with no map fails the bootstrap. A failed
+        /// fetch is retried while time is left.
         /// </summary>
         /// <remarks>
         /// Before 7.6.2 the server can send the config of a new bucket before it has built the map (MB-60405).
@@ -968,7 +969,16 @@ namespace Couchbase.Core
                 do
                 {
                     await _timeProvider.Delay(interval < left ? interval : left, token).ConfigureAwait(false);
-                    config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
+                    try
+                    {
+                        config = await FetchBucketConfigAsync(node, name, selected, token).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (!token.IsCancellationRequested && mapWait.Left > TimeSpan.Zero)
+                    {
+                        _logger.LogDebug(ex, "Bootstrapping: a config fetch for bucket {name} failed while " +
+                            "waiting for a vBucket map. Trying again.", _redactor.MetaData(name));
+                    }
+
                     left = mapWait.Left;
                 }
                 while (!config.HasVBucketMap() && left > TimeSpan.Zero);

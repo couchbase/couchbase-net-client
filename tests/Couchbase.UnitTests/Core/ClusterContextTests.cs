@@ -779,6 +779,58 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public async Task GetOrCreateBucketAsync_FetchFailsOnceWhileWaitingForAMap_OpensOnTheSameNode()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var fetches = 0;
+            var node = fixture.AddUnassignedNode("node1", () => ++fetches switch
+            {
+                1 => OneNodeBucketConfig("node1", map: false),
+                2 => throw new TimeoutException(),
+                _ => OneNodeBucketConfig("node1", map: true)
+            });
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapFetchInterval);
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            Assert.False(open.IsCompleted);
+            clock.Advance(MapFetchInterval);
+            var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
+
+            Assert.Equal(3, fetches);
+            Assert.NotNull(bucket.KeyMapper);
+            Assert.Same(bucket, node.Object.Owner);
+            Assert.Same(node.Object, Assert.Single(fixture.Context.Nodes));
+            node.Verify(x => x.Dispose(), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_FetchFailsUntilTheDeadline_FailsAndRemovesTheNode()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var fetches = 0;
+            var node = fixture.AddUnassignedNode("node1", () => ++fetches == 1
+                ? OneNodeBucketConfig("node1", map: false)
+                : throw new TimeoutException());
+
+            var open = fixture.Context.GetOrCreateBucketAsync("default").AsTask();
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapFetchInterval);
+            await clock.WaitForSleepAsync(MapFetchInterval).WaitAsync(Deadline);
+            clock.Advance(MapWaitTimeout);
+
+            await Assert.ThrowsAsync<TimeoutException>(() => open.WaitAsync(Deadline));
+            Assert.Equal(3, fetches);
+            Assert.Null(node.Object.Owner);
+            Assert.Empty(fixture.Context.Nodes);
+            node.Verify(x => x.Dispose(), Times.AtLeastOnce);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Never);
+        }
+
+        [Fact]
         public async Task GetOrCreateBucketAsync_DisposedWhileWaitingForAMap_StopsWaiting()
         {
             var clock = new SteppableClock();
