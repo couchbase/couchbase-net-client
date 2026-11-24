@@ -33,10 +33,12 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         public IConnectionPool Create(ClusterNode clusterNode)
         {
+            var bucketName = clusterNode.FixedBucketName;
+
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
                 LogUsingConnectionPool("Single");
-                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger);
+                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger, bucketName);
             }
             else
             {
@@ -45,7 +47,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 var scaleController = _scaleControllerFactory.Create();
 
                 return new ChannelConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _channelPoolLogger, _timeProvider, (int) _clusterOptions.KvSendQueueCapacity)
+                    _redactor, _channelPoolLogger, _timeProvider, (int) _clusterOptions.KvSendQueueCapacity, bucketName)
                 {
                     MinimumSize = _clusterOptions.NumKvConnections,
                     MaximumSize = _clusterOptions.MaxKvConnections

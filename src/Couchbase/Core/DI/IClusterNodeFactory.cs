@@ -28,6 +28,18 @@ namespace Couchbase.Core.DI
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
         Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create and connect to a <see cref="IClusterNode"/> that serves one bucket for life.
+        /// Each of its connections selects the bucket when it opens.
+        /// </summary>
+        /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
+        /// <param name="nodeAdapter"></param>
+        /// <param name="bucketName">The bucket the node serves.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
+        Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            CancellationToken cancellationToken = default);
     }
 }
 

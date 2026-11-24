@@ -82,9 +82,10 @@ namespace Couchbase.Core.IO.Connections
         public abstract int PendingSends { get; }
 
         /// <summary>
-        /// Current bucket name passed to <see cref="SelectBucketAsync(string,CancellationToken)"/>.
+        /// The bucket that each new connection selects, or null when the connections select no bucket.
+        /// A bucket node gives it at creation. <see cref="SelectBucketAsync(string,CancellationToken)"/> also sets it.
         /// </summary>
-        protected string? BucketName { get; set; }
+        protected string? BucketName { get; private set; }
 
         /// <summary>
         /// Creates a new ConnectionPoolBase.
@@ -92,12 +93,14 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
         /// <param name="logger">The logger for logging.</param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         protected ConnectionPoolBase(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger, string? bucketName = null)
         {
             _connectionInitializer = connectionInitializer ?? throw new ArgumentNullException(nameof(connectionInitializer));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger;
+            BucketName = bucketName;
         }
 
         /// <summary>

@@ -49,14 +49,31 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        {
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null);
+        }
+
+        /// <inheritdoc />
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            CancellationToken cancellationToken = default)
+        {
+            if (bucketName == null)
+            {
+                throw new ArgumentNullException(nameof(bucketName));
+            }
+
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName);
+        }
+
+        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string? bucketName)
         {
             // Resolved per node rather than held as a field, so each node gets its own breaker.
             var circuitBreaker = _clusterContext.ServiceProvider.GetRequiredService<ICircuitBreaker>();
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _operationBuilderPool, circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
-                nodeAdapter, _tracer, _operationConfigurator);
+                nodeAdapter, _tracer, _operationConfigurator, bucketName);
 
             //ensure server calls are made to set the state
             try

@@ -354,6 +354,91 @@ namespace Couchbase.UnitTests.Core
             pool.Verify(p => p.Dispose(), Times.Once);
         }
 
+        [Fact]
+        public void BucketNode_HasItsBucketNameBeforeThePoolIsCreated()
+        {
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            string nameAtPoolCreation = "not read";
+            var connectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            connectionPoolFactory
+                .Setup(m => m.Create(It.IsAny<ClusterNode>()))
+                .Callback((ClusterNode node) => nameAtPoolCreation = node.FixedBucketName)
+                .Returns(new Mock<IConnectionPool>().Object);
+
+            using var node = CreateClusterNode(context, connectionPoolFactory.Object, "travel-sample");
+
+            Assert.Equal("travel-sample", nameAtPoolCreation);
+            Assert.Equal("travel-sample", node.BucketName);
+        }
+
+        [Fact]
+        public void ClusterNode_HasNoBucketNameWhenThePoolIsCreated()
+        {
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            string nameAtPoolCreation = "not read";
+            var connectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            connectionPoolFactory
+                .Setup(m => m.Create(It.IsAny<ClusterNode>()))
+                .Callback((ClusterNode node) => nameAtPoolCreation = node.FixedBucketName)
+                .Returns(new Mock<IConnectionPool>().Object);
+
+            using var node = CreateClusterNode(context, connectionPoolFactory.Object);
+
+            Assert.Null(nameAtPoolCreation);
+        }
+
+        [Fact]
+        public void BucketNode_OwnerOfAnotherBucket_IsRejected()
+        {
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            using var node = CreateClusterNode(context, new Mock<IConnectionPool>().Object, "travel-sample");
+            var other = new Mock<IBucket>();
+            other.SetupGet(x => x.Name).Returns("beer-sample");
+
+            Assert.Throws<ArgumentException>(() => node.Owner = other.Object);
+
+            Assert.Null(node.Owner);
+            Assert.Equal("travel-sample", node.BucketName);
+        }
+
+        [Fact]
+        public void BucketNode_OwnerOfItsBucket_IsSet()
+        {
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            using var node = CreateClusterNode(context, new Mock<IConnectionPool>().Object, "travel-sample");
+            var bucket = new Mock<IBucket>();
+            bucket.SetupGet(x => x.Name).Returns("travel-sample");
+
+            node.Owner = bucket.Object;
+
+            Assert.Same(bucket.Object, node.Owner);
+        }
+
+        [Fact]
+        public void ClusterMapChangeNotification_OnABucketNodeNoBucketOwnsYet_RefreshesNothing()
+        {
+            // A brief push of version 1/1102.
+            byte[] briefPush =
+            {
+                130, 1, 0, 0, 16, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 4, 78
+            };
+            using var context = CreateContextWithoutPolling();
+            using var bucketNode = CreateClusterNode(context, new Mock<IConnectionPool>().Object, "travel-sample");
+            using var clusterNode = CreateClusterNode(context, new Mock<IConnectionPool>().Object);
+
+            bucketNode.HandleClusterMapChangeNotification(
+                new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(new Memory<byte>(briefPush))));
+
+            Assert.False(context.GlobalConfigRefresher.HasPendingWakeUp);
+
+            // The same push on a cluster node wakes the cluster refresher, which shows the check above can fail.
+            clusterNode.HandleClusterMapChangeNotification(
+                new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(new Memory<byte>(briefPush))));
+
+            Assert.True(context.GlobalConfigRefresher.HasPendingWakeUp);
+        }
+
         private static ClusterContext CreateContextWithoutPolling()
         {
             // With no polling, only the event under test makes a refresher fetch.
@@ -375,14 +460,20 @@ namespace Couchbase.UnitTests.Core
             return node;
         }
 
-        private ClusterNode CreateClusterNode(ClusterContext context, IConnectionPool connectionPool)
+        private ClusterNode CreateClusterNode(ClusterContext context, IConnectionPool connectionPool, string bucketName = null)
         {
             var connectionPoolFactory = new Mock<IConnectionPoolFactory>();
             connectionPoolFactory.Setup(m => m.Create(It.IsAny<ClusterNode>())).Returns(connectionPool);
 
+            return CreateClusterNode(context, connectionPoolFactory.Object, bucketName);
+        }
+
+        private ClusterNode CreateClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory,
+            string bucketName = null)
+        {
             return new ClusterNode(
                 context: context,
-                connectionPoolFactory: connectionPoolFactory.Object,
+                connectionPoolFactory: connectionPoolFactory,
                 logger: new Logger<ClusterNode>(new TestOutputLoggerFactory(outputHelper)),
                 operationBuilderPool: new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 circuitBreaker: new CircuitBreaker(new FakeTimeProvider(), new CircuitBreakerConfiguration { Enabled = false }),
@@ -391,7 +482,8 @@ namespace Couchbase.UnitTests.Core
                 endPoint: new HostEndpointWithPort("localhost", 11210),
                 nodeAdapter: new NodeAdapter { Hostname = "localhost" },
                 tracer: NoopRequestTracer.Instance,
-                new Mock<IOperationConfigurator>().Object);
+                new Mock<IOperationConfigurator>().Object,
+                bucketName);
         }
 
         private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost",

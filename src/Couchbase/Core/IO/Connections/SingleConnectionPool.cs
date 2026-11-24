@@ -44,9 +44,10 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
         /// <param name="logger">The logger for logging.</param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         public SingleConnectionPool(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
-            : base (connectionInitializer, connectionFactory, logger)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger, string? bucketName = null)
+            : base (connectionInitializer, connectionFactory, logger, bucketName)
         {
         }
 

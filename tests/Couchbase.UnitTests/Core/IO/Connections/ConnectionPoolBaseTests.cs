@@ -197,10 +197,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
-            {
-                BucketNamePublic = "default"
-            };
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object,
+                "default");
 
             // Act
 
@@ -305,12 +303,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
         private class ConnectionPoolMock : ConnectionPoolBase
         {
-            public string BucketNamePublic
-            {
-                get => BucketName;
-                set => BucketName = value;
-            }
-
             public override int Size => 1;
             public override int MinimumSize { get; set; }
             public override int MaximumSize { get; set; }
@@ -334,8 +326,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             public bool IsFrozen { get; private set; }
 
-            public ConnectionPoolMock(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
-                : base(connectionInitializer, connectionFactory, logger)
+            public ConnectionPoolMock(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger,
+                string bucketName = null)
+                : base(connectionInitializer, connectionFactory, logger, bucketName)
             {
             }
 

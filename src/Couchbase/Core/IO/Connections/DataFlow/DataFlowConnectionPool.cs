@@ -56,10 +56,11 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
         /// <param name="kvSendQueueCapacity"></param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<DataFlowConnectionPool> logger,
-            uint kvSendQueueCapacity)
-            : base(connectionInitializer, connectionFactory, logger)
+            uint kvSendQueueCapacity, string? bucketName = null)
+            : base(connectionInitializer, connectionFactory, logger, bucketName)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));

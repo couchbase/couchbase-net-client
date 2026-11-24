@@ -1408,6 +1408,76 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.IsType<ChannelConnectionPoolFactory>(context.ServiceProvider.GetRequiredService<IConnectionPoolFactory>());
         }
 
+        #region Bucket at creation
+
+        [Fact]
+        public async Task BucketPool_EachNewConnection_SelectsTheBucket()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var factory = new RefillFactory();
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, bucketName: "travel-sample");
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            // Act
+
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+            factory.Connections[0].CloseFromServer();
+            await factory.ConnectionCreated(3).WaitAsync(deadline.Token);
+
+            // Assert
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Contains(factory.Connections[2].Object, pool.GetConnections());
+            }
+
+            Assert.All(factory.Connections, connection => connectionInitializer.Verify(
+                m => m.SelectBucketAsync(connection.Object, "travel-sample", It.IsAny<CancellationToken>()),
+                Times.Once));
+        }
+
+        [Fact]
+        public async Task PoolWithNoBucket_NewConnections_SelectNoBucket()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var factory = new RefillFactory();
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            // Act
+
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+            factory.Connections[0].CloseFromServer();
+            await factory.ConnectionCreated(3).WaitAsync(deadline.Token);
+
+            // Assert
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Contains(factory.Connections[2].Object, pool.GetConnections());
+            }
+
+            connectionInitializer.Verify(
+                m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        #endregion
+
         #region Refill
 
         // A pool under its minimum keeps trying, so it does not wait for the scale controller tick.
@@ -1896,7 +1966,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         #region Helpers
 
         private ChannelConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
-            IConnectionFactory connectionFactory = null, TimeProvider timeProvider = null)
+            IConnectionFactory connectionFactory = null, TimeProvider timeProvider = null, string bucketName = null)
         {
             if (connectionInitializer == null)
             {
@@ -1923,7 +1993,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
                 timeProvider ?? new FakeTimeProvider(),
-                (int) new ClusterOptions().KvSendQueueCapacity);
+                (int) new ClusterOptions().KvSendQueueCapacity,
+                bucketName);
         }
 
         private class FakeOperation : OperationBase

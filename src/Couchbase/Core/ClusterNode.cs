@@ -69,7 +69,8 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            Redactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            Redactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator,
+            string bucketName = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -81,6 +82,12 @@ namespace Couchbase.Core
             _tracer = tracer;
             _operationConfigurator = operationConfigurator;
             EndPoint = endPoint;
+
+            if (bucketName != null)
+            {
+                FixedBucketName = bucketName;
+                _bucketName = bucketName;
+            }
 
             try
             {
@@ -145,6 +152,12 @@ namespace Couchbase.Core
             get => _owner;
             set
             {
+                if (FixedBucketName != null && value.Name != FixedBucketName)
+                {
+                    throw new ArgumentException(
+                        $"The node serves bucket {FixedBucketName} and cannot be owned by bucket {value.Name}.", nameof(value));
+                }
+
                 _owner = value;
                 _bucketName = _owner.Name;
             }
@@ -153,13 +166,19 @@ namespace Couchbase.Core
         public string BucketName => _bucketName;
 
         /// <summary>
-        /// Keeps the config this node serves up to date. It is the refresher of the bucket, or of the cluster when no
-        /// bucket owns the node. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// The bucket this node serves for life, or null for a cluster node. Each connection of a bucket node selects it.
+        /// </summary>
+        internal string FixedBucketName { get; }
+
+        /// <summary>
+        /// Keeps the config this node serves up to date. It is the refresher of the bucket, or of the cluster for a
+        /// cluster node that no bucket owns. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// A bucket node has none until its bucket owns it.
         /// </summary>
         private ConfigRefresher ConfigRefresher => Owner switch
         {
             CouchbaseBucket bucket => bucket.ConfigRefresher,
-            null => _context.GlobalConfigRefresher,
+            null when FixedBucketName == null => _context.GlobalConfigRefresher,
             _ => null
         };
 

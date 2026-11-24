@@ -91,11 +91,12 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="timeProvider">Clock for the wait between refill attempts.</param>
         /// <param name="sendQueueCapacity">The maximum number of items the channel will store.
         /// Defaults to 1024 and is configurable via <see cref="Couchbase.ClusterOptions.KvSendQueueCapacity"/></param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<ChannelConnectionPool> logger,
-            TimeProvider timeProvider, int sendQueueCapacity) :
+            TimeProvider timeProvider, int sendQueueCapacity, string? bucketName = null) :
             this(connectionInitializer, connectionFactory, scaleController, redactor, logger, timeProvider,
-                CreateDefaultChannel(sendQueueCapacity))
+                CreateDefaultChannel(sendQueueCapacity), bucketName)
         {
         }
 
@@ -109,10 +110,11 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="logger">Logger.</param>
         /// <param name="timeProvider">Clock for the wait between refill attempts.</param>
         /// <param name="channel">Channel queue.</param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, Redactor redactor, ILogger<ChannelConnectionPool> logger,
-            TimeProvider timeProvider, Channel<ChannelQueueItem> channel)
-            : base(connectionInitializer, connectionFactory, logger)
+            TimeProvider timeProvider, Channel<ChannelQueueItem> channel, string? bucketName = null)
+            : base(connectionInitializer, connectionFactory, logger, bucketName)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
