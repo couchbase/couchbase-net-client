@@ -95,6 +95,16 @@ namespace Couchbase
                 return;
             }
 
+            // Before 7.6.2 the server can send the config of a new bucket before it has a vbucket map (MB-60405).
+            // Keep the current config and key mapper. The next config has the map.
+            if (!newConfig.HasVBucketMap())
+            {
+                Logger.LogInformation(LoggingEvents.ConfigEvent,
+                    "Encountered bucket config with empty VBucketMap for rev#{revision} on {bucketName}, dropping it",
+                    newConfig.ConfigVersion, Name);
+                return;
+            }
+
             using var cts = _timeProvider.CreateCancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
             try
@@ -130,21 +140,13 @@ namespace Couchbase
                             .Create(newConfig); //force the new revision as were on a new config
                     anyChanges = true;
                 }
-                else
+                else if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
                 {
-                    if (newConfig.HasVBucketMapChanged(CurrentConfig, out var emptyVBucketMap) || newConfig.IgnoreRev)
-                    {
-                        Logger.LogDebug(LoggingEvents.ConfigEvent,
-                            "Updating VB key mapper for rev#{revision} on {bucketName}",
-                            newConfig.ConfigVersion, Name);
-                        newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
-                        anyChanges = true;
-                    }
-
-                    if (emptyVBucketMap)
-                    {
-                        Logger.LogInformation("Encountered bucket config with empty VBucketMap");
-                    }
+                    Logger.LogDebug(LoggingEvents.ConfigEvent,
+                        "Updating VB key mapper for rev#{revision} on {bucketName}",
+                        newConfig.ConfigVersion, Name);
+                    newKeymapper = _vBucketKeyMapperFactory.Create(newConfig);
+                    anyChanges = true;
                 }
 
                 //only accept the latest version if the processing was successful
