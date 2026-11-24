@@ -20,6 +20,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -48,7 +49,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
-                _testOutput.WriteLine(formatter(state, exception));
+                try
+                {
+                    _testOutput.WriteLine(formatter(state, exception));
+                }
+                catch (InvalidOperationException)
+                {
+                    // Background pool work can log after the test has finished.
+                }
             }
 
             public bool IsEnabled(LogLevel logLevel)
@@ -90,6 +98,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 new Mock<IConnectionPoolScaleController>().Object,
                 new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
+                new FakeTimeProvider(),
                 channel
             );
         }

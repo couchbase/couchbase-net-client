@@ -9,6 +9,7 @@ using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -95,6 +96,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 new Mock<IConnectionPoolScaleController>().Object,
                 new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
+                new FakeTimeProvider(),
                 (int) new ClusterOptions().KvSendQueueCapacity)
             {
                 MinimumSize = harness.InitialConnections,

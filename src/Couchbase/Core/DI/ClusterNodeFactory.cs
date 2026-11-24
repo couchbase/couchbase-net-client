@@ -59,7 +59,16 @@ namespace Couchbase.Core.DI
                 nodeAdapter, _tracer, _operationConfigurator);
 
             //ensure server calls are made to set the state
-            await clusterNode.InitializeAsync().ConfigureAwait(false);
+            try
+            {
+                await clusterNode.InitializeAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Closes the connections and stops the refill loop of a node that nobody will own.
+                clusterNode.Dispose();
+                throw;
+            }
 
             return clusterNode;
         }

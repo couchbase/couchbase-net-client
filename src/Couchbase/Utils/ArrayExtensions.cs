@@ -11,14 +11,14 @@ namespace Couchbase.Utils
     internal static class ArrayExtensions
     {
 #if NETCOREAPP3_1_OR_GREATER
-        private static int GetRandomInt32(int toExclusive) => RandomNumberGenerator.GetInt32(toExclusive);
+        internal static int GetRandomInt32(int toExclusive) => RandomNumberGenerator.GetInt32(toExclusive);
 #else
         /// <summary>
         /// Provides random number generation for array randomization
         /// </summary>
         private static readonly Random Random = new();
 
-        private static int GetRandomInt32(int toExclusive) => Random.Next(toExclusive);
+        internal static int GetRandomInt32(int toExclusive) => Random.Next(toExclusive);
 #endif
 
         public static List<T> Shuffle<T>(this List<T> list)

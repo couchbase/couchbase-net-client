@@ -888,75 +888,81 @@ namespace Couchbase.Core
 
         #region IConnectionInitializer
 
+        // 1 while the node refuses the bucket, so the refusal is logged at error once per outage.
+        private int _bucketRefused;
+
         async Task IConnectionInitializer.InitializeConnectionAsync(IConnection connection, CancellationToken cancellationToken)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                LogConnectionInitialization(_redactor.SystemData(EndPoint));
-                using var rootSpan = RootSpan("initialize_connection");
-
-                using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
-                {
-                    var serverFeatureList = await Hello(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
-                    connection.ServerFeatures = serverFeatureList != null
-                        ? new ServerFeatureSet(serverFeatureList)
-                        : ServerFeatureSet.Empty;
-                    ServerFeatures = connection.ServerFeatures;
-
-                    //Cluster-wide feature support is the conjunction over every node, so it has to
-                    //be recomputed when a node finishes negotiating - a node may well have been
-                    //added before its features were known.
-                    _context.RecomputeClusterFeatureSupport();
-
-                    #if DEBUG
-                    _logger.LogDebug("{Features}", ServerFeatures.ToString());
-                    #endif
-                }
-
-                using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
-                {
-                    ErrorMap = await GetErrorMap(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
-                }
-
-                // Use the authenticator to handle KV authentication
-                var authenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
-
-                // Validate authenticator supports current TLS mode
-                if (_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsTls)
-                {
-                    throw new AuthenticationFailureException(
-                        $"Authenticator {authenticator.GetType().Name} does not support TLS connections");
-                }
-
-                if (!_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsNonTls)
-                {
-                    throw new AuthenticationFailureException(
-                        $"Authenticator {authenticator.GetType().Name} requires TLS connections");
-                }
-
-                // Pre-fetch and cache the server's SASL mechanism list on non-TLS connections so the
-                // authenticator can negotiate the strongest mutually-supported SCRAM mechanism without an
-                // extra round-trip per auth. TLS connections use PLAIN without negotiation, so we skip it.
-                // Decided from the connection itself, as the SASL mechanism factory does, so the two agree.
-                if (!connection.IsSecure)
-                {
-                    using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
-                    connection.SupportedSaslMechanisms =
-                        await GetSaslMechanisms(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
-                }
-
-                await authenticator.AuthenticateKvConnectionAsync(
-                    connection,
-                    _saslMechanismFactory,
-                    cancellationToken
-                ).ConfigureAwait(false);
-
-                //Callback for the case where the server sends a CMCN to the client; this is raised in the
-                //MultiplexingConnection when it detects that the request has come from the server.
-                connection.OnClusterMapChangeNotification += HandleClusterMapChangeNotification;
-
-                rootSpan.Dispose();
+                // A disposed node must not authenticate or select a bucket on a new connection.
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(ClusterNode));
             }
+
+            LogConnectionInitialization(_redactor.SystemData(EndPoint));
+            using var rootSpan = RootSpan("initialize_connection");
+
+            using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
+            {
+                var serverFeatureList = await Hello(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
+                connection.ServerFeatures = serverFeatureList != null
+                    ? new ServerFeatureSet(serverFeatureList)
+                    : ServerFeatureSet.Empty;
+                ServerFeatures = connection.ServerFeatures;
+
+                //Cluster-wide feature support is the conjunction over every node, so it has to
+                //be recomputed when a node finishes negotiating - a node may well have been
+                //added before its features were known.
+                _context.RecomputeClusterFeatureSupport();
+
+                #if DEBUG
+                _logger.LogDebug("{Features}", ServerFeatures.ToString());
+                #endif
+            }
+
+            using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
+            {
+                ErrorMap = await GetErrorMap(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
+            }
+
+            // Use the authenticator to handle KV authentication
+            var authenticator = _context.ClusterOptions.GetEffectiveAuthenticator();
+
+            // Validate authenticator supports current TLS mode
+            if (_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsTls)
+            {
+                throw new AuthenticationFailureException(
+                    $"Authenticator {authenticator.GetType().Name} does not support TLS connections");
+            }
+
+            if (!_context.ClusterOptions.EffectiveEnableTls && !authenticator.SupportsNonTls)
+            {
+                throw new AuthenticationFailureException(
+                    $"Authenticator {authenticator.GetType().Name} requires TLS connections");
+            }
+
+            // Pre-fetch and cache the server's SASL mechanism list on non-TLS connections so the
+            // authenticator can negotiate the strongest mutually-supported SCRAM mechanism without an
+            // extra round-trip per auth. TLS connections use PLAIN without negotiation, so we skip it.
+            // Decided from the connection itself, as the SASL mechanism factory does, so the two agree.
+            if (!connection.IsSecure)
+            {
+                using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
+                connection.SupportedSaslMechanisms =
+                    await GetSaslMechanisms(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
+            }
+
+            await authenticator.AuthenticateKvConnectionAsync(
+                connection,
+                _saslMechanismFactory,
+                cancellationToken
+            ).ConfigureAwait(false);
+
+            //Callback for the case where the server sends a CMCN to the client; this is raised in the
+            //MultiplexingConnection when it detects that the request has come from the server.
+            connection.OnClusterMapChangeNotification += HandleClusterMapChangeNotification;
+
+            rootSpan.Dispose();
         }
 
         /// <summary>
@@ -1021,6 +1027,8 @@ namespace Couchbase.Core
                     _context.ClusterOptions.KvTimeout,
                     cancellationToken)
                     .ConfigureAwait(false);
+
+                Volatile.Write(ref _bucketRefused, 0);
             }
             catch (DocumentNotFoundException)
             {
@@ -1028,7 +1036,15 @@ namespace Couchbase.Core
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();
 
-                LogCouldNotSelectBucket(_redactor.MetaData(bucketName));
+                // The pool retries every few seconds while the node refuses, so only the first refusal is an error.
+                if (Interlocked.Exchange(ref _bucketRefused, 1) == 0)
+                {
+                    LogCouldNotSelectBucket(_redactor.MetaData(bucketName));
+                }
+                else
+                {
+                    LogBucketStillRefused(_redactor.MetaData(bucketName));
+                }
             }
         }
 
@@ -1342,6 +1358,9 @@ namespace Couchbase.Core
 
         [LoggerMessage(305, LogLevel.Warning, "Failed to refill connection pool after JWT re-authentication on {endpoint}. The scale controller will retry.")]
         private partial void LogPoolRefillAfterReauthFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(400, LogLevel.Debug, "The Bucket [{bucketName}] could still not be selected.")]
+        private partial void LogBucketStillRefused(Redacted<string> bucketName);
 
         #endregion
     }

@@ -16,16 +16,18 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly IConnectionPoolScaleControllerFactory _scaleControllerFactory;
         private readonly Redactor _redactor;
         private readonly ILogger<ChannelConnectionPool> _channelPoolLogger;
+        private readonly TimeProvider _timeProvider;
 
         public ChannelConnectionPoolFactory(IConnectionFactory connectionFactory, ClusterOptions clusterOptions,
             IConnectionPoolScaleControllerFactory scaleControllerFactory, Redactor redactor,
-            ILogger<ChannelConnectionPool> channelPoolLogger)
+            ILogger<ChannelConnectionPool> channelPoolLogger, TimeProvider timeProvider)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _scaleControllerFactory = scaleControllerFactory ?? throw new ArgumentNullException(nameof(scaleControllerFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _channelPoolLogger = channelPoolLogger ?? throw new ArgumentNullException(nameof(channelPoolLogger));
+            _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
         /// <inheritdoc />
@@ -43,7 +45,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 var scaleController = _scaleControllerFactory.Create();
 
                 return new ChannelConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _channelPoolLogger, (int) _clusterOptions.KvSendQueueCapacity)
+                    _redactor, _channelPoolLogger, _timeProvider, (int) _clusterOptions.KvSendQueueCapacity)
                 {
                     MinimumSize = _clusterOptions.NumKvConnections,
                     MaximumSize = _clusterOptions.MaxKvConnections
