@@ -460,9 +460,8 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<IOperationConfigurator>().Object,
                     new BestEffortRetryStrategy(), null)
             {
-                CurrentConfig = config;
-                KeyMapper = new VBucketKeyMapper(config, new VBucketServerMap(config.VBucketServerMap),
-                    new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+                ConfigSnapshot = new ConfigSnapshot(config, new VBucketKeyMapper(config,
+                    new VBucketServerMap(config.VBucketServerMap), new VBucketFactory(new Mock<ILogger<VBucket>>().Object)));
             }
 
             /// <summary>Whether a GET_CID was sent.</summary>
