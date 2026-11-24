@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
@@ -823,6 +826,45 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
             await bucket.DisposeAsync().AsTask().WaitAsync(Timeout);
 
             AssertClusterNodesKept(harness);
+        }
+
+        // NCBC-4414
+        // A new node is in the bucket map before it accepts the bucket. Each refused select closes the connection, and
+        // the pool tries one replacement, then waits 30 s of real time for the scale controller. The node has no
+        // connection meanwhile, so the operations for its vbuckets fail although it accepts the bucket after a few seconds.
+        [Fact]
+        public async Task NCBC4414_NewNodeThatRefusesTheBucketAtFirst_GetsConnectionsOnTheSdkClock()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap(), mode: ConnectionMode.Real);
+            var bucket = await harness.OpenBucketAsync(BucketMap()).WaitAsync(Timeout);
+            harness.Server.RefuseBucket(Node3, BucketName, ResponseStatus.KeyNotFound);
+            var withNode3 = BucketMap(11).Node(Node3);
+            harness.Server.SetMap(withNode3);
+
+            harness.Publish(withNode3);
+            await harness.DrainAsync().WaitAsync(Timeout);
+            await harness.SettleAsync().WaitAsync(Timeout);
+            Assert.Equal(Rev(11), harness.Bucket(BucketName).Version);
+            Assert.DoesNotContain(harness.Server.ConnectionsOn(Node3), c => c.Bucket == BucketName);
+            var refusedAtApply = harness.Server.Counters(Node3).SelectBucketsFailed;
+            Assert.True(refusedAtApply > 0, $"{Node3} refused no select. {harness.Server.Counters(Node3)}");
+
+            // The first wait between refill attempts.
+            await harness.AdvanceAsync(TimeSpan.FromMilliseconds(32)).WaitAsync(Timeout);
+            var refusedBeforeAccept = harness.Server.Counters(Node3).SelectBucketsFailed;
+            harness.Server.AcceptBucket(Node3, BucketName);
+            await harness.AdvanceAsync(TimeSpan.FromSeconds(10)).WaitAsync(Timeout);
+
+            var node = (ClusterNode)bucket.Nodes.Single(n => harness.Server.NodeAt(n.EndPoint) == Node3);
+            Assert.IsType<ChannelConnectionPool>(node.ConnectionPool);
+            var connections = harness.Server.ConnectionsOn(Node3);
+            Assert.True(connections.Count > 0 && connections.All(c => c.Bucket == BucketName),
+                $"{Node3} accepts the bucket, but its connections are [{string.Join(", ", connections)}]. {harness.Server.Counters(Node3)}");
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() =>
+                bucket.DefaultCollection().GetAsync(KeyOn(bucket, Node3)).WaitAsync(Timeout));
+            Assert.Equal(1, harness.Server.ReceivedCount(Node3, OpCode.Get));
+            Assert.True(refusedBeforeAccept > refusedAtApply,
+                $"The pool did not retry the select on the clock. Refused {refusedAtApply} at apply and {refusedBeforeAccept} 32 ms later.");
         }
 
         private const string Node3 = "node-3.example.com";

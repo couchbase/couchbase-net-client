@@ -53,6 +53,9 @@ namespace Couchbase.Test.Common.Configuration
         // The buckets that every node refuses to select, with the reply to SELECT_BUCKET.
         private readonly Dictionary<string, ResponseStatus> _refusedBuckets = new(StringComparer.Ordinal);
 
+        // The buckets that one node refuses to select, with the reply to SELECT_BUCKET.
+        private readonly Dictionary<(string Host, string Bucket), ResponseStatus> _refusedOnHost = new();
+
         // The node name at each alternate address endpoint, from every map set so far. So a node keeps its endpoint
         // after it leaves the maps, and the last map to name an endpoint wins.
         private readonly Dictionary<(string Host, int Port), string> _plainEndpoints = new();
@@ -392,6 +395,29 @@ namespace Couchbase.Test.Common.Configuration
         }
 
         /// <summary>
+        /// The node fails SELECT_BUCKET for this bucket with <paramref name="status"/> until <see cref="AcceptBucket"/>,
+        /// like a new node that the bucket map lists before the node serves the bucket. Open connections keep their
+        /// bucket. <see cref="HostCounters.SelectBucketsFailed"/> counts these failures.
+        /// </summary>
+        public void RefuseBucket(string host, string bucket, ResponseStatus status)
+        {
+            if (status == ResponseStatus.Success)
+            {
+                throw new ArgumentException("A refused bucket fails SELECT_BUCKET.", nameof(status));
+            }
+
+            lock (_lock) _refusedOnHost[(host, bucket)] = status;
+        }
+
+        /// <summary>
+        /// The node selects the bucket again, after <see cref="RefuseBucket(string, string, ResponseStatus)"/>.
+        /// </summary>
+        public void AcceptBucket(string host, string bucket)
+        {
+            lock (_lock) _refusedOnHost.Remove((host, bucket));
+        }
+
+        /// <summary>
         /// True from <see cref="Leave"/> until the node serves a bucket map that lists it as a bucket node.
         /// </summary>
         public bool HasLeft(string host)
@@ -552,6 +578,7 @@ namespace Couchbase.Test.Common.Configuration
             lock (_lock)
             {
                 if (_left.TryGetValue(host, out var status)) return status;
+                if (_refusedOnHost.TryGetValue((host, bucket), out status)) return status;
                 return _refusedBuckets.TryGetValue(bucket, out status) ? status : null;
             }
         }
@@ -1126,7 +1153,7 @@ namespace Couchbase.Test.Common.Configuration
         public long PushesSent { get; }
 
         /// <summary>
-        /// SELECT_BUCKET requests the node failed, because it left the cluster.
+        /// SELECT_BUCKET requests the node failed, because it left the cluster or refuses the bucket.
         /// </summary>
         public long SelectBucketsFailed { get; }
 

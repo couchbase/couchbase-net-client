@@ -67,6 +67,38 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         /// <summary>
+        /// Only the refusing node fails SELECT_BUCKET, until the test lifts the refusal. With KeyNotFound the SDK node
+        /// closes the connection and throws nothing.
+        /// </summary>
+        [Fact]
+        public async Task RefuseBucketOnOneHost_FailsSelectBucketOnThatHostUntilAccepted()
+        {
+            await using var harness = ConfigHarness.Create(GlobalMap());
+            var bucket = await harness.OpenBucketAsync(BucketMap());
+            var node0 = (IConnectionInitializer)harness.Context.Nodes.Single(n => n.Owner == bucket && n.EndPoint.Host == Node0);
+            var node1 = (IConnectionInitializer)harness.Context.Nodes.Single(n => n.Owner == bucket && n.EndPoint.Host == Node1);
+
+            harness.Server.RefuseBucket(Node0, BucketName, ResponseStatus.KeyNotFound);
+            var refused = harness.Server.Connect(node0.EndPoint);
+            await node0.InitializeConnectionAsync(refused);
+            await node0.SelectBucketAsync(refused, BucketName);
+            var other = harness.Server.Connect(node1.EndPoint);
+            await node1.InitializeConnectionAsync(other);
+            await node1.SelectBucketAsync(other, BucketName);
+            harness.Server.AcceptBucket(Node0, BucketName);
+            var accepted = harness.Server.Connect(node0.EndPoint);
+            await node0.InitializeConnectionAsync(accepted);
+            await node0.SelectBucketAsync(accepted, BucketName);
+
+            Assert.True(refused.IsClosed);
+            Assert.Null(refused.Bucket);
+            Assert.Equal(BucketName, other.Bucket);
+            Assert.Equal(BucketName, accepted.Bucket);
+            Assert.Equal(1, harness.Server.Counters(Node0).SelectBucketsFailed);
+            Assert.Equal(0, harness.Server.Counters(Node1).SelectBucketsFailed);
+        }
+
+        /// <summary>
         /// Node 0 serves the bucket and ends its connections. The bucket pool gets HELLO on each new connection and the
         /// select bucket failure. Once node 0 serves a bucket map with itself in it again, a new bucket connection
         /// selects the bucket.
