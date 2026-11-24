@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -128,6 +129,61 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         await context.DnsSrvRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(0, dnsLookups.Count);
+    }
+
+    [Fact]
+    public async Task Push_AfterBootstrapToLowerRevisions_IsFetched()
+    {
+        // A DNS SRV rebootstrap can reach a cluster recreated behind the same name, which starts again at low
+        // revisions. Polling is off, so only the push can bring the next config.
+        var clock = new SteppableClock();
+        var nodeFactory = new Mock<IClusterNodeFactory>();
+        using var context = CreateContext(out var configHandler, options =>
+        {
+            options.WithConnectionString("couchbase://host1:11210");
+            options.EnableConfigPolling = false;
+            options.AddClusterService<TimeProvider>(clock);
+            options.AddClusterService(nodeFactory.Object);
+        });
+        var published = new List<ConfigVersion>();
+        var publishes = new AsyncCounter();
+        configHandler.Setup(x => x.Publish(It.IsAny<BucketConfig>())).Callback((BucketConfig config) =>
+        {
+            published.Add(config.ConfigVersion);
+            publishes.Increment();
+        });
+        var node = AddNode(context, "host1", owner: null);
+        var served = Version(100);
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(served));
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(node.Object);
+        context.GlobalConfig = Version(99);
+        var refresher = context.GlobalConfigRefresher;
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        // The old cluster pushes version 100, and the refresher fetches it.
+        refresher.RequestRefresh(served.ConfigVersion);
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        served = Version(5);
+        served.NodesExt = [new NodesExt { Hostname = "host1", Services = new Services { Kv = 11210 } }];
+        await context.BootstrapGlobalAsync().WaitAsync(Deadline);
+        Assert.Equal(served.ConfigVersion, context.GlobalConfig.ConfigVersion);
+
+        served = Version(6);
+        refresher.RequestRefresh(served.ConfigVersion);
+        await publishes.WaitForAsync(2).WaitAsync(Deadline);
+
+        Assert.Equal([new ConfigVersion(1, 100), new ConfigVersion(1, 6)], published);
+    }
+
+    private static BucketConfig Version(ulong rev)
+    {
+        var config = new BucketConfig { RevEpoch = 1, Rev = rev };
+        config.OnDeserialized();
+        return config;
     }
 
     private static ClusterContext CreateContext(out Mock<IConfigHandler> configHandler,

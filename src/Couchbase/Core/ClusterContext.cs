@@ -558,6 +558,8 @@ namespace Couchbase.Core
                             .ConfigureAwait(false);
 
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
+                        // Pushes seen before can come from an older cluster behind the same DNS name.
+                        GlobalConfigRefresher.ForgetPushedVersions();
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
                         // Bootstrap replaces it, so a DNS SRV move to a cluster with lower revisions takes effect.
@@ -1014,6 +1016,8 @@ namespace Couchbase.Core
                         //make sure the bucket has the latest config as the current config
                         config.IgnoreRev = true;
                         await bucket.ConfigUpdatedAsync(config).ConfigureAwait(false);
+                        // Pushes seen before can come from an older cluster behind the same DNS name.
+                        (bucket as CouchbaseBucket)?.ConfigRefresher.ForgetPushedVersions();
                         UpdateAppTelemetryConfig(config);
 
                         return;
@@ -1056,12 +1060,7 @@ namespace Couchbase.Core
                                 "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
                                 _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                            if (clusterNode.HasKv)
-                            {
-                                clusterNode.Owner = bucket;
-                                await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            }
-
+                            await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
                             continue;
                         }
 
@@ -1069,11 +1068,7 @@ namespace Couchbase.Core
                         if (clusterNode != null)
                         {
                             clusterNode.NodesAdapter = nodeAdapter;
-                            if (clusterNode.HasKv)
-                            {
-                                clusterNode.Owner = bucket;
-                                await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            }
+                            await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
                         }
 
                         continue;
@@ -1093,11 +1088,7 @@ namespace Couchbase.Core
                     if (clusterNode != null)
                     {
                         clusterNode.NodesAdapter = nodeAdapter;
-                        if (clusterNode.HasKv)
-                        {
-                            clusterNode.Owner = bucket;
-                            await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                        }
+                        await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
                     }
                     else
                     {
@@ -1110,11 +1101,7 @@ namespace Couchbase.Core
                             nodeAdapter,
                             CancellationToken).ConfigureAwait(false);
 
-                        if(clusterNode.HasKv)
-                        {
-                            clusterNode.Owner = bucket;
-                            await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                        }
+                        await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
 
                         AddNode(clusterNode);
                     }
@@ -1130,6 +1117,30 @@ namespace Couchbase.Core
             finally
             {
                 _configMutex.Release();
+            }
+        }
+
+        private async Task ClaimIfKvAsync(IClusterNode node, BucketBase bucket)
+        {
+            if (!node.HasKv)
+            {
+                return;
+            }
+
+            node.Owner = bucket;
+            try
+            {
+                await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // A node whose select failed cannot be reused, so the next apply builds a fresh one.
+                if (!RemoveNode(node))
+                {
+                    node.Dispose();
+                }
+
+                throw;
             }
         }
 
