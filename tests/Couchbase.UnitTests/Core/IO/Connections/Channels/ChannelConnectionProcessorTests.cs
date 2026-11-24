@@ -114,7 +114,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         }
 
         [Fact]
-        public async Task Should_CloseConnection_When_RemoveConnectionAsyncThrowsException()
+        public async Task Should_CloseConnection_When_TheReplacementConnectFails()
         {
             var connectionMock = new Mock<IConnection>();
             var connectionFactoryMock = new Mock<IConnectionFactory>();

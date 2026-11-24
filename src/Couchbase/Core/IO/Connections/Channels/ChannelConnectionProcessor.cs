@@ -203,15 +203,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // The pool then refills in the background.
                 if (token != CancellationToken.None && !token.IsCancellationRequested)
                 {
-                    try
-                    {
-                        _connectionPool.RemoveConnection(this);
-                    }
-                    catch
-                    {
-                        //Ensure that any error thrown by RemoveConnectionAsync will not prevent Connection.CloseAsync
-                        LogConnectionNotRemoved(Connection.ConnectionId);
-                    }
+                    _connectionPool.RemoveConnection(this);
                 }
                 // Let in-flight operations finish, waiting up to one minute
                 await Connection.CloseAsync(CloseTimeout).ConfigureAwait(false);
@@ -235,9 +227,6 @@ namespace Couchbase.Core.IO.Connections.Channels
         }
 
         #region Logging
-
-        [LoggerMessage(200, LogLevel.Information, "Connection {cid} was not removed.")]
-        private partial void LogConnectionNotRemoved(ulong cid);
 
         [LoggerMessage(201, LogLevel.Information, "Done processing operations on {cid}, IsDead: {isDead}")]
         private partial void LogDoneProcessingOperations(ulong cid, bool isDead);
