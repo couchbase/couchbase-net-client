@@ -792,7 +792,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         refresherFactory.Setup(x => x.CreateBucketRefresher(It.IsAny<BucketBase>()))
             .Returns((BucketBase b) => CreateRefresher(b, clock));
         using var bucket = new CouchbaseBucket("default", context, new Mock<IScopeFactory>().Object,
-            new Mock<IRetryOrchestrator>().Object, new Mock<IVBucketKeyMapperFactory>().Object,
+            new Mock<IRetryOrchestrator>().Object, new Mock<IVBucketKeyMapperFactory> { DefaultValue = DefaultValue.Mock }.Object,
             new Mock<ILogger<CouchbaseBucket>>().Object, new Redactor(RedactionLevel.None),
             new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
             new Mock<IOperationConfigurator>().Object, new BestEffortRetryStrategy(), ServerMap(2, forward: false),
