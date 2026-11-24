@@ -829,8 +829,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Harness
         }
 
         // NCBC-4414
-        // A new node is in the bucket map before it accepts the bucket. Each refused select closes the connection, and
-        // the pool tries one replacement, then waits 30 s of real time for the scale controller. The node has no
+        // A new node is in the bucket map before it accepts the bucket. Each refused select closes the connection. The
+        // pool tries a few replacements at once, then waits 30 s of real time for the scale controller. The node has no
         // connection meanwhile, so the operations for its vbuckets fail although it accepts the bucket after a few seconds.
         [Fact]
         public async Task NCBC4414_NewNodeThatRefusesTheBucketAtFirst_GetsConnectionsOnTheSdkClock()
