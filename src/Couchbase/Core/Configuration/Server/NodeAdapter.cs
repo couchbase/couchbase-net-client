@@ -35,11 +35,7 @@ namespace Couchbase.Core.Configuration.Server
             {
                 CanonicalHostname = nodeExt.Hostname;
                 NodeUuid = nodeExt.NodeUuid;
-                if (!string.IsNullOrEmpty(nodeExt.Hostname))
-                {
-                    NodeId = new HostEndpointWithPort(nodeExt.Hostname,
-                        nodeExt.Services.Mgmt > 0 ? nodeExt.Services.Mgmt : nodeExt.Services.MgmtSsl);
-                }
+                NodeId = GetNodeId(nodeExt);
                 // get services, will use alternate network ports if configured
                 var services = GetServicePorts(nodeExt, bucketConfig);
 
@@ -231,6 +227,15 @@ namespace Couchbase.Core.Configuration.Server
         /// when nodes share a host on an alternate network. Null when the config has no nodesExt entry.
         /// </summary>
         public HostEndpointWithPort? NodeId { get; set; }
+
+        /// <summary>
+        /// The <see cref="NodeId"/> of a nodesExt entry, or null when the entry has no host name.
+        /// </summary>
+        internal static HostEndpointWithPort? GetNodeId(NodesExt nodeExt) =>
+            string.IsNullOrEmpty(nodeExt.Hostname)
+                ? null
+                : new HostEndpointWithPort(nodeExt.Hostname,
+                    nodeExt.Services.Mgmt > 0 ? nodeExt.Services.Mgmt : nodeExt.Services.MgmtSsl);
 
         public string NodeUuid { get; set; }
         public string CouchbaseApiBase { get; set; }

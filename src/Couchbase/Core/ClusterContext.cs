@@ -51,6 +51,7 @@ namespace Couchbase.Core
         private readonly object _dnsSrvRebootstrapLock = new();
         private long? _lastDnsSrvRebootstrap;
         private BucketConfig _clusterCapsConfig;
+        private BucketConfig _clusterNodesConfig;
         private readonly SemaphoreSlim _semaphore = new(1);
         private readonly HttpClusterMapBase _httpClusterMap;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
@@ -174,6 +175,36 @@ namespace Couchbase.Core
                 ClusterCapsChanged?.Invoke();
             }
         }
+
+        /// <summary>
+        /// The newest config of any kind. The nodes that no bucket owns follow its node list, because no cluster config
+        /// arrives once buckets own every KV node.
+        /// </summary>
+        internal BucketConfig ClusterNodesConfig => Volatile.Read(ref _clusterNodesConfig);
+
+        /// <summary>
+        /// Stores the config as <see cref="ClusterNodesConfig"/> if it is newer or forced, or always when
+        /// <paramref name="replace"/> is set.
+        /// </summary>
+        internal void UpdateClusterNodesConfig(BucketConfig config, bool replace = false)
+        {
+            BucketConfig current;
+            do
+            {
+                current = Volatile.Read(ref _clusterNodesConfig);
+                if (!replace && !config.IgnoreRev && current is not null && config.ConfigVersion <= current.ConfigVersion)
+                {
+                    return;
+                }
+            }
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref _clusterNodesConfig, config, current), current));
+        }
+
+        /// <summary>
+        /// Whether a config is older than <see cref="ClusterNodesConfig"/>. A forced config is never older.
+        /// </summary>
+        private bool IsOlderThanClusterNodesConfig(BucketConfig config) =>
+            !config.IgnoreRev && ClusterNodesConfig is { } view && config.ConfigVersion < view.ConfigVersion;
 
         public void Start()
         {
@@ -567,8 +598,9 @@ namespace Couchbase.Core
                         }
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
-                        // Bootstrap replaces it, so a DNS SRV move to a cluster with lower revisions takes effect.
+                        // Bootstrap replaces both, so a DNS SRV move to a cluster with lower revisions takes effect.
                         UpdateClusterCapsConfig(GlobalConfig, replace: true);
+                        UpdateClusterNodesConfig(GlobalConfig, replace: true);
                         UpdateAppTelemetryConfig(GlobalConfig);
 
                         //If we are using alt addresses, we likely bootstrapped with a
@@ -1151,9 +1183,21 @@ namespace Couchbase.Core
         /// and removes the bucket nodes that left the map.
         /// </summary>
         /// <remarks>
-        /// When every map entry has its node and no bucket node left the map, only the adapters change and the
+        /// <para>
+        /// When every map entry has its node and no node left the map, only the adapters change and the
         /// config lock is not taken. The update then does not wait while a bucket open or a DNS SRV rebootstrap holds
         /// that lock to connect nodes.
+        /// </para>
+        /// <para>
+        /// A node that no bucket owns follows <see cref="ClusterNodesConfig"/>. A config that is not older than it
+        /// removes such a node when the config does not list it. An older config neither removes nor creates such a
+        /// node.
+        /// </para>
+        /// <para>
+        /// A newer config becomes <see cref="ClusterNodesConfig"/> before it reads the nodes. An older config that
+        /// adds a node with no owner at the same time then either sees the newer view after its add, or the newer
+        /// config sees the node.
+        /// </para>
         /// </remarks>
         public Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
@@ -1163,13 +1207,15 @@ namespace Couchbase.Core
             try
             {
                 mapNodes = config.GetNodes();
-                endPoints = new List<HostEndpointWithPort>(mapNodes.Count);
-                foreach (var nodeAdapter in mapNodes)
+                endPoints = GetEndPoints(mapNodes);
+
+                var order = OrderToClusterNodes(bucket, config);
+                if (order == ClusterNodesOrder.Current)
                 {
-                    endPoints.Add(HostEndpointWithPort.Create(nodeAdapter, _clusterOptions));
+                    UpdateClusterNodesConfig(config);
                 }
 
-                if (TryUpdateAdapters(bucket, config.Name, mapNodes, endPoints))
+                if (TryUpdateAdapters(bucket, config, order, mapNodes, endPoints))
                 {
                     return Task.CompletedTask;
                 }
@@ -1184,18 +1230,24 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// Sets the adapter of each map entry on its node when no entry needs a node claimed or created and no bucket
-        /// node left the map. Otherwise it changes nothing and returns false.
+        /// Sets the adapter of each map entry on its node when no entry needs a node claimed or created and no node
+        /// left the map. Otherwise it changes nothing and returns false.
         /// </summary>
-        private bool TryUpdateAdapters(BucketBase bucket, string bucketName, List<NodeAdapter> mapNodes,
-            List<HostEndpointWithPort> endPoints)
+        private bool TryUpdateAdapters(BucketBase bucket, BucketConfig config, ClusterNodesOrder order,
+            List<NodeAdapter> mapNodes, List<HostEndpointWithPort> endPoints)
         {
+            var bucketName = config.Name;
             // ClusterNodeList.TryGet reads the set with no lock, so match against one snapshot.
             var nodes = new List<IClusterNode>(Nodes);
             var matched = new IClusterNode[mapNodes.Count];
             for (var i = 0; i < mapNodes.Count; i++)
             {
                 var match = MatchMapNode(nodes, bucket, bucketName, endPoints[i], mapNodes[i]);
+                if (match.Node == null && SkipsNewNode(order, mapNodes[i]))
+                {
+                    continue;
+                }
+
                 if (!match.IsAdapterOnly(mapNodes[i]))
                 {
                     return false;
@@ -1204,9 +1256,10 @@ namespace Couchbase.Core
                 matched[i] = match.Node;
             }
 
+            var current = order == ClusterNodesOrder.Current;
             foreach (var node in nodes)
             {
-                if (HasLeftMap(node, bucketName, mapNodes, endPoints))
+                if (HasLeftMap(node, config, current, mapNodes, endPoints))
                 {
                     return false;
                 }
@@ -1214,7 +1267,10 @@ namespace Couchbase.Core
 
             for (var i = 0; i < matched.Length; i++)
             {
-                matched[i].NodesAdapter = mapNodes[i];
+                if (matched[i] is { } node)
+                {
+                    node.NodesAdapter = mapNodes[i];
+                }
             }
 
             return true;
@@ -1228,6 +1284,22 @@ namespace Couchbase.Core
 
             try
             {
+                // A cluster config can apply while this call waits for the lock, so read the order again.
+                var order = OrderToClusterNodes(bucket, config);
+                if (order == ClusterNodesOrder.Current)
+                {
+                    UpdateClusterNodesConfig(config);
+
+                    // Before any connect, so a new node that fails to connect does not keep a node that left.
+                    foreach (var node in Nodes)
+                    {
+                        if (node.Owner == null && HasLeftMap(node, config, current: true, mapNodes, endPoints))
+                        {
+                            RemoveNode(node);
+                        }
+                    }
+                }
+
                 for (var i = 0; i < mapNodes.Count; i++)
                 {
                     var nodeAdapter = mapNodes[i];
@@ -1238,6 +1310,11 @@ namespace Couchbase.Core
 
                     // Each entry reads a new snapshot, so it sees the nodes that the entries before it claimed or created.
                     var match = MatchMapNode(Nodes, bucket, config.Name, endPoint, nodeAdapter);
+                    if (match.Node == null && SkipsNewNode(order, nodeAdapter))
+                    {
+                        continue;
+                    }
+
                     if (match.Node == null)
                     {
                         _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
@@ -1251,6 +1328,11 @@ namespace Couchbase.Core
 
                         await ClaimIfKvAsync(clusterNode, nodeAdapter, bucket).ConfigureAwait(false);
                         AddNode(clusterNode);
+                        if (order != ClusterNodesOrder.Memcached && clusterNode.Owner == null)
+                        {
+                            RemoveIfNewerViewDropsNode(clusterNode, config);
+                        }
+
                         continue;
                     }
 
@@ -1271,7 +1353,8 @@ namespace Couchbase.Core
                     }
                 }
 
-                PruneNodes(config, mapNodes, endPoints);
+                // Nodes with no owner were pruned before the connects. This pass prunes the bucket's own nodes.
+                PruneNodes(config, current: false, mapNodes, endPoints);
             }
             catch (Exception e)
             {
@@ -1378,14 +1461,15 @@ namespace Couchbase.Core
                 .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
                 .ToList();
 
-            PruneNodes(config, mapNodes, existingEndpoints);
+            PruneNodes(config, current: false, mapNodes, existingEndpoints);
         }
 
-        private void PruneNodes(BucketConfig config, List<NodeAdapter> mapNodes, List<HostEndpointWithPort> existingEndpoints)
+        private void PruneNodes(BucketConfig config, bool current, List<NodeAdapter> mapNodes,
+            List<HostEndpointWithPort> existingEndpoints)
         {
             _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision} from {bucket}.", existingEndpoints, config.Rev, config.Name);
 
-            var removedEndpoints = Nodes.Where(x => HasLeftMap(x, config.Name, mapNodes, existingEndpoints));
+            var removedEndpoints = Nodes.Where(x => HasLeftMap(x, config, current, mapNodes, existingEndpoints));
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
 
@@ -1395,9 +1479,140 @@ namespace Couchbase.Core
             }
         }
 
-        private static bool HasLeftMap(IClusterNode node, string bucketName, List<NodeAdapter> mapNodes,
-            List<HostEndpointWithPort> endPoints) =>
-            node.Owner != null && node.Owner.Name == bucketName && !IsInMap(node, mapNodes, endPoints);
+        /// <summary>
+        /// Whether a node left the config of a bucket. A node the bucket owns follows the bucket map. A node with no
+        /// owner follows every node the config lists, and only when <paramref name="current"/> is set, which means the
+        /// config is not older than <see cref="ClusterNodesConfig"/>.
+        /// </summary>
+        private static bool HasLeftMap(IClusterNode node, BucketConfig config, bool current, List<NodeAdapter> mapNodes,
+            List<HostEndpointWithPort> endPoints)
+        {
+            var owner = node.Owner;
+            if (owner != null)
+            {
+                return owner.Name == config.Name && !IsInMap(node, mapNodes, endPoints);
+            }
+
+            // A node with no adapter matched no map entry yet. It is a seed that a bootstrap still uses.
+            return current
+                   && node.NodesAdapter is { } nodeAdapter
+                   && !IsInMap(node, mapNodes, endPoints)
+                   && !IsListedOutsideMap(nodeAdapter, config, mapNodes);
+        }
+
+        /// <summary>
+        /// Whether the config lists the node in nodesExt, but the bucket map leaves it out. The bucket map drops a KV
+        /// entry that the bucket's nodes list lacks, as for a node that does not serve the bucket yet. That node is
+        /// still in the cluster.
+        /// </summary>
+        /// <remarks>
+        /// A bucket config treats such an entry as having no KV service, so its endpoint differs from the node's. The
+        /// node id matches it instead.
+        /// </remarks>
+        private static bool IsListedOutsideMap(NodeAdapter nodeAdapter, BucketConfig config, List<NodeAdapter> mapNodes)
+        {
+            var nodesExt = config.NodesExt;
+            if (nodesExt is null || nodeAdapter.NodeId is not { } nodeId)
+            {
+                return false;
+            }
+
+            // An entry of the map has this id but not the node's endpoint, so the node moved.
+            foreach (var mapNode in mapNodes)
+            {
+                if (mapNode.NodeId is { } id && id.Equals(nodeId))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var nodeExt in nodesExt)
+            {
+                if (NodeAdapter.GetNodeId(nodeExt) is { } id && id.Equals(nodeId))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Where a bucket config stands against <see cref="ClusterNodesConfig"/>.
+        /// </summary>
+        private enum ClusterNodesOrder : byte
+        {
+            /// <summary>
+            /// A Memcached bucket config. It neither follows nor sets the node list of nodes with no owner.
+            /// </summary>
+            Memcached,
+
+            /// <summary>
+            /// Not older, or forced.
+            /// </summary>
+            Current,
+
+            /// <summary>
+            /// Older than <see cref="ClusterNodesConfig"/>, so it neither removes nor creates a node with no owner.
+            /// </summary>
+            Older
+        }
+
+        private ClusterNodesOrder OrderToClusterNodes(BucketBase bucket, BucketConfig config)
+        {
+            if (bucket.BucketType == BucketType.Memcached)
+            {
+                return ClusterNodesOrder.Memcached;
+            }
+
+            return IsOlderThanClusterNodesConfig(config) ? ClusterNodesOrder.Older : ClusterNodesOrder.Current;
+        }
+
+        /// <summary>
+        /// An older config must not create a node with no owner that the newer cluster view removed. A map entry with
+        /// KV gets its node, because the bucket owns it.
+        /// </summary>
+        private static bool SkipsNewNode(ClusterNodesOrder order, NodeAdapter nodeAdapter) =>
+            order == ClusterNodesOrder.Older && !nodeAdapter.IsKvNode;
+
+        /// <summary>
+        /// Checks a node with no owner that a config just added. When a newer config moved
+        /// <see cref="ClusterNodesConfig"/> during the connects and does not list the node, it removes the node.
+        /// Returns true when <see cref="ClusterNodesConfig"/> is newer than the config.
+        /// </summary>
+        /// <remarks>
+        /// The view is read after AddNode. A config that moves the view later reads the nodes after that, so its own
+        /// prune sees this node.
+        /// </remarks>
+        private bool RemoveIfNewerViewDropsNode(IClusterNode node, BucketConfig config)
+        {
+            var view = ClusterNodesConfig;
+            if (config.IgnoreRev || view is null || config.ConfigVersion >= view.ConfigVersion)
+            {
+                return false;
+            }
+
+            var viewNodes = view.GetNodes();
+            if (HasLeftMap(node, view, current: true, viewNodes, GetEndPoints(viewNodes)))
+            {
+                _logger.LogDebug("Removing node {endPoint}, as the newer config revision {rev} does not list it.",
+                    _redactor.SystemData(node.EndPoint), view.ConfigVersion);
+                RemoveNode(node);
+            }
+
+            return true;
+        }
+
+        private List<HostEndpointWithPort> GetEndPoints(List<NodeAdapter> mapNodes)
+        {
+            var endPoints = new List<HostEndpointWithPort>(mapNodes.Count);
+            foreach (var nodeAdapter in mapNodes)
+            {
+                endPoints.Add(HostEndpointWithPort.Create(nodeAdapter, _clusterOptions));
+            }
+
+            return endPoints;
+        }
 
         private void PruneGlobalNodes(BucketConfig config)
         {
@@ -1468,6 +1683,15 @@ namespace Couchbase.Core
                         return;
                     }
 
+                    // A newer bucket config can have removed nodes that this config still lists.
+                    if (IsOlderThanClusterNodesConfig(globalConfig))
+                    {
+                        _logger.LogDebug("Skipping global config revision {rev}, as a newer config set the nodes.",
+                            globalConfig.ConfigVersion);
+                        return;
+                    }
+
+                    var overtaken = false;
                     foreach (var nodeAdapter in globalConfig.GetNodes())
                     {
                         var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
@@ -1482,6 +1706,11 @@ namespace Couchbase.Core
                             }
 
                             AddNode(newNode);
+                            if (RemoveIfNewerViewDropsNode(newNode, globalConfig))
+                            {
+                                overtaken = true;
+                                break;
+                            }
                         }
                         else
                         {
@@ -1489,10 +1718,19 @@ namespace Couchbase.Core
                         }
                     }
 
+                    // A newer config can move the view during the connects. Its node list then wins.
+                    if (overtaken || IsOlderThanClusterNodesConfig(globalConfig))
+                    {
+                        _logger.LogDebug("Stopping global config revision {rev}, as a newer config set the nodes.",
+                            globalConfig.ConfigVersion);
+                        return;
+                    }
+
                     PruneGlobalNodes(globalConfig);
 
                     // Set last, so a failed node connect keeps the old config and the next poll retries.
                     GlobalConfig = globalConfig;
+                    UpdateClusterNodesConfig(globalConfig);
                 }
                 finally
                 {
