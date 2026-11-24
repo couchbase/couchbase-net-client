@@ -14,6 +14,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
+using Couchbase.KeyValue.ZoneAware;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -766,22 +767,45 @@ public class BucketConfigExtensionTests
     }
 
     [Fact]
-    public async Task ConfigUpdatedAsync_OnlyServerGroupChange_IsStored()
+    public async Task ConfigUpdatedAsync_OnlyServerGroupChange_IsSeenByNextReplicaRead()
     {
-        var current = CreateConfig(rev: 1, activeNode: 0);
+        // Records the replica index of each read, null for the active copy, and fails it.
+        var reads = new List<short?>();
+        var retryOrchestrator = new Mock<IRetryOrchestrator>();
+        retryOrchestrator.Setup(x => x.RetryAsync(It.IsAny<BucketBase>(), It.IsAny<IOperation>(),
+                It.IsAny<CancellationTokenPair>()))
+            .Callback((BucketBase _, IOperation op, CancellationTokenPair _) => reads.Add(op.ReplicaIdx))
+            .Returns(Task.FromException<ResponseStatus>(new TemporaryFailureException()));
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), CreateKeyMapperFactory(),
+            retryOrchestrator: retryOrchestrator.Object);
+        // The active copy is on node 1 and the replica on node 0.
+        var current = CreateConfig(rev: 2, activeNode: 1);
         current.NodesExt[0].ServerGroup = "group-1";
         current.NodesExt[1].ServerGroup = "group-2";
-        var bucket = CreateBucket(current);
+        await bucket.ConfigUpdatedAsync(current).WaitAsync(Deadline);
+        bucket.Context.ClusterOptions.PreferredServerGroup = "group-1";
+        var collection = CreateCollection(bucket);
+        var options = new GetAllReplicasOptions().ReadPreference(InternalReadPreference.SelectedServerGroup);
 
-        var incoming = CreateConfig(rev: 2, activeNode: 0);
+        async Task<short?[]> ReadAllReplicasAsync()
+        {
+            reads.Clear();
+            foreach (var read in collection.GetAllReplicasAsync("key", options))
+            {
+                await Assert.ThrowsAsync<TemporaryFailureException>(() => read.WaitAsync(Deadline));
+            }
+            return reads.ToArray();
+        }
+
+        Assert.Equal([(short)0], await ReadAllReplicasAsync());
+
+        var incoming = CreateConfig(rev: 3, activeNode: 1);
         incoming.NodesExt[0].ServerGroup = "group-1";
         incoming.NodesExt[1].ServerGroup = "group-1";
         await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
 
         Assert.Same(incoming, bucket.CurrentConfig);
-        var groups = bucket.CurrentConfig!.ServerGroupNodeIndexes;
-        Assert.Equal(new[] { 0, 1 }, groups["group-1"]);
-        Assert.False(groups.ContainsKey("group-2"));
+        Assert.Equal([(short)0, null], await ReadAllReplicasAsync());
     }
 
     [Fact]
@@ -860,7 +884,7 @@ public class BucketConfigExtensionTests
     }
 
     CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig, IVBucketKeyMapperFactory keyMapperFactory = null,
-        Mock<IClusterNodeFactory> clusterNodeFactory = null)
+        Mock<IClusterNodeFactory> clusterNodeFactory = null, IRetryOrchestrator retryOrchestrator = null)
     {
         clusterNodeFactory ??= new Mock<IClusterNodeFactory>();
         var node = new Mock<IClusterNode>();
@@ -878,7 +902,7 @@ public class BucketConfigExtensionTests
         var bucket = new CouchbaseBucket("default",
             clusterCtx,
             new Mock<IScopeFactory>().Object,
-            new Mock<IRetryOrchestrator>().Object,
+            retryOrchestrator ?? new Mock<IRetryOrchestrator>().Object,
             keyMapperFactory ?? new Mock<IVBucketKeyMapperFactory>().Object,
             new Mock<ILogger<CouchbaseBucket>>().Object,
             new Redactor(RedactionLevel.None),
