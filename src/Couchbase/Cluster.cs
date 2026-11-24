@@ -213,6 +213,9 @@ namespace Couchbase
                 $"{nameof(options)} must have a connection string.", nameof(options));
             var schema = connectionString.Scheme;
 
+            // Once per process, before the first connection to a server (SDK-53).
+            LoggingNotEnabledWarning.Instance.WarnOnce(options.Logging);
+
 #if NETCOREAPP3_1_OR_GREATER
             if (schema is Scheme.Couchbase2)
             {
