@@ -56,6 +56,8 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
+        private readonly object _nodesAdapterLock = new();
+        private bool _nodesAdapterVersionForgotten;
         private readonly string _cachedToString;
         private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private volatile bool _disposed;
@@ -161,14 +163,48 @@ namespace Couchbase.Core
             _ => null
         };
 
+        /// <summary>
+        /// The view of this node in a cluster or bucket config.
+        /// </summary>
+        /// <remarks>
+        /// Cluster and bucket configs share one revision space, so the newest config has the newest view.
+        /// The node keeps its adapter when the new adapter comes from an older config, unless that config has
+        /// <see cref="BucketConfig.IgnoreRev"/> set, as on a rebootstrap. An adapter from an equal or newer config
+        /// replaces it. After <see cref="ForgetNodesAdapterVersion"/>, the next adapter replaces it whatever its version.
+        /// </remarks>
         public NodeAdapter NodesAdapter
         {
             get => _nodesAdapter;
             set
             {
-                _nodesAdapter = value;
-                BuildServiceUris();
-                UpdateKeyEndPoints();
+                // A bucket open or a rebootstrap can set the adapter while a published config sets it, so the check is in the lock.
+                lock (_nodesAdapterLock)
+                {
+                    if (!_nodesAdapterVersionForgotten && value is { IgnoreRev: false } && _nodesAdapter is { } current
+                        && value.ConfigVersion < current.ConfigVersion)
+                    {
+                        if (_logger is not null)
+                        {
+                            LogNodesAdapterKept(_redactor.SystemData(EndPoint), current.ConfigVersion, value.ConfigVersion);
+                        }
+
+                        return;
+                    }
+
+                    _nodesAdapter = value;
+                    _nodesAdapterVersionForgotten = false;
+                    BuildServiceUris();
+                    UpdateKeyEndPoints();
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public void ForgetNodesAdapterVersion()
+        {
+            lock (_nodesAdapterLock)
+            {
+                _nodesAdapterVersionForgotten = true;
             }
         }
 
@@ -1251,6 +1287,9 @@ namespace Couchbase.Core
 
         [LoggerMessage(3, LogLevel.Debug, "Cannot fetch hostname.")]
         private partial void LogCannotFetchHostName(Exception exception);
+
+        [LoggerMessage(4, LogLevel.Debug, "Node {endpoint} keeps its view from configVersion {keptVersion} and rejects the view from older configVersion {rejectedVersion}.")]
+        private partial void LogNodesAdapterKept(Redacted<HostEndpointWithPort> endpoint, ConfigVersion keptVersion, ConfigVersion rejectedVersion);
 
         [LoggerMessage(LoggingEvents.BootstrapEvent, LogLevel.Error, "The Bucket [{bucketName}] could not be selected. Either it does not exist, " +
                                                                      "is unavailable or the node itself does not have the Data service enabled.")]

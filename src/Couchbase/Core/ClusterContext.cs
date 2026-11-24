@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -558,8 +559,12 @@ namespace Couchbase.Core
                             .ConfigureAwait(false);
 
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
-                        // Pushes seen before can come from an older cluster behind the same DNS name.
+                        // Pushes and node views seen before can come from an older cluster behind the same DNS name.
                         GlobalConfigRefresher.ForgetPushedVersions();
+                        foreach (var existingNode in Nodes)
+                        {
+                            existingNode.ForgetNodesAdapterVersion();
+                        }
                         GlobalConfig.Name = BucketConfig.GlobalBucketName;
                         GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
                         // Bootstrap replaces it, so a DNS SRV move to a cluster with lower revisions takes effect.
@@ -1140,78 +1145,133 @@ namespace Couchbase.Core
         }
 
         private readonly SemaphoreSlim _configMutex = new(1, 1);
-        public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
+
+        /// <summary>
+        /// Gives each node of a bucket map the adapter of its map entry, claims or creates the nodes the bucket lacks,
+        /// and removes the bucket nodes that left the map.
+        /// </summary>
+        /// <remarks>
+        /// When every map entry has its node and no bucket node left the map, only the adapters change and the
+        /// config lock is not taken. The update then does not wait while a bucket open or a DNS SRV rebootstrap holds
+        /// that lock to connect nodes.
+        /// </remarks>
+        public Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
             _logger.LogDebug("ProcessClusterMap: {0} - {1}", bucket.Name, config.ConfigVersion);
+            List<NodeAdapter> mapNodes;
+            List<HostEndpointWithPort> endPoints;
+            try
+            {
+                mapNodes = config.GetNodes();
+                endPoints = new List<HostEndpointWithPort>(mapNodes.Count);
+                foreach (var nodeAdapter in mapNodes)
+                {
+                    endPoints.Add(HostEndpointWithPort.Create(nodeAdapter, _clusterOptions));
+                }
+
+                if (TryUpdateAdapters(bucket, config.Name, mapNodes, endPoints))
+                {
+                    return Task.CompletedTask;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(LoggingEvents.ConfigEvent, "ERROR:{e}", e);
+                return Task.FromException(e);
+            }
+
+            return ProcessClusterMapUnderLockAsync(bucket, config, mapNodes, endPoints);
+        }
+
+        /// <summary>
+        /// Sets the adapter of each map entry on its node when no entry needs a node claimed or created and no bucket
+        /// node left the map. Otherwise it changes nothing and returns false.
+        /// </summary>
+        private bool TryUpdateAdapters(BucketBase bucket, string bucketName, List<NodeAdapter> mapNodes,
+            List<HostEndpointWithPort> endPoints)
+        {
+            // ClusterNodeList.TryGet reads the set with no lock, so match against one snapshot.
+            var nodes = new List<IClusterNode>(Nodes);
+            var matched = new IClusterNode[mapNodes.Count];
+            for (var i = 0; i < mapNodes.Count; i++)
+            {
+                var match = MatchMapNode(nodes, bucket, bucketName, endPoints[i], mapNodes[i]);
+                if (!match.IsAdapterOnly(mapNodes[i]))
+                {
+                    return false;
+                }
+
+                matched[i] = match.Node;
+            }
+
+            foreach (var node in nodes)
+            {
+                if (HasLeftMap(node, bucketName, mapNodes, endPoints))
+                {
+                    return false;
+                }
+            }
+
+            for (var i = 0; i < matched.Length; i++)
+            {
+                matched[i].NodesAdapter = mapNodes[i];
+            }
+
+            return true;
+        }
+
+        private async Task ProcessClusterMapUnderLockAsync(BucketBase bucket, BucketConfig config,
+            List<NodeAdapter> mapNodes, List<HostEndpointWithPort> endPoints)
+        {
             using var cts = new CancellationTokenSource();
             await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
 
             try
             {
-                IClusterNode clusterNode;
-                foreach (var nodeAdapter in config.GetNodes())
+                for (var i = 0; i < mapNodes.Count; i++)
                 {
+                    var nodeAdapter = mapNodes[i];
+                    var endPoint = endPoints[i];
+
                     //log any alternate address mapping
                     _logger.LogInformation(nodeAdapter.ToString());
 
-                    var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                    if (Nodes.TryGet(endPoint, nodeAdapter, config.Name, out clusterNode))
-                    {
-                        clusterNode.NodesAdapter = nodeAdapter;
-                        if (clusterNode.Owner == null && bucket.BucketType != BucketType.Memcached)
-                        {
-                            _logger.LogDebug(
-                                "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
-                                _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
-
-                            await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
-                            continue;
-                        }
-
-                        clusterNode = GetUnassignedNode(endPoint, nodeAdapter);
-                        if (clusterNode != null)
-                        {
-                            clusterNode.NodesAdapter = nodeAdapter;
-                            await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
-                        }
-
-                        continue;
-                    }
-
-                    //If the node already exists for the endpoint, ignore it.
-                    if (Nodes.TryGet(endPoint, nodeAdapter, config.Name, out clusterNode))
-                    {
-                        _logger.LogDebug(
-                            "The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.",
-                            _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
-                        clusterNode.NodesAdapter = nodeAdapter;
-                        continue;
-                    }
-
-                    clusterNode = GetUnassignedNode(endPoint, nodeAdapter);
-                    if (clusterNode != null)
-                    {
-                        clusterNode.NodesAdapter = nodeAdapter;
-                        await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
-                    }
-                    else
+                    // Each entry reads a new snapshot, so it sees the nodes that the entries before it claimed or created.
+                    var match = MatchMapNode(Nodes, bucket, config.Name, endPoint, nodeAdapter);
+                    if (match.Node == null)
                     {
                         _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
                             _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                        clusterNode = await _clusterNodeFactory.CreateAndConnectAsync(
+                        var clusterNode = await _clusterNodeFactory.CreateAndConnectAsync(
                             // We want the BootstrapEndpoint to use the host name, not just the IP
                             new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
                             nodeAdapter,
                             CancellationToken).ConfigureAwait(false);
 
-                        await ClaimIfKvAsync(clusterNode, bucket).ConfigureAwait(false);
-
+                        await ClaimIfKvAsync(clusterNode, nodeAdapter, bucket).ConfigureAwait(false);
                         AddNode(clusterNode);
+                        continue;
+                    }
+
+                    match.Node.NodesAdapter = nodeAdapter;
+                    if (match.Claims)
+                    {
+                        _logger.LogDebug(
+                            "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
+                            _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
+                        await ClaimIfKvAsync(match.Node, nodeAdapter, bucket).ConfigureAwait(false);
+                    }
+
+                    if (match.UnassignedNode != null)
+                    {
+                        match.UnassignedNode.NodesAdapter = nodeAdapter;
+                        await ClaimIfKvAsync(match.UnassignedNode, nodeAdapter, bucket).ConfigureAwait(false);
                     }
                 }
 
-                PruneNodes(config);
+                PruneNodes(config, mapNodes, endPoints);
             }
             catch (Exception e)
             {
@@ -1224,9 +1284,10 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ClaimIfKvAsync(IClusterNode node, BucketBase bucket)
+        // The map entry decides, as the node can keep the view of a newer config.
+        private async Task ClaimIfKvAsync(IClusterNode node, NodeAdapter nodeAdapter, BucketBase bucket)
         {
-            if (!node.HasKv)
+            if (!nodeAdapter.IsKvNode)
             {
                 return;
             }
@@ -1248,6 +1309,68 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// Finds what a bucket map entry needs. This is the one rule both the lock free and the locked update use.
+        /// </summary>
+        private static MapNodeMatch MatchMapNode(IEnumerable<IClusterNode> nodes, BucketBase bucket, string bucketName,
+            HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+        {
+            IClusterNode bucketNode = null;
+            IClusterNode unassignedNode = null;
+            foreach (var node in nodes)
+            {
+                if (!ClusterNodeList.IsNodeOf(node, endPoint, nodeAdapter))
+                {
+                    continue;
+                }
+
+                if (bucketNode == null && node.BucketName == bucketName)
+                {
+                    bucketNode = node;
+                }
+
+                if (unassignedNode == null && !node.IsAssigned)
+                {
+                    unassignedNode = node;
+                }
+            }
+
+            if (bucketNode == null)
+            {
+                return new MapNodeMatch(unassignedNode, claims: true, unassignedNode: null);
+            }
+
+            return bucketNode.Owner == null && bucket.BucketType != BucketType.Memcached
+                ? new MapNodeMatch(bucketNode, claims: true, unassignedNode: null)
+                : new MapNodeMatch(bucketNode, claims: false, unassignedNode);
+        }
+
+        /// <summary>
+        /// What a bucket map entry needs.
+        /// </summary>
+        [StructLayout(LayoutKind.Auto)]
+        private readonly struct MapNodeMatch(IClusterNode node, bool claims, IClusterNode unassignedNode)
+        {
+            /// <summary>
+            /// The node that gets the adapter of the entry, or null when a node must be created.
+            /// </summary>
+            public IClusterNode Node { get; } = node;
+
+            /// <summary>
+            /// True when the bucket claims <see cref="Node"/> if the entry has K/V.
+            /// </summary>
+            public bool Claims { get; } = claims;
+
+            /// <summary>
+            /// An unassigned node at the entry of a bucket node. It also gets the adapter, and the bucket claims it if the entry has K/V.
+            /// </summary>
+            public IClusterNode UnassignedNode { get; } = unassignedNode;
+
+            // The bucket claims a node only when the entry has K/V.
+            public bool IsAdapterOnly(NodeAdapter nodeAdapter) =>
+                Node != null && UnassignedNode == null && !(Claims && nodeAdapter.IsKvNode);
+        }
+
         public void PruneNodes(BucketConfig config)
         {
             var mapNodes = config.GetNodes();
@@ -1255,11 +1378,14 @@ namespace Couchbase.Core
                 .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
                 .ToList();
 
+            PruneNodes(config, mapNodes, existingEndpoints);
+        }
+
+        private void PruneNodes(BucketConfig config, List<NodeAdapter> mapNodes, List<HostEndpointWithPort> existingEndpoints)
+        {
             _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision} from {bucket}.", existingEndpoints, config.Rev, config.Name);
 
-            var removedEndpoints = Nodes.Where(x =>
-                !IsInMap(x, mapNodes, existingEndpoints)
-                && x.Owner != null && x.Owner.Name == config.Name);
+            var removedEndpoints = Nodes.Where(x => HasLeftMap(x, config.Name, mapNodes, existingEndpoints));
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
 
@@ -1268,6 +1394,10 @@ namespace Couchbase.Core
                 RemoveNode(node);
             }
         }
+
+        private static bool HasLeftMap(IClusterNode node, string bucketName, List<NodeAdapter> mapNodes,
+            List<HostEndpointWithPort> endPoints) =>
+            node.Owner != null && node.Owner.Name == bucketName && !IsInMap(node, mapNodes, endPoints);
 
         private void PruneGlobalNodes(BucketConfig config)
         {
