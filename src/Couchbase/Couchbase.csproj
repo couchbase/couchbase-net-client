@@ -43,6 +43,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Build warning for consumers on out-of-support .NET versions (NCBC-4359). -->
+    <None Include="buildTransitive\CouchbaseNetClient.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Core\Retry\Analytics\" />
     <Folder Include="Stellar\" />
     <Folder Include="Stellar\Core\Authentication\" />
