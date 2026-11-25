@@ -200,7 +200,6 @@ namespace Couchbase.UnitTests
                 node.SetupGet(x => x.HasKv).Returns(true);
                 node.SetupGet(x => x.Owner).Returns(_bucket);
                 node.SetupGet(x => x.BucketName).Returns(_bucket.Name);
-                node.SetupGet(x => x.IsAssigned).Returns(true);
                 node.SetupProperty(x => x.NodesAdapter);
                 node.Setup(x => x.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationTokenPair>()))
                     .Returns(() =>

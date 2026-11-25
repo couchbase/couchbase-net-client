@@ -1075,11 +1075,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 return _innerPool.ScaleAsync(delta);
             }
 
-            public Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
-            {
-                return _innerPool.SelectBucketAsync(name, cancellationToken);
-            }
-
             public Task SendAsync(IOperation op, CancellationToken cancellationToken = default)
             {
                 return _innerPool.SendAsync(op, cancellationToken);

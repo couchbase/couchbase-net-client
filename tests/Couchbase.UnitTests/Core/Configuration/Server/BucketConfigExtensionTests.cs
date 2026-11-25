@@ -1392,7 +1392,7 @@ public class BucketConfigExtensionTests
     }
 
     /// <summary>
-    /// A node with a mock connection pool, so a bucket can claim it and select itself on it.
+    /// A node with a mock connection pool, so it opens no connection.
     /// </summary>
     private static ClusterNode CreateNode(ClusterContext context, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
     {

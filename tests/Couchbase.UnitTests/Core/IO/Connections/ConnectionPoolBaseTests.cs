@@ -340,94 +340,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
         #endregion
 
-        #region SelectBucketAsync
-
-        [Fact]
-        public async Task SelectBucketAsync_CallsForEachConnection()
-        {
-            // Arrange
-
-            var connectionInitializer = new Mock<IConnectionInitializer>();
-            connectionInitializer
-                .SetupGet(m => m.EndPoint)
-                .Returns(_hostEndpoint);
-
-            var connection1 = new Mock<IConnection>();
-            var connection2 = new Mock<IConnection>();
-
-            var connectionFactory = new Mock<IConnectionFactory>();
-
-            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
-            {
-                Connections =
-                {
-                    connection1.Object,
-                    connection2.Object
-                }
-            };
-
-            // Act
-
-            await pool.SelectBucketAsync("default");
-
-            // Assert
-
-            Assert.All(new[] {connection1.Object, connection2.Object},
-                connection => connectionInitializer.Verify(
-                    m => m.SelectBucketAsync(connection, "default", It.IsAny<CancellationToken>()),
-                    Times.Once()));
-        }
-
-        [Fact]
-        public async Task SelectBucketAsync_FreezesDuringOperation()
-        {
-            // Arrange
-
-            ConnectionPoolMock pool = null;
-
-            var connectionInitializer = new Mock<IConnectionInitializer>();
-            connectionInitializer
-                .SetupGet(m => m.EndPoint)
-                .Returns(_hostEndpoint);
-            connectionInitializer
-                .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), "default", It.IsAny<CancellationToken>()))
-                .Returns((IConnection connection, string bucket, CancellationToken _) =>
-                {
-                    // ReSharper disable once AccessToModifiedClosure
-                    Assert.True(pool?.IsFrozen ?? false);
-                    return Task.CompletedTask;
-                });
-
-            var connection1 = new Mock<IConnection>();
-            var connection2 = new Mock<IConnection>();
-
-            var connectionFactory = new Mock<IConnectionFactory>();
-
-            pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object, new Mock<ILogger<IConnectionPool>>().Object)
-            {
-                Connections =
-                {
-                    connection1.Object,
-                    connection2.Object
-                }
-            };
-
-            // Act
-
-            await pool.SelectBucketAsync("default");
-
-            // Assert
-
-            Assert.All(new[] {connection1.Object, connection2.Object},
-                connection => connectionInitializer.Verify(
-                    m => m.SelectBucketAsync(connection, "default", It.IsAny<CancellationToken>()),
-                    Times.Once()));
-
-            Assert.False(pool.IsFrozen);
-        }
-
-        #endregion
-
         private class ConnectionPoolMock : ConnectionPoolBase
         {
             public override int Size => 1;
@@ -451,19 +363,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             public List<IConnection> Connections { get; } = new List<IConnection>();
 
-            public bool IsFrozen { get; private set; }
-
             public ConnectionPoolMock(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger,
                 string bucketName = null)
                 : base(connectionInitializer, connectionFactory, logger, bucketName)
             {
-            }
-
-            public override ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
-            {
-                IsFrozen = true;
-
-                return new ValueTask<IAsyncDisposable>(new Frozen(this));
             }
 
             public override Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -493,23 +396,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             public Task<IConnection> CreateConnectionAsyncPublic(CancellationToken cancellationToken = default)
             {
                 return CreateConnectionAsync(cancellationToken);
-            }
-
-            private class Frozen : IAsyncDisposable
-            {
-                private readonly ConnectionPoolMock _mock;
-
-                public Frozen(ConnectionPoolMock mock)
-                {
-                    _mock = mock;
-                }
-
-                public ValueTask DisposeAsync()
-                {
-                    _mock.IsFrozen = false;
-
-                    return default;
-                }
             }
         }
     }

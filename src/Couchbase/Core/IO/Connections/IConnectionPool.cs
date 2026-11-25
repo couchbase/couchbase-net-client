@@ -103,13 +103,6 @@ namespace Couchbase.Core.IO.Connections
         ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Selects the bucket for all connections on the pool.
-        /// </summary>
-        /// <param name="name">The bucket name.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task SelectBucketAsync(string name, CancellationToken cancellationToken = default);
-
-        /// <summary>
         /// Returns a snapshot in time list of the current connections in the pool.
         /// </summary>
         /// <returns>The current connections in the pool.</returns>

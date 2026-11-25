@@ -305,10 +305,7 @@ namespace Couchbase.UnitTests.Core
 
             using var pool = new ChannelConnectionPool(clusterNode, connectionFactory.Object,
                 new Mock<IConnectionPoolScaleController>().Object, new Redactor(RedactionLevel.None),
-                NullLogger<ChannelConnectionPool>.Instance, new FakeTimeProvider(), 1024);
-
-            // The pool records the bucket before it finds no connection to select it on.
-            await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("default").WaitAsync(Deadline));
+                NullLogger<ChannelConnectionPool>.Instance, new FakeTimeProvider(), 1024, bucketName: "default");
 
             clusterNode.Dispose();
 

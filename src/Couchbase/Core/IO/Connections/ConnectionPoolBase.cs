@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -98,9 +96,9 @@ namespace Couchbase.Core.IO.Connections
 
         /// <summary>
         /// The bucket that each new connection selects, or null when the connections select no bucket.
-        /// A bucket node gives it at creation. <see cref="SelectBucketAsync(string,CancellationToken)"/> also sets it.
+        /// A bucket node gives it at creation, and it never changes.
         /// </summary>
-        protected string? BucketName { get; private set; }
+        protected string? BucketName { get; }
 
         /// <summary>
         /// Creates a new ConnectionPoolBase.
@@ -165,62 +163,6 @@ namespace Couchbase.Core.IO.Connections
                 }
 
                 throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual async Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
-        {
-            await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
-            {
-                // Record the bucket before selecting it. If a select fails, the connection is disposed and its
-                // replacement must open with this bucket selected; otherwise the node is left serving the bucket
-                // through connections that have no bucket, and every operation gets BucketNotConnected.
-                BucketName = name;
-
-                var tasks = GetConnections()
-                    .Where(p => !p.IsDead)
-                    .Select(connection => Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await SelectBucketOnLiveConnectionAsync(connection, name, cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // Be sure to cleanup the connection if bootstrap fails.
-                            // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
-                            connection.Dispose();
-                            throw;
-                        }
-                    }, cancellationToken))
-                    .ToList();
-
-                if (tasks.Count == 0)
-                {
-                    // There are no healthy connections, so we cannot select the bucket
-                    throw new DocumentNotFoundException($"Failed to select bucket {name}.");
-                }
-
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-        }
-
-        /// <summary>
-        /// Selects the bucket on a connection of a live pool. A refused bucket does not throw. The connection closes
-        /// and the pool opens its replacement with the bucket selected.
-        /// </summary>
-        private async Task SelectBucketOnLiveConnectionAsync(IConnection connection, string name,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                await _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken).ConfigureAwait(false);
-            }
-            catch (BucketNotFoundException)
-            {
-                connection.Dispose();
             }
         }
 

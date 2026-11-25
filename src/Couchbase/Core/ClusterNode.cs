@@ -146,8 +146,6 @@ namespace Couchbase.Core
         /// </summary>
         private ConfigVersion? EffectiveConfigVersion(IOperation op) => op.ConfigVersion ?? ConfigVersion;
 
-        public bool IsAssigned => Owner != null;
-
         public IBucket Owner
         {
             get => _owner;
@@ -524,11 +522,6 @@ namespace Couchbase.Core
                 .ConfigureAwait(false);
 
             return manifestOp.GetValue();
-        }
-
-        public async Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
-        {
-            await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, TimeSpan? timeout = default,

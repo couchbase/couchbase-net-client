@@ -51,7 +51,6 @@ namespace Couchbase.Core
         IConnectionPool ConnectionPool { get; }
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
 
-        bool IsAssigned { get; }
         bool HasViews { get; }
         bool HasAnalytics { get; }
         bool HasQuery { get; }
@@ -66,13 +65,6 @@ namespace Couchbase.Core
         DateTime? LastKvActivity { get; }
         DateTime? LastEventingActivity { get; }
         Task<Manifest> GetManifest();
-
-        /// <summary>
-        /// Selects the <see cref="IBucket"/> this <see cref="ClusterNode" /> is associated to.
-        /// </summary>
-        /// <param name="bucketName">The bucket's name.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetches the config of the selected bucket, or the cluster config when no bucket is selected.

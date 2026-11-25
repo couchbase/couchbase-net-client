@@ -1229,61 +1229,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.True(operation.SendToken.IsCancellationRequested, "The send did not get the caller's token.");
         }
 
-        [Fact]
-        public async Task SelectBucketAsync_NoLiveConnections_NamesTheRequestedBucket()
-        {
-            // Arrange
-
-            var connection = new ControllableConnection();
-            var connectionFactory = new Mock<IConnectionFactory>();
-            connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(connection.Object);
-
-            var pool = CreatePool(connectionFactory: connectionFactory.Object);
-            pool.MinimumSize = 1;
-            pool.MaximumSize = 1;
-            await pool.InitializeAsync();
-            connection.MarkDeadSilently();
-
-            // Act
-
-            var ex = await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("travel-sample"));
-
-            // Assert
-
-            Assert.Equal("Failed to select bucket travel-sample.", ex.Message);
-        }
-
-        // A bucket open still selects the bucket on a live pool. A refused bucket there closes the connection and does
-        // not throw. The harness test NCBC4414_NewNodeThatRefusesTheBucketAtFirst_GetsConnectionsOnTheSdkClock covers
-        // the reconnect.
-        [Fact]
-        public async Task SelectBucketAsync_LivePoolRefusesTheBucket_DoesNotThrowAndClosesTheConnections()
-        {
-            // Arrange
-
-            using var deadline = new CancellationTokenSource(Deadline);
-            var clock = new TimerRecordingTimeProvider();
-            var factory = new RefillFactory();
-            var pool = CreatePool(RefusingInitializer(out _).Object, factory.Object, clock);
-            pool.MinimumSize = 2;
-            pool.MaximumSize = 2;
-            await pool.InitializeAsync().WaitAsync(deadline.Token);
-            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
-
-            // Act
-
-            await pool.SelectBucketAsync("travel-sample").WaitAsync(deadline.Token);
-
-            // Assert
-
-            Assert.All(factory.Connections, c => Assert.True(c.DisposeCalled.IsCompleted));
-            pool.Dispose();
-        }
-
         // InitializeAsync returns at the first live connection. The refill loop keeps the pool lock until the sibling
-        // is registered, so a bucket selection that freezes the pool sees every connection.
+        // is registered, so a caller that freezes the pool, such as a re-authentication, sees every connection.
         [Fact]
         public async Task InitializeAsync_ReturnsAtTheFirstConnection_TheLoopHoldsThePoolLockUntilTheSiblingIsRegistered()
         {

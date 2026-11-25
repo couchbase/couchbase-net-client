@@ -372,7 +372,6 @@ namespace Couchbase
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
 
-            await node.SelectBucketAsync(Name, tokenPair).ConfigureAwait(false);
             return await node.SendAsync(op, tokenPair).ConfigureAwait(false);
         }
 

@@ -154,8 +154,6 @@ namespace Couchbase.UnitTests.Diagnostics
                 throw new NotImplementedException();
             }
 
-            public bool IsAssigned { get; }
-
             public DateTime? LastViewActivity { get; }
             public DateTime? LastQueryActivity { get; }
             public DateTime? LastSearchActivity { get; }
@@ -163,11 +161,6 @@ namespace Couchbase.UnitTests.Diagnostics
             public DateTime? LastKvActivity { get; }
             public DateTime? LastEventingActivity { get; }
             public Task<Manifest> GetManifest()
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
             {
                 throw new NotImplementedException();
             }

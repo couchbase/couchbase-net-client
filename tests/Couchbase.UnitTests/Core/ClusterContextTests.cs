@@ -427,7 +427,7 @@ namespace Couchbase.UnitTests.Core
 
         /// <summary>
         /// Cancellation is cooperative, and several of the awaits inside
-        /// CreateAndBootStrapBucketAsync (SelectBucketAsync, GetClusterMap, BootstrapAsync) don't
+        /// CreateAndBootStrapBucketAsync (the node connect, GetClusterMap, BootstrapAsync) don't
         /// observe the token Dispose() cancels. So a bootstrap can still complete successfully after
         /// Dispose() has already drained Buckets - without a guard, GetOrCreateBucketLockedAsync would
         /// hand back a "successfully bootstrapped" bucket owned by an already-disposed context, and
@@ -1351,7 +1351,6 @@ namespace Couchbase.UnitTests.Core
                 node.SetupAllProperties();
                 node.Setup(x => x.EndPoint).Returns(endPoint);
                 node.Setup(x => x.KeyEndPoints).Returns([endPoint]);
-                node.Setup(x => x.IsAssigned).Returns(() => node.Object.Owner is not null);
                 node.Setup(x => x.BucketName).Returns(() => node.Object.Owner?.Name);
                 if (httpStreaming)
                 {
@@ -2059,7 +2058,7 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(hosts, staying.Select(node => node.NodesAdapter.CanonicalHostname));
         }
 
-        // Nodes with no K/V service never get a bucket owner, so every bucket map looks them up as unassigned nodes.
+        // Nodes with no K/V service are cluster nodes only. A bucket map keeps their adapters and creates no node.
         [Fact]
         public async Task ProcessClusterMap_Shared_Host_Nodes_Keep_Their_Own_Adapters()
         {
@@ -2670,7 +2669,7 @@ namespace Couchbase.UnitTests.Core
         // NCBC-2422. A bucket config lists a joining KV node in nodesExt before its nodes list holds it. The bucket
         // map drops that entry, but the host already runs KV for the cluster.
         [Fact]
-        public async Task ProcessClusterMap_KvNodeMissingFromNodes_GetsAClusterKvNodeThatTheBucketDoesNotClaim()
+        public async Task ProcessClusterMap_KvNodeMissingFromNodes_GetsAClusterKvNodeWithNoOwner()
         {
             var created = new List<IClusterNode>();
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
