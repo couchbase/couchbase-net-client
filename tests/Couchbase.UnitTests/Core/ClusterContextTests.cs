@@ -301,6 +301,36 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(2, bootstraps.Count);
         }
 
+        // NCBC-4423. With no DNS SRV the rebootstrap starts only while no bucket is open, and it bootstraps the cluster
+        // only. A bucket that the app opens while it runs is not rebuilt, so a failed rebuild cannot close it.
+        [Fact]
+        public async Task SignalConfigRefreshFailed_WithNoDnsSrv_LeavesABucketOpenedDuringTheBootstrap()
+        {
+            var config = DockerConfig(1, PlainNode(0, kv: true));
+            var seed = SeedNode(new HostEndpointWithPort(PlainHost(0), 11210), config);
+            var seedGate = new TaskCompletionSource<IClusterNode>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var seedConnects = new AsyncCounter();
+            var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .Callback(() => seedConnects.Increment())
+                .Returns(() => seedGate.Task);
+            var options = PlainOptions(factory.Object);
+            options.EnableDnsSrvResolution = false;
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            AddClusterKvNodes(context, "a");
+
+            context.SignalConfigRefreshFailed();
+            await seedConnects.WaitForAsync(1).WaitAsync(Deadline);
+            RegisterOpenBucket(context);
+            seedGate.SetResult(seed.Object);
+            await context.LastRebootstrap.WaitAsync(Deadline);
+
+            Assert.True(context.HasOpenBuckets);
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, seed.Object));
+            factory.Verify(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
         /// <summary>
         /// A context whose bootstrap counts each seed connect in <paramref name="bootstraps"/> and then fails.
         /// </summary>

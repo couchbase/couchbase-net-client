@@ -1160,18 +1160,21 @@ namespace Couchbase.Core
         /// <summary>
         /// A config refresher calls this when every node failed to return a config. This then starts a rebootstrap in
         /// the background. It reads the DNS SRV records again when the connection string is a DNS SRV one, then
-        /// bootstraps the cluster and every bucket on the hosts it finds. One rebootstrap runs at a time, at most one
-        /// starts every <see cref="MinTimeBetweenRebootstraps"/>, and a call in between does nothing.
+        /// bootstraps the cluster on the hosts it finds. One rebootstrap runs at a time, at most one starts every
+        /// <see cref="MinTimeBetweenRebootstraps"/>, and a call in between does nothing.
         /// </summary>
         /// <remarks>
-        /// With a DNS SRV connection string the cluster may have moved, so every signal counts. With any other
-        /// connection string only a client whose cluster KV nodes never connected rebootstraps, and only while no bucket
-        /// is open, because the bootstrap is then the only way to get a new config.
+        /// With a DNS SRV connection string the cluster may have moved, so every signal counts, and the rebootstrap also
+        /// rebuilds every open bucket. With any other connection string only a client whose cluster KV nodes never
+        /// connected rebootstraps, and only while no bucket is open, because the bootstrap is then the only way to get a
+        /// new config. That rebootstrap bootstraps the cluster only, so a bucket that the app opens while it runs is
+        /// left as it is.
         /// </remarks>
         internal void SignalConfigRefreshFailed()
         {
-            if (ClusterOptions.ConnectionStringValue is not { IsDnsSrv: true }
-                && (HasOpenBuckets || !IsAwaitingEveryClusterConnection()))
+            // Read before the bootstrap, which can replace the connection string with a DNS SRV one.
+            var dnsSrv = ClusterOptions.ConnectionStringValue is { IsDnsSrv: true };
+            if (!dnsSrv && (HasOpenBuckets || !IsAwaitingEveryClusterConnection()))
             {
                 return;
             }
@@ -1186,9 +1189,12 @@ namespace Couchbase.Core
                 }
 
                 _lastRebootstrap = _timeProvider.GetTimestamp();
-                LastRebootstrap = Task.Run(RebootstrapFromConnectionStringAsync);
+                LastRebootstrap = StartRebootstrap(rebuildBuckets: dnsSrv);
             }
         }
+
+        private Task StartRebootstrap(bool rebuildBuckets) =>
+            Task.Run(() => RebootstrapFromConnectionStringAsync(rebuildBuckets));
 
         /// <summary>
         /// True when the context has a live KV cluster node and none of them ever had a connection.
@@ -1214,13 +1220,16 @@ namespace Couchbase.Core
             return awaiting;
         }
 
-        private async Task RebootstrapFromConnectionStringAsync()
+        private async Task RebootstrapFromConnectionStringAsync(bool rebuildBuckets)
         {
             try
             {
                 _logger.LogInformation("Bootstrapping: no node returned a config, so the SDK bootstraps again from the connection string.");
                 await BootstrapGlobalAsync().ConfigureAwait(false);
-                await RebootstrapAllBuckets().ConfigureAwait(false);
+                if (rebuildBuckets)
+                {
+                    await RebootstrapAllBuckets().ConfigureAwait(false);
+                }
             }
             catch (Exception) when (_disposed != 0)
             {
