@@ -104,6 +104,50 @@ namespace Couchbase.Core
         /// </summary>
         public ClusterNodeList Nodes { get; } = new();
 
+        /// <summary>
+        /// Every node of the client, the nodes in <see cref="Nodes"/> and the nodes of each open bucket. Each node
+        /// appears once.
+        /// </summary>
+        /// <remarks>
+        /// A bucket list can hold a node that the context removed and disposed. A bucket appears here once it is
+        /// registered.
+        /// </remarks>
+        internal List<IClusterNode> GetAllNodes()
+        {
+            var nodes = new List<IClusterNode>(Nodes);
+            if (Buckets.IsEmpty)
+            {
+                return nodes;
+            }
+
+            foreach (var bucket in Buckets)
+            {
+                foreach (var node in bucket.Value.Nodes)
+                {
+                    // By reference, as ClusterNode equality matches another node with the same owner and endpoint.
+                    if (!ContainsReference(nodes, node))
+                    {
+                        nodes.Add(node);
+                    }
+                }
+            }
+
+            return nodes;
+        }
+
+        private static bool ContainsReference(List<IClusterNode> nodes, IClusterNode node)
+        {
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                if (ReferenceEquals(nodes[i], node))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public ClusterOptions ClusterOptions { get; }
 
         /// <summary>
@@ -606,7 +650,7 @@ namespace Couchbase.Core
                         GlobalConfig = await node.GetClusterMap(cancellationToken: cts.Token).ConfigureAwait(false);
                         // Pushes and node views seen before can come from an older cluster behind the same DNS name.
                         GlobalConfigRefresher.ForgetPushedVersions();
-                        foreach (var existingNode in Nodes)
+                        foreach (var existingNode in GetAllNodes())
                         {
                             existingNode.ForgetNodesAdapterVersion();
                         }
