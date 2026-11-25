@@ -937,6 +937,43 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         }
     }
 
+    // NCBC-4423. Only the cluster refresher polls with polling off while no cluster node has connected.
+    [Fact]
+    public async Task PollingOff_WhenNoNodeEverConnected_RunsNoPass()
+    {
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options =>
+        {
+            UseDnsSrv(options, dnsLookups, clock);
+            options.EnableConfigPolling = false;
+        });
+        using var context = bucket.Context;
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupGet(x => x.HasKv).Returns(true);
+        clusterNode.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        clusterNode.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+        context.AddNode(clusterNode.Object);
+        var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
+        foreach (var node in nodes)
+        {
+            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            node.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+        }
+
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        var start = clock.GetUtcNow();
+        clock.Advance(PollInterval + PollInterval);
+
+        Assert.True(context.IsAwaitingEveryClusterConnection());
+        Assert.Equal(start + PollInterval + PollInterval, clock.GetUtcNow());
+        Assert.Equal(1, clock.TimersCreated);
+        Assert.Equal(0, dnsLookups.Count);
+    }
+
     [Fact]
     public async Task Fetch_WhenOneNodeAnswersKeyNotFound_PublishesFromAnotherNodeAndGoesOn()
     {

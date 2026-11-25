@@ -1148,7 +1148,7 @@ namespace Couchbase.Core
         /// <summary>
         /// True when the context has a live KV cluster node and none of them ever had a connection.
         /// </summary>
-        private bool IsAwaitingEveryClusterConnection()
+        internal bool IsAwaitingEveryClusterConnection()
         {
             var awaiting = false;
             foreach (var node in Nodes)
@@ -1551,6 +1551,7 @@ namespace Couchbase.Core
         /// </remarks>
         private void ReconcileClusterNodes(BucketConfig config)
         {
+            var changed = false;
             while (true)
             {
                 var entries = config.GetClusterNodes();
@@ -1564,6 +1565,7 @@ namespace Couchbase.Core
                         _logger.LogDebug("Removing node {endPoint}, as config revision {rev} does not list it.",
                             _redactor.SystemData(node.EndPoint), config.ConfigVersion);
                         RemoveNode(node);
+                        changed = true;
                     }
                 }
 
@@ -1582,6 +1584,7 @@ namespace Couchbase.Core
                     var newNode = _clusterNodeFactory.CreateClusterNode(endPoints[i], entries[i]);
                     AddNode(newNode);
                     nodes.Add(newNode);
+                    changed = true;
 
                     if (ClusterNodesConfig is { } view && !ReferenceEquals(view, config)
                         && view.ConfigVersion > config.ConfigVersion)
@@ -1594,6 +1597,12 @@ namespace Couchbase.Core
                 if (newerView is null)
                 {
                     Volatile.Write(ref _reconciledClusterNodesConfig, config);
+
+                    if (changed)
+                    {
+                        GlobalConfigRefresher.NodesChanged();
+                    }
+
                     return;
                 }
 

@@ -34,9 +34,6 @@ internal abstract partial class ConfigRefresher : IDisposable
     // Delay rejects a longer sleep on .NET Framework. A loop with nothing due wakes up and sleeps again.
     internal static readonly TimeSpan MaxSleep = TimeSpan.FromMilliseconds(int.MaxValue);
 
-    // The wait after an unexpected error when the poll interval is zero or less. It is the default poll interval.
-    internal static readonly TimeSpan DefaultErrorDelay = TimeSpan.FromSeconds(2.5);
-
     private readonly ILogger _logger;
     private readonly TimeProvider _timeProvider;
     private readonly CancellationTokenSource _disposeSource = new();
@@ -94,6 +91,12 @@ internal abstract partial class ConfigRefresher : IDisposable
     /// The time from the last answer to the next poll.
     /// </summary>
     protected virtual TimeSpan PollInterval => Context.ClusterOptions.ConfigPollInterval;
+
+    /// <summary>
+    /// Whether the loop polls also with config polling off. Nodes that never connected push nothing, so without a poll
+    /// no pass would find that their connects failed.
+    /// </summary>
+    protected virtual bool PollsWithPollingOff => false;
 
     /// <summary>
     /// Sends a fetched config that is newer than <see cref="CurrentVersion"/> to the subscribers.
@@ -155,6 +158,18 @@ internal abstract partial class ConfigRefresher : IDisposable
     /// Wakes the loop to compute the next poll again, because the new config can have a shorter poll interval.
     /// </summary>
     internal void Reschedule() => WakeUp();
+
+    /// <summary>
+    /// The cluster nodes changed. With polling off the loop can sleep with no due time, so this wakes it when
+    /// <see cref="PollsWithPollingOff"/> now asks for polls.
+    /// </summary>
+    internal void NodesChanged()
+    {
+        if (!IsPollingOn(PollInterval) && PollsWithPollingOff)
+        {
+            WakeUp();
+        }
+    }
 
     /// <summary>
     /// Whether a wake-up is set that the loop has not taken yet.
@@ -247,9 +262,8 @@ internal abstract partial class ConfigRefresher : IDisposable
                 {
                     // The loop must go on. The wait stops a repeated error from spinning it.
                     LogRefreshFailed(ex, Redactor.SystemData(Name));
-                    var pollInterval = Context.ClusterOptions.ConfigPollInterval;
-                    var delay = pollInterval > TimeSpan.Zero ? pollInterval : DefaultErrorDelay;
-                    await SleepAsync(wakeUp, delay, token).ConfigureAwait(false);
+                    await SleepAsync(wakeUp, OrDefault(Context.ClusterOptions.ConfigPollInterval), token)
+                        .ConfigureAwait(false);
                 }
             }
         }
@@ -274,11 +288,12 @@ internal abstract partial class ConfigRefresher : IDisposable
         var currentVersion = CurrentVersion;
         var pendingVersion = GetPendingVersion(latestPushedVersion, currentVersion);
 
-        // Polling is off for an interval of zero or less, InfiniteTimeSpan included, since a poll would be due every turn.
         var pollInterval = PollInterval;
-        var untilPoll = Context.ClusterOptions.EnableConfigPolling && pollInterval > TimeSpan.Zero
+        var untilPoll = IsPollingOn(pollInterval)
             ? pollInterval - _timeProvider.GetElapsedTime(_lastPoll)
-            : Never;
+            : PollsWithPollingOff
+                ? OrDefault(pollInterval) - _timeProvider.GetElapsedTime(_lastPoll)
+                : Never;
         var untilRetry = GetTimeUntilRetry(pendingVersion);
         var pollDue = untilPoll <= TimeSpan.Zero;
         var pushDue = untilRetry <= TimeSpan.Zero;
@@ -522,6 +537,16 @@ internal abstract partial class ConfigRefresher : IDisposable
             return _latestPushedVersion;
         }
     }
+
+    // Polling is off for an interval of zero or less, InfiniteTimeSpan included, since a poll would be due every turn.
+    private bool IsPollingOn(TimeSpan pollInterval) =>
+        Context.ClusterOptions.EnableConfigPolling && pollInterval > TimeSpan.Zero;
+
+    /// <summary>
+    /// The poll interval, or the default one when it is zero or less.
+    /// </summary>
+    private static TimeSpan OrDefault(TimeSpan pollInterval) =>
+        pollInterval > TimeSpan.Zero ? pollInterval : ClusterOptions.DefaultConfigPollInterval;
 
     private async Task SleepAsync(Task wakeUp, TimeSpan duration, CancellationToken token)
     {

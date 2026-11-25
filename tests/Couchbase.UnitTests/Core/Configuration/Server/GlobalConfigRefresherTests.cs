@@ -458,6 +458,272 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, dnsLookups.Count);
     }
 
+    // NCBC-4423. Nodes that never connected push nothing, so with polling off the refresher polls to find the failed
+    // first connects. Each pass asks no node and signals. The 10 s interval lets each signal start a rebootstrap.
+    [Fact]
+    public async Task PollingOff_WhenEveryClusterNodeFailedItsFirstConnect_PollsAtTheIntervalAndSignals()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler,
+            options => UsePollingOff(options, dnsLookups, pollInterval, clock));
+        var nodes = AddNodesAwaitingFirstConnection(context, failed: true);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        for (var pass = 1; pass <= 3; pass++)
+        {
+            await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+            await context.LastRebootstrap.WaitAsync(Deadline);
+            clock.Advance(pollInterval);
+            await dnsLookups.WaitForAsync(pass).WaitAsync(Deadline);
+        }
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.Equal(3, dnsLookups.Count);
+        VerifyNotAsked(nodes);
+    }
+
+    // NCBC-4423
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 0)]
+    [InlineData(false, -1)]
+    public async Task PollingOff_WithAnIntervalOfZeroOrLess_PollsAtTheDefaultInterval(bool enablePolling, int intervalMs)
+    {
+        var interval = ClusterOptions.DefaultConfigPollInterval;
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler, options =>
+        {
+            UsePollingOff(options, dnsLookups, TimeSpan.FromMilliseconds(intervalMs), clock);
+            options.EnableConfigPolling = enablePolling;
+        });
+        var nodes = AddNodesAwaitingFirstConnection(context, failed: true);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(interval).WaitAsync(Deadline);
+        clock.Advance(interval);
+        await dnsLookups.WaitForAsync(1).WaitAsync(Deadline);
+        await clock.WaitForSleepAsync(interval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.Equal(1, dnsLookups.Count);
+        VerifyNotAsked(nodes);
+    }
+
+    // NCBC-4423. A connected node pushes config changes, so with polling off the refresher waits for pushes only.
+    [Fact]
+    public async Task PollingOff_WithOneConnectedClusterNode_SleepsWithNoDueTime()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler,
+            options => UsePollingOff(options, dnsLookups, pollInterval, clock));
+        var connected = AddNode(context, "host0", owner: null);
+        connected.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
+        var nodes = AddNodesAwaitingFirstConnection(context, failed: true);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        var start = clock.GetUtcNow();
+        clock.Advance(pollInterval + pollInterval);
+
+        Assert.Equal(start + pollInterval + pollInterval, clock.GetUtcNow());
+        Assert.Equal(1, clock.TimersCreated);
+        Assert.Equal(0, dnsLookups.Count);
+        VerifyNotAsked([connected, .. nodes]);
+    }
+
+    // NCBC-4423
+    [Fact]
+    public async Task PollingOff_WhenAClusterNodeConnectsAfterAPass_RunsNoFurtherPass()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler,
+            options => UsePollingOff(options, dnsLookups, pollInterval, clock));
+        var connected = false;
+        var node = AddNode(context, "host0", owner: null);
+        node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(() => !connected);
+        node.SetupGet(x => x.HasFailedFirstConnect).Returns(() => !connected);
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        clock.Advance(pollInterval);
+        await dnsLookups.WaitForAsync(1).WaitAsync(Deadline);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        connected = true;
+        clock.Advance(pollInterval);
+        // The loop woke at the due time of its last pass and then slept with no due time.
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        var timers = clock.TimersCreated;
+        clock.Advance(pollInterval + pollInterval);
+
+        Assert.Equal(timers, clock.TimersCreated);
+        Assert.Equal(1, dnsLookups.Count);
+        VerifyNotAsked([node]);
+    }
+
+    // NCBC-4423. A node still in its first attempt may connect, so a pass signals nothing.
+    [Fact]
+    public async Task PollingOff_WhileAClusterNodeIsInItsFirstConnect_PollsAndSignalsNothing()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler,
+            options => UsePollingOff(options, dnsLookups, pollInterval, clock));
+        var nodes = AddNodesAwaitingFirstConnection(context, failed: true);
+        nodes.AddRange(AddNodesAwaitingFirstConnection(context, failed: false, firstHost: 2));
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        for (var pass = 0; pass < 3; pass++)
+        {
+            await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+            clock.Advance(pollInterval);
+        }
+        // Reaching the next sleep means the third pass ran to completion.
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.Equal(0, dnsLookups.Count);
+        VerifyNotAsked(nodes);
+    }
+
+    // NCBC-4423. The bootstrap starts the refresher before the cluster nodes join, so the loop can already sleep with
+    // no due time. The reconcile that adds nodes that never connected wakes it.
+    [Fact]
+    public async Task PollingOff_WhenNodesJoinAfterTheLoopSleeps_PollsAtTheInterval()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var nodeFactory = new Mock<IClusterNodeFactory>();
+        using var context = CreateContext(out _, options =>
+        {
+            UsePollingOff(options, dnsLookups, pollInterval, clock);
+            options.AddClusterService(nodeFactory.Object);
+        });
+        var created = new List<Mock<IClusterNode>>();
+        nodeFactory.Setup(x => x.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+            .Returns((HostEndpointWithPort endPoint, NodeAdapter adapter) =>
+            {
+                var node = new Mock<IClusterNode>();
+                node.SetupGet(x => x.EndPoint).Returns(endPoint);
+                node.SetupGet(x => x.HasKv).Returns(true);
+                node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+                node.SetupProperty(x => x.NodesAdapter, adapter);
+                node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+                node.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+                created.Add(node);
+                return node.Object;
+            });
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("No node in this test."));
+
+        var refresher = context.GlobalConfigRefresher;
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+
+        var config = Version(1);
+        config.NodesExt = [new NodesExt { Hostname = "host1", Services = new Services { Kv = 11210 } }];
+        config.SetEffectiveNetworkResolution(context.ClusterOptions);
+        context.UpdateClusterNodesConfig(config, replace: true);
+        await context.AddBootstrapNodesAsync(null!, CancellationToken.None).WaitAsync(Deadline);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        clock.Advance(pollInterval);
+        await dnsLookups.WaitForAsync(1).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.Single(created);
+        VerifyNotAsked(created);
+    }
+
+    // NCBC-4423. With polling on, the passes follow the poll interval, also while no cluster node has connected.
+    [Fact]
+    public async Task PollingOn_WhenEveryClusterNodeFailedItsFirstConnect_PollsAtThePollInterval()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler, options =>
+        {
+            UsePollingOff(options, dnsLookups, pollInterval, clock);
+            options.EnableConfigPolling = true;
+        });
+        var nodes = AddNodesAwaitingFirstConnection(context, failed: true);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        for (var pass = 1; pass <= 2; pass++)
+        {
+            await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+            await context.LastRebootstrap.WaitAsync(Deadline);
+            clock.Advance(pollInterval);
+            await dnsLookups.WaitForAsync(pass).WaitAsync(Deadline);
+        }
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        // One loop sleep before each pass and one after the last.
+        Assert.Equal(3, clock.TimersCreated);
+        Assert.Equal(2, dnsLookups.Count);
+        VerifyNotAsked(nodes);
+    }
+
+    /// <summary>
+    /// A DNS SRV client with config polling off. The context runs on <paramref name="clock"/>, so the 10 s between two
+    /// rebootstraps is SDK time.
+    /// </summary>
+    private static void UsePollingOff(ClusterOptions options, AsyncCounter dnsLookups, TimeSpan pollInterval,
+        SteppableClock clock)
+    {
+        UseDnsSrv(options, dnsLookups, pollInterval);
+        options.EnableConfigPolling = false;
+        options.AddClusterService<TimeProvider>(clock);
+    }
+
+    /// <summary>
+    /// Adds two cluster KV nodes that never connected.
+    /// </summary>
+    private static List<Mock<IClusterNode>> AddNodesAwaitingFirstConnection(ClusterContext context, bool failed,
+        int firstHost = 0)
+    {
+        var nodes = new List<Mock<IClusterNode>>();
+        for (var host = firstHost; host < firstHost + 2; host++)
+        {
+            var node = AddNode(context, $"host{host}", owner: null);
+            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            node.SetupGet(x => x.HasFailedFirstConnect).Returns(failed);
+            nodes.Add(node);
+        }
+
+        return nodes;
+    }
+
+    private static void VerifyNotAsked(IEnumerable<Mock<IClusterNode>> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+    }
+
     /// <summary>
     /// Runs one poll pass on a DNS SRV client, so a failed refresh shows as one DNS SRV lookup.
     /// </summary>

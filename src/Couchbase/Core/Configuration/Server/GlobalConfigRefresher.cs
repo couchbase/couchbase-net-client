@@ -24,6 +24,9 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
 
     protected override ConfigVersion? CurrentVersion => Context.GlobalConfig?.ConfigVersion;
 
+    // A pass then finds the failed first connects, and its signal can start a rebootstrap. It stops at the first connection.
+    protected override bool PollsWithPollingOff => Context.IsAwaitingEveryClusterConnection();
+
     protected override void Publish(BucketConfig config)
     {
         // A node with no bucket selected returns the cluster config with no name.
