@@ -169,8 +169,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             pool.Dispose();
         }
 
+        // A cluster node keeps its pool after any failed first connect, and only the scale controller retries a DataFlow
+        // pool. A caller that drops the pool disposes it, which stops the controller.
         [Fact]
-        public async Task InitializeAsync_EveryConnectionFailsForAnotherReason_DoesNotStartTheScaleController()
+        public async Task InitializeAsync_EveryConnectionFailsForAnotherReason_StartsTheScaleController()
         {
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
@@ -181,7 +183,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync().WaitAsync(TimeSpan.FromSeconds(10)));
 
-            scaleController.Verify(m => m.Start(It.IsAny<IConnectionPool>()), Times.Never);
+            scaleController.Verify(m => m.Start(It.IsAny<IConnectionPool>()), Times.Once);
+            pool.Dispose();
+            scaleController.Verify(m => m.Dispose(), Times.Once);
         }
 
         private IConnectionFactory CreateConnectionFactory()

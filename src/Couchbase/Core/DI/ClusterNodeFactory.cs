@@ -74,15 +74,28 @@ namespace Couchbase.Core.DI
             return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket);
         }
 
-        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
-            string? bucketName, bool acceptRefusedBucket)
+        /// <inheritdoc />
+        public IClusterNode CreateClusterNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+        {
+            var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName: null);
+            clusterNode.StartConnecting();
+            return clusterNode;
+        }
+
+        private ClusterNode CreateNode(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string? bucketName)
         {
             // Resolved per node rather than held as a field, so each node gets its own breaker.
             var circuitBreaker = _clusterContext.ServiceProvider.GetRequiredService<ICircuitBreaker>();
 
-            var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
+            return new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _operationBuilderPool, circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
                 nodeAdapter, _tracer, _operationConfigurator, bucketName);
+        }
+
+        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
+            string? bucketName, bool acceptRefusedBucket)
+        {
+            var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName);
 
             //ensure server calls are made to set the state
             try

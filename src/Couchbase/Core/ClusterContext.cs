@@ -233,12 +233,6 @@ namespace Couchbase.Core
         private bool IsReconciled(BucketConfig view) =>
             ReferenceEquals(Volatile.Read(ref _reconciledClusterNodesConfig), view);
 
-        /// <summary>
-        /// Whether the config is the view, or the same bucket and revision fetched again after a failed apply.
-        /// </summary>
-        private static bool IsCopyOf(BucketConfig view, BucketConfig config) =>
-            ReferenceEquals(view, config) || (view.Name == config.Name && view.ConfigVersion == config.ConfigVersion);
-
         public void Start()
         {
             var requestTracer = ServiceProvider.GetRequiredService<IRequestTracer>();
@@ -469,6 +463,15 @@ namespace Couchbase.Core
         /// </remarks>
         internal void RecomputeClusterFeatureSupport()
         {
+            // Cluster nodes finish HELLO in parallel. Without the lock, an older result can be written last.
+            lock (_featureSupportLock)
+            {
+                RecomputeClusterFeatureSupportLocked();
+            }
+        }
+
+        private void RecomputeClusterFeatureSupportLocked()
+        {
             var seenAnyNode = false;
             var preserveTtl = true;
             var binaryXattr = true;
@@ -630,10 +633,6 @@ namespace Couchbase.Core
                         {
                             node.Dispose();
                             node = null;
-;                       }
-                        else
-                        {
-                            AddNode(node);
                         }
 
                         //ignore the exceptions since at least one node bootstrapped
@@ -642,6 +641,7 @@ namespace Couchbase.Core
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         // Don't trap OperationCanceledException if the caller requested cancellation
+                        node?.Dispose();
                         throw;
                     }
                     catch (Exception e)
@@ -654,6 +654,9 @@ namespace Couchbase.Core
                                 return;
                             }
                         }
+
+                        // The pool of a seed keeps reconnecting until it is disposed.
+                        node?.Dispose();
 
                         // something else failed, try the next hostname
                         _logger.LogDebug(e,
@@ -669,57 +672,9 @@ namespace Couchbase.Core
 
                     try
                     {
-                        //Server is 6.5 and greater and supports GC3P so loop through the global config and
-                        //create the nodes that are not associated with any buckets via Select Bucket.
-                        var mapNodes = GlobalConfig.GetNodes();
-
-                        //Match the seed before other nodes connect, so a failed connect cannot leave it behind.
-                        var seedAdapter = node == null ? null : mapNodes.FirstOrDefault(nodeAdapter =>
-                            ClusterNodeList.IsNodeOf(node, HostEndpointWithPort.Create(nodeAdapter, ClusterOptions), nodeAdapter));
-                        if (node != null && seedAdapter == null)
-                        {
-                            //No map node has the seed address, as with a Private Link endpoint or an IP seed.
-                            _logger.LogInformation("Bootstrapping: removing seed node [{node}], as no map node has its address.",
-                                _redactor.SystemData(server.ToString()));
-                            RemoveNode(node);
-                        }
-
-                        foreach (var nodeAdapter in mapNodes) //Initialize cluster nodes for global services
-                        {
-                            //log any alternate address mapping
-                            _logger.LogInformation(nodeAdapter.ToString());
-
-                            var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                            if (ReferenceEquals(nodeAdapter, seedAdapter)) //this is the bootstrap node so update
-                            {
-                                _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
-                                    _redactor.SystemData(hostEndpoint.ToString()));
-
-                                node.NodesAdapter = nodeAdapter;
-                                if (node.ServerFeatures != null)
-                                {
-                                }
-
-                                AddNode(node);
-                            }
-                            else
-                            {
-                                _logger.LogInformation(
-                                    "Bootstrapping: initializing a global non-bootstrap node [{node}]",
-                                    _redactor.SystemData(hostEndpoint.ToString()));
-
-                                var newNode = await _clusterNodeFactory
-                                    .CreateAndConnectAsync(hostEndpoint, nodeAdapter,
-                                        CancellationToken).ConfigureAwait(false);
-
-                                if (newNode.ServerFeatures != null)
-                                {
-                                }
-
-                                AddNode(newNode);
-                            }
-                        }
-
+                        //Server is 6.5 and greater and supports GC3P. The other cluster nodes join at once and connect
+                        //in the background. The seed is connected, so only a dispose stops this step, not the caller.
+                        await AddBootstrapNodesAsync(node, CancellationToken).ConfigureAwait(false);
                         return;
                     }
                     catch (Exception e)
@@ -748,6 +703,79 @@ namespace Couchbase.Core
                 //subscribe for config updates
                 _configHandler.Subscribe(this);
             }
+        }
+
+        /// <summary>
+        /// Makes the bootstrap seed the cluster node of its entry in <see cref="ClusterNodesConfig"/>, then runs the
+        /// cluster reconcile that a config apply runs, under the config lock. The other nodes join at once and connect
+        /// in the background.
+        /// </summary>
+        /// <remarks>
+        /// The seed is disposed when no entry has its address, as with a Private Link endpoint or an IP seed. On a
+        /// rebootstrap it is also disposed when the context already has a node for its entry, so that node keeps its
+        /// connection.
+        /// </remarks>
+        /// <param name="seed">The connected seed, or null when it was dropped.</param>
+        /// <param name="cancellationToken">Cancels the wait for the config lock.</param>
+        internal async Task AddBootstrapNodesAsync(IClusterNode seed, CancellationToken cancellationToken)
+        {
+            var seedKept = false;
+            try
+            {
+                await _configMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    var view = ClusterNodesConfig;
+                    var entries = view.GetClusterNodes();
+                    foreach (var nodeAdapter in entries)
+                    {
+                        //log any alternate address mapping
+                        _logger.LogInformation(nodeAdapter.ToString());
+                    }
+
+                    seedKept = seed is not null && TryAddSeed(seed, entries, GetEndPoints(entries));
+                    ReconcileClusterNodes(view);
+                }
+                finally
+                {
+                    _configMutex.Release();
+                }
+            }
+            finally
+            {
+                if (seed is not null && !seedKept)
+                {
+                    seed.Dispose();
+                }
+            }
+        }
+
+        private bool TryAddSeed(IClusterNode seed, List<NodeAdapter> entries, List<HostEndpointWithPort> endPoints)
+        {
+            for (var i = 0; i < entries.Count; i++)
+            {
+                if (!ClusterNodeList.IsNodeOf(seed, endPoints[i], entries[i]))
+                {
+                    continue;
+                }
+
+                if (HasNodeAt(new List<IClusterNode>(Nodes), endPoints[i], entries[i]))
+                {
+                    _logger.LogDebug("Bootstrapping: keeping cluster node [{node}] and closing the seed.",
+                        _redactor.SystemData(endPoints[i]));
+                    return false;
+                }
+
+                _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
+                    _redactor.SystemData(endPoints[i]));
+                seed.NodesAdapter = entries[i];
+                AddNode(seed);
+                return true;
+            }
+
+            _logger.LogInformation("Bootstrapping: removing seed node [{node}], as no map node has its address.",
+                _redactor.SystemData(seed.EndPoint));
+            return false;
         }
 
         public ValueTask<IBucket> GetOrCreateBucketAsync(string name)
@@ -1180,6 +1208,7 @@ namespace Couchbase.Core
         }
 
         private readonly SemaphoreSlim _configMutex = new(1, 1);
+        private readonly object _featureSupportLock = new();
 
         /// <summary>
         /// Gives a bucket one node of its own per KV entry of its config, and removes the bucket nodes that left the
@@ -1192,9 +1221,8 @@ namespace Couchbase.Core
         /// holds that lock to connect nodes.
         /// </para>
         /// <para>
-        /// The cluster nodes follow <see cref="ClusterNodesConfig"/>, see <see cref="ReconcileClusterNodesAsync"/>. A
-        /// config that becomes the view runs that reconcile, and so does the same bucket and revision fetched again
-        /// after a failed apply. A Memcached bucket config neither follows nor sets the view.
+        /// The cluster nodes follow <see cref="ClusterNodesConfig"/>, see <see cref="ReconcileClusterNodes"/>. A
+        /// config that becomes the view runs that reconcile. A Memcached bucket config neither follows nor sets the view.
         /// </para>
         /// <para>
         /// A newer config becomes <see cref="ClusterNodesConfig"/> before it reads the nodes. A reconcile that adds a
@@ -1214,7 +1242,7 @@ namespace Couchbase.Core
                 if (FollowsClusterNodes(bucket, config))
                 {
                     UpdateClusterNodesConfig(config);
-                    if (ClusterNodesConfig is { } view && IsCopyOf(view, config) && !TryMatchClusterNodes(view))
+                    if (ClusterNodesConfig is { } view && ReferenceEquals(view, config) && !TryMatchClusterNodes(view))
                     {
                         return ProcessClusterMapUnderLockAsync(bucket, config, mapNodes, endPoints);
                     }
@@ -1245,9 +1273,9 @@ namespace Couchbase.Core
                 if (FollowsClusterNodes(bucket, config))
                 {
                     UpdateClusterNodesConfig(config);
-                    if (ClusterNodesConfig is { } view && IsCopyOf(view, config) && !IsReconciled(view))
+                    if (ClusterNodesConfig is { } view && ReferenceEquals(view, config) && !IsReconciled(view))
                     {
-                        await ReconcileClusterNodesAsync(view).ConfigureAwait(false);
+                        ReconcileClusterNodes(view);
                     }
                 }
 
@@ -1470,14 +1498,20 @@ namespace Couchbase.Core
         /// <summary>
         /// Brings the cluster nodes in line with a config, under the config lock. Each entry of
         /// <see cref="BucketConfigExtensions.GetClusterNodes"/> gets a cluster node, also a host where a bucket has a
-        /// node. Each cluster node that the config does not list is removed, before any connect.
+        /// node. Each cluster node that the config does not list is removed and disposed.
         /// </summary>
         /// <remarks>
-        /// The lock free bucket path can move <see cref="ClusterNodesConfig"/> during a connect. The view is read again
-        /// after each AddNode, and a newer view restarts the reconcile against it. A config that moves the view later
-        /// reads the nodes after that AddNode, so it sees the new node.
+        /// <para>
+        /// A new node joins at once and connects in the background, so the reconcile waits for no connect.
+        /// </para>
+        /// <para>
+        /// The lock free bucket path can move <see cref="ClusterNodesConfig"/> and mark it reconciled while this runs on
+        /// another thread. The view is read again after each AddNode, and a newer view restarts the reconcile against it,
+        /// so a node that the newer view drops does not stay. A config that moves the view later reads the nodes after
+        /// that AddNode, so it sees the new node.
+        /// </para>
         /// </remarks>
-        private async Task ReconcileClusterNodesAsync(BucketConfig config)
+        private void ReconcileClusterNodes(BucketConfig config)
         {
             while (true)
             {
@@ -1486,7 +1520,7 @@ namespace Couchbase.Core
 
                 foreach (var node in Nodes)
                 {
-                    // A node with no adapter is a seed that a bootstrap uses outside the lock.
+                    // A node with no adapter is the seed of a server before 6.5, which has no cluster config.
                     if (node.NodesAdapter != null && !IsInMap(node, entries, endPoints))
                     {
                         _logger.LogDebug("Removing node {endPoint}, as config revision {rev} does not list it.",
@@ -1507,8 +1541,7 @@ namespace Couchbase.Core
 
                     _logger.LogDebug("Creating cluster node {endPoint} for config revision {rev}.",
                         _redactor.SystemData(endPoints[i]), config.ConfigVersion);
-                    var newNode = await _clusterNodeFactory
-                        .CreateAndConnectAsync(endPoints[i], entries[i], CancellationToken).ConfigureAwait(false);
+                    var newNode = _clusterNodeFactory.CreateClusterNode(endPoints[i], entries[i]);
                     AddNode(newNode);
                     nodes.Add(newNode);
 
@@ -1533,7 +1566,7 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// The lock free form of <see cref="ReconcileClusterNodesAsync"/>. When the view needs no node created or
+        /// The lock free form of <see cref="ReconcileClusterNodes"/>. When the view needs no node created or
         /// removed, it gives the nodes their view adapter, marks the view as reconciled and returns true.
         /// Otherwise it changes nothing and returns false.
         /// </summary>
@@ -1675,13 +1708,12 @@ namespace Couchbase.Core
                             return;
                         }
 
-                        // The view at this revision has not finished a reconcile. Its apply failed or waits for the lock.
+                        // The view at this revision has not finished a reconcile, as its apply waits for the lock.
                         target = view;
                     }
 
-                    await ReconcileClusterNodesAsync(target).ConfigureAwait(false);
+                    ReconcileClusterNodes(target);
 
-                    // Set last, so a failed node connect keeps the old config and the next poll retries.
                     GlobalConfig = globalConfig;
                     UpdateClusterNodesConfig(globalConfig);
                 }

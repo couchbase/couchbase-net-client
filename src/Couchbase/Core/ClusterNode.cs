@@ -334,6 +334,48 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// Starts the first connect in the background and returns at once. A node with no KV service starts none.
+        /// </summary>
+        /// <remarks>
+        /// A failed first connect is logged, and the pool keeps trying until the node is disposed. Dispose stops it.
+        /// </remarks>
+        internal void StartConnecting()
+        {
+            if (NodesAdapter is { IsKvNode: false })
+            {
+                return;
+            }
+
+            // The connect must not keep the trace of the caller alive. Suppressing twice on one thread throws.
+            if (ExecutionContext.IsFlowSuppressed())
+            {
+                _ = ConnectInBackgroundAsync();
+                return;
+            }
+
+            using (ExecutionContext.SuppressFlow())
+            {
+                _ = ConnectInBackgroundAsync();
+            }
+        }
+
+        private async Task ConnectInBackgroundAsync()
+        {
+            try
+            {
+                await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (_disposed || e is OperationCanceledException)
+            {
+                LogFirstConnectStopped(e, _redactor.SystemData(EndPoint));
+            }
+            catch (Exception e)
+            {
+                LogFirstConnectFailed(e, _redactor.SystemData(EndPoint));
+            }
+        }
+
         private async Task<ErrorMap> GetErrorMap(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
         {
             using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.GetErrorMap);
@@ -1386,6 +1428,12 @@ namespace Couchbase.Core
 
         [LoggerMessage(400, LogLevel.Debug, "The Bucket [{bucketName}] could still not be selected.")]
         private partial void LogBucketStillRefused(Redacted<string> bucketName);
+
+        [LoggerMessage(500, LogLevel.Warning, "The first connect to {endpoint} failed. The node keeps trying in the background.")]
+        private partial void LogFirstConnectFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(501, LogLevel.Debug, "The first connect to {endpoint} stopped, as the node is disposed.")]
+        private partial void LogFirstConnectStopped(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }

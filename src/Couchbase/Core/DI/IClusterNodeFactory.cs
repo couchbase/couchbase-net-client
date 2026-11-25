@@ -30,6 +30,15 @@ namespace Couchbase.Core.DI
         Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Creates a cluster node, a node with no bucket, and returns it at once. The node starts its first connect in
+        /// the background, and its pool keeps trying until the node is disposed. A node with no KV service starts none.
+        /// </summary>
+        /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
+        /// <param name="nodeAdapter">The entry of the node in the cluster map.</param>
+        /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
+        IClusterNode CreateClusterNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter);
+
+        /// <summary>
         /// Create and connect to a <see cref="IClusterNode"/> that serves one bucket for life.
         /// Each of its connections selects the bucket when it opens.
         /// </summary>

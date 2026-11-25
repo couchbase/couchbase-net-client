@@ -1038,30 +1038,34 @@ public class BucketConfigExtensionTests
     private static ClusterNode ClusterNodeAt(CouchbaseBucket bucket, HostEndpointWithPort endPoint) =>
         Assert.IsType<ClusterNode>(Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(endPoint)));
 
-    // The config handler applies one config at a time, so the test calls both updates, as a bucket open does while a
-    // cluster config applies.
+    // The config handler applies one config at a time, so the test runs the bucket update in the middle of the cluster
+    // reconcile, as a bucket open does while a cluster config applies.
     [Fact]
     public async Task ConfigUpdatedAsync_OlderBucketConfigWhileClusterConfigApplies_KeepsNewerNodeView()
     {
         var nodeC = new HostEndpointWithPort("nodeC", 0);
-        var nodeCConnect = new TaskCompletionSource<IClusterNode>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CouchbaseBucket bucket = null;
+        ClusterNode nodeA = null;
+        Task bucketUpdate = null;
+        var nodeAViewBefore = default(ConfigVersion?);
         var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
-        nodeFactory.Setup(f => f.CreateAndConnectAsync(nodeC, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
-            .Returns(nodeCConnect.Task);
-        var bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093), nodeFactory: nodeFactory);
-        var nodeA = ClusterNodeAt(bucket, NodeA);
+        // The new query node nodeC comes after nodeA, so the reconcile creates it after it sets nodeA.
+        nodeFactory.Setup(f => f.CreateClusterNode(nodeC, It.IsAny<NodeAdapter>()))
+            .Returns(() =>
+            {
+                nodeAViewBefore = nodeA.ConfigVersion;
+                bucketUpdate = bucket.ConfigUpdatedAsync(QueryConfig(rev: 15, queryPort: 8093));
+                return Mock.Of<IClusterNode>(node => node.EndPoint == nodeC);
+            });
+        bucket = CreateBucket(QueryConfig(rev: 10, queryPort: 8093), nodeFactory: nodeFactory);
+        nodeA = ClusterNodeAt(bucket, NodeA);
 
-        // The new query node nodeC comes after nodeA, so the cluster config waits on its connect after it sets nodeA.
         var clusterConfig = ClusterQueryConfig(rev: 20, queryPort: 9093);
         clusterConfig.NodesExt.Add(new NodesExt { Hostname = "nodeC", Services = new Services { N1Ql = 8093 } });
-        var clusterUpdate = bucket.Context.ConfigUpdatedAsync(clusterConfig);
-        Assert.False(clusterUpdate.IsCompleted);
-        AssertNodeView(nodeA, rev: 20, queryPort: 9093);
+        await bucket.Context.ConfigUpdatedAsync(clusterConfig).WaitAsync(Deadline);
+        await bucketUpdate.WaitAsync(Deadline);
 
-        await bucket.ConfigUpdatedAsync(QueryConfig(rev: 15, queryPort: 8093)).WaitAsync(Deadline);
-        nodeCConnect.SetResult(Mock.Of<IClusterNode>(node => node.EndPoint == nodeC));
-        await clusterUpdate.WaitAsync(Deadline);
-
+        Assert.Equal(new ConfigVersion(0, 20), nodeAViewBefore);
         AssertNodeView(nodeA, rev: 20, queryPort: 9093);
     }
 
@@ -1087,8 +1091,7 @@ public class BucketConfigExtensionTests
         Assert.Same(bucket, bucketNodeC.Owner);
         Assert.Null(clusterNodeC.Owner);
         Assert.Same(clusterNodeC, Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(NodeC)));
-        nodeFactory.Verify(x => x.CreateAndConnectAsync(NodeC, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+        nodeFactory.Verify(x => x.CreateClusterNode(NodeC, It.IsAny<NodeAdapter>()), Times.Once);
         nodeFactory.Verify(x => x.CreateAndConnectAsync(NodeC, It.IsAny<NodeAdapter>(), "default", true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -1341,10 +1344,8 @@ public class BucketConfigExtensionTests
         if (nodeFactory is null)
         {
             nodeFactory = new Mock<IClusterNodeFactory>();
-            nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, CancellationToken _) =>
-                    Task.FromResult<IClusterNode>(CreateNode(clusterCtx, ep, nodeAdapter)));
+            nodeFactory.Setup(x => x.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+                .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter) => CreateNode(clusterCtx, ep, nodeAdapter));
             nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
                     It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
@@ -1413,13 +1414,12 @@ public class BucketConfigExtensionTests
     /// <summary>
     /// Makes the factory create a node at <paramref name="endPoint"/>, as for a node new to the cluster.
     /// </summary>
-    // Answers the call for a node with no bucket and both calls for a bucket node.
+    // Answers the call for a cluster node and both calls for a bucket node.
     private static void SetupCreateNode(Mock<IClusterNodeFactory> nodeFactory, ClusterContext context,
         HostEndpointWithPort endPoint)
     {
-        nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
-            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, CancellationToken _) =>
-                Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
+        nodeFactory.Setup(x => x.CreateClusterNode(endPoint, It.IsAny<NodeAdapter>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter) => CreateNode(context, ep, nodeAdapter));
         nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, CancellationToken _) =>

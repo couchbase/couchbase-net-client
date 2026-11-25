@@ -210,10 +210,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
             ClusterContext context = null;
             var factory = new Mock<IClusterNodeFactory>();
-            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, CancellationToken _) =>
-                    Task.FromResult<IClusterNode>(CreateNode(context!, endPoint, nodeAdapter)));
+            factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) => CreateNode(context!, endPoint, nodeAdapter));
             factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
                     It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
