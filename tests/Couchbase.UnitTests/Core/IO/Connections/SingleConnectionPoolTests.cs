@@ -22,6 +22,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         private readonly HostEndpointWithPort _hostEndpoint = new("localhost", 9999);
         private readonly List<IConnection> _created = new();
         private volatile bool _refuse = true;
+        private int _attempts;
+
+        // Holds each connect until it completes, when set.
+        private TaskCompletionSource<bool> _gate;
 
         [Fact]
         public async Task SendAsync_AfterARefusedFirstConnect_ConnectsAndSends()
@@ -65,6 +69,50 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             Assert.Null(op.SentOn);
         }
 
+        // NCBC-4423. A bucket node that refused the bucket joins with no connection, so sends can all find none.
+        // Each send starts its connect before its first await, so the count is final before the gate opens.
+        [Fact]
+        public async Task SendAsync_ConcurrentSendsWithNoConnection_OpenOneConnection()
+        {
+            _refuse = false;
+            _gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pool = CreatePool();
+
+            var ops = new List<FakeOperation>();
+            var sends = new List<Task>();
+            for (var i = 0; i < 5; i++)
+            {
+                var op = new FakeOperation();
+                ops.Add(op);
+                sends.Add(pool.SendAsync(op));
+            }
+
+            Assert.Equal(1, Volatile.Read(ref _attempts));
+
+            _gate.SetResult(true);
+            await Task.WhenAll(sends).WaitAsync(Deadline);
+
+            var connection = Assert.Single(Created);
+            Assert.All(ops, op => Assert.Same(connection, op.SentOn));
+        }
+
+        [Fact]
+        public async Task Dispose_DuringAConnect_LeavesNoOpenConnection()
+        {
+            _refuse = false;
+            _gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pool = CreatePool();
+            var connect = pool.InitializeAsync();
+            Assert.Equal(1, Volatile.Read(ref _attempts));
+
+            pool.Dispose();
+            _gate.SetResult(true);
+
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => connect.WaitAsync(Deadline));
+            Mock.Get(Assert.Single(Created)).Verify(c => c.Dispose(), Times.Once);
+            Assert.Empty(pool.GetConnections());
+        }
+
         private List<IConnection> Created
         {
             get
@@ -81,8 +129,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(() =>
+                .Returns(async () =>
                 {
+                    Interlocked.Increment(ref _attempts);
+                    if (_gate is { } gate)
+                    {
+                        await gate.Task.ConfigureAwait(false);
+                    }
+
                     var connection = new Mock<IConnection>().Object;
                     lock (_created)
                     {
