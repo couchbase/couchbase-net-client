@@ -130,6 +130,8 @@ namespace Couchbase.Core
 
         public bool IsGlobal => GlobalConfig != null && GlobalConfig.IsGlobal;
 
+        internal bool HasOpenBuckets => !Buckets.IsEmpty;
+
         public ICluster Cluster { get; }
 
         public bool SupportsGlobalConfig { get; private set; }
@@ -247,7 +249,6 @@ namespace Couchbase.Core
             }
 
             _configHandler.Start();
-            GlobalConfigRefresher.Start();
         }
 
         public void RegisterBucket(BucketBase bucket)
@@ -603,6 +604,9 @@ namespace Couchbase.Core
                         UpdateClusterNodesConfig(GlobalConfig, replace: true);
                         UpdateAppTelemetryConfig(GlobalConfig);
 
+                        // A server with no cluster config never gets here, so nothing polls for one.
+                        GlobalConfigRefresher.Start();
+
                         //If we are using alt addresses, we likely bootstrapped with a
                         //non-alt port, thus this node cannot be reused. We need to use
                         //the alt-address, so we will recreate this node.
@@ -835,17 +839,15 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// This method tries to fetch the bootstrap list from the global GCCCP config
-        /// and then falls back to using the connection string if the GCCCP config does
-        /// not exist because its an older server version that does not support GCCCP.
+        /// The KV nodes of <see cref="ClusterNodesConfig"/>, the newest config of any kind. Without it, the KV nodes
+        /// of <see cref="GlobalConfig"/>, and without that, the hosts of the connection string.
         /// </summary>
-        /// <param name="enableTls"></param>
-        /// <returns></returns>
         private IEnumerable<HostEndpointWithPort> GetHostEndpointWithPorts(bool? enableTls)
         {
-            if(GlobalConfig != null)
+            var config = ClusterNodesConfig ?? GlobalConfig;
+            if (config != null)
             {
-                return GlobalConfig.GetBootstrapEndpoints(enableTls);
+                return config.GetBootstrapEndpoints(enableTls);
             }
             return ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(enableTls);
         }
@@ -1683,11 +1685,13 @@ namespace Couchbase.Core
                         return;
                     }
 
-                    // A newer bucket config can have removed nodes that this config still lists.
+                    // A newer bucket config can have removed nodes that this config still lists. So the config
+                    // changes no node, but it is still the newest cluster config and the poll sends its version.
                     if (IsOlderThanClusterNodesConfig(globalConfig))
                     {
-                        _logger.LogDebug("Skipping global config revision {rev}, as a newer config set the nodes.",
+                        _logger.LogDebug("Storing global config revision {rev} with no node change, as a newer config set the nodes.",
                             globalConfig.ConfigVersion);
+                        GlobalConfig = globalConfig;
                         return;
                     }
 
@@ -1723,6 +1727,7 @@ namespace Couchbase.Core
                     {
                         _logger.LogDebug("Stopping global config revision {rev}, as a newer config set the nodes.",
                             globalConfig.ConfigVersion);
+                        GlobalConfig = globalConfig;
                         return;
                     }
 

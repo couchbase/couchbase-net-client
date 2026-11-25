@@ -84,21 +84,103 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task Fetch_WhenKvServesNoConfig_SwitchesEverySubscriberToHttpStreaming()
+    public async Task Fetch_WhenEveryNodeAnswersKeyNotFound_SwitchesEverySubscriberToHttpStreaming()
     {
         var streaming = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var context = CreateContext(out var configHandler);
         configHandler.Setup(x => x.StartHttpStreaming(It.IsAny<string?>()))
             .Callback((string? name) => streaming.TrySetResult(name));
-        var node = AddNode(context, "host1", owner: null);
-        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new DocumentNotFoundException());
+        var nodes = new[] { AddNode(context, "host1", owner: null), AddNode(context, "host2", owner: null) };
+        foreach (var node in nodes)
+        {
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DocumentNotFoundException());
+        }
 
         using var refresher = CreateRefresher(context, configHandler, new SteppableClock());
         refresher.Start();
         refresher.RequestRefresh(new ConfigVersion(1, 3));
 
         Assert.Null(await streaming.Task.WaitAsync(Deadline));
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+    }
+
+    [Fact]
+    public async Task Fetch_WhenOneNodeAnswersKeyNotFound_PublishesFromAnotherNodeAndGoesOn()
+    {
+        // The other node is behind the pushed version, so the pass asks both nodes in either order.
+        var clock = new SteppableClock();
+        var streaming = new AsyncCounter();
+        var published = new TaskCompletionSource<BucketConfig>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var context = CreateContext(out var configHandler);
+        configHandler.Setup(x => x.StartHttpStreaming(It.IsAny<string?>())).Callback(() => streaming.Increment());
+        configHandler.Setup(x => x.Publish(It.IsAny<BucketConfig>())).Callback((BucketConfig c) => published.TrySetResult(c));
+        var refusing = AddNode(context, "host1", owner: null);
+        refusing.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DocumentNotFoundException());
+        AddNode(context, "host2", owner: null)
+            .Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Version(3));
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        refresher.RequestRefresh(new ConfigVersion(1, 4));
+
+        Assert.Equal(new ConfigVersion(1, 3), (await published.Task.WaitAsync(Deadline)).ConfigVersion);
+
+        // The loop goes on and asks again for the pushed version.
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        refusing.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.Equal(0, streaming.Count);
+    }
+
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public async Task Fetch_WhenEveryNodeFails_RebootstrapsOnlyWithNoOpenBucket(bool bucketOpen, int expectedLookups)
+    {
+        // A DNS SRV connection string, so a signal of a failed refresh starts a rebootstrap.
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler, options =>
+        {
+            var dnsResolver = new Mock<IDnsResolver>();
+            dnsResolver.Setup(x => x.GetDnsSrvEntriesAsync(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
+                .Callback(() => dnsLookups.Increment())
+                .ReturnsAsync(Array.Empty<HostEndpoint>());
+            options.AddClusterService(dnsResolver.Object);
+            // The rebootstrap then fails at once and does not start the context's own refresher.
+            var nodeFactory = new Mock<IClusterNodeFactory>();
+            nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("No node in this test."));
+            options.AddClusterService(nodeFactory.Object);
+            options.ConnectionStringValue = new ConnectionString(ConnectionString.Parse("couchbase://example.com"),
+                [new HostEndpoint("host1", 11210)], isDnsSrv: true, new Uri("couchbase://example.com"));
+            options.ConfigPollInterval = pollInterval;
+        });
+        AddNode(context, "host1", owner: null)
+            .Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException());
+        using var bucket = new ConfigHandlerTests.FakeBucket(outputHelper, new SemaphoreSlim(0));
+        if (bucketOpen)
+        {
+            context.RegisterBucket(bucket);
+        }
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        clock.Advance(pollInterval);
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+
+        Assert.Equal(expectedLookups, dnsLookups.Count);
     }
 
     [Fact]

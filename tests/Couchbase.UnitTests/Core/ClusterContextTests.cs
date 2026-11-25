@@ -709,6 +709,30 @@ namespace Couchbase.UnitTests.Core
             fixture.ConfigHandler.Verify(x => x.Subscribe(bucket), Times.Once);
         }
 
+        // A bucket config newer than the cluster config lists another node, as after a rebalance.
+        [Fact]
+        public async Task GetOrCreateBucketAsync_ViewNewerThanGlobalConfig_SeedsFromTheView()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var globalConfig = OneNodeBucketConfig("node1", map: false);
+            globalConfig.Name = BucketConfig.GlobalBucketName;
+            fixture.Context.GlobalConfig = globalConfig;
+            var view = OneNodeBucketConfig("node2", map: true);
+            view.Rev = 5;
+            view.OnDeserialized();
+            fixture.Context.UpdateClusterNodesConfig(view);
+            var node1Asked = false;
+            fixture.SetupFailedConnect("node1", () => node1Asked = true);
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true));
+
+            var bucket = Assert.IsType<CouchbaseBucket>(
+                await fixture.Context.GetOrCreateBucketAsync("default").AsTask().WaitAsync(Deadline));
+
+            Assert.False(node1Asked);
+            Assert.Same(bucket, node2.Object.Owner);
+        }
+
         [Fact]
         public async Task GetOrCreateBucketAsync_NoNodeHasAMap_WaitsOncePerOpen()
         {
@@ -2167,28 +2191,93 @@ namespace Couchbase.UnitTests.Core
             Assert.Same(query, context.GetRandomNodeForService(ServiceType.Query));
         }
 
+        // The cluster config trails the bucket config by a few revisions. It is still the newest cluster config.
         [Fact]
-        public async Task ConfigUpdated_Cluster_Config_Older_Than_A_Bucket_Config_Is_Skipped()
+        public async Task ConfigUpdated_Cluster_Config_Older_Than_A_Bucket_Config_Becomes_GlobalConfig_And_Changes_No_Node()
         {
             var created = new List<IClusterNode>();
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
                 DockerOptions(NodeFactory(created)));
             AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true)));
             using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
-            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
-                BucketDockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true))));
+            var bucketConfig = BucketDockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true));
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, bucketConfig));
             Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+            var nodes = context.Nodes.ToList();
 
-            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(4, DockerNode(0, kv: true),
-                DockerNode(1, kv: true), DockerNode(2, query: true))));
+            var older = DockerConfig(4, DockerNode(0, kv: true), DockerNode(1, kv: true), DockerNode(2, query: true),
+                DockerNode(3, search: true));
+            await AssertCompleted(context.ConfigUpdatedAsync(older));
 
-            Assert.DoesNotContain(context.Nodes, node => node.HasQuery);
+            Assert.Same(older, context.GlobalConfig);
+            Assert.Same(bucketConfig, context.ClusterNodesConfig);
+            Assert.Equal(nodes, context.Nodes.ToList());
             Assert.Empty(created);
 
             var equal = DockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true));
             await AssertCompleted(context.ConfigUpdatedAsync(equal));
 
             Assert.Same(equal, context.GlobalConfig);
+        }
+
+        [Theory]
+        [InlineData(3UL)]
+        [InlineData(4UL)]
+        public async Task ConfigUpdated_Cluster_Config_Not_Newer_Than_GlobalConfig_Changes_Nothing(ulong rev)
+        {
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created)));
+            AddGlobalNodes(context, DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true)));
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            var bucketConfig = BucketDockerConfig(5, DockerNode(0, kv: true), DockerNode(1, kv: true));
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, bucketConfig));
+            var current = DockerConfig(4, DockerNode(0, kv: true), DockerNode(1, kv: true));
+            await AssertCompleted(context.ConfigUpdatedAsync(current));
+            var nodes = context.Nodes.ToList();
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(rev, DockerNode(0, kv: true),
+                DockerNode(1, kv: true), DockerNode(2, query: true))));
+
+            Assert.Same(current, context.GlobalConfig);
+            Assert.Same(bucketConfig, context.ClusterNodesConfig);
+            Assert.Equal(nodes, context.Nodes.ToList());
+            Assert.Empty(created);
+        }
+
+        [Fact]
+        public async Task BootstrapGlobal_Starts_The_Cluster_Config_Refresher()
+        {
+            var config = DockerConfig(1, DockerNode(0, kv: true));
+            var seed = SeedNode(new HostEndpointWithPort("localhost", DockerKvPort(0)), config);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(new List<IClusterNode>(), seed.Object)));
+            context.Start();
+            Assert.False(context.GlobalConfigRefresher.IsStarted);
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            Assert.True(context.GlobalConfigRefresher.IsStarted);
+        }
+
+        // A server before 6.5 has no cluster config.
+        [Fact]
+        public async Task BootstrapGlobal_With_No_Cluster_Config_Does_Not_Start_The_Cluster_Config_Refresher()
+        {
+            var seed = new Mock<IClusterNode>();
+            seed.SetupAllProperties();
+            seed.Setup(node => node.EndPoint).Returns(new HostEndpointWithPort("localhost", DockerKvPort(0)));
+            seed.Setup(node => node.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new CouchbaseException(new KeyValueErrorContext { Status = ResponseStatus.BucketNotConnected }));
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(new List<IClusterNode>(), seed.Object)));
+            context.Start();
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            Assert.Null(context.GlobalConfig);
+            Assert.Contains(seed.Object, context.Nodes);
+            Assert.False(context.GlobalConfigRefresher.IsStarted);
         }
 
         // A DNS SRV move can reach a cluster with lower revisions. The bootstrap replaces the cluster view.

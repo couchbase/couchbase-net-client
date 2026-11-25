@@ -107,10 +107,9 @@ internal abstract partial class ConfigRefresher : IDisposable
     protected abstract void StartHttpStreaming();
 
     /// <summary>
-    /// Whether one node that answers KeyNotFound is enough to switch to HTTP streaming. When false, the switch needs
-    /// every node asked in a pass to answer KeyNotFound, and a node that answers KeyNotFound counts as a failed node.
+    /// Tells the context that every node failed to return the config.
     /// </summary>
-    protected virtual bool AnyKeyNotFoundSwitchesToHttpStreaming => false;
+    protected virtual void SignalRefreshFailed() => Context.SignalConfigRefreshFailed();
 
     /// <summary>
     /// The timeout of a config fetch. It is the poll interval, kept between 1 and 5 seconds like the Java SDK.
@@ -162,6 +161,20 @@ internal abstract partial class ConfigRefresher : IDisposable
     /// Whether a wake-up is set that the loop has not taken yet.
     /// </summary>
     internal bool HasPendingWakeUp => Volatile.Read(ref _wakeUp).Task.IsCompleted;
+
+    /// <summary>
+    /// Whether <see cref="Start"/> started the loop.
+    /// </summary>
+    internal bool IsStarted
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _started;
+            }
+        }
+    }
 
     /// <summary>
     /// Fetches the config now because the server has <paramref name="version"/>, for example after a config push.
@@ -299,7 +312,7 @@ internal abstract partial class ConfigRefresher : IDisposable
             // Every node is dead, which counts as every fetch failing.
             LogNoLiveKvNodes(Redactor.SystemData(Name));
             _failedFetches = 0;
-            Context.SignalConfigRefreshFailed();
+            SignalRefreshFailed();
         }
 
         var (answered, config) = await FetchAsync(nodes, currentVersion, pendingVersion, token).ConfigureAwait(false);
@@ -364,14 +377,11 @@ internal abstract partial class ConfigRefresher : IDisposable
             }
             catch (Exception ex) when (!token.IsCancellationRequested)
             {
-                if (ex is DocumentNotFoundException)
+                // One KeyNotFound counts as a failed node. The switch needs that answer from every node of the pass.
+                if (ex is DocumentNotFoundException && ++keyNotFound == nodes.Count)
                 {
-                    keyNotFound++;
-                    if (AnyKeyNotFoundSwitchesToHttpStreaming || keyNotFound == nodes.Count)
-                    {
-                        // KV does not serve the config, so the loop ends and switches to HTTP streaming.
-                        throw;
-                    }
+                    // KV does not serve the config, so the loop ends and switches to HTTP streaming.
+                    throw;
                 }
 
                 // A failed node does not end the pass, so the next node can still answer.
@@ -382,7 +392,7 @@ internal abstract partial class ConfigRefresher : IDisposable
                 {
                     _failedFetches = 0;
                     LogAllNodesFailed(Redactor.SystemData(Name));
-                    Context.SignalConfigRefreshFailed();
+                    SignalRefreshFailed();
                 }
             }
         }

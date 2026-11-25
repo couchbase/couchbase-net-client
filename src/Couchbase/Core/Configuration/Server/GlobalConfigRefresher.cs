@@ -33,8 +33,14 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
         base.Publish(config);
     }
 
-    // A node that does not serve the cluster config means a cluster of mixed versions.
-    protected override bool AnyKeyNotFoundSwitchesToHttpStreaming => true;
+    // The DNS SRV rebootstrap also rebuilds every open bucket, so with a bucket open only the bucket refreshers start it.
+    protected override void SignalRefreshFailed()
+    {
+        if (!Context.HasOpenBuckets)
+        {
+            base.SignalRefreshFailed();
+        }
+    }
 
     // With no config over KV, the cluster and every bucket switch to HTTP streaming.
     protected override void StartHttpStreaming() => ConfigHandler.StartHttpStreaming();
