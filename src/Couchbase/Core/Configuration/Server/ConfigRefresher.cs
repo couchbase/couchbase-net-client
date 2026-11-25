@@ -340,7 +340,8 @@ internal abstract partial class ConfigRefresher : IDisposable
 
         if (kvNodes.Count == 0)
         {
-            // The cluster refresher has no node once buckets own every KV node. The bucket refreshers fetch then.
+            // No node has KV yet. The cluster refresher, for one, starts before the bootstrap adds its nodes. The pass
+            // asks nothing and signals nothing.
             LogNoKvNodes(Redactor.SystemData(Name));
         }
         else if (liveNodes.Count == 0)

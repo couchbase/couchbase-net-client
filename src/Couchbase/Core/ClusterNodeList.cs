@@ -1,10 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using Couchbase.Core.Configuration.Server;
 
 #nullable enable
@@ -86,43 +83,6 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
 
             return removed;
         }
-    }
-
-    /// <summary>
-    /// Gets the node of a cluster map entry owned by a bucket, if present.
-    /// </summary>
-    /// <param name="endPoint">The K/V endpoint of the map entry.</param>
-    /// <param name="nodeAdapter">The map entry.</param>
-    /// <param name="bucketName">The bucketName that may be the owner.</param>
-    /// <param name="node">Node found, if any.</param>
-    /// <returns>True if the node was found.</returns>
-    /// <remarks>
-    /// Optimized to be low-lock.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGet(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string bucketName, [NotNullWhen(true)] out IClusterNode? node)
-    {
-        // ReSharper disable once InconsistentlySynchronizedField
-       node = _nodes.FirstOrDefault(x => x.BucketName == bucketName && IsNodeOf(x, endPoint, nodeAdapter));
-       return node != null;
-    }
-
-    /// <summary>
-    /// Gets the node of a cluster map entry, whatever its owner, if present.
-    /// </summary>
-    /// <param name="endPoint">The K/V endpoint of the map entry.</param>
-    /// <param name="nodeAdapter">The map entry.</param>
-    /// <param name="node">Node found, if any.</param>
-    /// <returns>True if the node was found.</returns>
-    /// <remarks>
-    /// Optimized to be low-lock.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGet(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, [NotNullWhen(true)] out IClusterNode? node)
-    {
-        // ReSharper disable once InconsistentlySynchronizedField
-        node = _nodes.FirstOrDefault(x => IsNodeOf(x, endPoint, nodeAdapter));
-        return node != null;
     }
 
     /// <summary>

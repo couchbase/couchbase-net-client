@@ -802,7 +802,7 @@ namespace Couchbase.Core
                     continue;
                 }
 
-                if (FindNodeAt(new List<IClusterNode>(Nodes), endPoints[i], entries[i]) is { } existing)
+                if (FindNode(new List<IClusterNode>(Nodes), endPoints[i], entries[i]) is { } existing)
                 {
                     // A node that never connected has no connection to keep, and the seed has one.
                     if (!existing.HasKv || !existing.IsAwaitingFirstConnection)
@@ -1690,7 +1690,7 @@ namespace Couchbase.Core
 
             var entries = view.GetClusterNodes();
             var endPoints = GetEndPoints(entries);
-            // ClusterNodeList.TryGet reads the set with no lock, so match against one snapshot.
+            // Another thread can change the list during the match, so match against one snapshot.
             var nodes = new List<IClusterNode>(Nodes);
 
             foreach (var node in nodes)
@@ -1719,20 +1719,7 @@ namespace Couchbase.Core
         }
 
         private static bool HasNodeAt(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) =>
-            FindNodeAt(nodes, endPoint, nodeAdapter) is not null;
-
-        private static IClusterNode FindNodeAt(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
-        {
-            foreach (var node in nodes)
-            {
-                if (ClusterNodeList.IsNodeOf(node, endPoint, nodeAdapter))
-                {
-                    return node;
-                }
-            }
-
-            return null;
-        }
+            FindNode(nodes, endPoint, nodeAdapter) is not null;
 
         private static void SetAdapter(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
         {
