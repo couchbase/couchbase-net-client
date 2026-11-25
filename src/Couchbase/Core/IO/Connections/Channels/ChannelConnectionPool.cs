@@ -36,7 +36,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         // Serializes connects, scaling and bucket selection. It is never disposed, because an attempt can still hold it after Dispose.
         private readonly SemaphoreSlim _lock = new(1);
 
-        // Guards _connections, _disposed and _refillRunning. It is never held across an await.
+        // Guards _connections, _initialized, _disposed and _refillRunning. It is never held across an await.
         private readonly object _stateLock = new();
 
         // Replaced as a whole, so readers take no lock.
@@ -141,11 +141,12 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         /// <remarks>
         /// Returns when the pool has one live connection. The refill loop opens the rest in the background.
-        /// Throws the error of the first round when it ends with no live connection.
+        /// Throws the error of the first round when it ends with no live connection. The loop then keeps trying
+        /// until the pool is at its minimum size, so a caller that does not keep the pool must dispose it.
         /// </remarks>
         public override async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
-            if (_initialized)
+            if (Volatile.Read(ref _initialized))
             {
                 return;
             }
@@ -156,6 +157,11 @@ namespace Couchbase.Core.IO.Connections.Channels
             var firstRound = new TaskCompletionSource<ExceptionDispatchInfo?>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock (_stateLock)
             {
+                if (_refillRunning)
+                {
+                    throw new InvalidOperationException($"The connection pool for {EndPoint} is already connecting.");
+                }
+
                 _refillRunning = true;
             }
 
@@ -175,11 +181,27 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             error?.Throw();
 
-            _scaleController.Start(this);
+            MarkInitialized();
+        }
+
+        /// <summary>
+        /// Starts the scale controller once, at the first live connection of the pool.
+        /// </summary>
+        private void MarkInitialized()
+        {
+            lock (_stateLock)
+            {
+                if (_initialized || _disposed)
+                {
+                    return;
+                }
+
+                // Under the lock, so Dispose cannot stop the controller before it starts.
+                _scaleController.Start(this);
+                Volatile.Write(ref _initialized, true);
+            }
 
             InitializedConnectionPool(_redactor.SystemData(EndPoint), Size);
-
-            _initialized = true;
         }
 
         /// <inheritdoc />
@@ -500,6 +522,8 @@ namespace Couchbase.Core.IO.Connections.Channels
             var failedAttempts = 0;
             var quickRetried = false;
             var running = true;
+            var firstRoundFailed = false;
+            var firstRoundThrown = false;
             ExceptionDispatchInfo? fatal = null;
             try
             {
@@ -507,6 +531,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 {
                     ExceptionDispatchInfo? error = null;
                     var failed = false;
+                    var errorWentToCaller = false;
                     int size;
 
                     await _lock.WaitAsync(_poolToken).ConfigureAwait(false);
@@ -531,10 +556,9 @@ namespace Couchbase.Core.IO.Connections.Channels
                         lock (_stateLock)
                         {
                             size = _connections.Length;
-                            var initFailed = firstRound is not null
-                                && (firstRound.Task.IsCanceled || (!firstRound.Task.IsCompleted && size == 0 && MinimumSize > 0));
+                            var initCancelled = firstRound is not null && firstRound.Task.IsCanceled;
 
-                            if (_disposed || size >= MinimumSize || initFailed)
+                            if (_disposed || size >= MinimumSize || initCancelled)
                             {
                                 _refillRunning = false;
                                 running = false;
@@ -548,17 +572,28 @@ namespace Couchbase.Core.IO.Connections.Channels
 
                     if (firstRound is not null)
                     {
-                        firstRound.TrySetResult(size == 0 && MinimumSize > 0
+                        firstRoundFailed = size == 0 && MinimumSize > 0;
+                        errorWentToCaller = firstRoundFailed;
+                        firstRoundThrown = firstRoundFailed;
+                        firstRound.TrySetResult(firstRoundFailed
                             ? error ?? ExceptionDispatchInfo.Capture(new ConnectException($"Unable to open any connections to {EndPoint}."))
                             : null);
                         firstRound = null;
                     }
+                    else if (firstRoundFailed && size > 0)
+                    {
+                        // InitializeAsync threw, so the pool starts its scale controller at its first live connection.
+                        firstRoundFailed = false;
+                        MarkInitialized();
+                    }
 
                     if (!running)
                     {
-                        if (failedAttempts > 0 && size >= MinimumSize)
+                        // The count includes a first round whose error InitializeAsync threw.
+                        var failedTotal = failedAttempts + (firstRoundThrown ? 1 : 0);
+                        if (failedTotal > 0 && size >= MinimumSize)
                         {
-                            LogRefillRecovered(_redactor.SystemData(EndPoint), size, failedAttempts);
+                            LogRefillRecovered(_redactor.SystemData(EndPoint), size, failedTotal);
                         }
 
                         return;
@@ -573,9 +608,14 @@ namespace Couchbase.Core.IO.Connections.Channels
                     }
 
                     quickRetried = false;
-                    failedAttempts++;
-                    LogRefillFailed(failedAttempts == 1 ? LogLevel.Warning : LogLevel.Debug, error?.SourceException,
-                        _redactor.SystemData(EndPoint), size, MinimumSize, delay);
+
+                    // InitializeAsync throws this error, and a caller that drops the pool stops the retry it would announce.
+                    if (!errorWentToCaller)
+                    {
+                        failedAttempts++;
+                        LogRefillFailed(failedAttempts == 1 ? LogLevel.Warning : LogLevel.Debug, error?.SourceException,
+                            _redactor.SystemData(EndPoint), size, MinimumSize, delay);
+                    }
 
                     await _timeProvider.Delay(delay, _poolToken).ConfigureAwait(false);
 

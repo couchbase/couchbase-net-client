@@ -40,6 +40,20 @@ namespace Couchbase.Core.DI
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
         Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create and connect to a <see cref="IClusterNode"/> that serves one bucket for life.
+        /// Each of its connections selects the bucket when it opens.
+        /// </summary>
+        /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
+        /// <param name="nodeAdapter"></param>
+        /// <param name="bucketName">The bucket the node serves.</param>
+        /// <param name="acceptRefusedBucket">When true and the node refuses the bucket, returns the node with no
+        /// connection. Its pool keeps trying until the node accepts the bucket or the node is disposed.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
+        Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            bool acceptRefusedBucket, CancellationToken cancellationToken = default);
     }
 }
 

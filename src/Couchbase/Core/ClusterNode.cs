@@ -36,6 +36,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 namespace Couchbase.Core
 {
@@ -1051,7 +1052,7 @@ namespace Couchbase.Core
             }
             catch (DocumentNotFoundException)
             {
-                // If DNF exception then BucketNotConnected was returned so close the connection and let it get cleaned up later
+                // KeyNotFound means the node does not serve the bucket, for example a new node in its first moments.
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();
 
@@ -1064,6 +1065,8 @@ namespace Couchbase.Core
                 {
                     LogBucketStillRefused(_redactor.MetaData(bucketName));
                 }
+
+                throw new BucketNotFoundException(bucketName);
             }
         }
 

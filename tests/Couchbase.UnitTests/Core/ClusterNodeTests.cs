@@ -26,6 +26,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 namespace Couchbase.UnitTests.Core
 {
@@ -320,6 +321,36 @@ namespace Couchbase.UnitTests.Core
             connection.Verify(
                 c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()),
                 Times.Never);
+            connection.Verify(c => c.Dispose(), Times.Once);
+        }
+
+        // Like the Java SDK, a refused bucket fails the connect, and the pool that opened the connection retries.
+        [Fact]
+        public async Task SelectBucketOnAConnection_KeyNotFound_ThrowsBucketNotFoundAndDisposesTheConnection()
+        {
+            // Arrange
+
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            using var clusterNode = CreateClusterNode(context, new Mock<IConnectionPool>().Object, "travel-sample");
+
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(c => c.ServerFeatures).Returns(ServerFeatureSet.Empty);
+            connection
+                .Setup(c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((ReadOnlyMemory<byte> _, IOperation op, CancellationToken _) =>
+                {
+                    op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.KeyNotFound));
+                    return default;
+                });
+
+            // Act
+
+            var thrown = await Assert.ThrowsAsync<BucketNotFoundException>(() => ((IConnectionInitializer)clusterNode)
+                .SelectBucketAsync(connection.Object, "travel-sample").WaitAsync(Deadline));
+
+            // Assert
+
+            Assert.Contains("travel-sample", thrown.Message);
             connection.Verify(c => c.Dispose(), Times.Once);
         }
 

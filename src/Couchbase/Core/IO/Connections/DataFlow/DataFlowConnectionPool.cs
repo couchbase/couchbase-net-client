@@ -12,6 +12,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Exception = System.Exception;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -89,6 +90,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             try
             {
                 await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
+            }
+            catch (BucketNotFoundException) when (Size == 0 && !cancellationToken.IsCancellationRequested)
+            {
+                // A node kept while it refuses the bucket gets its refill from the scale controller.
+                _scaleController.Start(this);
+                _initialized = true;
+                throw;
             }
             catch (Exception ex) when (Size > 0 && !cancellationToken.IsCancellationRequested)
             {

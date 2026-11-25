@@ -7,6 +7,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -157,7 +158,7 @@ namespace Couchbase.Core.IO.Connections
                     {
                         try
                         {
-                            await _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken)
+                            await SelectBucketOnLiveConnectionAsync(connection, name, cancellationToken)
                                 .ConfigureAwait(false);
                         }
                         catch
@@ -177,6 +178,23 @@ namespace Couchbase.Core.IO.Connections
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Selects the bucket on a connection of a live pool. A refused bucket does not throw. The connection closes
+        /// and the pool opens its replacement with the bucket selected.
+        /// </summary>
+        private async Task SelectBucketOnLiveConnectionAsync(IConnection connection, string name,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken).ConfigureAwait(false);
+            }
+            catch (BucketNotFoundException)
+            {
+                connection.Dispose();
             }
         }
 

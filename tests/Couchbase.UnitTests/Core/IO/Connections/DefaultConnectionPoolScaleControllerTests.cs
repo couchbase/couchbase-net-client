@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.Logging;
@@ -68,6 +69,38 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
+            controller.Protected()
+                .Verify("MonitorAsync", Times.Once());
+        }
+
+        // A channel pool can start its controller from its refill loop, where the flow is already suppressed.
+        [Fact]
+        public async Task Start_WhileTheFlowIsSuppressed_StartsMonitor()
+        {
+            // Arrange
+
+            var connectionPool = new Mock<IConnectionPool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var controller = new Mock<MockController>
+            {
+                CallBase = true
+            };
+            controller.Protected()
+                .Setup<Task>("MonitorAsync")
+                .Callback(() => { tcs.TrySetResult(true); })
+                .Returns(Task.CompletedTask);
+
+            // Act
+
+            using (ExecutionContext.SuppressFlow())
+            {
+                controller.Object.Start(connectionPool.Object);
+            }
+
+            // Assert
+
+            await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
             controller.Protected()
                 .Verify("MonitorAsync", Times.Once());
         }

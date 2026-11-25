@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -17,6 +19,7 @@ namespace Couchbase.Core.IO.Connections
     internal sealed class SingleConnectionPool : ConnectionPoolBase
     {
         private IConnection? _connection;
+        private volatile bool _disposed;
 
         /// <inheritdoc />
         public sealed override int Size => 1;
@@ -60,14 +63,15 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public override async Task SendAsync(IOperation operation, CancellationToken cancellationToken = default)
         {
-            if (_connection == null)
+            if (_disposed)
             {
-                throw new InvalidOperationException($"${nameof(SingleConnectionPool)} is not initialized.");
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(SingleConnectionPool));
             }
 
+            // A node that refused the bucket at its first connect has no connection yet, so this connects again.
             await CheckConnectionAsync().ConfigureAwait(false);
 
-            await operation.SendAsync(_connection, cancellationToken).ConfigureAwait(false);
+            await operation.SendAsync(_connection!, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -89,13 +93,22 @@ namespace Couchbase.Core.IO.Connections
         {
             if (_connection?.IsDead ?? true)
             {
-                await InitializeAsync().ConfigureAwait(false);
+                try
+                {
+                    await InitializeAsync().ConfigureAwait(false);
+                }
+                catch (BucketNotFoundException)
+                {
+                    // The retry logic handles this type, and the next send connects again.
+                    ThrowHelper.ThrowSocketNotAvailableException(nameof(SingleConnectionPool));
+                }
             }
         }
 
         /// <inheritdoc />
         public override void Dispose()
         {
+            _disposed = true;
             _connection?.Dispose();
             _connection = null;
         }

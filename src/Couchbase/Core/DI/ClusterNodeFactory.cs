@@ -9,6 +9,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -51,22 +52,30 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
-            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null);
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null, acceptRefusedBucket: false);
         }
 
         /// <inheritdoc />
         public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
             CancellationToken cancellationToken = default)
         {
+            return CreateAndConnectAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket: false, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            bool acceptRefusedBucket, CancellationToken cancellationToken = default)
+        {
             if (bucketName == null)
             {
                 throw new ArgumentNullException(nameof(bucketName));
             }
 
-            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName);
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket);
         }
 
-        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string? bucketName)
+        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
+            string? bucketName, bool acceptRefusedBucket)
         {
             // Resolved per node rather than held as a field, so each node gets its own breaker.
             var circuitBreaker = _clusterContext.ServiceProvider.GetRequiredService<ICircuitBreaker>();
@@ -79,6 +88,10 @@ namespace Couchbase.Core.DI
             try
             {
                 await clusterNode.InitializeAsync().ConfigureAwait(false);
+            }
+            catch (BucketNotFoundException) when (acceptRefusedBucket)
+            {
+                // The node joins with no connection and its pool keeps trying until the node accepts the bucket.
             }
             catch
             {
