@@ -80,12 +80,7 @@ namespace Couchbase.Diagnostics
             {
                 if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
                 {
-                    IEnumerable<IConnection> connections;
-                    try
-                    {
-                        connections = clusterNode.ConnectionPool.GetConnections();
-                    }
-                    catch (ObjectDisposedException)
+                    if (!clusterNode.ConnectionPool.TryGetConnections(out var connections))
                     {
                         continue;
                     }

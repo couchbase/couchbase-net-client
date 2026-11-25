@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -199,17 +200,10 @@ namespace Couchbase.Diagnostics
                     continue;
                 }
 
-                try
+                // A pool disposed after the IsDead check belongs to a node that is leaving.
+                if (node.ConnectionPool.TryGetConnections(out var connections) && !connections.Any())
                 {
-                    using var connections = node.ConnectionPool.GetConnections().GetEnumerator();
-                    if (!connections.MoveNext())
-                    {
-                        count++;
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Disposed after the IsDead check, the node is leaving.
+                    count++;
                 }
             }
 

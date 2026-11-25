@@ -18,6 +18,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.Diagnostics;
+using Couchbase.Test.Common.Utils;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
@@ -62,6 +63,68 @@ public class AllNodesReadersTests
         var bucketEntries = report.Services["kv"].Where(e => e.Scope == OneBucketClient.BucketName).ToList();
         Assert.Equal(OneBucketClient.KvHosts.Length - 1, bucketEntries.Count);
         Assert.DoesNotContain(bucketEntries, e => e.Remote == "10.0.0.2:11210");
+    }
+
+    // A reconcile can dispose a node after the reader took its list. Each pool type then reads as a node to skip.
+    [Theory]
+    [InlineData("channel")]
+    [InlineData("dataflow")]
+    [InlineData("single")]
+    public async Task DiagnosticsAndPing_NodeWhosePoolIsDisposed_SkipTheNode(string poolType)
+    {
+        using var client = OneBucketClient.Create();
+        using var bucketPool = DisposedPool(poolType);
+        using var clusterPool = DisposedPool(poolType);
+        client.BucketNodes[OneBucketClient.KvHosts[1]].SetupGet(n => n.ConnectionPool).Returns(bucketPool);
+        client.ClusterNodes[OneBucketClient.KvHosts[1]].SetupGet(n => n.ConnectionPool).Returns(clusterPool);
+
+        var report = await DiagnosticsReportProvider.CreateDiagnosticsReportAsync(client.Context, "report")
+            .WaitAsync(Timeout);
+        var ping = await DiagnosticsReportProvider.CreatePingReportAsync(client.Context, client.Context.GlobalConfig,
+            new PingOptions().ServiceTypes(ServiceType.KeyValue)).WaitAsync(Timeout);
+
+        foreach (var kv in new[] { report.Services["kv"], ping.Services["kv"] })
+        {
+            Assert.Equal(2 * (OneBucketClient.KvHosts.Length - 1), kv.Count());
+            Assert.DoesNotContain(kv, e => e.Remote == "10.0.0.2:11210");
+        }
+    }
+
+    // A cluster node never gets a SingleConnectionPool.
+    [Theory]
+    [InlineData("channel")]
+    [InlineData("dataflow")]
+    public async Task ClusterWaitPass_KvClusterNodeWhosePoolIsDisposed_ChangesNothing(string poolType)
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.AddClusterNode("node-4", hasKv: true);
+        using var pool = DisposedPool(poolType);
+        node.SetupGet(n => n.ConnectionPool).Returns(pool);
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+    }
+
+    private static IConnectionPool DisposedPool(string poolType)
+    {
+        var initializer = new Mock<IConnectionInitializer>();
+        initializer.SetupGet(i => i.EndPoint).Returns(new HostEndpointWithPort("node-1", 11210));
+        var connections = new Mock<IConnectionFactory>().Object;
+        var redactor = new Redactor(RedactionLevel.None);
+        IConnectionPool pool = poolType switch
+        {
+            "channel" => new Couchbase.Core.IO.Connections.Channels.ChannelConnectionPool(initializer.Object, connections,
+                new Mock<IConnectionPoolScaleController>().Object, redactor,
+                NullLogger<Couchbase.Core.IO.Connections.Channels.ChannelConnectionPool>.Instance, new SteppableClock(), 1024),
+            "dataflow" => new Couchbase.Core.IO.Connections.DataFlow.DataFlowConnectionPool(initializer.Object, connections,
+                new Mock<IConnectionPoolScaleController>().Object, redactor,
+                NullLogger<Couchbase.Core.IO.Connections.DataFlow.DataFlowConnectionPool>.Instance, 1024),
+            _ => new SingleConnectionPool(initializer.Object, connections, NullLogger<IConnectionPool>.Instance)
+        };
+        pool.Dispose();
+        return pool;
     }
 
     [Fact]
