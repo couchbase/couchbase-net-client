@@ -145,6 +145,24 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(1, connections.Attempts);
         }
 
+        // A reconcile can create a node while the cluster is disposed. Its connect then stops at once, and that is no
+        // failure, because nothing keeps trying.
+        [Fact]
+        public async Task CreateClusterNode_ClusterDisposed_StopsTheConnectAndLogsNoFailure()
+        {
+            var context = CreateContext();
+            var logger = new CapturingLogger();
+            var connections = new ConnectionFactory();
+            var factory = CreateFactory(context, PoolFactory(context, channelPools: true, connections), logger);
+            context.Dispose();
+
+            using var node = factory.CreateClusterNode(EndPoint, KvAdapter());
+
+            await logger.WaitForAsync(LogLevel.Debug, "stopped").WaitAsync(Deadline);
+            Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Warning);
+            Assert.Equal(0, connections.Attempts);
+        }
+
         [Fact]
         public async Task CreateClusterNode_FirstConnectFails_HasFailedFirstConnect()
         {

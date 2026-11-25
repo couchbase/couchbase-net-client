@@ -367,7 +367,7 @@ namespace Couchbase.Core
             {
                 await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e) when (_disposed || e is OperationCanceledException)
+            catch (Exception e) when (_disposed || _context.IsDisposed || e is OperationCanceledException)
             {
                 LogFirstConnectStopped(e, _redactor.SystemData(EndPoint));
             }
@@ -1428,7 +1428,7 @@ namespace Couchbase.Core
         [LoggerMessage(500, LogLevel.Warning, "The first connect to {endpoint} failed. The node keeps trying in the background.")]
         private partial void LogFirstConnectFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
-        [LoggerMessage(501, LogLevel.Debug, "The first connect to {endpoint} stopped, as the node is disposed.")]
+        [LoggerMessage(501, LogLevel.Debug, "The first connect to {endpoint} stopped, as the node or the cluster is disposed.")]
         private partial void LogFirstConnectStopped(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
         #endregion

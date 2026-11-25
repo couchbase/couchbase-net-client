@@ -2583,6 +2583,159 @@ namespace Couchbase.UnitTests.Core
 
         #endregion
 
+        #region Nodes added during Dispose (NCBC-4423)
+
+        // Dispose does not take the config lock, so it can run in the middle of a reconcile. The node created in that
+        // window is disposed, and no node is created after it.
+        [Fact]
+        public async Task Reconcile_ContextDisposedWhileItCreatesANode_LeavesNoLiveNode()
+        {
+            var created = new List<IClusterNode>();
+            ClusterContext context = null;
+            var options = PlainOptions(NodeFactory(created, onClusterNode: _ => context.Dispose()));
+            using var ownedContext = context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(1, PlainNode(0, kv: true),
+                PlainNode(1, kv: true), PlainNode(2, kv: true))));
+
+            Assert.Empty(context.Nodes);
+            var node = Assert.Single(created);
+            Assert.True(node.IsDead);
+        }
+
+        // A config apply that waited for the config lock while the context was disposed creates no node.
+        [Fact]
+        public async Task Reconcile_AfterDispose_CreatesNoNode()
+        {
+            var created = new List<IClusterNode>();
+            var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            context.Dispose();
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            Assert.Empty(context.Nodes);
+            Assert.Empty(created);
+        }
+
+        // The bootstrap can reach the config lock after Dispose. The seed then stays out of the list and is closed.
+        [Fact]
+        public async Task AddBootstrapNodes_AfterDispose_ClosesTheSeedAndAddsNoNode()
+        {
+            var config = DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true));
+            var seed = SeedNode(new HostEndpointWithPort(PlainHost(0), 11210), config);
+            var created = new List<IClusterNode>();
+            var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory(created)));
+            context.UpdateClusterNodesConfig(config);
+            context.Dispose();
+
+            await AssertCompleted(context.AddBootstrapNodesAsync(seed.Object, CancellationToken.None));
+
+            Assert.Empty(context.Nodes);
+            Assert.Empty(created);
+            seed.Verify(node => node.Dispose(), Times.Once);
+        }
+
+        // The add reads the endpoint of the node for its log line, so the dispose here lands after the check that comes
+        // before the add and before the add itself. The check after the add finds the node.
+        [Fact]
+        public async Task Reconcile_ContextDisposedDuringTheAdd_DisposesTheNode()
+        {
+            ClusterContext context = null;
+            var nodes = new List<Mock<IClusterNode>>();
+            var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) =>
+                {
+                    var node = NodeThatDisposesOnAdd(endPoint, () => context.Dispose(), armedAtOnce: true, out _);
+                    node.SetupGet(n => n.NodesAdapter).Returns(nodeAdapter);
+                    nodes.Add(node);
+                    return node.Object;
+                });
+            using var ownedContext = context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(factory.Object));
+
+            await AssertCompleted(context.ConfigUpdatedAsync(DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            Assert.Empty(context.Nodes);
+            var node = Assert.Single(nodes);
+            node.Verify(n => n.Dispose(), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddBootstrapNodes_ContextDisposedDuringTheSeedAdd_DisposesTheSeedOnce()
+        {
+            var config = DockerConfig(1, PlainNode(0, kv: true));
+            ClusterContext context = null;
+            var seed = NodeThatDisposesOnAdd(new HostEndpointWithPort(PlainHost(0), 11210), () => context.Dispose(),
+                armedAtOnce: false, out var arm);
+            seed.SetupSet(n => n.NodesAdapter = It.IsAny<NodeAdapter>()).Callback(arm);
+            context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(NodeFactory([])));
+            context.UpdateClusterNodesConfig(config);
+
+            await AssertCompleted(context.AddBootstrapNodesAsync(seed.Object, CancellationToken.None));
+
+            Assert.Empty(context.Nodes);
+            seed.Verify(node => node.Dispose(), Times.Once);
+        }
+
+        /// <summary>
+        /// A node that runs <paramref name="dispose"/> at the first read of its endpoint once it is armed. A seed is
+        /// read before its add, so <paramref name="arm"/> arms it when its adapter is set.
+        /// </summary>
+        private static Mock<IClusterNode> NodeThatDisposesOnAdd(HostEndpointWithPort endPoint, Action dispose,
+            bool armedAtOnce, out Action arm)
+        {
+            var armed = armedAtOnce;
+            var fired = false;
+            var node = new Mock<IClusterNode>();
+            node.SetupGet(n => n.KeyEndPoints).Returns([]);
+            node.SetupGet(n => n.HasKv).Returns(true);
+            node.SetupGet(n => n.EndPoint).Returns(() =>
+            {
+                if (armed && !fired)
+                {
+                    fired = true;
+                    dispose();
+                }
+
+                return endPoint;
+            });
+            arm = () => armed = true;
+            return node;
+        }
+
+        // Dispose can run while the seed fetches the config. The seed is connected, so the bootstrap closes it.
+        [Fact]
+        public async Task BootstrapGlobal_ContextDisposedDuringTheSeedFetch_ClosesTheSeed()
+        {
+            var config = DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true));
+            ClusterContext context = null;
+            var seed = new Mock<IClusterNode>();
+            seed.SetupAllProperties();
+            seed.Setup(node => node.EndPoint).Returns(new HostEndpointWithPort(PlainHost(0), 11210));
+            seed.Setup(node => node.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    context.Dispose();
+                    return Task.FromResult(config);
+                });
+            var created = new List<IClusterNode>();
+            var options = PlainOptions(NodeFactory(created, seed.Object));
+            options.EnableDnsSrvResolution = false;
+            context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            seed.Verify(node => node.Dispose(), Times.Once);
+            Assert.Empty(context.Nodes);
+            Assert.Empty(created);
+        }
+
+        #endregion
+
         #region One cluster reconcile (NCBC-4423)
 
         // The cluster config apply, the bucket config apply and a reconcile that a newer view overtakes all end at the

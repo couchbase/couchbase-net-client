@@ -162,6 +162,11 @@ namespace Couchbase.Core
         public CancellationToken CancellationToken => _tokenSource.Token;
 
         /// <summary>
+        /// True once <see cref="Dispose"/> started. <see cref="CancellationToken"/> throws from then on.
+        /// </summary>
+        internal bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+        /// <summary>
         /// Whether the cluster has the capability, or null while no capabilities are known.
         /// </summary>
         internal bool? HasClusterCap(string clusterCap) => ClusterCapsConfig?.HasClusterCap(clusterCap);
@@ -493,6 +498,32 @@ namespace Couchbase.Core
             SupportsBinaryXattr = seenAnyNode && binaryXattr;
         }
 
+        /// <summary>
+        /// Adds a node unless the context is disposed. Returns false when it is, and the node is then disposed.
+        /// </summary>
+        /// <remarks>
+        /// Dispose does not take the config lock, so it can clear the list between the check and the add. Dispose sets
+        /// the flag before it clears, so the second check finds a node that the clear missed.
+        /// </remarks>
+        private bool TryAddNodeUnlessDisposed(IClusterNode node)
+        {
+            if (IsDisposed)
+            {
+                node.Dispose();
+                return false;
+            }
+
+            AddNode(node);
+            if (!IsDisposed)
+            {
+                return true;
+            }
+
+            // RemoveAllNodes disposes the node when it got there first.
+            RemoveNode(node);
+            return false;
+        }
+
         public bool RemoveNode(IClusterNode removedNode)
         {
             _logger.LogDebug(
@@ -539,8 +570,11 @@ namespace Couchbase.Core
                 ThrowHelper.ThrowInvalidOperationException("ConnectionString has not been set.");
             }
 
+            // Read once, because the property throws after Dispose and a seed would then miss its cleanup.
+            var contextToken = CancellationToken;
+
             // Combine the input CancellationToken with the Dispose token, we'll cancel if either is triggered
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(contextToken, cancellationToken);
 
             try
             {
@@ -674,7 +708,7 @@ namespace Couchbase.Core
                     {
                         //Server is 6.5 and greater and supports GC3P. The other cluster nodes join at once and connect
                         //in the background. The seed is connected, so only a dispose stops this step, not the caller.
-                        await AddBootstrapNodesAsync(node, CancellationToken).ConfigureAwait(false);
+                        await AddBootstrapNodesAsync(node, contextToken).ConfigureAwait(false);
                         return;
                     }
                     catch (Exception e)
@@ -719,7 +753,7 @@ namespace Couchbase.Core
         /// <param name="cancellationToken">Cancels the wait for the config lock.</param>
         internal async Task AddBootstrapNodesAsync(IClusterNode seed, CancellationToken cancellationToken)
         {
-            var seedKept = false;
+            var seedTaken = false;
             try
             {
                 await _configMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -733,7 +767,7 @@ namespace Couchbase.Core
                         _logger.LogInformation(nodeAdapter.ToString());
                     }
 
-                    seedKept = seed is not null && TryAddSeed(seed, entries, GetEndPoints(entries));
+                    seedTaken = seed is not null && TryAddSeed(seed, entries, GetEndPoints(entries));
                     ReconcileClusterNodes(view);
                 }
                 finally
@@ -743,15 +777,24 @@ namespace Couchbase.Core
             }
             finally
             {
-                if (seed is not null && !seedKept)
+                if (seed is not null && !seedTaken)
                 {
                     seed.Dispose();
                 }
             }
         }
 
+        /// <summary>
+        /// Gives the seed to the context when an entry has its address. Returns false when the caller keeps the seed and
+        /// must dispose it.
+        /// </summary>
         private bool TryAddSeed(IClusterNode seed, List<NodeAdapter> entries, List<HostEndpointWithPort> endPoints)
         {
+            if (IsDisposed)
+            {
+                return false;
+            }
+
             for (var i = 0; i < entries.Count; i++)
             {
                 if (!ClusterNodeList.IsNodeOf(seed, endPoints[i], entries[i]))
@@ -777,7 +820,9 @@ namespace Couchbase.Core
                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
                     _redactor.SystemData(endPoints[i]));
                 seed.NodesAdapter = entries[i];
-                AddNode(seed);
+
+                // On false the context disposed the seed already, so the caller must not dispose it again.
+                TryAddNodeUnlessDisposed(seed);
                 return true;
             }
 
@@ -1540,7 +1585,8 @@ namespace Couchbase.Core
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A new node joins at once and connects in the background, so the reconcile waits for no connect.
+        /// A new node joins at once and connects in the background, so the reconcile waits for no connect. A call that
+        /// waited for the config lock while the context was disposed adds no node.
         /// </para>
         /// <para>
         /// The lock free bucket path can move <see cref="ClusterNodesConfig"/> and mark it reconciled while this runs on
@@ -1554,6 +1600,11 @@ namespace Couchbase.Core
             var changed = false;
             while (true)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 var entries = config.GetClusterNodes();
                 var endPoints = GetEndPoints(entries);
 
@@ -1582,7 +1633,11 @@ namespace Couchbase.Core
                     _logger.LogDebug("Creating cluster node {endPoint} for config revision {rev}.",
                         _redactor.SystemData(endPoints[i]), config.ConfigVersion);
                     var newNode = _clusterNodeFactory.CreateClusterNode(endPoints[i], entries[i]);
-                    AddNode(newNode);
+                    if (!TryAddNodeUnlessDisposed(newNode))
+                    {
+                        return;
+                    }
+
                     nodes.Add(newNode);
                     changed = true;
 
