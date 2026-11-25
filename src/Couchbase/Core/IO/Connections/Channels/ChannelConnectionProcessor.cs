@@ -93,6 +93,14 @@ namespace Couchbase.Core.IO.Connections.Channels
 
         public ChannelConnectionProcessor Start()
         {
+            // The pool can start a processor from its refill loop, which already suppresses the flow.
+            // Suppressing twice on one thread throws.
+            if (ExecutionContext.IsFlowSuppressed())
+            {
+                _ = Process();
+                return this;
+            }
+
             using (ExecutionContext.SuppressFlow())
             {
                 _ = Process();
@@ -192,18 +200,10 @@ namespace Couchbase.Core.IO.Connections.Channels
                 _completion.SetResult(true);
 
                 // Remove the connection, unless it we're completed (due to the pool closing or shrinking).
-                // This will cleanup references, and replace the connection if necessary.
+                // The pool then refills in the background.
                 if (token != CancellationToken.None && !token.IsCancellationRequested)
                 {
-                    try
-                    {
-                        await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        //Ensure that any error thrown by RemoveConnectionAsync will not prevent Connection.CloseAsync
-                        LogConnectionNotRemoved(Connection.ConnectionId);
-                    }
+                    _connectionPool.RemoveConnection(this);
                 }
                 // Let in-flight operations finish, waiting up to one minute
                 await Connection.CloseAsync(CloseTimeout).ConfigureAwait(false);
@@ -227,9 +227,6 @@ namespace Couchbase.Core.IO.Connections.Channels
         }
 
         #region Logging
-
-        [LoggerMessage(200, LogLevel.Information, "Connection {cid} was not removed.")]
-        private partial void LogConnectionNotRemoved(ulong cid);
 
         [LoggerMessage(201, LogLevel.Information, "Done processing operations on {cid}, IsDead: {isDead}")]
         private partial void LogDoneProcessingOperations(ulong cid, bool isDead);

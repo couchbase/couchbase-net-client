@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -47,7 +48,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
             _channelPool = new ChannelConnectionPool(connectionInitializer, connectionFactory,
                 new DefaultConnectionPoolScaleController(redactor,
                     NullLogger<DefaultConnectionPoolScaleController>.Instance),
-                redactor, NullLogger<ChannelConnectionPool>.Instance, 1024)
+                redactor, NullLogger<ChannelConnectionPool>.Instance, TimeProvider.System, 1024)
             {
                 MinimumSize = 2,
                 MaximumSize = 2

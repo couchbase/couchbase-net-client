@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -13,6 +15,7 @@ using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,6 +26,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
     [Collection("NonParallel")]
     public class ChannelConnectionPoolTests
     {
+        // Bounds each wait, so a regression fails instead of hanging.
+        private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(10);
+
         private readonly ITestOutputHelper _testOutput;
         private readonly HostEndpointWithPort _hostEndpoint = new("localhost", 9999);
         const int queueSize = 1024;
@@ -64,6 +70,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
         #region InitializeAsync
 
+        // InitializeAsync returns at the first connection. The refill loop opens the rest while it holds the pool lock.
         [Theory]
         [InlineData(1)]
         [InlineData(3)]
@@ -71,6 +78,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         {
             // Arrange
 
+            using var deadline = new CancellationTokenSource(Deadline);
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
@@ -82,9 +90,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             // Act
 
-            await pool.InitializeAsync();
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
 
             // Assert
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(size, pool.Size);
+            }
 
             connectionFactory.Verify(
                 m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()),
@@ -193,40 +206,162 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             connection.Verify(m => m.Dispose(), Times.Once);
         }
 
+        // The caller cancels while the first round connects. InitializeAsync throws even though a connection opens
+        // later, and the loop stops after its round with no retry.
         [Fact]
         public async Task InitializeAsync_Cancelled_ThrowsEvenWithAWorkingConnection()
         {
             // Arrange
 
-            // A partial pool is only tolerable when the caller still wants the node. If the caller
-            // cancelled, the failure must surface rather than be swallowed.
-            var attempt = 0;
+            using var deadline = new CancellationTokenSource(Deadline);
             using var cts = new CancellationTokenSource();
+            var clock = new TimerRecordingTimeProvider();
+            var working = new TaskCompletionSource<IConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var attempt = 0;
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
-                .Returns(() =>
-                {
-                    if (Interlocked.Increment(ref attempt) == 1)
-                    {
-                        return Task.FromResult(new Mock<IConnection>().Object);
-                    }
+                .Returns(() => Interlocked.Increment(ref attempt) == 1
+                    ? working.Task
+                    : Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut)));
 
-                    cts.Cancel();
-                    return Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut));
-                });
-
-            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, timeProvider: clock);
             pool.MinimumSize = 2;
             pool.MaximumSize = 2;
 
-            // Act / Assert
+            // Act
 
-            // Without the cancellation check this would be swallowed as a partial pool, since one
-            // connection did come up.
-            await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync(cts.Token));
-            Assert.Equal(1, pool.Size);
+            var initialize = pool.InitializeAsync(cts.Token);
+            cts.Cancel();
+
+            // Assert
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => initialize.WaitAsync(deadline.Token));
+
+            working.SetResult(new Mock<IConnection>().Object);
+
+            // The round ends under the pool lock, so the freeze waits for it.
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(1, pool.Size);
+                Assert.False(pool.IsRefilling);
+            }
+
+            Assert.Equal(0, clock.TimersCreated);
+            Assert.Equal(2, Volatile.Read(ref attempt));
+        }
+
+        [Fact]
+        public async Task InitializeAsync_FirstRoundAuthenticationFails_ThrowsTheSameExceptionAndStops()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var error = new AuthenticationFailureException("Bad credentials.");
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new Mock<IConnection>().Object);
+
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            connectionInitializer
+                .Setup(m => m.InitializeConnectionAsync(It.IsAny<IConnection>(), It.IsAny<CancellationToken>()))
+                .Returns(() => Task.FromException(error));
+
+            var pool = CreatePool(connectionInitializer.Object, connectionFactory.Object, clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act
+
+            // ClusterContext matches this exact type, so it must not be wrapped.
+            var thrown = await Assert.ThrowsAsync<AuthenticationFailureException>(
+                () => pool.InitializeAsync().WaitAsync(deadline.Token));
+
+            // Assert
+
+            Assert.Same(error, thrown);
+            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_FirstRoundTlsFails_ThrowsTheSameExceptionAndStops()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var error = new System.Security.Authentication.AuthenticationException("The remote certificate is invalid.");
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() => Task.FromException<IConnection>(error));
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, timeProvider: clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act
+
+            // ClusterContext reads the message of this exception, so it must not be wrapped.
+            var thrown = await Assert.ThrowsAsync<System.Security.Authentication.AuthenticationException>(
+                () => pool.InitializeAsync().WaitAsync(deadline.Token));
+
+            // Assert
+
+            Assert.Same(error, thrown);
+            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_FirstRoundOnlyDeadConnections_ThrowsConnectExceptionAndStops()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var connection = new Mock<IConnection>();
+                    connection.SetupGet(m => m.IsDead).Returns(true);
+                    return connection.Object;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, timeProvider: clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act
+
+            var thrown = await Assert.ThrowsAsync<ConnectException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+
+            // Assert
+
+            Assert.Equal($"Unable to open any connections to {_hostEndpoint}.", thrown.Message);
+            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+        }
+
+        private void AssertNoConnectAfterTheFirstRound(ChannelConnectionPool pool, TimerRecordingTimeProvider clock,
+            Mock<IConnectionFactory> connectionFactory, int firstRound)
+        {
+            // A loop that kept going would wait on a timer before its next attempt.
+            Assert.False(pool.IsRefilling);
+            Assert.Equal(0, clock.TimersCreated);
+            clock.Advance(ChannelConnectionPool.MaxRefillDelay);
+
+            Assert.Equal(0, pool.Size);
+            connectionFactory.Verify(
+                m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()),
+                Times.Exactly(firstRound));
         }
 
         #endregion
@@ -1010,8 +1145,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var connections = new List<ControllableConnection>();
-            var reconnects = 0;
-            var reconnectsFailed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
@@ -1027,28 +1160,26 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                         }
                     }
 
-                    // The first removal tries one replacement and the second tries two.
-                    if (Interlocked.Increment(ref reconnects) == 3)
-                    {
-                        reconnectsFailed.TrySetResult(true);
-                    }
-
                     return Task.FromException<IConnection>(new SocketException((int) SocketError.ConnectionRefused));
                 });
 
-            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            var clock = new TimerRecordingTimeProvider();
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, timeProvider: clock);
             pool.MinimumSize = 2;
             pool.MaximumSize = 2;
             await pool.InitializeAsync();
 
             connections.ForEach(c => c.CloseFromServer());
-            await reconnectsFailed.Task.WaitAsync(deadline.Token);
+
+            // Both processors left the pool, and the refill loop failed and waits for its next attempt.
+            await Task.WhenAll(connections.Select(c => c.CloseCalled)).WaitAsync(deadline.Token);
+            await clock.NextTimerAsync(deadline.Token);
 
             var operation = new FakeOperation();
 
             // Act
 
-            // Reconnects hold the pool lock while they connect, so the send must not wait for it.
+            // Refill attempts hold the pool lock while they connect, so the send must not wait for it.
             Task<bool> send;
             await using (await pool.FreezePoolAsync(deadline.Token))
             {
@@ -1113,59 +1244,63 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.Equal("Failed to select bucket travel-sample.", ex.Message);
         }
 
-        // Initialization must hold the pool lock: AddConnectionsAsync assumes it is held, and a processor whose
-        // connection closes calls RemoveConnectionAsync, which takes it. Without the lock that removal could run
-        // before every initial processor was registered.
+        // InitializeAsync returns at the first live connection. The refill loop keeps the pool lock until the sibling
+        // is registered, so a bucket selection that freezes the pool sees every connection.
         [Fact]
-        public async Task InitializeAsync_HoldsThePoolLock_UntilEveryInitialConnectionIsRegistered()
+        public async Task InitializeAsync_ReturnsAtTheFirstConnection_TheLoopHoldsThePoolLockUntilTheSiblingIsRegistered()
         {
             // Arrange
 
+            using var deadline = new CancellationTokenSource(Deadline);
             var secondConnectionSetup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var pool = CreatePoolWithGatedSecondConnection(secondConnectionSetup.Task, new List<ControllableConnection>());
 
             // Act
 
-            var initialize = pool.InitializeAsync();
-            var freeze = pool.FreezePoolAsync().AsTask();
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
 
             // Assert
 
+            Assert.Equal(1, pool.Size);
+
             // A held lock returns an incomplete task at once, so no wait is needed to see it.
+            var freeze = pool.FreezePoolAsync(deadline.Token).AsTask();
             Assert.False(freeze.IsCompleted);
 
             secondConnectionSetup.SetResult(true);
-            await initialize;
-            await (await freeze).DisposeAsync();
+            await using (await freeze.WaitAsync(deadline.Token))
+            {
+                Assert.Equal(2, pool.Size);
+            }
         }
 
-        // With the lock this end state is forced: the removal waits until the sibling is registered. The test above
-        // is what detects a missing lock; without it this test usually still passes, because the sibling tends to
-        // register first.
+        // A connection closes while its sibling still connects. The loop ends its round, sees the pool short of one
+        // and opens a replacement.
         [Fact]
         public async Task InitializeAsync_ConnectionClosesWhileASiblingConnects_PoolEndsAtMinimumWithoutIt()
         {
             // Arrange
 
+            using var deadline = new CancellationTokenSource(Deadline);
             var connections = new List<ControllableConnection>();
             var secondConnectionSetup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var pool = CreatePoolWithGatedSecondConnection(secondConnectionSetup.Task, connections,
                 replacementCreated: out var replacementCreated);
 
-            var initialize = pool.InitializeAsync();
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
 
             // Act
 
-            // The first connection is registered; its sibling is still connecting.
+            // The first connection is registered and its sibling is still connecting.
             var closed = connections[0];
             closed.CloseFromServer();
+            await closed.CloseCalled.WaitAsync(deadline.Token);
             secondConnectionSetup.SetResult(true);
-            await initialize;
-            await replacementCreated;
+            await replacementCreated.WaitAsync(deadline.Token);
 
             // Assert
 
-            await using (await pool.FreezePoolAsync())
+            await using (await pool.FreezePoolAsync(deadline.Token))
             {
                 var live = pool.GetConnections().ToList();
                 Assert.Equal(2, live.Count);
@@ -1225,6 +1360,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         private sealed class ControllableConnection
         {
             private readonly CancellationTokenSource _closed = new();
+            private readonly TaskCompletionSource<bool> _closeCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            private readonly TaskCompletionSource<bool> _disposeCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
             private volatile bool _dead;
 
             public ControllableConnection()
@@ -1232,10 +1369,25 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 var mock = new Mock<IConnection>();
                 mock.SetupGet(m => m.ClosedToken).Returns(_closed.Token);
                 mock.SetupGet(m => m.IsDead).Returns(() => _dead);
+                mock.Setup(m => m.CloseAsync(It.IsAny<TimeSpan>()))
+                    .Callback(() => _closeCalled.TrySetResult(true))
+                    .Returns(default(ValueTask));
+                mock.Setup(m => m.Dispose()).Callback(() =>
+                {
+                    _dead = true;
+                    _disposeCalled.TrySetResult(true);
+                });
                 Object = mock.Object;
             }
 
             public IConnection Object { get; }
+
+            /// <summary>
+            /// Completes when the processor closes the connection on its way out, after it left the pool.
+            /// </summary>
+            public Task CloseCalled => _closeCalled.Task;
+
+            public Task DisposeCalled => _disposeCalled.Task;
 
             public void CloseFromServer()
             {
@@ -1248,10 +1400,503 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
         #endregion
 
+        [Fact]
+        public void Factory_ResolvedFromTheClusterServices_GetsItsClock()
+        {
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+
+            Assert.IsType<ChannelConnectionPoolFactory>(context.ServiceProvider.GetRequiredService<IConnectionPoolFactory>());
+        }
+
+        #region Refill
+
+        // A pool under its minimum keeps trying, so it does not wait for the scale controller tick.
+        [Fact]
+        public async Task Refill_ReplacementFails_RetriesWithABackoffUntilItConnects()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var pool = CreatePool(connectionFactory: factory.Object, timeProvider: clock);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            // Act
+
+            factory.Failing = true;
+            factory.Connections[0].CloseFromServer();
+
+            // Assert
+
+            var expected = new[] { 32, 64, 128, 256, 512, 1024, 2048, 4096, 4096 };
+            for (var i = 0; i < expected.Length; i++)
+            {
+                var due = await clock.NextTimerAsync(deadline.Token);
+                Assert.Equal(TimeSpan.FromMilliseconds(expected[i]), due);
+
+                if (i == expected.Length - 1)
+                {
+                    factory.Failing = false;
+                }
+
+                clock.Advance(due);
+            }
+
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Same(factory.Connections[1].Object, Assert.Single(pool.GetConnections()));
+            }
+
+            Assert.Equal(expected.Length, clock.TimersCreated);
+        }
+
+        // A node that refuses the bucket makes the select dispose the connection, which comes back dead with no error.
+        [Fact]
+        public async Task Refill_NodeRefusesTheBucket_RetriesUntilItAccepts()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var refuse = false;
+            var accepted = 0;
+
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            connectionInitializer
+                .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((IConnection connection, string _, CancellationToken _) =>
+                {
+                    if (Volatile.Read(ref refuse))
+                    {
+                        factory.Find(connection).MarkDeadSilently();
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref accepted);
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+            await pool.SelectBucketAsync("travel-sample").WaitAsync(deadline.Token);
+
+            // Act
+
+            Volatile.Write(ref refuse, true);
+            var closed = factory.Connections[0];
+            closed.CloseFromServer();
+
+            // Assert
+
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+            clock.Advance(TimeSpan.FromMilliseconds(32));
+            Assert.Equal(TimeSpan.FromMilliseconds(64), await clock.NextTimerAsync(deadline.Token));
+
+            Volatile.Write(ref refuse, false);
+            clock.Advance(TimeSpan.FromMilliseconds(64));
+
+            await factory.ConnectionCreated(5).WaitAsync(deadline.Token);
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                var live = pool.GetConnections().ToList();
+                Assert.Equal(2, live.Count);
+                Assert.DoesNotContain(closed.Object, live);
+                Assert.All(live, c => Assert.False(c.IsDead));
+            }
+
+            Assert.Equal(3, Volatile.Read(ref accepted));
+            Assert.Equal(2, clock.TimersCreated);
+        }
+
+        [Fact]
+        public async Task Refill_AfterARecovery_TheBackoffStartsAgainAt32Ms()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var pool = CreatePool(connectionFactory: factory.Object, timeProvider: clock);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            factory.Failing = true;
+            factory.Connections[0].CloseFromServer();
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+            clock.Advance(TimeSpan.FromMilliseconds(32));
+            Assert.Equal(TimeSpan.FromMilliseconds(64), await clock.NextTimerAsync(deadline.Token));
+            factory.Failing = false;
+            clock.Advance(TimeSpan.FromMilliseconds(64));
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+
+            // Act
+
+            factory.Failing = true;
+            factory.Connections[1].CloseFromServer();
+
+            // Assert
+
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+        }
+
+        [Fact]
+        public async Task Refill_SeveralConnectionsCloseTogether_OneLoopRuns()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var factory = new RefillFactory();
+            var pool = CreatePool(connectionFactory: factory.Object);
+            pool.MinimumSize = 3;
+            pool.MaximumSize = 3;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+            var initialLoops = pool.RefillStarts;
+
+            // Act
+
+            // The frozen pool holds the loop back, so every removal happens while it waits.
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                var closing = factory.Connections.ToList();
+                closing.ForEach(c => c.CloseFromServer());
+                await Task.WhenAll(closing.Select(c => c.CloseCalled)).WaitAsync(deadline.Token);
+
+                // Assert
+
+                Assert.Equal(initialLoops + 1, pool.RefillStarts);
+            }
+
+            await factory.ConnectionCreated(6).WaitAsync(deadline.Token);
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(3, pool.Size);
+                Assert.Equal(initialLoops + 1, pool.RefillStarts);
+            }
+        }
+
+        // A round where every connect works can still end under the minimum, when a connection closes meanwhile.
+        [Fact]
+        public async Task Refill_ConnectionsKeepClosingWhileASiblingConnects_BacksOffAfterOneRetryAtOnce()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new GatedFactory();
+            var pool = CreatePool(connectionFactory: factory.Object, timeProvider: clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            var initialize = pool.InitializeAsync();
+            var first = await factory.OpenAsync(1, deadline.Token);
+            await initialize.WaitAsync(deadline.Token);
+
+            // Act
+
+            first.CloseFromServer();
+            await first.CloseCalled.WaitAsync(deadline.Token);
+            var second = await factory.OpenAsync(2, deadline.Token);
+
+            // The first round ended with 1 of 2 and no failed connect, so the loop connects again at once.
+            await factory.Started(3).WaitAsync(deadline.Token);
+            Assert.Equal(0, clock.TimersCreated);
+
+            second.CloseFromServer();
+            await second.CloseCalled.WaitAsync(deadline.Token);
+            var third = await factory.OpenAsync(3, deadline.Token);
+
+            // Assert
+
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+            Assert.Equal(3, factory.StartedCount);
+
+            clock.Advance(TimeSpan.FromMilliseconds(32));
+            var fourth = await factory.OpenAsync(4, deadline.Token);
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                var live = pool.GetConnections().ToList();
+                Assert.Equal(2, live.Count);
+                Assert.Contains(third.Object, live);
+                Assert.Contains(fourth.Object, live);
+            }
+
+            Assert.Equal(1, clock.TimersCreated);
+        }
+
+        // A refill attempt holds the pool lock while it connects. Dispose must not wait for it.
+        [Fact]
+        public async Task Dispose_DuringARefillAttempt_ReturnsAtOnceAndDisposesTheLateConnection()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var first = new ControllableConnection();
+            var late = new ControllableConnection();
+            var lateConnect = new TaskCompletionSource<IConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var lateConnectStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var attempt = 0;
+
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    if (Interlocked.Increment(ref attempt) == 1)
+                    {
+                        return Task.FromResult(first.Object);
+                    }
+
+                    // Ignores the token, as a TLS handshake on .NET Framework does.
+                    lateConnectStarted.TrySetResult(true);
+                    return lateConnect.Task;
+                });
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            first.CloseFromServer();
+            await lateConnectStarted.Task.WaitAsync(deadline.Token);
+
+            // Act
+
+            await Task.Run(pool.Dispose).WaitAsync(deadline.Token);
+
+            // Assert
+
+            lateConnect.SetResult(late.Object);
+            await late.DisposeCalled.WaitAsync(deadline.Token);
+            Assert.Equal(0, pool.Size);
+        }
+
+        // Readers take no lock, so a connection added meanwhile must never show a half built list.
+        [Fact]
+        public async Task Readers_WhileConnectionsAreAddedAndRemoved_SeeAWholeArray()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var pool = CreatePool();
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            var reads = 0;
+            var stop = 0;
+            var readerStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var reader = Task.Run(async () =>
+            {
+                readerStarted.TrySetResult(true);
+                while (Volatile.Read(ref stop) == 0)
+                {
+                    Assert.All(pool.GetConnections(), Assert.NotNull);
+                    Assert.True(await pool.TrySendImmediatelyAsync(new FakeOperation()));
+                    Interlocked.Increment(ref reads);
+                }
+            });
+
+            await readerStarted.Task.WaitAsync(deadline.Token);
+
+            // Act
+
+            while (Volatile.Read(ref reads) < 2000 && !reader.IsCompleted)
+            {
+                await using (await pool.FreezePoolAsync(deadline.Token))
+                {
+                    await pool.ScaleAsync(1).WaitAsync(deadline.Token);
+                    await pool.ScaleAsync(-1).WaitAsync(deadline.Token);
+                }
+            }
+
+            Volatile.Write(ref stop, 1);
+
+            // Assert
+
+            await reader.WaitAsync(deadline.Token);
+        }
+
+        /// <summary>
+        /// Starts each connect when the pool asks and completes it when the test calls <see cref="OpenAsync"/>.
+        /// </summary>
+        private sealed class GatedFactory
+        {
+            private readonly Mock<IConnectionFactory> _mock = new();
+            private readonly List<TaskCompletionSource<IConnection>> _connects = new();
+            private readonly List<(int Count, TaskCompletionSource<bool> Signal)> _waiters = new();
+
+            public GatedFactory()
+            {
+                _mock
+                    .Setup(m => m.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                    .Returns(() =>
+                    {
+                        var connect = new TaskCompletionSource<IConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        lock (_connects)
+                        {
+                            _connects.Add(connect);
+                            foreach (var waiter in _waiters)
+                            {
+                                if (_connects.Count >= waiter.Count)
+                                {
+                                    waiter.Signal.TrySetResult(true);
+                                }
+                            }
+                        }
+
+                        return connect.Task;
+                    });
+            }
+
+            public IConnectionFactory Object => _mock.Object;
+
+            public int StartedCount
+            {
+                get
+                {
+                    lock (_connects)
+                    {
+                        return _connects.Count;
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Completes when the pool has started <paramref name="count"/> connects.
+            /// </summary>
+            public Task Started(int count)
+            {
+                var signal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                lock (_connects)
+                {
+                    if (_connects.Count >= count)
+                    {
+                        signal.TrySetResult(true);
+                    }
+                    else
+                    {
+                        _waiters.Add((count, signal));
+                    }
+                }
+
+                return signal.Task;
+            }
+
+            /// <summary>
+            /// Waits for connect number <paramref name="number"/> (from 1) and completes it with a new connection.
+            /// </summary>
+            public async Task<ControllableConnection> OpenAsync(int number, CancellationToken cancellationToken)
+            {
+                await Started(number).WaitAsync(cancellationToken);
+
+                var connection = new ControllableConnection();
+                TaskCompletionSource<IConnection> connect;
+                lock (_connects)
+                {
+                    connect = _connects[number - 1];
+                }
+
+                connect.SetResult(connection.Object);
+                return connection;
+            }
+        }
+
+        /// <summary>
+        /// Creates <see cref="ControllableConnection"/>s, or fails while <see cref="Failing"/> is set.
+        /// </summary>
+        private sealed class RefillFactory
+        {
+            private readonly Mock<IConnectionFactory> _mock = new();
+            private readonly List<(int Count, TaskCompletionSource<bool> Signal)> _waiters = new();
+            private volatile bool _failing;
+
+            public RefillFactory()
+            {
+                _mock
+                    .Setup(m => m.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                    .Returns(() =>
+                    {
+                        if (_failing)
+                        {
+                            return Task.FromException<IConnection>(new SocketException((int) SocketError.ConnectionRefused));
+                        }
+
+                        var connection = new ControllableConnection();
+                        lock (Connections)
+                        {
+                            Connections.Add(connection);
+                            foreach (var waiter in _waiters)
+                            {
+                                if (Connections.Count >= waiter.Count)
+                                {
+                                    waiter.Signal.TrySetResult(true);
+                                }
+                            }
+                        }
+
+                        return Task.FromResult(connection.Object);
+                    });
+            }
+
+            public IConnectionFactory Object => _mock.Object;
+
+            public List<ControllableConnection> Connections { get; } = new();
+
+            public bool Failing
+            {
+                get => _failing;
+                set => _failing = value;
+            }
+
+            /// <summary>
+            /// Completes when the factory has created <paramref name="count"/> connections.
+            /// </summary>
+            public Task ConnectionCreated(int count)
+            {
+                var signal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                lock (Connections)
+                {
+                    if (Connections.Count >= count)
+                    {
+                        signal.TrySetResult(true);
+                    }
+                    else
+                    {
+                        _waiters.Add((count, signal));
+                    }
+                }
+
+                return signal.Task;
+            }
+
+            public ControllableConnection Find(IConnection connection)
+            {
+                lock (Connections)
+                {
+                    return Connections.Single(c => c.Object == connection);
+                }
+            }
+        }
+
+        #endregion
+
         #region Helpers
 
         private ChannelConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
-            IConnectionFactory connectionFactory = null)
+            IConnectionFactory connectionFactory = null, TimeProvider timeProvider = null)
         {
             if (connectionInitializer == null)
             {
@@ -1277,6 +1922,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
                 new Mock<IConnectionPoolScaleController>().Object,
                 new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
+                timeProvider ?? new FakeTimeProvider(),
                 (int) new ClusterOptions().KvSendQueueCapacity);
         }
 
@@ -1317,7 +1963,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
-                _testOutput.WriteLine(formatter(state, exception));
+                try
+                {
+                    _testOutput.WriteLine(formatter(state, exception));
+                }
+                catch (InvalidOperationException)
+                {
+                    // Background pool work can log after the test has finished.
+                }
             }
 
             public bool IsEnabled(LogLevel logLevel)

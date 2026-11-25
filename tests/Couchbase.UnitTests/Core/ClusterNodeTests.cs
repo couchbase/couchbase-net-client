@@ -9,8 +9,10 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -18,6 +20,7 @@ using Couchbase.Test.Common.Utils;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.ObjectPool;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -281,6 +284,74 @@ namespace Couchbase.UnitTests.Core
 
             await Assert.ThrowsAsync<UnambiguousTimeoutException>(() =>
                 clusterNode.GetClusterMap(timeout: TimeSpan.FromMilliseconds(50)).WaitAsync(Deadline));
+        }
+
+        // A pool can finish a connect after its node is disposed. That connection must not get SELECT_BUCKET
+        // without HELLO and authentication.
+        [Fact]
+        public async Task DisposedNode_NewConnection_GetsNoSelectBucketAndIsDisposed()
+        {
+            // Arrange
+
+            using var context = new ClusterContext(null, new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            var clusterNode = CreateClusterNode(context, new Mock<IConnectionPool>().Object);
+
+            var connection = new Mock<IConnection>();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(connection.Object);
+
+            using var pool = new ChannelConnectionPool(clusterNode, connectionFactory.Object,
+                new Mock<IConnectionPoolScaleController>().Object, new Redactor(RedactionLevel.None),
+                NullLogger<ChannelConnectionPool>.Instance, new FakeTimeProvider(), 1024);
+
+            // The pool records the bucket before it finds no connection to select it on.
+            await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("default").WaitAsync(Deadline));
+
+            clusterNode.Dispose();
+
+            // Act
+
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => pool.ScaleAsync(1).WaitAsync(Deadline));
+
+            // Assert
+
+            connection.Verify(
+                c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            connection.Verify(c => c.Dispose(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateAndConnectAsync_FirstConnectFails_DisposesTheNodeAndThrowsTheSameException()
+        {
+            // Arrange
+
+            using var context = new ClusterContext(new CancellationTokenSource(),
+                new ClusterOptions().WithPasswordAuthentication("username", "password"));
+            var error = new AuthenticationFailureException("Bad credentials.");
+
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(p => p.InitializeAsync(It.IsAny<CancellationToken>())).Returns(Task.FromException(error));
+            var connectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            connectionPoolFactory.Setup(m => m.Create(It.IsAny<ClusterNode>())).Returns(pool.Object);
+
+            var factory = new ClusterNodeFactory(context, connectionPoolFactory.Object,
+                new Logger<ClusterNode>(new TestOutputLoggerFactory(outputHelper)),
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new Mock<ISaslMechanismFactory>().Object, new Redactor(RedactionLevel.None),
+                NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object);
+
+            // Act
+
+            var thrown = await Assert.ThrowsAsync<AuthenticationFailureException>(
+                () => factory.CreateAndConnectAsync(new HostEndpointWithPort("localhost", 11210)).WaitAsync(Deadline));
+
+            // Assert
+
+            Assert.Same(error, thrown);
+            pool.Verify(p => p.Dispose(), Times.Once);
         }
 
         private static ClusterContext CreateContextWithoutPolling()
