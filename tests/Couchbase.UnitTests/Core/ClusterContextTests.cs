@@ -231,13 +231,13 @@ namespace Couchbase.UnitTests.Core
             using var context = new ClusterContext(new CancellationTokenSource(), options);
 
             context.SignalConfigRefreshFailed();
-            var first = context.DnsSrvRebootstrap;
+            var first = context.LastRebootstrap;
             await lookups.WaitForAsync(1).WaitAsync(Deadline);
 
             // Enough time passed, so only the rebootstrap that runs stops a new one.
-            clock.Advance(ClusterContext.MinTimeBetweenDnsSrvRebootstraps);
+            clock.Advance(ClusterContext.MinTimeBetweenRebootstraps);
             context.SignalConfigRefreshFailed();
-            Assert.Same(first, context.DnsSrvRebootstrap);
+            Assert.Same(first, context.LastRebootstrap);
 
             records.SetResult([]);
             await first.WaitAsync(Deadline);
@@ -245,8 +245,117 @@ namespace Couchbase.UnitTests.Core
 
             // Once the rebootstrap ends, the next signal runs a new one.
             context.SignalConfigRefreshFailed();
-            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+            await context.LastRebootstrap.WaitAsync(Deadline);
             Assert.Equal(2, lookups.Count);
+        }
+
+        // NCBC-4423. Each cluster KV node is "a" when it never connected or "c" when it connected once.
+        // With no DNS SRV records, a rebootstrap is the only way to a new config while no cluster node ever connected.
+        // A DNS SRV client rebootstraps on every signal, also with a bucket open, because the cluster may have moved.
+        [Theory]
+        [InlineData(false, false, "a", 1)]
+        [InlineData(false, false, "a,a", 1)]
+        [InlineData(false, false, "a,c", 0)]
+        [InlineData(false, false, "c", 0)]
+        [InlineData(false, false, "", 0)]
+        [InlineData(false, true, "a", 0)]
+        [InlineData(true, false, "c", 1)]
+        [InlineData(true, true, "c", 1)]
+        [InlineData(true, false, "a", 1)]
+        public async Task SignalConfigRefreshFailed_StartsABootstrapFromTheConnectionString(bool dnsSrv, bool bucketOpen,
+            string clusterNodes, int expectedBootstraps)
+        {
+            var bootstraps = new AsyncCounter();
+            using var context = RefreshFailureContext(dnsSrv, new FakeTimeProvider(), bootstraps);
+            AddClusterKvNodes(context, clusterNodes);
+            if (bucketOpen)
+            {
+                RegisterOpenBucket(context);
+            }
+
+            context.SignalConfigRefreshFailed();
+            await context.LastRebootstrap.WaitAsync(Deadline);
+
+            Assert.Equal(expectedBootstraps, bootstraps.Count);
+        }
+
+        // NCBC-4423
+        [Fact]
+        public async Task SignalConfigRefreshFailed_WithNoDnsSrvAndNoClusterNodeThatConnected_StartsAtMostOneBootstrapEveryTenSeconds()
+        {
+            var clock = new FakeTimeProvider();
+            var bootstraps = new AsyncCounter();
+            using var context = RefreshFailureContext(dnsSrv: false, clock, bootstraps);
+            AddClusterKvNodes(context, "a,a");
+
+            context.SignalConfigRefreshFailed();
+            await context.LastRebootstrap.WaitAsync(Deadline);
+            clock.Advance(ClusterContext.MinTimeBetweenRebootstraps - TimeSpan.FromMilliseconds(1));
+            context.SignalConfigRefreshFailed();
+            await context.LastRebootstrap.WaitAsync(Deadline);
+            Assert.Equal(1, bootstraps.Count);
+
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+            context.SignalConfigRefreshFailed();
+            await context.LastRebootstrap.WaitAsync(Deadline);
+            Assert.Equal(2, bootstraps.Count);
+        }
+
+        /// <summary>
+        /// A context whose bootstrap counts each seed connect in <paramref name="bootstraps"/> and then fails.
+        /// </summary>
+        private static ClusterContext RefreshFailureContext(bool dnsSrv, TimeProvider clock, AsyncCounter bootstraps)
+        {
+            var nodeFactory = new Mock<IClusterNodeFactory>();
+            nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .Callback(() => bootstraps.Increment())
+                .ThrowsAsync(new InvalidOperationException("No node in this test."));
+            var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
+            options.AddClusterService(nodeFactory.Object);
+            options.AddClusterService(clock);
+            if (dnsSrv)
+            {
+                var dnsResolver = new Mock<IDnsResolver>();
+                dnsResolver.Setup(x => x.GetDnsSrvEntriesAsync(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync([new HostEndpoint("node-0", 11210)]);
+                options.AddClusterService(dnsResolver.Object);
+                options.ConnectionStringValue = new ConnectionString(ConnectionString.Parse("couchbase://example.com"),
+                    [new HostEndpoint("node-0", 11210)], isDnsSrv: true, new Uri("couchbase://example.com"));
+            }
+            else
+            {
+                options.WithConnectionString("couchbase://node-0");
+                options.EnableDnsSrvResolution = false;
+            }
+
+            return new ClusterContext(new CancellationTokenSource(), options);
+        }
+
+        /// <summary>
+        /// Adds one live cluster KV node per entry of the comma separated <paramref name="states"/>. "a" never
+        /// connected and its connect failed, "c" connected once.
+        /// </summary>
+        private static void AddClusterKvNodes(ClusterContext context, string states)
+        {
+            var host = 0;
+            foreach (var state in states.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var node = new Mock<IClusterNode>();
+                node.SetupGet(n => n.EndPoint).Returns(new HostEndpointWithPort($"host{host++}", 11210));
+                node.SetupGet(n => n.KeyEndPoints).Returns([]);
+                node.SetupGet(n => n.HasKv).Returns(true);
+                node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(state == "a");
+                node.SetupGet(n => n.HasFailedFirstConnect).Returns(state == "a");
+                context.AddNode(node.Object);
+            }
+        }
+
+        private static void RegisterOpenBucket(ClusterContext context)
+        {
+            var bucket = new Mock<BucketBase> { CallBase = true };
+            bucket.SetupGet(x => x.Name).Returns("default");
+            bucket.Setup(x => x.Dispose());
+            context.RegisterBucket(bucket.Object);
         }
 
         #endregion
@@ -1878,6 +1987,34 @@ namespace Couchbase.UnitTests.Core
             secondSeed.Verify(node => node.Dispose(), Times.Once);
             seed.Verify(node => node.Dispose(), Times.Never);
             Assert.Equal(2, created.Count);
+        }
+
+        // NCBC-4423. A rebootstrap runs while the node at the seed's entry still awaits its first connection. That node
+        // has no connection to keep, so the connected seed takes its place.
+        [Fact]
+        public async Task BootstrapGlobal_Again_Replaces_A_Node_That_Never_Connected_With_The_Seed()
+        {
+            var config = DockerConfig(1, DockerNode(0, kv: true), DockerNode(1, kv: true));
+            var seed = SeedNode(new HostEndpointWithPort("localhost", DockerKvPort(0)), DockerConfig(2,
+                DockerNode(0, kv: true), DockerNode(1, kv: true)));
+            var created = new List<IClusterNode>();
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                DockerOptions(NodeFactory(created, seed.Object)));
+            var awaiting = new Mock<IConnectionPool>();
+            awaiting.SetupGet(p => p.IsAwaitingFirstConnection).Returns(true);
+            awaiting.SetupGet(p => p.HasFailedFirstConnect).Returns(true);
+            var nodes = AddGlobalNodes(context, config, endPoint => endPoint.Port == DockerKvPort(0) ? awaiting.Object : null);
+            var neverConnected = nodes.Single(node => node.EndPoint.Port == DockerKvPort(0));
+
+            await AssertCompleted(context.BootstrapGlobalAsync());
+
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, seed.Object));
+            Assert.DoesNotContain(context.Nodes, node => ReferenceEquals(node, neverConnected));
+            Assert.True(neverConnected.IsDead);
+            seed.Verify(node => node.Dispose(), Times.Never);
+            Assert.Equal(DockerHost(0), seed.Object.NodesAdapter.CanonicalHostname);
+            Assert.Contains(context.Nodes, node => ReferenceEquals(node, nodes.Single(n => n.EndPoint.Port == DockerKvPort(1))));
+            Assert.Empty(created);
         }
 
         [Fact]

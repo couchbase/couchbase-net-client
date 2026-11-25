@@ -682,7 +682,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
 
             // Each rebootstrap ends before the next pass, so only the time since the last one can skip a pass.
-            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+            await context.LastRebootstrap.WaitAsync(Deadline);
         }
     }
 
@@ -704,7 +704,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         clock.Advance(PollInterval);
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(1, dnsLookups.Count);
     }
@@ -899,6 +899,41 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         {
             node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+    }
+
+    // NCBC-4423. A node that refused the bucket at each connect counts as a failed fetch. The refusal is the KeyNotFound
+    // of a select, not of a config fetch, so it does not switch the bucket to HTTP streaming.
+    [Fact]
+    public async Task Poll_WhenEveryNodeRefusedTheBucketAtItsFirstConnect_SignalsAndKeepsFetchingOverKv()
+    {
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var streaming = new AsyncCounter();
+        var bucket = CreateBucketMock(initialConfig: Version(2), onStartHttpStreaming: _ => streaming.Increment(),
+            configure: options => UseDnsSrv(options, dnsLookups, clock));
+        using var context = bucket.Context;
+        var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
+        foreach (var node in nodes)
+        {
+            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            node.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+        }
+
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        clock.Advance(PollInterval);
+        // The loop goes on, so it did not end for HTTP streaming.
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.Equal(1, dnsLookups.Count);
+        Assert.Equal(0, streaming.Count);
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
     }
 

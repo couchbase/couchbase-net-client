@@ -31,7 +31,7 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
         base.Publish(config);
     }
 
-    // The DNS SRV rebootstrap also rebuilds every open bucket, so with a bucket open only the bucket refreshers start it.
+    // The rebootstrap also rebuilds every open bucket, so with a bucket open only the bucket refreshers start it.
     protected override void SignalRefreshFailed()
     {
         if (!Context.HasOpenBuckets)

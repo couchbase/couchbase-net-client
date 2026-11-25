@@ -196,6 +196,7 @@ namespace Couchbase.UnitTests.Diagnostics
 
             public bool IsDead { get; }
             public bool IsAwaitingFirstConnection { get; }
+            public bool HasFailedFirstConnect { get; }
 
             public void ForgetNodesAdapterVersion()
             {

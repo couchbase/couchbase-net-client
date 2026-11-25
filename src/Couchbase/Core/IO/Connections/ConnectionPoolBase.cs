@@ -67,9 +67,19 @@ namespace Couchbase.Core.IO.Connections
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<IConnectionPool> _logger;
         private volatile bool _hasConnected;
+        private volatile bool _connectFailed;
 
         /// <inheritdoc />
         public bool IsAwaitingFirstConnection => !_hasConnected;
+
+        /// <inheritdoc />
+        public bool HasFailedFirstConnect => !_hasConnected && _connectFailed;
+
+        /// <summary>
+        /// Tells a connect that fails during a dispose from a failed connect. The base returns false, because a pool
+        /// that cancels the connect token on dispose needs no other check. The DataFlow pool does not cancel its first round, so a dispose there can count as failed.
+        /// </summary>
+        protected virtual bool IsDisposed => false;
 
         /// <inheritdoc />
         public HostEndpointWithPort EndPoint => _connectionInitializer.EndPoint;
@@ -118,12 +128,13 @@ namespace Couchbase.Core.IO.Connections
         /// </remarks>
         protected async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
         {
-            var connection = await _connectionFactory
-                .CreateAndConnectAsync(EndPoint, cancellationToken)
-                .ConfigureAwait(false);
-
+            IConnection? connection = null;
             try
             {
+                connection = await _connectionFactory
+                    .CreateAndConnectAsync(EndPoint, cancellationToken)
+                    .ConfigureAwait(false);
+
                 await _connectionInitializer.InitializeConnectionAsync(connection, cancellationToken)
                     .ConfigureAwait(false);
 
@@ -138,11 +149,21 @@ namespace Couchbase.Core.IO.Connections
             }
             catch(Exception e)
             {
-                _logger.LogDebug(e, "Connection creation to {endpoint} failed.", EndPoint);
+                // A cancel can surface as a socket timeout, so the token decides, not the exception type.
+                if (!cancellationToken.IsCancellationRequested && !IsDisposed)
+                {
+                    _connectFailed = true;
+                }
 
-                // Be sure to cleanup the connection if bootstrap fails.
-                // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
-                connection.Dispose();
+                if (connection is not null)
+                {
+                    _logger.LogDebug(e, "Connection creation to {endpoint} failed.", EndPoint);
+
+                    // Be sure to cleanup the connection if bootstrap fails.
+                    // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
+                    connection.Dispose();
+                }
+
                 throw;
             }
         }

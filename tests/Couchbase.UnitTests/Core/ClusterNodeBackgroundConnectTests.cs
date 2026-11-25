@@ -146,6 +146,74 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public async Task CreateClusterNode_FirstConnectFails_HasFailedFirstConnect()
+        {
+            using var context = CreateContext();
+            var logger = new CapturingLogger();
+            var connections = new ConnectionFactory { Error = new SocketException((int)SocketError.ConnectionRefused) };
+            var factory = CreateFactory(context, PoolFactory(context, channelPools: true, connections), logger);
+            using var node = factory.CreateClusterNode(EndPoint, KvAdapter());
+
+            await logger.WaitForAsync(LogLevel.Warning).WaitAsync(Deadline);
+
+            Assert.True(node.IsAwaitingFirstConnection);
+            Assert.True(node.HasFailedFirstConnect);
+        }
+
+        // The real connection factory ends a cancelled connect with a socket timeout. A dispose is still no failure.
+        [Fact]
+        public async Task CreateClusterNode_DisposedDuringTheFirstConnect_HasNoFailedFirstConnect()
+        {
+            using var context = CreateContext();
+            var logger = new CapturingLogger();
+            var connections = new ConnectionFactory { Hang = true, CancelError = new SocketException((int)SocketError.TimedOut) };
+            var factory = CreateFactory(context, PoolFactory(context, channelPools: true, connections), logger);
+
+            var node = factory.CreateClusterNode(EndPoint, KvAdapter());
+            await connections.WaitForAttemptsAsync(1).WaitAsync(Deadline);
+            node.Dispose();
+            await connections.WaitForCancelledAsync(1).WaitAsync(Deadline);
+            await logger.WaitForAsync(LogLevel.Debug, "stopped").WaitAsync(Deadline);
+
+            Assert.False(node.ConnectionPool.HasFailedFirstConnect);
+        }
+
+        // SingleConnectionPool does not cancel a connect on dispose, so the connect ends with an error of its own.
+        [Fact]
+        public async Task SingleConnectionPool_DisposedDuringTheFirstConnect_HasNoFailedFirstConnect()
+        {
+            var connections = new ConnectionFactory { Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously) };
+            var initializer = new Mock<IConnectionInitializer>();
+            initializer.SetupGet(i => i.EndPoint).Returns(EndPoint);
+            var pool = new SingleConnectionPool(initializer.Object, connections, NullLogger<IConnectionPool>.Instance);
+            var connect = pool.InitializeAsync();
+            await connections.WaitForAttemptsAsync(1).WaitAsync(Deadline);
+
+            pool.Dispose();
+            connections.Gate.SetException(new ObjectDisposedException("socket"));
+
+            await Assert.ThrowsAsync<ObjectDisposedException>(() => connect.WaitAsync(Deadline));
+            Assert.False(pool.HasFailedFirstConnect);
+        }
+
+        [Fact]
+        public async Task SingleConnectionPool_FirstConnectCancelledByTheCaller_HasNoFailedFirstConnect()
+        {
+            var connections = new ConnectionFactory { Hang = true };
+            var initializer = new Mock<IConnectionInitializer>();
+            initializer.SetupGet(i => i.EndPoint).Returns(EndPoint);
+            using var pool = new SingleConnectionPool(initializer.Object, connections, NullLogger<IConnectionPool>.Instance);
+            using var cts = new CancellationTokenSource();
+            var connect = pool.InitializeAsync(cts.Token);
+            await connections.WaitForAttemptsAsync(1).WaitAsync(Deadline);
+
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => connect.WaitAsync(Deadline));
+            Assert.False(pool.HasFailedFirstConnect);
+        }
+
+        [Fact]
         public void CreateClusterNode_WithNoKv_StartsNoConnect()
         {
             using var context = CreateContext();
@@ -335,6 +403,11 @@ namespace Couchbase.UnitTests.Core
 
             public bool Hang { get; init; }
 
+            /// <summary>
+            /// Thrown in place of the cancel of a hung attempt, as the real factory throws a socket timeout.
+            /// </summary>
+            public Exception CancelError { get; init; }
+
             public TaskCompletionSource<bool> Gate { get; init; }
 
             public int Attempts => Volatile.Read(ref _attempts);
@@ -365,6 +438,11 @@ namespace Couchbase.UnitTests.Core
                 {
                     Interlocked.Increment(ref _cancelled);
                     Signal();
+                    if (CancelError is not null)
+                    {
+                        throw CancelError;
+                    }
+
                     throw;
                 }
 

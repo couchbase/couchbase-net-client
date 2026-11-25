@@ -45,6 +45,12 @@ namespace Couchbase.Core.IO.Connections
         bool IsAwaitingFirstConnection { get; }
 
         /// <summary>
+        /// True while <see cref="IsAwaitingFirstConnection"/> is true and a connect attempt has ended in a failure.
+        /// A cancel or a dispose is no failure. A refused bucket select is one.
+        /// </summary>
+        bool HasFailedFirstConnect { get; }
+
+        /// <summary>
         /// Initialize the connection pool, opening initial connections and generally preparing the pool for use.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>\

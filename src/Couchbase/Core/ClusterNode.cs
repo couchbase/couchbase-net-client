@@ -320,6 +320,9 @@ namespace Couchbase.Core
         /// <inheritdoc />
         public bool IsAwaitingFirstConnection => ConnectionPool.IsAwaitingFirstConnection;
 
+        /// <inheritdoc />
+        public bool HasFailedFirstConnect => ConnectionPool.HasFailedFirstConnect;
+
         private void OnKeyEndPointsChanged(NotifyCollectionChangedEventArgs e)
         {
             KeyEndPointsChanged?.Invoke(this, e);

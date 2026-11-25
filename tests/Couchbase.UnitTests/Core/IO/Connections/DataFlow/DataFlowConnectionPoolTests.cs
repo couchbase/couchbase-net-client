@@ -1032,6 +1032,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             public int Size => _innerPool.Size;
 
             public bool IsAwaitingFirstConnection => _innerPool.IsAwaitingFirstConnection;
+            public bool HasFailedFirstConnect => _innerPool.HasFailedFirstConnect;
 
             public int MinimumSize
             {

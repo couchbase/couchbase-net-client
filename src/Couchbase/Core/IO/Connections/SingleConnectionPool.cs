@@ -41,6 +41,9 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public sealed override int PendingSends => 0;
 
+        /// <inheritdoc />
+        protected override bool IsDisposed => _disposed;
+
         /// <summary>
         /// Creates a new SingleConnectionPool.
         /// </summary>

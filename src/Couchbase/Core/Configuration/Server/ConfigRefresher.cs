@@ -53,7 +53,6 @@ internal abstract partial class ConfigRefresher : IDisposable
 
     // Only the loop reads and writes these.
     private long _lastPoll;
-    private int _failedFetches;
     private NullConfigRetryTracker _retries;
     private ConfigVersion _handledPushedVersion;
     private ConfigVersion? _retryVersion;
@@ -292,9 +291,27 @@ internal abstract partial class ConfigRefresher : IDisposable
         var kvNodes = Nodes.Where(node => node.HasKv).ToList();
         var liveNodes = kvNodes.Where(node => !node.IsDead).ToList();
 
-        // A node that never had a connection cannot answer yet, so it is not asked and its absence is not a failure.
+        // A node that never had a connection cannot answer, so it is not asked. As in the Java SDK, it counts as a failed
+        // fetch once its connect has failed. While it is still in its first attempt, the pass cannot fail.
         // A node that had a connection and lost it is asked, and its failed fetch counts.
         var nodes = liveNodes.Where(node => !node.IsAwaitingFirstConnection).ToList().Shuffle();
+        var failedFirstConnects = 0;
+        var firstAttempts = 0;
+        foreach (var node in liveNodes)
+        {
+            if (node.IsAwaitingFirstConnection)
+            {
+                if (node.HasFailedFirstConnect)
+                {
+                    failedFirstConnects++;
+                }
+                else
+                {
+                    firstAttempts++;
+                }
+            }
+        }
+
         if (pollDue)
         {
             // Restarted here as well, so a poll that gets no answer waits a full interval before the next one.
@@ -315,16 +332,16 @@ internal abstract partial class ConfigRefresher : IDisposable
         {
             // Every node is dead, which counts as every fetch failing.
             LogNoLiveKvNodes(Redactor.SystemData(Name));
-            _failedFetches = 0;
             SignalRefreshFailed();
         }
-        else if (nodes.Count == 0)
+        else if (nodes.Count == 0 && firstAttempts > 0)
         {
             // The pass asks no node. A pushed version still goes through the retry delays below, so the loop does not spin.
-            LogNoConnectedKvNodes(Redactor.SystemData(Name), liveNodes.Count);
+            LogNoConnectedKvNodes(Redactor.SystemData(Name), firstAttempts);
         }
 
-        var (answered, config) = await FetchAsync(nodes, currentVersion, pendingVersion, token).ConfigureAwait(false);
+        var (answered, config) = await FetchAsync(nodes, failedFirstConnects, firstAttempts, currentVersion,
+            pendingVersion, token).ConfigureAwait(false);
         if (answered)
         {
             _lastPoll = _timeProvider.GetTimestamp();
@@ -355,9 +372,16 @@ internal abstract partial class ConfigRefresher : IDisposable
     /// Asks the nodes in turn until one answers. While a pushed version is pending, the pass goes on until a node
     /// returns that version, because the node that pushed it can be ahead of the others.
     /// </summary>
+    /// <remarks>
+    /// Each of <paramref name="failedFirstConnects"/> is a node not asked whose first connect failed, and it counts as
+    /// a failed fetch. Each of <paramref name="firstAttempts"/> is a node not asked that is still in its first connect
+    /// attempt. The pass signals a failed refresh when no node answered, at least one fetch failed, and no node is
+    /// still in its first connect attempt.
+    /// </remarks>
     /// <returns>Whether a node answered, and the newest config the nodes returned.</returns>
     private async Task<(bool Answered, BucketConfig? Config)> FetchAsync(List<IClusterNode> nodes,
-        ConfigVersion? currentVersion, ConfigVersion? pendingVersion, CancellationToken token)
+        int failedFirstConnects, int firstAttempts, ConfigVersion? currentVersion, ConfigVersion? pendingVersion,
+        CancellationToken token)
     {
         var timeout = GetFetchTimeout(Context.ClusterOptions.ConfigPollInterval);
         BucketConfig? newest = null;
@@ -371,7 +395,6 @@ internal abstract partial class ConfigRefresher : IDisposable
                 var knownVersion = newest?.ConfigVersion ?? currentVersion;
                 LogFetching(Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint), knownVersion);
                 var config = await node.GetClusterMap(knownVersion, timeout, token).ConfigureAwait(false);
-                _failedFetches = 0;
                 if (config is not null && (newest is null || config.ConfigVersion > newest.ConfigVersion))
                 {
                     newest = config;
@@ -386,7 +409,7 @@ internal abstract partial class ConfigRefresher : IDisposable
             }
             catch (Exception ex) when (!token.IsCancellationRequested)
             {
-                // One KeyNotFound counts as a failed node. The switch needs that answer from every node of the pass.
+                // One KeyNotFound counts as a failed node. The switch needs that answer from every node asked in the pass.
                 if (ex is DocumentNotFoundException && ++keyNotFound == nodes.Count)
                 {
                     // KV does not serve the config, so the loop ends and switches to HTTP streaming.
@@ -396,13 +419,19 @@ internal abstract partial class ConfigRefresher : IDisposable
                 // A failed node does not end the pass, so the next node can still answer.
                 failed++;
                 LogConfigFetchFailed(ex, Redactor.SystemData(Name), Redactor.SystemData(node.EndPoint));
+            }
+        }
 
-                if (++_failedFetches >= nodes.Count)
-                {
-                    _failedFetches = 0;
-                    LogAllNodesFailed(Redactor.SystemData(Name));
-                    SignalRefreshFailed();
-                }
+        if (failed + failedFirstConnects > 0 && failed == nodes.Count)
+        {
+            if (firstAttempts == 0)
+            {
+                LogAllNodesFailed(Redactor.SystemData(Name), failed, failedFirstConnects);
+                SignalRefreshFailed();
+            }
+            else
+            {
+                LogRefreshFailureHeldBack(Redactor.SystemData(Name), firstAttempts);
             }
         }
 
@@ -596,14 +625,17 @@ internal abstract partial class ConfigRefresher : IDisposable
     [LoggerMessage(12, LogLevel.Warning, "Fetching the config of {name} from {endpoint} failed")]
     private partial void LogConfigFetchFailed(Exception exception, Redacted<string> name, Redacted<HostEndpointWithPort> endpoint);
 
-    [LoggerMessage(13, LogLevel.Warning, "Every node failed to return the config of {name}")]
-    private partial void LogAllNodesFailed(Redacted<string> name);
+    [LoggerMessage(13, LogLevel.Warning, "Every node failed to return the config of {name}, {failedFetches} fetches failed and {failedConnects} nodes failed their first connect")]
+    private partial void LogAllNodesFailed(Redacted<string> name, int failedFetches, int failedConnects);
 
     [LoggerMessage(15, LogLevel.Warning, "Refreshing the config of {name} failed")]
     private partial void LogRefreshFailed(Exception exception, Redacted<string> name);
 
     [LoggerMessage(17, LogLevel.Debug, "No KV node to fetch the config of {name} from, {connecting} nodes have not connected yet")]
     private partial void LogNoConnectedKvNodes(Redacted<string> name, int connecting);
+
+    [LoggerMessage(18, LogLevel.Debug, "No node returned the config of {name}, but {connecting} nodes are still in their first connect, so the refresh does not count as failed")]
+    private partial void LogRefreshFailureHeldBack(Redacted<string> name, int connecting);
 
     [LoggerMessage(16, LogLevel.Information, "KV does not serve the config of {name}, switching to HTTP streaming")]
     private partial void LogSwitchingToHttpStreaming(Redacted<string> name);

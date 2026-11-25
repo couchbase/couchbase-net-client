@@ -48,8 +48,8 @@ namespace Couchbase.Core
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private int _disposed;
-        private readonly object _dnsSrvRebootstrapLock = new();
-        private long? _lastDnsSrvRebootstrap;
+        private readonly object _rebootstrapLock = new();
+        private long? _lastRebootstrap;
         private BucketConfig _clusterCapsConfig;
         private BucketConfig _clusterNodesConfig;
         private BucketConfig _reconciledClusterNodesConfig;
@@ -712,8 +712,8 @@ namespace Couchbase.Core
         /// </summary>
         /// <remarks>
         /// The seed is disposed when no entry has its address, as with a Private Link endpoint or an IP seed. On a
-        /// rebootstrap it is also disposed when the context already has a node for its entry, so that node keeps its
-        /// connection.
+        /// rebootstrap it is also disposed when the context already has a node for its entry that has connected, so that
+        /// node keeps its connection. A KV node there that never connected is disposed, and the seed takes its place.
         /// </remarks>
         /// <param name="seed">The connected seed, or null when it was dropped.</param>
         /// <param name="cancellationToken">Cancels the wait for the config lock.</param>
@@ -759,11 +759,19 @@ namespace Couchbase.Core
                     continue;
                 }
 
-                if (HasNodeAt(new List<IClusterNode>(Nodes), endPoints[i], entries[i]))
+                if (FindNodeAt(new List<IClusterNode>(Nodes), endPoints[i], entries[i]) is { } existing)
                 {
-                    _logger.LogDebug("Bootstrapping: keeping cluster node [{node}] and closing the seed.",
+                    // A node that never connected has no connection to keep, and the seed has one.
+                    if (!existing.HasKv || !existing.IsAwaitingFirstConnection)
+                    {
+                        _logger.LogDebug("Bootstrapping: keeping cluster node [{node}] and closing the seed.",
+                            _redactor.SystemData(endPoints[i]));
+                        return false;
+                    }
+
+                    _logger.LogDebug("Bootstrapping: replacing cluster node [{node}], which never connected, with the seed.",
                         _redactor.SystemData(endPoints[i]));
-                    return false;
+                    RemoveNode(existing);
                 }
 
                 _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
@@ -1095,47 +1103,77 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// The shortest time between the starts of two rebootstraps from the DNS SRV records.
+        /// The shortest time between the starts of two rebootstraps from the connection string.
         /// </summary>
-        internal static readonly TimeSpan MinTimeBetweenDnsSrvRebootstraps = TimeSpan.FromSeconds(10);
+        internal static readonly TimeSpan MinTimeBetweenRebootstraps = TimeSpan.FromSeconds(10);
 
         /// <summary>
-        /// The last rebootstrap from the DNS SRV records. It is complete when none runs.
+        /// The last rebootstrap from the connection string. It is complete when none runs.
         /// </summary>
-        internal Task DnsSrvRebootstrap { get; private set; } = Task.CompletedTask;
+        internal Task LastRebootstrap { get; private set; } = Task.CompletedTask;
 
         /// <summary>
-        /// A config refresher calls this when every node failed to return a config. With a DNS SRV connection string
-        /// the cluster may have moved, so this starts a rebootstrap in the background. It reads the DNS SRV records
-        /// again, then bootstraps the cluster and every bucket on the hosts it finds. One rebootstrap runs at a time,
-        /// at most one starts every <see cref="MinTimeBetweenDnsSrvRebootstraps"/>, and a call in between does nothing.
+        /// A config refresher calls this when every node failed to return a config. This then starts a rebootstrap in
+        /// the background. It reads the DNS SRV records again when the connection string is a DNS SRV one, then
+        /// bootstraps the cluster and every bucket on the hosts it finds. One rebootstrap runs at a time, at most one
+        /// starts every <see cref="MinTimeBetweenRebootstraps"/>, and a call in between does nothing.
         /// </summary>
+        /// <remarks>
+        /// With a DNS SRV connection string the cluster may have moved, so every signal counts. With any other
+        /// connection string only a client whose cluster KV nodes never connected rebootstraps, and only while no bucket
+        /// is open, because the bootstrap is then the only way to get a new config.
+        /// </remarks>
         internal void SignalConfigRefreshFailed()
         {
-            if (ClusterOptions.ConnectionStringValue is not { IsDnsSrv: true })
+            if (ClusterOptions.ConnectionStringValue is not { IsDnsSrv: true }
+                && (HasOpenBuckets || !IsAwaitingEveryClusterConnection()))
             {
                 return;
             }
 
-            lock (_dnsSrvRebootstrapLock)
+            lock (_rebootstrapLock)
             {
-                if (!DnsSrvRebootstrap.IsCompleted
-                    || (_lastDnsSrvRebootstrap is { } last
-                        && _timeProvider.GetElapsedTime(last) < MinTimeBetweenDnsSrvRebootstraps))
+                if (!LastRebootstrap.IsCompleted
+                    || (_lastRebootstrap is { } last
+                        && _timeProvider.GetElapsedTime(last) < MinTimeBetweenRebootstraps))
                 {
                     return;
                 }
 
-                _lastDnsSrvRebootstrap = _timeProvider.GetTimestamp();
-                DnsSrvRebootstrap = Task.Run(RebootstrapFromDnsSrvAsync);
+                _lastRebootstrap = _timeProvider.GetTimestamp();
+                LastRebootstrap = Task.Run(RebootstrapFromConnectionStringAsync);
             }
         }
 
-        private async Task RebootstrapFromDnsSrvAsync()
+        /// <summary>
+        /// True when the context has a live KV cluster node and none of them ever had a connection.
+        /// </summary>
+        private bool IsAwaitingEveryClusterConnection()
+        {
+            var awaiting = false;
+            foreach (var node in Nodes)
+            {
+                if (!node.HasKv || node.IsDead)
+                {
+                    continue;
+                }
+
+                if (!node.IsAwaitingFirstConnection)
+                {
+                    return false;
+                }
+
+                awaiting = true;
+            }
+
+            return awaiting;
+        }
+
+        private async Task RebootstrapFromConnectionStringAsync()
         {
             try
             {
-                _logger.LogInformation("Bootstrapping: no node returned a config, so the SDK rebootstraps from the DNS SRV records.");
+                _logger.LogInformation("Bootstrapping: no node returned a config, so the SDK bootstraps again from the connection string.");
                 await BootstrapGlobalAsync().ConfigureAwait(false);
                 await RebootstrapAllBuckets().ConfigureAwait(false);
             }
@@ -1145,7 +1183,7 @@ namespace Couchbase.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Bootstrapping: the rebootstrap from the DNS SRV records failed.");
+                _logger.LogWarning(ex, "Bootstrapping: the rebootstrap from the connection string failed.");
             }
         }
 
@@ -1607,17 +1645,20 @@ namespace Couchbase.Core
             return true;
         }
 
-        private static bool HasNodeAt(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+        private static bool HasNodeAt(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) =>
+            FindNodeAt(nodes, endPoint, nodeAdapter) is not null;
+
+        private static IClusterNode FindNodeAt(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
         {
             foreach (var node in nodes)
             {
                 if (ClusterNodeList.IsNodeOf(node, endPoint, nodeAdapter))
                 {
-                    return true;
+                    return node;
                 }
             }
 
-            return false;
+            return null;
         }
 
         private static void SetAdapter(List<IClusterNode> nodes, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)

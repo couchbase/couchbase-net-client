@@ -192,7 +192,7 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         clock.Advance(pollInterval);
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(expectedLookups, dnsLookups.Count);
     }
@@ -228,7 +228,7 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         clock.Advance(pollInterval);
         await fetches.WaitForAsync(1).WaitAsync(Deadline);
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(0, dnsLookups.Count);
     }
@@ -334,7 +334,7 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
         clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
         await clock.WaitForSleepAsync(ConfigRefresher.GetNullConfigRetryDelay(1)).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         foreach (var node in nodes)
         {
@@ -357,9 +357,11 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         var failing = AddNode(context, "host1", owner: null);
         failing.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new SocketNotAvailableException("No connection."));
-        // It answers if asked, so asking it would reset the failure count.
+        // It never connected and its connect failed, so it is not asked and counts as a failed fetch. It answers if asked,
+        // and an answer would end the failure.
         var connecting = AddNode(context, "host2", owner: null);
         connecting.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        connecting.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
         connecting.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((BucketConfig)null!);
 
@@ -368,11 +370,141 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         clock.Advance(pollInterval);
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         failing.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.Equal(1, dnsLookups.Count);
+    }
+
+    // NCBC-4423. As in the Java SDK, a node whose first connect failed counts as a failed fetch.
+    [Fact]
+    public async Task Poll_WhenEveryFetchAndEveryFirstConnectFailed_SignalsTheFailure()
+    {
+        var (context, dnsLookups, fetches) = await RunOnePollAsync(
+            asked: [new TimeoutException()],
+            awaiting: [true, true]);
+        using (context)
+        {
+            Assert.Equal(1, fetches.Count);
+            Assert.Equal(1, dnsLookups.Count);
+        }
+    }
+
+    // NCBC-4423. A node that is still in its first connect attempt may connect, so the pass cannot fail.
+    [Fact]
+    public async Task Poll_WhenEveryFetchFailedAndANodeIsInItsFirstConnect_SignalsNothing()
+    {
+        var (context, dnsLookups, fetches) = await RunOnePollAsync(
+            asked: [new TimeoutException()],
+            awaiting: [true, false]);
+        using (context)
+        {
+            Assert.Equal(1, fetches.Count);
+            Assert.Equal(0, dnsLookups.Count);
+        }
+    }
+
+    // NCBC-4423. With no node to ask, the nodes whose first connect failed still fail the pass.
+    [Fact]
+    public async Task Poll_WithNoNodeToAskAndEveryFirstConnectFailed_SignalsTheFailure()
+    {
+        var (context, dnsLookups, fetches) = await RunOnePollAsync(asked: [], awaiting: [true, true]);
+        using (context)
+        {
+            Assert.Equal(0, fetches.Count);
+            Assert.Equal(1, dnsLookups.Count);
+        }
+    }
+
+    // NCBC-4423
+    [Fact]
+    public async Task Poll_WhenOneNodeAnswersAndTheOtherFailedItsFirstConnect_SignalsNothing()
+    {
+        var (context, dnsLookups, fetches) = await RunOnePollAsync(asked: [null], awaiting: [true]);
+        using (context)
+        {
+            Assert.Equal(1, fetches.Count);
+            Assert.Equal(0, dnsLookups.Count);
+        }
+    }
+
+    // NCBC-4423. A pass for a pushed version asks every node until one has that version. A node that answers with
+    // nothing newer still answers, so the pass does not fail.
+    [Fact]
+    public async Task Push_WhenOneNodeIsBehindAndTheOtherFailedItsFirstConnect_SignalsNothing()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler, options => UseDnsSrv(options, dnsLookups, pollInterval));
+        var behind = AddNode(context, "host0", owner: null);
+        behind.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
+        var failed = AddNode(context, "host1", owner: null);
+        failed.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        failed.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        refresher.RequestRefresh(new ConfigVersion(1, 3));
+        // The pass ran to its end, since it waits to ask again for the pushed version.
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        behind.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.Equal(0, dnsLookups.Count);
+    }
+
+    /// <summary>
+    /// Runs one poll pass on a DNS SRV client, so a failed refresh shows as one DNS SRV lookup.
+    /// </summary>
+    /// <param name="asked">One connected node per entry. A null entry answers, an exception fails the fetch.</param>
+    /// <param name="awaiting">One node per entry that never connected. True when its first connect failed.</param>
+    private async Task<(ClusterContext Context, AsyncCounter DnsLookups, AsyncCounter Fetches)> RunOnePollAsync(
+        Exception?[] asked, bool[] awaiting)
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var fetches = new AsyncCounter();
+        var context = CreateContext(out var configHandler, options => UseDnsSrv(options, dnsLookups, pollInterval));
+        var host = 0;
+        foreach (var error in asked)
+        {
+            var node = AddNode(context, $"host{host++}", owner: null);
+            var setup = node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .Callback(() => fetches.Increment());
+            if (error is null)
+            {
+                setup.ReturnsAsync((BucketConfig)null!);
+            }
+            else
+            {
+                setup.ThrowsAsync(error);
+            }
+        }
+
+        foreach (var failed in awaiting)
+        {
+            var node = AddNode(context, $"host{host++}", owner: null);
+            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            node.SetupGet(x => x.HasFailedFirstConnect).Returns(failed);
+            node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .Callback(() => fetches.Increment())
+                .ReturnsAsync((BucketConfig)null!);
+        }
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        clock.Advance(pollInterval);
+        // Reaching the next sleep means the pass ran to completion.
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+        return (context, dnsLookups, fetches);
     }
 
     /// <summary>

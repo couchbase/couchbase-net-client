@@ -101,6 +101,12 @@ namespace Couchbase.Core
         bool IsAwaitingFirstConnection { get; }
 
         /// <summary>
+        /// True while <see cref="IsAwaitingFirstConnection"/> is true and a connect attempt has failed. A config refresher
+        /// counts such a node as a failed fetch.
+        /// </summary>
+        bool HasFailedFirstConnect { get; }
+
+        /// <summary>
         /// Re-authenticates all existing KV connections in the connection pool using the current authenticator.
         /// This is used when a new JWT is provided as a result of a token refresh.
         /// </summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
@@ -243,6 +244,83 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             Assert.True(pool.IsAwaitingFirstConnection);
         }
 
+        #endregion
+
+        #region HasFailedFirstConnect
+
+        [Fact]
+        public async Task HasFailedFirstConnect_AfterARefusedConnect_IsTrue()
+        {
+            var pool = PoolOn(null, out _);
+            Assert.False(pool.HasFailedFirstConnect);
+
+            await Assert.ThrowsAsync<SocketException>(() => pool.CreateConnectionAsyncPublic());
+
+            Assert.True(pool.HasFailedFirstConnect);
+        }
+
+        // A bucket node whose bucket is refused has failed its connect. It gives no KeyNotFound answer to a fetch.
+        [Fact]
+        public async Task HasFailedFirstConnect_AfterARefusedBucket_IsTrue()
+        {
+            var connection = new Mock<IConnection>();
+            var pool = PoolOn(connection.Object, out var connectionInitializer, "default");
+            connectionInitializer
+                .Setup(m => m.SelectBucketAsync(connection.Object, "default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Couchbase.Management.Buckets.BucketNotFoundException("default"));
+
+            await Assert.ThrowsAsync<Couchbase.Management.Buckets.BucketNotFoundException>(() => pool.CreateConnectionAsyncPublic());
+
+            Assert.True(pool.HasFailedFirstConnect);
+        }
+
+        // The connection factory turns a cancel into a socket timeout, so only the token tells them apart.
+        [Fact]
+        public async Task HasFailedFirstConnect_AfterACancelledConnect_IsFalse()
+        {
+            var pool = PoolOn(null, out _);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAsync<SocketException>(() => pool.CreateConnectionAsyncPublic(cts.Token));
+
+            Assert.False(pool.HasFailedFirstConnect);
+            Assert.True(pool.IsAwaitingFirstConnection);
+        }
+
+        [Fact]
+        public async Task HasFailedFirstConnect_AfterAFirstConnection_IsFalseForGood()
+        {
+            var connection = new Mock<IConnection>();
+            var refuse = true;
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() => refuse
+                    ? Task.FromException<IConnection>(new SocketException((int)SocketError.ConnectionRefused))
+                    : Task.FromResult(connection.Object));
+            var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object,
+                new Mock<ILogger<IConnectionPool>>().Object);
+
+            await Assert.ThrowsAsync<SocketException>(() => pool.CreateConnectionAsyncPublic());
+            Assert.True(pool.HasFailedFirstConnect);
+
+            refuse = false;
+            await pool.CreateConnectionAsyncPublic();
+            Assert.False(pool.HasFailedFirstConnect);
+
+            refuse = true;
+            await Assert.ThrowsAsync<SocketException>(() => pool.CreateConnectionAsyncPublic());
+            Assert.False(pool.HasFailedFirstConnect);
+            Assert.False(pool.IsAwaitingFirstConnection);
+        }
+
+        /// <summary>
+        /// A pool on <paramref name="connection"/>. With a null connection, each connect fails like a refused TCP
+        /// connect, or like a socket timeout when the token is cancelled.
+        /// </summary>
         private ConnectionPoolMock PoolOn(IConnection connection, out Mock<IConnectionInitializer> connectionInitializer,
             string bucketName = null)
         {
@@ -251,7 +329,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(connection);
+                .Returns((HostEndpointWithPort _, CancellationToken token) => connection is not null
+                    ? Task.FromResult(connection)
+                    : Task.FromException<IConnection>(new SocketException(token.IsCancellationRequested
+                        ? (int)SocketError.TimedOut
+                        : (int)SocketError.ConnectionRefused)));
             return new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object,
                 new Mock<ILogger<IConnectionPool>>().Object, bucketName);
         }
@@ -408,9 +490,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             {
             }
 
-            public Task<IConnection> CreateConnectionAsyncPublic()
+            public Task<IConnection> CreateConnectionAsyncPublic(CancellationToken cancellationToken = default)
             {
-                return CreateConnectionAsync(default);
+                return CreateConnectionAsync(cancellationToken);
             }
 
             private class Frozen : IAsyncDisposable
