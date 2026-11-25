@@ -66,6 +66,10 @@ namespace Couchbase.Core.IO.Connections
         private readonly IConnectionInitializer _connectionInitializer;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<IConnectionPool> _logger;
+        private volatile bool _hasConnected;
+
+        /// <inheritdoc />
+        public bool IsAwaitingFirstConnection => !_hasConnected;
 
         /// <inheritdoc />
         public HostEndpointWithPort EndPoint => _connectionInitializer.EndPoint;
@@ -129,6 +133,7 @@ namespace Couchbase.Core.IO.Connections
                         .ConfigureAwait(false);
                 }
 
+                _hasConnected = true;
                 return connection;
             }
             catch(Exception e)

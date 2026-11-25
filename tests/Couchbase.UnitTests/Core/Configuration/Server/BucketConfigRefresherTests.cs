@@ -82,6 +82,33 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task Push_WithANodeThatHasNotConnected_FetchesFromTheConnectedNode()
+    {
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
+        using ClusterContext mockContext = mockBucket.Context;
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        var connected = AddNode(mockBucket, "node-0", push: true);
+        connected.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newConfig);
+        // A node that joined after a refused bucket has never had a connection.
+        var connecting = AddNode(mockBucket, "node-1", push: true);
+        connecting.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
+        refresher.Start();
+
+        refresher.RequestRefresh(new ConfigVersion(1, 3));
+
+        Assert.Equal(newConfig.ConfigVersion, (await publishTcs.Task.WaitAsync(Deadline))!.ConfigVersion);
+        connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Push_ServerReturnsNullThenConfig_AsksAgainAndPublishes()
     {
         // The server pushes (1,3), but the node asked has nothing newer than (1,2) and returns null.

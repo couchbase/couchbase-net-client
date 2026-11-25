@@ -39,6 +39,12 @@ namespace Couchbase.Core.IO.Connections
         public int PendingSends { get; }
 
         /// <summary>
+        /// True until a connection of the pool finishes its setup for the first time. It stays false after that,
+        /// also when the pool loses every connection.
+        /// </summary>
+        bool IsAwaitingFirstConnection { get; }
+
+        /// <summary>
         /// Initialize the connection pool, opening initial connections and generally preparing the pool for use.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>\

@@ -96,6 +96,11 @@ namespace Couchbase.Core
         bool IsDead{ get; }
 
         /// <summary>
+        /// True while the connection pool has never had a live connection. A config refresher does not ask such a node.
+        /// </summary>
+        bool IsAwaitingFirstConnection { get; }
+
+        /// <summary>
         /// Re-authenticates all existing KV connections in the connection pool using the current authenticator.
         /// This is used when a new JWT is provided as a result of a token refresh.
         /// </summary>

@@ -195,6 +195,7 @@ namespace Couchbase.UnitTests.Diagnostics
             public event NotifyCollectionChangedEventHandler KeyEndPointsChanged = delegate { };
 
             public bool IsDead { get; }
+            public bool IsAwaitingFirstConnection { get; }
 
             public void ForgetNodesAdapterVersion()
             {

@@ -82,7 +82,7 @@ internal abstract partial class ConfigRefresher : IDisposable
     protected abstract string Name { get; }
 
     /// <summary>
-    /// The nodes that serve the config. A fetch asks the live KV nodes among them.
+    /// The nodes that serve the config. A fetch asks the live KV nodes among them that have had a connection.
     /// </summary>
     protected abstract IEnumerable<IClusterNode> Nodes { get; }
 
@@ -290,7 +290,11 @@ internal abstract partial class ConfigRefresher : IDisposable
         }
 
         var kvNodes = Nodes.Where(node => node.HasKv).ToList();
-        var nodes = kvNodes.Where(node => !node.IsDead).ToList().Shuffle();
+        var liveNodes = kvNodes.Where(node => !node.IsDead).ToList();
+
+        // A node that never had a connection cannot answer yet, so it is not asked and its absence is not a failure.
+        // A node that had a connection and lost it is asked, and its failed fetch counts.
+        var nodes = liveNodes.Where(node => !node.IsAwaitingFirstConnection).ToList().Shuffle();
         if (pollDue)
         {
             // Restarted here as well, so a poll that gets no answer waits a full interval before the next one.
@@ -307,12 +311,17 @@ internal abstract partial class ConfigRefresher : IDisposable
             // The cluster refresher has no node once buckets own every KV node. The bucket refreshers fetch then.
             LogNoKvNodes(Redactor.SystemData(Name));
         }
-        else if (nodes.Count == 0)
+        else if (liveNodes.Count == 0)
         {
             // Every node is dead, which counts as every fetch failing.
             LogNoLiveKvNodes(Redactor.SystemData(Name));
             _failedFetches = 0;
             SignalRefreshFailed();
+        }
+        else if (nodes.Count == 0)
+        {
+            // The pass asks no node. A pushed version still goes through the retry delays below, so the loop does not spin.
+            LogNoConnectedKvNodes(Redactor.SystemData(Name), liveNodes.Count);
         }
 
         var (answered, config) = await FetchAsync(nodes, currentVersion, pendingVersion, token).ConfigureAwait(false);
@@ -460,12 +469,12 @@ internal abstract partial class ConfigRefresher : IDisposable
 
     /// <summary>
     /// With push config on, the server pushes each config change, so a poll only looks for a change it missed.
-    /// With no live node, nothing pushes.
+    /// With no node to ask, nothing pushes.
     /// </summary>
-    private bool ShouldPoll(List<IClusterNode> liveNodes) =>
+    private bool ShouldPoll(List<IClusterNode> nodes) =>
         Context.ClusterOptions.Experiments.EnablePollingWithPushConfig
-        || liveNodes.Count == 0
-        || liveNodes.Any(node => node.ServerFeatures?.ClustermapChangeNotificationBrief != true);
+        || nodes.Count == 0
+        || nodes.Any(node => node.ServerFeatures?.ClustermapChangeNotificationBrief != true);
 
     /// <summary>
     /// After <see cref="ForgetPushedVersions"/>, also drops the marks the loop keeps for pushed versions.
@@ -592,6 +601,9 @@ internal abstract partial class ConfigRefresher : IDisposable
 
     [LoggerMessage(15, LogLevel.Warning, "Refreshing the config of {name} failed")]
     private partial void LogRefreshFailed(Exception exception, Redacted<string> name);
+
+    [LoggerMessage(17, LogLevel.Debug, "No KV node to fetch the config of {name} from, {connecting} nodes have not connected yet")]
+    private partial void LogNoConnectedKvNodes(Redacted<string> name, int connecting);
 
     [LoggerMessage(16, LogLevel.Information, "KV does not serve the config of {name}, switching to HTTP streaming")]
     private partial void LogSwitchingToHttpStreaming(Redacted<string> name);

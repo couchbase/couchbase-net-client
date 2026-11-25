@@ -213,6 +213,51 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
         #endregion
 
+        #region IsAwaitingFirstConnection
+
+        [Fact]
+        public async Task IsAwaitingFirstConnection_AfterALiveConnection_StaysFalseWhenTheConnectionDies()
+        {
+            var connection = new Mock<IConnection>();
+            var pool = PoolOn(connection.Object, out _);
+            Assert.True(pool.IsAwaitingFirstConnection);
+
+            await pool.CreateConnectionAsyncPublic();
+            Assert.False(pool.IsAwaitingFirstConnection);
+
+            connection.SetupGet(m => m.IsDead).Returns(true);
+            Assert.False(pool.IsAwaitingFirstConnection);
+        }
+
+        [Fact]
+        public async Task IsAwaitingFirstConnection_AfterAFailedSetup_StaysTrue()
+        {
+            var connection = new Mock<IConnection>();
+            var pool = PoolOn(connection.Object, out var connectionInitializer, "default");
+            connectionInitializer
+                .Setup(m => m.SelectBucketAsync(connection.Object, "default", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Couchbase.Management.Buckets.BucketNotFoundException("default"));
+
+            await Assert.ThrowsAsync<Couchbase.Management.Buckets.BucketNotFoundException>(() => pool.CreateConnectionAsyncPublic());
+
+            Assert.True(pool.IsAwaitingFirstConnection);
+        }
+
+        private ConnectionPoolMock PoolOn(IConnection connection, out Mock<IConnectionInitializer> connectionInitializer,
+            string bucketName = null)
+        {
+            connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(connection);
+            return new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object,
+                new Mock<ILogger<IConnectionPool>>().Object, bucketName);
+        }
+
+        #endregion
+
         #region SelectBucketAsync
 
         [Fact]

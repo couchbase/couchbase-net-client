@@ -317,6 +317,9 @@ namespace Couchbase.Core
 
         public bool IsDead => _disposed;
 
+        /// <inheritdoc />
+        public bool IsAwaitingFirstConnection => ConnectionPool.IsAwaitingFirstConnection;
+
         private void OnKeyEndPointsChanged(NotifyCollectionChangedEventArgs e)
         {
             KeyEndPointsChanged?.Invoke(this, e);
