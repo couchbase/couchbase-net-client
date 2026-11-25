@@ -148,6 +148,8 @@ internal class StellarBucketManager : IBucketManager
         }
         catch (KeyNotFoundException)
         {
+            // ListBuckets succeeded, so the span status is Ok. As in classic mode, a missing bucket is an error.
+            span.SetStatus(RequestSpanStatusCode.Error);
             throw new BucketNotFoundException($"Bucket '{_stellarCluster.Redactor.MetaDataString(bucketName)}' not found.");
         }
     }

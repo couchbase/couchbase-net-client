@@ -9,6 +9,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Protostellar.Analytics.V1;
+using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
 using Grpc.Core;
 
@@ -51,13 +52,24 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
     internal void EndSpanWhenStreamCloses(IRequestSpan span)
     {
         _span = span;
-        if (_disposed)
+        // The stream is already closed if the first read found its end.
+        if (_disposed || (_hasReadHeader && !_firstResponseHadRows))
         {
             EndSpan();
         }
     }
 
-    private void EndSpan() => Interlocked.Exchange(ref _span, null)?.End();
+    private void EndSpan()
+    {
+        var span = Interlocked.Exchange(ref _span, null);
+        if (span != null)
+        {
+            StreamSpan.EndKeepingCurrentActivity(span);
+        }
+    }
+
+    // The retry handler set the status to Ok when the first response arrived.
+    private void MarkSpanFailed() => Volatile.Read(ref _span)?.SetStatus(RequestSpanStatusCode.Error);
 
     /// <summary>
     /// Reads the first streamed response. This runs under the retry orchestrator (called from
@@ -131,6 +143,7 @@ public class ProtoAnalyticsResult<T> : IAnalyticsResult<T>
                 catch (Exception e)
                 {
                     streamClosed = true;
+                    MarkSpanFailed();
                     if (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
                     {
                         throw _mapMidStreamError(e);

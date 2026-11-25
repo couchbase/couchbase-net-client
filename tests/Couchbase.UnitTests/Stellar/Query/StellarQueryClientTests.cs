@@ -1,4 +1,5 @@
 #if NETCOREAPP3_1_OR_GREATER
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
@@ -98,22 +99,33 @@ public class StellarQueryClientTests
 
     /// <summary>
     /// A query whose stream has a first response and one more response with a row, then ends.
-    /// The span counts End and Dispose calls together as "ended".
+    /// The span counts End and Dispose calls together as "ended". With an <see cref="ActivitySource"/>,
+    /// the span also starts a real activity when the query starts and stops it when the span ends.
     /// </summary>
     private sealed class SpanLifetimeFixture
     {
         public int Ended;
+        public RequestSpanStatusCode? Status;
+        public Activity Activity;
         public readonly Mock<IAsyncStreamReader<QueryResponse>> Stream = new();
         public readonly Mock<QueryService.QueryServiceClient> Service = new();
         public readonly StellarQueryClient Client;
 
-        public SpanLifetimeFixture()
+        public SpanLifetimeFixture(ActivitySource source = null)
         {
             var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
-            innerSpan.Setup(s => s.End()).Callback(() => Ended++);
-            innerSpan.Setup(s => s.Dispose()).Callback(() => Ended++);
+            innerSpan.Setup(s => s.End()).Callback(() => { Ended++; Activity?.Stop(); });
+            innerSpan.Setup(s => s.Dispose()).Callback(() => { Ended++; Activity?.Stop(); });
+            innerSpan.Setup(s => s.SetStatus(It.IsAny<RequestSpanStatusCode>()))
+                .Callback<RequestSpanStatusCode>(code => Status = code)
+                .Returns(innerSpan.Object);
             var tracer = new Mock<IRequestTracer>();
-            tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(innerSpan.Object);
+            tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>()))
+                .Returns(() =>
+                {
+                    Activity = source?.StartActivity("query");
+                    return innerSpan.Object;
+                });
 
             var response = new QueryResponse();
             response.Rows.Add(ByteString.CopyFromUtf8("1"));
@@ -151,6 +163,7 @@ public class StellarQueryClientTests
 
         Assert.Equal(2, rows);
         Assert.Equal(1, f.Ended);
+        Assert.Equal(RequestSpanStatusCode.Ok, f.Status);
 
         result.Dispose();
         Assert.Equal(1, f.Ended);
@@ -187,6 +200,52 @@ public class StellarQueryClientTests
         });
 
         Assert.Equal(1, f.Ended);
+        Assert.Equal(RequestSpanStatusCode.Error, f.Status);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Span_EndsWithErrorStatus_WhenTheStreamIsCanceled()
+    {
+        var f = new SpanLifetimeFixture();
+        f.Stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .ThrowsAsync(new System.OperationCanceledException());
+
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new QueryOptions());
+        await Assert.ThrowsAnyAsync<System.OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in result.Rows) { }
+        });
+
+        Assert.Equal(1, f.Ended);
+        Assert.Equal(RequestSpanStatusCode.Error, f.Status);
+    }
+
+    /// <summary>
+    /// Activity.Stop sets Activity.Current to the activity that was current when the stopped one
+    /// started. Disposing the result must not replace the activity the caller started after the query.
+    /// </summary>
+    [Fact]
+    public async Task QueryAsync_Span_DisposeKeepsTheCallersCurrentActivity()
+    {
+        using var source = new ActivitySource(nameof(QueryAsync_Span_DisposeKeepsTheCallersCurrentActivity));
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = s => ReferenceEquals(s, source),
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+        };
+        ActivitySource.AddActivityListener(listener);
+        var f = new SpanLifetimeFixture(source);
+
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new QueryOptions());
+        using var callers = source.StartActivity("callers");
+        Assert.NotNull(callers);
+
+        result.Dispose();
+
+        Assert.Equal(1, f.Ended);
+        Assert.NotEqual(System.TimeSpan.Zero, f.Activity!.Duration);
+        Assert.Same(callers, Activity.Current);
     }
 
     [Fact]

@@ -61,7 +61,17 @@ internal class StellarQueryResult<T> : IQueryResult<T>
         }
     }
 
-    private void EndSpan() => Interlocked.Exchange(ref _span, null)?.End();
+    private void EndSpan()
+    {
+        var span = Interlocked.Exchange(ref _span, null);
+        if (span != null)
+        {
+            StreamSpan.EndKeepingCurrentActivity(span);
+        }
+    }
+
+    // The retry handler set the status to Ok when the first response arrived.
+    private void MarkSpanFailed() => Volatile.Read(ref _span)?.SetStatus(RequestSpanStatusCode.Error);
 
     private bool ProfileIsNull(ByteString profile)
     {
@@ -136,6 +146,7 @@ internal class StellarQueryResult<T> : IQueryResult<T>
                 catch (Exception e)
                 {
                     streamClosed = true;
+                    MarkSpanFailed();
                     if (e is RpcException || StellarRetryHandler.IsTransientTransportException(e))
                     {
                         throw _mapMidStreamError(e);

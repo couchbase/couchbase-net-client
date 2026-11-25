@@ -130,6 +130,21 @@ public class StellarManagerSpanTests
         Assert.True(waits.Cast<IRequestSpan>().ToHashSet().SetEquals(orchestrator.Requests.Select(r => r.Span!)));
     }
 
+    /// <summary>
+    /// ListBuckets succeeds, but the bucket is not in the list. As in classic mode, the span is an error.
+    /// </summary>
+    [Fact]
+    public async Task GetBucket_SetsErrorStatus_WhenTheBucketIsMissing()
+    {
+        var (cluster, tracer, _) = CreateCluster();
+
+        await Assert.ThrowsAsync<BucketNotFoundException>(() => new StellarBucketManager(cluster).GetBucketAsync("b"));
+
+        var span = Assert.Single(tracer.Spans);
+        Assert.Equal(RequestSpanStatusCode.Error, span.Status);
+        Assert.True(span.Ended);
+    }
+
     private static Task Invoke(StellarCluster cluster, string operation)
     {
         var buckets = new StellarBucketManager(cluster);

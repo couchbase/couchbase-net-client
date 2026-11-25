@@ -1,4 +1,5 @@
 #if NETCOREAPP3_1_OR_GREATER
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -144,87 +145,146 @@ public class StellarAnalyticsClientTests
 
     /// <summary>
     /// As for query (RFC 77): the analytics span ends only after the response stream closes.
-    /// The span counts End and Dispose calls together as "ended".
+    /// The stream has a first response and one more response with a row, then ends. The span counts
+    /// End and Dispose calls together as "ended". With an <see cref="ActivitySource"/>, the span also
+    /// starts a real activity when the query starts and stops it when the span ends.
     /// </summary>
-    private static (StellarAnalyticsClient Client, Mock<IAsyncStreamReader<AnalyticsQueryResponse>> Stream, System.Func<int> Ended) SpanLifetimeFixture()
+    private sealed class SpanLifetimeFixture
     {
-        var ended = 0;
-        var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
-        innerSpan.Setup(s => s.End()).Callback(() => ended++);
-        innerSpan.Setup(s => s.Dispose()).Callback(() => ended++);
-        var tracer = new Mock<IRequestTracer>();
-        tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(innerSpan.Object);
+        public int Ended;
+        public RequestSpanStatusCode? Status;
+        public Activity Activity;
+        public readonly Mock<IAsyncStreamReader<AnalyticsQueryResponse>> Stream = new();
+        public readonly StellarAnalyticsClient Client;
 
-        var response = ResponseWithMetaData();
-        response.Rows.Add(Google.Protobuf.ByteString.CopyFromUtf8("1"));
-        var stream = new Mock<IAsyncStreamReader<AnalyticsQueryResponse>>();
-        stream.Setup(x => x.Current).Returns(response);
-        stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .ReturnsAsync(true)
-            .ReturnsAsync(false);
-        var service = new Mock<AnalyticsService.AnalyticsServiceClient>();
-        service.Setup(x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()))
-            .Returns(new AsyncServerStreamingCall<AnalyticsQueryResponse>(stream.Object, null!, null!, null!, _ => { }, null!));
+        public SpanLifetimeFixture(ActivitySource source = null)
+        {
+            var innerSpan = new Mock<IRequestSpan> { DefaultValue = DefaultValue.Mock };
+            innerSpan.Setup(s => s.End()).Callback(() => { Ended++; Activity?.Stop(); });
+            innerSpan.Setup(s => s.Dispose()).Callback(() => { Ended++; Activity?.Stop(); });
+            innerSpan.Setup(s => s.SetStatus(It.IsAny<RequestSpanStatusCode>()))
+                .Callback<RequestSpanStatusCode>(code => Status = code)
+                .Returns(innerSpan.Object);
+            var tracer = new Mock<IRequestTracer>();
+            tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>()))
+                .Returns(() =>
+                {
+                    Activity = source?.StartActivity("analytics");
+                    return innerSpan.Object;
+                });
 
-        var client = new StellarAnalyticsClient(StellarMocks.CreateClusterFromMocks(tracer: tracer.Object),
-            service.Object, new StellarRetryHandler());
-        return (client, stream, () => ended);
+            var response = ResponseWithMetaData();
+            response.Rows.Add(Google.Protobuf.ByteString.CopyFromUtf8("1"));
+            Stream.Setup(x => x.Current).Returns(response);
+            Stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true)
+                .ReturnsAsync(true)
+                .ReturnsAsync(false);
+            var service = new Mock<AnalyticsService.AnalyticsServiceClient>();
+            service.Setup(x => x.AnalyticsQuery(It.IsAny<AnalyticsQueryRequest>(), It.IsAny<CallOptions>()))
+                .Returns(new AsyncServerStreamingCall<AnalyticsQueryResponse>(Stream.Object, null!, null!, null!, _ => { }, null!));
+
+            Client = new StellarAnalyticsClient(StellarMocks.CreateClusterFromMocks(tracer: tracer.Object),
+                service.Object, new StellarRetryHandler());
+        }
     }
 
     [Fact]
     public async Task QueryAsync_Span_EndsWhenTheStreamIsReadToTheEnd()
     {
-        var (client, _, ended) = SpanLifetimeFixture();
+        var f = new SpanLifetimeFixture();
 
-        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
-        Assert.Equal(0, ended());
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        Assert.Equal(0, f.Ended);
 
         var rows = 0;
         await foreach (var _ in result.Rows)
         {
             rows++;
-            Assert.Equal(0, ended());
+            Assert.Equal(0, f.Ended);
         }
 
         Assert.Equal(2, rows);
-        Assert.Equal(1, ended());
+        Assert.Equal(1, f.Ended);
+        Assert.Equal(RequestSpanStatusCode.Ok, f.Status);
 
         result.Dispose();
-        Assert.Equal(1, ended());
+        Assert.Equal(1, f.Ended);
+    }
+
+    [Fact]
+    public async Task QueryAsync_Span_EndsBeforeQueryAsyncReturns_WhenTheStreamIsEmpty()
+    {
+        var f = new SpanLifetimeFixture();
+        f.Stream.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        Assert.Equal(1, f.Ended);
+
+        await foreach (var _ in result.Rows) { }
+        result.Dispose();
+        Assert.Equal(1, f.Ended);
     }
 
     [Fact]
     public async Task QueryAsync_Span_EndsOnDispose_WhenTheCallerStopsReadingEarly()
     {
-        var (client, _, ended) = SpanLifetimeFixture();
+        var f = new SpanLifetimeFixture();
 
-        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
         await foreach (var _ in result.Rows)
         {
             break;
         }
-        Assert.Equal(0, ended());
+        Assert.Equal(0, f.Ended);
 
         result.Dispose();
-        Assert.Equal(1, ended());
+        Assert.Equal(1, f.Ended);
     }
 
     [Fact]
     public async Task QueryAsync_Span_EndsWhenTheStreamFailsMidStream()
     {
-        var (client, stream, ended) = SpanLifetimeFixture();
-        stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
+        var f = new SpanLifetimeFixture();
+        f.Stream.SetupSequence(x => x.MoveNext(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .ThrowsAsync(new RpcException(new Status(StatusCode.Internal, "mid-stream")));
 
-        var result = await client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
         await Assert.ThrowsAnyAsync<System.Exception>(async () =>
         {
             await foreach (var _ in result.Rows) { }
         });
 
-        Assert.Equal(1, ended());
+        Assert.Equal(1, f.Ended);
+        Assert.Equal(RequestSpanStatusCode.Error, f.Status);
+    }
+
+    /// <summary>
+    /// Activity.Stop sets Activity.Current to the activity that was current when the stopped one
+    /// started. Disposing the result must not replace the activity the caller started after the query.
+    /// </summary>
+    [Fact]
+    public async Task QueryAsync_Span_DisposeKeepsTheCallersCurrentActivity()
+    {
+        using var source = new ActivitySource(nameof(StellarAnalyticsClientTests) + nameof(QueryAsync_Span_DisposeKeepsTheCallersCurrentActivity));
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = s => ReferenceEquals(s, source),
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+        };
+        ActivitySource.AddActivityListener(listener);
+        var f = new SpanLifetimeFixture(source);
+
+        var result = await f.Client.QueryAsync<int>("SELECT 1;", new AnalyticsOptions());
+        using var callers = source.StartActivity("callers");
+        Assert.NotNull(callers);
+
+        result.Dispose();
+
+        Assert.Equal(1, f.Ended);
+        Assert.NotEqual(System.TimeSpan.Zero, f.Activity!.Duration);
+        Assert.Same(callers, Activity.Current);
     }
 }
 #endif
