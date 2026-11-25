@@ -344,6 +344,67 @@ public class BucketConfigExtensionTests
        var nodeAdapters = bucketConfig.GetNodes();
     }
 
+    // Host 1 runs KV but the nodes list does not hold it yet, as when it joins in a rebalance.
+    [Theory]
+    [InlineData(BucketConfig.GlobalBucketName)]
+    [InlineData("default")]
+    public void GetClusterNodes_ListsEveryNodesExtEntryWithItsOwnServices(string name)
+    {
+        var config = JoiningKvNodeConfig(name, nodesList: ["10.0.0.1"]);
+
+        var clusterNodes = config.GetClusterNodes();
+
+        Assert.Equal(["10.0.0.1", "10.0.0.2", "10.0.0.3"], clusterNodes.ConvertAll(node => node.Hostname));
+        Assert.Equal([11210, 11210, 0], clusterNodes.ConvertAll(node => node.KeyValue));
+        Assert.Equal([0, 0, 8093], clusterNodes.ConvertAll(node => node.N1Ql));
+        Assert.Equal([true, true, false], clusterNodes.ConvertAll(node => node.IsKvNode));
+    }
+
+    // NCBC-2422. The bucket map drops a KV entry that the nodes list does not hold.
+    [Fact]
+    public void GetNodes_KvEntryMissingFromNodes_IsDropped()
+    {
+        var config = JoiningKvNodeConfig("default", nodesList: ["10.0.0.1"]);
+
+        var mapNodes = config.GetNodes();
+
+        Assert.Equal(["10.0.0.1", "10.0.0.3"], mapNodes.ConvertAll(node => node.Hostname));
+    }
+
+    // With no nodes list the bucket map has no KV entry. The cluster list keeps KV, and the config is not changed.
+    [Fact]
+    public void GetNodes_BucketConfigWithNoNodesList_DropsKvOnlyInTheAdapters()
+    {
+        var config = JoiningKvNodeConfig("default", nodesList: []);
+        var copy = JoiningKvNodeConfig("default", nodesList: []);
+
+        var mapNodes = config.GetNodes();
+        var clusterNodes = config.GetClusterNodes();
+
+        Assert.All(mapNodes, node => Assert.False(node.IsKvNode));
+        Assert.Equal([true, true, false], clusterNodes.ConvertAll(node => node.IsKvNode));
+        Assert.Equal([11210, 11210, 0], config.NodesExt.ConvertAll(nodeExt => nodeExt.Services.Kv));
+        Assert.Equal(copy.NodesExt, config.NodesExt);
+    }
+
+    private static BucketConfig JoiningKvNodeConfig(string name, string[] nodesList)
+    {
+        var config = new BucketConfig
+        {
+            Name = name,
+            Rev = 1,
+            NodesExt =
+            [
+                new NodesExt { Hostname = "10.0.0.1", Services = new Services { Mgmt = 8091, Kv = 11210 } },
+                new NodesExt { Hostname = "10.0.0.2", Services = new Services { Mgmt = 8091, Kv = 11210 } },
+                new NodesExt { Hostname = "10.0.0.3", Services = new Services { Mgmt = 8091, N1Ql = 8093 } }
+            ],
+            Nodes = [.. Array.ConvertAll(nodesList, host => new Node { Hostname = $"{host}:8091" })]
+        };
+        config.OnDeserialized();
+        return config;
+    }
+
     [Fact]
     public async Task Test_HasConfigChanges()
     {

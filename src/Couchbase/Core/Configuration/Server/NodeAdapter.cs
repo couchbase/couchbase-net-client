@@ -13,6 +13,19 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         public NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
+            : this(node, nodeExt, bucketConfig, keepKv: false)
+        {
+        }
+
+        /// <summary>
+        /// Builds the adapter of a config entry. The adapter never changes the entry.
+        /// </summary>
+        /// <param name="node">The nodes entry of the host, or null.</param>
+        /// <param name="nodeExt">The nodesExt entry of the host, or null.</param>
+        /// <param name="bucketConfig">The config of the entry.</param>
+        /// <param name="keepKv">When true, the adapter keeps the KV ports of a bucket config entry that has no
+        /// nodes entry. The cluster node list uses this, as that host runs the KV service.</param>
+        internal NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig, bool keepKv)
         {
             ConfigVersion = bucketConfig.ConfigVersion;
             IgnoreRev = bucketConfig.IgnoreRev;
@@ -39,18 +52,20 @@ namespace Couchbase.Core.Configuration.Server
                 // get services, will use alternate network ports if configured
                 var services = GetServicePorts(nodeExt, bucketConfig);
 
+                ConfigureServicePorts(services);
+
                 // if not using alternate network and node is null
-                if (!UseAlternateNetwork(nodeExt, bucketConfig) && node == null && !bucketConfig.IsGlobal)
+                if (!keepKv && !UseAlternateNetwork(nodeExt, bucketConfig) && node == null && !bucketConfig.IsGlobal)
                 {
                     // if using nodeExt and node is null, the KV service may not be available yet and should be disabled (set to 0)
                     // this prevents the server's data service being marked as active before it is ready
                     // see https://issues.couchbase.com/browse/JVMCBC-564, https://issues.couchbase.com/browse/NCBC-1791 and
                     // https://issues.couchbase.com/browse/NCBC-1808 for more details
-                    services.Kv = 0;
-                    services.KvSsl = 0;
+                    // Only the adapter drops KV. The config entry is shared and stays as the server sent it.
+                    KeyValue = 0;
+                    KeyValueSsl = 0;
+                    IsKvNode = false;
                 }
-
-                ConfigureServicePorts(services);
             }
             else
             {

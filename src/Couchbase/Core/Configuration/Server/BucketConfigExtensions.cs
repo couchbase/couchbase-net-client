@@ -148,6 +148,55 @@ namespace Couchbase.Core.Configuration.Server
             return nodeAdapters;
         }
 
+        /// <summary>
+        /// The nodes of the cluster in a config of any kind. Each nodesExt entry gives one adapter with the services
+        /// of that entry. A bucket config can list a KV host in nodesExt before its nodes list holds it, and that host
+        /// is still a KV node of the cluster.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="GetNodes"/> gives the nodes of the bucket. It drops or downgrades such a KV entry (NCBC-2422).
+        /// A config with no nodesExt gives the <see cref="GetNodes"/> list.
+        /// </remarks>
+        public static List<NodeAdapter> GetClusterNodes(this BucketConfig bucketConfig)
+        {
+            var nodes = bucketConfig.Nodes;
+            var nodesExt = bucketConfig.NodesExt;
+            if (nodesExt is not { Count: > 0 })
+            {
+                return bucketConfig.GetNodes();
+            }
+
+            var pairByIndex = nodes?.Count == nodesExt.Count;
+            var nodeAdapters = new List<NodeAdapter>(nodesExt.Count);
+            for (var i = 0; i < nodesExt.Count; i++)
+            {
+                var ext = nodesExt[i];
+                // The same pairing as GetNodes, as the adapter reads the host of the node when nodesExt has none.
+                var node = pairByIndex ? nodes![i] : FindNode(nodes, ext.Hostname);
+                nodeAdapters.Add(new NodeAdapter(node, ext, bucketConfig, keepKv: true));
+            }
+
+            return nodeAdapters;
+        }
+
+        private static Node? FindNode(List<Node>? nodes, string? hostname)
+        {
+            if (nodes is null || hostname is null)
+            {
+                return null;
+            }
+
+            foreach (var node in nodes)
+            {
+                if (node.Hostname.Contains(hostname))
+                {
+                    return node;
+                }
+            }
+
+            return null;
+        }
+
         public static ClusterCapabilities GetClusterCapabilities(this BucketConfig config)
         {
             return new ClusterCapabilities
