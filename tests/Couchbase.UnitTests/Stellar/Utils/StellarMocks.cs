@@ -51,6 +51,9 @@ internal static class StellarMocks
         requestOrchestrator
             .Setup(x => x.RetryAsync(It.IsAny<Func<Task<ReplaceResponse>>>(), It.IsAny<IRequest>()))
             .ReturnsAsync(new ReplaceResponse { Cas = 1, MutationToken = mockMutationToken });
+        requestOrchestrator
+            .Setup(x => x.RetryAsync(It.IsAny<Func<Task<MutateInResponse>>>(), It.IsAny<IRequest>()))
+            .ReturnsAsync(new MutateInResponse { Cas = 1, MutationToken = mockMutationToken });
 
         // If a compressor was explicitly provided, indicate that a real compression algorithm (Snappy) is available.
         // Otherwise, use a default mock compressor with CompressionAlgorithm.None (compression disabled).

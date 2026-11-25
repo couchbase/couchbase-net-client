@@ -32,6 +32,7 @@ using Couchbase.Protostellar.Query.V1;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Stellar.Analytics;
+using Couchbase.Stellar.Core;
 using Couchbase.Stellar.Core.Retry;
 using Couchbase.Stellar.Management.Buckets;
 using Couchbase.Stellar.Management.Query;
@@ -125,7 +126,7 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         _clusterOptions = clusterOptions;
         _redactor = new Redactor(_clusterOptions);
         _logger = new Logger<StellarCluster>(_clusterOptions.Logging ?? new NullLoggerFactory());
-        RequestTracer = clusterOptions.TracingOptions.RequestTracer;
+        RequestTracer = CreateRequestTracer(clusterOptions);
         TypeSerializer = clusterOptions.Serializer ?? DefaultSerializer.Instance;
         TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
 
@@ -140,6 +141,9 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
             PooledConnectionIdleTimeout = Timeout.InfiniteTimeSpan,
             KeepAlivePingDelay = TimeSpan.FromSeconds(20),
             KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+            // RFC 77: CNG's server span must be a child of the gRPC client span, not of an unrecorded
+            // HttpClient activity.
+            ActivityHeadersPropagator = new GrpcTraceContextPropagator(DistributedContextPropagator.Current),
         };
         _socketsHandler = socketsHandler;
         var authenticator = _clusterOptions.GetEffectiveAuthenticator() ?? throw new NullReferenceException($"{nameof(_clusterOptions.Authenticator)} should not be null");
@@ -198,6 +202,17 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
     }
 
     internal IRequestTracer RequestTracer { get; }
+
+    /// <summary>
+    /// Builds the tracer the same way the classic cluster does (see ClusterOptions.BuildServiceProvider),
+    /// so Stellar spans get the attribute names of the configured
+    /// <see cref="ClusterOptions.ObservabilitySemanticConvention"/>.
+    /// </summary>
+    internal static IRequestTracer CreateRequestTracer(ClusterOptions clusterOptions) =>
+        clusterOptions.TracingOptions is { Enabled: true, RequestTracer: not NoopRequestTracer }
+            ? new RequestTracerWrapper(clusterOptions.TracingOptions.RequestTracer,
+                clusterOptions.ObservabilitySemanticConvention)
+            : NoopRequestTracer.Instance;
     internal ITypeTranscoder TypeTranscoder { get; }
     internal IOperationCompressor OperationCompressor { get; }
     internal bool IsCompressionEnabled => _isCompressionEnabled;
@@ -489,6 +504,31 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
 
     private IRequestSpan TraceSpan(string attr, IRequestSpan? parentSpan) =>
         this.RequestTracer.RequestSpan(attr, parentSpan);
+
+    /// <summary>
+    /// Starts the span of a management operation, as RFC 77 requires for couchbase2.
+    /// </summary>
+    /// <param name="spanName">The RFC 67 span name, for example "manager_buckets_create_bucket".</param>
+    /// <param name="service">The RFC 67 service: "query", "search" or "management".</param>
+    /// <param name="protostellarOperation">The Protostellar RPC name, for example "CreateBucket".
+    /// Null for a composite operation (WatchIndexes), which has no db.operation.</param>
+    /// <param name="parentSpan">The parent span from the options, if any.</param>
+    internal IRequestSpan ManagerSpan(string spanName, string service, string? protostellarOperation,
+        IRequestSpan? parentSpan)
+    {
+        var span = RequestTracer.RequestSpan(spanName, parentSpan);
+        if (span.CanWrite)
+        {
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, service);
+            if (protostellarOperation is not null)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, protostellarOperation);
+            }
+        }
+
+        return span;
+    }
 
     #region Bootstrapping/start up error propagation
 

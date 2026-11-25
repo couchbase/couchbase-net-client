@@ -40,7 +40,25 @@ internal class StellarQueryClient : IQueryClient
     {
         var opts = options?.AsReadOnly() ?? QueryOptions.DefaultReadOnly;
 
-        using var childSpan = _stellarCluster.RequestTracer.RequestSpan(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
+        // RFC 77: the query span ends only when the response stream closes, so that the gRPC
+        // span never outlives it. The result ends it; this method ends it only on failure.
+        // Classic mode ends the span when this method returns.
+        var childSpan = _stellarCluster.RequestTracer.RequestSpan(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.ServiceSpan.N1QLQuery, opts.RequestSpan);
+        try
+        {
+            var result = await ExecuteAsync<T>(statement, opts, childSpan).ConfigureAwait(false);
+            result.EndSpanWhenStreamCloses(childSpan);
+            return result;
+        }
+        catch
+        {
+            childSpan.Dispose();
+            throw;
+        }
+    }
+
+    private async Task<StellarQueryResult<T>> ExecuteAsync<T>(string statement, QueryOptions.ReadOnlyRecord opts, IRequestSpan childSpan)
+    {
         if (childSpan.CanWrite)
         {
             childSpan.SetAttribute(Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Key, Couchbase.Core.Diagnostics.Tracing.OuterRequestSpans.Attributes.System.Value);
@@ -111,7 +129,7 @@ internal class StellarQueryClient : IQueryClient
             opts.BucketName,
             opts.ScopeName);
 
-        async Task<IQueryResult<T>> GrpcCall()
+        async Task<StellarQueryResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var asyncResponse = _queryClient.Query(protoRequest, callOptions);

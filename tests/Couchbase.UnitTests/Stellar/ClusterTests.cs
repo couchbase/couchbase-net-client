@@ -3,6 +3,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Compression;
@@ -159,6 +160,68 @@ public class ClusterTests
           using var client = new HttpClient(handler!, disposeHandler: false);
           await Assert.ThrowsAsync<ObjectDisposedException>(() => client.GetAsync("http://localhost/"));
       }
+      #endregion
+
+      #region RequestTracer
+
+      [Theory]
+      [InlineData(ObservabilitySemanticConvention.Legacy)]
+      [InlineData(ObservabilitySemanticConvention.Modern)]
+      [InlineData(ObservabilitySemanticConvention.Both)]
+      public void CreateRequestTracer_Wraps_Tracer_With_Configured_Convention(ObservabilitySemanticConvention convention)
+      {
+          var inner = new Mock<IRequestTracer>().Object;
+          var options = new ClusterOptions { ObservabilitySemanticConvention = convention };
+          options.TracingOptions.RequestTracer = inner;
+
+          var tracer = StellarCluster.CreateRequestTracer(options);
+
+          var wrapper = Assert.IsType<RequestTracerWrapper>(tracer);
+          Assert.Same(inner, wrapper.InnerTracer);
+          Assert.Equal(convention, wrapper.Convention);
+      }
+
+      [Fact]
+      public void CreateRequestTracer_Returns_Noop_When_Tracing_Disabled()
+      {
+          var options = new ClusterOptions();
+          options.TracingOptions.RequestTracer = new Mock<IRequestTracer>().Object;
+          options.TracingOptions.Enabled = false;
+
+          Assert.Same(NoopRequestTracer.Instance, StellarCluster.CreateRequestTracer(options));
+      }
+
+      [Fact]
+      public void CreateRequestTracer_Returns_Noop_For_Noop_Tracer()
+      {
+          var options = new ClusterOptions();
+          options.TracingOptions.RequestTracer = NoopRequestTracer.Instance;
+
+          Assert.Same(NoopRequestTracer.Instance, StellarCluster.CreateRequestTracer(options));
+      }
+
+      [Fact]
+      public void CreateRequestTracer_Modern_Span_Gets_Db_System_Name()
+      {
+          // The FIT driver asserts db.system.name = couchbase on couchbase2 spans when the
+          // stable convention is selected (NCBC-4429).
+          var attributes = new System.Collections.Generic.Dictionary<string, string>();
+          var innerSpan = new Mock<IRequestSpan>();
+          innerSpan.Setup(s => s.SetAttribute(It.IsAny<string>(), It.IsAny<string>()))
+              .Callback<string, string>((k, v) => attributes[k] = v)
+              .Returns(innerSpan.Object);
+          var inner = new Mock<IRequestTracer>();
+          inner.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(innerSpan.Object);
+          var options = new ClusterOptions { ObservabilitySemanticConvention = ObservabilitySemanticConvention.Modern };
+          options.TracingOptions.RequestTracer = inner.Object;
+
+          var span = StellarCluster.CreateRequestTracer(options).RequestSpan("replace");
+          span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+
+          Assert.Equal("couchbase", attributes["db.system.name"]);
+          Assert.False(attributes.ContainsKey("db.system"));
+      }
+
       #endregion
 
       [Fact]

@@ -50,6 +50,50 @@ public class StellarCollectionTests
         return (collection, mockCompressor);
     }
 
+    #region request_encoding span (RFC 77)
+
+    private static async Task<(StellarCollection collection, List<string> childSpans)> SetupCollectionRecordingChildSpans()
+    {
+        var childSpans = new List<string>();
+        var opSpan = new Mock<IRequestSpan>();
+        opSpan.SetupGet(s => s.CanWrite).Returns(true);
+        opSpan.Setup(s => s.SetAttribute(It.IsAny<string>(), It.IsAny<string>())).Returns(opSpan.Object);
+        opSpan.Setup(s => s.ChildSpan(It.IsAny<string>()))
+            .Callback<string>(childSpans.Add)
+            .Returns(new NoopRequestSpan());
+        var tracer = new Mock<IRequestTracer>();
+        tracer.Setup(t => t.RequestSpan(It.IsAny<string>(), It.IsAny<IRequestSpan>())).Returns(opSpan.Object);
+
+        var cluster = StellarMocks.CreateClusterFromMocks(tracer: tracer.Object);
+        var bucket = (StellarBucket)await cluster.BucketAsync("test");
+        return ((StellarCollection)bucket.DefaultCollection(), childSpans);
+    }
+
+    [Theory]
+    [InlineData("insert")]
+    [InlineData("upsert")]
+    [InlineData("replace")]
+    [InlineData("mutate_in")]
+    public async Task ContentOperation_CreatesOneRequestEncodingSpan(string operation)
+    {
+        var (collection, childSpans) = await SetupCollectionRecordingChildSpans();
+
+        var task = operation switch
+        {
+            "insert" => (Task)collection.InsertAsync("key", new { foo = "bar" }),
+            "upsert" => collection.UpsertAsync("key", new { foo = "bar" }),
+            "replace" => collection.ReplaceAsync("key", new { foo = "bar" }),
+            "mutate_in" => collection.MutateInAsync("key", new[] { MutateInSpec.Upsert("path", "value") }),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
+        await task;
+
+        Assert.True(childSpans.Count(s => s == InnerRequestSpans.EncodingSpan.Name) == 1,
+            $"{operation}: child spans were [{string.Join(", ", childSpans)}]");
+    }
+
+    #endregion
+
     [Fact]
     public async Task InsertAsync_InvokesOperationCompressor()
     {

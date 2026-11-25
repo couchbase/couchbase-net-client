@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -30,7 +31,7 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
         _retryHandler = stellarCluster.RetryHandler;
     }
 
-    private async Task<ListCollectionsResponse> ListCollections(CancellationToken? cancellationToken)
+    private async Task<ListCollectionsResponse> ListCollections(CancellationToken? cancellationToken, IRequestSpan span)
     {
         var listCollectionsRequest = new ListCollectionsRequest
         {
@@ -41,6 +42,7 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
 
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = true,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
         };
@@ -57,7 +59,9 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
     public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null)
     {
         var opts = options?.AsReadOnly() ?? GetAllScopesOptions.DefaultReadOnly;
-        var collections = await ListCollections(opts.CancellationToken).ConfigureAwait(false);
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Collections.GetAllScopes,
+            OuterRequestSpans.ServiceSpan.Management, "ListCollections", options?.RequestSpanValue);
+        var collections = await ListCollections(opts.CancellationToken, span).ConfigureAwait(false);
         var allScopes = collections.Scopes.Select(scope => new ScopeSpec(scope.Name)
         {
             Collections = scope.Collections.Select(collection => new CollectionSpec(scope.Name, collection.Name))
@@ -83,8 +87,10 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
         };
         if (settings.MaxExpiry.HasValue) createCollectionRequest.MaxExpirySecs = (uint)settings.MaxExpiry.Value.TotalSeconds;
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Collections.CreateCollection, OuterRequestSpans.ServiceSpan.Management, "CreateCollection", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -111,8 +117,10 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Collections.DropCollection, OuterRequestSpans.ServiceSpan.Management, "DeleteCollection", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -139,8 +147,10 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Collections.CreateScope, OuterRequestSpans.ServiceSpan.Management, "CreateScope", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout
@@ -162,8 +172,10 @@ internal class StellarCollectionManager : ICouchbaseCollectionManager
             ScopeName = scopeName
         };
 
+        using var span = _stellarCluster.ManagerSpan(OuterRequestSpans.ManagerSpan.Collections.DropScope, OuterRequestSpans.ServiceSpan.Management, "DeleteScope", options?.RequestSpanValue);
         var stellarRequest = new StellarRequest
         {
+            Span = span,
             Idempotent = false,
             Token = opts.CancellationToken,
             Timeout = _stellarCluster.ClusterOptions.ManagementTimeout

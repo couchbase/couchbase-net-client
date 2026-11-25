@@ -9,6 +9,16 @@ internal sealed class RequestTracerWrapper(IRequestTracer innerTracer, ClusterCo
     internal ObservabilitySemanticConvention Convention { get; private set; } = ResolveConvention(clusterContext);
 
     /// <summary>
+    /// Wraps <paramref name="innerTracer"/> with a fixed convention, for a cluster that has no
+    /// <see cref="ClusterContext"/> (the Stellar cluster).
+    /// </summary>
+    internal RequestTracerWrapper(IRequestTracer innerTracer, ObservabilitySemanticConvention convention)
+        : this(innerTracer, null)
+    {
+        Convention = convention;
+    }
+
+    /// <summary>
     /// Re-resolves the Convention from ClusterContext. Call once after ClusterContext is assigned.
     /// </summary>
     internal void ResolveAndSetConvention()

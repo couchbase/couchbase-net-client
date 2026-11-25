@@ -480,21 +480,25 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         request.StoreSemantic = opts.StoreSemantics.ToProto();
 
         var transcoder = opts.Transcoder ?? _stellarCluster.TypeTranscoder;
-        foreach (var spec in specs)
+        // RFC 77 keeps the classic request_encoding span for couchbase2.
+        using (childSpan.EncodingSpan())
         {
-            var newSpec = new MutateInRequest.Types.Spec
+            foreach (var spec in specs)
             {
-                Path = spec.Path,
-                Operation = spec.OpCode.ToProtoMutateInCode(),
-                Flags = spec.PathFlags.ToProtoMutateInFlags()
-            };
+                var newSpec = new MutateInRequest.Types.Spec
+                {
+                    Path = spec.Path,
+                    Operation = spec.OpCode.ToProtoMutateInCode(),
+                    Flags = spec.PathFlags.ToProtoMutateInFlags()
+                };
 
-            if (spec.Value is not null)
-            {
-                (newSpec.Content, _) = SerializeToByteString(spec.Value, transcoder, spec.OpCode, spec.RemoveBrackets);
+                if (spec.Value is not null)
+                {
+                    (newSpec.Content, _) = SerializeToByteString(spec.Value, transcoder, spec.OpCode, spec.RemoveBrackets);
+                }
+
+                request.Specs.Add(newSpec);
             }
-
-            request.Specs.Add(newSpec);
         }
 
         var stellarRequest = new StellarRequest
@@ -938,6 +942,9 @@ internal class StellarCollection : ICouchbaseCollection, IBinaryCollection
         where TRequest : IKeySpec, IContentRequest, IExpiryRequest, new()
     {
         var request = KeyedRequest<TRequest>(key);
+
+        // RFC 77 keeps the classic request_encoding span for couchbase2.
+        using var encodingSpan = span.EncodingSpan();
 
         // Inline serialization so we can work with the MemoryStream's live buffer
         // directly, avoiding an intermediate copy. The ByteString is created from

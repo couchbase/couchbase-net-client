@@ -31,7 +31,24 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
     {
         var opts = options?.AsReadOnly() ?? AnalyticsOptions.DefaultReadOnly;
 
-        using var childSpan = _stellarCluster.RequestTracer.RequestSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, opts.RequestSpan);
+        // As for query (RFC 77): the span ends only when the response stream closes, so that the
+        // gRPC span never outlives it. The result ends it; this method ends it only on failure.
+        var childSpan = _stellarCluster.RequestTracer.RequestSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, opts.RequestSpan);
+        try
+        {
+            var result = await ExecuteAsync<T>(statement, opts, childSpan).ConfigureAwait(false);
+            result.EndSpanWhenStreamCloses(childSpan);
+            return result;
+        }
+        catch
+        {
+            childSpan.Dispose();
+            throw;
+        }
+    }
+
+    private async Task<ProtoAnalyticsResult<T>> ExecuteAsync<T>(string statement, AnalyticsOptions.ReadOnly opts, IRequestSpan childSpan)
+    {
         if (childSpan.CanWrite)
         {
             childSpan.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
@@ -67,7 +84,7 @@ internal class StellarAnalyticsClient : AnalyticsService.AnalyticsServiceClient,
             opts.BucketName,
             opts.ScopeName);
 
-        async Task<IAnalyticsResult<T>> GrpcCall()
+        async Task<ProtoAnalyticsResult<T>> GrpcCall()
         {
             var callOptions = _stellarCluster.GrpcCallOptions(stellarRequest.RemainingTimeout, opts.Token);
             var response = _analyticsClient.AnalyticsQuery(analyticsRequest, callOptions);
