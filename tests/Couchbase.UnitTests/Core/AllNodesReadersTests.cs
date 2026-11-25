@@ -39,7 +39,7 @@ public class AllNodesReadersTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     [Fact]
-    public async Task DiagnosticsReport_KvEntries_HoldOneBucketEntryPerKvHost()
+    public async Task DiagnosticsReport_KvEntries_HoldOneBucketEntryAndOneClusterEntryPerKvHost()
     {
         using var client = OneBucketClient.Create();
 
@@ -47,6 +47,21 @@ public class AllNodesReadersTests
             .WaitAsync(Timeout);
 
         AssertBucketKvEntries(client, report.Services["kv"]);
+    }
+
+    [Fact]
+    public async Task DiagnosticsReport_NodeDisposedWhileTheReportIsBuilt_SkipsTheNode()
+    {
+        using var client = OneBucketClient.Create();
+        var disposed = client.BucketNodes[OneBucketClient.KvHosts[1]];
+        Mock.Get(disposed.Object.ConnectionPool).Setup(x => x.GetConnections()).Throws(new ObjectDisposedException("pool"));
+
+        var report = await DiagnosticsReportProvider.CreateDiagnosticsReportAsync(client.Context, "report")
+            .WaitAsync(Timeout);
+
+        var bucketEntries = report.Services["kv"].Where(e => e.Scope == OneBucketClient.BucketName).ToList();
+        Assert.Equal(OneBucketClient.KvHosts.Length - 1, bucketEntries.Count);
+        Assert.DoesNotContain(bucketEntries, e => e.Remote == "10.0.0.2:11210");
     }
 
     [Fact]
@@ -64,7 +79,7 @@ public class AllNodesReadersTests
     }
 
     [Fact]
-    public async Task ClusterPing_KvEntries_HoldOneBucketEntryPerKvHost()
+    public async Task ClusterPing_KvEntries_HoldOneBucketEntryAndOneClusterEntryPerKvHost()
     {
         using var client = OneBucketClient.Create();
 
@@ -173,13 +188,15 @@ public class AllNodesReadersTests
     }
 
     /// <remarks>
-    /// The entries with no scope are the connections that no bucket owns. Their count is not pinned here.
+    /// The entries with no scope are the connections of the cluster nodes, one per KV host.
     /// </remarks>
     private static void AssertBucketKvEntries(OneBucketClient client, IEnumerable<IEndpointDiagnostics> entries)
     {
         var kv = entries.ToList();
         Assert.All(kv, e => Assert.True(e.Scope is null or OneBucketClient.BucketName, $"Unexpected scope {e.Scope}."));
         Assert.Equal(client.BucketRemotes, kv.Where(e => e.Scope == OneBucketClient.BucketName)
+            .Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
+        Assert.Equal(client.ClusterRemotes, kv.Where(e => e.Scope is null)
             .Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
     }
 
@@ -196,8 +213,8 @@ public class AllNodesReadersTests
     }
 
     /// <summary>
-    /// The nodes of a client with one open bucket on three KV hosts and one Query only host. Each KV host has one
-    /// connection per node.
+    /// The nodes of a client with one open bucket on three KV hosts and one Query only host. Each KV host has a cluster
+    /// node and a bucket node, each with one connection.
     /// </summary>
     private sealed class OneBucketClient : IDisposable
     {
@@ -239,11 +256,8 @@ public class AllNodesReadersTests
             context.AddNode(QueryNode.Object);
 
             context.RegisterBucket(Bucket);
-            BucketRemotes = BucketNodes.Values
-                .SelectMany(n => n.Object.ConnectionPool.GetConnections())
-                .Select(c => c.EndPoint.ToString()!)
-                .OrderBy(r => r, StringComparer.Ordinal)
-                .ToList();
+            BucketRemotes = Remotes(BucketNodes.Values);
+            ClusterRemotes = Remotes(KvNodes.Where(n => n.Object.Owner is null));
         }
 
         public ClusterContext Context { get; }
@@ -251,7 +265,7 @@ public class AllNodesReadersTests
         public CouchbaseBucket Bucket { get; }
 
         /// <summary>
-        /// Every node with KV, of the cluster and of the bucket.
+        /// Every node with KV, the cluster nodes and the bucket nodes.
         /// </summary>
         public List<Mock<IClusterNode>> KvNodes { get; } = new();
 
@@ -266,6 +280,17 @@ public class AllNodesReadersTests
         /// The remote of each connection of the bucket, sorted.
         /// </summary>
         public List<string> BucketRemotes { get; }
+
+        /// <summary>
+        /// The remote of each connection of the cluster nodes with KV, sorted.
+        /// </summary>
+        public List<string> ClusterRemotes { get; }
+
+        private static List<string> Remotes(IEnumerable<Mock<IClusterNode>> nodes) => nodes
+            .SelectMany(n => n.Object.ConnectionPool.GetConnections())
+            .Select(c => c.EndPoint.ToString()!)
+            .OrderBy(r => r, StringComparer.Ordinal)
+            .ToList();
 
         public static OneBucketClient Create(string? hostWithoutFeatures = null)
         {
@@ -290,13 +315,16 @@ public class AllNodesReadersTests
 
         public void Dispose() => Context.Dispose();
 
-        // The bucket owns the only node of the host, which sits in the context and in the bucket.
+        // The cluster node of the host sits in the context, and the node of the bucket in the bucket.
         private void AddKvHost(string host, int index, ServerFeatures[] features)
         {
-            var node = CreateNode(host, hasKv: true, new IPEndPoint(IPAddress.Parse($"10.0.0.{index + 1}"), 11210),
-                features);
+            var address = new IPEndPoint(IPAddress.Parse($"10.0.0.{index + 1}"), 11210);
+            var clusterNode = CreateNode(host, hasKv: true, address, features);
+            Context.AddNode(clusterNode.Object);
+            KvNodes.Add(clusterNode);
+
+            var node = CreateNode(host, hasKv: true, address, features);
             node.Object.Owner = Bucket;
-            Context.AddNode(node.Object);
             Bucket.Nodes.Add(node.Object);
             KvNodes.Add(node);
             BucketNodes[host] = node;

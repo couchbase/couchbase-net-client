@@ -803,12 +803,14 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .Callback(() => fetches.Increment())
             .ReturnsAsync((BucketConfig)null!);
 
-        // Like a bootstrapped bucket, the context has node-0 for the bucket, so a config update keeps it.
+        // Like a bootstrapped bucket, the bucket has node-0, so a config update keeps it.
         node.SetupGet(x => x.Owner).Returns(bucket);
         node.SetupGet(x => x.BucketName).Returns(bucket.Name);
-        node.SetupGet(x => x.IsAssigned).Returns(true);
         node.SetupProperty(x => x.NodesAdapter);
-        context.AddNode(node.Object);
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupProperty(x => x.NodesAdapter);
+        context.AddNode(clusterNode.Object);
         bucket.ConfigRefresher.Start();
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
@@ -1129,10 +1131,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
         context.RegisterBucket(bucket);
 
-        // A rebootstrap reuses the node, and the config map makes the bucket its owner.
+        // A rebootstrap fetches on the bucket node at the seed. The cluster has a node of its own there.
         node = AddNode(bucket, "node-0", push: true);
         node.SetupProperty(x => x.Owner);
-        context.AddNode(node.Object);
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupProperty(x => x.NodesAdapter);
+        context.AddNode(clusterNode.Object);
         return bucket;
     }
 
@@ -1142,7 +1147,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
         node.SetupGet(x => x.HasKv).Returns(true);
         node.SetupGet(x => x.IsDead).Returns(false);
-        node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+        node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort> { new(host, 11210) });
         node.SetupGet(x => x.ServerFeatures).Returns(push
             ? new ServerFeatureSet([ServerFeatures.ClustermapChangeNotificationBrief])
             : ServerFeatureSet.Empty);

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -9,8 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.Configuration.Server;
 
 /// <summary>
-/// Keeps the cluster config up to date from the KV nodes that no bucket owns. Once buckets own every KV node, the
-/// bucket refreshers fetch the configs.
+/// Keeps the cluster config up to date from the KV nodes of the cluster.
 /// </summary>
 internal sealed class GlobalConfigRefresher : ConfigRefresher
 {
@@ -22,7 +20,7 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
 
     protected override string Name => BucketConfig.GlobalBucketName;
 
-    protected override IEnumerable<IClusterNode> Nodes => Context.Nodes.Where(node => node.Owner is null);
+    protected override IEnumerable<IClusterNode> Nodes => Context.Nodes;
 
     protected override ConfigVersion? CurrentVersion => Context.GlobalConfig?.ConfigVersion;
 

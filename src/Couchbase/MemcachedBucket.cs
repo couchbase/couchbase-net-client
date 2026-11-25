@@ -166,8 +166,6 @@ namespace Couchbase
 
                 ConfigSnapshot = new ConfigSnapshot(config, _ketamaKeyMapperFactory.Create(config));
 
-                node.Owner = this;
-                Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, config).ConfigureAwait(false);
             }
             catch (CouchbaseException e)

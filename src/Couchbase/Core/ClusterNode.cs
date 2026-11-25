@@ -172,9 +172,9 @@ namespace Couchbase.Core
         internal string FixedBucketName { get; }
 
         /// <summary>
-        /// Keeps the config this node serves up to date. It is the refresher of the bucket, or of the cluster for a
-        /// cluster node that no bucket owns. A Memcached bucket has none, because it gets its config over HTTP streaming.
-        /// A bucket node has none until its bucket owns it.
+        /// Keeps the config this node serves up to date. It is the refresher of the bucket for a bucket node, or of the
+        /// cluster for a cluster node. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// A bucket node has none until the open binds it to its bucket.
         /// </summary>
         private ConfigRefresher ConfigRefresher => Owner switch
         {

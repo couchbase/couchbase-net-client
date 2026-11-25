@@ -90,7 +90,7 @@ namespace Couchbase.Core
         protected Manifest? Manifest { get; set; }
         public IKeyMapper? KeyMapper => _configSnapshot.KeyMapper;
 
-        protected bool Disposed => _disposed > 0;
+        internal bool Disposed => _disposed > 0;
 
         //for propagating errors during bootstrapping
         private readonly List<Exception> _deferredExceptions = new();
@@ -234,7 +234,7 @@ namespace Couchbase.Core
             {
                 await WaitUntilReadyEvaluator.PollAsync(Context, options, bucketLevel: true,
                     () => CurrentConfig,
-                    _ => new ValueTask<bool>(WaitUntilReadyEvaluator.HasTopology(CurrentConfig, Context.GetNodes(Name))),
+                    _ => new ValueTask<bool>(WaitUntilReadyEvaluator.HasTopology(CurrentConfig, Nodes)),
                     state => _clusterState = state,
                     _logger, token).ConfigureAwait(false);
             }
@@ -319,7 +319,11 @@ namespace Couchbase.Core
             {
                 LogDispose(Redactor.UserData(Name));
                 Bootstrapper?.Dispose();
-                Context.RemoveAllNodes(this);
+                foreach (var node in Nodes.Clear())
+                {
+                    node.Dispose();
+                }
+
                 Context.RemoveBucket(this);
             }
         }

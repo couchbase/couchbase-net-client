@@ -73,23 +73,6 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     }
 
     /// <summary>
-    /// Removes all nodes owned by a bucket from the collection.
-    /// </summary>
-    /// <param name="bucket">Owner whose nodes should be removed.</param>
-    /// <returns>List of nodes that were removed.</returns>
-    public IList<IClusterNode> Clear(IBucket bucket)
-    {
-        lock (_syncObj)
-        {
-            var removed = new List<IClusterNode>(_nodes.Where(x=>x.Owner == bucket));
-
-            _nodes.RemoveWhere(x => x.Owner == bucket);
-
-            return removed;
-        }
-    }
-
-    /// <summary>
     /// Removes all nodes from the collection.
     /// </summary>
     /// <returns>List of nodes that were removed.</returns>

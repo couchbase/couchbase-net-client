@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -52,9 +53,8 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task Poll_AsksOnlyTheNodesNoBucketOwns()
+    public async Task Poll_WhileABucketIsOpen_AsksTheClusterNodesOnly()
     {
-        // Once a bucket owns a node, the bucket refresher polls it.
         var pollInterval = TimeSpan.FromSeconds(10);
         var clock = new SteppableClock();
         using var context = CreateContext(out var configHandler);
@@ -62,10 +62,19 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         var published = new List<BucketConfig>();
         configHandler.Setup(x => x.Publish(It.IsAny<BucketConfig>())).Callback((BucketConfig c) => published.Add(c));
 
-        var bucketNode = AddNode(context, "host1", owner: Mock.Of<IBucket>(b => b.Name == "default"));
-        var globalNode = AddNode(context, "host2", owner: null);
-        globalNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new BucketConfig { Rev = 2 });
+        var clusterNodes = new[] { AddNode(context, "host1", owner: null), AddNode(context, "host2", owner: null) };
+        foreach (var clusterNode in clusterNodes)
+        {
+            clusterNode.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new BucketConfig { Rev = 2 });
+        }
+
+        var bucket = RegisterBucket(context);
+        var bucketNode = new Mock<IClusterNode>();
+        bucketNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("host1", 11210));
+        bucketNode.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort> { new("host1", 11210) });
+        bucketNode.SetupGet(x => x.HasKv).Returns(true);
+        bucket.Nodes.Add(bucketNode.Object);
 
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
@@ -76,8 +85,13 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         }
 
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
-        globalNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(3));
+        var asked = 0;
+        foreach (var clusterNode in clusterNodes)
+        {
+            asked += clusterNode.Invocations.Count(i => i.Method.Name == nameof(IClusterNode.GetClusterMap));
+        }
+
+        Assert.Equal(3, asked);
         bucketNode.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.All(published, c => Assert.Equal(BucketConfig.GlobalBucketName, c.Name));
@@ -183,10 +197,10 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         Assert.Equal(expectedLookups, dnsLookups.Count);
     }
 
+    // With a bucket open, the bucket refreshers start the rebootstrap, because it also rebuilds every open bucket.
     [Fact]
-    public async Task Poll_WhenBucketsOwnEveryKvNode_DoesNotRebootstrap()
+    public async Task Poll_WhenEveryNodeFailsWhileABucketIsOpen_DoesNotRebootstrap()
     {
-        // The bucket refreshers fetch then, so no node to ask is not a failure.
         var pollInterval = TimeSpan.FromSeconds(10);
         var clock = new SteppableClock();
         var dnsLookups = new AsyncCounter();
@@ -201,12 +215,18 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
                 [new HostEndpoint("host1", 11210)], isDnsSrv: true, new Uri("couchbase://example.com"));
             options.ConfigPollInterval = pollInterval;
         });
-        AddNode(context, "host1", owner: Mock.Of<IBucket>(b => b.Name == "default"));
+        var fetches = new AsyncCounter();
+        AddNode(context, "host1", owner: null)
+            .Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Callback(() => fetches.Increment())
+            .ThrowsAsync(new TimeoutException());
+        RegisterBucket(context);
 
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         clock.Advance(pollInterval);
+        await fetches.WaitForAsync(1).WaitAsync(Deadline);
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
         await context.DnsSrvRebootstrap.WaitAsync(Deadline);
 
@@ -289,6 +309,18 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         node.SetupProperty(x => x.Owner, owner);
         context.AddNode(node.Object);
         return node;
+    }
+
+    /// <summary>
+    /// Registers an open bucket "default" with no nodes.
+    /// </summary>
+    private static BucketBase RegisterBucket(ClusterContext context)
+    {
+        var bucket = new Mock<BucketBase> { CallBase = true };
+        bucket.SetupGet(x => x.Name).Returns("default");
+        bucket.Setup(x => x.Dispose());
+        context.RegisterBucket(bucket.Object);
+        return bucket.Object;
     }
 
     private GlobalConfigRefresher CreateRefresher(ClusterContext context, Mock<IConfigHandler> configHandler,
