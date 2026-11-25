@@ -124,40 +124,96 @@ namespace Couchbase.Diagnostics
                     continue;
                 }
 
-                var config = currentConfig();
+                var pass = await EvaluatePassAsync(context, options, bucketLevel, currentConfig(), logger, token)
+                    .ConfigureAwait(false);
+                onState(pass.Readiness.State);
 
-                // Recomputed every pass because the topology can change while we wait.
-                var requested = options.EffectiveServiceTypes(context).ToList();
-                var expected = ExpectedServices(context, config, requested, bucketLevel);
-
-                if (expected.Count == 0)
-                {
-                    LogNoServices(logger, string.Join(", ", requested));
-                }
-
-                // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
-                var pingReport = await DiagnosticsReportProvider.CreatePingReportAsync(context, config,
-                    new PingOptions
-                    {
-                        ServiceTypesValue = expected.ToList(),
-                        Token = token
-                    }).ConfigureAwait(false);
-
-                var readiness = Evaluate(pingReport, expected, options.DesiredStateValue);
-                onState(readiness.State);
-
-                if (readiness.Ready)
+                if (pass.Readiness.Ready)
                 {
                     return;
                 }
 
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    LogStillWaiting(logger, readiness.State, options.DesiredStateValue, Describe(pingReport, expected));
+                    LogStillWaiting(logger, pass.Readiness.State, options.DesiredStateValue,
+                        Describe(pass.Report, pass.Expected, pass.KvNodesWithNoConnection));
                 }
 
                 await backoff.DelayAsync(token).ConfigureAwait(false);
             }
+        }
+
+        /// <summary>
+        /// One pass of the wait, with no delay. It pings the expected services and evaluates the report.
+        /// </summary>
+        internal static async Task<WaitUntilReadyPass> EvaluatePassAsync(
+            ClusterContext context,
+            WaitUntilReadyOptions options,
+            bool bucketLevel,
+            BucketConfig? config,
+            ILogger logger,
+            CancellationToken token)
+        {
+            // Recomputed every pass because the topology can change while we wait.
+            var requested = options.EffectiveServiceTypes(context).ToList();
+            var expected = ExpectedServices(context, config, requested, bucketLevel);
+
+            if (expected.Count == 0)
+            {
+                LogNoServices(logger, string.Join(", ", requested));
+            }
+
+            // RFC 61 makes the cluster wait cover the cluster KV connections. Java pings no KV here, .NET waits for
+            // them. A KV cluster node with no connection has no ping entry, so it counts as one entry that is not Ok.
+            // Counted before the ping, so a connect that lands in between gives Degraded for one pass, never Online.
+            var kvNodesWithNoConnection = !bucketLevel && expected.Contains(ServiceType.KeyValue)
+                ? CountKvNodesWithNoConnection(context.Nodes)
+                : 0;
+
+            // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
+            var report = await DiagnosticsReportProvider.CreatePingReportAsync(context, config,
+                new PingOptions
+                {
+                    ServiceTypesValue = expected.ToList(),
+                    Token = token
+                }).ConfigureAwait(false);
+
+            var readiness = Evaluate(report, expected, options.DesiredStateValue, kvNodesWithNoConnection);
+            return new WaitUntilReadyPass(readiness, report, expected, kvNodesWithNoConnection);
+        }
+
+        /// <summary>
+        /// The live nodes with KV whose pool has no connection to ping right now.
+        /// </summary>
+        /// <remarks>
+        /// It reads the pool as the ping report does. The two reads are not atomic, so a connection that opens or
+        /// closes between them can put a node in both or in neither for one pass.
+        /// </remarks>
+        internal static int CountKvNodesWithNoConnection(IEnumerable<IClusterNode> nodes)
+        {
+            var count = 0;
+            foreach (var node in nodes)
+            {
+                if (!node.HasKv || node.IsDead)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    using var connections = node.ConnectionPool.GetConnections().GetEnumerator();
+                    if (!connections.MoveNext())
+                    {
+                        count++;
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Disposed after the IsDead check, the node is leaving.
+                }
+            }
+
+            return count;
         }
 
         /// <summary>
@@ -186,7 +242,12 @@ namespace Couchbase.Diagnostics
         /// <summary>
         /// Applies the RFC 61 cluster state rules to a ping report.
         /// </summary>
-        internal static ReadinessResult Evaluate(IPingReport report, ICollection<ServiceType> expected, ClusterState desired)
+        /// <param name="report">The ping report.</param>
+        /// <param name="expected">The services to verify.</param>
+        /// <param name="desired">The state the wait wants.</param>
+        /// <param name="kvNodesWithNoConnection">KV entries to add to the report, each found and not Ok.</param>
+        internal static ReadinessResult Evaluate(IPingReport report, ICollection<ServiceType> expected, ClusterState desired,
+            int kvNodesWithNoConnection = 0)
         {
             // Nothing to verify, the caller decides whether that is worth a warning.
             if (expected.Count == 0)
@@ -201,7 +262,7 @@ namespace Couchbase.Diagnostics
 
             foreach (var serviceType in expected)
             {
-                CountEntries(report, serviceType, out var serviceFound, out var serviceOk);
+                CountEntries(report, serviceType, kvNodesWithNoConnection, out var serviceFound, out var serviceOk);
 
                 found += serviceFound;
                 ok += serviceOk;
@@ -244,7 +305,8 @@ namespace Couchbase.Diagnostics
         /// <summary>
         /// A short per service summary of the ping report, for logging why WaitUntilReady is still waiting.
         /// </summary>
-        internal static string Describe(IPingReport report, ICollection<ServiceType> expected)
+        internal static string Describe(IPingReport report, ICollection<ServiceType> expected,
+            int kvNodesWithNoConnection = 0)
         {
             if (expected.Count == 0)
             {
@@ -259,7 +321,7 @@ namespace Couchbase.Diagnostics
                     builder.Append(", ");
                 }
 
-                CountEntries(report, serviceType, out var serviceFound, out var serviceOk);
+                CountEntries(report, serviceType, kvNodesWithNoConnection, out var serviceFound, out var serviceOk);
                 builder.Append(ReportKey(serviceType) ?? serviceType.ToString());
                 builder.Append(serviceFound == 0 ? " missing" : $" {serviceOk}/{serviceFound} ok");
             }
@@ -267,9 +329,10 @@ namespace Couchbase.Diagnostics
             return builder.ToString();
         }
 
-        private static void CountEntries(IPingReport report, ServiceType serviceType, out int found, out int ok)
+        private static void CountEntries(IPingReport report, ServiceType serviceType, int kvNodesWithNoConnection,
+            out int found, out int ok)
         {
-            found = 0;
+            found = serviceType == ServiceType.KeyValue ? kvNodesWithNoConnection : 0;
             ok = 0;
 
             var key = ReportKey(serviceType);
@@ -389,6 +452,35 @@ namespace Couchbase.Diagnostics
         }
 
         internal Task DelayAsync(CancellationToken cancellationToken) => Task.Delay(Next(), cancellationToken);
+    }
+
+    /// <summary>
+    /// The outcome of one pass of WaitUntilReady.
+    /// </summary>
+    internal sealed class WaitUntilReadyPass
+    {
+        public WaitUntilReadyPass(ReadinessResult readiness, IPingReport report, ICollection<ServiceType> expected,
+            int kvNodesWithNoConnection)
+        {
+            Readiness = readiness;
+            Report = report;
+            Expected = expected;
+            KvNodesWithNoConnection = kvNodesWithNoConnection;
+        }
+
+        public ReadinessResult Readiness { get; }
+
+        /// <summary>
+        /// The ping report as <see cref="DiagnosticsReportProvider"/> built it.
+        /// </summary>
+        public IPingReport Report { get; }
+
+        public ICollection<ServiceType> Expected { get; }
+
+        /// <summary>
+        /// The KV cluster nodes counted as not Ok because they had no connection to ping.
+        /// </summary>
+        public int KvNodesWithNoConnection { get; }
     }
 
     internal readonly struct ReadinessResult

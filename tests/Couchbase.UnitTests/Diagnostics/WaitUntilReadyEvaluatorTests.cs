@@ -205,6 +205,46 @@ namespace Couchbase.UnitTests.Diagnostics
         }
 
         [Fact]
+        public void Evaluate_Kv_Nodes_With_No_Connection_Count_As_Not_Ok()
+        {
+            var report = CreateReport(
+                ("kv", new[] { ServiceState.Ok, ServiceState.Ok }),
+                ("n1ql", new[] { ServiceState.Ok }));
+            var expected = new[] { ServiceType.KeyValue, ServiceType.Query };
+
+            var oneMissing = WaitUntilReadyEvaluator.Evaluate(report, expected, ClusterState.Online, kvNodesWithNoConnection: 1);
+            var queryOnly = WaitUntilReadyEvaluator.Evaluate(report, new[] { ServiceType.Query }, ClusterState.Online,
+                kvNodesWithNoConnection: 1);
+
+            Assert.Equal(ClusterState.Degraded, oneMissing.State);
+            Assert.False(oneMissing.Ready);
+            Assert.Equal(ClusterState.Online, queryOnly.State);
+        }
+
+        [Fact]
+        public void Evaluate_Only_Kv_Nodes_With_No_Connection_Is_Offline()
+        {
+            var report = CreateReport(("n1ql", new[] { ServiceState.Ok }));
+
+            var result = WaitUntilReadyEvaluator.Evaluate(report, new[] { ServiceType.KeyValue, ServiceType.Query },
+                ClusterState.Degraded, kvNodesWithNoConnection: 2);
+
+            Assert.Equal(ClusterState.Offline, result.State);
+            Assert.False(result.Ready);
+        }
+
+        [Fact]
+        public void Describe_Counts_Kv_Nodes_With_No_Connection()
+        {
+            var report = CreateReport(("kv", new[] { ServiceState.Ok, ServiceState.Ok }));
+
+            var description = WaitUntilReadyEvaluator.Describe(report, new[] { ServiceType.KeyValue },
+                kvNodesWithNoConnection: 1);
+
+            Assert.Equal("kv 2/3 ok", description);
+        }
+
+        [Fact]
         public void Backoff_Doubles_From_Ten_Milliseconds()
         {
             //arrange

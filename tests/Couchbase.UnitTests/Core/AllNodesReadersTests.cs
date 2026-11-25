@@ -131,6 +131,146 @@ public class AllNodesReadersTests
     }
 
     [Fact]
+    public async Task ClusterWaitPass_OneKvClusterNodeStillConnecting_IsDegraded()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.ClusterNodes[OneBucketClient.KvHosts[1]];
+        OneBucketClient.RemoveConnections(node);
+        node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(true);
+
+        var wantsOnline = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+        var wantsDegraded = await EvaluateClusterPassAsync(client,
+            new WaitUntilReadyOptions().DesiredState(ClusterState.Degraded));
+
+        Assert.Equal(1, wantsOnline.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Degraded, wantsOnline.Readiness.State);
+        Assert.False(wantsOnline.Readiness.Ready);
+        Assert.True(wantsDegraded.Readiness.Ready);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_KvClusterNodeThatLostItsOnlyConnection_IsDegraded()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.ClusterNodes[OneBucketClient.KvHosts[2]];
+        OneBucketClient.RemoveConnections(node);
+        node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(false);
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(1, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Degraded, pass.Readiness.State);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_EveryKvClusterNodeConnected_IsOnline()
+    {
+        using var client = OneBucketClient.Create();
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+        Assert.True(pass.Readiness.Ready);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_NoKvConnectionAtAll_IsOffline()
+    {
+        using var client = OneBucketClient.Create();
+        client.KvNodes.ForEach(OneBucketClient.RemoveConnections);
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(OneBucketClient.KvHosts.Length, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Offline, pass.Readiness.State);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_ClusterNodeWithNoKvServiceAndNoConnection_ChangesNothing()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.AddClusterNode("node-4", hasKv: false);
+        node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(true);
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task ClusterWaitPass_DisposedKvClusterNode_ChangesNothing(bool isDead, bool poolThrows)
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.AddClusterNode("node-4", hasKv: true);
+        node.SetupGet(n => n.IsDead).Returns(isDead);
+        if (poolThrows)
+        {
+            Mock.Get(node.Object.ConnectionPool).Setup(x => x.GetConnections())
+                .Throws(new ObjectDisposedException("pool"));
+        }
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_KvNotExpected_ChangesNothing()
+    {
+        using var client = OneBucketClient.Create();
+        OneBucketClient.RemoveConnections(client.ClusterNodes[OneBucketClient.KvHosts[1]]);
+
+        var pass = await EvaluateClusterPassAsync(client,
+            new WaitUntilReadyOptions().ServiceTypes(ServiceType.Query));
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+    }
+
+    [Fact]
+    public async Task ClusterWaitPass_KvClusterNodeWithNoConnection_AddsNoPingEntry()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.ClusterNodes[OneBucketClient.KvHosts[1]];
+        OneBucketClient.RemoveConnections(node);
+        var connected = client.KvNodes.Where(n => n != node)
+            .SelectMany(n => n.Object.ConnectionPool.GetConnections())
+            .Select(c => c.EndPoint.ToString())
+            .OrderBy(r => r, StringComparer.Ordinal)
+            .ToList();
+
+        var pass = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
+        var ping = await DiagnosticsReportProvider.CreatePingReportAsync(client.Context, client.Context.GlobalConfig,
+            new PingOptions().ServiceTypes(ServiceType.KeyValue)).WaitAsync(Timeout);
+
+        Assert.Equal(1, pass.KvNodesWithNoConnection);
+        Assert.Equal(connected, pass.Report.Services["kv"].Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
+        Assert.Equal(connected, ping.Services["kv"].Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task BucketWaitPass_KvClusterNodeWithNoConnection_IsOnline()
+    {
+        using var client = OneBucketClient.Create();
+        OneBucketClient.RemoveConnections(client.ClusterNodes[OneBucketClient.KvHosts[1]]);
+
+        using var cts = new CancellationTokenSource(Timeout);
+        var pass = await WaitUntilReadyEvaluator.EvaluatePassAsync(client.Context, new WaitUntilReadyOptions(),
+            bucketLevel: true, client.Bucket.CurrentConfig, NullLogger.Instance, cts.Token).WaitAsync(Timeout);
+        // Online on the first pass, so the wait has no backoff delay.
+        await client.Bucket.WaitUntilReadyAsync(Timeout).WaitAsync(Timeout);
+
+        Assert.Equal(0, pass.KvNodesWithNoConnection);
+        Assert.Contains(ServiceType.KeyValue, pass.Expected);
+        Assert.Equal(ClusterState.Online, pass.Readiness.State);
+    }
+
+    [Fact]
     public async Task JwtAuthenticator_ReauthenticatesEveryKvNodeOnce()
     {
         var options = new ClusterOptions()
@@ -198,6 +338,14 @@ public class AllNodesReadersTests
             .Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
         Assert.Equal(client.ClusterRemotes, kv.Where(e => e.Scope is null)
             .Select(e => e.Remote).OrderBy(r => r, StringComparer.Ordinal));
+    }
+
+    private static async Task<WaitUntilReadyPass> EvaluateClusterPassAsync(OneBucketClient client,
+        WaitUntilReadyOptions options)
+    {
+        using var cts = new CancellationTokenSource(Timeout);
+        return await WaitUntilReadyEvaluator.EvaluatePassAsync(client.Context, options, bucketLevel: false,
+            client.Context.GlobalConfig, NullLogger.Instance, cts.Token).WaitAsync(Timeout);
     }
 
     private static async Task<ClusterState?> PollClusterAsync(OneBucketClient client, WaitUntilReadyOptions options)
@@ -270,6 +418,11 @@ public class AllNodesReadersTests
         public List<Mock<IClusterNode>> KvNodes { get; } = new();
 
         /// <summary>
+        /// The cluster node on each KV host.
+        /// </summary>
+        public Dictionary<string, Mock<IClusterNode>> ClusterNodes { get; } = new();
+
+        /// <summary>
         /// The node of the bucket on each KV host.
         /// </summary>
         public Dictionary<string, Mock<IClusterNode>> BucketNodes { get; } = new();
@@ -313,6 +466,19 @@ public class AllNodesReadersTests
             node.Setup(n => n.ExecuteOp(It.IsAny<IConnection>(), It.IsAny<IOperation>(), It.IsAny<CancellationTokenPair>()))
                 .ThrowsAsync(new TimeoutException());
 
+        public static void RemoveConnections(Mock<IClusterNode> node) =>
+            Mock.Get(node.Object.ConnectionPool).Setup(x => x.GetConnections()).Returns(new List<IConnection>());
+
+        /// <summary>
+        /// Adds a cluster node with no connection. It is in no config.
+        /// </summary>
+        public Mock<IClusterNode> AddClusterNode(string host, bool hasKv)
+        {
+            var node = CreateNode(host, hasKv, connectionAddress: null, AllFeatures);
+            Context.AddNode(node.Object);
+            return node;
+        }
+
         public void Dispose() => Context.Dispose();
 
         // The cluster node of the host sits in the context, and the node of the bucket in the bucket.
@@ -322,6 +488,7 @@ public class AllNodesReadersTests
             var clusterNode = CreateNode(host, hasKv: true, address, features);
             Context.AddNode(clusterNode.Object);
             KvNodes.Add(clusterNode);
+            ClusterNodes[host] = clusterNode;
 
             var node = CreateNode(host, hasKv: true, address, features);
             node.Object.Owner = Bucket;
@@ -375,7 +542,9 @@ public class AllNodesReadersTests
                 nodesExt.Add(new NodesExt { Hostname = QueryHost, Services = new Services { N1Ql = 8093 } });
             }
 
-            return new BucketConfig { Name = name, NodesExt = nodesExt };
+            // A bucket config lists its KV hosts in nodes too, or the KV service of the host is not ready yet.
+            var nodes = withQueryHost ? null : KvHosts.Select(host => new Node { Hostname = $"{host}:8091" }).ToList();
+            return new BucketConfig { Name = name, NodesExt = nodesExt, Nodes = nodes! };
         }
     }
 }
