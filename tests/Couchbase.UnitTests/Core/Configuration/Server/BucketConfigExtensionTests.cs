@@ -1101,10 +1101,8 @@ public class BucketConfigExtensionTests
         await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
 
         Assert.Same(incoming, bucket.CurrentConfig);
-        var newNode = Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(newEndPoint));
-        Assert.Same(bucket, newNode.Owner);
-        Assert.True(bucket.Nodes.TryGet(newEndPoint, out var found));
-        Assert.Same(newNode, found);
+        Assert.Single(bucket.Nodes, node => node.EndPoint.Equals(newEndPoint));
+        Assert.True(bucket.Nodes.TryGet(newEndPoint, out _));
         Assert.DoesNotContain(bucket.Context.Nodes, node => ReferenceEquals(node, oldNode));
         Assert.DoesNotContain(bucket.Nodes, node => ReferenceEquals(node, oldNode));
 
@@ -1398,11 +1396,22 @@ public class BucketConfigExtensionTests
     /// <summary>
     /// Makes the factory create a node at <paramref name="endPoint"/>, as for a node new to the cluster.
     /// </summary>
+    // Answers the call for a node with no bucket and both calls for a bucket node.
     private static void SetupCreateNode(Mock<IClusterNodeFactory> nodeFactory, ClusterContext context,
-        HostEndpointWithPort endPoint) =>
+        HostEndpointWithPort endPoint)
+    {
         nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<CancellationToken>()))
             .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, CancellationToken _) =>
                 Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, CancellationToken _) =>
+                Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
+        nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<string>(),
+                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
+                Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
+    }
 
     #region MergeClusterLabels
 
