@@ -9,7 +9,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
-using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -52,34 +51,36 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
-            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null, acceptRefusedBucket: false);
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null);
         }
 
         /// <inheritdoc />
         public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
             CancellationToken cancellationToken = default)
         {
-            return CreateAndConnectAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket: false, cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
-            bool acceptRefusedBucket, CancellationToken cancellationToken = default)
-        {
             if (bucketName == null)
             {
                 throw new ArgumentNullException(nameof(bucketName));
             }
 
-            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket);
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName);
         }
 
         /// <inheritdoc />
         public IClusterNode CreateClusterNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
         {
-            var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName: null);
-            clusterNode.StartConnecting();
-            return clusterNode;
+            return CreateConnectingNode(endPoint, nodeAdapter, owner: null);
+        }
+
+        /// <inheritdoc />
+        public IClusterNode CreateBucketNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket owner)
+        {
+            if (owner == null)
+            {
+                throw new ArgumentNullException(nameof(owner));
+            }
+
+            return CreateConnectingNode(endPoint, nodeAdapter, owner);
         }
 
         private ClusterNode CreateNode(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string? bucketName)
@@ -92,8 +93,21 @@ namespace Couchbase.Core.DI
                 nodeAdapter, _tracer, _operationConfigurator, bucketName);
         }
 
+        // A connection reads the owner when the server pushes a config, so the owner is set before the first connect.
+        private ClusterNode CreateConnectingNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket? owner)
+        {
+            var clusterNode = CreateNode(endPoint, nodeAdapter, owner?.Name);
+            if (owner != null)
+            {
+                clusterNode.Owner = owner;
+            }
+
+            clusterNode.StartConnecting();
+            return clusterNode;
+        }
+
         private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
-            string? bucketName, bool acceptRefusedBucket)
+            string? bucketName)
         {
             var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName);
 
@@ -101,11 +115,6 @@ namespace Couchbase.Core.DI
             try
             {
                 await clusterNode.InitializeAsync().ConfigureAwait(false);
-            }
-            catch (BucketNotFoundException) when (acceptRefusedBucket)
-            {
-                // The node joins with no connection. The channel pool keeps trying. The single connection pool, which
-                // only the DataFlow factory gives, connects again when an operation is sent to the node.
             }
             catch
             {

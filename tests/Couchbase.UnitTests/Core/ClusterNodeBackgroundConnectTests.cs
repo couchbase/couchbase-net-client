@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.Core
 {
     /// <summary>
     /// A cluster node, a node with no bucket, joins at once and connects in the background with a pool of one
-    /// connection (NCBC-4423).
+    /// connection (NCBC-4423). A bucket node of a config apply does the same with its own pool (NCBC-4414).
     /// </summary>
     public class ClusterNodeBackgroundConnectTests
     {
@@ -319,6 +319,78 @@ namespace Couchbase.UnitTests.Core
 
         #endregion
 
+        #region Bucket node
+
+        // NCBC-4414. A bucket node of a config apply connects in the background like a cluster node. Its first failure
+        // is a warning that names the bucket, and its pool connects on the SDK clock.
+        [Fact]
+        public async Task CreateBucketNode_FirstConnectFails_WarnsWithTheBucketAndConnectsOnTheSdkClock()
+        {
+            var clock = new SteppableClock();
+            // One connection, so the first attempt is the whole first round.
+            using var context = CreateContext(options =>
+            {
+                options.Authenticator = NoKvAuthentication();
+                options.NumKvConnections = 1;
+                options.MaxKvConnections = 1;
+            });
+            var logger = new CapturingLogger();
+            var selected = new ConcurrentQueue<string>();
+            var connections = new ConnectionFactory
+            {
+                Error = new SocketException((int)SocketError.ConnectionRefused),
+                FailFirst = 1,
+                Connection = () => HandshakeConnection(selected)
+            };
+            var factory = CreateFactory(context, new ChannelConnectionPoolFactory(connections, context.ClusterOptions,
+                ScaleControllers(), new Redactor(RedactionLevel.None), logger, clock), logger);
+
+            using var node = factory.CreateBucketNode(EndPoint, KvAdapter(), Mock.Of<IBucket>(b => b.Name == "travel-sample"));
+
+            await logger.WaitForAsync(LogLevel.Warning).WaitAsync(Deadline);
+            Assert.False(node.IsDead);
+            Assert.True(node.IsAwaitingFirstConnection);
+            var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+            Assert.IsType<SocketException>(warning.Exception);
+            Assert.Contains("travel-sample", warning.Message);
+            Assert.Contains("localhost:11210", warning.Message);
+
+            await clock.WaitForSleepAsync(ChannelConnectionPool.MinRefillDelay).WaitAsync(Deadline);
+            clock.Advance(ChannelConnectionPool.MinRefillDelay);
+            await logger.WaitForAsync(LogLevel.Information, "opened its connections").WaitAsync(Deadline);
+
+            Assert.False(node.IsAwaitingFirstConnection);
+            Assert.All(selected, bucket => Assert.Equal("travel-sample", bucket));
+            Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+        }
+
+        // NCBC-4414. A node that leaves the map during its first connect is disposed. A connect that ends after that
+        // is closed, so the node keeps no live connection.
+        [Fact]
+        public async Task CreateBucketNode_DisposedDuringTheFirstConnect_ClosesTheLateConnection()
+        {
+            using var context = CreateContext(options =>
+            {
+                options.NumKvConnections = 1;
+                options.MaxKvConnections = 1;
+            });
+            var logger = new CapturingLogger();
+            var connections = new ConnectionFactory { Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously) };
+            var factory = CreateFactory(context, PoolFactory(context, channelPools: true, connections), logger);
+
+            var node = factory.CreateBucketNode(EndPoint, KvAdapter(), Mock.Of<IBucket>(b => b.Name == "travel-sample"));
+            await connections.WaitForAttemptsAsync(1).WaitAsync(Deadline);
+            node.Dispose();
+            connections.Gate.SetResult(true);
+            await logger.WaitForAsync(LogLevel.Debug, "stopped").WaitAsync(Deadline);
+
+            var late = Assert.Single(connections.Created);
+            late.Verify(c => c.Dispose(), Times.Once);
+            Assert.DoesNotContain(logger.Entries, e => e.Level >= LogLevel.Warning);
+        }
+
+        #endregion
+
         #region Late HELLO
 
         // A cluster node joins before its HELLO, so the cluster feature flags must follow the HELLO that lands later.
@@ -527,6 +599,21 @@ namespace Couchbase.UnitTests.Core
 
             public TaskCompletionSource<bool> Gate { get; init; }
 
+            /// <summary>
+            /// When above zero, only the first attempts up to this count throw <see cref="Error"/>.
+            /// </summary>
+            public int FailFirst { get; init; }
+
+            /// <summary>
+            /// Builds the connection of an attempt that does not fail. A plain mock when null.
+            /// </summary>
+            public Func<IConnection> Connection { get; init; }
+
+            /// <summary>
+            /// The mock connections the factory returned, in order.
+            /// </summary>
+            public ConcurrentQueue<Mock<IConnection>> Created { get; } = new();
+
             public int Attempts => Volatile.Read(ref _attempts);
 
             /// <summary>
@@ -538,9 +625,9 @@ namespace Couchbase.UnitTests.Core
                 CancellationToken cancellationToken = default)
             {
                 LastToken = cancellationToken;
-                Interlocked.Increment(ref _attempts);
+                var attempt = Interlocked.Increment(ref _attempts);
                 Signal();
-                if (Error is not null)
+                if (Error is not null && (FailFirst == 0 || attempt <= FailFirst))
                 {
                     throw Error;
                 }
@@ -569,10 +656,16 @@ namespace Couchbase.UnitTests.Core
                     throw;
                 }
 
+                if (Connection is not null)
+                {
+                    return Connection();
+                }
+
                 var connection = new Mock<IConnection>();
                 connection.SetupGet(c => c.ConnectionId).Returns((ulong)Attempts);
                 connection.SetupGet(c => c.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 11210));
                 connection.Setup(c => c.CloseAsync(It.IsAny<TimeSpan>())).Returns(default(ValueTask));
+                Created.Enqueue(connection);
                 return connection.Object;
             }
 
@@ -600,7 +693,10 @@ namespace Couchbase.UnitTests.Core
             }
         }
 
-        private sealed class CapturingLogger : ILogger<ClusterNode>
+        /// <summary>
+        /// Captures the logs of a node, and of its channel pool when a test passes it there too.
+        /// </summary>
+        private sealed class CapturingLogger : ILogger<ClusterNode>, ILogger<ChannelConnectionPool>
         {
             private readonly ConcurrentQueue<(LogLevel Level, string Message, TaskCompletionSource<bool> Signal)> _waiters = new();
 

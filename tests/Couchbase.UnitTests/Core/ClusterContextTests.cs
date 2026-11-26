@@ -1177,6 +1177,62 @@ namespace Couchbase.UnitTests.Core
             fixture.AssertClusterNodesKept();
         }
 
+        // NCBC-4414. The open waits for its seed only. The other node of the map joins the bucket and connects in the
+        // background, so a connect that hangs does not hold the open.
+        [Fact]
+        public async Task GetOrCreateBucketAsync_OtherNodeStillConnecting_ReturnsTheBootstrappedBucket()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var seed = fixture.AddUnassignedNode("node1", () => TwoNodeBucketConfig("node1", "node2"));
+            var connects = new AsyncCounter();
+            var pool = new Mock<IConnectionPool>();
+            pool.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Callback(connects.Increment)
+                .Returns(new TaskCompletionSource<bool>().Task);
+            fixture.SetupConnectingBucketNode("node2", pool.Object);
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.True(((IBootstrappable)bucket).IsBootstrapped);
+            Assert.Equal(["node1", "node2"], bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h, StringComparer.Ordinal));
+            Assert.Contains(seed.Object, bucket.Nodes);
+            var other = bucket.Nodes.Single(n => n.EndPoint.Host == "node2");
+            Assert.True(other.IsAwaitingFirstConnection);
+            Assert.Same(bucket, other.Owner);
+            await connects.WaitForAsync(1).WaitAsync(Deadline);
+        }
+
+        private static BucketConfig TwoNodeBucketConfig(string first, string second)
+        {
+            var config = new BucketConfig
+            {
+                Name = "default",
+                Rev = 1,
+                BucketCapabilities = ["cccp"],
+                Nodes =
+                [
+                    new Node { Hostname = $"{first}:8091", Ports = new Ports { Direct = 11210 } },
+                    new Node { Hostname = $"{second}:8091", Ports = new Ports { Direct = 11210 } }
+                ],
+                NodesExt =
+                [
+                    new NodesExt { Hostname = first, Services = new Services { Kv = 11210 } },
+                    new NodesExt { Hostname = second, Services = new Services { Kv = 11210 } }
+                ],
+                VBucketServerMap = new VBucketServerMapDto
+                {
+                    HashAlgorithm = "CRC",
+                    ServerList = [$"{first}:11210", $"{second}:11210"],
+                    VBucketMap = [[0], [1], [0], [1]]
+                }
+            };
+            config.OnDeserialized();
+            return config;
+        }
+
         /// <summary>
         /// The config of bucket "default" on one node. A Couchbase bucket has four vBuckets, or an empty map like a
         /// new bucket on a server before 7.6.2 (MB-60405). A Memcached bucket has no vBucket map.
@@ -1356,8 +1412,8 @@ namespace Couchbase.UnitTests.Core
                     (_, _, _) => Task.FromException<IClusterNode>(error));
 
             /// <summary>
-            /// Sets up the node factory as the real one acts on a host that refuses the bucket. With
-            /// acceptRefusedBucket it returns <paramref name="node"/> with no connection, otherwise the connect fails.
+            /// Sets up the node factory as the real one acts on a host that refuses the bucket. A seed fails to connect,
+            /// and a bucket node of a config apply is <paramref name="node"/>, which joins with no connection.
             /// </summary>
             public void SetupRefusedBucket(string host, IClusterNode node)
             {
@@ -1366,12 +1422,8 @@ namespace Couchbase.UnitTests.Core
                         It.IsAny<CancellationToken>()))
                     .Returns((HostEndpointWithPort _, NodeAdapter _, string bucketName, CancellationToken _) =>
                         Task.FromException<IClusterNode>(new BucketNotFoundException(bucketName)));
-                _nodeFactory.Setup(f => f.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<string>(),
-                        It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                    .Returns((HostEndpointWithPort _, NodeAdapter _, string bucketName, bool acceptRefusedBucket,
-                            CancellationToken _) => acceptRefusedBucket
-                        ? Task.FromResult(node)
-                        : Task.FromException<IClusterNode>(new BucketNotFoundException(bucketName)));
+                _nodeFactory.Setup(f => f.CreateBucketNode(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<IBucket>()))
+                    .Returns((HostEndpointWithPort _, NodeAdapter _, IBucket owner) => Owned(node, owner));
             }
 
             /// <summary>
@@ -1384,10 +1436,28 @@ namespace Couchbase.UnitTests.Core
                 _nodeFactory.Setup(f => f.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), bucketName,
                         It.IsAny<CancellationToken>()))
                     .ReturnsAsync(node.Object);
-                _nodeFactory.Setup(f => f.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), bucketName,
-                        It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(node.Object);
+                _nodeFactory.Setup(f => f.CreateBucketNode(endPoint, It.IsAny<NodeAdapter>(),
+                        It.Is<IBucket>(b => b.Name == bucketName)))
+                    .Returns((HostEndpointWithPort _, NodeAdapter _, IBucket owner) => Owned(node.Object, owner));
                 return node;
+            }
+
+            /// <summary>
+            /// Makes the bucket node of a config apply on <paramref name="host"/> a real node on <paramref name="pool"/>,
+            /// created by the real factory, so it starts its first connect in the background.
+            /// </summary>
+            public void SetupConnectingBucketNode(string host, IConnectionPool pool)
+            {
+                var poolFactory = new Mock<IConnectionPoolFactory>();
+                poolFactory.Setup(x => x.Create(It.IsAny<ClusterNode>())).Returns(pool);
+                var realFactory = new ClusterNodeFactory(Context, poolFactory.Object, new Mock<ILogger<ClusterNode>>().Object,
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                    new Mock<ISaslMechanismFactory>().Object, new Redactor(RedactionLevel.None), NoopRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object);
+                _nodeFactory.Setup(f => f.CreateBucketNode(new HostEndpointWithPort(host, 11210), It.IsAny<NodeAdapter>(),
+                        It.IsAny<IBucket>()))
+                    .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket owner) =>
+                        realFactory.CreateBucketNode(endPoint, nodeAdapter, owner));
             }
 
             /// <summary>
@@ -2195,104 +2265,43 @@ namespace Couchbase.UnitTests.Core
             Assert.Contains(kept, node => ReferenceEquals(node, search));
         }
 
+        // NCBC-4414. The new node joins while its first connect fails, and its pool owns the retry. The next apply keeps
+        // the same node and creates no other.
         [Fact]
-        public async Task ProcessClusterMap_New_Bucket_Node_Fails_To_Connect_Adds_No_Node()
+        public async Task ProcessClusterMap_NewBucketNodeWhoseConnectFails_StaysForTheNextApply()
         {
-            var failedKvPort = 12002;
-            var failedOnce = false;
-            var created = new List<IClusterNode>();
-            var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
-            factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) => CreateGlobalNode(endPoint, nodeAdapter));
-            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    "default", true, It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                {
-                    if (endPoint.Port == failedKvPort && !failedOnce)
-                    {
-                        failedOnce = true;
-                        return Task.FromException<IClusterNode>(new SocketException((int)SocketError.ConnectionReset));
-                    }
+            var failedConnects = new AsyncCounter();
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Callback(failedConnects.Increment)
+                .ThrowsAsync(new SocketException((int)SocketError.ConnectionReset));
+            pool.Setup(x => x.GetConnections()).Returns([]);
+            using var fixture = new RealBucketNodeFixture(pool.Object);
+            var bucket = fixture.Bucket;
 
-                    var node = CreateGlobalNode(endPoint, nodeAdapter);
-                    created.Add(node);
-                    return Task.FromResult(node);
-                });
-            var options = new ClusterOptions().WithConnectionString("couchbase://127.0.0.1:12000")
-                .WithPasswordAuthentication("username", "password");
-            options.AddClusterService(factory.Object);
-            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
-            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true))));
+            await failedConnects.WaitForAsync(1).WaitAsync(Deadline);
+            var node = Assert.Single(bucket.Nodes);
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(2, "default", PlainNode(0, kv: true))));
 
-            await Assert.ThrowsAsync<SocketException>(() =>
-                AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1))));
-
-            Assert.Empty(bucket.Nodes);
-            var other = Assert.Single(created);
-            Assert.True(other.IsDead);
-
-            await AssertCompleted(context.ProcessClusterMapAsync(bucket, ClusterRunBucketConfig(1)));
-
-            Assert.Equal([12000, 12002], bucket.Nodes.Select(node => node.EndPoint.Port).OrderBy(port => port));
-            var fresh = bucket.Nodes.Single(node => node.EndPoint.Port == failedKvPort);
-            Assert.Same(bucket, fresh.Owner);
-            Assert.All(bucket.Nodes, node => Assert.False(node.IsDead));
+            Assert.Same(node, Assert.Single(bucket.Nodes));
+            Assert.Same(bucket, node.Owner);
+            Assert.False(node.IsDead);
+            Assert.Equal(new ConfigVersion(0, 2), node.NodesAdapter.ConfigVersion);
+            pool.Verify(x => x.Dispose(), Times.Never);
+            fixture.Factory.Verify(f => f.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                It.IsAny<IBucket>()), Times.Once);
         }
 
-        // A bucket apply connects every new node at once and adds none until all are back.
+        // NCBC-4414. A failed connect of one new node does not keep the other new nodes out.
         [Fact]
-        public async Task ProcessClusterMap_TwoNewBucketNodes_ConnectInParallel()
+        public async Task ProcessClusterMap_NewBucketNodeFailsWhileAnotherConnects_BothJoin()
         {
-            var started = new ConcurrentDictionary<string, bool>();
-            var bothStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var factory = BucketNodeFactory((endPoint, nodeAdapter) =>
-            {
-                started[endPoint.Host] = true;
-                if (started.Count == 2) bothStarted.TrySetResult(true);
-                return CreateAfterAsync(release.Task, endPoint, nodeAdapter, []);
-            });
-            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
-                PlainOptions(factory.Object));
-            var initial = DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true));
-            AddGlobalNodes(context, initial);
-            context.UpdateClusterNodesConfig(initial);
-            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
-
-            var apply = context.ProcessClusterMapAsync(bucket,
-                PlainBucketConfig(1, "default", PlainNode(0, kv: true), PlainNode(1, kv: true)));
-            try
-            {
-                await bothStarted.Task.WaitAsync(Deadline);
-                Assert.False(apply.IsCompleted);
-                Assert.Empty(bucket.Nodes);
-            }
-            finally
-            {
-                release.TrySetResult(true);
-            }
-
-            await apply.WaitAsync(Deadline);
-            Assert.Equal([PlainHost(0), PlainHost(1)], bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h));
-            Assert.All(bucket.Nodes, node => Assert.Same(bucket, node.Owner));
-        }
-
-        // The apply fails with no change to the bucket. The node of the same apply that connected is disposed.
-        [Fact]
-        public async Task ProcessClusterMap_NewBucketNodeFailsWhileAnotherConnects_KeepsTheBucketNodes()
-        {
-            var connected = new List<IClusterNode>();
-            var factory = BucketNodeFactory((endPoint, nodeAdapter) =>
-            {
-                if (endPoint.Host == PlainHost(2))
-                {
-                    return Task.FromException<IClusterNode>(new SocketException((int)SocketError.ConnectionRefused));
-                }
-
-                var node = CreateGlobalNode(endPoint, nodeAdapter);
-                connected.Add(node);
-                return Task.FromResult(node);
-            });
+            var factory = BucketNodeFactory((endPoint, nodeAdapter, owner) => Owned(CreateGlobalNode(endPoint, nodeAdapter,
+                endPoint.Host == PlainHost(2) ? FailingPool(new SocketException((int)SocketError.ConnectionRefused)) : null),
+                owner));
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
                 PlainOptions(factory.Object));
             var initial = DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, kv: true));
@@ -2302,14 +2311,34 @@ namespace Couchbase.UnitTests.Core
             await AssertCompleted(context.ProcessClusterMapAsync(bucket, PlainBucketConfig(1, "default", PlainNode(0, kv: true))));
             var kept = Assert.Single(bucket.Nodes);
 
-            await Assert.ThrowsAsync<SocketException>(() => AssertCompleted(context.ProcessClusterMapAsync(bucket,
-                PlainBucketConfig(2, "default", PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, kv: true)))));
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(2, "default", PlainNode(0, kv: true), PlainNode(1, kv: true), PlainNode(2, kv: true))));
 
-            Assert.Same(kept, Assert.Single(bucket.Nodes));
-            Assert.False(kept.IsDead);
-            var other = Assert.Single(connected, node => node.EndPoint.Host == PlainHost(1));
-            Assert.True(other.IsDead);
+            Assert.Equal([PlainHost(0), PlainHost(1), PlainHost(2)],
+                bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h, StringComparer.Ordinal));
+            Assert.Contains(kept, bucket.Nodes);
+            Assert.All(bucket.Nodes, node => Assert.False(node.IsDead));
             Assert.Equal(3, context.Nodes.Count);
+        }
+
+        // NCBC-4414. The apply returns while the connects of the new nodes still run, with every node in the list.
+        [Fact]
+        public async Task ProcessClusterMap_TwoNewBucketNodes_JoinBeforeTheyConnect()
+        {
+            var connects = new AsyncCounter();
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Callback(connects.Increment)
+                .Returns(new TaskCompletionSource<bool>().Task);
+            using var fixture = new RealBucketNodeFixture(pool.Object, PlainNode(0, kv: true), PlainNode(1, kv: true));
+            var bucket = fixture.Bucket;
+
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+
+            Assert.Equal([PlainHost(0), PlainHost(1)], bucket.Nodes.Select(n => n.EndPoint.Host).OrderBy(h => h));
+            Assert.All(bucket.Nodes, node => Assert.Same(bucket, node.Owner));
+            await connects.WaitForAsync(2).WaitAsync(Deadline);
         }
 
         // The node joins with no connection, and its pool keeps trying until the node accepts the bucket.
@@ -2320,24 +2349,11 @@ namespace Couchbase.UnitTests.Core
             pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new BucketNotFoundException("default"));
             pool.Setup(x => x.GetConnections()).Returns([]);
-            var poolFactory = new Mock<IConnectionPoolFactory>();
-            poolFactory.Setup(x => x.Create(It.IsAny<ClusterNode>())).Returns(pool.Object);
-            ClusterNodeFactory nodeFactory = null;
-            var factory = BucketNodeFactory((endPoint, nodeAdapter) =>
-                nodeFactory!.CreateAndConnectAsync(endPoint, nodeAdapter, "default", acceptRefusedBucket: true));
-            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
-                PlainOptions(factory.Object));
-            // The real factory, so the refused bucket goes through its catch.
-            nodeFactory = new ClusterNodeFactory(context, poolFactory.Object, new Mock<ILogger<ClusterNode>>().Object,
-                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()), new Mock<ISaslMechanismFactory>().Object,
-                new Redactor(RedactionLevel.None), NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object);
-            var initial = DockerConfig(1, PlainNode(0, kv: true));
-            AddGlobalNodes(context, initial);
-            context.UpdateClusterNodesConfig(initial);
-            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+            using var fixture = new RealBucketNodeFixture(pool.Object);
+            var bucket = fixture.Bucket;
 
-            await context.ProcessClusterMapAsync(bucket, PlainBucketConfig(1, "default", PlainNode(0, kv: true)))
-                .WaitAsync(Deadline);
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true))));
 
             var node = Assert.Single(bucket.Nodes);
             Assert.Equal(PlainHost(0), node.EndPoint.Host);
@@ -2346,49 +2362,73 @@ namespace Couchbase.UnitTests.Core
             Assert.Empty(node.ConnectionPool.GetConnections());
         }
 
-        // The context is disposed while a bucket apply connects its new node. The bucket stays open, so only the check
-        // after the connects can close the node.
+        // NCBC-4414. A node that leaves the map during its first connect is disposed, which stops its pool.
         [Fact]
-        public async Task ProcessClusterMap_ContextDisposedWhileANewBucketNodeConnects_DisposesTheNodeAndAddsNone()
+        public async Task ProcessClusterMap_NodeLeavesTheMapDuringItsFirstConnect_IsDisposed()
         {
-            var connecting = new AsyncCounter();
-            var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var connected = new List<IClusterNode>();
-            var factory = BucketNodeFactory((endPoint, nodeAdapter) =>
+            var connects = new AsyncCounter();
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Callback(connects.Increment)
+                .Returns(new TaskCompletionSource<bool>().Task);
+            using var fixture = new RealBucketNodeFixture(pool.Object, PlainNode(0, kv: true), PlainNode(1, kv: true));
+            var bucket = fixture.Bucket;
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true), PlainNode(1, kv: true))));
+            await connects.WaitForAsync(2).WaitAsync(Deadline);
+            var leaving = bucket.Nodes.Single(n => n.EndPoint.Host == PlainHost(1));
+
+            await AssertCompleted(fixture.Context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(2, "default", PlainNode(0, kv: true))));
+
+            Assert.Equal(PlainHost(0), Assert.Single(bucket.Nodes).EndPoint.Host);
+            Assert.True(leaving.IsDead);
+            pool.Verify(x => x.Dispose(), Times.Once);
+        }
+
+        // The context is disposed while a bucket reconcile creates its new node. The bucket stays open, so only the
+        // check after the replace can close the node.
+        [Fact]
+        public async Task ProcessClusterMap_ContextDisposedWhileANewBucketNodeIsCreated_DisposesTheNodeAndAddsNone()
+        {
+            ClusterContext context = null;
+            var created = new List<IClusterNode>();
+            var factory = BucketNodeFactory((endPoint, nodeAdapter, owner) =>
             {
-                connecting.Increment();
-                return CreateAfterAsync(release.Task, endPoint, nodeAdapter, connected);
+                context!.Dispose();
+                var node = Owned(CreateGlobalNode(endPoint, nodeAdapter), owner);
+                created.Add(node);
+                return node;
             });
-            var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+            context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
                 PlainOptions(factory.Object));
             var initial = DockerConfig(1, PlainNode(0, kv: true));
             AddGlobalNodes(context, initial);
             context.UpdateClusterNodesConfig(initial);
             using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
 
-            var apply = context.ProcessClusterMapAsync(bucket, PlainBucketConfig(1, "default", PlainNode(0, kv: true)));
-            await connecting.WaitForAsync(1).WaitAsync(Deadline);
-            context.Dispose();
-            release.SetResult(true);
-            await apply.WaitAsync(Deadline);
+            await AssertCompleted(context.ProcessClusterMapAsync(bucket, PlainBucketConfig(1, "default", PlainNode(0, kv: true))));
 
             Assert.False(bucket.Disposed);
             Assert.Empty(bucket.Nodes);
-            Assert.True(Assert.Single(connected).IsDead);
+            Assert.True(Assert.Single(created).IsDead);
         }
 
-        // The bucket closes after the check that follows the connects and before the new node joins. The new node sets
-        // its owner in that window, so its setter closes the bucket here.
+        // The bucket closes while the reconcile creates its new node, before the node joins. Dispose does not take the
+        // config lock, so only the check after the replace can close the node.
         [Fact]
-        public async Task ProcessClusterMap_BucketDisposedBeforeTheNewNodeJoins_DisposesTheNodeAndClearsTheBucket()
+        public async Task ProcessClusterMap_BucketDisposedWhileANewNodeIsCreated_DisposesTheNodeAndClearsTheBucket()
         {
             LateBucket bucket = null;
             var endPoint = new HostEndpointWithPort(PlainHost(0), 11210);
             var node = new Mock<IClusterNode>();
             node.SetupGet(n => n.EndPoint).Returns(endPoint);
             node.SetupGet(n => n.KeyEndPoints).Returns([endPoint]);
-            node.SetupSet(n => n.Owner = It.IsAny<IBucket>()).Callback(() => bucket.Dispose());
-            var factory = BucketNodeFactory((_, _) => Task.FromResult(node.Object));
+            var factory = BucketNodeFactory((_, _, _) =>
+            {
+                bucket!.Dispose();
+                return node.Object;
+            });
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
                 PlainOptions(factory.Object));
             var initial = DockerConfig(1, PlainNode(0, kv: true));
@@ -2402,6 +2442,83 @@ namespace Couchbase.UnitTests.Core
             Assert.True(bucket.Disposed);
             Assert.Empty(bucket.Nodes);
             node.Verify(n => n.Dispose(), Times.Once);
+        }
+
+        // NCBC-4414. A factory error on a later node disposes the nodes created before it in the same reconcile.
+        [Fact]
+        public async Task ProcessClusterMap_FactoryThrowsForALaterNode_DisposesTheNodesItCreated()
+        {
+            var created = new List<IClusterNode>();
+            var factory = BucketNodeFactory((endPoint, nodeAdapter, owner) =>
+            {
+                if (endPoint.Host == PlainHost(1))
+                {
+                    throw new InvalidOperationException("no pool");
+                }
+
+                var node = Owned(CreateGlobalNode(endPoint, nodeAdapter), owner);
+                created.Add(node);
+                return node;
+            });
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                PlainOptions(factory.Object));
+            var initial = DockerConfig(1, PlainNode(0, kv: true), PlainNode(1, kv: true));
+            AddGlobalNodes(context, initial);
+            context.UpdateClusterNodesConfig(initial);
+            using var bucket = new LateBucket("default", context, Task.CompletedTask, new AsyncCounter());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => AssertCompleted(context.ProcessClusterMapAsync(bucket,
+                PlainBucketConfig(1, "default", PlainNode(0, kv: true), PlainNode(1, kv: true)))));
+
+            Assert.Empty(bucket.Nodes);
+            Assert.True(Assert.Single(created).IsDead);
+        }
+
+        private static IConnectionPool FailingPool(Exception error)
+        {
+            var pool = new Mock<IConnectionPool>();
+            pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>())).ThrowsAsync(error);
+            pool.Setup(x => x.GetConnections()).Returns([]);
+            return pool.Object;
+        }
+
+        /// <summary>
+        /// A context with a cluster node per map node and a bucket "default" that has no node yet. Its factory creates
+        /// cluster nodes on mock pools and bucket nodes with the real factory on <paramref name="pool"/>, so a bucket
+        /// node starts its first connect in the background.
+        /// </summary>
+        private sealed class RealBucketNodeFixture : IDisposable
+        {
+            public RealBucketNodeFixture(IConnectionPool pool, params NodesExt[] clusterNodes)
+            {
+                var poolFactory = new Mock<IConnectionPoolFactory>();
+                poolFactory.Setup(x => x.Create(It.IsAny<ClusterNode>())).Returns(pool);
+                ClusterNodeFactory nodeFactory = null;
+                Factory = BucketNodeFactory((endPoint, nodeAdapter, owner) =>
+                    nodeFactory!.CreateBucketNode(endPoint, nodeAdapter, owner));
+                Context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(),
+                    PlainOptions(Factory.Object));
+                nodeFactory = new ClusterNodeFactory(Context, poolFactory.Object, new Mock<ILogger<ClusterNode>>().Object,
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                    new Mock<ISaslMechanismFactory>().Object, new Redactor(RedactionLevel.None), NoopRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object);
+                var initial = DockerConfig(1, clusterNodes.Length > 0 ? clusterNodes : [PlainNode(0, kv: true)]);
+                AddGlobalNodes(Context, initial);
+                Context.UpdateClusterNodesConfig(initial);
+                Bucket = new LateBucket("default", Context, Task.CompletedTask, new AsyncCounter());
+            }
+
+            public Mock<IClusterNodeFactory> Factory { get; }
+
+            public ClusterContext Context { get; }
+
+            public LateBucket Bucket { get; }
+
+            public void Dispose()
+            {
+                Bucket.Dispose();
+                Context.Dispose();
+            }
         }
 
         // Query reads the cluster nodes, so a host counts once whatever the open buckets.
@@ -2492,16 +2609,24 @@ namespace Couchbase.UnitTests.Core
         /// A strict factory that creates cluster nodes at once and bucket nodes with <paramref name="createBucketNode"/>.
         /// </summary>
         private static Mock<IClusterNodeFactory> BucketNodeFactory(
-            Func<HostEndpointWithPort, NodeAdapter, Task<IClusterNode>> createBucketNode)
+            Func<HostEndpointWithPort, NodeAdapter, IBucket, IClusterNode> createBucketNode)
         {
             var factory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
             factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
                 .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) => CreateGlobalNode(endPoint, nodeAdapter));
-            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    "default", true, It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                    createBucketNode(endPoint, nodeAdapter));
+            factory.Setup(f => f.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.Is<IBucket>(b => b.Name == "default")))
+                .Returns(createBucketNode);
             return factory;
+        }
+
+        /// <summary>
+        /// The node with its owner set, as the factory returns a bucket node.
+        /// </summary>
+        private static IClusterNode Owned(IClusterNode node, IBucket owner)
+        {
+            node.Owner = owner;
+            return node;
         }
 
         private static BucketConfig ClusterRunBucketConfig(ulong rev)
@@ -2643,15 +2768,15 @@ namespace Couchbase.UnitTests.Core
                     It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, CancellationToken _) =>
                     Create(endPoint, nodeAdapter, bucketNodes));
-            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                    Create(endPoint, nodeAdapter, bucketNodes));
+            factory.Setup(f => f.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<IBucket>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket owner) =>
+                    Owned(Create(endPoint, nodeAdapter, bucketNodes).Result, owner));
             return factory.Object;
         }
 
         /// <summary>
-        /// Sets up every node factory call that connects a seed or a bucket node at <paramref name="endPoint"/>, or at
+        /// Sets up every node factory call that creates a seed or a bucket node at <paramref name="endPoint"/>, or at
         /// any endpoint when it is null. The adapter is null for a seed.
         /// </summary>
         private static void SetupSeedOrBucketNode(Mock<IClusterNodeFactory> factory, HostEndpointWithPort? endPoint,
@@ -2664,10 +2789,11 @@ namespace Couchbase.UnitTests.Core
                     It.IsAny<NodeAdapter>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns((HostEndpointWithPort e, NodeAdapter nodeAdapter, string _, CancellationToken token) =>
                     create(e, nodeAdapter, token));
-            factory.Setup(f => f.CreateAndConnectAsync(It.Is<HostEndpointWithPort>(e => endPoint == null || e == endPoint),
-                    It.IsAny<NodeAdapter>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort e, NodeAdapter nodeAdapter, string _, bool _, CancellationToken token) =>
-                    create(e, nodeAdapter, token));
+            // A bucket node of a config apply joins at once. The create of a test answers at once.
+            factory.Setup(f => f.CreateBucketNode(It.Is<HostEndpointWithPort>(e => endPoint == null || e == endPoint),
+                    It.IsAny<NodeAdapter>(), It.IsAny<IBucket>()))
+                .Returns((HostEndpointWithPort e, NodeAdapter nodeAdapter, IBucket owner) =>
+                    Owned(create(e, nodeAdapter, CancellationToken.None).GetAwaiter().GetResult(), owner));
         }
 
         private static async Task<IClusterNode> CreateAfterAsync(Task gate, HostEndpointWithPort endPoint,
