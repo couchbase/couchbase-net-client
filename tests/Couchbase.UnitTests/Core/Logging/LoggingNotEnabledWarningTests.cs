@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
+using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -126,6 +128,68 @@ namespace Couchbase.UnitTests.Core.Logging
         {
             Assert.Contains(LoggingNotEnabledWarning.DocsUrl, LoggingNotEnabledWarning.Message);
         }
+
+        // Cluster tests. Each registers its own warning instance instead of the process-wide one, so they do not
+        // depend on, or use up, the once-per-process state, and they do not capture the real stderr.
+
+        [Fact]
+        public void Cluster_TwoClustersWithoutLogging_WarnsOnce()
+        {
+            var writer = new StringWriter();
+            var warning = new LoggingNotEnabledWarning(() => writer);
+
+            using var first = new Cluster(CreateOptions(warning));
+            using var second = new Cluster(CreateOptions(warning));
+
+            Assert.Equal(LoggingNotEnabledWarning.Message + writer.NewLine, writer.ToString());
+        }
+
+        [Fact]
+        public void Cluster_FirstClusterHasLogging_NoWarningForLaterClusters()
+        {
+            var writer = new StringWriter();
+            var warning = new LoggingNotEnabledWarning(() => writer);
+            using var loggerFactory = LoggerFactory.Create(b => b.AddProvider(new EnabledProvider()));
+
+            using var first = new Cluster(CreateOptions(warning).WithLogging(loggerFactory));
+            using var second = new Cluster(CreateOptions(warning));
+
+            Assert.Equal(string.Empty, writer.ToString());
+        }
+
+        [Fact]
+        public void Cluster_DefaultService_IsTheProcessWideInstance()
+        {
+            // A new instance per cluster would warn once per cluster, not once per process.
+            using var loggerFactory = LoggerFactory.Create(b => b.AddProvider(new EnabledProvider()));
+            using var cluster = new Cluster(new ClusterOptions()
+                .WithConnectionString("couchbase://localhost")
+                .WithPasswordAuthentication("username", "password")
+                .WithLogging(loggerFactory));
+
+            Assert.Same(LoggingNotEnabledWarning.Instance, cluster.ClusterServices.GetRequiredService<LoggingNotEnabledWarning>());
+        }
+
+#if NETCOREAPP3_1_OR_GREATER
+        [Fact]
+        public async Task ConnectAsync_Couchbase2WithoutLogging_Warns()
+        {
+            // couchbase2:// creates a StellarCluster, which connects lazily, so no server is needed.
+            var writer = new StringWriter();
+            var options = CreateOptions(new LoggingNotEnabledWarning(() => writer));
+
+            var cluster = await Cluster.ConnectAsync("couchbase2://127.0.0.1:1", options);
+            await cluster.DisposeAsync();
+
+            Assert.Equal(LoggingNotEnabledWarning.Message + writer.NewLine, writer.ToString());
+        }
+#endif
+
+        private static ClusterOptions CreateOptions(LoggingNotEnabledWarning warning) =>
+            new ClusterOptions()
+                .WithConnectionString("couchbase://localhost")
+                .WithPasswordAuthentication("username", "password")
+                .AddClusterService(warning);
 
         private sealed class EnabledProvider : ILoggerProvider
         {

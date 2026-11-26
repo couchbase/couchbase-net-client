@@ -130,6 +130,8 @@ internal class StellarCluster : ICluster, IBootstrappable, IClusterExtended
         TypeTranscoder = clusterOptions.Transcoder ?? new JsonTranscoder(TypeSerializer);
 
         var serviceProvider = clusterOptions.BuildServiceProvider();
+        // Once per process, before the first connection to a server (SDK-53).
+        Cluster.WarnIfLoggingNotEnabled(serviceProvider);
         OperationCompressor = serviceProvider.GetRequiredService<IOperationCompressor>();
         var compressionAlgorithm = serviceProvider.GetRequiredService<ICompressionAlgorithm>();
         _isCompressionEnabled = _clusterOptions.Compression && compressionAlgorithm.Algorithm != CompressionAlgorithm.None;

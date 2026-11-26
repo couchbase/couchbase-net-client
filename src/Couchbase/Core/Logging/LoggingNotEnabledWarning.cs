@@ -13,8 +13,9 @@ namespace Couchbase.Core.Logging
     /// </summary>
     /// <remarks>
     /// The warning goes to <see cref="Console.Error"/> and not through the SDK logger, because the SDK logger is the
-    /// thing that is not enabled. The check runs at the start of the first <see cref="Cluster.ConnectAsync(ClusterOptions, CancellationToken)"/>
-    /// in the process, so the options of the first cluster decide.
+    /// thing that is not enabled. The check runs when the first cluster in the process is created by
+    /// <see cref="Cluster.ConnectAsync(ClusterOptions, CancellationToken)"/>, before it connects to a server, so the
+    /// options of the first cluster decide.
     /// </remarks>
     internal sealed class LoggingNotEnabledWarning
     {
@@ -40,7 +41,8 @@ namespace Couchbase.Core.Logging
             "See " + DocsUrl;
 
         /// <summary>
-        /// The process-wide instance that <see cref="Cluster.ConnectAsync(ClusterOptions, CancellationToken)"/> uses.
+        /// The process-wide instance. It is the default <see cref="LoggingNotEnabledWarning"/> cluster service, which
+        /// the cluster constructors use. Tests register their own instance instead.
         /// </summary>
         internal static LoggingNotEnabledWarning Instance { get; } = new(static () => Console.Error);
 
