@@ -53,6 +53,8 @@ namespace Couchbase.Core.DI
         {
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
+            // The process-wide instance, so the warning is written at most once per process. Tests register their own.
+            yield return (typeof(LoggingNotEnabledWarning), new SingletonServiceFactory(LoggingNotEnabledWarning.Instance));
             // One factory object under both keys, so both resolve the same singleton. Registering the
             // same instance also lets ClusterOptions detect that IRedactor has been replaced.
             var redactorFactory = new SingletonServiceFactory(typeof(Redactor));

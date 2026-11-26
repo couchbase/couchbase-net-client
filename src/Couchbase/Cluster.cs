@@ -86,6 +86,15 @@ namespace Couchbase
         internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
         internal Lazy<Transactions> LazyTransactions;
 
+        /// <summary>
+        /// Writes the logging-not-enabled warning, once per process, using the cluster's services. The default
+        /// <see cref="LoggingNotEnabledWarning"/> service is the process-wide instance; tests register their own.
+        /// Used by this class and by <c>StellarCluster</c>.
+        /// </summary>
+        internal static void WarnIfLoggingNotEnabled(IServiceProvider serviceProvider) =>
+            serviceProvider.GetRequiredService<LoggingNotEnabledWarning>()
+                .WarnOnce(serviceProvider.GetRequiredService<ILoggerFactory>());
+
         internal Cluster(ClusterOptions clusterOptions)
         {
             if (clusterOptions == null)
@@ -100,6 +109,9 @@ namespace Couchbase
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
+
+            // Once per process, before the first connection to a server (SDK-53).
+            WarnIfLoggingNotEnabled(_context.ServiceProvider);
 
             _context.Start();
 
