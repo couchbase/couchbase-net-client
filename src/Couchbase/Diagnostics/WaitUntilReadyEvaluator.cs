@@ -164,11 +164,12 @@ namespace Couchbase.Diagnostics
                 LogNoServices(logger, string.Join(", ", requested));
             }
 
-            // RFC 61 makes the cluster wait cover the cluster KV connections. Java pings no KV here, .NET waits for
-            // them. A KV cluster node with no connection has no ping entry, so it counts as one entry that is not Ok.
-            // Counted before the ping, so a connect that lands in between gives Degraded for one pass, never Online.
-            var kvNodesWithNoConnection = !bucketLevel && expected.Contains(ServiceType.KeyValue)
-                ? CountKvNodesWithNoConnection(context.Nodes)
+            // A KV node with no connection has no ping entry, so it counts as one entry that is not Ok. The cluster
+            // wait counts the cluster nodes. Java pings no KV there, .NET waits for them. The bucket wait counts the
+            // nodes of the bucket, as Java pings every node that hosts the bucket. Counted before the ping, so a
+            // connect that lands in between gives Degraded for one pass, never Online.
+            var kvNodesWithNoConnection = expected.Contains(ServiceType.KeyValue)
+                ? CountKvNodesWithNoConnection(KvNodesToCount(context, bucketLevel, config))
                 : 0;
 
             // Ping only what we evaluate, otherwise every pass pays for a service we ignore.
@@ -201,13 +202,31 @@ namespace Couchbase.Diagnostics
                 }
 
                 // A pool disposed after the IsDead check belongs to a node that is leaving.
-                if (node.ConnectionPool.TryGetConnections(out var connections) && !connections.Any())
+                if (node.ConnectionPool.TryGetConnections(out var connections)
+                    && !ConnectionPoolExtensions.HasAny(connections))
                 {
                     count++;
                 }
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// The cluster nodes for a cluster wait. For a bucket wait, the nodes of the bucket, the list its ping reads.
+        /// </summary>
+        /// <remarks>
+        /// A bucket wait with no bucket config counts no node, because its ping then reads every node of the client.
+        /// </remarks>
+        private static IEnumerable<IClusterNode> KvNodesToCount(ClusterContext context, bool bucketLevel,
+            BucketConfig? config)
+        {
+            if (!bucketLevel)
+            {
+                return context.Nodes;
+            }
+
+            return config is null || config.IsGlobal ? [] : context.GetNodes(config.Name);
         }
 
         /// <summary>
@@ -472,7 +491,8 @@ namespace Couchbase.Diagnostics
         public ICollection<ServiceType> Expected { get; }
 
         /// <summary>
-        /// The KV cluster nodes counted as not Ok because they had no connection to ping.
+        /// The KV nodes counted as not Ok because they had no connection to ping. Cluster nodes for a cluster wait,
+        /// nodes of the bucket for a bucket wait.
         /// </summary>
         public int KvNodesWithNoConnection { get; }
     }

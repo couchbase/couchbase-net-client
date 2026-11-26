@@ -28,6 +28,21 @@ namespace Couchbase.Core.IO.Connections
                 return false;
             }
         }
+
+        /// <summary>
+        /// True when the pool has at least one connection. False when it has none or is disposed.
+        /// </summary>
+        public static bool HasConnection(this IConnectionPool pool) =>
+            pool.TryGetConnections(out var connections) && HasAny(connections);
+
+        /// <summary>
+        /// True when the list holds at least one connection.
+        /// </summary>
+        public static bool HasAny(IEnumerable<IConnection> connections)
+        {
+            using var enumerator = connections.GetEnumerator();
+            return enumerator.MoveNext();
+        }
     }
 }
 

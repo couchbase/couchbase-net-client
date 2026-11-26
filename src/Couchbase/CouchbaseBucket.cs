@@ -10,6 +10,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
@@ -173,7 +174,10 @@ namespace Couchbase
 
         public override async Task ForceConfigUpdateAsync()
         {
-            var configNode = Nodes.RandomOrDefault(static x => x.HasKv);
+            // A node with no connection fails the fetch at once, so it is the last choice.
+            var nodes = Nodes.Snapshot();
+            var configNode = nodes.RandomOrDefault(static x => x.HasKv && x.ConnectionPool.HasConnection())
+                             ?? nodes.RandomOrDefault(static x => x.HasKv);
             if (configNode is not null)
             {
                 try
