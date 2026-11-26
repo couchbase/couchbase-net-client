@@ -261,12 +261,6 @@ namespace Couchbase.Core
 
         internal abstract Task BootstrapAsync(IClusterNode node);
 
-        internal void CaptureException(Exception e)
-        {
-            var subject = this as IBootstrappable;
-            subject.DeferredExceptions.Add(e);
-        }
-
         async Task IBootstrappable.BootStrapAsync(CancellationToken cancellationToken)
         {
             await Context.RebootStrapAsync(Name).ConfigureAwait(false);

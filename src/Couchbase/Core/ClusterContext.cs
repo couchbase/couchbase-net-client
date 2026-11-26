@@ -1055,8 +1055,8 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Fetches the config of a new bucket again until it has a vBucket map, or until <paramref name="mapWait"/>
-        /// has no time left. It then returns the last config, and a config with no map fails the bootstrap. A failed
-        /// fetch is retried while time is left.
+        /// has no time left. With no map by then it throws <see cref="BucketNotFoundException"/>, so the open creates no
+        /// bucket on this node. A failed fetch is retried while time is left.
         /// </summary>
         /// <remarks>
         /// Before 7.6.2 the server can send the config of a new bucket before it has built the map (MB-60405).
@@ -1100,6 +1100,7 @@ namespace Couchbase.Core
                 _logger.LogWarning("Bootstrapping: the config of bucket {name} has no vBucket map after the " +
                     "KvTimeout of {kvTimeout}. The bootstrap from this node fails.",
                     _redactor.MetaData(name), ClusterOptions.KvTimeout);
+                throw new BucketNotFoundException(name);
             }
 
             return config;

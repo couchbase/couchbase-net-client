@@ -36,6 +36,7 @@ using Moq;
 using Xunit;
 using Xunit.Abstractions;
 using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
+using UnambiguousTimeoutException = Couchbase.Core.Exceptions.UnambiguousTimeoutException;
 
 #pragma warning disable CS8632
 namespace Couchbase.UnitTests.Core
@@ -535,17 +536,9 @@ namespace Couchbase.UnitTests.Core
             mockConfigHandler.Verify(x => x.Unsubscribe(lateBucket), Times.Once);
         }
 
-        /// <summary>
-        /// The disposed-check used to sit only inside the `IsBootstrapped: true` branch. The real
-        /// CouchbaseBucket.BootstrapAsync captures its own exceptions and returns normally instead of
-        /// throwing, so a bootstrap that fails this way (IsBootstrapped false, no exception) skipped
-        /// the check entirely: the loop moved on to a second endpoint, whose first move touched the
-        /// already-disposed _tokenSource and threw an unrelated, confusing ObjectDisposedException -
-        /// or, with only one endpoint, silently discarded the real failure behind a
-        /// BucketNotFoundException - while the failed bucket itself was never disposed.
-        /// </summary>
+        // A bootstrap that fails after Dispose() throws its own error, and the open tries no other endpoint.
         [Fact]
-        public async Task GetOrCreateBucketLockedAsync_FirstBootstrapFailsSoftlyAfterDispose_DisposesBucketWithoutRetryingSecondEndpoint()
+        public async Task GetOrCreateBucketLockedAsync_FirstBootstrapFailsAfterDispose_ThrowsItsErrorAndDisposesBucketWithoutRetryingSecondEndpoint()
         {
             var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
                 InternalSerializationContext.Default.BucketConfig);
@@ -558,9 +551,7 @@ namespace Couchbase.UnitTests.Core
             mockNode1.Setup(n => n.GetClusterMap(null, null, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(config));
 
-            // The gate lets BootstrapAsync's completion land after Dispose() has already run, without
-            // needing a real race - bootstrapSucceeds: false makes it "fail softly" the way the real
-            // CouchbaseBucket.BootstrapAsync does.
+            // The gate lets BootstrapAsync fail after Dispose() has run.
             var bootstrapGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var reachedBootstrap = new AsyncCounter();
             LateBucket lateBucket = null;
@@ -598,13 +589,11 @@ namespace Couchbase.UnitTests.Core
 
             context.Dispose();
 
-            // Let the first endpoint's bootstrap finish - softly failed - now that the context is
-            // already disposed.
             bootstrapGate.SetResult(true);
 
             var ex = await Record.ExceptionAsync(() => bucketTask);
 
-            Assert.IsType<ObjectDisposedException>(ex);
+            Assert.Same(LateBucket.BootstrapError, ex);
             Assert.NotNull(lateBucket);
             Assert.True(lateBucket.DisposeCalled);
             Assert.False(secondEndpointCalled);
@@ -683,8 +672,7 @@ namespace Couchbase.UnitTests.Core
 
         /// <summary>
         /// Minimal <see cref="BucketBase"/> whose BootstrapAsync completes only when told to, so a
-        /// test can control exactly when a bootstrap - successful, or soft-failed via
-        /// bootstrapSucceeds: false - lands relative to Dispose().
+        /// test can control when a bootstrap succeeds or fails relative to Dispose().
         /// </summary>
         private class LateBucket : BucketBase
         {
@@ -729,16 +717,15 @@ namespace Couchbase.UnitTests.Core
             internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default) =>
                 throw new NotImplementedException();
 
-            // The real CouchbaseBucket.BootstrapAsync captures its own exceptions and returns
-            // normally rather than throwing - _bootstrapSucceeds: false mirrors that "soft failure"
-            // shape (IsBootstrapped ends up false, but nothing propagates as an exception).
+            public static readonly Exception BootstrapError = new InvalidOperationException("simulated bootstrap failure");
+
             internal override async Task BootstrapAsync(IClusterNode bootstrapNode)
             {
                 _reachedBootstrap.Increment();
                 await _bootstrapGate.ConfigureAwait(false);
                 if (!_bootstrapSucceeds)
                 {
-                    CaptureException(new InvalidOperationException("simulated soft bootstrap failure"));
+                    throw BootstrapError;
                 }
             }
 
@@ -813,7 +800,8 @@ namespace Couchbase.UnitTests.Core
 
             await Assert.ThrowsAsync<BucketNotFoundException>(() => open.WaitAsync(Deadline));
             Assert.Equal(2, fetches);
-            await AssertFailedBucketsDisposedAsync(fixture, failed: 1);
+            Assert.Empty(fixture.Bootstrappers);
+            Assert.Null(node.Object.Owner);
             fixture.AssertClusterNodesKept();
             node.Verify(x => x.Dispose(), Times.Once);
             fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Never);
@@ -849,7 +837,8 @@ namespace Couchbase.UnitTests.Core
             clock.Advance(MapWaitTimeout);
             var bucket = Assert.IsType<CouchbaseBucket>(await open.WaitAsync(Deadline));
 
-            await AssertFailedBucketsDisposedAsync(fixture, failed: 1, opened: bucket);
+            Assert.Same(bucket.Bootstrapper, Assert.Single(fixture.Bootstrappers));
+            Assert.Null(node1.Object.Owner);
             node1.Verify(x => x.Dispose(), Times.Once);
             Assert.Same(node2.Object, Assert.Single(bucket.Nodes));
             fixture.AssertClusterNodesKept();
@@ -904,7 +893,7 @@ namespace Couchbase.UnitTests.Core
             fixture.Logger.Verify(x => x.Log(LogLevel.Warning, It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("has no vBucket map after the KvTimeout")),
                 null, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Exactly(2));
-            await AssertFailedBucketsDisposedAsync(fixture, failed: 2);
+            Assert.Empty(fixture.Bootstrappers);
             fixture.AssertClusterNodesKept();
             node1.Verify(x => x.Dispose(), Times.Once);
             node2.Verify(x => x.Dispose(), Times.Once);
@@ -1177,6 +1166,110 @@ namespace Couchbase.UnitTests.Core
             fixture.AssertClusterNodesKept();
         }
 
+        // NCBC-4414
+        [Fact]
+        public async Task GetOrCreateBucketAsync_ManifestFetchFailsOnTheOnlySeed_ThrowsThatError()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var error = new UnambiguousTimeoutException("manifest fetch timed out");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true, collections: true));
+            node.Setup(x => x.GetManifest()).ThrowsAsync(error);
+
+            var thrown = await Record.ExceptionAsync(() =>
+                fixture.Context.GetOrCreateBucketAsync("default").AsTask().WaitAsync(Deadline));
+
+            Assert.Same(error, thrown);
+        }
+
+        // NCBC-4414
+        [Fact]
+        public async Task GetOrCreateBucketAsync_BootstrapFails_StartsNoBootstrapperOrRefresherAndDisposesTheBucket()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true, collections: true));
+            node.Setup(x => x.GetManifest()).ThrowsAsync(new UnambiguousTimeoutException("manifest fetch timed out"));
+
+            await Assert.ThrowsAsync<UnambiguousTimeoutException>(() =>
+                fixture.Context.GetOrCreateBucketAsync("default").AsTask().WaitAsync(Deadline));
+
+            AssertFailedBucketsDisposed(node);
+            fixture.AssertClusterNodesKept();
+            fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Never);
+        }
+
+        // NCBC-4414
+        [Fact]
+        public async Task GetOrCreateBucketAsync_BootstrapSucceeds_StartsTheBootstrapperAndTheRefresher()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true));
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Mock.Get(bucket.Bootstrapper).Verify(x => x.Start(bucket), Times.Once);
+            Assert.True(bucket.ConfigRefresher.IsStarted);
+        }
+
+        // NCBC-4414
+        [Fact]
+        public async Task GetOrCreateBucketAsync_FirstSeedFailsItsBootstrap_OpensOnTheSecond()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true, collections: true));
+            node1.Setup(x => x.GetManifest()).ThrowsAsync(new UnambiguousTimeoutException("manifest fetch timed out"));
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true));
+
+            var bucket = Assert.IsType<CouchbaseBucket>(await fixture.Context.GetOrCreateBucketAsync("default")
+                .AsTask().WaitAsync(Deadline));
+
+            Assert.True(((IBootstrappable)bucket).IsBootstrapped);
+            Assert.Same(node2.Object, Assert.Single(bucket.Nodes));
+            AssertFailedBucketsDisposed(node1);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(It.IsAny<IConfigUpdateEventSink>()), Times.Once);
+            fixture.ConfigHandler.Verify(x => x.Subscribe(bucket), Times.Once);
+        }
+
+        // NCBC-4414
+        [Fact]
+        public async Task GetOrCreateBucketAsync_BothSeedsFailTheirBootstrap_ThrowsTheErrorOfTheLastSeed()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1", "node2");
+            var first = new UnambiguousTimeoutException("manifest fetch on node1 timed out");
+            var last = new UnambiguousTimeoutException("manifest fetch on node2 timed out");
+            var node1 = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true, collections: true));
+            node1.Setup(x => x.GetManifest()).ThrowsAsync(first);
+            var node2 = fixture.SetupNewNode("node2", () => OneNodeBucketConfig("node2", map: true, collections: true));
+            node2.Setup(x => x.GetManifest()).ThrowsAsync(last);
+
+            var thrown = await Record.ExceptionAsync(() =>
+                fixture.Context.GetOrCreateBucketAsync("default").AsTask().WaitAsync(Deadline));
+
+            Assert.Same(last, thrown);
+            AssertFailedBucketsDisposed(node1, node2);
+            fixture.AssertClusterNodesKept();
+        }
+
+        [Fact]
+        public async Task GetOrCreateBucketAsync_ManifestFetchNotSupported_ThrowsNotSupportedException()
+        {
+            var clock = new SteppableClock();
+            using var fixture = new BucketOpenFixture(clock, "node1");
+            var node = fixture.AddUnassignedNode("node1", () => OneNodeBucketConfig("node1", map: true, collections: true));
+            node.Setup(x => x.GetManifest()).ThrowsAsync(
+                new CouchbaseException(new KeyValueErrorContext { Status = ResponseStatus.NotSupported }));
+
+            await Assert.ThrowsAsync<NotSupportedException>(() =>
+                fixture.Context.GetOrCreateBucketAsync("default").AsTask().WaitAsync(Deadline));
+
+            AssertFailedBucketsDisposed(node);
+        }
+
         // NCBC-4414. The open waits for its seed only. The other node of the map joins the bucket and connects in the
         // background, so a connect that hangs does not hold the open.
         [Fact]
@@ -1238,13 +1331,13 @@ namespace Couchbase.UnitTests.Core
         /// new bucket on a server before 7.6.2 (MB-60405). A Memcached bucket has no vBucket map.
         /// </summary>
         private static BucketConfig OneNodeBucketConfig(string host, bool map, bool memcached = false,
-            string name = "default")
+            string name = "default", bool collections = false)
         {
             var config = new BucketConfig
             {
                 Name = name,
                 Rev = 1,
-                BucketCapabilities = memcached ? [] : ["cccp"],
+                BucketCapabilities = memcached ? [] : collections ? ["cccp", BucketCapabilities.COLLECTIONS] : ["cccp"],
                 Nodes = [new Node { Hostname = $"{host}:8091", Ports = new Ports { Direct = 11210 } }],
                 NodesExt = [new NodesExt { Hostname = host, Services = new Services { Kv = 11210 } }]
             };
@@ -1263,21 +1356,21 @@ namespace Couchbase.UnitTests.Core
         }
 
         /// <summary>
-        /// Checks that the opens created <paramref name="failed"/> buckets besides <paramref name="opened"/>, and that
-        /// each of them stopped its bootstrapper and its config refresher. Only a failed bucket stops its refresher
-        /// before the fixture is disposed.
+        /// Checks that the bucket of each failed seed started no bootstrapper and no config refresher, and that the
+        /// bucket and the seed are disposed.
         /// </summary>
-        private static async Task AssertFailedBucketsDisposedAsync(BucketOpenFixture fixture, int failed,
-            CouchbaseBucket opened = null)
+        private static void AssertFailedBucketsDisposed(params Mock<IClusterNode>[] failedSeeds)
         {
-            var bootstrappers = fixture.Bootstrappers.Where(b => !ReferenceEquals(b, opened?.Bootstrapper)).ToList();
-            Assert.Equal(failed, bootstrappers.Count);
-            foreach (var bootstrapper in bootstrappers)
+            foreach (var seed in failedSeeds)
             {
-                Mock.Get(bootstrapper).Verify(x => x.Dispose(), Times.Once);
+                var bucket = Assert.IsType<CouchbaseBucket>(seed.Object.Owner);
+                var bootstrapper = Mock.Get(bucket.Bootstrapper);
+                bootstrapper.Verify(x => x.Start(It.IsAny<IBootstrappable>()), Times.Never);
+                bootstrapper.Verify(x => x.Dispose(), Times.Once);
+                Assert.False(bucket.ConfigRefresher.IsStarted);
+                Assert.Empty(bucket.Nodes);
+                seed.Verify(x => x.Dispose(), Times.Once);
             }
-
-            await fixture.RefresherStops.WaitForAsync(failed).WaitAsync(Deadline);
         }
 
         /// <summary>
@@ -1300,12 +1393,6 @@ namespace Couchbase.UnitTests.Core
                     });
                 var httpClusterMapFactory = new Mock<IHttpClusterMapFactory>();
                 httpClusterMapFactory.Setup(x => x.Create(It.IsAny<ClusterContext>())).Returns(_httpClusterMap.Object);
-                var refresherLogger = new Mock<ILogger<BucketConfigRefresher>>();
-                refresherLogger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
-                refresherLogger.Setup(x => x.Log(LogLevel.Debug, It.IsAny<EventId>(),
-                        It.Is<It.IsAnyType>((state, _) => state.ToString() == "The config refresher of default stopped"),
-                        null, It.IsAny<Func<It.IsAnyType, Exception, string>>()))
-                    .Callback(RefresherStops.Increment);
 
                 var options = new ClusterOptions()
                     .WithConnectionString($"couchbase://{string.Join(",", hosts)}?random_seed_nodes=false")
@@ -1319,7 +1406,6 @@ namespace Couchbase.UnitTests.Core
                 options.AddClusterService(bootstrapperFactory.Object);
                 options.AddClusterService(httpClusterMapFactory.Object);
                 options.AddClusterService(Logger.Object);
-                options.AddClusterService(refresherLogger.Object);
                 Context = new ClusterContext(new CancellationTokenSource(), options);
 
                 // A bucket config that becomes the view gives each of its hosts a cluster node.
@@ -1330,11 +1416,6 @@ namespace Couchbase.UnitTests.Core
             public ClusterContext Context { get; }
 
             public Mock<ILogger<ClusterContext>> Logger { get; } = new();
-
-            /// <summary>
-            /// Counts the bucket config refreshers whose loop stopped.
-            /// </summary>
-            public AsyncCounter RefresherStops { get; } = new();
 
             public Mock<IConfigHandler> ConfigHandler { get; } = new();
 
