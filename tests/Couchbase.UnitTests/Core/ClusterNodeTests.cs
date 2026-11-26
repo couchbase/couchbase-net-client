@@ -348,6 +348,9 @@ namespace Couchbase.UnitTests.Core
             // Assert
 
             Assert.Contains("travel-sample", thrown.Message);
+            var inner = Assert.IsType<DocumentNotFoundException>(thrown.InnerException);
+            var kvContext = Assert.IsType<KeyValueErrorContext>(inner.Context);
+            Assert.Equal(ResponseStatus.KeyNotFound, kvContext.Status);
             connection.Verify(c => c.Dispose(), Times.Once);
         }
 

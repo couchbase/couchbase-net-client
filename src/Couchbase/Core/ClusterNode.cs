@@ -1091,7 +1091,7 @@ namespace Couchbase.Core
 
                 Volatile.Write(ref _bucketRefused, 0);
             }
-            catch (DocumentNotFoundException)
+            catch (DocumentNotFoundException e)
             {
                 // KeyNotFound means the node does not serve the bucket, for example a new node in its first moments.
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
@@ -1107,7 +1107,7 @@ namespace Couchbase.Core
                     LogBucketStillRefused(_redactor.MetaData(bucketName));
                 }
 
-                throw new BucketNotFoundException(bucketName);
+                throw new BucketNotFoundException(bucketName, e);
             }
         }
 
