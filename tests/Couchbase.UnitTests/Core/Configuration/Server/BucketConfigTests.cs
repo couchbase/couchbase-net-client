@@ -202,64 +202,51 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Theory]
         [InlineData(@"Documents\Configs\rev92-single-node.json", @"Documents\Configs\rev94.json")]
         [InlineData(@"Documents\Configs\rev96.json", @"Documents\Configs\rev98-single-node.json")]
-        public Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
+        public async Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
         {
             var oldConfig = ResourceHelper.ReadResource(oldConfigPath, InternalSerializationContext.Default.BucketConfig);
             var newConfig = ResourceHelper.ReadResource(newConfigPath, InternalSerializationContext.Default.BucketConfig);
 
             var options = new ClusterOptions().WithPasswordAuthentication("username", "password");
-            var bucketNodes = new ConcurrentDictionary<HostEndpointWithPort, IClusterNode>();
-            var context = new ClusterContext(new CancellationTokenSource(), options);
+            ClusterContext context = null;
+            var factory = new Mock<IClusterNodeFactory>();
+            factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) => CreateNode(context!, endPoint, nodeAdapter));
+            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
+                    Task.FromResult<IClusterNode>(CreateNode(context!, endPoint, nodeAdapter)));
+            options.AddClusterService(factory.Object);
+            using var ownedContext = new ClusterContext(new CancellationTokenSource(), options);
+            context = ownedContext;
 
-            var ipEndpointService = context.ServiceProvider.GetRequiredService<IIpEndPointService>();
+            var bucket = new Mock<BucketBase> { CallBase = true };
+            bucket.SetupGet(b => b.Name).Returns(newConfig.Name);
 
             //load up the initial state after bootstrapping
             foreach (var server in oldConfig.GetNodes())
             {
-                var endPoint = HostEndpointWithPort.Create(server, options);
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
-                    new Mock<ILogger<ClusterNode>>().Object,
-                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
-                    new Mock<ICircuitBreaker>().Object,
-                    new Mock<ISaslMechanismFactory>().Object,
-                    new Redactor(RedactionLevel.None),
-                    endPoint,
-                    server,
-                    NoopRequestTracer.Instance,
-                    new Mock<IOperationConfigurator>().Object)
-                {
-                    Owner = new FakeBucket("default", new ClusterOptions().WithPasswordAuthentication("username", "password"))
-                };
-
-                context.AddNode(clusterNode);
-                bucketNodes.TryAdd(endPoint, clusterNode);
+                var clusterNode = CreateNode(context, HostEndpointWithPort.Create(server, options), server);
+                clusterNode.Owner = bucket.Object;
+                bucket.Object.Nodes.Add(clusterNode);
             }
 
-            foreach (var nodesExt in newConfig.GetNodes())
-            {
-                var endPoint = HostEndpointWithPort.Create(nodesExt, options);
-                if (bucketNodes.ContainsKey(endPoint))
-                {
-                    continue;
-                }
+            await context.ProcessClusterMapAsync(bucket.Object, newConfig);
 
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
-                    new Mock<ILogger<ClusterNode>>().Object,
-                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
-                    new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Redactor(RedactionLevel.None), endPoint, nodesExt,
-                    NoopRequestTracer.Instance,
-                    new Mock<IOperationConfigurator>().Object);
-
-                context.AddNode(clusterNode);
-                bucketNodes.TryAdd(endPoint, clusterNode);
-            }
-
-            context.PruneNodes(newConfig);
-
-            Assert.Equal(newConfig.NodesExt.Count, context.Nodes.Count);
-            return Task.CompletedTask;
+            Assert.Equal(newConfig.GetNodes().Count(n => n.IsKvNode), bucket.Object.Nodes.Count);
         }
+
+        private static ClusterNode CreateNode(ClusterContext context, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) =>
+            new(context, new Mock<IConnectionPoolFactory>().Object,
+                new Mock<ILogger<ClusterNode>>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object,
+                new Redactor(RedactionLevel.None),
+                endPoint,
+                nodeAdapter,
+                NoopRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object);
 
         [Fact]
         public void When_NodesExt_Contains_Evicted_Node_It_Is_Removed()

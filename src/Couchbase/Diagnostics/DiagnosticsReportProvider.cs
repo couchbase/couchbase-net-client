@@ -49,16 +49,16 @@ namespace Couchbase.Diagnostics
 
         internal static async Task<IDiagnosticsReport> CreateDiagnosticsReportAsync(ClusterContext context, string reportId)
         {
-            var clusterNodes = context.Nodes;
             var endpoints =
-                await GetEndpointDiagnosticsAsync(context, clusterNodes, clusterNodes, false, AllServiceTypes,
+                await GetEndpointDiagnosticsAsync(context, context.GetAllNodes(), context.Nodes, false, AllServiceTypes,
                     CancellationToken.None).ConfigureAwait(false);
             return new DiagnosticsReport(reportId, endpoints);
         }
 
         /// <remarks>
-        /// KV and Views are scoped to the nodes owned by the bucket, the other services are cluster scoped. A node
-        /// without KV never joins a bucket node set, so scoping them the same way would skip them on an MDS cluster.
+        /// KV and Views read <paramref name="bucketNodes"/>, the nodes of the bucket or every node of the client. The
+        /// other services read the cluster nodes, as a node without KV never joins a bucket. A node disposed while the
+        /// report is built is skipped.
         /// </remarks>
         private static async ValueTask<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
            IEnumerable<IClusterNode> bucketNodes, IEnumerable<IClusterNode> clusterNodes, bool ping,
@@ -80,10 +80,15 @@ namespace Couchbase.Diagnostics
             {
                 if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
                 {
+                    if (!clusterNode.ConnectionPool.TryGetConnections(out var connections))
+                    {
+                        continue;
+                    }
+
                     // Only created once there is a connection, an empty entry would report a service that has nothing behind it.
                     List<IEndpointDiagnostics>? kvEndpoints = null;
 
-                    foreach (var connection in clusterNode.ConnectionPool.GetConnections())
+                    foreach (var connection in connections)
                     {
                         kvEndpoints ??= (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
 
@@ -174,9 +179,8 @@ namespace Couchbase.Diagnostics
         }
 
         /// <summary>
-        /// One entry per node. Each open bucket owns its own copy of a node, and the copies are refreshed by
-        /// separate config streams, so the copy with the newest config decides which HTTP services the node has.
-        /// Requests stamp activity on whichever copy served them, so the latest activity across all copies is kept.
+        /// One entry per node. When the list has several copies of a node, the copy with the newest config decides
+        /// which HTTP services the node has, and the latest activity across all copies is kept.
         /// </summary>
         /// <remarks>
         /// Nodes with no K/V service can share an endpoint when they share a host, so the node id tells them apart.

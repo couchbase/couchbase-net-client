@@ -9,6 +9,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -49,19 +50,62 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        {
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, null, acceptRefusedBucket: false);
+        }
+
+        /// <inheritdoc />
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            CancellationToken cancellationToken = default)
+        {
+            return CreateAndConnectAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket: false, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
+            bool acceptRefusedBucket, CancellationToken cancellationToken = default)
+        {
+            if (bucketName == null)
+            {
+                throw new ArgumentNullException(nameof(bucketName));
+            }
+
+            return CreateAndConnectCoreAsync(endPoint, nodeAdapter, bucketName, acceptRefusedBucket);
+        }
+
+        /// <inheritdoc />
+        public IClusterNode CreateClusterNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
+        {
+            var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName: null);
+            clusterNode.StartConnecting();
+            return clusterNode;
+        }
+
+        private ClusterNode CreateNode(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string? bucketName)
         {
             // Resolved per node rather than held as a field, so each node gets its own breaker.
             var circuitBreaker = _clusterContext.ServiceProvider.GetRequiredService<ICircuitBreaker>();
 
-            var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
+            return new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _operationBuilderPool, circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
-                nodeAdapter, _tracer, _operationConfigurator);
+                nodeAdapter, _tracer, _operationConfigurator, bucketName);
+        }
+
+        private async Task<IClusterNode> CreateAndConnectCoreAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter,
+            string? bucketName, bool acceptRefusedBucket)
+        {
+            var clusterNode = CreateNode(endPoint, nodeAdapter, bucketName);
 
             //ensure server calls are made to set the state
             try
             {
                 await clusterNode.InitializeAsync().ConfigureAwait(false);
+            }
+            catch (BucketNotFoundException) when (acceptRefusedBucket)
+            {
+                // The node joins with no connection. The channel pool keeps trying, and the single connection pool
+                // connects again when an operation is sent to the node.
             }
             catch
             {

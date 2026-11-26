@@ -39,6 +39,18 @@ namespace Couchbase.Core.IO.Connections
         public int PendingSends { get; }
 
         /// <summary>
+        /// True until a connection of the pool finishes its setup for the first time. It stays false after that,
+        /// also when the pool loses every connection.
+        /// </summary>
+        bool IsAwaitingFirstConnection { get; }
+
+        /// <summary>
+        /// True while <see cref="IsAwaitingFirstConnection"/> is true and a connect attempt has ended in a failure.
+        /// A cancel or a dispose is no failure. A refused bucket select is one.
+        /// </summary>
+        bool HasFailedFirstConnect { get; }
+
+        /// <summary>
         /// Initialize the connection pool, opening initial connections and generally preparing the pool for use.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>\
@@ -89,13 +101,6 @@ namespace Couchbase.Core.IO.Connections
         /// Should be overriden by any derived class which supports rescaling connections.
         /// </remarks>
         ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Selects the bucket for all connections on the pool.
-        /// </summary>
-        /// <param name="name">The bucket name.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task SelectBucketAsync(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns a snapshot in time list of the current connections in the pool.

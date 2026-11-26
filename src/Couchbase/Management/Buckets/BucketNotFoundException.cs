@@ -9,6 +9,12 @@ namespace Couchbase.Management.Buckets
         {
 
         }
+
+        public BucketNotFoundException(string bucketName, Exception innerException)
+            : base($"Bucket with name {bucketName} does not exist or cannot be reached.", innerException)
+        {
+
+        }
     }
 }
 

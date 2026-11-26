@@ -82,6 +82,41 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task Push_WithANodeThatHasNotConnected_FetchesFromTheConnectedNode()
+    {
+        var initialBucketConfig = new BucketConfig() { RevEpoch = 1, Rev = 2 };
+        initialBucketConfig.OnDeserialized();
+        var publishTcs = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockBucket = CreateBucketMock(initialConfig: initialBucketConfig, onPublish: bc => publishTcs.TrySetResult(bc));
+        using ClusterContext mockContext = mockBucket.Context;
+        var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
+        newConfig.OnDeserialized();
+        // The connected node has nothing newer at first, so the first pass goes on to every node it may ask.
+        var fetches = 0;
+        var connected = AddNode(mockBucket, "node-0", push: true);
+        connected.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(fetches++ == 0 ? null! : newConfig));
+        // A node that joined after a refused bucket has never had a connection.
+        var connecting = AddNode(mockBucket, "node-1", push: true);
+        connecting.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        connecting.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
+        var clock = new SteppableClock();
+        using var refresher = CreateRefresher(mockBucket, clock);
+        refresher.Start();
+
+        refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
+
+        Assert.Equal(newConfig.ConfigVersion, (await publishTcs.Task.WaitAsync(Deadline))!.ConfigVersion);
+        connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Push_ServerReturnsNullThenConfig_AsksAgainAndPublishes()
     {
         // The server pushes (1,3), but the node asked has nothing newer than (1,2) and returns null.
@@ -655,7 +690,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
 
             // Each rebootstrap ends before the next pass, so only the time since the last one can skip a pass.
-            await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+            await context.LastRebootstrap.WaitAsync(Deadline);
         }
     }
 
@@ -677,7 +712,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
 
         clock.Advance(PollInterval);
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
-        await context.DnsSrvRebootstrap.WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         Assert.Equal(1, dnsLookups.Count);
     }
@@ -803,12 +838,14 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             .Callback(() => fetches.Increment())
             .ReturnsAsync((BucketConfig)null!);
 
-        // Like a bootstrapped bucket, the context has node-0 for the bucket, so a config update keeps it.
+        // Like a bootstrapped bucket, the bucket has node-0, so a config update keeps it.
         node.SetupGet(x => x.Owner).Returns(bucket);
         node.SetupGet(x => x.BucketName).Returns(bucket.Name);
-        node.SetupGet(x => x.IsAssigned).Returns(true);
         node.SetupProperty(x => x.NodesAdapter);
-        context.AddNode(node.Object);
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupProperty(x => x.NodesAdapter);
+        context.AddNode(clusterNode.Object);
         bucket.ConfigRefresher.Start();
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
 
@@ -870,6 +907,93 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         {
             node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+    }
+
+    // NCBC-4423. A node that refused the bucket at each connect counts as a failed fetch. The refusal is the KeyNotFound
+    // of a select, not of a config fetch, so it does not switch the bucket to HTTP streaming.
+    [Fact]
+    public async Task Poll_WhenEveryNodeRefusedTheBucketAtItsFirstConnect_SignalsAndKeepsFetchingOverKv()
+    {
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var streaming = new AsyncCounter();
+        var published = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var bucket = CreateBucketMock(initialConfig: Version(2), onPublish: config => published.TrySetResult(config),
+            onStartHttpStreaming: _ => streaming.Increment(), configure: options => UseDnsSrv(options, dnsLookups, clock));
+        using var context = bucket.Context;
+        var connected = false;
+        var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
+        nodes[0].SetupGet(x => x.IsAwaitingFirstConnection).Returns(() => !connected);
+        nodes[0].SetupGet(x => x.HasFailedFirstConnect).Returns(() => !connected);
+        nodes[0].Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Version(3));
+        nodes[1].SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        nodes[1].SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        clock.Advance(PollInterval);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+        Assert.Equal(1, dnsLookups.Count);
+
+        // The bucket now exists on node-0, and the next poll fetches its config over KV.
+        connected = true;
+        clock.Advance(PollInterval);
+
+        Assert.Equal(Version(3).ConfigVersion, (await published.Task.WaitAsync(Deadline))!.ConfigVersion);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        nodes[0].Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        nodes[1].Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.Equal(1, dnsLookups.Count);
+        Assert.Equal(0, streaming.Count);
+    }
+
+    // NCBC-4423. Only the cluster refresher polls with polling off while no cluster node has connected.
+    [Fact]
+    public async Task PollingOff_WhenNoNodeEverConnected_RunsNoPass()
+    {
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        var bucket = CreateBucketMock(initialConfig: Version(2), configure: options =>
+        {
+            UseDnsSrv(options, dnsLookups, clock);
+            options.EnableConfigPolling = false;
+        });
+        using var context = bucket.Context;
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupGet(x => x.HasKv).Returns(true);
+        clusterNode.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        clusterNode.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+        context.AddNode(clusterNode.Object);
+        var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
+        foreach (var node in nodes)
+        {
+            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+            node.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
+        }
+
+        using var refresher = CreateRefresher(bucket, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        clock.Advance(PollInterval + PollInterval);
+        // A wake up with nothing due goes back to sleep with no due time.
+        refresher.Reschedule();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        Assert.True(context.IsAwaitingEveryClusterConnection());
+        Assert.Equal(2, clock.TimersCreated);
+        Assert.Equal(0, dnsLookups.Count);
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
     }
 
@@ -1129,10 +1253,13 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
             context.ServiceProvider.GetRequiredService<IConfigRefresherFactory>());
         context.RegisterBucket(bucket);
 
-        // A rebootstrap reuses the node, and the config map makes the bucket its owner.
+        // A rebootstrap fetches on the bucket node at the seed. The cluster has a node of its own there.
         node = AddNode(bucket, "node-0", push: true);
         node.SetupProperty(x => x.Owner);
-        context.AddNode(node.Object);
+        var clusterNode = new Mock<IClusterNode>();
+        clusterNode.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort("node-0", 11210));
+        clusterNode.SetupProperty(x => x.NodesAdapter);
+        context.AddNode(clusterNode.Object);
         return bucket;
     }
 
@@ -1142,7 +1269,7 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         node.SetupGet(x => x.EndPoint).Returns(new HostEndpointWithPort(host, 11210));
         node.SetupGet(x => x.HasKv).Returns(true);
         node.SetupGet(x => x.IsDead).Returns(false);
-        node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+        node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort> { new(host, 11210) });
         node.SetupGet(x => x.ServerFeatures).Returns(push
             ? new ServerFeatureSet([ServerFeatures.ClustermapChangeNotificationBrief])
             : ServerFeatureSet.Empty);

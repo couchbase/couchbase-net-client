@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 {
@@ -253,7 +255,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         }
 
         [Fact]
-        public async Task InitializeAsync_FirstRoundAuthenticationFails_ThrowsTheSameExceptionAndStops()
+        public async Task InitializeAsync_FirstRoundAuthenticationFails_ThrowsTheSameExceptionAndRetriesUntilDisposed()
         {
             // Arrange
 
@@ -285,11 +287,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // Assert
 
             Assert.Same(error, thrown);
-            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+            await AssertRetriesUntilDisposedAsync(pool, clock, connectionFactory, 2, deadline.Token);
         }
 
         [Fact]
-        public async Task InitializeAsync_FirstRoundTlsFails_ThrowsTheSameExceptionAndStops()
+        public async Task InitializeAsync_FirstRoundTlsFails_ThrowsTheSameExceptionAndRetriesUntilDisposed()
         {
             // Arrange
 
@@ -315,11 +317,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // Assert
 
             Assert.Same(error, thrown);
-            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+            await AssertRetriesUntilDisposedAsync(pool, clock, connectionFactory, 2, deadline.Token);
         }
 
         [Fact]
-        public async Task InitializeAsync_FirstRoundOnlyDeadConnections_ThrowsConnectExceptionAndStops()
+        public async Task InitializeAsync_FirstRoundOnlyDeadConnections_ThrowsConnectExceptionAndRetriesUntilDisposed()
         {
             // Arrange
 
@@ -347,21 +349,30 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // Assert
 
             Assert.Equal($"Unable to open any connections to {_hostEndpoint}.", thrown.Message);
-            AssertNoConnectAfterTheFirstRound(pool, clock, connectionFactory, 2);
+            await AssertRetriesUntilDisposedAsync(pool, clock, connectionFactory, 2, deadline.Token);
         }
 
-        private void AssertNoConnectAfterTheFirstRound(ChannelConnectionPool pool, TimerRecordingTimeProvider clock,
-            Mock<IConnectionFactory> connectionFactory, int firstRound)
+        // The loop does not stop by itself after a failed first round. The caller disposes a pool it does not keep.
+        private async Task AssertRetriesUntilDisposedAsync(ChannelConnectionPool pool, TimerRecordingTimeProvider clock,
+            Mock<IConnectionFactory> connectionFactory, int round, CancellationToken cancellationToken)
         {
-            // A loop that kept going would wait on a timer before its next attempt.
-            Assert.False(pool.IsRefilling);
-            Assert.Equal(0, clock.TimersCreated);
-            clock.Advance(ChannelConnectionPool.MaxRefillDelay);
-
-            Assert.Equal(0, pool.Size);
+            Assert.Equal(ChannelConnectionPool.MinRefillDelay, await clock.NextTimerAsync(cancellationToken));
+            clock.Advance(ChannelConnectionPool.MinRefillDelay);
+            Assert.Equal(TimeSpan.FromMilliseconds(64), await clock.NextTimerAsync(cancellationToken));
             connectionFactory.Verify(
                 m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()),
-                Times.Exactly(firstRound));
+                Times.Exactly(2 * round));
+
+            pool.Dispose();
+            clock.Advance(ChannelConnectionPool.MaxRefillDelay);
+
+            // The loop ends on another thread, so wait for it before the asserts.
+            Assert.True(SpinWait.SpinUntil(() => !pool.IsRefilling, Deadline));
+            Assert.Equal(0, pool.Size);
+            Assert.Equal(2, clock.TimersCreated);
+            connectionFactory.Verify(
+                m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()),
+                Times.Exactly(2 * round));
         }
 
         #endregion
@@ -1218,34 +1229,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.True(operation.SendToken.IsCancellationRequested, "The send did not get the caller's token.");
         }
 
-        [Fact]
-        public async Task SelectBucketAsync_NoLiveConnections_NamesTheRequestedBucket()
-        {
-            // Arrange
-
-            var connection = new ControllableConnection();
-            var connectionFactory = new Mock<IConnectionFactory>();
-            connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(connection.Object);
-
-            var pool = CreatePool(connectionFactory: connectionFactory.Object);
-            pool.MinimumSize = 1;
-            pool.MaximumSize = 1;
-            await pool.InitializeAsync();
-            connection.MarkDeadSilently();
-
-            // Act
-
-            var ex = await Assert.ThrowsAsync<DocumentNotFoundException>(() => pool.SelectBucketAsync("travel-sample"));
-
-            // Assert
-
-            Assert.Equal("Failed to select bucket travel-sample.", ex.Message);
-        }
-
         // InitializeAsync returns at the first live connection. The refill loop keeps the pool lock until the sibling
-        // is registered, so a bucket selection that freezes the pool sees every connection.
+        // is registered, so a caller that freezes the pool, such as a re-authentication, sees every connection.
         [Fact]
         public async Task InitializeAsync_ReturnsAtTheFirstConnection_TheLoopHoldsThePoolLockUntilTheSiblingIsRegistered()
         {
@@ -1408,6 +1393,76 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.IsType<ChannelConnectionPoolFactory>(context.ServiceProvider.GetRequiredService<IConnectionPoolFactory>());
         }
 
+        #region Bucket at creation
+
+        [Fact]
+        public async Task BucketPool_EachNewConnection_SelectsTheBucket()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var factory = new RefillFactory();
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, bucketName: "travel-sample");
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            // Act
+
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+            factory.Connections[0].CloseFromServer();
+            await factory.ConnectionCreated(3).WaitAsync(deadline.Token);
+
+            // Assert
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Contains(factory.Connections[2].Object, pool.GetConnections());
+            }
+
+            Assert.All(factory.Connections, connection => connectionInitializer.Verify(
+                m => m.SelectBucketAsync(connection.Object, "travel-sample", It.IsAny<CancellationToken>()),
+                Times.Once));
+        }
+
+        [Fact]
+        public async Task PoolWithNoBucket_NewConnections_SelectNoBucket()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var factory = new RefillFactory();
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            // Act
+
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
+            factory.Connections[0].CloseFromServer();
+            await factory.ConnectionCreated(3).WaitAsync(deadline.Token);
+
+            // Assert
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Contains(factory.Connections[2].Object, pool.GetConnections());
+            }
+
+            connectionInitializer.Verify(
+                m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        #endregion
+
         #region Refill
 
         // A pool under its minimum keeps trying, so it does not wait for the scale controller tick.
@@ -1454,7 +1509,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.Equal(expected.Length, clock.TimersCreated);
         }
 
-        // A node that refuses the bucket makes the select dispose the connection, which comes back dead with no error.
+        // A node that refuses the bucket makes the select throw, so the attempt fails and the loop backs off.
         [Fact]
         public async Task Refill_NodeRefusesTheBucket_RetriesUntilItAccepts()
         {
@@ -1470,25 +1525,22 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
             connectionInitializer
                 .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns((IConnection connection, string _, CancellationToken _) =>
+                .Returns((IConnection _, string bucketName, CancellationToken _) =>
                 {
                     if (Volatile.Read(ref refuse))
                     {
-                        factory.Find(connection).MarkDeadSilently();
-                    }
-                    else
-                    {
-                        Interlocked.Increment(ref accepted);
+                        return Task.FromException(new BucketNotFoundException(bucketName));
                     }
 
+                    Interlocked.Increment(ref accepted);
                     return Task.CompletedTask;
                 });
 
-            var pool = CreatePool(connectionInitializer.Object, factory.Object, clock);
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, clock, bucketName: "travel-sample");
             pool.MinimumSize = 2;
             pool.MaximumSize = 2;
             await pool.InitializeAsync().WaitAsync(deadline.Token);
-            await pool.SelectBucketAsync("travel-sample").WaitAsync(deadline.Token);
+            await factory.ConnectionCreated(2).WaitAsync(deadline.Token);
 
             // Act
 
@@ -1516,6 +1568,208 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             Assert.Equal(3, Volatile.Read(ref accepted));
             Assert.Equal(2, clock.TimersCreated);
+            Assert.All(factory.Connections.Skip(2).Take(2), c => Assert.True(c.DisposeCalled.IsCompleted));
+        }
+
+        // A new node can refuse the bucket for a short time after a config lists it. The pool joins with no
+        // connection, keeps trying, and starts its scale controller once it has one.
+        [Fact]
+        public async Task BucketPool_FirstRoundRefused_ThrowsAndFillsOnceTheNodeAccepts()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var connectionInitializer = RefusingInitializer(out var refuse);
+            var scaleController = new Mock<IConnectionPoolScaleController>();
+            var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            scaleController.Setup(m => m.Start(It.IsAny<IConnectionPool>())).Callback(() => started.TrySetResult(true));
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, clock, "travel-sample",
+                scaleController.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            // Act
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+            clock.Advance(TimeSpan.FromMilliseconds(32));
+            Assert.Equal(TimeSpan.FromMilliseconds(64), await clock.NextTimerAsync(deadline.Token));
+            scaleController.Verify(m => m.Start(It.IsAny<IConnectionPool>()), Times.Never);
+
+            Volatile.Write(ref refuse.Value, false);
+            clock.Advance(TimeSpan.FromMilliseconds(64));
+
+            // Assert
+
+            await started.Task.WaitAsync(deadline.Token);
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(2, pool.Size);
+                Assert.All(pool.GetConnections(), c => Assert.False(c.IsDead));
+            }
+
+            Assert.Equal(6, factory.Connections.Count);
+            Assert.Equal(2, clock.TimersCreated);
+            scaleController.Verify(m => m.Start(pool), Times.Once);
+
+            // An initialized pool returns at once.
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+            Assert.Equal(6, factory.Connections.Count);
+            pool.Dispose();
+        }
+
+        [Fact]
+        public async Task BucketPool_FirstRoundRefused_DisposeDuringTheWaitStopsTheLoop()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var connectionInitializer = RefusingInitializer(out var refuse);
+            var scaleController = new Mock<IConnectionPoolScaleController>();
+
+            var pool = CreatePool(connectionInitializer.Object, factory.Object, clock, "travel-sample",
+                scaleController.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+            Assert.Equal(TimeSpan.FromMilliseconds(32), await clock.NextTimerAsync(deadline.Token));
+
+            // Act
+
+            pool.Dispose();
+            Volatile.Write(ref refuse.Value, false);
+            clock.Advance(ChannelConnectionPool.MaxRefillDelay);
+
+            // Assert
+
+            Assert.True(SpinWait.SpinUntil(() => !pool.IsRefilling, Deadline));
+            Assert.Equal(2, factory.Connections.Count);
+            Assert.Equal(1, clock.TimersCreated);
+            Assert.Equal(0, pool.Size);
+            scaleController.Verify(m => m.Start(It.IsAny<IConnectionPool>()), Times.Never);
+        }
+
+        private const int RefillFailedEvent = 104;
+        private const int RefillRecoveredEvent = 105;
+
+        // InitializeAsync throws the error of the first round, and a caller that drops the pool stops the loop. So the
+        // pool must not announce a retry for that round.
+        [Fact]
+        public async Task BucketPool_FirstRoundRefusedThenDisposed_LogsNoRefillWarning()
+        {
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var logger = new Logger(_testOutput);
+            var pool = CreatePool(RefusingInitializer(out _).Object, new RefillFactory().Object, clock, "travel-sample",
+                logger: logger);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+
+            // The loop would log before it creates its timer.
+            await clock.NextTimerAsync(deadline.Token);
+            pool.Dispose();
+            clock.Advance(ChannelConnectionPool.MaxRefillDelay);
+            Assert.True(SpinWait.SpinUntil(() => !pool.IsRefilling, Deadline));
+
+            Assert.DoesNotContain(logger.Entries, e => e.EventId == RefillFailedEvent);
+        }
+
+        [Fact]
+        public async Task BucketPool_FirstRoundRefusedAndKept_LogsTheWarningAtTheFirstFailedRetry()
+        {
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var logger = new Logger(_testOutput);
+            var factory = new RefillFactory();
+            var pool = CreatePool(RefusingInitializer(out var refuse).Object, factory.Object, clock, "travel-sample",
+                logger: logger);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+            await clock.NextTimerAsync(deadline.Token);
+            Assert.DoesNotContain(logger.Entries, e => e.EventId == RefillFailedEvent);
+
+            // The first retry fails.
+            clock.Advance(TimeSpan.FromMilliseconds(32));
+            await clock.NextTimerAsync(deadline.Token);
+            Assert.Equal(1, logger.Count(RefillFailedEvent, LogLevel.Warning));
+
+            // The second retry fails.
+            clock.Advance(TimeSpan.FromMilliseconds(64));
+            await clock.NextTimerAsync(deadline.Token);
+            Assert.Equal(1, logger.Count(RefillFailedEvent, LogLevel.Warning));
+            Assert.Equal(1, logger.Count(RefillFailedEvent, LogLevel.Debug));
+
+            // The third retry fills the pool.
+            Volatile.Write(ref refuse.Value, false);
+            clock.Advance(TimeSpan.FromMilliseconds(128));
+            await factory.ConnectionCreated(8).WaitAsync(deadline.Token);
+            Assert.True(SpinWait.SpinUntil(() => !pool.IsRefilling, Deadline));
+            Assert.True(SpinWait.SpinUntil(() => logger.Count(RefillRecoveredEvent, LogLevel.Information) == 1, Deadline));
+            pool.Dispose();
+        }
+
+        // The loop of a failed first round still runs, so a second call must not start another one.
+        [Fact]
+        public async Task InitializeAsync_AgainWhileTheFirstRoundLoopRuns_Throws()
+        {
+            using var deadline = new CancellationTokenSource(Deadline);
+            var clock = new TimerRecordingTimeProvider();
+            var factory = new RefillFactory();
+            var pool = CreatePool(RefusingInitializer(out _).Object, factory.Object, clock, "travel-sample");
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+            await clock.NextTimerAsync(deadline.Token);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => pool.InitializeAsync().WaitAsync(deadline.Token));
+            Assert.Equal(1, pool.RefillStarts);
+            pool.Dispose();
+        }
+
+        [Fact]
+        public async Task InitializeAsync_FirstConnection_StartsTheScaleControllerOnce()
+        {
+            using var deadline = new CancellationTokenSource(Deadline);
+            var scaleController = new Mock<IConnectionPoolScaleController>();
+            var pool = CreatePool(scaleController: scaleController.Object);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            scaleController.Verify(m => m.Start(pool), Times.Once);
+            pool.Dispose();
+        }
+
+        /// <summary>
+        /// Refuses the bucket while <paramref name="refuse"/> holds true, as <see cref="ClusterNode"/> does on KeyNotFound.
+        /// </summary>
+        private Mock<IConnectionInitializer> RefusingInitializer(out StrongBox<bool> refuse)
+        {
+            var flag = new StrongBox<bool>(true);
+            refuse = flag;
+
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            connectionInitializer
+                .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((IConnection _, string bucketName, CancellationToken _) => Volatile.Read(ref flag.Value)
+                    ? Task.FromException(new BucketNotFoundException(bucketName))
+                    : Task.CompletedTask);
+            return connectionInitializer;
         }
 
         [Fact]
@@ -1896,7 +2150,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         #region Helpers
 
         private ChannelConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
-            IConnectionFactory connectionFactory = null, TimeProvider timeProvider = null)
+            IConnectionFactory connectionFactory = null, TimeProvider timeProvider = null, string bucketName = null,
+            IConnectionPoolScaleController scaleController = null, Logger logger = null)
         {
             if (connectionInitializer == null)
             {
@@ -1919,11 +2174,12 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             }
 
             return new ChannelConnectionPool(connectionInitializer, connectionFactory,
-                new Mock<IConnectionPoolScaleController>().Object,
+                scaleController ?? new Mock<IConnectionPoolScaleController>().Object,
                 new Redactor(RedactionLevel.None),
-                new Logger(_testOutput),
+                logger ?? new Logger(_testOutput),
                 timeProvider ?? new FakeTimeProvider(),
-                (int) new ClusterOptions().KvSendQueueCapacity);
+                (int) new ClusterOptions().KvSendQueueCapacity,
+                bucketName);
         }
 
         private class FakeOperation : OperationBase
@@ -1956,6 +2212,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         {
             private readonly ITestOutputHelper _testOutput;
 
+            public ConcurrentQueue<(LogLevel Level, int EventId)> Entries { get; } = new();
+
+            public int Count(int eventId, LogLevel level) =>
+                Entries.Count(e => e.EventId == eventId && e.Level == level);
+
             public Logger(ITestOutputHelper testOutput)
             {
                 _testOutput = testOutput ?? throw new ArgumentNullException(nameof(testOutput));
@@ -1963,6 +2224,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
+                Entries.Enqueue((logLevel, eventId.Id));
                 try
                 {
                     _testOutput.WriteLine(formatter(state, exception));

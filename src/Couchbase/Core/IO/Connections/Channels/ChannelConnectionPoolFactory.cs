@@ -31,26 +31,42 @@ namespace Couchbase.Core.IO.Connections.Channels
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// A cluster node gets one connection, as RFC 48 asks. It never gets <see cref="SingleConnectionPool"/>, because
+        /// that pool does not retry a failed first connect.
+        /// </remarks>
         public IConnectionPool Create(ClusterNode clusterNode)
         {
+            var bucketName = clusterNode.FixedBucketName;
+
+            if (bucketName is null)
+            {
+                return CreateChannelPool(clusterNode, bucketName, minimumSize: 1, maximumSize: 1);
+            }
+
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
                 LogUsingConnectionPool("Single");
-                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger);
+                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger, bucketName);
             }
-            else
+
+            return CreateChannelPool(clusterNode, bucketName, _clusterOptions.NumKvConnections,
+                _clusterOptions.MaxKvConnections);
+        }
+
+        private ChannelConnectionPool CreateChannelPool(ClusterNode clusterNode, string? bucketName, int minimumSize,
+            int maximumSize)
+        {
+            LogUsingConnectionPool("Channel");
+
+            var scaleController = _scaleControllerFactory.Create();
+
+            return new ChannelConnectionPool(clusterNode, _connectionFactory, scaleController,
+                _redactor, _channelPoolLogger, _timeProvider, (int) _clusterOptions.KvSendQueueCapacity, bucketName)
             {
-                LogUsingConnectionPool("Channel");
-
-                var scaleController = _scaleControllerFactory.Create();
-
-                return new ChannelConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _channelPoolLogger, _timeProvider, (int) _clusterOptions.KvSendQueueCapacity)
-                {
-                    MinimumSize = _clusterOptions.NumKvConnections,
-                    MaximumSize = _clusterOptions.MaxKvConnections
-                };
-            }
+                MinimumSize = minimumSize,
+                MaximumSize = maximumSize
+            };
         }
 
         #region Logging

@@ -60,6 +60,14 @@ namespace Couchbase.Core.IO.Connections
                 "Starting connection pool monitor on {endpoint}, idle timeout {idleTimeout}, back pressure threshold {backPressureThreshold}",
                 _redactor.SystemData(_connectionPool.EndPoint), IdleConnectionTimeout, BackPressureThreshold);
 
+            // A pool can start the controller from its refill loop, which already suppresses the flow.
+            // Suppressing twice on one thread throws.
+            if (ExecutionContext.IsFlowSuppressed())
+            {
+                Task.Run(MonitorAsync, _cts.Token);
+                return;
+            }
+
             using (ExecutionContext.SuppressFlow())
             {
                 // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever

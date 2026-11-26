@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -65,6 +64,20 @@ namespace Couchbase.Core.IO.Connections
         private readonly IConnectionInitializer _connectionInitializer;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<IConnectionPool> _logger;
+        private volatile bool _hasConnected;
+        private volatile bool _connectFailed;
+
+        /// <inheritdoc />
+        public bool IsAwaitingFirstConnection => !_hasConnected;
+
+        /// <inheritdoc />
+        public bool HasFailedFirstConnect => !_hasConnected && _connectFailed;
+
+        /// <summary>
+        /// Tells a connect that fails during a dispose from a failed connect. The base returns false, because a pool
+        /// that cancels the connect token on dispose needs no other check. The DataFlow pool does not cancel its first round, so a dispose there can count as failed.
+        /// </summary>
+        protected virtual bool IsDisposed => false;
 
         /// <inheritdoc />
         public HostEndpointWithPort EndPoint => _connectionInitializer.EndPoint;
@@ -82,9 +95,10 @@ namespace Couchbase.Core.IO.Connections
         public abstract int PendingSends { get; }
 
         /// <summary>
-        /// Current bucket name passed to <see cref="SelectBucketAsync(string,CancellationToken)"/>.
+        /// The bucket that each new connection selects, or null when the connections select no bucket.
+        /// A bucket node gives it at creation, and it never changes.
         /// </summary>
-        protected string? BucketName { get; set; }
+        protected string? BucketName { get; }
 
         /// <summary>
         /// Creates a new ConnectionPoolBase.
@@ -92,12 +106,14 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
         /// <param name="logger">The logger for logging.</param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         protected ConnectionPoolBase(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger, string? bucketName = null)
         {
             _connectionInitializer = connectionInitializer ?? throw new ArgumentNullException(nameof(connectionInitializer));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger;
+            BucketName = bucketName;
         }
 
         /// <summary>
@@ -110,12 +126,13 @@ namespace Couchbase.Core.IO.Connections
         /// </remarks>
         protected async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
         {
-            var connection = await _connectionFactory
-                .CreateAndConnectAsync(EndPoint, cancellationToken)
-                .ConfigureAwait(false);
-
+            IConnection? connection = null;
             try
             {
+                connection = await _connectionFactory
+                    .CreateAndConnectAsync(EndPoint, cancellationToken)
+                    .ConfigureAwait(false);
+
                 await _connectionInitializer.InitializeConnectionAsync(connection, cancellationToken)
                     .ConfigureAwait(false);
 
@@ -125,55 +142,27 @@ namespace Couchbase.Core.IO.Connections
                         .ConfigureAwait(false);
                 }
 
+                _hasConnected = true;
                 return connection;
             }
             catch(Exception e)
             {
-                _logger.LogDebug(e, "Connection creation to {endpoint} failed.", EndPoint);
-
-                // Be sure to cleanup the connection if bootstrap fails.
-                // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
-                connection.Dispose();
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public virtual async Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
-        {
-            await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
-            {
-                // Record the bucket before selecting it. If a select fails, the connection is disposed and its
-                // replacement must open with this bucket selected; otherwise the node is left serving the bucket
-                // through connections that have no bucket, and every operation gets BucketNotConnected.
-                BucketName = name;
-
-                var tasks = GetConnections()
-                    .Where(p => !p.IsDead)
-                    .Select(connection => Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            // Be sure to cleanup the connection if bootstrap fails.
-                            // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
-                            connection.Dispose();
-                            throw;
-                        }
-                    }, cancellationToken))
-                    .ToList();
-
-                if (tasks.Count == 0)
+                // A cancel can surface as a socket timeout, so the token decides, not the exception type.
+                if (!cancellationToken.IsCancellationRequested && !IsDisposed)
                 {
-                    // There are no healthy connections, so we cannot select the bucket
-                    throw new DocumentNotFoundException($"Failed to select bucket {name}.");
+                    _connectFailed = true;
                 }
 
-                await Task.WhenAll(tasks).ConfigureAwait(false);
+                if (connection is not null)
+                {
+                    _logger.LogDebug(e, "Connection creation to {endpoint} failed.", EndPoint);
+
+                    // Be sure to cleanup the connection if bootstrap fails.
+                    // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
+                    connection.Dispose();
+                }
+
+                throw;
             }
         }
 

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 {
@@ -135,6 +136,65 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             // An empty pool is not a usable node, so this must still fail rather than be tolerated.
             await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync());
             Assert.Equal(0, pool.Size);
+        }
+
+        // The scale controller is the only refill of this pool, so a node kept while it refuses the bucket needs it.
+        [Fact]
+        public async Task InitializeAsync_EveryConnectionRefusesTheBucket_ThrowsAndStartsTheScaleController()
+        {
+            var connectionInitializer = new Mock<IConnectionInitializer>();
+            connectionInitializer.SetupGet(m => m.EndPoint).Returns(_hostEndpoint);
+            connectionInitializer
+                .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((IConnection _, string bucketName, CancellationToken _) =>
+                    Task.FromException(new BucketNotFoundException(bucketName)));
+            var scaleController = new Mock<IConnectionPoolScaleController>();
+
+            var pool = new DataFlowConnectionPool(connectionInitializer.Object, CreateConnectionFactory(),
+                scaleController.Object, new Redactor(RedactionLevel.None), new Logger(_testOutput),
+                new ClusterOptions().KvSendQueueCapacity, "travel-sample")
+            {
+                MinimumSize = 2,
+                MaximumSize = 2
+            };
+
+            await Assert.ThrowsAsync<BucketNotFoundException>(() => pool.InitializeAsync().WaitAsync(TimeSpan.FromSeconds(10)));
+
+            Assert.Equal(0, pool.Size);
+            scaleController.Verify(m => m.Start(pool), Times.Once);
+
+            // An initialized pool returns at once and starts nothing more.
+            await pool.InitializeAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            scaleController.Verify(m => m.Start(pool), Times.Once);
+            pool.Dispose();
+        }
+
+        // A cluster node keeps its pool after any failed first connect, and only the scale controller retries a DataFlow
+        // pool. A caller that drops the pool disposes it, which stops the controller.
+        [Fact]
+        public async Task InitializeAsync_EveryConnectionFailsForAnotherReason_StartsTheScaleController()
+        {
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() => Task.FromException<IConnection>(new SocketException((int) SocketError.TimedOut)));
+            var scaleController = new Mock<IConnectionPoolScaleController>();
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, scaleController: scaleController.Object);
+
+            await Assert.ThrowsAsync<SocketException>(() => pool.InitializeAsync().WaitAsync(TimeSpan.FromSeconds(10)));
+
+            scaleController.Verify(m => m.Start(It.IsAny<IConnectionPool>()), Times.Once);
+            pool.Dispose();
+            scaleController.Verify(m => m.Dispose(), Times.Once);
+        }
+
+        private IConnectionFactory CreateConnectionFactory()
+        {
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => new Mock<IConnection>().Object);
+            return connectionFactory.Object;
         }
 
         [Fact]
@@ -971,6 +1031,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             public int Size => _innerPool.Size;
 
+            public bool IsAwaitingFirstConnection => _innerPool.IsAwaitingFirstConnection;
+            public bool HasFailedFirstConnect => _innerPool.HasFailedFirstConnect;
+
             public int MinimumSize
             {
                 get => _innerPool.MinimumSize;
@@ -1012,11 +1075,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 return _innerPool.ScaleAsync(delta);
             }
 
-            public Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
-            {
-                return _innerPool.SelectBucketAsync(name, cancellationToken);
-            }
-
             public Task SendAsync(IOperation op, CancellationToken cancellationToken = default)
             {
                 return _innerPool.SendAsync(op, cancellationToken);
@@ -1031,7 +1089,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
         }
 
         private StoppableDataFlowConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
-            IConnectionFactory connectionFactory = null)
+            IConnectionFactory connectionFactory = null, IConnectionPoolScaleController scaleController = null)
         {
             if (connectionInitializer == null)
             {
@@ -1053,7 +1111,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             }
 
             return new StoppableDataFlowConnectionPool(connectionInitializer, connectionFactory,
-                new Mock<IConnectionPoolScaleController>().Object,
+                scaleController ?? new Mock<IConnectionPoolScaleController>().Object,
                 new Redactor(RedactionLevel.None),
                 new Logger(_testOutput),
                 new ClusterOptions().KvSendQueueCapacity);

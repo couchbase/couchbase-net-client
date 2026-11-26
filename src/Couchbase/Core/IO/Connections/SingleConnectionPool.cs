@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 #nullable enable
 
@@ -16,7 +19,10 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal sealed class SingleConnectionPool : ConnectionPoolBase
     {
-        private IConnection? _connection;
+        private readonly object _lock = new();
+        private volatile IConnection? _connection;
+        private TaskCompletionSource<IConnection>? _connecting;
+        private volatile bool _disposed;
 
         /// <inheritdoc />
         public sealed override int Size => 1;
@@ -38,43 +44,59 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public sealed override int PendingSends => 0;
 
+        /// <inheritdoc />
+        protected override bool IsDisposed => _disposed;
+
         /// <summary>
         /// Creates a new SingleConnectionPool.
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
         /// <param name="logger">The logger for logging.</param>
+        /// <param name="bucketName">The bucket that each new connection selects, or null for none.</param>
         public SingleConnectionPool(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger)
-            : base (connectionInitializer, connectionFactory, logger)
+            IConnectionFactory connectionFactory, ILogger<IConnectionPool> logger, string? bucketName = null)
+            : base (connectionInitializer, connectionFactory, logger, bucketName)
         {
         }
 
         /// <inheritdoc />
-        public override async Task InitializeAsync(CancellationToken cancellationToken = default)
-        {
-            _connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);;
-        }
+        public override Task InitializeAsync(CancellationToken cancellationToken = default) =>
+            ConnectAsync(cancellationToken);
 
         /// <inheritdoc />
         public override async Task SendAsync(IOperation operation, CancellationToken cancellationToken = default)
         {
-            if (_connection == null)
+            if (_disposed)
             {
-                throw new InvalidOperationException($"${nameof(SingleConnectionPool)} is not initialized.");
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(SingleConnectionPool));
             }
 
-            await CheckConnectionAsync().ConfigureAwait(false);
+            var connection = _connection;
+            if (connection is null || connection.IsDead)
+            {
+                // A node that refused the bucket at its first connect has no connection yet, so this connects again.
+                try
+                {
+                    connection = await ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (BucketNotFoundException)
+                {
+                    // The retry logic handles this type, and the next send connects again.
+                    ThrowHelper.ThrowSocketNotAvailableException(nameof(SingleConnectionPool));
+                }
+            }
 
-            await operation.SendAsync(_connection, cancellationToken).ConfigureAwait(false);
+            await operation.SendAsync(connection!, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
         public override IEnumerable<IConnection> GetConnections()
         {
-            if (_connection != null)
+            var connection = _connection;
+            if (connection != null)
             {
-                yield return _connection;
+                yield return connection;
             }
         }
 
@@ -84,19 +106,102 @@ namespace Couchbase.Core.IO.Connections
             throw new NotSupportedException();
         }
 
-        private async ValueTask CheckConnectionAsync()
+        /// <summary>
+        /// Returns the live connection, or opens one. Callers that arrive during a connect wait for its result, so the
+        /// pool opens one connection at a time.
+        /// </summary>
+        /// <remarks>
+        /// The connect runs on the token of the caller that starts it. A failed connect is not kept, so the next call
+        /// connects again.
+        /// </remarks>
+        private Task<IConnection> ConnectAsync(CancellationToken cancellationToken)
         {
-            if (_connection?.IsDead ?? true)
+            TaskCompletionSource<IConnection> connecting;
+            lock (_lock)
             {
-                await InitializeAsync().ConfigureAwait(false);
+                if (_disposed)
+                {
+                    return Task.FromException<IConnection>(new SocketNotAvailableException(nameof(SingleConnectionPool)));
+                }
+
+                if (_connection is { IsDead: false } live)
+                {
+                    return Task.FromResult(live);
+                }
+
+                if (_connecting is not null)
+                {
+                    return _connecting.Task;
+                }
+
+                connecting = _connecting = new TaskCompletionSource<IConnection>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            _ = RunConnectAsync(connecting, cancellationToken);
+            return connecting.Task;
+        }
+
+        private async Task RunConnectAsync(TaskCompletionSource<IConnection> connecting,
+            CancellationToken cancellationToken)
+        {
+            IConnection? connection = null;
+            Exception? error = null;
+            try
+            {
+                connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                error = e;
+            }
+
+            IConnection? replaced = null;
+            var stored = false;
+            lock (_lock)
+            {
+                _connecting = null;
+                if (connection is not null && !_disposed)
+                {
+                    replaced = _connection;
+                    _connection = connection;
+                    stored = true;
+                }
+            }
+
+            replaced?.Dispose();
+
+            if (error is not null)
+            {
+                connecting.TrySetException(error);
+            }
+            else if (!stored)
+            {
+                // Dispose ran during the connect.
+                connection!.Dispose();
+                connecting.TrySetException(new SocketNotAvailableException(nameof(SingleConnectionPool)));
+            }
+            else
+            {
+                connecting.TrySetResult(connection!);
             }
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Does not wait for a connect in progress. A connection that opens after this is disposed and not kept.
+        /// </remarks>
         public override void Dispose()
         {
-            _connection?.Dispose();
-            _connection = null;
+            IConnection? connection;
+            lock (_lock)
+            {
+                _disposed = true;
+                connection = _connection;
+                _connection = null;
+            }
+
+            connection?.Dispose();
         }
     }
 }

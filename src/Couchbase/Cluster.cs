@@ -327,7 +327,7 @@ namespace Couchbase
         {
             try
             {
-                var nodes = _context.Nodes.ToList();
+                var nodes = _context.GetAllNodes();
                 if (nodes.Count == 0)
                 {
                     return;

@@ -146,6 +146,41 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.True(adapter.IsKvNode);
         }
 
+        // A published config is shared, so the adapter drops KV for the bucket in its own view only.
+        [Fact]
+        public void BucketEntryWithNoNode_AdapterHasNoKv_AndTheEntryIsUnchanged()
+        {
+            var services = new Couchbase.Core.Configuration.Server.Services { Mgmt = 8091, Kv = 11210, KvSsl = 11207 };
+            var nodeExt = new NodesExt { Hostname = "localhost", Services = services };
+            var bucketConfig = new BucketConfig { Name = "default", NodesExt = [nodeExt] };
+
+            var adapter = new NodeAdapter(null, nodeExt, bucketConfig);
+
+            Assert.False(adapter.IsKvNode);
+            Assert.Equal(0, adapter.KeyValue);
+            Assert.Equal(0, adapter.KeyValueSsl);
+            Assert.Same(services, nodeExt.Services);
+            Assert.Equal(11210, nodeExt.Services.Kv);
+            Assert.Equal(11207, nodeExt.Services.KvSsl);
+        }
+
+        [Fact]
+        public void BucketEntryWithNoNode_ClusterAdapterKeepsKv()
+        {
+            var nodeExt = new NodesExt
+            {
+                Hostname = "localhost",
+                Services = new Couchbase.Core.Configuration.Server.Services { Mgmt = 8091, Kv = 11210, KvSsl = 11207 }
+            };
+            var bucketConfig = new BucketConfig { Name = "default", NodesExt = [nodeExt] };
+
+            var adapter = new NodeAdapter(null, nodeExt, bucketConfig, keepKv: true);
+
+            Assert.True(adapter.IsKvNode);
+            Assert.Equal(11210, adapter.KeyValue);
+            Assert.Equal(11207, adapter.KeyValueSsl);
+        }
+
         [Theory]
         [InlineData(NetworkResolution.Auto, "external")]
         [InlineData(NetworkResolution.External, "external")]

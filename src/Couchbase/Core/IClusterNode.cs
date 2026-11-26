@@ -51,7 +51,6 @@ namespace Couchbase.Core
         IConnectionPool ConnectionPool { get; }
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
 
-        bool IsAssigned { get; }
         bool HasViews { get; }
         bool HasAnalytics { get; }
         bool HasQuery { get; }
@@ -66,13 +65,6 @@ namespace Couchbase.Core
         DateTime? LastKvActivity { get; }
         DateTime? LastEventingActivity { get; }
         Task<Manifest> GetManifest();
-
-        /// <summary>
-        /// Selects the <see cref="IBucket"/> this <see cref="ClusterNode" /> is associated to.
-        /// </summary>
-        /// <param name="bucketName">The bucket's name.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Fetches the config of the selected bucket, or the cluster config when no bucket is selected.
@@ -94,6 +86,17 @@ namespace Couchbase.Core
         event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
 
         bool IsDead{ get; }
+
+        /// <summary>
+        /// True while the connection pool has never had a live connection. A config refresher does not ask such a node.
+        /// </summary>
+        bool IsAwaitingFirstConnection { get; }
+
+        /// <summary>
+        /// True while <see cref="IsAwaitingFirstConnection"/> is true and a connect attempt has failed. A config refresher
+        /// counts such a node as a failed fetch.
+        /// </summary>
+        bool HasFailedFirstConnect { get; }
 
         /// <summary>
         /// Re-authenticates all existing KV connections in the connection pool using the current authenticator.

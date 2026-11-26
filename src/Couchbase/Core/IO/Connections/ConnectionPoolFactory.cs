@@ -31,27 +31,43 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// A cluster node gets one connection, as RFC 48 asks. It never gets <see cref="SingleConnectionPool"/>, because
+        /// that pool does not retry a failed first connect.
+        /// </remarks>
         public IConnectionPool Create(ClusterNode clusterNode)
         {
+            var bucketName = clusterNode.FixedBucketName;
+
+            if (bucketName is null)
+            {
+                return CreateDataFlowPool(clusterNode, bucketName, minimumSize: 1, maximumSize: 1);
+            }
+
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
                 _dataFlowLogger.LogInformation("Using the SingleConnectionPool.");
 
-                return new SingleConnectionPool(clusterNode, _connectionFactory, _dataFlowLogger);
+                return new SingleConnectionPool(clusterNode, _connectionFactory, _dataFlowLogger, bucketName);
             }
-            else
+
+            return CreateDataFlowPool(clusterNode, bucketName, _clusterOptions.NumKvConnections,
+                _clusterOptions.MaxKvConnections);
+        }
+
+        private DataFlowConnectionPool CreateDataFlowPool(ClusterNode clusterNode, string? bucketName, int minimumSize,
+            int maximumSize)
+        {
+            _dataFlowLogger.LogInformation("Using the DataFlowConnectionPool.");
+
+            var scaleController = _scaleControllerFactory.Create();
+
+            return new DataFlowConnectionPool(clusterNode, _connectionFactory, scaleController,
+                _redactor, _dataFlowLogger, _clusterOptions.KvSendQueueCapacity, bucketName)
             {
-                _dataFlowLogger.LogInformation("Using the DataFlowConnectionPool.");
-
-                var scaleController = _scaleControllerFactory.Create();
-
-                return new DataFlowConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _dataFlowLogger, _clusterOptions.KvSendQueueCapacity)
-                {
-                    MinimumSize = _clusterOptions.NumKvConnections,
-                    MaximumSize = _clusterOptions.MaxKvConnections
-                };
-            }
+                MinimumSize = minimumSize,
+                MaximumSize = maximumSize
+            };
         }
     }
 }

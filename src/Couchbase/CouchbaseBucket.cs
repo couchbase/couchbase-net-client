@@ -146,8 +146,6 @@ namespace Couchbase
                 // It is stored last, so a failed apply keeps the old config and the same version is tried again.
                 lock (_currentConfigLock)
                 {
-                    Nodes.ReplaceAll(Context.GetNodes(Name));
-
                     // The key mapper of an unchanged vBucket server map stays valid for the new config.
                     ConfigSnapshot = new ConfigSnapshot(newConfig, newKeymapper ?? ConfigSnapshot.KeyMapper);
                     Logger.LogDebug(LoggingEvents.ConfigEvent,
@@ -374,7 +372,6 @@ namespace Couchbase
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
 
-            await node.SelectBucketAsync(Name, tokenPair).ConfigureAwait(false);
             return await node.SendAsync(op, tokenPair).ConfigureAwait(false);
         }
 
@@ -423,19 +420,6 @@ namespace Couchbase
                 var config = CurrentConfig!;
                 ConfigSnapshot = new ConfigSnapshot(config, _vBucketKeyMapperFactory.Create(config));
                 await Context.ProcessClusterMapAsync(this, config).ConfigureAwait(false);
-                var nodes = Context.GetNodes(Name);
-
-                //update the local nodes collection
-                lock (Nodes)
-                {
-                    foreach (var clusterNode in nodes)
-                    {
-                        if (!Nodes.TryGet(clusterNode.EndPoint, out _))
-                        {
-                            Nodes.Add(clusterNode);
-                        }
-                    }
-                }
 
                 ClearErrors();
 

@@ -272,6 +272,17 @@ namespace Couchbase.Core
             }
         }
 
+        /// <summary>
+        /// The nodes at this moment, in a new list.
+        /// </summary>
+        public List<IClusterNode> Snapshot()
+        {
+            lock (_syncObj)
+            {
+                return new List<IClusterNode>(_nodes);
+            }
+        }
+
         /// <inheritdoc />
         /// <remarks>
         /// Thread-safe, takes a snapshot of the current state at the time it is executed.

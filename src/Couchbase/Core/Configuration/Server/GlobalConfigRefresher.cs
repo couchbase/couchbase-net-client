@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -9,8 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.Configuration.Server;
 
 /// <summary>
-/// Keeps the cluster config up to date from the KV nodes that no bucket owns. Once buckets own every KV node, the
-/// bucket refreshers fetch the configs.
+/// Keeps the cluster config up to date from the KV nodes of the cluster.
 /// </summary>
 internal sealed class GlobalConfigRefresher : ConfigRefresher
 {
@@ -22,9 +20,12 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
 
     protected override string Name => BucketConfig.GlobalBucketName;
 
-    protected override IEnumerable<IClusterNode> Nodes => Context.Nodes.Where(node => node.Owner is null);
+    protected override IEnumerable<IClusterNode> Nodes => Context.Nodes;
 
     protected override ConfigVersion? CurrentVersion => Context.GlobalConfig?.ConfigVersion;
+
+    // A pass then finds the failed first connects, and its signal can start a rebootstrap. It stops at the first connection.
+    protected override bool PollsWithPollingOff => Context.IsAwaitingEveryClusterConnection();
 
     protected override void Publish(BucketConfig config)
     {
@@ -33,8 +34,14 @@ internal sealed class GlobalConfigRefresher : ConfigRefresher
         base.Publish(config);
     }
 
-    // A node that does not serve the cluster config means a cluster of mixed versions.
-    protected override bool AnyKeyNotFoundSwitchesToHttpStreaming => true;
+    // The rebootstrap also rebuilds every open bucket, so with a bucket open only the bucket refreshers start it.
+    protected override void SignalRefreshFailed()
+    {
+        if (!Context.HasOpenBuckets)
+        {
+            base.SignalRefreshFailed();
+        }
+    }
 
     // With no config over KV, the cluster and every bucket switch to HTTP streaming.
     protected override void StartHttpStreaming() => ConfigHandler.StartHttpStreaming();

@@ -39,11 +39,26 @@ internal sealed class SteppableClock : TimeProvider
     private readonly object _lock = new();
     private readonly Dictionary<TimeSpan, AsyncCounter> _sleeps = new();
     private readonly Dictionary<TimeSpan, long> _awaited = new();
+    private long _timersCreated;
 
     public override DateTimeOffset GetUtcNow() => _clock.GetUtcNow();
     public override long GetTimestamp() => _clock.GetTimestamp();
     public override long TimestampFrequency => _clock.TimestampFrequency;
     public override TimeZoneInfo LocalTimeZone => _clock.LocalTimeZone;
+
+    /// <summary>
+    /// How many timers were created on this clock, including the ones that already fired or were disposed.
+    /// </summary>
+    public long TimersCreated
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _timersCreated;
+            }
+        }
+    }
 
     /// <summary>
     /// Every sleep on this clock arrives here, whether it was taken through <c>Delay</c> or by
@@ -58,6 +73,7 @@ internal sealed class SteppableClock : TimeProvider
         AsyncCounter sleeps;
         lock (_lock)
         {
+            _timersCreated++;
             sleeps = SleepsOf(dueTime);
         }
 

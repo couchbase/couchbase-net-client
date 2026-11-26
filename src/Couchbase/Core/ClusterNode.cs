@@ -36,6 +36,7 @@ using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
+using BucketNotFoundException = Couchbase.Management.Buckets.BucketNotFoundException;
 
 namespace Couchbase.Core
 {
@@ -69,7 +70,8 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            Redactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            Redactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer, IOperationConfigurator operationConfigurator,
+            string bucketName = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -81,6 +83,12 @@ namespace Couchbase.Core
             _tracer = tracer;
             _operationConfigurator = operationConfigurator;
             EndPoint = endPoint;
+
+            if (bucketName != null)
+            {
+                FixedBucketName = bucketName;
+                _bucketName = bucketName;
+            }
 
             try
             {
@@ -138,13 +146,17 @@ namespace Couchbase.Core
         /// </summary>
         private ConfigVersion? EffectiveConfigVersion(IOperation op) => op.ConfigVersion ?? ConfigVersion;
 
-        public bool IsAssigned => Owner != null;
-
         public IBucket Owner
         {
             get => _owner;
             set
             {
+                if (FixedBucketName != null && value.Name != FixedBucketName)
+                {
+                    throw new ArgumentException(
+                        $"The node serves bucket {FixedBucketName} and cannot be owned by bucket {value.Name}.", nameof(value));
+                }
+
                 _owner = value;
                 _bucketName = _owner.Name;
             }
@@ -153,13 +165,19 @@ namespace Couchbase.Core
         public string BucketName => _bucketName;
 
         /// <summary>
-        /// Keeps the config this node serves up to date. It is the refresher of the bucket, or of the cluster when no
-        /// bucket owns the node. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// The bucket this node serves for life, or null for a cluster node. Each connection of a bucket node selects it.
+        /// </summary>
+        internal string FixedBucketName { get; }
+
+        /// <summary>
+        /// Keeps the config this node serves up to date. It is the refresher of the bucket for a bucket node, or of the
+        /// cluster for a cluster node. A Memcached bucket has none, because it gets its config over HTTP streaming.
+        /// A bucket node has none until the open binds it to its bucket.
         /// </summary>
         private ConfigRefresher ConfigRefresher => Owner switch
         {
             CouchbaseBucket bucket => bucket.ConfigRefresher,
-            null => _context.GlobalConfigRefresher,
+            null when FixedBucketName == null => _context.GlobalConfigRefresher,
             _ => null
         };
 
@@ -297,6 +315,12 @@ namespace Couchbase.Core
 
         public bool IsDead => _disposed;
 
+        /// <inheritdoc />
+        public bool IsAwaitingFirstConnection => ConnectionPool.IsAwaitingFirstConnection;
+
+        /// <inheritdoc />
+        public bool HasFailedFirstConnect => ConnectionPool.HasFailedFirstConnect;
+
         private void OnKeyEndPointsChanged(NotifyCollectionChangedEventArgs e)
         {
             KeyEndPointsChanged?.Invoke(this, e);
@@ -308,6 +332,48 @@ namespace Couchbase.Core
             if (NodesAdapter == null || NodesAdapter.IsKvNode)
             {
                 await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Starts the first connect in the background and returns at once. A node with no KV service starts none.
+        /// </summary>
+        /// <remarks>
+        /// A failed first connect is logged, and the pool keeps trying until the node is disposed. Dispose stops it.
+        /// </remarks>
+        internal void StartConnecting()
+        {
+            if (NodesAdapter is { IsKvNode: false })
+            {
+                return;
+            }
+
+            // The connect must not keep the trace of the caller alive. Suppressing twice on one thread throws.
+            if (ExecutionContext.IsFlowSuppressed())
+            {
+                _ = ConnectInBackgroundAsync();
+                return;
+            }
+
+            using (ExecutionContext.SuppressFlow())
+            {
+                _ = ConnectInBackgroundAsync();
+            }
+        }
+
+        private async Task ConnectInBackgroundAsync()
+        {
+            try
+            {
+                await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (_disposed || _context.IsDisposed || e is OperationCanceledException)
+            {
+                LogFirstConnectStopped(e, _redactor.SystemData(EndPoint));
+            }
+            catch (Exception e)
+            {
+                LogFirstConnectFailed(e, _redactor.SystemData(EndPoint));
             }
         }
 
@@ -456,11 +522,6 @@ namespace Couchbase.Core
                 .ConfigureAwait(false);
 
             return manifestOp.GetValue();
-        }
-
-        public async Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
-        {
-            await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<BucketConfig> GetClusterMap(ConfigVersion? latestVersionOnClient = default, TimeSpan? timeout = default,
@@ -1030,13 +1091,13 @@ namespace Couchbase.Core
 
                 Volatile.Write(ref _bucketRefused, 0);
             }
-            catch (DocumentNotFoundException)
+            catch (DocumentNotFoundException e)
             {
-                // If DNF exception then BucketNotConnected was returned so close the connection and let it get cleaned up later
+                // KeyNotFound means the node does not serve the bucket, for example a new node in its first moments.
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();
 
-                // The pool retries every few seconds while the node refuses, so only the first refusal is an error.
+                // Each later connect meets the same refusal while the node refuses, so only the first one is an error.
                 if (Interlocked.Exchange(ref _bucketRefused, 1) == 0)
                 {
                     LogCouldNotSelectBucket(_redactor.MetaData(bucketName));
@@ -1045,6 +1106,8 @@ namespace Couchbase.Core
                 {
                     LogBucketStillRefused(_redactor.MetaData(bucketName));
                 }
+
+                throw new BucketNotFoundException(bucketName, e);
             }
         }
 
@@ -1361,6 +1424,12 @@ namespace Couchbase.Core
 
         [LoggerMessage(400, LogLevel.Debug, "The Bucket [{bucketName}] could still not be selected.")]
         private partial void LogBucketStillRefused(Redacted<string> bucketName);
+
+        [LoggerMessage(500, LogLevel.Warning, "The first connect to {endpoint} failed. The node keeps trying in the background.")]
+        private partial void LogFirstConnectFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(501, LogLevel.Debug, "The first connect to {endpoint} stopped, as the node or the cluster is disposed.")]
+        private partial void LogFirstConnectStopped(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }
