@@ -211,6 +211,12 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (Volatile.Read(ref _connections).Length == 0)
+            {
+                // No processor reads the queue. Fail at once, so the retry maps the op again on the newest config.
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(ChannelConnectionPool));
+            }
+
             // Note: Because synchronous continuations are enabled, The ChannelConnectionProcessor's work to process items
             // from the queue may take place synchronously on this thread and momentarily block the return of this method.
             // However, this gives us the performance benefit of not queuing the send work on the thread pool. The time

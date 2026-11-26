@@ -64,8 +64,14 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="cancellationToken">Cancellation token which cancels the send. A write it cancels also closes the connection, which fails the operations in flight on it.</param>
         /// <returns>Task to observe for completion.</returns>
         /// <remarks>
+        /// <para>
         /// Completion of the returned task indicates that the operation has been either sent or queued to be sent.
         /// The operation will be marked as complete when a response is received.
+        /// </para>
+        /// <para>
+        /// A pool with no connection may throw <see cref="Couchbase.Core.Exceptions.KeyValue.SocketNotAvailableException"/>
+        /// instead of queueing the operation.
+        /// </para>
         /// </remarks>
         Task SendAsync(IOperation op, CancellationToken cancellationToken = default);
 
