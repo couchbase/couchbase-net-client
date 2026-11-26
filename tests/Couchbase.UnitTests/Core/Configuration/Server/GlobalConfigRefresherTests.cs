@@ -288,11 +288,14 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         var clock = new SteppableClock();
         using var context = CreateContext(out var configHandler);
         context.ClusterOptions.ConfigPollInterval = pollInterval;
+        // The connected node fails, so each pass goes on to the next node in either order.
         var connected = AddNode(context, "host1", owner: null);
         connected.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((BucketConfig)null!);
+            .ThrowsAsync(new TimeoutException());
         var connecting = AddNode(context, "host2", owner: null);
         connecting.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        connecting.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
 
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
@@ -303,10 +306,10 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         }
         await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
 
-        connected.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(3));
         connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
             Times.Never);
+        connected.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
     }
 
     [Fact]
@@ -429,6 +432,52 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         }
     }
 
+    // NCBC-4423. A KeyNotFound from one node counts as a failed fetch. Only KeyNotFound from every node switches to HTTP
+    // streaming.
+    [Fact]
+    public async Task Poll_WhenOneNodeAnswersKeyNotFoundAndTheOtherFails_SignalsTheFailure()
+    {
+        var (context, dnsLookups, fetches) = await RunOnePollAsync(
+            asked: [new DocumentNotFoundException(), new TimeoutException()],
+            awaiting: []);
+        using (context)
+        {
+            Assert.Equal(2, fetches.Count);
+            Assert.Equal(1, dnsLookups.Count);
+        }
+    }
+
+    // NCBC-4423. Each node fails in one of two passes, but no pass has every node fail. No node has the pushed version,
+    // so each pass asks both nodes in either order.
+    [Fact]
+    public async Task Push_WhenEachNodeFailsInADifferentPass_SignalsNothing()
+    {
+        var pollInterval = TimeSpan.FromSeconds(10);
+        var clock = new SteppableClock();
+        var dnsLookups = new AsyncCounter();
+        using var context = CreateContext(out var configHandler, options => UseDnsSrv(options, dnsLookups, pollInterval));
+        var nodes = new[] { AddNode(context, "host0", owner: null), AddNode(context, "host1", owner: null) };
+        FailOnlyOnFetch(nodes[0], fetch: 0);
+        FailOnlyOnFetch(nodes[1], fetch: 1);
+
+        using var refresher = CreateRefresher(context, configHandler, clock);
+        refresher.Start();
+        await clock.WaitForSleepAsync(pollInterval).WaitAsync(Deadline);
+        refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
+        // Reaching the next retry sleep means the second pass ran to completion.
+        await clock.WaitForSleepAsync(ConfigRefresher.GetNullConfigRetryDelay(1)).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
+
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+        }
+        Assert.Equal(0, dnsLookups.Count);
+    }
+
     // NCBC-4423. A pass for a pushed version asks every node until one has that version. A node that answers with
     // nothing newer still answers, so the pass does not fail.
     [Fact]
@@ -532,11 +581,13 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         using var refresher = CreateRefresher(context, configHandler, clock);
         refresher.Start();
         await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
-        var start = clock.GetUtcNow();
         clock.Advance(pollInterval + pollInterval);
+        // A wake up with nothing due goes back to sleep with no due time.
+        refresher.Reschedule();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
-        Assert.Equal(start + pollInterval + pollInterval, clock.GetUtcNow());
-        Assert.Equal(1, clock.TimersCreated);
+        Assert.Equal(2, clock.TimersCreated);
         Assert.Equal(0, dnsLookups.Count);
         VerifyNotAsked([connected, .. nodes]);
     }
@@ -713,6 +764,19 @@ public class GlobalConfigRefresherTests(ITestOutputHelper outputHelper)
         }
 
         return nodes;
+    }
+
+    /// <summary>
+    /// The node fails its fetch number <paramref name="fetch"/>, counted from zero, and answers with nothing newer on
+    /// the others.
+    /// </summary>
+    private static void FailOnlyOnFetch(Mock<IClusterNode> node, int fetch)
+    {
+        var fetches = 0;
+        node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => fetches++ == fetch
+                ? Task.FromException<BucketConfig>(new TimeoutException())
+                : Task.FromResult<BucketConfig>(null!));
     }
 
     private static void VerifyNotAsked(IEnumerable<Mock<IClusterNode>> nodes)

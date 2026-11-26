@@ -223,10 +223,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var pool = PoolOn(connection.Object, out _);
             Assert.True(pool.IsAwaitingFirstConnection);
 
-            await pool.CreateConnectionAsyncPublic();
+            pool.Connections.Add(await pool.CreateConnectionAsyncPublic());
             Assert.False(pool.IsAwaitingFirstConnection);
 
             connection.SetupGet(m => m.IsDead).Returns(true);
+            Assert.False(pool.IsAwaitingFirstConnection);
+
+            // A pool then drops the dead connection from its list.
+            pool.Connections.Clear();
             Assert.False(pool.IsAwaitingFirstConnection);
         }
 

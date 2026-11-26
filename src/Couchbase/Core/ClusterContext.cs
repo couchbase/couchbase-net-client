@@ -967,6 +967,7 @@ namespace Couchbase.Core
 
             BucketConfig config;
             BucketType type;
+            BucketBase bucket;
             try
             {
                 _logger.LogDebug("Bootstrapping {bucket}", name);
@@ -985,16 +986,7 @@ namespace Couchbase.Core
                 var nodeAdapter = config.GetNodes().Find(x=>HostEndpointWithPort.Create(x, ClusterOptions) == endpoint);
                 node.NodesAdapter = nodeAdapter ??
                                     throw new NullReferenceException($"Could not find an adapter for {endpoint}.");
-            }
-            catch
-            {
-                node.Dispose();
-                throw;
-            }
 
-            BucketBase bucket;
-            try
-            {
                 var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
                 bucket = bucketFactory.Create(name, type, config);
             }
@@ -1599,9 +1591,14 @@ namespace Couchbase.Core
         /// </para>
         /// <para>
         /// The lock free bucket path can move <see cref="ClusterNodesConfig"/> and mark it reconciled while this runs on
-        /// another thread. The view is read again after each AddNode, and a newer view restarts the reconcile against it,
-        /// so a node that the newer view drops does not stay. A config that moves the view later reads the nodes after
-        /// that AddNode, so it sees the new node.
+        /// another thread. That path publishes the view before it reads the nodes. So each pass reads the view again
+        /// after its last change, and a newer view restarts the reconcile against it. The restart adds back a node that
+        /// the newer view lists and the older config removed, and removes a node that the newer view drops. A view
+        /// published after that read sees the final nodes.
+        /// </para>
+        /// <para>
+        /// The mark is read before the view and set only if it did not change since, so this never replaces the mark of
+        /// a newer view.
         /// </para>
         /// </remarks>
         private void ReconcileClusterNodes(BucketConfig config)
@@ -1630,7 +1627,6 @@ namespace Couchbase.Core
                 }
 
                 var nodes = new List<IClusterNode>(Nodes);
-                BucketConfig newerView = null;
                 for (var i = 0; i < entries.Count; i++)
                 {
                     if (HasNodeAt(nodes, endPoints[i], entries[i]))
@@ -1650,17 +1646,17 @@ namespace Couchbase.Core
                     nodes.Add(newNode);
                     changed = true;
 
-                    if (ClusterNodesConfig is { } view && !ReferenceEquals(view, config)
-                        && view.ConfigVersion > config.ConfigVersion)
+                    if (GetNewerClusterNodesConfig(config) is not null)
                     {
-                        newerView = view;
                         break;
                     }
                 }
 
+                var mark = Volatile.Read(ref _reconciledClusterNodesConfig);
+                var newerView = GetNewerClusterNodesConfig(config);
                 if (newerView is null)
                 {
-                    Volatile.Write(ref _reconciledClusterNodesConfig, config);
+                    Interlocked.CompareExchange(ref _reconciledClusterNodesConfig, config, mark);
 
                     if (changed)
                     {
@@ -1675,6 +1671,9 @@ namespace Couchbase.Core
                 config = newerView;
             }
         }
+
+        private BucketConfig GetNewerClusterNodesConfig(BucketConfig config) =>
+            ClusterNodesConfig is { } view && view.ConfigVersion > config.ConfigVersion ? view : null;
 
         /// <summary>
         /// The lock free form of <see cref="ReconcileClusterNodes"/>. When the view needs no node created or

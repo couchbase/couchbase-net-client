@@ -127,6 +127,22 @@ public class AllNodesReadersTests
         return pool;
     }
 
+    /// <summary>
+    /// The pool of one connection that a cluster node gets.
+    /// </summary>
+    private static IConnectionPool ClusterPool(IConnectionFactory connections)
+    {
+        var initializer = new Mock<IConnectionInitializer>();
+        initializer.SetupGet(i => i.EndPoint).Returns(new HostEndpointWithPort("node-1", 11210));
+        return new Couchbase.Core.IO.Connections.Channels.ChannelConnectionPool(initializer.Object, connections,
+            new Mock<IConnectionPoolScaleController>().Object, new Redactor(RedactionLevel.None),
+            NullLogger<Couchbase.Core.IO.Connections.Channels.ChannelConnectionPool>.Instance, new SteppableClock(), 1024)
+        {
+            MinimumSize = 1,
+            MaximumSize = 1
+        };
+    }
+
     [Fact]
     public async Task DiagnosticsReport_ViewEntries_HoldOneBucketEntryPerKvHost()
     {
@@ -193,22 +209,43 @@ public class AllNodesReadersTests
         Assert.Equal(ClusterState.Degraded, state);
     }
 
+    // The count reads the same empty pool here as for a node that lost its connection. With that test, this pins that
+    // the count ignores whether the node ever connected.
     [Fact]
     public async Task ClusterWaitPass_OneKvClusterNodeStillConnecting_IsDegraded()
     {
         using var client = OneBucketClient.Create();
         var node = client.ClusterNodes[OneBucketClient.KvHosts[1]];
-        OneBucketClient.RemoveConnections(node);
-        node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(true);
+        var connectStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var connections = new Mock<IConnectionFactory>();
+        connections
+            .Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+            .Returns((HostEndpointWithPort _, CancellationToken token) =>
+            {
+                var connect = new TaskCompletionSource<IConnection>(TaskCreationOptions.RunContinuationsAsynchronously);
+                token.Register(() => connect.TrySetCanceled(token));
+                connectStarted.TrySetResult(true);
+                return connect.Task;
+            });
+        using var pool = ClusterPool(connections.Object);
+        node.SetupGet(n => n.ConnectionPool).Returns(pool);
+        node.SetupGet(n => n.IsAwaitingFirstConnection).Returns(() => pool.IsAwaitingFirstConnection);
+        var firstConnect = pool.InitializeAsync();
+        await connectStarted.Task.WaitAsync(Timeout);
 
         var wantsOnline = await EvaluateClusterPassAsync(client, new WaitUntilReadyOptions());
         var wantsDegraded = await EvaluateClusterPassAsync(client,
             new WaitUntilReadyOptions().DesiredState(ClusterState.Degraded));
 
+        Assert.True(node.Object.IsAwaitingFirstConnection);
+        Assert.False(firstConnect.IsCompleted);
         Assert.Equal(1, wantsOnline.KvNodesWithNoConnection);
         Assert.Equal(ClusterState.Degraded, wantsOnline.Readiness.State);
         Assert.False(wantsOnline.Readiness.Ready);
         Assert.True(wantsDegraded.Readiness.Ready);
+
+        pool.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => firstConnect.WaitAsync(Timeout));
     }
 
     [Fact]

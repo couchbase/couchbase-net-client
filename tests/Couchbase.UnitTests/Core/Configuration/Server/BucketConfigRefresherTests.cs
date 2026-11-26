@@ -91,17 +91,25 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         using ClusterContext mockContext = mockBucket.Context;
         var newConfig = new BucketConfig() { RevEpoch = 1, Rev = 3 };
         newConfig.OnDeserialized();
+        // The connected node has nothing newer at first, so the first pass goes on to every node it may ask.
+        var fetches = 0;
         var connected = AddNode(mockBucket, "node-0", push: true);
         connected.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(newConfig);
+            .Returns(() => Task.FromResult(fetches++ == 0 ? null! : newConfig));
         // A node that joined after a refused bucket has never had a connection.
         var connecting = AddNode(mockBucket, "node-1", push: true);
         connecting.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        connecting.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BucketConfig)null!);
         var clock = new SteppableClock();
         using var refresher = CreateRefresher(mockBucket, clock);
         refresher.Start();
 
         refresher.RequestRefresh(new ConfigVersion(1, 3));
+        await clock.WaitForSleepAsync(ConfigRefresher.InitialNullConfigRetryDelay).WaitAsync(Deadline);
+        connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        clock.Advance(ConfigRefresher.InitialNullConfigRetryDelay);
 
         Assert.Equal(newConfig.ConfigVersion, (await publishTcs.Task.WaitAsync(Deadline))!.ConfigVersion);
         connecting.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
@@ -910,31 +918,39 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         var clock = new SteppableClock();
         var dnsLookups = new AsyncCounter();
         var streaming = new AsyncCounter();
-        var bucket = CreateBucketMock(initialConfig: Version(2), onStartHttpStreaming: _ => streaming.Increment(),
-            configure: options => UseDnsSrv(options, dnsLookups, clock));
+        var published = new TaskCompletionSource<BucketConfig?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var bucket = CreateBucketMock(initialConfig: Version(2), onPublish: config => published.TrySetResult(config),
+            onStartHttpStreaming: _ => streaming.Increment(), configure: options => UseDnsSrv(options, dnsLookups, clock));
         using var context = bucket.Context;
+        var connected = false;
         var nodes = new[] { AddNode(bucket, "node-0", push: true), AddNode(bucket, "node-1", push: true) };
-        foreach (var node in nodes)
-        {
-            node.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
-            node.SetupGet(x => x.HasFailedFirstConnect).Returns(true);
-        }
+        nodes[0].SetupGet(x => x.IsAwaitingFirstConnection).Returns(() => !connected);
+        nodes[0].SetupGet(x => x.HasFailedFirstConnect).Returns(() => !connected);
+        nodes[0].Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Version(3));
+        nodes[1].SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        nodes[1].SetupGet(x => x.HasFailedFirstConnect).Returns(true);
 
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         clock.Advance(PollInterval);
-        // The loop goes on, so it did not end for HTTP streaming.
         await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
         await context.LastRebootstrap.WaitAsync(Deadline);
+        Assert.Equal(1, dnsLookups.Count);
 
+        // The bucket now exists on node-0, and the next poll fetches its config over KV.
+        connected = true;
+        clock.Advance(PollInterval);
+
+        Assert.Equal(Version(3).ConfigVersion, (await published.Task.WaitAsync(Deadline))!.ConfigVersion);
+        await clock.WaitForSleepAsync(PollInterval).WaitAsync(Deadline);
+        nodes[0].Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        nodes[1].Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
         Assert.Equal(1, dnsLookups.Count);
         Assert.Equal(0, streaming.Count);
-        foreach (var node in nodes)
-        {
-            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
-                Times.Never);
-        }
     }
 
     // NCBC-4423. Only the cluster refresher polls with polling off while no cluster node has connected.
@@ -965,13 +981,20 @@ public class BucketConfigRefresherTests(ITestOutputHelper outputHelper)
         using var refresher = CreateRefresher(bucket, clock);
         refresher.Start();
         await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
-        var start = clock.GetUtcNow();
         clock.Advance(PollInterval + PollInterval);
+        // A wake up with nothing due goes back to sleep with no due time.
+        refresher.Reschedule();
+        await clock.WaitForSleepAsync(ConfigRefresher.MaxSleep).WaitAsync(Deadline);
+        await context.LastRebootstrap.WaitAsync(Deadline);
 
         Assert.True(context.IsAwaitingEveryClusterConnection());
-        Assert.Equal(start + PollInterval + PollInterval, clock.GetUtcNow());
-        Assert.Equal(1, clock.TimersCreated);
+        Assert.Equal(2, clock.TimersCreated);
         Assert.Equal(0, dnsLookups.Count);
+        foreach (var node in nodes)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
     }
 
     [Fact]

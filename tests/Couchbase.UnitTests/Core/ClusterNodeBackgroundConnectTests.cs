@@ -88,6 +88,34 @@ namespace Couchbase.UnitTests.Core
             }
         }
 
+        [Theory]
+        [InlineData(1, 1, typeof(SingleConnectionPool))]
+        [InlineData(2, 5, typeof(ChannelConnectionPool))]
+        public async Task PoolFactory_BucketNode_NewConnectionSelectsTheBucketOfTheNode(int numKv, int maxKv, Type poolType)
+        {
+            using var context = CreateContext(options =>
+            {
+                options.NumKvConnections = numKv;
+                options.MaxKvConnections = maxKv;
+                options.Authenticator = NoKvAuthentication();
+            });
+            var selected = new ConcurrentQueue<string>();
+            var connections = new Mock<IConnectionFactory>();
+            connections
+                .Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => HandshakeConnection(selected));
+            var poolFactory = new ChannelConnectionPoolFactory(connections.Object, context.ClusterOptions,
+                ScaleControllers(), new Redactor(RedactionLevel.None), NullLogger<ChannelConnectionPool>.Instance,
+                new SteppableClock());
+
+            using var node = CreateNode(context, poolFactory, bucketName: "travel-sample");
+            await node.ConnectionPool.InitializeAsync().WaitAsync(Deadline);
+
+            Assert.IsType(poolType, node.ConnectionPool);
+            Assert.NotEmpty(selected);
+            Assert.All(selected, bucket => Assert.Equal("travel-sample", bucket));
+        }
+
         #endregion
 
         #region Background start
@@ -119,6 +147,9 @@ namespace Couchbase.UnitTests.Core
             await clock.WaitForSleepAsync(TimeSpan.FromTicks(ChannelConnectionPool.MinRefillDelay.Ticks * 2)).WaitAsync(Deadline);
 
             node.Dispose();
+            Assert.True(connections.LastToken.IsCancellationRequested);
+
+            // The dispose cancelled the sleep before these steps, so no step can start another attempt.
             clock.Advance(ChannelConnectionPool.MaxRefillDelay);
             clock.Advance(ChannelConnectionPool.MaxRefillDelay);
 
@@ -306,17 +337,67 @@ namespace Couchbase.UnitTests.Core
 
         private static SlicedMemoryOwner<byte> HelloResponse(uint opaque, params ServerFeatures[] features)
         {
-            var packet = new byte[OperationHeader.Length + 2 * features.Length];
-            packet[0] = (byte)Magic.ClientResponse;
-            packet[1] = (byte)OpCode.Helo;
-            BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(8), 2 * features.Length);
-            BinaryPrimitives.WriteUInt32BigEndian(packet.AsSpan(12), opaque);
+            var body = new byte[2 * features.Length];
             for (var i = 0; i < features.Length; i++)
             {
-                BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(OperationHeader.Length + 2 * i), (ushort)features[i]);
+                BinaryPrimitives.WriteUInt16BigEndian(body.AsSpan(2 * i), (ushort)features[i]);
             }
 
+            return Response(OpCode.Helo, opaque, body);
+        }
+
+        private static SlicedMemoryOwner<byte> Response(OpCode opCode, uint opaque, byte[] body,
+            DataType dataType = DataType.None)
+        {
+            var packet = new byte[OperationHeader.Length + body.Length];
+            packet[0] = (byte)Magic.ClientResponse;
+            packet[1] = (byte)opCode;
+            packet[5] = (byte)dataType;
+            BinaryPrimitives.WriteInt32BigEndian(packet.AsSpan(8), body.Length);
+            BinaryPrimitives.WriteUInt32BigEndian(packet.AsSpan(12), opaque);
+            body.CopyTo(packet.AsSpan(OperationHeader.Length));
+
             return new SlicedMemoryOwner<byte>(new FakeMemoryOwner<byte>(new Memory<byte>(packet)));
+        }
+
+        /// <summary>
+        /// A TLS connection that answers each setup step of a node with success, and records the bucket that each
+        /// SelectBucket names.
+        /// </summary>
+        private static IConnection HandshakeConnection(ConcurrentQueue<string> selected)
+        {
+            var errorMap = System.Text.Encoding.UTF8.GetBytes("{\"version\":2,\"revision\":1,\"errors\":{}}");
+            var connection = new Mock<IConnection>();
+            connection.SetupGet(c => c.IsSecure).Returns(true);
+            connection.SetupProperty(c => c.ServerFeatures, ServerFeatureSet.Empty);
+            connection.SetupGet(c => c.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 11210));
+            connection.Setup(c => c.CloseAsync(It.IsAny<TimeSpan>())).Returns(default(ValueTask));
+            connection
+                .Setup(c => c.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((ReadOnlyMemory<byte> _, IOperation op, CancellationToken _) =>
+                {
+                    if (op.OpCode == OpCode.SelectBucket)
+                    {
+                        selected.Enqueue(op.Key);
+                    }
+
+                    op.HandleOperationCompleted(op.OpCode == OpCode.GetErrorMap
+                        ? Response(op.OpCode, op.Opaque, errorMap, DataType.Json)
+                        : Response(op.OpCode, op.Opaque, []));
+                    return default;
+                });
+            return connection.Object;
+        }
+
+        /// <summary>
+        /// An authenticator that does not authenticate KV connections, so the node needs no SASL exchange.
+        /// </summary>
+        private static IAuthenticator NoKvAuthentication()
+        {
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.SetupGet(a => a.SupportsTls).Returns(true);
+            authenticator.SetupGet(a => a.SupportsNonTls).Returns(true);
+            return authenticator.Object;
         }
 
         #endregion
@@ -430,9 +511,15 @@ namespace Couchbase.UnitTests.Core
 
             public int Attempts => Volatile.Read(ref _attempts);
 
+            /// <summary>
+            /// The token of the latest attempt.
+            /// </summary>
+            public CancellationToken LastToken { get; private set; }
+
             public async Task<IConnection> CreateAndConnectAsync(HostEndpointWithPort hostEndpoint,
                 CancellationToken cancellationToken = default)
             {
+                LastToken = cancellationToken;
                 Interlocked.Increment(ref _attempts);
                 Signal();
                 if (Error is not null)

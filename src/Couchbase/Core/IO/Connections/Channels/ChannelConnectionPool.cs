@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         // Read once, because the Token getter throws after _cts is disposed.
         private readonly CancellationToken _poolToken;
 
-        // Serializes connects, scaling and bucket selection. It is never disposed, because an attempt can still hold it after Dispose.
+        // Serializes connects and scaling. It is never disposed, because an attempt can still hold it after Dispose.
         private readonly SemaphoreSlim _lock = new(1);
 
         // Guards _connections, _initialized, _disposed and _refillRunning. It is never held across an await.

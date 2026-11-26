@@ -1097,7 +1097,7 @@ namespace Couchbase.Core
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();
 
-                // The pool retries every few seconds while the node refuses, so only the first refusal is an error.
+                // Each later connect meets the same refusal while the node refuses, so only the first one is an error.
                 if (Interlocked.Exchange(ref _bucketRefused, 1) == 0)
                 {
                     LogCouldNotSelectBucket(_redactor.MetaData(bucketName));

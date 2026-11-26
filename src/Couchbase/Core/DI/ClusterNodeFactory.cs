@@ -104,7 +104,8 @@ namespace Couchbase.Core.DI
             }
             catch (BucketNotFoundException) when (acceptRefusedBucket)
             {
-                // The node joins with no connection and its pool keeps trying until the node accepts the bucket.
+                // The node joins with no connection. The channel pool keeps trying, and the single connection pool
+                // connects again when an operation is sent to the node.
             }
             catch
             {

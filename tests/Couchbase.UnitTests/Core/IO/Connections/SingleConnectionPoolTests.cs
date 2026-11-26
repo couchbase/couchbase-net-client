@@ -55,6 +55,23 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         }
 
         [Fact]
+        public async Task SendAsync_TwiceOnALiveConnection_OpensNoNewConnection()
+        {
+            _refuse = false;
+            var pool = CreatePool();
+            await pool.InitializeAsync().WaitAsync(Deadline);
+
+            var first = new FakeOperation();
+            var second = new FakeOperation();
+            await pool.SendAsync(first).WaitAsync(Deadline);
+            await pool.SendAsync(second).WaitAsync(Deadline);
+
+            var connection = Assert.Single(Created);
+            Assert.Same(connection, first.SentOn);
+            Assert.Same(connection, second.SentOn);
+        }
+
+        [Fact]
         public async Task SendAsync_DisposedPool_ThrowsSocketNotAvailableAndOpensNoConnection()
         {
             _refuse = false;
