@@ -65,12 +65,12 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal((1, 1), (pool.MinimumSize, pool.MaximumSize));
         }
 
+        // A bucket node with sizes of 1 gets the pool of one connection that a cluster node gets, because
+        // SingleConnectionPool does not retry a failed first connect.
         [Theory]
-        [InlineData(true, 1, 1, typeof(SingleConnectionPool))]
-        [InlineData(true, 2, 5, typeof(ChannelConnectionPool))]
-        [InlineData(false, 1, 1, typeof(SingleConnectionPool))]
-        [InlineData(false, 2, 5, typeof(DataFlowConnectionPool))]
-        public void PoolFactory_BucketNode_KeepsTheConfiguredPool(bool channelPools, int numKv, int maxKv, Type poolType)
+        [InlineData(1, 1, 1, 1)]
+        [InlineData(2, 5, 2, 5)]
+        public void ChannelPoolFactory_BucketNode_GetsAChannelPool(int numKv, int maxKv, int minimum, int maximum)
         {
             using var context = CreateContext(options =>
             {
@@ -78,7 +78,25 @@ namespace Couchbase.UnitTests.Core
                 options.MaxKvConnections = maxKv;
             });
 
-            using var node = CreateNode(context, PoolFactory(context, channelPools), bucketName: "default");
+            using var node = CreateNode(context, PoolFactory(context, channelPools: true), bucketName: "default");
+
+            var pool = node.ConnectionPool;
+            Assert.IsType<ChannelConnectionPool>(pool);
+            Assert.Equal((minimum, maximum), (pool.MinimumSize, pool.MaximumSize));
+        }
+
+        [Theory]
+        [InlineData(1, 1, typeof(SingleConnectionPool))]
+        [InlineData(2, 5, typeof(DataFlowConnectionPool))]
+        public void DataFlowPoolFactory_BucketNode_KeepsTheConfiguredPool(int numKv, int maxKv, Type poolType)
+        {
+            using var context = CreateContext(options =>
+            {
+                options.NumKvConnections = numKv;
+                options.MaxKvConnections = maxKv;
+            });
+
+            using var node = CreateNode(context, PoolFactory(context, channelPools: false), bucketName: "default");
 
             var pool = node.ConnectionPool;
             Assert.IsType(poolType, pool);
@@ -89,9 +107,9 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Theory]
-        [InlineData(1, 1, typeof(SingleConnectionPool))]
-        [InlineData(2, 5, typeof(ChannelConnectionPool))]
-        public async Task PoolFactory_BucketNode_NewConnectionSelectsTheBucketOfTheNode(int numKv, int maxKv, Type poolType)
+        [InlineData(1, 1)]
+        [InlineData(2, 5)]
+        public async Task PoolFactory_BucketNode_NewConnectionSelectsTheBucketOfTheNode(int numKv, int maxKv)
         {
             using var context = CreateContext(options =>
             {
@@ -111,7 +129,7 @@ namespace Couchbase.UnitTests.Core
             using var node = CreateNode(context, poolFactory, bucketName: "travel-sample");
             await node.ConnectionPool.InitializeAsync().WaitAsync(Deadline);
 
-            Assert.IsType(poolType, node.ConnectionPool);
+            Assert.IsType<ChannelConnectionPool>(node.ConnectionPool);
             Assert.NotEmpty(selected);
             Assert.All(selected, bucket => Assert.Equal("travel-sample", bucket));
         }

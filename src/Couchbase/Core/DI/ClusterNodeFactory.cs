@@ -104,8 +104,8 @@ namespace Couchbase.Core.DI
             }
             catch (BucketNotFoundException) when (acceptRefusedBucket)
             {
-                // The node joins with no connection. The channel pool keeps trying, and the single connection pool
-                // connects again when an operation is sent to the node.
+                // The node joins with no connection. The channel pool keeps trying. The single connection pool, which
+                // only the DataFlow factory gives, connects again when an operation is sent to the node.
             }
             catch
             {

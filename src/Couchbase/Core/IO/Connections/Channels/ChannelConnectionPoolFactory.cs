@@ -32,22 +32,18 @@ namespace Couchbase.Core.IO.Connections.Channels
 
         /// <inheritdoc />
         /// <remarks>
-        /// A cluster node gets one connection, as RFC 48 asks. It never gets <see cref="SingleConnectionPool"/>, because
-        /// that pool does not retry a failed first connect.
+        /// A cluster node gets one connection, as RFC 48 asks. A bucket node gets one connection when
+        /// <see cref="ClusterOptions.NumKvConnections"/> and <see cref="ClusterOptions.MaxKvConnections"/> are both 1 or
+        /// less. Both get a <see cref="ChannelConnectionPool"/>, never <see cref="SingleConnectionPool"/>, because that pool
+        /// does not retry a failed first connect.
         /// </remarks>
         public IConnectionPool Create(ClusterNode clusterNode)
         {
             var bucketName = clusterNode.FixedBucketName;
 
-            if (bucketName is null)
+            if (bucketName is null || (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1))
             {
                 return CreateChannelPool(clusterNode, bucketName, minimumSize: 1, maximumSize: 1);
-            }
-
-            if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
-            {
-                LogUsingConnectionPool("Single");
-                return new SingleConnectionPool(clusterNode, _connectionFactory, _channelPoolLogger, bucketName);
             }
 
             return CreateChannelPool(clusterNode, bucketName, _clusterOptions.NumKvConnections,

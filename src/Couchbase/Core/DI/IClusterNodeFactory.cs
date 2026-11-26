@@ -58,8 +58,9 @@ namespace Couchbase.Core.DI
         /// <param name="nodeAdapter"></param>
         /// <param name="bucketName">The bucket the node serves.</param>
         /// <param name="acceptRefusedBucket">When true and the node refuses the bucket, returns the node with no
-        /// connection. The channel pool keeps trying until the node accepts the bucket or the node is disposed. The
-        /// single connection pool connects again only when an operation is sent to the node.</param>
+        /// connection. The channel pool keeps trying until the node accepts the bucket or the node is disposed. With the
+        /// DataFlow pools and sizes of 1, the node gets the single connection pool, which connects again only when an
+        /// operation is sent to the node.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
         Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
