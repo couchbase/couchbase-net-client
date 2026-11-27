@@ -50,6 +50,7 @@ public class ChatTests
         Assert.Equal("ctx-1", request.Body.GetProperty("client_context_id").GetString());
         Assert.True(request.Body.GetProperty("metrics").GetBoolean());
         Assert.Equal("30000ms", request.Body.GetProperty("timeout").GetString());
+        Assert.False(request.Body.TryGetProperty("readonly", out _));
         Assert.Equal(cts.Token, request.Options.Token);
         Assert.False(request.ResultDisposed);
     }

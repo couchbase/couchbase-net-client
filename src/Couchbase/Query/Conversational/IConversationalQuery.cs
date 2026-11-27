@@ -16,6 +16,7 @@ public interface IConversationalQuery
 {
     /// <summary>
     /// Sends one prompt. Query generates a statement and runs it if it is eligible.
+    /// The request is sent read-only, so a generated statement cannot change data.
     /// </summary>
     /// <typeparam name="T">The type of each row.</typeparam>
     /// <param name="prompt">The natural language prompt.</param>

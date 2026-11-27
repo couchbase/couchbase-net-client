@@ -52,7 +52,7 @@ public class ConversationalQueryTests
     }
 
     [Fact]
-    public async Task QueryAsync_UnsetOptions_SendsNoKnowledgeAndNoMetrics()
+    public async Task QueryAsync_UnsetOptions_SendsReadonlyWithoutKnowledgeOrMetrics()
     {
         var context = WithNodes("uuid-a");
 
@@ -61,6 +61,7 @@ public class ConversationalQueryTests
         var request = Assert.Single(context.Requests);
         Assert.Equal("""USING AI WITH {"keyspaces":["`travel-sample`.`inventory`.`hotel`"]} count hotels""", request.Statement);
         Assert.False(request.Body.GetProperty("metrics").GetBoolean());
+        Assert.True(request.Body.GetProperty("readonly").GetBoolean());
         Assert.False(request.Body.TryGetProperty("natural_config", out _));
     }
 
@@ -100,7 +101,7 @@ public class ConversationalQueryTests
         Assert.Same(span, request.Options.RequestSpanValue);
         Assert.Same(retryStrategy, request.Options.RetryStrategyValue);
         Assert.True(request.Options.IsAdHoc);
-        Assert.False(body.TryGetProperty("readonly", out _));
+        Assert.True(body.GetProperty("readonly").GetBoolean());
     }
 
     [Fact]

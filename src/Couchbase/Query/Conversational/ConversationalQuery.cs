@@ -71,6 +71,12 @@ internal sealed class ConversationalQuery : IConversationalQuery
     {
         var options = template.Clone();
         options.Conversational = request;
+        if (request.Operation == ConversationalOperation.Query)
+        {
+            // One-shot queries are read-only, so a generated statement cannot change data.
+            options.Readonly(true);
+        }
+
         return new ConversationalQueryResult<T>(await context.QueryAsync<T>(statement, options).ConfigureAwait(false));
     }
 
