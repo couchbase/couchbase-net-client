@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Management.Buckets;
 
 #nullable enable
 
@@ -51,19 +50,15 @@ namespace Couchbase.Core.DI
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Create and connect to a <see cref="IClusterNode"/> that serves one bucket for life.
-        /// Each of its connections selects the bucket when it opens.
+        /// Creates a node that serves the bucket of <paramref name="owner"/> for life, and returns it at once. The owner
+        /// is set before the node starts its first connect in the background. Each connection selects the bucket when it
+        /// opens, and the pool keeps trying until the node is disposed.
         /// </summary>
         /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
-        /// <param name="nodeAdapter"></param>
-        /// <param name="bucketName">The bucket the node serves.</param>
-        /// <param name="acceptRefusedBucket">When true and the node refuses the bucket, returns the node with no
-        /// connection. The channel pool keeps trying until the node accepts the bucket or the node is disposed. The
-        /// single connection pool connects again only when an operation is sent to the node.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="nodeAdapter">The entry of the node in the bucket map.</param>
+        /// <param name="owner">The bucket the node serves.</param>
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
-        Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, string bucketName,
-            bool acceptRefusedBucket, CancellationToken cancellationToken = default);
+        IClusterNode CreateBucketNode(HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket owner);
     }
 }
 

@@ -9,6 +9,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -80,6 +81,7 @@ namespace Couchbase.UnitTests
             var node = new Mock<IClusterNode>();
             node.SetupGet(x => x.HasKv).Returns(true);
             node.SetupGet(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>());
+            node.SetupGet(x => x.ConnectionPool).Returns(new Mock<IConnectionPool>().Object);
             node.Setup(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new TemporaryFailureException());
             bucket.Nodes.Add(node.Object);

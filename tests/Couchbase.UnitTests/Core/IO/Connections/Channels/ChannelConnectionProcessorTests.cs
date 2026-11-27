@@ -134,8 +134,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
 
+            // The pool has no connection, so its SendAsync fails at once. Queue the op directly for this processor.
             var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
-            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, CancellationToken.None);
+            Assert.True(sendQueue.Writer.TryWrite(new ChannelQueueItem(new ChannelProcessorFakeOperation(), CancellationToken.None)));
             await processor.Process();
 
             connectionMock
@@ -159,9 +160,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
 
-            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, cancellationTokenSource.Token);
-            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, CancellationToken.None);
-            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, cancellationTokenSource.Token);
+            // The pool has no connection, so its SendAsync fails at once. Queue the ops directly for this processor.
+            Assert.True(sendQueue.Writer.TryWrite(new ChannelQueueItem(new ChannelProcessorFakeOperation(), cancellationTokenSource.Token)));
+            Assert.True(sendQueue.Writer.TryWrite(new ChannelQueueItem(new ChannelProcessorFakeOperation(), CancellationToken.None)));
+            Assert.True(sendQueue.Writer.TryWrite(new ChannelQueueItem(new ChannelProcessorFakeOperation(), cancellationTokenSource.Token)));
 
             cancellationTokenSource.Cancel();
             sendQueue.Writer.TryComplete();

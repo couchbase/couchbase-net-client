@@ -212,10 +212,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var factory = new Mock<IClusterNodeFactory>();
             factory.Setup(f => f.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
                 .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter) => CreateNode(context!, endPoint, nodeAdapter));
-            factory.Setup(f => f.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                    Task.FromResult<IClusterNode>(CreateNode(context!, endPoint, nodeAdapter)));
+            factory.Setup(f => f.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<IBucket>()))
+                .Returns((HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IBucket owner) =>
+                {
+                    var node = CreateNode(context!, endPoint, nodeAdapter);
+                    node.Owner = owner;
+                    return node;
+                });
             options.AddClusterService(factory.Object);
             using var ownedContext = new ClusterContext(new CancellationTokenSource(), options);
             context = ownedContext;

@@ -788,8 +788,8 @@ public class BucketConfigExtensionTests
         Assert.Same(current, bucket.CurrentConfig);
         Assert.Same(keyMapper, bucket.KeyMapper);
         keyMapperFactory.Verify(x => x.Create(It.IsAny<BucketConfig>(), It.IsAny<CancellationToken>()), Times.Never);
-        nodeFactory.Verify(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        nodeFactory.Verify(x => x.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+            It.IsAny<IBucket>()), Times.Never);
     }
 
     [Fact]
@@ -1092,8 +1092,46 @@ public class BucketConfigExtensionTests
         Assert.Null(clusterNodeC.Owner);
         Assert.Same(clusterNodeC, Assert.Single(bucket.Context.Nodes, node => node.EndPoint.Equals(NodeC)));
         nodeFactory.Verify(x => x.CreateClusterNode(NodeC, It.IsAny<NodeAdapter>()), Times.Once);
-        nodeFactory.Verify(x => x.CreateAndConnectAsync(NodeC, It.IsAny<NodeAdapter>(), "default", true,
-            It.IsAny<CancellationToken>()), Times.Once);
+        nodeFactory.Verify(x => x.CreateBucketNode(NodeC, It.IsAny<NodeAdapter>(), bucket), Times.Once);
+    }
+
+    // NCBC-4414. The new node joins before its first connect ends, and the config, the key mapper and the node list do
+    // not wait for it. The VBucket of nodeC maps to the new node.
+    [Fact]
+    public async Task ConfigUpdatedAsync_MapWithANewNode_AppliesBeforeTheNodeConnects()
+    {
+        var connects = 0;
+        var pool = new Mock<IConnectionPool>();
+        pool.SetupGet(x => x.IsAwaitingFirstConnection).Returns(true);
+        pool.Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => Interlocked.Increment(ref connects))
+            .Returns(new TaskCompletionSource<bool>().Task);
+        var poolFactory = new Mock<IConnectionPoolFactory>();
+        poolFactory.Setup(x => x.Create(It.IsAny<ClusterNode>())).Returns(pool.Object);
+        var nodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+        var keyMapperFactory = new VBucketKeyMapperFactory(new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+        var bucket = CreateBucket(CreateConfig(rev: 1, activeNode: 0), keyMapperFactory, nodeFactory);
+        var realFactory = new ClusterNodeFactory(bucket.Context, poolFactory.Object, new Mock<ILogger<ClusterNode>>().Object,
+            new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()), new Mock<ISaslMechanismFactory>().Object,
+            new Redactor(RedactionLevel.None), NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object);
+        nodeFactory.Setup(x => x.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter) => CreateNode(bucket.Context, ep, nodeAdapter));
+        nodeFactory.Setup(x => x.CreateBucketNode(NodeC, It.IsAny<NodeAdapter>(), bucket))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, IBucket owner) =>
+                realFactory.CreateBucketNode(ep, nodeAdapter, owner));
+        var keyMapper = bucket.KeyMapper;
+
+        var incoming = CreateConfigWithNodeC(rev: 2);
+        await bucket.ConfigUpdatedAsync(incoming).WaitAsync(Deadline);
+
+        Assert.Same(incoming, bucket.CurrentConfig);
+        Assert.NotSame(keyMapper, bucket.KeyMapper);
+        Assert.Equal(NodeC, ((VBucketKeyMapper)bucket.KeyMapper)[(short)3].LocatePrimary());
+        Assert.True(bucket.Nodes.TryGet(NodeC, out var nodeC));
+        Assert.True(nodeC.IsAwaitingFirstConnection);
+        Assert.Same(bucket, nodeC.Owner);
+        Assert.Equal(1, Volatile.Read(ref connects));
+        Assert.Equal(3, bucket.Nodes.Count);
     }
 
     [Fact]
@@ -1346,10 +1384,10 @@ public class BucketConfigExtensionTests
             nodeFactory = new Mock<IClusterNodeFactory>();
             nodeFactory.Setup(x => x.CreateClusterNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>()))
                 .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter) => CreateNode(clusterCtx, ep, nodeAdapter));
-            nodeFactory.Setup(x => x.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
-                    It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-                .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                    Task.FromResult<IClusterNode>(CreateNode(clusterCtx, ep, nodeAdapter)));
+            nodeFactory.Setup(x => x.CreateBucketNode(It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                    It.IsAny<IBucket>()))
+                .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, IBucket owner) =>
+                    CreateNode(clusterCtx, ep, nodeAdapter, owner));
         }
 
         var options = new ClusterOptions().AddClusterService(nodeFactory.Object).WithPasswordAuthentication("username", "password");
@@ -1392,6 +1430,17 @@ public class BucketConfigExtensionTests
     }
 
     /// <summary>
+    /// A node with a mock connection pool, so it opens no connection. A bucket node gets its owner as the factory sets it.
+    /// </summary>
+    private static ClusterNode CreateNode(ClusterContext context, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter,
+        IBucket owner)
+    {
+        var node = CreateNode(context, endPoint, nodeAdapter);
+        node.Owner = owner;
+        return node;
+    }
+
+    /// <summary>
     /// A node with a mock connection pool, so it opens no connection.
     /// </summary>
     private static ClusterNode CreateNode(ClusterContext context, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter)
@@ -1414,7 +1463,7 @@ public class BucketConfigExtensionTests
     /// <summary>
     /// Makes the factory create a node at <paramref name="endPoint"/>, as for a node new to the cluster.
     /// </summary>
-    // Answers the call for a cluster node and both calls for a bucket node.
+    // Answers the call for a cluster node, the awaited call for a seed and the call for a bucket node.
     private static void SetupCreateNode(Mock<IClusterNodeFactory> nodeFactory, ClusterContext context,
         HostEndpointWithPort endPoint)
     {
@@ -1424,10 +1473,9 @@ public class BucketConfigExtensionTests
                 It.IsAny<CancellationToken>()))
             .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, CancellationToken _) =>
                 Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
-        nodeFactory.Setup(x => x.CreateAndConnectAsync(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<string>(),
-                It.IsAny<bool>(), It.IsAny<CancellationToken>()))
-            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, string _, bool _, CancellationToken _) =>
-                Task.FromResult<IClusterNode>(CreateNode(context, ep, nodeAdapter)));
+        nodeFactory.Setup(x => x.CreateBucketNode(endPoint, It.IsAny<NodeAdapter>(), It.IsAny<IBucket>()))
+            .Returns((HostEndpointWithPort ep, NodeAdapter nodeAdapter, IBucket owner) =>
+                CreateNode(context, ep, nodeAdapter, owner));
     }
 
     #region MergeClusterLabels

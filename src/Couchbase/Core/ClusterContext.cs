@@ -955,7 +955,8 @@ namespace Couchbase.Core
         /// it.</param>
         /// <remarks>
         /// The open creates a node of its own on the endpoint, which selects the bucket on each connection. A refused
-        /// bucket or a failed connect fails this endpoint. A failed open disposes only what it created.
+        /// bucket or a failed connect fails this endpoint. The other nodes of the bucket join and connect in the
+        /// background, so the open waits only for this one. A failed open disposes only what it created.
         /// </remarks>
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint,
             MapWaitBudget mapWait)
@@ -1054,8 +1055,8 @@ namespace Couchbase.Core
 
         /// <summary>
         /// Fetches the config of a new bucket again until it has a vBucket map, or until <paramref name="mapWait"/>
-        /// has no time left. It then returns the last config, and a config with no map fails the bootstrap. A failed
-        /// fetch is retried while time is left.
+        /// has no time left. With no map by then it throws <see cref="BucketNotFoundException"/>, so the open creates no
+        /// bucket on this node. A failed fetch is retried while time is left.
         /// </summary>
         /// <remarks>
         /// Before 7.6.2 the server can send the config of a new bucket before it has built the map (MB-60405).
@@ -1099,6 +1100,7 @@ namespace Couchbase.Core
                 _logger.LogWarning("Bootstrapping: the config of bucket {name} has no vBucket map after the " +
                     "KvTimeout of {kvTimeout}. The bootstrap from this node fails.",
                     _redactor.MetaData(name), ClusterOptions.KvTimeout);
+                throw new BucketNotFoundException(name);
             }
 
             return config;
@@ -1301,8 +1303,8 @@ namespace Couchbase.Core
         /// <remarks>
         /// <para>
         /// When every KV entry has its bucket node, no bucket node left the map and the cluster nodes need no change,
-        /// only the adapters change and the config lock is not taken. The update then does not wait while another apply
-        /// holds that lock to connect nodes.
+        /// only the adapters change and the config lock is not taken. Otherwise the nodes change under the config lock.
+        /// New nodes join at once and connect in the background, so no apply waits for a connect.
         /// </para>
         /// <para>
         /// The cluster nodes follow <see cref="ClusterNodesConfig"/>, see <see cref="ReconcileClusterNodes"/>. A
@@ -1363,7 +1365,7 @@ namespace Couchbase.Core
                     }
                 }
 
-                await ReconcileBucketNodesAsync(bucket, config, mapNodes, endPoints).ConfigureAwait(false);
+                ReconcileBucketNodes(bucket, config, mapNodes, endPoints);
             }
             catch (Exception e)
             {
@@ -1384,7 +1386,7 @@ namespace Couchbase.Core
             bucket.BucketType != BucketType.Memcached && !IsOlderThanClusterNodesConfig(config);
 
         /// <summary>
-        /// The lock free form of <see cref="ReconcileBucketNodesAsync"/>. When every KV entry has its bucket node and
+        /// The lock free form of <see cref="ReconcileBucketNodes"/>. When every KV entry has its bucket node and
         /// no bucket node left the map, it gives each node the adapter of its entry and returns true. Otherwise it
         /// changes nothing and returns false.
         /// </summary>
@@ -1420,45 +1422,20 @@ namespace Couchbase.Core
         /// Gives a bucket one node of its own per KV entry of its config, under the config lock.
         /// </summary>
         /// <remarks>
-        /// The new nodes connect in parallel, and every connect is awaited before the bucket changes. A node that
-        /// refuses the bucket joins with no connection, and its pool keeps trying. Any other failed connect disposes
-        /// the new nodes and fails the apply with no change to the bucket. Then the new nodes join, the kept nodes get
-        /// their adapters, and the nodes that left the map are removed and disposed.
+        /// A new node joins at once and connects in the background, so the reconcile waits for no connect. The kept
+        /// nodes get their adapters, and the nodes that left the map are removed and disposed. A bucket or a context
+        /// that is disposed keeps no node.
         /// </remarks>
-        private async Task ReconcileBucketNodesAsync(BucketBase bucket, BucketConfig config,
+        private void ReconcileBucketNodes(BucketBase bucket, BucketConfig config,
             List<NodeAdapter> mapNodes, List<HostEndpointWithPort> endPoints)
         {
-            var nodes = bucket.Nodes.Snapshot();
-            List<Task<IClusterNode>> connects = null;
-            for (var i = 0; i < mapNodes.Count; i++)
+            if (bucket.Disposed || IsDisposed)
             {
-                var nodeAdapter = mapNodes[i];
-
-                //log any alternate address mapping
-                _logger.LogInformation(nodeAdapter.ToString());
-
-                if (!nodeAdapter.IsKvNode || FindNode(nodes, endPoints[i], nodeAdapter) is not null)
-                {
-                    continue;
-                }
-
-                _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
-                    _redactor.SystemData(endPoints[i]), _redactor.MetaData(bucket.Name), config.Rev);
-                (connects ??= []).Add(ConnectBucketNode(bucket.Name, nodeAdapter, endPoints[i]));
-            }
-
-            var created = connects is null ? [] : await ConnectAllAsync(connects).ConfigureAwait(false);
-            if (bucket.Disposed || _disposed != 0)
-            {
-                foreach (var node in created)
-                {
-                    node.Dispose();
-                }
-
                 return;
             }
 
-            List<IClusterNode> kept = new(nodes.Count + created.Length);
+            var nodes = bucket.Nodes.Snapshot();
+            List<IClusterNode> kept = new(mapNodes.Count);
             List<IClusterNode> left = null;
             foreach (var node in nodes)
             {
@@ -1473,15 +1450,15 @@ namespace Couchbase.Core
                 kept.Add(node);
             }
 
-            if (created.Length == 0 && left is null)
+            var created = CreateBucketNodes(bucket, config, nodes, mapNodes, endPoints);
+            if (created is null && left is null)
             {
                 return;
             }
 
-            foreach (var node in created)
+            if (created is not null)
             {
-                node.Owner = bucket;
-                kept.Add(node);
+                kept.AddRange(created);
             }
 
             // Adds the new nodes before it removes the others, so an endpoint can move from a node that left.
@@ -1497,8 +1474,9 @@ namespace Couchbase.Core
                 }
             }
 
-            // A close that ran during the replace can miss the new nodes.
-            if (bucket.Disposed)
+            // Dispose does not take the config lock. It sets its flag before it clears the nodes, so a clear that ran
+            // before the replace is caught here.
+            if (bucket.Disposed || IsDisposed)
             {
                 foreach (var node in bucket.Nodes.Clear())
                 {
@@ -1509,43 +1487,50 @@ namespace Couchbase.Core
             RecomputeClusterFeatureSupport();
         }
 
-        private Task<IClusterNode> ConnectBucketNode(string bucketName, NodeAdapter nodeAdapter,
-            HostEndpointWithPort endPoint)
-        {
-            try
-            {
-                // We want the BootstrapEndpoint to use the host name, not just the IP
-                return _clusterNodeFactory.CreateAndConnectAsync(
-                    new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port), nodeAdapter, bucketName,
-                    acceptRefusedBucket: true, CancellationToken);
-            }
-            catch (Exception e)
-            {
-                return Task.FromException<IClusterNode>(e);
-            }
-        }
-
         /// <summary>
-        /// Awaits every connect. When one fails, it disposes the nodes of the others and throws the first error.
+        /// Creates a bucket node for each KV entry that has none. Returns null when every entry has one.
         /// </summary>
-        private static async Task<IClusterNode[]> ConnectAllAsync(List<Task<IClusterNode>> connects)
+        private List<IClusterNode> CreateBucketNodes(BucketBase bucket, BucketConfig config, List<IClusterNode> nodes,
+            List<NodeAdapter> mapNodes, List<HostEndpointWithPort> endPoints)
         {
+            List<IClusterNode> created = null;
             try
             {
-                return await Task.WhenAll(connects).ConfigureAwait(false);
+                for (var i = 0; i < mapNodes.Count; i++)
+                {
+                    var nodeAdapter = mapNodes[i];
+
+                    //log any alternate address mapping
+                    _logger.LogInformation(nodeAdapter.ToString());
+
+                    if (!nodeAdapter.IsKvNode || FindNode(nodes, endPoints[i], nodeAdapter) is not null)
+                    {
+                        continue;
+                    }
+
+                    _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
+                        _redactor.SystemData(endPoints[i]), _redactor.MetaData(bucket.Name), config.Rev);
+
+                    // We want the BootstrapEndpoint to use the host name, not just the IP
+                    (created ??= []).Add(_clusterNodeFactory.CreateBucketNode(
+                        new HostEndpointWithPort(nodeAdapter.Hostname, endPoints[i].Port), nodeAdapter, bucket));
+                }
             }
             catch
             {
-                foreach (var connect in connects)
+                // The nodes already connect in the background and are in no list.
+                if (created is not null)
                 {
-                    if (connect.Status == TaskStatus.RanToCompletion)
+                    foreach (var node in created)
                     {
-                        connect.Result.Dispose();
+                        node.Dispose();
                     }
                 }
 
                 throw;
             }
+
+            return created;
         }
 
         private static IClusterNode FindNode(List<IClusterNode> nodes, HostEndpointWithPort endPoint,

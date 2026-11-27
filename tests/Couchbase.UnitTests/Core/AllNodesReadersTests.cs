@@ -371,6 +371,155 @@ public class AllNodesReadersTests
     }
 
     [Fact]
+    public async Task BucketWaitPass_OneKvBucketNodeWithNoConnection_IsDegraded()
+    {
+        using var client = OneBucketClient.Create();
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[1]]);
+
+        var wantsOnline = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+        var wantsDegraded = await EvaluateBucketPassAsync(client,
+            new WaitUntilReadyOptions().DesiredState(ClusterState.Degraded));
+
+        Assert.Equal(1, wantsOnline.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Degraded, wantsOnline.Readiness.State);
+        Assert.False(wantsOnline.Readiness.Ready);
+        Assert.True(wantsDegraded.Readiness.Ready);
+    }
+
+    [Fact]
+    public async Task BucketWaitPass_LastKvBucketNodeConnects_IsOnline()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.BucketNodes[OneBucketClient.KvHosts[1]];
+        var pool = Mock.Get(node.Object.ConnectionPool);
+        var connections = node.Object.ConnectionPool.GetConnections().ToList();
+        OneBucketClient.RemoveConnections(node);
+
+        var connecting = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+        pool.Setup(x => x.GetConnections()).Returns(connections);
+        var connected = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(ClusterState.Degraded, connecting.Readiness.State);
+        Assert.Equal(0, connected.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, connected.Readiness.State);
+        Assert.True(connected.Readiness.Ready);
+    }
+
+    [Fact]
+    public async Task BucketWaitUntilReady_OnlyOneOfThreeKvBucketNodesConnected_ReachesDegradedNotOnline()
+    {
+        using var client = OneBucketClient.Create();
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[1]]);
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[2]]);
+        var kvOnly = new WaitUntilReadyOptions().ServiceTypes(ServiceType.KeyValue);
+
+        var pass = await EvaluateBucketPassAsync(client, kvOnly);
+        // Degraded on the first pass, so the wait has no backoff delay.
+        await client.Bucket.WaitUntilReadyAsync(Timeout,
+            new WaitUntilReadyOptions().ServiceTypes(ServiceType.KeyValue).DesiredState(ClusterState.Degraded))
+            .WaitAsync(Timeout);
+
+        Assert.Equal(2, pass.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Degraded, pass.Readiness.State);
+        Assert.False(pass.Readiness.Ready);
+    }
+
+    // In the tests below, the bucket node on the last KV host has no connection and counts once. It shows the rule runs.
+
+    [Fact]
+    public async Task BucketWaitPass_BucketNodeWithNoKvServiceAndNoConnection_IsNotCounted()
+    {
+        using var client = OneBucketClient.Create();
+        var node = client.BucketNodes[OneBucketClient.KvHosts[1]];
+        OneBucketClient.RemoveConnections(node);
+        node.SetupGet(n => n.HasKv).Returns(false);
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[2]]);
+
+        var pass = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions().ServiceTypes(ServiceType.KeyValue));
+
+        Assert.Equal(1, pass.KvNodesWithNoConnection);
+    }
+
+    [Theory]
+    [InlineData("channel")]
+    [InlineData("dataflow")]
+    public async Task BucketWaitPass_KvBucketNodeWhosePoolIsDisposed_IsNotCounted(string poolType)
+    {
+        using var client = OneBucketClient.Create();
+        using var pool = DisposedPool(poolType);
+        client.BucketNodes[OneBucketClient.KvHosts[1]].SetupGet(n => n.ConnectionPool).Returns(pool);
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[2]]);
+
+        var pass = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(1, pass.KvNodesWithNoConnection);
+    }
+
+    // A disposed SingleConnectionPool reads as a pool with no connection, so a node disposed after its IsDead check
+    // counts for one pass. ClusterNode.Dispose sets IsDead before it disposes the pool.
+    [Theory]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    public async Task BucketWaitPass_KvBucketNodeWhoseSinglePoolIsDisposed_DoesNotThrow(bool isDead, int counted)
+    {
+        using var client = OneBucketClient.Create();
+        using var pool = DisposedPool("single");
+        var node = client.BucketNodes[OneBucketClient.KvHosts[1]];
+        node.SetupGet(n => n.ConnectionPool).Returns(pool);
+        node.SetupGet(n => n.IsDead).Returns(isDead);
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[2]]);
+
+        var pass = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(counted, pass.KvNodesWithNoConnection);
+    }
+
+    [Fact]
+    public async Task BucketWaitPass_KvNotExpected_CountsNothing()
+    {
+        using var client = OneBucketClient.Create();
+        OneBucketClient.RemoveConnections(client.BucketNodes[OneBucketClient.KvHosts[2]]);
+
+        var queryOnly = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions().ServiceTypes(ServiceType.Query));
+        var withKv = await EvaluateBucketPassAsync(client, new WaitUntilReadyOptions());
+
+        Assert.Equal(0, queryOnly.KvNodesWithNoConnection);
+        Assert.Equal(ClusterState.Online, queryOnly.Readiness.State);
+        Assert.Equal(1, withKv.KvNodesWithNoConnection);
+    }
+
+    [Fact]
+    public async Task ForceConfigUpdate_SomeKvBucketNodesWithNoConnection_FetchesFromAConnectedNode()
+    {
+        using var client = OneBucketClient.Create();
+        var connected = client.BucketNodes[OneBucketClient.KvHosts[0]];
+        var notConnected = new[]
+        {
+            client.BucketNodes[OneBucketClient.KvHosts[1]],
+            client.BucketNodes[OneBucketClient.KvHosts[2]]
+        };
+        foreach (var node in notConnected)
+        {
+            OneBucketClient.RemoveConnections(node);
+        }
+
+        // The pick is random, so many calls make a pick of the wrong node near certain without the rule.
+        const int calls = 30;
+        for (var i = 0; i < calls; i++)
+        {
+            await client.Bucket.ForceConfigUpdateAsync().WaitAsync(Timeout);
+        }
+
+        connected.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(calls));
+        foreach (var node in notConnected)
+        {
+            node.Verify(x => x.GetClusterMap(It.IsAny<ConfigVersion?>(), It.IsAny<TimeSpan?>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+    }
+
+    [Fact]
     public async Task JwtAuthenticator_ReauthenticatesEveryKvNodeOnce()
     {
         var options = new ClusterOptions()
@@ -446,6 +595,14 @@ public class AllNodesReadersTests
         using var cts = new CancellationTokenSource(Timeout);
         return await WaitUntilReadyEvaluator.EvaluatePassAsync(client.Context, options, bucketLevel: false,
             client.Context.GlobalConfig, NullLogger.Instance, cts.Token).WaitAsync(Timeout);
+    }
+
+    private static async Task<WaitUntilReadyPass> EvaluateBucketPassAsync(OneBucketClient client,
+        WaitUntilReadyOptions options)
+    {
+        using var cts = new CancellationTokenSource(Timeout);
+        return await WaitUntilReadyEvaluator.EvaluatePassAsync(client.Context, options, bucketLevel: true,
+            client.Bucket.CurrentConfig, NullLogger.Instance, cts.Token).WaitAsync(Timeout);
     }
 
     private static async Task<ClusterState?> PollClusterAsync(OneBucketClient client, WaitUntilReadyOptions options)

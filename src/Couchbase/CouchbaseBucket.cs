@@ -10,6 +10,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
@@ -173,7 +174,10 @@ namespace Couchbase
 
         public override async Task ForceConfigUpdateAsync()
         {
-            var configNode = Nodes.RandomOrDefault(static x => x.HasKv);
+            // A node with no connection fails the fetch at once, so it is the last choice.
+            var nodes = Nodes.Snapshot();
+            var configNode = nodes.RandomOrDefault(static x => x.HasKv && x.ConnectionPool.HasConnection())
+                             ?? nodes.RandomOrDefault(static x => x.HasKv);
             if (configNode is not null)
             {
                 try
@@ -421,31 +425,15 @@ namespace Couchbase
                 ConfigSnapshot = new ConfigSnapshot(config, _vBucketKeyMapperFactory.Create(config));
                 await Context.ProcessClusterMapAsync(this, config).ConfigureAwait(false);
 
-                ClearErrors();
-
                 Logger.LogInformation("Bootstrapping: server negotiation completed for {name}.", Redactor.UserData(Name));
             }
-            catch (Exception e)
+            catch (CouchbaseException e) when (e.Context is KeyValueErrorContext {Status: ResponseStatus.NotSupported})
             {
-                if (e is CouchbaseException ce)
-                {
-                    if (ce.Context is KeyValueErrorContext {Status: ResponseStatus.NotSupported})
-                    {
-                        throw new NotSupportedException();
-                    }
-                }
-
-                CaptureException(e);
+                throw new NotSupportedException();
             }
 
-            //this needs to be started after bootstrapping has been attempted
             Bootstrapper.Start(this);
             ConfigRefresher.Start();
-        }
-
-        private void ClearErrors()
-        {
-            ((IBootstrappable)this).DeferredExceptions.Clear();
         }
 
         public override void Dispose()

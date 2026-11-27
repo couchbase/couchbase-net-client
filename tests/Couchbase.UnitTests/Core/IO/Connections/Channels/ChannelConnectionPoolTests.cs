@@ -583,6 +583,78 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.Equal("testing", ex.Message);
         }
 
+        // A pool that has not connected yet has no processor to read its queue. The op must fail at once, so the retry
+        // maps it again on the newest config.
+        [Fact]
+        public async Task SendAsync_PoolNeverConnected_ThrowsAtOnceWithoutQueueing()
+        {
+            // Arrange
+
+            var pool = CreatePool();
+            var operation = new FakeOperation();
+
+            // Act
+
+            await Assert.ThrowsAsync<SocketNotAvailableException>(() => pool.SendAsync(operation));
+
+            // Assert
+
+            Assert.Equal(0, pool.PendingSends);
+            Assert.False(operation.IsSent);
+        }
+
+        // A pool that lost every connection, while its refill loop fails and waits for the next attempt.
+        [Fact]
+        public async Task SendAsync_AllConnectionsGone_ThrowsAtOnceWithoutQueueing()
+        {
+            // Arrange
+
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var connections = new List<ControllableConnection>();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_hostEndpoint, It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    lock (connections)
+                    {
+                        if (connections.Count < 2)
+                        {
+                            var connection = new ControllableConnection();
+                            connections.Add(connection);
+                            return Task.FromResult(connection.Object);
+                        }
+                    }
+
+                    return Task.FromException<IConnection>(new SocketException((int) SocketError.ConnectionRefused));
+                });
+
+            var clock = new TimerRecordingTimeProvider();
+            var pool = CreatePool(connectionFactory: connectionFactory.Object, timeProvider: clock);
+            pool.MinimumSize = 2;
+            pool.MaximumSize = 2;
+            await pool.InitializeAsync().WaitAsync(deadline.Token);
+
+            connections.ForEach(c => c.CloseFromServer());
+            await Task.WhenAll(connections.Select(c => c.CloseCalled)).WaitAsync(deadline.Token);
+            await clock.NextTimerAsync(deadline.Token);
+
+            var operation = new FakeOperation();
+
+            // Act
+
+            await using (await pool.FreezePoolAsync(deadline.Token))
+            {
+                Assert.Equal(0, pool.Size);
+                await Assert.ThrowsAsync<SocketNotAvailableException>(() => pool.SendAsync(operation));
+            }
+
+            // Assert
+
+            Assert.Equal(0, pool.PendingSends);
+            Assert.False(operation.IsSent);
+        }
+
         #endregion
 
         #region Dispose

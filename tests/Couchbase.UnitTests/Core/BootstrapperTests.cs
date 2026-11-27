@@ -135,9 +135,8 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async Task When_Subject_Clears_Its_Own_Failures_This_Attempts_Failure_Survives()
         {
-            // CouchbaseBucket clears DeferredExceptions itself before recording a new failure, so the
-            // stale entries cannot be discarded by position — that would remove this attempt's failure
-            // instead, report success and stop the retry loop.
+            // The subject clears DeferredExceptions before it records a new failure. A removal of stale
+            // entries by position would then remove this attempt's failure and stop the retry loop.
             var clock = new SteppableClock();
             var subject = new ClearingBootstrappable();
 
