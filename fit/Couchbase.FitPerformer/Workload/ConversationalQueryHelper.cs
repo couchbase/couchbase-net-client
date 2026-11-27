@@ -127,20 +127,20 @@ public static class ConversationalQueryHelper
     // Lets one ContentAs switch pick the row type for both query and ask.
     private interface IRowsCall
     {
-        Task<IConversationalQueryResult<T>> RunAsync<T>();
+        Task<IConversationalResult<T>> RunAsync<T>();
     }
 
     private sealed record QueryCall(IConversationalQuery ConversationalQuery, string Prompt,
         IReadOnlyList<ICouchbaseCollection> Keyspaces, ConversationalQueryOptions? Options) : IRowsCall
     {
-        public Task<IConversationalQueryResult<T>> RunAsync<T>() => Options is null
+        public Task<IConversationalResult<T>> RunAsync<T>() => Options is null
             ? ConversationalQuery.QueryAsync<T>(Prompt, Keyspaces)
             : ConversationalQuery.QueryAsync<T>(Prompt, Keyspaces, Options);
     }
 
     private sealed record AskCall(IChat Chat, string Prompt, AskOptions? Options) : IRowsCall
     {
-        public Task<IConversationalQueryResult<T>> RunAsync<T>() => Options is null
+        public Task<IConversationalResult<T>> RunAsync<T>() => Options is null
             ? Chat.AskAsync<T>(Prompt)
             : Chat.AskAsync<T>(Prompt, Options);
     }
@@ -189,7 +189,7 @@ public static class ConversationalQueryHelper
         new() { ContentAsBytes = ByteString.CopyFromUtf8(row.ToString(Formatting.None)) };
 
     private static async Task ReadMetaDataAsync(RunResult result, bool returnResult,
-        Func<Task<ConversationalQueryMetaData>> operation)
+        Func<Task<ConversationalMetaData>> operation)
     {
         var metaData = await Timed(result, operation).ConfigureAwait(false);
         if (returnResult) SetResult(result, new Proto.Result { MetaData = ConvertMetaData(metaData) });
@@ -229,7 +229,7 @@ public static class ConversationalQueryHelper
         return collections;
     }
 
-    private static Proto.ConversationalQueryMetaData ConvertMetaData(ConversationalQueryMetaData metaData)
+    private static Proto.ConversationalQueryMetaData ConvertMetaData(ConversationalMetaData metaData)
     {
         var ret = new Proto.ConversationalQueryMetaData
         {
@@ -381,11 +381,11 @@ public static class ConversationalQueryHelper
         _ => throw new NotSupportedException("Unknown ModelCredential: " + proto.CredentialCase),
     };
 
-    private static ConversationalQueryOutput ConvertOutput(Proto.ConversationalQueryOutput output) => output switch
+    private static ConversationalOutput ConvertOutput(Proto.ConversationalQueryOutput output) => output switch
     {
-        Proto.ConversationalQueryOutput.Sqlpp => ConversationalQueryOutput.Sqlpp,
-        Proto.ConversationalQueryOutput.FtsSqlpp => ConversationalQueryOutput.FtsSqlpp,
-        Proto.ConversationalQueryOutput.JsUdf => ConversationalQueryOutput.JsUdf,
+        Proto.ConversationalQueryOutput.Sqlpp => ConversationalOutput.Sqlpp,
+        Proto.ConversationalQueryOutput.FtsSqlpp => ConversationalOutput.FtsSqlpp,
+        Proto.ConversationalQueryOutput.JsUdf => ConversationalOutput.JsUdf,
         _ => throw new NotSupportedException("Unknown ConversationalQueryOutput: " + output),
     };
 }
