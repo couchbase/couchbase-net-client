@@ -17,7 +17,7 @@ internal sealed class ConversationalQuery : IConversationalQuery
         _context = context;
     }
 
-    public async Task<IConversationalQueryResult<T>> QueryAsync<T>(string prompt,
+    public async Task<IConversationalResult<T>> QueryAsync<T>(string prompt,
         IEnumerable<ICouchbaseCollection> keyspaces, ConversationalQueryOptions? options = null)
     {
         options ??= new ConversationalQueryOptions();
@@ -66,7 +66,7 @@ internal sealed class ConversationalQuery : IConversationalQuery
     }
 
     // Every request sends a copy of the user options, so the options can be reused.
-    internal static async Task<ConversationalQueryResult<T>> SendAsync<T>(IConversationalQueryContext context,
+    internal static async Task<ConversationalResult<T>> SendAsync<T>(IConversationalQueryContext context,
         string statement, QueryOptions template, ConversationalRequest request)
     {
         var options = template.Clone();
@@ -77,7 +77,7 @@ internal sealed class ConversationalQuery : IConversationalQuery
             options.Readonly(true);
         }
 
-        return new ConversationalQueryResult<T>(await context.QueryAsync<T>(statement, options).ConfigureAwait(false));
+        return new ConversationalResult<T>(await context.QueryAsync<T>(statement, options).ConfigureAwait(false));
     }
 
     internal static void ThrowIfChatsUnavailable(IConversationalQueryContext context)

@@ -34,7 +34,7 @@ public class ChatTests
         using var result = await chat.AskAsync<dynamic>("and in Paris?", new AskOptions()
             .Hint("use city")
             .Execute(false)
-            .Output(ConversationalQueryOutput.FtsSqlpp)
+            .Output(ConversationalOutput.FtsSqlpp)
             .ClientContextId("ctx-1")
             .Metrics(true)
             .Timeout(TimeSpan.FromSeconds(30))

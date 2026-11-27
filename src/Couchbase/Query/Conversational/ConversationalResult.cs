@@ -5,16 +5,16 @@ using System.Threading;
 
 namespace Couchbase.Query.Conversational;
 
-internal sealed class ConversationalQueryResult<T> : IConversationalQueryResult<T>
+internal sealed class ConversationalResult<T> : IConversationalResult<T>
 {
     private readonly IQueryResult<T> _result;
     private readonly NaturalLanguageResponse? _naturalLanguage;
 
-    public ConversationalQueryResult(IQueryResult<T> result)
+    public ConversationalResult(IQueryResult<T> result)
     {
         _result = result;
         _naturalLanguage = (result as QueryResultBase<T>)?.NaturalLanguage;
-        MetaData = new ConversationalQueryMetaData(result.MetaData, _naturalLanguage);
+        MetaData = new ConversationalMetaData(result.MetaData, _naturalLanguage);
     }
 
     internal string? ChatId => _naturalLanguage?.ChatId;
@@ -23,7 +23,7 @@ internal sealed class ConversationalQueryResult<T> : IConversationalQueryResult<
 
     public string? GeneratedStatement => _naturalLanguage?.GeneratedStatement;
 
-    public ConversationalQueryMetaData MetaData { get; }
+    public ConversationalMetaData MetaData { get; }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
         _result.GetAsyncEnumerator(cancellationToken);

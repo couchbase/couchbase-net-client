@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Couchbase.Core.Compatibility;
 
 #nullable enable
@@ -5,25 +7,27 @@ using Couchbase.Core.Compatibility;
 namespace Couchbase.Query.Conversational;
 
 /// <summary>
-/// The kind of statement the model generates from a prompt.
+/// The result of a conversational query or of a chat prompt.
 /// </summary>
+/// <typeparam name="T">The type of each row.</typeparam>
 [InterfaceStability(Level.Volatile)]
-public enum ConversationalQueryOutput
+public interface IConversationalResult<out T> : IDisposable, IAsyncEnumerable<T>
 {
     /// <summary>
-    /// A SQL++ statement.
+    /// The rows of the generated statement. It is empty when the statement did not run.
     /// </summary>
-    Sqlpp,
+    /// <remarks>The rows can be read only once.</remarks>
+    IAsyncEnumerable<T> Rows { get; }
 
     /// <summary>
-    /// A SQL++ statement that uses Full Text Search.
+    /// The statement the model generated, if any. It is available before the rows are read.
     /// </summary>
-    FtsSqlpp,
+    string? GeneratedStatement { get; }
 
     /// <summary>
-    /// A JavaScript user defined function.
+    /// The metadata of the response. The metrics are complete only after the rows are read.
     /// </summary>
-    JsUdf
+    ConversationalMetaData MetaData { get; }
 }
 
 

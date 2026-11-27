@@ -27,7 +27,7 @@ internal sealed class Chat : IChat
         _model = model;
     }
 
-    public async Task<IConversationalQueryResult<T>> AskAsync<T>(string prompt, AskOptions? options = null)
+    public async Task<IConversationalResult<T>> AskAsync<T>(string prompt, AskOptions? options = null)
     {
         options ??= new AskOptions();
         var statement = ConversationalStatements.ChatTurn(prompt, options.HintValue, options.ExecuteValue,
@@ -38,7 +38,7 @@ internal sealed class Chat : IChat
             new ConversationalRequest(ConversationalOperation.Ask, _chatId, owner, _model)).ConfigureAwait(false);
     }
 
-    public async Task<ConversationalQueryMetaData> PauseAsync(PauseOptions? options = null)
+    public async Task<ConversationalMetaData> PauseAsync(PauseOptions? options = null)
     {
         options ??= new PauseOptions();
         var owner = GetOwnerOrThrow(ConversationalOperation.Pause);
@@ -53,7 +53,7 @@ internal sealed class Chat : IChat
         return metaData;
     }
 
-    public async Task<ConversationalQueryMetaData> ResumeAsync(ResumeOptions? options = null)
+    public async Task<ConversationalMetaData> ResumeAsync(ResumeOptions? options = null)
     {
         options ??= new ResumeOptions();
         ThrowIfClosed();
@@ -90,7 +90,7 @@ internal sealed class Chat : IChat
         }
     }
 
-    public async Task<ConversationalQueryMetaData> EndAsync(EndOptions? options = null)
+    public async Task<ConversationalMetaData> EndAsync(EndOptions? options = null)
     {
         options ??= new EndOptions();
         var owner = GetOwnerOrThrow(ConversationalOperation.End);
@@ -109,7 +109,7 @@ internal sealed class Chat : IChat
     }
 
     // Lifecycle responses have no rows, so the result is disposed here.
-    private async Task<ConversationalQueryMetaData> SendAsync(string statement, QueryOptions template,
+    private async Task<ConversationalMetaData> SendAsync(string statement, QueryOptions template,
         ConversationalRequest request)
     {
         using var result = await ConversationalQuery.SendAsync<object>(_context, statement, template, request)

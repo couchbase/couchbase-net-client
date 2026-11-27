@@ -24,7 +24,7 @@ public class ConversationalStatementsTests
     public void UsingAi_AllFields_KeepsFieldOrder()
     {
         var statement = ConversationalStatements.UsingAi("list hotels", Hotel, knowledge: true,
-            hint: "use the city field", execute: false, output: ConversationalQueryOutput.FtsSqlpp);
+            hint: "use the city field", execute: false, output: ConversationalOutput.FtsSqlpp);
 
         Assert.Equal(
             "USING AI WITH {" + HotelJson +
@@ -68,10 +68,10 @@ public class ConversationalStatementsTests
     }
 
     [Theory]
-    [InlineData(ConversationalQueryOutput.Sqlpp, "SQL")]
-    [InlineData(ConversationalQueryOutput.FtsSqlpp, "FTSSQL")]
-    [InlineData(ConversationalQueryOutput.JsUdf, "JSUDF")]
-    public void UsingAi_MapsOutput(ConversationalQueryOutput output, string expected)
+    [InlineData(ConversationalOutput.Sqlpp, "SQL")]
+    [InlineData(ConversationalOutput.FtsSqlpp, "FTSSQL")]
+    [InlineData(ConversationalOutput.JsUdf, "JSUDF")]
+    public void UsingAi_MapsOutput(ConversationalOutput output, string expected)
     {
         Assert.Equal("USING AI WITH {" + HotelJson + ",\"output\":\"" + expected + "\"} list hotels",
             ConversationalStatements.UsingAi("list hotels", Hotel, output: output));
@@ -81,7 +81,7 @@ public class ConversationalStatementsTests
     public void UsingAi_UnknownOutput_Throws()
     {
         Assert.Throws<InvalidArgumentException>(() =>
-            ConversationalStatements.UsingAi("list hotels", Hotel, output: (ConversationalQueryOutput)42));
+            ConversationalStatements.UsingAi("list hotels", Hotel, output: (ConversationalOutput)42));
     }
 
     [Theory]
@@ -131,7 +131,7 @@ public class ConversationalStatementsTests
         Assert.Equal(
             "USING AI WITH {\"hint\":\"cheap ones\",\"execute\":true,\"output\":\"JSUDF\"} and in Lyon?",
             ConversationalStatements.ChatTurn("and in Lyon?", hint: "cheap ones", execute: true,
-                output: ConversationalQueryOutput.JsUdf));
+                output: ConversationalOutput.JsUdf));
     }
 
     [Fact]

@@ -27,21 +27,21 @@ public interface IChat
     /// <param name="options">Optional arguments.</param>
     /// <returns>The generated statement and the rows, if the statement ran.</returns>
     /// <exception cref="InvalidArgumentException">The prompt is empty.</exception>
-    Task<IConversationalQueryResult<T>> AskAsync<T>(string prompt, AskOptions? options = null);
+    Task<IConversationalResult<T>> AskAsync<T>(string prompt, AskOptions? options = null);
 
     /// <summary>
     /// Saves the chat and removes it from its Query node. <see cref="ResumeAsync"/> can restore it on any Query node.
     /// </summary>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The metadata of the response.</returns>
-    Task<ConversationalQueryMetaData> PauseAsync(PauseOptions? options = null);
+    Task<ConversationalMetaData> PauseAsync(PauseOptions? options = null);
 
     /// <summary>
     /// Restores a paused chat. It goes to the known owner if it is in the cluster map, otherwise to a random Query node.
     /// </summary>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The metadata of the response.</returns>
-    Task<ConversationalQueryMetaData> ResumeAsync(ResumeOptions? options = null);
+    Task<ConversationalMetaData> ResumeAsync(ResumeOptions? options = null);
 
     /// <summary>
     /// Ends the chat. After it succeeds, this instance cannot be used.
@@ -49,7 +49,7 @@ public interface IChat
     /// </summary>
     /// <param name="options">Optional arguments.</param>
     /// <returns>The metadata of the response.</returns>
-    Task<ConversationalQueryMetaData> EndAsync(EndOptions? options = null);
+    Task<ConversationalMetaData> EndAsync(EndOptions? options = null);
 
     /// <summary>
     /// Returns a snapshot of the chat ID and the owner node, to continue the chat with <see cref="IConversationalQuery.AttachChat"/>.

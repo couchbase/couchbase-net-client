@@ -34,7 +34,7 @@ public class ConversationalQueryTests
             .Credential(ModelCredential.ApiKey("sk-test"))
             .Hint("use country")
             .Execute(false)
-            .Output(ConversationalQueryOutput.Sqlpp)
+            .Output(ConversationalOutput.Sqlpp)
             .UseKnowledge(true));
 
         var request = Assert.Single(context.Requests);
@@ -279,7 +279,7 @@ public class ConversationalQueryTests
     [Fact]
     public void MetaData_NewInstance_IsEmpty()
     {
-        var metaData = new ConversationalQueryMetaData();
+        var metaData = new ConversationalMetaData();
 
         Assert.Equal(string.Empty, metaData.RequestId);
         Assert.Equal(string.Empty, metaData.ClientContextId);
@@ -300,7 +300,7 @@ public class ConversationalQueryTests
         var requestTokens = new TokenUsage { TotalTokens = 843 };
         var chatTokens = new TokenUsage { TotalTokens = 1630 };
 
-        var metaData = new ConversationalQueryMetaData
+        var metaData = new ConversationalMetaData
         {
             RequestId = "r-1",
             ClientContextId = "ctx-1",

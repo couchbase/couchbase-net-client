@@ -20,7 +20,7 @@ public sealed class AskOptions
 
     internal bool? ExecuteValue { get; private set; }
 
-    internal ConversationalQueryOutput? OutputValue { get; private set; }
+    internal ConversationalOutput? OutputValue { get; private set; }
 
     /// <summary>
     /// Gives the model extra context for this prompt. An empty value leaves it unset.
@@ -49,7 +49,7 @@ public sealed class AskOptions
     /// </summary>
     /// <param name="output">The kind of statement.</param>
     /// <returns>An <see cref="AskOptions"/> instance for chaining.</returns>
-    public AskOptions Output(ConversationalQueryOutput output)
+    public AskOptions Output(ConversationalOutput output)
     {
         OutputValue = output;
         return this;

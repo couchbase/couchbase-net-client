@@ -27,14 +27,14 @@ internal static class ConversationalStatements
 
     // Knowledge is sent only when set, because Query 8.0 rejects unknown WITH keys.
     public static string UsingAi(string prompt, IEnumerable<(string Bucket, string Scope, string Collection)> keyspaces,
-        bool? knowledge = null, string? hint = null, bool? execute = null, ConversationalQueryOutput? output = null)
+        bool? knowledge = null, string? hint = null, bool? execute = null, ConversationalOutput? output = null)
     {
         ThrowIfNoPrompt(prompt);
         return $"USING AI WITH {WriteWith(keyspaces, knowledge, hint, execute, output)} {prompt}";
     }
 
     public static string ChatTurn(string prompt, string? hint = null, bool? execute = null,
-        ConversationalQueryOutput? output = null)
+        ConversationalOutput? output = null)
     {
         ThrowIfNoPrompt(prompt);
         return $"USING AI WITH {WriteWith(hint: hint, execute: execute, output: output)} {prompt}";
@@ -63,7 +63,7 @@ internal static class ConversationalStatements
         summarize is null ? "PAUSE CHAT" : "PAUSE CHAT WITH " + WriteWith(summarize: summarize);
 
     private static string WriteWith(IEnumerable<(string Bucket, string Scope, string Collection)>? keyspaces = null,
-        bool? knowledge = null, string? hint = null, bool? execute = null, ConversationalQueryOutput? output = null,
+        bool? knowledge = null, string? hint = null, bool? execute = null, ConversationalOutput? output = null,
         long? timeoutSeconds = null, bool? summarize = null)
     {
         using var stream = new MemoryStream();
@@ -130,11 +130,11 @@ internal static class ConversationalStatements
         return Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
     }
 
-    private static string ToWireValue(ConversationalQueryOutput output) => output switch
+    private static string ToWireValue(ConversationalOutput output) => output switch
     {
-        ConversationalQueryOutput.Sqlpp => "SQL",
-        ConversationalQueryOutput.FtsSqlpp => "FTSSQL",
-        ConversationalQueryOutput.JsUdf => "JSUDF",
+        ConversationalOutput.Sqlpp => "SQL",
+        ConversationalOutput.FtsSqlpp => "FTSSQL",
+        ConversationalOutput.JsUdf => "JSUDF",
         _ => throw new InvalidArgumentException($"Unknown conversational query output {output}.")
     };
 

@@ -10,7 +10,7 @@ namespace Couchbase.Query.Conversational;
 /// The metadata of a conversational query or chat response.
 /// </summary>
 [InterfaceStability(Level.Volatile)]
-public sealed class ConversationalQueryMetaData
+public sealed class ConversationalMetaData
 {
     // Reads through, so streamed metrics show up once the rows are read.
     private readonly QueryMetaData _metaData;
@@ -19,12 +19,12 @@ public sealed class ConversationalQueryMetaData
     /// <summary>
     /// Creates empty metadata, for example to return from a fake <see cref="IChat"/> in tests.
     /// </summary>
-    public ConversationalQueryMetaData()
+    public ConversationalMetaData()
         : this(null, null)
     {
     }
 
-    internal ConversationalQueryMetaData(QueryMetaData? metaData, NaturalLanguageResponse? naturalLanguage)
+    internal ConversationalMetaData(QueryMetaData? metaData, NaturalLanguageResponse? naturalLanguage)
     {
         _metaData = metaData ?? new QueryMetaData { Metrics = null };
         _naturalLanguage = naturalLanguage ?? new NaturalLanguageResponse();

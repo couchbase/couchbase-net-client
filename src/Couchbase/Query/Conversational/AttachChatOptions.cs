@@ -7,6 +7,11 @@ namespace Couchbase.Query.Conversational;
 /// <summary>
 /// Optional arguments for <see cref="IConversationalQuery.AttachChat"/>.
 /// </summary>
+/// <remarks>
+/// A <see cref="ChatHandle"/> does not keep the model or the credential, so set them again here.
+/// Without them a later ask or summarizing pause can fail. With a Capella credential, Query can reuse the
+/// provider and model the chat used before when both are left out.
+/// </remarks>
 [InterfaceStability(Level.Volatile)]
 public sealed class AttachChatOptions
 {

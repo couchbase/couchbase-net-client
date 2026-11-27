@@ -24,7 +24,7 @@ public sealed class ConversationalQueryOptions
 
     internal bool? ExecuteValue { get; private set; }
 
-    internal ConversationalQueryOutput? OutputValue { get; private set; }
+    internal ConversationalOutput? OutputValue { get; private set; }
 
     internal bool? UseKnowledgeValue { get; private set; }
 
@@ -77,7 +77,7 @@ public sealed class ConversationalQueryOptions
     /// </summary>
     /// <param name="output">The kind of statement.</param>
     /// <returns>A <see cref="ConversationalQueryOptions"/> instance for chaining.</returns>
-    public ConversationalQueryOptions Output(ConversationalQueryOutput output)
+    public ConversationalQueryOptions Output(ConversationalOutput output)
     {
         OutputValue = output;
         return this;

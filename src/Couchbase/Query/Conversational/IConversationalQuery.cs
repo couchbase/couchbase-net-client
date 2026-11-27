@@ -24,7 +24,7 @@ public interface IConversationalQuery
     /// <param name="options">Optional arguments.</param>
     /// <returns>The generated statement and the rows, if the statement ran.</returns>
     /// <exception cref="InvalidArgumentException">The prompt or the keyspace list is empty.</exception>
-    Task<IConversationalQueryResult<T>> QueryAsync<T>(string prompt, IEnumerable<ICouchbaseCollection> keyspaces,
+    Task<IConversationalResult<T>> QueryAsync<T>(string prompt, IEnumerable<ICouchbaseCollection> keyspaces,
         ConversationalQueryOptions? options = null);
 
     /// <summary>

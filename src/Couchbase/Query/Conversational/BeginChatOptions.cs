@@ -48,6 +48,7 @@ public sealed class BeginChatOptions
 
     /// <summary>
     /// Sets how long the chat can stay idle before Query ends it. It is sent in whole seconds, rounded up.
+    /// Query currently uses one hour by default and rejects less than one hour with error 19246.
     /// </summary>
     /// <param name="inactivityTimeout">The idle time. Zero leaves the Query default.</param>
     /// <returns>A <see cref="BeginChatOptions"/> instance for chaining.</returns>
